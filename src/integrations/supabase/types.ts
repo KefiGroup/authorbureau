@@ -50,6 +50,238 @@ export type Database = {
         }
         Relationships: []
       }
+      author_profiles: {
+        Row: {
+          availability_notes: string | null
+          bio_long: string | null
+          bio_short: string | null
+          cover_photo_url: string | null
+          created_at: string
+          credentials: Json | null
+          genres: string[] | null
+          id: string
+          instagram_url: string | null
+          is_speaker: boolean | null
+          linkedin_url: string | null
+          location_city: string | null
+          location_country: string | null
+          pen_name: string | null
+          photo_url: string | null
+          speaker_fee_range: string | null
+          tagline: string | null
+          twitter_url: string | null
+          updated_at: string
+          user_id: string
+          website_url: string | null
+          youtube_url: string | null
+        }
+        Insert: {
+          availability_notes?: string | null
+          bio_long?: string | null
+          bio_short?: string | null
+          cover_photo_url?: string | null
+          created_at?: string
+          credentials?: Json | null
+          genres?: string[] | null
+          id?: string
+          instagram_url?: string | null
+          is_speaker?: boolean | null
+          linkedin_url?: string | null
+          location_city?: string | null
+          location_country?: string | null
+          pen_name?: string | null
+          photo_url?: string | null
+          speaker_fee_range?: string | null
+          tagline?: string | null
+          twitter_url?: string | null
+          updated_at?: string
+          user_id: string
+          website_url?: string | null
+          youtube_url?: string | null
+        }
+        Update: {
+          availability_notes?: string | null
+          bio_long?: string | null
+          bio_short?: string | null
+          cover_photo_url?: string | null
+          created_at?: string
+          credentials?: Json | null
+          genres?: string[] | null
+          id?: string
+          instagram_url?: string | null
+          is_speaker?: boolean | null
+          linkedin_url?: string | null
+          location_city?: string | null
+          location_country?: string | null
+          pen_name?: string | null
+          photo_url?: string | null
+          speaker_fee_range?: string | null
+          tagline?: string | null
+          twitter_url?: string | null
+          updated_at?: string
+          user_id?: string
+          website_url?: string | null
+          youtube_url?: string | null
+        }
+        Relationships: []
+      }
+      coaching_packages: {
+        Row: {
+          author_id: string
+          created_at: string
+          currency: string | null
+          description: string | null
+          duration_minutes: number | null
+          id: string
+          price: number
+          sessions_count: number | null
+          status: string
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          price?: number
+          sessions_count?: number | null
+          status?: string
+          title: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          price?: number
+          sessions_count?: number | null
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      course_lessons: {
+        Row: {
+          content: string | null
+          created_at: string
+          id: string
+          module_id: string
+          position: number
+          title: string
+          video_url: string | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          module_id: string
+          position?: number
+          title: string
+          video_url?: string | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          module_id?: string
+          position?: number
+          title?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_lessons_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "course_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      course_modules: {
+        Row: {
+          course_id: string
+          created_at: string
+          description: string | null
+          id: string
+          position: number
+          title: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          position?: number
+          title: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          position?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_modules_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courses: {
+        Row: {
+          author_id: string
+          cover_image_url: string | null
+          created_at: string
+          currency: string | null
+          description: string | null
+          id: string
+          price: number | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          cover_image_url?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          id?: string
+          price?: number | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          cover_image_url?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          id?: string
+          price?: number | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -110,6 +342,42 @@ export type Database = {
           phone?: string | null
           service_type?: string
           status?: string
+        }
+        Relationships: []
+      }
+      speaking_topics: {
+        Row: {
+          author_id: string
+          created_at: string
+          description: string | null
+          duration_minutes: number | null
+          fee: number | null
+          fee_currency: string | null
+          id: string
+          status: string
+          title: string
+        }
+        Insert: {
+          author_id: string
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
+          fee?: number | null
+          fee_currency?: string | null
+          id?: string
+          status?: string
+          title: string
+        }
+        Update: {
+          author_id?: string
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
+          fee?: number | null
+          fee_currency?: string | null
+          id?: string
+          status?: string
+          title?: string
         }
         Relationships: []
       }
