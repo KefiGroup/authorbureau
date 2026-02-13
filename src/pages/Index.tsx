@@ -9,6 +9,7 @@ import heroBg from "@/assets/hero-bg.jpg";
 
 import paulinePhoto from "@/assets/pauline-teo-headshot.jpg";
 import bobPhoto from "@/assets/bob-battista-headshot.jpg";
+import feliciaPhoto from "@/assets/felicia-tan.png";
 import besuckcessfulCover from "@/assets/besuckcessful-cover.jpg";
 import hiCover from "@/assets/hemispheric-intelligence-cover.png";
 import viWomenCover from "@/assets/value-investing-women-cover.png";
@@ -17,6 +18,7 @@ import investBuffettCover from "@/assets/invest-like-buffett-cover.jpg";
 const photoMap: Record<string, string> = {
   "pauline-teo": paulinePhoto,
   "robert-battista": bobPhoto,
+  "felicia-tan": feliciaPhoto,
 };
 
 const coverMap: Record<string, string> = {
@@ -117,7 +119,7 @@ export default function Index() {
             </motion.h2>
           </motion.div>
 
-          <div className="grid gap-8 md:grid-cols-2">
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
             {authors.map((author, i) => (
               <motion.div
                 key={author.slug}
