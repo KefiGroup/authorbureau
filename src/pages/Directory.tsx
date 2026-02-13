@@ -9,8 +9,8 @@ import BadgeDisplay from "@/components/BadgeDisplay";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
-import paulinePhoto from "@/assets/pauline-teo.jpeg";
-import bobPhoto from "@/assets/bob-battista.jpg";
+import paulinePhoto from "@/assets/pauline-teo-headshot.jpg";
+import bobPhoto from "@/assets/bob-battista-headshot.jpg";
 import feliciaPhoto from "@/assets/felicia-tan.png";
 
 const photoMap: Record<string, string> = {
@@ -120,7 +120,7 @@ export default function Directory() {
                         <img
                           src={photoMap[author.slug]}
                           alt={author.name}
-                          className="w-full h-full object-cover object-[center_20%] group-hover:scale-105 transition-transform duration-500"
+                          className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
                         />
                         <div className="absolute top-3 right-3">
                           <BadgeDisplay level={author.badge} size="sm" />
