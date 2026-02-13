@@ -7,9 +7,9 @@ import logoIcon from "@/assets/logo-icon.png";
 
 const navLinks = [
   { label: "Home", to: "/", hash: "" },
-  { label: "Featured Authors", to: "/", hash: "#featured-authors" },
+  { label: "Meet the Founder", to: "/", hash: "#meet-the-founder" },
+  { label: "Meet our Authors", to: "/", hash: "#featured-authors" },
   { label: "How It Works", to: "/", hash: "#how-it-works" },
-  
   { label: "Authors", to: "/directory", hash: "" },
   { label: "Join", to: "/join", hash: "" },
 ];

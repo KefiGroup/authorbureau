@@ -104,6 +104,117 @@ export default function Index() {
         </div>
       </section>
 
+      {/* Meet the Founder */}
+      <section id="meet-the-founder" className="py-24">
+        <div className="container">
+          <div className="grid gap-12 lg:grid-cols-2 items-center">
+            {/* Photo */}
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              custom={0}
+              variants={fadeUp}
+              className="relative"
+            >
+              <div className="rounded-2xl overflow-hidden bg-muted/30 shadow-lg">
+                <img
+                  src={paulineFullPhoto}
+                  alt="Pauline Teo — Founder of Authors Bureau"
+                  className="w-full object-cover"
+                  style={{ maxHeight: '600px' }}
+                />
+              </div>
+              <div className="absolute top-4 right-4">
+                <BadgeDisplay level="publishnow-verified" size="sm" />
+              </div>
+            </motion.div>
+
+            {/* Content */}
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+            >
+              <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
+                Meet the Founder
+              </motion.p>
+              <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-4xl mb-6">
+                Built by an Author, <span className="italic text-secondary">for Authors</span>
+              </motion.h2>
+              <motion.p variants={fadeUp} custom={2} className="text-muted-foreground leading-relaxed mb-8">
+                AuthorsBureau.com was founded by <strong className="text-foreground">Pauline Teo</strong>, an international bestselling author and entrepreneur with over 25 years of experience in Learning & Development. She built this platform because she knows firsthand what authors need to turn their books into thriving businesses.
+              </motion.p>
+
+              <div className="space-y-5 mb-8">
+                {[
+                  {
+                    icon: Award,
+                    title: "International Bestselling Author",
+                    desc: 'Author of "Be SUCKcessful" — Amazon Bestseller in Self-Help, Business Motivation & Personal Finance',
+                  },
+                  {
+                    icon: Building2,
+                    title: "Built the Largest Financial Education Company in SG & MY",
+                    desc: "Former Executive Director — Led startup to ASX listing (ASX:8I, 2014), oversaw spin-off to second ASX listing (ASX:8VI, 2018)",
+                  },
+                  {
+                    icon: GraduationCap,
+                    title: "25+ Years in Learning & Development",
+                    desc: "Masters in Instructional Design & Technology, NTU Singapore — Mentored 10,000+ students",
+                  },
+                  {
+                    icon: Mic,
+                    title: "Recognized Speaker & Entrepreneur",
+                    desc: "Prominent female speaker in the investing sector — Entrepreneur since 2011",
+                  },
+                ].map((item, i) => (
+                  <motion.div
+                    key={item.title}
+                    variants={fadeUp}
+                    custom={i + 3}
+                    className="flex gap-4 items-start border-b border-border/50 pb-4 last:border-0"
+                  >
+                    <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center">
+                      <item.icon className="h-5 w-5 text-secondary" />
+                    </div>
+                    <div>
+                      <h4 className="font-heading font-bold text-sm italic">{item.title}</h4>
+                      <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+
+              <motion.div variants={fadeUp} custom={7} className="flex items-center gap-5 mb-6 text-sm text-muted-foreground">
+                <div className="flex items-center gap-1.5">
+                  <BookOpen className="h-4 w-4 text-secondary" />
+                  <span className="font-semibold text-foreground">3</span> Books
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Mic className="h-4 w-4 text-secondary" />
+                  Speaker
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <MapPin className="h-4 w-4 text-secondary" />
+                  Singapore
+                </div>
+              </motion.div>
+
+              <motion.div variants={fadeUp} custom={8}>
+                <Button
+                  asChild
+                  size="lg"
+                  className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold shadow-none rounded-full"
+                >
+                  <Link to="/authors/pauline-teo">View Full Profile</Link>
+                </Button>
+              </motion.div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
       {/* Featured Authors */}
       <section id="featured-authors" className="py-24">
         <div className="container">
@@ -245,200 +356,51 @@ export default function Index() {
               </motion.div>
             ))}
           </div>
-        </div>
-      </section>
 
-      {/* The 4-Step Model */}
-      <section className="border-y border-border bg-primary py-24 text-primary-foreground">
-        <div className="container">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            className="mb-16 text-center"
-          >
-            <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
-              Author Monetization
-            </motion.p>
-            <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-4xl">
-              Turn Your Book Into a Business
-            </motion.h2>
-            <motion.p variants={fadeUp} custom={2} className="mt-4 text-lg text-primary-foreground/70">
-              All managed in one place.
-            </motion.p>
-          </motion.div>
-
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { step: "1", title: "Digital Products", desc: "Courses, workbooks, audiobooks, and memberships powered by your book content." },
-              { step: "2", title: "Coaching", desc: "1-on-1 and group coaching packages with built-in scheduling and payments." },
-              { step: "3", title: "Speaking", desc: "Speaker profile, keynote topics, and booking calendar for events and podcasts." },
-              { step: "4", title: "Events", desc: "Retreats, masterminds, certifications, and conferences." },
-            ].map((item, i) => (
-              <motion.div
-                key={item.step}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                custom={i}
-                variants={fadeUp}
-                className="rounded-xl border border-primary-foreground/10 bg-primary-foreground/5 p-6"
-              >
-                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-secondary font-heading text-lg font-bold text-secondary-foreground">
-                  {item.step}
-                </div>
-                <h3 className="mb-2 font-heading text-lg font-bold">{item.title}</h3>
-                <p className="text-sm text-primary-foreground/70">{item.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Meet the Founder */}
-      <section className="py-24">
-        <div className="container">
-          <div className="grid gap-12 lg:grid-cols-2 items-center">
-            {/* Photo */}
+          {/* The 4-Step Model - Author Monetization */}
+          <div className="mt-16 border-t border-border pt-16">
             <motion.div
               initial="hidden"
               whileInView="visible"
-              viewport={{ once: true }}
-              custom={0}
-              variants={fadeUp}
-              className="relative"
-            >
-              <div className="rounded-2xl overflow-hidden bg-muted/30 shadow-lg">
-                <img
-                  src={paulineFullPhoto}
-                  alt="Pauline Teo — Founder of Authors Bureau"
-                  className="w-full object-cover"
-                  style={{ maxHeight: '600px' }}
-                />
-              </div>
-              <div className="absolute top-4 right-4">
-                <BadgeDisplay level="publishnow-verified" size="sm" />
-              </div>
-            </motion.div>
-
-            {/* Content */}
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
+              viewport={{ once: true, margin: "-100px" }}
+              className="mb-16 text-center"
             >
               <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
-                Meet the Founder
+                Author Monetization
               </motion.p>
-              <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-4xl mb-6">
-                Built by an Author, <span className="italic text-secondary">for Authors</span>
-              </motion.h2>
-              <motion.p variants={fadeUp} custom={2} className="text-muted-foreground leading-relaxed mb-8">
-                AuthorsBureau.com was founded by <strong className="text-foreground">Pauline Teo</strong>, an international bestselling author and entrepreneur with over 25 years of experience in Learning & Development. She built this platform because she knows firsthand what authors need to turn their books into thriving businesses.
+              <motion.h3 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-4xl">
+                Turn Your Book Into a Business
+              </motion.h3>
+              <motion.p variants={fadeUp} custom={2} className="mt-4 text-lg text-muted-foreground">
+                All managed in one place.
               </motion.p>
+            </motion.div>
 
-              <div className="space-y-5 mb-8">
-                {[
-                  {
-                    icon: Award,
-                    title: "International Bestselling Author",
-                    desc: 'Author of "Be SUCKcessful" — Amazon Bestseller in Self-Help, Business Motivation & Personal Finance',
-                  },
-                  {
-                    icon: Building2,
-                    title: "Built the Largest Financial Education Company in SG & MY",
-                    desc: "Former Executive Director — Led startup to ASX listing (ASX:8I, 2014), oversaw spin-off to second ASX listing (ASX:8VI, 2018)",
-                  },
-                  {
-                    icon: GraduationCap,
-                    title: "25+ Years in Learning & Development",
-                    desc: "Masters in Instructional Design & Technology, NTU Singapore — Mentored 10,000+ students",
-                  },
-                  {
-                    icon: Mic,
-                    title: "Recognized Speaker & Entrepreneur",
-                    desc: "Prominent female speaker in the investing sector — Entrepreneur since 2011",
-                  },
-                ].map((item, i) => (
-                  <motion.div
-                    key={item.title}
-                    variants={fadeUp}
-                    custom={i + 3}
-                    className="flex gap-4 items-start border-b border-border/50 pb-4 last:border-0"
-                  >
-                    <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center">
-                      <item.icon className="h-5 w-5 text-secondary" />
-                    </div>
-                    <div>
-                      <h4 className="font-heading font-bold text-sm italic">{item.title}</h4>
-                      <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-
-              <motion.div variants={fadeUp} custom={7} className="flex items-center gap-5 mb-6 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1.5">
-                  <BookOpen className="h-4 w-4 text-secondary" />
-                  <span className="font-semibold text-foreground">3</span> Books
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Mic className="h-4 w-4 text-secondary" />
-                  Speaker
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <MapPin className="h-4 w-4 text-secondary" />
-                  Singapore
-                </div>
-              </motion.div>
-
-              <motion.div variants={fadeUp} custom={8}>
-                <Button
-                  asChild
-                  size="lg"
-                  className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold shadow-none rounded-full"
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                { step: "1", title: "Digital Products", desc: "Courses, workbooks, audiobooks, and memberships powered by your book content." },
+                { step: "2", title: "Coaching", desc: "1-on-1 and group coaching packages with built-in scheduling and payments." },
+                { step: "3", title: "Speaking", desc: "Speaker profile, keynote topics, and booking calendar for events and podcasts." },
+                { step: "4", title: "Events", desc: "Retreats, masterminds, certifications, and conferences." },
+              ].map((item, i) => (
+                <motion.div
+                  key={item.step}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true }}
+                  custom={i}
+                  variants={fadeUp}
+                  className="rounded-xl border border-border bg-muted/50 p-6"
                 >
-                  <Link to="/authors/pauline-teo">
-                    View Full Profile <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-              </motion.div>
-            </motion.div>
+                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-secondary/10 font-heading text-lg font-bold text-secondary">
+                    {item.step}
+                  </div>
+                  <h3 className="mb-2 font-heading text-lg font-bold">{item.title}</h3>
+                  <p className="text-sm text-muted-foreground">{item.desc}</p>
+                </motion.div>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="py-24">
-        <div className="container">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            className="rounded-2xl border border-border bg-card p-12 text-center shadow-[var(--shadow-card)]"
-          >
-            <motion.h2 variants={fadeUp} custom={0} className="mb-4 font-heading text-3xl font-bold md:text-4xl">
-              Published Author? Get Featured for Free.
-            </motion.h2>
-            <motion.p variants={fadeUp} custom={1} className="mx-auto mb-8 max-w-lg text-muted-foreground">
-              Already have a book on Amazon? Apply for your free author showcase and start reaching new readers today.
-            </motion.p>
-            <motion.div variants={fadeUp} custom={2} className="flex flex-wrap justify-center gap-4">
-              <Button
-                asChild
-                size="lg"
-                className="bg-secondary text-secondary-foreground hover:bg-secondary/90 text-base font-semibold shadow-none"
-              >
-                <Link to="/join">Get Your Free Showcase</Link>
-              </Button>
-            </motion.div>
-            <motion.p variants={fadeUp} custom={3} className="mt-6 text-sm text-muted-foreground">
-              Not published yet?{" "}
-              <a href="https://publishnow.io" target="_blank" rel="noopener noreferrer" className="font-medium text-secondary hover:underline">
-                Publish your book with PublishNow.io →
-              </a>
-            </motion.p>
-          </motion.div>
         </div>
       </section>
 
