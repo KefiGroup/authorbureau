@@ -29,7 +29,7 @@ export interface Author {
   websiteUrl?: string;
   linkedinUrl?: string;
   amazonAuthorUrl?: string;
-  email?: string;
+  
   badge: "listed" | "verified" | "featured" | "ab-verified";
   services: string[];
 }
@@ -93,7 +93,7 @@ export const authors: Author[] = [
     websiteUrl: "https://www.paulineteo.com/",
     linkedinUrl: "https://www.linkedin.com/in/paulineteo/",
     amazonAuthorUrl: "https://www.amazon.com/stores/Pauline-Teo/author/B0G9VQKXS2",
-    email: "pl@paulineteo.com",
+    
     badge: "ab-verified",
     services: ["Speaking", "Coaching", "Courses"],
   },

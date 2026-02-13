@@ -135,18 +135,6 @@ export default function AuthorProfile() {
                     <BookOpen className="h-4 w-4" /> Amazon
                   </a>
                 )}
-                {author.email && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard?.writeText(author.email!);
-                      toast({ title: "Email copied to clipboard!", description: author.email });
-                    }}
-                    className="inline-flex items-center gap-1.5 text-sm text-primary-foreground/60 hover:text-secondary transition-colors cursor-pointer"
-                  >
-                    <Mail className="h-4 w-4" /> Email
-                  </button>
-                )}
               </div>
             </div>
           </div>
