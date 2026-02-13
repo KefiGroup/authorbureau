@@ -185,7 +185,7 @@ export default function Index() {
                   {
                     icon: GraduationCap,
                     title: "25+ Years in Learning & Development",
-                    desc: "Masters in Instructional Design & Technology, NTU Singapore — Mentored 10,000+ students",
+                    desc: "Master of Arts (Instructional Design & Technology), NTU Singapore — Mentored 10,000+ students",
                   },
                   {
                     icon: Mic,

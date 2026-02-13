@@ -39,7 +39,7 @@ export const authors: Author[] = [
     title: "International Bestselling Author",
     bio: "Pauline Teo is an International Bestselling Author with her book, \"Be SUCKcessful\", reaching #1 on Amazon. She has previously authored 2 other Bestselling books titled \"Value Investing for Women\" and \"Invest Like Buffett for Parents\", both in their 3rd reprints. As a proud mother of 2, Pauline has been instrumental in leading a startup since 2011, eventually steering the company to become the largest Financial Education company in Singapore and Malaysia. She oversaw its successful listing, 8I Holdings, in 2014 (ASX:8I) and the spin-off of another subsidiary, 8VI Ltd (ASX:8VI) in 2018. With a Master's Degree in Instructional Design and Technology specializing in Adult Learning, she brings 25+ years of industry experience to her transformational teachings.",
     shortBio: "#1 Amazon Bestselling Author of 3 books, led a startup to ASX listing, and has spent 25+ years transforming lives through finance and personal development.",
-    credentials: ["International Bestselling Author", "3x Published Author", "25+ Years Experience", "Master's in Instructional Design"],
+    credentials: ["International Bestselling Author", "3x Published Author", "25+ Years Experience", "Master of Arts (Instructional Design & Technology)"],
     books: [
       {
         slug: "be-suckcessful",
