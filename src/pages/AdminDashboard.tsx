@@ -65,21 +65,7 @@ export default function AdminDashboard() {
 
   if (loading) return null;
   if (!user) return <Navigate to="/auth" replace />;
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen">
-        <Navbar />
-        <section className="py-20 text-center">
-          <h1 className="font-heading text-2xl font-bold mb-2">Access Denied</h1>
-          <p className="text-muted-foreground">You don't have admin privileges.</p>
-          <Button onClick={signOut} variant="outline" className="mt-4">
-            <LogOut className="mr-2 h-4 w-4" /> Sign Out
-          </Button>
-        </section>
-        <Footer />
-      </div>
-    );
-  }
+  if (!isAdmin) return <Navigate to="/dashboard" replace />;
 
   const filtered = filter === "all" ? applications : applications.filter((a) => a.status === filter);
 
