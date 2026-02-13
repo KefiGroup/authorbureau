@@ -52,35 +52,47 @@ export default function ProfileEditor() {
   });
 
   useEffect(() => {
-    if (!user) return;
-    fetchProfile();
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    // Safety timeout: resolve loading if fetch hangs
+    const timeout = setTimeout(() => setLoading(false), 8000);
+    fetchProfile().finally(() => clearTimeout(timeout));
   }, [user]);
 
   const fetchProfile = async () => {
-    const { data } = await supabase
-      .from("author_profiles")
-      .select("*")
-      .eq("user_id", user!.id)
-      .maybeSingle();
+    try {
+      const { data, error } = await supabase
+        .from("author_profiles")
+        .select("*")
+        .eq("user_id", user!.id)
+        .maybeSingle();
 
-    if (data) {
-      setProfile({
-        pen_name: data.pen_name || "",
-        bio_short: data.bio_short || "",
-        bio_long: data.bio_long || "",
-        tagline: data.tagline || "",
-        photo_url: data.photo_url || "",
-        location_city: data.location_city || "",
-        location_country: data.location_country || "",
-        website_url: data.website_url || "",
-        linkedin_url: data.linkedin_url || "",
-        twitter_url: data.twitter_url || "",
-        instagram_url: data.instagram_url || "",
-        youtube_url: data.youtube_url || "",
-        genres: (data.genres as string[]) || [],
-      });
+      if (error) {
+        console.error("Error fetching profile:", error.message);
+      } else if (data) {
+        setProfile({
+          pen_name: data.pen_name || "",
+          bio_short: data.bio_short || "",
+          bio_long: data.bio_long || "",
+          tagline: data.tagline || "",
+          photo_url: data.photo_url || "",
+          location_city: data.location_city || "",
+          location_country: data.location_country || "",
+          website_url: data.website_url || "",
+          linkedin_url: data.linkedin_url || "",
+          twitter_url: data.twitter_url || "",
+          instagram_url: data.instagram_url || "",
+          youtube_url: data.youtube_url || "",
+          genres: (data.genres as string[]) || [],
+        });
+      }
+    } catch (err) {
+      console.error("Profile fetch failed:", err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleSave = async () => {
