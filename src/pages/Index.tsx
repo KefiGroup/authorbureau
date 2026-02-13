@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, BookOpen, Users, Globe, Award, Building2, GraduationCap, Mic, MapPin, ChevronLeft, ChevronRight, CheckCircle2, Monitor } from "lucide-react";
+import { ArrowRight, BookOpen, Users, Globe, Award, Building2, GraduationCap, Mic, MapPin, ChevronLeft, ChevronRight, CheckCircle2, Monitor, Search, Globe2, Play, UserCheck, Calendar } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import useEmblaCarousel from "embla-carousel-react";
@@ -353,7 +353,7 @@ export default function Index() {
         </div>
       </section>
 
-      {/* How It Works */}
+      {/* ==================== HOW IT WORKS — 6 Platform Cards ==================== */}
       <section id="how-it-works" className="border-y border-border bg-muted/50 py-24">
         <div className="container">
           <motion.div
@@ -363,101 +363,95 @@ export default function Index() {
             className="mb-16 text-center"
           >
             <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
-              How It Works
+              Why AuthorsBureau
             </motion.p>
             <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-4xl">
-              From Author to Authority
+              One Platform, <span className="italic text-secondary">Everything</span> You Need
             </motion.h2>
+            <motion.p variants={fadeUp} custom={2} className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
+              Stop juggling six different tools. AuthorsBureau replaces them all with a single, integrated platform where your book is the center of everything.
+            </motion.p>
           </motion.div>
 
-          <div className="grid gap-8 md:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              {
-                icon: BookOpen,
-                title: "Get Featured with a Professional Book Microsite for FREE",
-                desc: "Published authors can apply for a free professional showcase with a dedicated book microsite. Books published through PublishNow.io also receive a verified badge.",
-              },
-              {
-                icon: Users,
-                title: "Showcase Your Work",
-                desc: "Each book gets a professional microsite. Your author profile highlights your expertise, credentials, and story.",
-              },
-              {
-                icon: Globe,
-                title: "Grow Your Business",
-                desc: "Offer coaching, sell courses, book speaking engagements, and host book launch events — all from your author profile.",
-              },
-            ].map((step, i) => (
+              { icon: Search, title: "Author Discovery", desc: "Replaces: Amazon Author Central, Goodreads" },
+              { icon: Globe2, title: "Book Landing Page", desc: "Replaces: Carrd, Leadpages, WordPress" },
+              { icon: Play, title: "Course Selling", desc: "Replaces: Teachable, Kajabi" },
+              { icon: UserCheck, title: "Coaching CRM", desc: "Replaces: Calendly + Stripe" },
+              { icon: Mic, title: "Speaking Bureau", desc: "Replaces: eSpeakers, SpeakerHub" },
+              { icon: Calendar, title: "Event Management", desc: "Replaces: Eventbrite, Meetup" },
+            ].map((item, i) => (
               <motion.div
-                key={step.title}
+                key={item.title}
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true }}
                 custom={i}
                 variants={fadeUp}
-                className="group relative rounded-2xl bg-card p-10 text-center shadow-lg hover:shadow-xl transition-all duration-300 border-b-4 border-secondary/50 hover:border-secondary hover:-translate-y-1"
+                className="group rounded-2xl bg-card p-8 shadow-md hover:shadow-lg transition-all duration-300 border border-border/60 hover:border-secondary/30"
               >
-                <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-secondary/15 to-secondary/5 ring-1 ring-secondary/20 group-hover:ring-secondary/40 transition-all">
-                  <step.icon className="h-8 w-8 text-secondary" />
+                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-secondary/10 ring-1 ring-secondary/20 group-hover:ring-secondary/40 transition-all">
+                  <item.icon className="h-6 w-6 text-secondary" />
                 </div>
-                <h3 className="mb-3 font-heading text-xl font-bold">{step.title}</h3>
-                <p className="text-muted-foreground leading-relaxed">{step.desc}</p>
+                <h3 className="mb-1 font-heading text-lg font-bold italic">{item.title}</h3>
+                <p className="text-sm text-muted-foreground">{item.desc}</p>
               </motion.div>
             ))}
-          </div>
-
-          {/* The 4-Step Model - Author Monetization */}
-          <div className="mt-16 border-t border-border pt-16">
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-100px" }}
-              className="mb-16 text-center"
-            >
-              <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
-                Author Monetization
-              </motion.p>
-              <motion.h3 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-4xl">
-                Turn Your Book Into a Business
-              </motion.h3>
-              <motion.p variants={fadeUp} custom={2} className="mt-4 text-lg text-muted-foreground">
-                All managed in one place.
-              </motion.p>
-            </motion.div>
-
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {[
-                { step: "1", title: "Digital Products", desc: "Courses, workbooks, audiobooks, and memberships powered by your book content." },
-                { step: "2", title: "Coaching", desc: "1-on-1 and group coaching packages with built-in scheduling and payments." },
-                { step: "3", title: "Speaking", desc: "Speaker profile, keynote topics, and booking calendar for events and podcasts." },
-                { step: "4", title: "Events", desc: "Retreats, masterminds, certifications, and conferences." },
-              ].map((item, i) => (
-                <motion.div
-                  key={item.step}
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: true }}
-                  custom={i}
-                  variants={fadeUp}
-                  className="group rounded-2xl bg-card p-7 shadow-md hover:shadow-lg transition-all duration-300 border border-border/60 hover:border-secondary/30 hover:-translate-y-1"
-                >
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-secondary/15 to-secondary/5 ring-1 ring-secondary/20 font-heading text-xl font-bold text-secondary">
-                    {item.step}
-                  </div>
-                  <h3 className="mb-2 font-heading text-lg font-bold">{item.title}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
-                </motion.div>
-              ))}
-            </div>
           </div>
         </div>
       </section>
 
-      {/* ==================== MICROSITE SHOWCASE ==================== */}
-      <section className="py-24 bg-muted/30">
+      {/* ==================== STEP 1: FROM AUTHOR TO AUTHORITY ==================== */}
+      <section className="py-24">
         <div className="container">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            className="mb-16 text-center"
+          >
+            <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
+              Step 1 · How It Works
+            </motion.p>
+            <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-4xl">
+              From Author to <span className="italic text-secondary">Authority</span>
+            </motion.h2>
+          </motion.div>
+
+          {/* Get Featured Card */}
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            custom={0}
+            variants={fadeUp}
+            className="mb-16 rounded-2xl bg-gradient-to-br from-primary to-primary/90 p-10 md:p-14 text-primary-foreground text-center shadow-xl"
+          >
+            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary/20 ring-1 ring-secondary/30">
+              <BookOpen className="h-8 w-8 text-secondary" />
+            </div>
+            <h3 className="font-heading text-2xl md:text-3xl font-bold mb-4">
+              Get Featured with a Professional Book Microsite for <span className="text-secondary">FREE</span>
+            </h3>
+            <p className="text-primary-foreground/70 max-w-2xl mx-auto text-lg leading-relaxed">
+              Published authors can apply for a free professional showcase with a dedicated book microsite. Books published through PublishNow.io also receive a verified badge.
+            </p>
+            <div className="mt-8">
+              <Button
+                asChild
+                size="lg"
+                className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold shadow-[var(--shadow-gold)] rounded-full px-8"
+              >
+                <Link to="/join">
+                  Apply Now <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+          </motion.div>
+
+          {/* Your Book, Your Page — Microsite Showcase */}
           <div className="grid gap-12 lg:grid-cols-2 items-center">
-            {/* Left — Copy */}
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }}>
               <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
                 Your Book, Your Page
@@ -498,7 +492,7 @@ export default function Index() {
               </motion.div>
             </motion.div>
 
-            {/* Right — Browser Mockup */}
+            {/* Browser Mockup */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -506,12 +500,11 @@ export default function Index() {
               transition={{ duration: 0.7, delay: 0.2 }}
             >
               <div className="rounded-2xl border border-border bg-card shadow-xl overflow-hidden">
-                {/* Browser chrome */}
                 <div className="flex items-center gap-3 border-b border-border px-4 py-3 bg-muted/50">
                   <div className="flex gap-1.5">
-                    <div className="h-3 w-3 rounded-full bg-red-400" />
-                    <div className="h-3 w-3 rounded-full bg-yellow-400" />
-                    <div className="h-3 w-3 rounded-full bg-green-400" />
+                    <div className="h-3 w-3 rounded-full bg-destructive/60" />
+                    <div className="h-3 w-3 rounded-full bg-secondary/60" />
+                    <div className="h-3 w-3 rounded-full bg-success/60" />
                   </div>
                   <div className="flex-1 text-center">
                     <span className="inline-block rounded-full bg-background border border-border px-4 py-1 text-xs text-muted-foreground">
@@ -519,8 +512,6 @@ export default function Index() {
                     </span>
                   </div>
                 </div>
-
-                {/* Microsite preview */}
                 <div className="bg-primary p-8 text-primary-foreground">
                   <div className="flex flex-col sm:flex-row items-center gap-6">
                     <img
@@ -543,8 +534,6 @@ export default function Index() {
                     </div>
                   </div>
                 </div>
-
-                {/* Fake page body lines */}
                 <div className="p-6 space-y-3">
                   <div className="h-3 rounded-full bg-muted w-full" />
                   <div className="h-3 rounded-full bg-muted w-5/6" />
@@ -560,6 +549,53 @@ export default function Index() {
                 </div>
               </div>
             </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== STEP 2: AUTHOR MONETISATION ==================== */}
+      <section className="py-24 bg-muted/50 border-y border-border">
+        <div className="container">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            className="mb-16 text-center"
+          >
+            <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
+              Step 2 · How It Works
+            </motion.p>
+            <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-4xl">
+              Author <span className="italic text-secondary">Monetisation</span>
+            </motion.h2>
+            <motion.p variants={fadeUp} custom={2} className="mt-4 text-lg text-muted-foreground">
+              Turn Your Book Into a Business — all managed in one place.
+            </motion.p>
+          </motion.div>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { step: "1", title: "Digital Products", desc: "Courses, workbooks, audiobooks, and memberships powered by your book content." },
+              { step: "2", title: "Coaching", desc: "1-on-1 and group coaching packages with built-in scheduling and payments." },
+              { step: "3", title: "Speaking", desc: "Speaker profile, keynote topics, and booking calendar for events and podcasts." },
+              { step: "4", title: "Events", desc: "Retreats, masterminds, certifications, and conferences." },
+            ].map((item, i) => (
+              <motion.div
+                key={item.step}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                custom={i}
+                variants={fadeUp}
+                className="group rounded-2xl bg-card p-7 shadow-md hover:shadow-lg transition-all duration-300 border border-border/60 hover:border-secondary/30 hover:-translate-y-1"
+              >
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-secondary/15 to-secondary/5 ring-1 ring-secondary/20 font-heading text-xl font-bold text-secondary">
+                  {item.step}
+                </div>
+                <h3 className="mb-2 font-heading text-lg font-bold">{item.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
