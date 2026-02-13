@@ -132,7 +132,7 @@ export default function Index() {
       {/* Meet the Founder */}
       <section id="meet-the-founder" className="py-24">
         <div className="container">
-          <div className="grid gap-12 lg:grid-cols-2 items-start">
+          <div className="grid gap-12 lg:grid-cols-2 items-center">
             {/* Photo */}
             <motion.div
               initial="hidden"
