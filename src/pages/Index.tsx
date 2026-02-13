@@ -155,14 +155,24 @@ export default function Index() {
                       <p className="mb-3 text-sm text-muted-foreground">{author.title}</p>
                       <p className="text-sm text-muted-foreground">{author.shortBio}</p>
                       <div className="mt-4 flex items-center gap-3">
-                        {author.books.slice(0, 3).map((book) => (
-                          <img
-                            key={book.slug}
-                            src={coverMap[book.slug] || book.coverImage}
-                            alt={book.title}
-                            className="h-20 rounded shadow-md object-contain"
-                          />
-                        ))}
+                        {author.books.slice(0, 3).map((book) => {
+                          const cover = coverMap[book.slug];
+                          return cover ? (
+                            <img
+                              key={book.slug}
+                              src={cover}
+                              alt={book.title}
+                              className="h-20 rounded shadow-md object-contain"
+                            />
+                          ) : (
+                            <div
+                              key={book.slug}
+                              className="flex h-20 w-14 items-center justify-center rounded bg-muted/80 shadow-md border border-border/50"
+                            >
+                              <BookOpen className="h-5 w-5 text-muted-foreground/50" />
+                            </div>
+                          );
+                        })}
                       </div>
                       <div className="mt-3 flex flex-wrap gap-1.5">
                         {author.genres.map((g) => (
