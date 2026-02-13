@@ -240,7 +240,7 @@ export default function Index() {
       </section>
 
       {/* Featured Authors */}
-      <section id="featured-authors" className="py-24">
+      <section id="featured-authors" className="py-24" style={{ background: "var(--gradient-hero)" }}>
         <div className="container">
           <motion.div
             initial="hidden"
@@ -251,15 +251,15 @@ export default function Index() {
             <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
               Featured Authors
             </motion.p>
-            <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-4xl">
+            <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-4xl text-primary-foreground">
               Meet Our Authors
             </motion.h2>
           </motion.div>
 
-          <div className="relative">
+          <div className="relative px-6">
             {/* Carousel */}
             <div className="overflow-hidden" ref={emblaRef}>
-              <div className="flex gap-6">
+              <div className="flex gap-8">
                 {authors.map((author, i) => (
                   <motion.div
                     key={author.slug}
@@ -272,15 +272,16 @@ export default function Index() {
                   >
                     <Link
                       to={`/authors/${author.slug}`}
-                      className="group block overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-all duration-300 h-full flex flex-col"
+                      className="group block overflow-hidden rounded-2xl bg-card shadow-lg hover:shadow-xl transition-all duration-300 h-full flex flex-col border-b-4 border-secondary/60"
                     >
                       {/* Photo */}
-                      <div className="relative h-64 bg-muted/50 overflow-hidden">
+                      <div className="relative h-72 bg-muted/30 overflow-hidden">
                         <img
                           src={photoMap[author.slug]}
                           alt={author.name}
                           className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
                         />
+                        <div className="absolute inset-0 bg-gradient-to-t from-card/40 to-transparent" />
                         <div className="absolute top-3 right-3">
                           <BadgeDisplay level={author.badge} size="sm" />
                         </div>
@@ -291,8 +292,8 @@ export default function Index() {
                         <h3 className="font-heading text-lg font-bold group-hover:text-secondary transition-colors mb-1">
                           {author.name}
                         </h3>
-                        <p className="text-sm text-muted-foreground mb-3">{author.title}</p>
-                        <p className="text-sm text-muted-foreground mb-4 flex-1">{author.shortBio}</p>
+                        <p className="text-sm font-medium text-secondary/80 mb-3">{author.title}</p>
+                        <p className="text-sm text-muted-foreground mb-4 flex-1 leading-relaxed">{author.shortBio}</p>
 
                         {/* Books */}
                         <div className="mt-4 flex items-center gap-3 pb-4 border-b border-border/50">
@@ -303,7 +304,7 @@ export default function Index() {
                                 key={book.slug}
                                 src={cover}
                                 alt={book.title}
-                                className="h-16 rounded shadow-md object-contain"
+                                className="h-16 rounded shadow-md object-contain hover:scale-110 transition-transform"
                               />
                             ) : (
                               <div
@@ -319,7 +320,7 @@ export default function Index() {
                         {/* Genres */}
                         <div className="mt-4 flex flex-wrap gap-1.5">
                           {author.genres.slice(0, 3).map((g) => (
-                            <span key={g} className="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                            <span key={g} className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
                               {g}
                             </span>
                           ))}
@@ -335,18 +336,18 @@ export default function Index() {
             <button
               onClick={() => emblaApi?.scrollPrev()}
               disabled={!canScrollPrev}
-              className="absolute -left-4 top-1/2 -translate-y-1/2 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card shadow-md disabled:opacity-30 hover:bg-muted transition-colors"
+              className="absolute -left-2 top-1/2 -translate-y-1/2 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-secondary-foreground shadow-[var(--shadow-gold)] disabled:opacity-30 hover:bg-secondary/90 transition-colors"
               aria-label="Previous author"
             >
-              <ChevronLeft className="h-5 w-5 text-foreground" />
+              <ChevronLeft className="h-5 w-5" />
             </button>
             <button
               onClick={() => emblaApi?.scrollNext()}
               disabled={!canScrollNext}
-              className="absolute -right-4 top-1/2 -translate-y-1/2 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card shadow-md disabled:opacity-30 hover:bg-muted transition-colors"
+              className="absolute -right-2 top-1/2 -translate-y-1/2 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-secondary-foreground shadow-[var(--shadow-gold)] disabled:opacity-30 hover:bg-secondary/90 transition-colors"
               aria-label="Next author"
             >
-              <ChevronRight className="h-5 w-5 text-foreground" />
+              <ChevronRight className="h-5 w-5" />
             </button>
           </div>
         </div>
