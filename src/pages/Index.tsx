@@ -615,34 +615,6 @@ export default function Index() {
             ))}
           </div>
 
-          {/* Premium CTA */}
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            custom={5}
-            variants={fadeUp}
-            className="mt-12 text-center"
-          >
-            <div className="inline-flex flex-col items-center gap-4 rounded-2xl bg-gradient-to-br from-primary to-primary/90 p-10 text-primary-foreground shadow-xl">
-              <Crown className="h-10 w-10 text-secondary" />
-              <h3 className="font-heading text-2xl font-bold">
-                Unlock All Monetisation Tools for <span className="text-secondary">$29/month</span>
-              </h3>
-              <p className="text-primary-foreground/70 max-w-lg">
-                Coaching & Events, Advanced Analytics, Priority Placement, Individual Websites, and Courseware Development.
-              </p>
-              <Button
-                asChild
-                size="lg"
-                className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold shadow-[var(--shadow-gold)] rounded-full px-8"
-              >
-                <Link to="/join">
-                  Go Premium <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
-          </motion.div>
         </div>
       </section>
 
