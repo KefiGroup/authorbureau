@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { Star } from "lucide-react";
+import { BookOpen } from "lucide-react";
 import type { Book } from "@/data/authors";
 
 import besuckcessfulCover from "@/assets/besuckcessful-cover.jpg";
@@ -62,10 +62,21 @@ export default function BookCard({ book, showAuthor = false, authorName }: BookC
             {showAuthor && authorName && (
               <p className="text-xs text-muted-foreground mt-1.5">by {authorName}</p>
             )}
-            {book.price && (
-              <div className="flex items-center gap-1 mt-2">
-                <Star className="h-3 w-3 text-secondary" />
-                <span className="text-sm font-semibold">{book.price}</span>
+            {(book.kindlePrice || book.paperbackPrice) && (
+              <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                {book.kindlePrice && (
+                  <div className="flex items-center gap-1">
+                    <BookOpen className="h-3 w-3 text-secondary" />
+                    <span className="font-semibold text-foreground">{book.kindlePrice}</span>
+                    <span>Kindle</span>
+                  </div>
+                )}
+                {book.paperbackPrice && (
+                  <div className="flex items-center gap-1">
+                    <span className="font-semibold text-foreground">{book.paperbackPrice}</span>
+                    <span>Paperback</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
