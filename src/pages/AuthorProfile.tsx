@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ExternalLink, Mail, Linkedin, BookOpen, ArrowLeft, Mic, GraduationCap, Globe, Award, MapPin, Building2 } from "lucide-react";
@@ -8,6 +9,7 @@ import BadgeDisplay from "@/components/BadgeDisplay";
 import BookCard from "@/components/BookCard";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import ServiceInquiryForm from "@/components/ServiceInquiryForm";
 
 import paulinePhoto from "@/assets/pauline-teo.jpeg";
 import bobPhoto from "@/assets/bob-battista.jpg";
@@ -31,6 +33,8 @@ const fadeUp = {
 export default function AuthorProfile() {
   const { slug } = useParams<{ slug: string }>();
   const author = getAuthorBySlug(slug || "");
+  const [inquiryOpen, setInquiryOpen] = useState(false);
+  const [selectedService, setSelectedService] = useState("");
 
   if (!author) {
     return (
@@ -189,7 +193,11 @@ export default function AuthorProfile() {
                 };
                 const Icon = iconMap[s] || Award;
                 return (
-                  <Card key={s} className="border-0 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-all rounded-2xl">
+                  <Card
+                    key={s}
+                    className="border-0 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-all rounded-2xl cursor-pointer"
+                    onClick={() => { setSelectedService(s); setInquiryOpen(true); }}
+                  >
                     <CardContent className="p-6 text-center">
                       <div className="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center mx-auto mb-3">
                         <Icon className="h-6 w-6 text-secondary" />
@@ -205,6 +213,16 @@ export default function AuthorProfile() {
             </div>
           </div>
         </section>
+      )}
+
+      {author.services.length > 0 && (
+        <ServiceInquiryForm
+          open={inquiryOpen}
+          onOpenChange={setInquiryOpen}
+          authorName={author.name}
+          authorSlug={author.slug}
+          serviceType={selectedService}
+        />
       )}
 
       <Footer />
