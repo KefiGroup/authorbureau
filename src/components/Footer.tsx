@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { BookOpen } from "lucide-react";
+import logoText from "@/assets/logo-with-text.png";
 
 export default function Footer() {
   return (
@@ -7,12 +7,7 @@ export default function Footer() {
       <div className="container py-12">
         <div className="grid gap-8 md:grid-cols-4">
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <BookOpen className="h-6 w-6 text-secondary" />
-              <span className="font-heading text-lg font-bold">
-                Authors Bureau
-              </span>
-            </div>
+            <img src={logoText} alt="Authors Bureau" className="h-20 w-auto" />
             <p className="text-sm text-primary-foreground/70">
               Where published authors are discovered and where their expertise becomes a business.
             </p>
