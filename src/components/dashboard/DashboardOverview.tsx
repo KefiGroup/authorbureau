@@ -133,7 +133,7 @@ export default function DashboardOverview() {
             </p>
             <Button onClick={handleUpgrade} disabled={checkoutLoading} className="bg-secondary text-secondary-foreground hover:bg-secondary/90 w-fit">
               {checkoutLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Crown className="h-4 w-4 mr-1" />}
-              Upgrade to Premium — $29/mo
+              Upgrade to Premium
             </Button>
           </div>
         )}
