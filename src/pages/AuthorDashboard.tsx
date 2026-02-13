@@ -9,8 +9,9 @@ import CourseBuilder from "@/components/dashboard/CourseBuilder";
 import SpeakingProfile from "@/components/dashboard/SpeakingProfile";
 import CoachingCRM from "@/components/dashboard/CoachingCRM";
 import DashboardOverview from "@/components/dashboard/DashboardOverview";
+import AIToolkit from "@/components/dashboard/AIToolkit";
 
-export type DashboardSection = "overview" | "profile" | "courses" | "speaking" | "coaching";
+export type DashboardSection = "overview" | "profile" | "courses" | "speaking" | "coaching" | "ai-toolkit";
 
 export default function AuthorDashboard() {
   const { user, loading, isAdmin, isPremium, subscription, checkSubscription, signOut } = useAuth();
@@ -42,6 +43,8 @@ export default function AuthorDashboard() {
         return <SpeakingProfile />;
       case "coaching":
         return <CoachingCRM />;
+      case "ai-toolkit":
+        return <AIToolkit />;
       default:
         return <DashboardOverview />;
     }
