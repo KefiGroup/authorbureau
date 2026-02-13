@@ -374,8 +374,8 @@ export default function Index() {
             {[
               {
                 icon: BookOpen,
-                title: "Get Featured for Free",
-                desc: "Published authors can apply for a free professional showcase. Books published through PublishNow.io also receive a verified badge.",
+                title: "Get Featured with a Professional Book Microsite for FREE",
+                desc: "Published authors can apply for a free professional showcase with a dedicated book microsite. Books published through PublishNow.io also receive a verified badge.",
               },
               {
                 icon: Users,
