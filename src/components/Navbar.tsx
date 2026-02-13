@@ -47,6 +47,12 @@ export default function Navbar() {
           >
             PublishNow.io
           </a>
+          <Link
+            to="/auth"
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-secondary"
+          >
+            Sign In
+          </Link>
           <Button asChild variant="default" size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-none">
             <Link to="/join">Get Featured</Link>
           </Button>
