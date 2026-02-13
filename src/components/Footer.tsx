@@ -29,7 +29,7 @@ export default function Footer() {
             </h4>
             <ul className="space-y-2 text-sm text-primary-foreground/70">
               <li><a href="https://publishnow.io" target="_blank" rel="noopener noreferrer" className="hover:text-secondary transition-colors">PublishNow.io</a></li>
-              <li><a href="https://publishnow.io" target="_blank" rel="noopener noreferrer" className="hover:text-secondary transition-colors">AI Writing Studio</a></li>
+              <li><a href="https://publishnow.io/ai-writing-studio" target="_blank" rel="noopener noreferrer" className="hover:text-secondary transition-colors">AI Writing Studio</a></li>
             </ul>
           </div>
 
@@ -38,7 +38,7 @@ export default function Footer() {
               Connect
             </h4>
             <ul className="space-y-2 text-sm text-primary-foreground/70">
-              <li><a href="mailto:hello@authorsbureau.com" className="hover:text-secondary transition-colors">Contact Us</a></li>
+              <li><a href="mailto:support@authorsbureau.com" className="hover:text-secondary transition-colors">Contact Us</a></li>
             </ul>
           </div>
         </div>
