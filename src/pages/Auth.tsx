@@ -1,0 +1,131 @@
+import { useState } from "react";
+import { Navigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, LogIn, UserPlus } from "lucide-react";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+
+export default function Auth() {
+  const { user, loading } = useAuth();
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const { toast } = useToast();
+
+  if (loading) return null;
+  if (user) return <Navigate to="/admin" replace />;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+
+    if (isLogin) {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        toast({ title: error.message, variant: "destructive" });
+      }
+    } else {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: window.location.origin,
+          data: { display_name: displayName },
+        },
+      });
+      if (error) {
+        toast({ title: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Check your email to confirm your account." });
+      }
+    }
+
+    setSubmitting(false);
+  };
+
+  return (
+    <div className="min-h-screen">
+      <Navbar />
+      <section className="py-20">
+        <div className="container max-w-md">
+          <div className="rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-card)]">
+            <h1 className="mb-6 font-heading text-2xl font-bold text-center">
+              {isLogin ? "Sign In" : "Create Account"}
+            </h1>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {!isLogin && (
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium">Display Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-secondary/50"
+                    placeholder="Your name"
+                  />
+                </div>
+              )}
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">Email</label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-secondary/50"
+                  placeholder="your@email.com"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">Password</label>
+                <input
+                  type="password"
+                  required
+                  minLength={6}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-secondary/50"
+                  placeholder="••••••••"
+                />
+              </div>
+
+              <Button
+                type="submit"
+                disabled={submitting}
+                className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold rounded-full"
+                size="lg"
+              >
+                {submitting ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : isLogin ? (
+                  <LogIn className="mr-2 h-4 w-4" />
+                ) : (
+                  <UserPlus className="mr-2 h-4 w-4" />
+                )}
+                {isLogin ? "Sign In" : "Sign Up"}
+              </Button>
+            </form>
+
+            <p className="mt-4 text-center text-sm text-muted-foreground">
+              {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
+              <button
+                onClick={() => setIsLogin(!isLogin)}
+                className="text-secondary font-medium hover:underline"
+              >
+                {isLogin ? "Sign Up" : "Sign In"}
+              </button>
+            </p>
+          </div>
+        </div>
+      </section>
+      <Footer />
+    </div>
+  );
+}
