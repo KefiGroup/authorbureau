@@ -476,8 +476,6 @@ export default function Index() {
                   "Book details, chapters & reader reviews",
                   "Author bio with credentials & social links",
                   "Direct Amazon & retailer purchase links",
-                  "Newsletter signup & free chapter downloads",
-                  "FAQ section & reader engagement tools",
                 ].map((item, i) => (
                   <motion.div key={item} variants={fadeUp} custom={i + 3} className="flex items-center gap-3">
                     <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-secondary" />
@@ -554,9 +552,6 @@ export default function Index() {
                   <div className="flex gap-3">
                     <div className="flex-1 rounded-lg bg-secondary py-2.5 text-center text-sm font-semibold text-secondary-foreground">
                       Buy on Amazon
-                    </div>
-                    <div className="flex-1 rounded-lg border border-border py-2.5 text-center text-sm text-muted-foreground">
-                      Free Chapter
                     </div>
                   </div>
                 </div>
