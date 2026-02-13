@@ -16,8 +16,10 @@ export default function Auth() {
   const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
 
+  const { isAdmin } = useAuth();
+
   if (loading) return null;
-  if (user) return <Navigate to="/admin" replace />;
+  if (user) return <Navigate to={isAdmin ? "/admin" : "/dashboard"} replace />;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
