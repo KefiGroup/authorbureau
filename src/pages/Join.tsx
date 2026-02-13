@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { CheckCircle2, BookOpen, ArrowRight, Award, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ export default function Join() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -32,16 +34,41 @@ export default function Join() {
 
     const fullName = (formData.get("full_name") as string).trim();
     const email = (formData.get("email") as string).trim();
+    const password = (formData.get("password") as string);
     const websiteUrl = (formData.get("website_url") as string)?.trim() || null;
     const amazonBookUrl = (formData.get("amazon_book_url") as string).trim();
     const bio = (formData.get("bio") as string)?.trim() || null;
     const genres = (formData.get("genres") as string)?.trim() || null;
 
-    if (!fullName || !email || !amazonBookUrl) {
+    if (!fullName || !email || !password || !amazonBookUrl) {
       toast({ title: "Please fill in all required fields", variant: "destructive" });
       setLoading(false);
       return;
     }
+
+    if (password.length < 6) {
+      toast({ title: "Password must be at least 6 characters", variant: "destructive" });
+      setLoading(false);
+      return;
+    }
+
+    // 1. Create the auth account
+    const { error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: window.location.origin,
+        data: { display_name: fullName },
+      },
+    });
+
+    if (signUpError) {
+      toast({ title: signUpError.message, variant: "destructive" });
+      setLoading(false);
+      return;
+    }
+
+    // 2. Submit the author application
 
     const { error } = await supabase.from("author_applications").insert({
       full_name: fullName.slice(0, 200),
@@ -187,6 +214,17 @@ export default function Join() {
                         placeholder="your@email.com"
                       />
                     </div>
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium">Password *</label>
+                      <input
+                        required
+                        name="password"
+                        type="password"
+                        minLength={6}
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-secondary/50"
+                        placeholder="••••••••"
+                      />
+                    </div>
                   </div>
 
                   <div>
@@ -243,6 +281,13 @@ export default function Join() {
                     )}
                     {loading ? "Submitting..." : "Submit Application"}
                   </Button>
+
+                  <p className="text-center text-sm text-muted-foreground">
+                    Already have an account?{" "}
+                    <a href="/auth" className="text-secondary font-medium hover:underline">
+                      Sign In
+                    </a>
+                  </p>
                 </form>
               )}
             </div>
