@@ -395,13 +395,13 @@ export default function Index() {
                 viewport={{ once: true }}
                 custom={i}
                 variants={fadeUp}
-                className="relative rounded-xl border border-border bg-card p-8 text-center shadow-[var(--shadow-card)]"
+                className="group relative rounded-2xl bg-card p-10 text-center shadow-lg hover:shadow-xl transition-all duration-300 border-b-4 border-secondary/50 hover:border-secondary hover:-translate-y-1"
               >
-                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-secondary/10">
-                  <step.icon className="h-7 w-7 text-secondary" />
+                <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-secondary/15 to-secondary/5 ring-1 ring-secondary/20 group-hover:ring-secondary/40 transition-all">
+                  <step.icon className="h-8 w-8 text-secondary" />
                 </div>
-                <h3 className="mb-2 font-heading text-lg font-bold">{step.title}</h3>
-                <p className="text-sm text-muted-foreground">{step.desc}</p>
+                <h3 className="mb-3 font-heading text-xl font-bold">{step.title}</h3>
+                <p className="text-muted-foreground leading-relaxed">{step.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -439,13 +439,13 @@ export default function Index() {
                   viewport={{ once: true }}
                   custom={i}
                   variants={fadeUp}
-                  className="rounded-xl border border-border bg-muted/50 p-6"
+                  className="group rounded-2xl bg-card p-7 shadow-md hover:shadow-lg transition-all duration-300 border border-border/60 hover:border-secondary/30 hover:-translate-y-1"
                 >
-                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-secondary/10 font-heading text-lg font-bold text-secondary">
+                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-secondary/15 to-secondary/5 ring-1 ring-secondary/20 font-heading text-xl font-bold text-secondary">
                     {item.step}
                   </div>
                   <h3 className="mb-2 font-heading text-lg font-bold">{item.title}</h3>
-                  <p className="text-sm text-muted-foreground">{item.desc}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
                 </motion.div>
               ))}
             </div>
