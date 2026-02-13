@@ -52,8 +52,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const checkSubscription = useCallback(async () => {
+    setSubscription((prev) => ({ ...prev, loading: true }));
+    const timeout = setTimeout(() => {
+      setSubscription((prev) => ({ ...prev, loading: false }));
+    }, 8000);
     try {
       const { data, error } = await supabase.functions.invoke("check-subscription");
+      clearTimeout(timeout);
       if (error) throw error;
       setSubscription({
         subscribed: data.subscribed ?? false,
@@ -62,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading: false,
       });
     } catch {
+      clearTimeout(timeout);
       setSubscription((prev) => ({ ...prev, loading: false }));
     }
   }, []);

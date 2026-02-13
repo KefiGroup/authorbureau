@@ -9,7 +9,11 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-export default function DashboardOverview() {
+interface DashboardOverviewProps {
+  onNavigate?: (section: string) => void;
+}
+
+export default function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
   const { isPremium, subscription, checkSubscription } = useAuth();
   const { toast } = useToast();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
@@ -47,24 +51,28 @@ export default function DashboardOverview() {
       label: "Author Profile",
       description: "Create your professional author profile to be discovered by readers and industry partners.",
       step: "Step 1",
+      target: "profile",
     },
     {
       icon: BookOpen,
       label: "Book Listing",
       description: "Showcase your published books with covers, descriptions, and purchase links.",
       step: "Step 2",
+      target: "book-enricher",
     },
     {
       icon: Globe,
       label: "Directory Listing",
       description: "Get listed in the Authors Bureau directory and increase your visibility.",
       step: "Step 3",
+      target: "profile",
     },
     {
       icon: Star,
       label: "Credibility Badges",
       description: "Earn badges like 'AB Verified' and 'Featured Author' to build trust.",
       step: "Step 4",
+      target: "profile",
     },
   ];
 
@@ -152,13 +160,15 @@ export default function DashboardOverview() {
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           {freeFeatures.map((f) => (
-            <div
+            <button
               key={f.label}
-              className="rounded-xl border border-border bg-card p-5 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-shadow"
+              type="button"
+              onClick={() => onNavigate?.(f.target)}
+              className="rounded-xl border border-border bg-card p-5 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:border-secondary/40 transition-all text-left cursor-pointer group"
             >
               <div className="flex items-center gap-3 mb-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-                  <f.icon className="h-5 w-5 text-primary" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-secondary/15 transition-colors">
+                  <f.icon className="h-5 w-5 text-primary group-hover:text-secondary transition-colors" />
                 </div>
                 <div>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-secondary">{f.step}</span>
@@ -166,7 +176,10 @@ export default function DashboardOverview() {
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">{f.description}</p>
-            </div>
+              <span className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-secondary opacity-0 group-hover:opacity-100 transition-opacity">
+                Go to {f.label} <ArrowRight className="h-3 w-3" />
+              </span>
+            </button>
           ))}
         </div>
       </div>
