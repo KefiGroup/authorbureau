@@ -43,7 +43,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-8 border-t border-primary-foreground/10 pt-8 text-center text-xs text-primary-foreground/50">
+        <div className="mt-8 border-t border-primary-foreground/10 pt-8 text-center text-xs text-primary-foreground/50" style={{ fontFamily: 'var(--font-body)' }}>
           © {new Date().getFullYear()} Authors Bureau. Part of the PublishNow ecosystem.
         </div>
       </div>
