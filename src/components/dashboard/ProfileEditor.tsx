@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Sparkles, Check, Upload, X, CloudUpload } from "lucide-react";
+import PhotoCropModal from "./PhotoCropModal";
 
 interface AuthorProfile {
   pen_name: string;
@@ -47,6 +48,8 @@ export default function ProfileEditor() {
   const [generatingBio, setGeneratingBio] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState("");
   const [profile, setProfile] = useState<AuthorProfile>(EMPTY_PROFILE);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const profileRef = useRef(profile);
@@ -123,7 +126,7 @@ export default function ProfileEditor() {
   };
 
   // Photo upload handler
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
@@ -136,10 +139,22 @@ export default function ProfileEditor() {
       return;
     }
 
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropImageSrc(reader.result as string);
+      setCropModalOpen(true);
+    };
+    reader.readAsDataURL(file);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleCroppedUpload = async (blob: Blob) => {
+    if (!user) return;
+    setCropModalOpen(false);
     setUploadingPhoto(true);
     try {
-      const ext = file.name.split(".").pop() || "jpg";
-      const filePath = `${user.id}/profile.${ext}`;
+      const filePath = `${user.id}/profile.jpg`;
+      const file = new File([blob], "profile.jpg", { type: "image/jpeg" });
 
       const { error: uploadError } = await supabase.storage
         .from("author-photos")
@@ -151,16 +166,13 @@ export default function ProfileEditor() {
         .from("author-photos")
         .getPublicUrl(filePath);
 
-      // Add cache-buster to force refresh
-      const urlWithCacheBust = `${publicUrl}?t=${Date.now()}`;
-      updateField("photo_url", urlWithCacheBust);
+      updateField("photo_url", `${publicUrl}?t=${Date.now()}`);
       toast({ title: "Photo uploaded! ✨" });
     } catch (err) {
       console.error("Photo upload failed:", err);
       toast({ title: "Upload failed", description: err instanceof Error ? err.message : "Try again", variant: "destructive" });
     } finally {
       setUploadingPhoto(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -277,7 +289,7 @@ export default function ProfileEditor() {
               </div>
             )}
             <div className="space-y-2 flex-1">
-              <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" id="photo-upload" />
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" id="photo-upload" />
               <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploadingPhoto}>
                 {uploadingPhoto ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CloudUpload className="mr-2 h-4 w-4" />}
                 {profile.photo_url ? "Change Photo" : "Upload Photo"}
@@ -334,6 +346,12 @@ export default function ProfileEditor() {
           ))}
         </div>
       </section>
+      <PhotoCropModal
+        open={cropModalOpen}
+        imageSrc={cropImageSrc}
+        onClose={() => setCropModalOpen(false)}
+        onCropComplete={handleCroppedUpload}
+      />
     </div>
   );
 }
