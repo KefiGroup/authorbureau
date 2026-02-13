@@ -52,6 +52,7 @@ export type Database = {
       }
       author_profiles: {
         Row: {
+          amazon_author_profile_url: string | null
           availability_notes: string | null
           bio_long: string | null
           bio_short: string | null
@@ -76,6 +77,7 @@ export type Database = {
           youtube_url: string | null
         }
         Insert: {
+          amazon_author_profile_url?: string | null
           availability_notes?: string | null
           bio_long?: string | null
           bio_short?: string | null
@@ -100,6 +102,7 @@ export type Database = {
           youtube_url?: string | null
         }
         Update: {
+          amazon_author_profile_url?: string | null
           availability_notes?: string | null
           bio_long?: string | null
           bio_short?: string | null

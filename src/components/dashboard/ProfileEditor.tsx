@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Plus, X } from "lucide-react";
+import { Loader2, Save, Sparkles } from "lucide-react";
 
 interface AuthorProfile {
   pen_name: string;
@@ -21,6 +21,7 @@ interface AuthorProfile {
   twitter_url: string;
   instagram_url: string;
   youtube_url: string;
+  amazon_author_profile_url: string;
   genres: string[];
 }
 
@@ -35,6 +36,7 @@ export default function ProfileEditor() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [generatingBio, setGeneratingBio] = useState(false);
   const [profile, setProfile] = useState<AuthorProfile>({
     pen_name: "",
     bio_short: "",
@@ -48,6 +50,7 @@ export default function ProfileEditor() {
     twitter_url: "",
     instagram_url: "",
     youtube_url: "",
+    amazon_author_profile_url: "",
     genres: [],
   });
 
@@ -56,7 +59,6 @@ export default function ProfileEditor() {
       setLoading(false);
       return;
     }
-    // Safety timeout: resolve loading if fetch hangs
     const timeout = setTimeout(() => setLoading(false), 8000);
     fetchProfile().finally(() => clearTimeout(timeout));
   }, [user]);
@@ -85,6 +87,7 @@ export default function ProfileEditor() {
           twitter_url: data.twitter_url || "",
           instagram_url: data.instagram_url || "",
           youtube_url: data.youtube_url || "",
+          amazon_author_profile_url: (data as any).amazon_author_profile_url || "",
           genres: (data.genres as string[]) || [],
         });
       }
@@ -105,7 +108,7 @@ export default function ProfileEditor() {
         {
           user_id: user.id,
           ...profile,
-        },
+        } as any,
         { onConflict: "user_id" }
       );
 
@@ -115,6 +118,84 @@ export default function ProfileEditor() {
       toast({ title: "Profile saved!" });
     }
     setSaving(false);
+  };
+
+  const handleGenerateBio = async () => {
+    if (!profile.pen_name) {
+      toast({ title: "Please enter your name first", variant: "destructive" });
+      return;
+    }
+    if (!profile.linkedin_url && !profile.amazon_author_profile_url) {
+      toast({ title: "Please provide a LinkedIn or Amazon Author Profile URL", variant: "destructive" });
+      return;
+    }
+
+    setGeneratingBio(true);
+    try {
+      const response = await supabase.functions.invoke("ai-author-tools", {
+        body: {
+          toolType: "speaker",
+          bookTitle: profile.pen_name,
+          bookDescription: `Generate ONLY two bios for this author based on their online profiles. Author name: ${profile.pen_name}. LinkedIn: ${profile.linkedin_url || "N/A"}. Amazon Author Profile: ${profile.amazon_author_profile_url || "N/A"}. Genres: ${profile.genres.join(", ") || "N/A"}.`,
+          authorName: profile.pen_name,
+          additionalContext: `IMPORTANT: Instead of a speaker kit, generate exactly two things:
+1. SHORT BIO (2-3 sentences, suitable for cards & previews)
+2. FULL BIO (200-300 words, comprehensive author story)
+
+Format as:
+## Short Bio
+[bio here]
+
+## Full Bio
+[bio here]`,
+        },
+      });
+
+      if (response.error) throw response.error;
+
+      // Parse SSE stream
+      const reader = response.data.getReader();
+      const decoder = new TextDecoder();
+      let fullText = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value);
+        const lines = chunk.split("\n");
+        for (const line of lines) {
+          if (line.startsWith("data: ") && line !== "data: [DONE]") {
+            try {
+              const json = JSON.parse(line.slice(6));
+              const content = json.choices?.[0]?.delta?.content;
+              if (content) fullText += content;
+            } catch {}
+          }
+        }
+      }
+
+      // Parse short and full bios
+      const shortMatch = fullText.match(/## Short Bio\s*\n([\s\S]*?)(?=## Full Bio|$)/i);
+      const fullMatch = fullText.match(/## Full Bio\s*\n([\s\S]*?)$/i);
+
+      if (shortMatch) {
+        updateField("bio_short", shortMatch[1].trim());
+      }
+      if (fullMatch) {
+        updateField("bio_long", fullMatch[1].trim());
+      }
+
+      if (shortMatch || fullMatch) {
+        toast({ title: "Bios generated! ✨", description: "Review and edit as needed before saving." });
+      } else {
+        toast({ title: "Could not parse generated bios", description: "Please try again.", variant: "destructive" });
+      }
+    } catch (err) {
+      console.error("Bio generation failed:", err);
+      toast({ title: "Bio generation failed", description: "Please try again.", variant: "destructive" });
+    } finally {
+      setGeneratingBio(false);
+    }
   };
 
   const updateField = (field: keyof AuthorProfile, value: string) => {
@@ -153,7 +234,7 @@ export default function ProfileEditor() {
         </Button>
       </div>
 
-      {/* Identity */}
+      {/* Identity — name, links for AI, then bios */}
       <section className="rounded-xl border border-border bg-card p-6 space-y-5">
         <h3 className="font-heading text-lg font-semibold">Identity</h3>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -176,6 +257,47 @@ export default function ProfileEditor() {
             />
           </div>
         </div>
+
+        {/* LinkedIn & Amazon — moved up for AI context */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="linkedin_url">LinkedIn Profile URL</Label>
+            <Input
+              id="linkedin_url"
+              value={profile.linkedin_url}
+              onChange={(e) => updateField("linkedin_url", e.target.value)}
+              placeholder="https://linkedin.com/in/..."
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="amazon_author_profile_url">Amazon Author Profile URL</Label>
+            <Input
+              id="amazon_author_profile_url"
+              value={profile.amazon_author_profile_url}
+              onChange={(e) => updateField("amazon_author_profile_url", e.target.value)}
+              placeholder="https://amazon.com/author/..."
+            />
+          </div>
+        </div>
+
+        {/* AI Generate Bio button */}
+        <div className="flex items-center gap-3 rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3">
+          <Sparkles className="h-5 w-5 text-primary shrink-0" />
+          <p className="text-sm text-muted-foreground flex-1">
+            Fill in your name and at least one profile URL above, then let AI draft your bios.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleGenerateBio}
+            disabled={generatingBio}
+            className="shrink-0"
+          >
+            {generatingBio ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+            Generate Bios
+          </Button>
+        </div>
+
         <div className="space-y-2">
           <Label htmlFor="bio_short">Short Bio (for cards & previews)</Label>
           <Textarea
@@ -260,13 +382,12 @@ export default function ProfileEditor() {
         </div>
       </section>
 
-      {/* Social Links */}
+      {/* Social Links (remaining) */}
       <section className="rounded-xl border border-border bg-card p-6 space-y-5">
-        <h3 className="font-heading text-lg font-semibold">Links & Social</h3>
+        <h3 className="font-heading text-lg font-semibold">Other Links & Social</h3>
         <div className="grid gap-4 sm:grid-cols-2">
           {[
             { id: "website_url", label: "Website", placeholder: "https://yoursite.com" },
-            { id: "linkedin_url", label: "LinkedIn", placeholder: "https://linkedin.com/in/..." },
             { id: "twitter_url", label: "X / Twitter", placeholder: "https://x.com/..." },
             { id: "instagram_url", label: "Instagram", placeholder: "https://instagram.com/..." },
             { id: "youtube_url", label: "YouTube", placeholder: "https://youtube.com/@..." },
