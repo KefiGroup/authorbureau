@@ -13,7 +13,7 @@ import heroBg from "@/assets/hero-bg.jpg";
 import paulinePhoto from "@/assets/pauline-teo-headshot.jpg";
 import paulineFullPhoto from "@/assets/pauline-teo.jpeg";
 import bobPhoto from "@/assets/bob-battista-headshot.jpg";
-import feliciaPhoto from "@/assets/felicia-tan.png";
+import feliciaPhoto from "@/assets/felicia-tan-headshot.png";
 import besuckcessfulCover from "@/assets/besuckcessful-cover.jpg";
 import hiCover from "@/assets/hemispheric-intelligence-cover.png";
 import viWomenCover from "@/assets/value-investing-women-cover.png";
