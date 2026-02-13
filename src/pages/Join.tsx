@@ -141,7 +141,7 @@ export default function Join() {
               {/* Badge Tiers */}
               <motion.div variants={fadeUp} custom={8} className="mt-8 space-y-3">
                 <h3 className="font-heading text-sm font-bold">Badge Tiers</h3>
-                {(["listed", "verified", "featured", "publishnow-verified"] as const).map((level) => (
+                {(["listed", "verified", "featured", "ab-verified"] as const).map((level) => (
                   <div key={level} className="flex items-center gap-2">
                     <BadgeDisplay level={level} size="sm" />
                   </div>
