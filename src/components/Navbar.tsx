@@ -11,7 +11,7 @@ const navLinks = [
   { label: "Meet our Authors", to: "/", hash: "#featured-authors" },
   { label: "How It Works", to: "/", hash: "#how-it-works" },
   { label: "Authors", to: "/directory", hash: "" },
-  { label: "Join", to: "/join", hash: "" },
+  { label: "PublishNow.io", to: "https://publishnow.io", hash: "", external: true },
 ];
 
 export default function Navbar() {
@@ -48,36 +48,39 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* Desktop nav */}
         <div className="hidden items-center gap-6 md:flex">
-          {navLinks.map((link) => (
-            <button
-              key={link.label}
-              onClick={() => handleNavClick(link)}
-              className={`text-sm font-medium transition-colors hover:text-secondary ${
-                location.pathname === link.to && !link.hash
-                  ? "text-secondary"
-                  : "text-muted-foreground"
-              }`}
-            >
-              {link.label}
-            </button>
-          ))}
-          <a
-            href="https://publishnow.io"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-secondary"
-          >
-            PublishNow.io
-          </a>
+          {navLinks.map((link) =>
+            link.external ? (
+              <a
+                key={link.label}
+                href={link.to}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm font-medium text-muted-foreground transition-colors hover:text-secondary"
+              >
+                {link.label}
+              </a>
+            ) : (
+              <button
+                key={link.label}
+                onClick={() => handleNavClick(link)}
+                className={`text-sm font-medium transition-colors hover:text-secondary ${
+                  location.pathname === link.to && !link.hash
+                    ? "text-secondary"
+                    : "text-muted-foreground"
+                }`}
+              >
+                {link.label}
+              </button>
+            )
+          )}
           <Link
             to="/auth"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-secondary"
+            className="text-sm font-semibold text-secondary transition-colors hover:text-secondary/80"
           >
             Sign In
           </Link>
-          <Button asChild variant="default" size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-none">
+          <Button asChild variant="default" size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-none rounded-full">
             <Link to="/join">Get Featured</Link>
           </Button>
         </div>
@@ -97,25 +100,43 @@ export default function Navbar() {
             className="overflow-hidden border-t border-border md:hidden"
           >
             <div className="container flex flex-col gap-4 py-4">
-              {navLinks.map((link) => (
-                <button
-                  key={link.label}
-                  onClick={() => handleNavClick(link)}
-                  className={`text-left text-sm font-medium ${
-                    location.pathname === link.to && !link.hash ? "text-secondary" : "text-muted-foreground"
-                  }`}
-                >
-                  {link.label}
-                </button>
-              ))}
-              <a
-                href="https://publishnow.io"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm font-medium text-muted-foreground"
+              {navLinks.map((link) =>
+                link.external ? (
+                  <a
+                    key={link.label}
+                    href={link.to}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-medium text-muted-foreground"
+                  >
+                    {link.label} →
+                  </a>
+                ) : (
+                  <button
+                    key={link.label}
+                    onClick={() => handleNavClick(link)}
+                    className={`text-left text-sm font-medium ${
+                      location.pathname === link.to && !link.hash ? "text-secondary" : "text-muted-foreground"
+                    }`}
+                  >
+                    {link.label}
+                  </button>
+                )
+              )}
+              <Link
+                to="/auth"
+                onClick={() => setOpen(false)}
+                className="text-sm font-semibold text-secondary"
               >
-                PublishNow.io →
-              </a>
+                Sign In
+              </Link>
+              <Link
+                to="/join"
+                onClick={() => setOpen(false)}
+                className="inline-flex w-fit items-center rounded-full bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground"
+              >
+                Get Featured
+              </Link>
             </div>
           </motion.div>
         )}
