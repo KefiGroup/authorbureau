@@ -231,69 +231,6 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Books Showcase */}
-      <section id="books" className="py-24">
-        <div className="container">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            className="mb-16 text-center"
-          >
-            <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
-              Latest Books
-            </motion.p>
-            <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-4xl">
-              Bestselling Books by Our Authors
-            </motion.h2>
-          </motion.div>
-
-          <div className="grid gap-8 sm:grid-cols-2">
-            {authors.map((author) => {
-              const book = author.books[0];
-              return (
-                <motion.div
-                  key={book.slug}
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: true }}
-                  custom={0}
-                  variants={fadeUp}
-                >
-                  <Link
-                    to={`/books/${book.slug}`}
-                    className="group flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-[var(--shadow-card)] transition-all duration-300 hover:shadow-[var(--shadow-card-hover)] sm:flex-row"
-                  >
-                    <div className="flex items-center justify-center bg-muted/50 p-8 sm:w-48">
-                      <img
-                        src={coverMap[book.slug]}
-                        alt={book.title}
-                        className="h-56 rounded-lg object-contain shadow-lg transition-transform duration-300 group-hover:scale-105"
-                      />
-                    </div>
-                    <div className="flex-1 p-6">
-                      <div className="mb-2 flex flex-wrap gap-1.5">
-                        {book.badges.map((b) => (
-                          <span key={b} className="inline-flex items-center rounded-full bg-secondary/15 px-2.5 py-0.5 text-xs font-semibold text-secondary">
-                            {b}
-                          </span>
-                        ))}
-                      </div>
-                      <h3 className="font-heading text-xl font-bold group-hover:text-secondary transition-colors">
-                        {book.title}
-                      </h3>
-                      <p className="mb-2 text-sm italic text-muted-foreground">{book.subtitle}</p>
-                      <p className="mb-4 text-sm text-muted-foreground line-clamp-3">{book.description}</p>
-                      <p className="text-sm font-medium text-foreground">by {author.name}</p>
-                    </div>
-                  </Link>
-                </motion.div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
       {/* The 4-Step Model */}
       <section className="border-y border-border bg-primary py-24 text-primary-foreground">
         <div className="container">
