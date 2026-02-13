@@ -308,9 +308,6 @@ export default function CreateMicrosite() {
                       <div className="flex-1 rounded-full bg-secondary/20 py-2 text-center text-[10px] font-semibold text-secondary">
                         Buy on Amazon
                       </div>
-                      <div className="flex-1 rounded-full border border-border py-2 text-center text-[10px] text-muted-foreground">
-                        Get Free Chapter
-                      </div>
                     </div>
                   </div>
                 </div>
