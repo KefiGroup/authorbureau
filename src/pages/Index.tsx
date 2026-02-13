@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, BookOpen, Users, Globe, Award, Building2, GraduationCap, Mic, MapPin, ChevronLeft, ChevronRight, CheckCircle2, Monitor, Search, Globe2, Play, UserCheck, Calendar, Crown, Sparkles } from "lucide-react";
+import { ArrowRight, BookOpen, Users, Globe, Award, Building2, GraduationCap, Mic, MapPin, ChevronLeft, ChevronRight, CheckCircle2, Monitor, Search, Globe2, Play, UserCheck, Calendar, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import useEmblaCarousel from "embla-carousel-react";
@@ -377,7 +377,7 @@ export default function Index() {
             {[
               { icon: Search, title: "Author Discovery", desc: "Replaces: Amazon Author Central, Goodreads" },
               { icon: Globe2, title: "Book Landing Page", desc: "Replaces: Carrd, Leadpages, WordPress" },
-              { icon: Play, title: "Course Selling", desc: "Replaces: Teachable, Kajabi" },
+              { icon: Play, title: "Course Offering", desc: "Replaces: Teachable, Kajabi" },
               { icon: UserCheck, title: "Coaching CRM", desc: "Replaces: Calendly + Stripe" },
               { icon: Mic, title: "Speaking Bureau", desc: "Replaces: eSpeakers, SpeakerHub" },
               { icon: Calendar, title: "Event Management", desc: "Replaces: Eventbrite, Meetup" },
@@ -575,11 +575,7 @@ export default function Index() {
             viewport={{ once: true, margin: "-100px" }}
             className="mb-16 text-center"
           >
-            <motion.div variants={fadeUp} custom={0} className="mb-4 inline-flex items-center gap-2 rounded-full bg-secondary/10 border border-secondary/20 px-4 py-1.5 text-sm font-semibold text-secondary">
-              <Crown className="h-4 w-4" />
-              PREMIUM · $29/month
-            </motion.div>
-            <motion.p variants={fadeUp} custom={0.5} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
+            <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
               Step 2 · How It Works
             </motion.p>
             <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-4xl">
