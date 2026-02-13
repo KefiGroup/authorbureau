@@ -11,10 +11,12 @@ import Footer from "@/components/Footer";
 
 import paulinePhoto from "@/assets/pauline-teo.jpeg";
 import bobPhoto from "@/assets/bob-battista.jpg";
+import feliciaPhoto from "@/assets/felicia-tan.png";
 
 const photoMap: Record<string, string> = {
   "pauline-teo": paulinePhoto,
   "robert-battista": bobPhoto,
+  "felicia-tan": feliciaPhoto,
 };
 
 const fadeUp = {
@@ -101,7 +103,7 @@ export default function Directory() {
           </div>
 
           {/* Results - rich cards */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((author, i) => (
               <motion.div
                 key={author.slug}

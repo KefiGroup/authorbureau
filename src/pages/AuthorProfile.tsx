@@ -11,10 +11,12 @@ import Footer from "@/components/Footer";
 
 import paulinePhoto from "@/assets/pauline-teo.jpeg";
 import bobPhoto from "@/assets/bob-battista.jpg";
+import feliciaPhoto from "@/assets/felicia-tan.png";
 
 const photoMap: Record<string, string> = {
   "pauline-teo": paulinePhoto,
   "robert-battista": bobPhoto,
+  "felicia-tan": feliciaPhoto,
 };
 
 const fadeUp = {
