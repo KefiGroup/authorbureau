@@ -1,0 +1,127 @@
+export interface Book {
+  slug: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  coverImage: string;
+  amazonUrl: string;
+  badges: string[];
+  genre: string;
+  price?: string;
+}
+
+export interface Author {
+  slug: string;
+  name: string;
+  photo: string;
+  title: string;
+  bio: string;
+  shortBio: string;
+  credentials: string[];
+  books: Book[];
+  genres: string[];
+  websiteUrl?: string;
+  linkedinUrl?: string;
+  amazonAuthorUrl?: string;
+  email?: string;
+  badge: "listed" | "verified" | "featured" | "publishnow-verified";
+  services: string[];
+}
+
+export const authors: Author[] = [
+  {
+    slug: "pauline-teo",
+    name: "Pauline Teo",
+    photo: "/src/assets/pauline-teo.jpeg",
+    title: "International Bestselling Author",
+    bio: "Pauline Teo is an International Bestselling Author with her book, \"Be SUCKcessful\", reaching #1 on Amazon. She has previously authored 2 other Bestselling books titled \"Value Investing for Women\" and \"Invest Like Buffett for Parents\", both in their 3rd reprints. As a proud mother of 2, Pauline has been instrumental in leading a startup since 2011, eventually steering the company to become the largest Financial Education company in Singapore and Malaysia. She oversaw its successful listing, 8I Holdings, in 2014 (ASX:8I) and the spin-off of another subsidiary, 8VI Ltd (ASX:8VI) in 2018. With a Master's Degree in Instructional Design and Technology specializing in Adult Learning, she brings 25+ years of industry experience to her transformational teachings.",
+    shortBio: "International Bestselling Author, entrepreneur, and transformational teacher with 25+ years of experience.",
+    credentials: ["International Bestselling Author", "3x Published Author", "25+ Years Experience", "Master's in Instructional Design"],
+    books: [
+      {
+        slug: "be-suckcessful",
+        title: "Be SUCKcessful",
+        subtitle: "We SUCK Before We SUCCEED",
+        description: "From childhood tragedy to chronic illness, business betrayal to runaway shareholders, motherhood crises to rebuilding her life after near burnout — Pauline Teo has lived through storms that could have broken anyone. Instead, she turned every disaster into her greatest breakthrough. Eight powerful stories that reveal the eight steps to turn fear into courage, trauma into power, and setbacks into a life of wealth, wellness and wisdom.",
+        coverImage: "/src/assets/besuckcessful-cover.jpg",
+        amazonUrl: "https://a.co/d/e3tGN8E",
+        badges: ["#1 Best Seller", "#1 New Release"],
+        genre: "Personal Development",
+      },
+      {
+        slug: "value-investing-for-women",
+        title: "Value Investing for Women",
+        subtitle: "A must-read for financial independence",
+        description: "A must-read for all women who wish to juggle their career, marriage, children, and financial freedom. Learn how to generate passive income and build a million-dollar net worth.",
+        coverImage: "/src/assets/value-investing-women-cover.png",
+        amazonUrl: "https://www.amazon.com/Value-Investing-Women-Pauline-Teo-ebook/dp/B09HQ12ZSG",
+        badges: ["3rd Reprint"],
+        genre: "Finance",
+        price: "$6.99",
+      },
+      {
+        slug: "invest-like-buffett",
+        title: "Invest Like Buffett: Value Investing for Parents",
+        subtitle: "Warren Buffett's principles for families",
+        description: "Learn Warren Buffett's value investing principles and teach your children the path to financial freedom from an early age.",
+        coverImage: "/src/assets/invest-like-buffett-cover.jpg",
+        amazonUrl: "https://www.amazon.com/Invest-Like-Buffett-Investing-Parents-ebook/dp/B09HPZVYDP",
+        badges: ["3rd Reprint"],
+        genre: "Finance",
+        price: "$6.99",
+      },
+    ],
+    genres: ["Personal Development", "Finance", "Self-Help"],
+    websiteUrl: "https://www.paulineteo.com/",
+    linkedinUrl: "https://www.linkedin.com/in/paulineteo/",
+    amazonAuthorUrl: "https://www.amazon.com/stores/Pauline-Teo/author/B0G9VQKXS2",
+    email: "pl@paulineteo.com",
+    badge: "publishnow-verified",
+    services: ["Speaking", "Coaching", "Courses"],
+  },
+  {
+    slug: "robert-battista",
+    name: "Robert J. Battista",
+    photo: "/src/assets/bob-battista.jpg",
+    title: "Healthtech AI Thought Leader",
+    bio: "Bob Battista is a writer, strategist, and technology executive focused on how emerging forms of intelligence should be designed, governed, and lived with responsibly. He is the founder of KEFI, a philosophy and framework for governed intelligence, and the builder behind TripSit.ai, We-Health.ai, 2percent.ai, Yassu.ai, and Salt.ai — platforms that apply this framework to pharma, healthcare, and enterprise. Across his career, he has worked at the intersection of technology, healthcare, data, and organizational decision-making, helping institutions navigate moments when new tools outpace existing norms.",
+    shortBio: "Writer, strategist, and technology executive building governed AI systems for high-stakes decision environments.",
+    credentials: ["AI Thought Leader", "Technology Executive", "KEFI Founder", "Published Author"],
+    books: [
+      {
+        slug: "hemispheric-intelligence",
+        title: "Hemispheric Intelligence",
+        subtitle: "AI Done Right (and Left)",
+        description: "A work of architectural thinking about the future of intelligence. As AI moves from tools to infrastructure, the challenge is no longer whether machines can think, but how intelligence itself should be structured when consequences are real and irreversible. This book argues that today's dominant AI models collapse exploration, interpretation, and truth into a single fluent output, creating confidence without clarity and speed without judgment.",
+        coverImage: "/src/assets/hemispheric-intelligence-cover.png",
+        amazonUrl: "https://a.co/d/gxEmLou",
+        badges: ["#1 New Release", "Best Seller"],
+        genre: "Technology",
+      },
+    ],
+    genres: ["Technology", "AI", "Philosophy"],
+    websiteUrl: "https://www.bbattista.com/",
+    linkedinUrl: "https://www.linkedin.com/in/bob-battista-ceo/",
+    amazonAuthorUrl: "https://www.amazon.com/stores/author/B0GFXBRXH2",
+    badge: "publishnow-verified",
+    services: ["Speaking", "Consulting"],
+  },
+];
+
+export function getAuthorBySlug(slug: string): Author | undefined {
+  return authors.find((a) => a.slug === slug);
+}
+
+export function getBookBySlug(slug: string): { book: Book; author: Author } | undefined {
+  for (const author of authors) {
+    const book = author.books.find((b) => b.slug === slug);
+    if (book) return { book, author };
+  }
+  return undefined;
+}
+
+export function getAllBooks(): { book: Book; author: Author }[] {
+  return authors.flatMap((author) =>
+    author.books.map((book) => ({ book, author }))
+  );
+}
