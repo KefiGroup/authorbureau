@@ -246,6 +246,9 @@ export default function Index() {
             <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-4xl">
               Turn Your Book Into a Business
             </motion.h2>
+            <motion.p variants={fadeUp} custom={2} className="mt-4 text-lg text-primary-foreground/70">
+              All managed in one place.
+            </motion.p>
           </motion.div>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -253,7 +256,7 @@ export default function Index() {
               { step: "1", title: "Digital Products", desc: "Courses, workbooks, audiobooks, and memberships powered by your book content." },
               { step: "2", title: "Coaching", desc: "1-on-1 and group coaching packages with built-in scheduling and payments." },
               { step: "3", title: "Speaking", desc: "Speaker profile, keynote topics, and booking calendar for events and podcasts." },
-              { step: "4", title: "Events", desc: "Retreats, masterminds, certifications, and conferences — all managed in one place." },
+              { step: "4", title: "Events", desc: "Retreats, masterminds, certifications, and conferences." },
             ].map((item, i) => (
               <motion.div
                 key={item.step}
