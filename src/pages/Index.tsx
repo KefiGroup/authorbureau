@@ -1,7 +1,9 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, BookOpen, Users, Globe, Award, Building2, GraduationCap, Mic, MapPin } from "lucide-react";
+import { ArrowRight, BookOpen, Users, Globe, Award, Building2, GraduationCap, Mic, MapPin, ChevronLeft, ChevronRight } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import useEmblaCarousel from "embla-carousel-react";
 import { authors } from "@/data/authors";
 import BadgeDisplay from "@/components/BadgeDisplay";
 import Navbar from "@/components/Navbar";
@@ -46,6 +48,23 @@ const fadeUp = {
 };
 
 export default function Index() {
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: "start" });
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(false);
+
+  const onSelect = useCallback(() => {
+    if (!emblaApi) return;
+    setCanScrollPrev(emblaApi.canScrollPrev());
+    setCanScrollNext(emblaApi.canScrollNext());
+  }, [emblaApi]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    onSelect();
+    emblaApi.on("select", onSelect);
+    emblaApi.on("reInit", onSelect);
+  }, [emblaApi, onSelect]);
+
   return (
     <div className="min-h-screen">
       <Navbar />
@@ -237,74 +256,98 @@ export default function Index() {
             </motion.h2>
           </motion.div>
 
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {authors.map((author, i) => (
-              <motion.div
-                key={author.slug}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                custom={i}
-                variants={fadeUp}
-              >
-                <Link
-                  to={`/authors/${author.slug}`}
-                  className="group block overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-all duration-300 h-full flex flex-col"
-                >
-                  {/* Photo - Full Height */}
-                  <div className="relative h-64 bg-muted/50 overflow-hidden">
-                    <img
-                      src={photoMap[author.slug]}
-                      alt={author.name}
-                      className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute top-3 right-3">
-                      <BadgeDisplay level={author.badge} size="sm" />
-                    </div>
-                  </div>
+          <div className="relative">
+            {/* Carousel */}
+            <div className="overflow-hidden" ref={emblaRef}>
+              <div className="flex gap-6">
+                {authors.map((author, i) => (
+                  <motion.div
+                    key={author.slug}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true }}
+                    custom={i}
+                    variants={fadeUp}
+                    className="min-w-0 flex-[0_0_100%] sm:flex-[0_0_50%] lg:flex-[0_0_33.333%]"
+                  >
+                    <Link
+                      to={`/authors/${author.slug}`}
+                      className="group block overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-all duration-300 h-full flex flex-col"
+                    >
+                      {/* Photo */}
+                      <div className="relative h-64 bg-muted/50 overflow-hidden">
+                        <img
+                          src={photoMap[author.slug]}
+                          alt={author.name}
+                          className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                        />
+                        <div className="absolute top-3 right-3">
+                          <BadgeDisplay level={author.badge} size="sm" />
+                        </div>
+                      </div>
 
-                  {/* Content */}
-                  <div className="flex-1 p-6 flex flex-col">
-                    <h3 className="font-heading text-lg font-bold group-hover:text-secondary transition-colors mb-1">
-                      {author.name}
-                    </h3>
-                    <p className="text-sm text-muted-foreground mb-3">{author.title}</p>
-                    <p className="text-sm text-muted-foreground mb-4 flex-1">{author.shortBio}</p>
+                      {/* Content */}
+                      <div className="flex-1 p-6 flex flex-col">
+                        <h3 className="font-heading text-lg font-bold group-hover:text-secondary transition-colors mb-1">
+                          {author.name}
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-3">{author.title}</p>
+                        <p className="text-sm text-muted-foreground mb-4 flex-1">{author.shortBio}</p>
 
-                    {/* Books */}
-                    <div className="mt-4 flex items-center gap-3 pb-4 border-b border-border/50">
-                      {author.books.slice(0, 3).map((book) => {
-                        const cover = coverMap[book.slug];
-                        return cover ? (
-                          <img
-                            key={book.slug}
-                            src={cover}
-                            alt={book.title}
-                            className="h-16 rounded shadow-md object-contain"
-                          />
-                        ) : (
-                          <div
-                            key={book.slug}
-                            className="flex h-16 w-12 items-center justify-center rounded bg-muted/80 shadow-md border border-border/50"
-                          >
-                            <BookOpen className="h-4 w-4 text-muted-foreground/50" />
-                          </div>
-                        );
-                      })}
-                    </div>
+                        {/* Books */}
+                        <div className="mt-4 flex items-center gap-3 pb-4 border-b border-border/50">
+                          {author.books.slice(0, 3).map((book) => {
+                            const cover = coverMap[book.slug];
+                            return cover ? (
+                              <img
+                                key={book.slug}
+                                src={cover}
+                                alt={book.title}
+                                className="h-16 rounded shadow-md object-contain"
+                              />
+                            ) : (
+                              <div
+                                key={book.slug}
+                                className="flex h-16 w-12 items-center justify-center rounded bg-muted/80 shadow-md border border-border/50"
+                              >
+                                <BookOpen className="h-4 w-4 text-muted-foreground/50" />
+                              </div>
+                            );
+                          })}
+                        </div>
 
-                    {/* Genres */}
-                    <div className="mt-4 flex flex-wrap gap-1.5">
-                      {author.genres.slice(0, 3).map((g) => (
-                        <span key={g} className="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                          {g}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
+                        {/* Genres */}
+                        <div className="mt-4 flex flex-wrap gap-1.5">
+                          {author.genres.slice(0, 3).map((g) => (
+                            <span key={g} className="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                              {g}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </Link>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+
+            {/* Navigation arrows */}
+            <button
+              onClick={() => emblaApi?.scrollPrev()}
+              disabled={!canScrollPrev}
+              className="absolute -left-4 top-1/2 -translate-y-1/2 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card shadow-md disabled:opacity-30 hover:bg-muted transition-colors"
+              aria-label="Previous author"
+            >
+              <ChevronLeft className="h-5 w-5 text-foreground" />
+            </button>
+            <button
+              onClick={() => emblaApi?.scrollNext()}
+              disabled={!canScrollNext}
+              className="absolute -right-4 top-1/2 -translate-y-1/2 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card shadow-md disabled:opacity-30 hover:bg-muted transition-colors"
+              aria-label="Next author"
+            >
+              <ChevronRight className="h-5 w-5 text-foreground" />
+            </button>
           </div>
         </div>
       </section>
