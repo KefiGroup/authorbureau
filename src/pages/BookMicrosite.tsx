@@ -266,6 +266,31 @@ export default function BookMicrosite() {
         </div>
       </section>
 
+      {/* ==================== PLATFORM PROMO ==================== */}
+      <section className="border-t border-border bg-primary py-16 text-primary-foreground">
+        <div className="container max-w-3xl text-center">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-secondary/30 bg-secondary/10 px-4 py-1.5 text-sm font-semibold text-secondary">
+            <Award className="h-4 w-4" />
+            Powered by AuthorsBureau
+          </div>
+          <h2 className="font-heading text-2xl font-bold md:text-3xl mb-3">
+            Everything You Need to Get Discovered — <span className="text-secondary">Completely FREE</span>
+          </h2>
+          <p className="mx-auto max-w-xl text-primary-foreground/70 leading-relaxed">
+            Every listed author gets a dedicated landing page for their book, designed to showcase your Amazon bestseller status, drive purchases, and build your reader community.
+          </p>
+          <Button
+            asChild
+            size="lg"
+            className="mt-6 bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold rounded-full px-8"
+          >
+            <Link to="/join">
+              Get Your Free Microsite <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+      </section>
+
       <Footer />
     </div>
   );
