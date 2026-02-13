@@ -11,7 +11,7 @@ import Footer from "@/components/Footer";
 
 import paulinePhoto from "@/assets/pauline-teo-headshot.jpg";
 import bobPhoto from "@/assets/bob-battista-headshot.jpg";
-import feliciaPhoto from "@/assets/felicia-tan.png";
+import feliciaPhoto from "@/assets/felicia-tan-headshot.jpg";
 
 const photoMap: Record<string, string> = {
   "pauline-teo": paulinePhoto,
