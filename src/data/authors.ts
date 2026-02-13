@@ -10,6 +10,10 @@ export interface Book {
   price?: string;
   kindlePrice?: string;
   paperbackPrice?: string;
+  pages?: number;
+  rating?: number;
+  reviewCount?: number;
+  categories?: string[];
 }
 
 export interface Author {

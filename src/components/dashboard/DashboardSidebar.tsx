@@ -1,4 +1,4 @@
-import { User, BookOpen, Mic, GraduationCap, LayoutDashboard, ChevronLeft, ChevronRight, Crown, Sparkles } from "lucide-react";
+import { User, BookOpen, Mic, GraduationCap, LayoutDashboard, ChevronLeft, ChevronRight, Crown, Sparkles, Zap } from "lucide-react";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
 import logoIcon from "@/assets/logo-icon.png";
 
@@ -13,6 +13,7 @@ interface Props {
 const navItems: { id: DashboardSection; label: string; icon: typeof LayoutDashboard; premiumOnly?: boolean }[] = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "profile", label: "Profile", icon: User },
+  { id: "book-enricher", label: "Book Enricher", icon: Zap },
   { id: "ai-toolkit", label: "AI Toolkit", icon: Sparkles, premiumOnly: true },
   { id: "courses", label: "Courses", icon: GraduationCap, premiumOnly: true },
   { id: "speaking", label: "Speaking", icon: Mic, premiumOnly: true },
