@@ -492,8 +492,8 @@ export default function Index() {
                   size="lg"
                   className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold shadow-[var(--shadow-gold)] rounded-full px-8"
                 >
-                  <Link to="/create-microsite">
-                    Get Your Microsite <ArrowRight className="ml-2 h-4 w-4" />
+                  <Link to="/join">
+                    Get Featured <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
               </motion.div>
