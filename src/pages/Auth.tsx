@@ -18,7 +18,17 @@ export default function Auth() {
 
   const { isAdmin } = useAuth();
 
-  if (loading) return null;
+  if (loading) return (
+    <div className="min-h-screen">
+      <Navbar />
+      <section className="py-20">
+        <div className="container max-w-md flex justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-secondary" />
+        </div>
+      </section>
+      <Footer />
+    </div>
+  );
   if (user) return <Navigate to={isAdmin ? "/admin" : "/dashboard"} replace />;
 
   const handleSubmit = async (e: React.FormEvent) => {

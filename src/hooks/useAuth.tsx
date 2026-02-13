@@ -99,9 +99,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       setLoading(false);
+    }).catch(() => {
+      setLoading(false);
     });
 
-    return () => authSub.unsubscribe();
+    // Safety timeout: ensure loading resolves within 5 seconds
+    const timeout = setTimeout(() => setLoading(false), 5000);
+
+    return () => {
+      authSub.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   // Check subscription when user is set
