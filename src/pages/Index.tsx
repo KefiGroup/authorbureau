@@ -541,16 +541,22 @@ export default function Index() {
                     </div>
                   </div>
                 </div>
-                <div className="p-6 space-y-3">
-                  <div className="h-3 rounded-full bg-muted w-full" />
-                  <div className="h-3 rounded-full bg-muted w-5/6" />
-                  <div className="h-3 rounded-full bg-muted w-4/6" />
-                  <div className="flex gap-4 mt-6">
-                    <div className="flex-1 rounded-full bg-secondary/20 py-2.5 text-center text-sm font-semibold text-secondary">
+                <div className="p-6">
+                  <h4 className="font-heading text-sm font-bold mb-2">About This Book</h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed mb-4">
+                    A raw, honest guide to embracing failure as the foundation for success. Pauline Teo shares her journey from setbacks to building a publicly listed company.
+                  </p>
+                  <div className="flex items-center gap-4 mb-4 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1"><BookOpen className="h-3 w-3" /> 248 pages</span>
+                    <span>Self-Help</span>
+                    <span>⭐ 4.8/5</span>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="flex-1 rounded-lg bg-secondary py-2.5 text-center text-sm font-semibold text-secondary-foreground">
                       Buy on Amazon
                     </div>
-                    <div className="flex-1 rounded-full border border-border py-2.5 text-center text-sm text-muted-foreground">
-                      Get Free Chapter
+                    <div className="flex-1 rounded-lg border border-border py-2.5 text-center text-sm text-muted-foreground">
+                      Free Chapter
                     </div>
                   </div>
                 </div>
