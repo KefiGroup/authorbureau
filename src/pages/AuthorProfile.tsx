@@ -69,20 +69,15 @@ export default function AuthorProfile() {
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-10 items-start">
             {/* Photo */}
             <div className="lg:col-span-2">
-              <div className="relative">
-                <motion.img
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5 }}
-                  src={photoMap[author.slug]}
-                  alt={author.name}
-                  className="w-full max-w-sm mx-auto rounded-2xl object-cover object-top shadow-lg"
-                  style={{ maxHeight: '480px' }}
-                />
-                <div className="absolute -top-3 -right-3">
-                  <BadgeDisplay level={author.badge} size="sm" />
-                </div>
-              </div>
+              <motion.img
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+                src={photoMap[author.slug]}
+                alt={author.name}
+                className="w-full max-w-sm mx-auto rounded-2xl object-cover object-top shadow-lg"
+                style={{ maxHeight: '480px' }}
+              />
             </div>
 
             {/* Info */}
