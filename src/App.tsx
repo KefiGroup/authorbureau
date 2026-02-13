@@ -15,6 +15,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AuthorDashboard from "./pages/AuthorDashboard";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
+import ScrollToTop from "./components/ScrollToTop";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <ScrollToTop />
           <AppRoutes />
         </AuthProvider>
       </BrowserRouter>
