@@ -197,8 +197,8 @@ export default function Index() {
             {[
               {
                 icon: BookOpen,
-                title: "Get Featured",
-                desc: "Apply to be listed or publish through PublishNow.io for an auto-generated showcase with a verified badge.",
+                title: "Get Featured — Free",
+                desc: "Published authors can apply for a free professional showcase. Books published through PublishNow.io also receive a verified badge.",
               },
               {
                 icon: Users,
@@ -208,7 +208,7 @@ export default function Index() {
               {
                 icon: Globe,
                 title: "Grow Your Business",
-                desc: "Sell courses, offer coaching, book speaking engagements, and run events — all from your author profile.",
+                desc: "Offer coaching, sell courses, book speaking engagements, and host book launch events — all from your author profile.",
               },
             ].map((step, i) => (
               <motion.div
@@ -348,11 +348,10 @@ export default function Index() {
             className="rounded-2xl border border-border bg-card p-12 text-center shadow-[var(--shadow-card)]"
           >
             <motion.h2 variants={fadeUp} custom={0} className="mb-4 font-heading text-3xl font-bold md:text-4xl">
-              Ready to Be Discovered?
+              Published Author? Get Featured for Free.
             </motion.h2>
             <motion.p variants={fadeUp} custom={1} className="mx-auto mb-8 max-w-lg text-muted-foreground">
-              Whether you're already published or ready to write your first book,
-              there's a path for you.
+              Already have a book on Amazon? Apply for your free author showcase and start reaching new readers today.
             </motion.p>
             <motion.div variants={fadeUp} custom={2} className="flex flex-wrap justify-center gap-4">
               <Button
@@ -360,20 +359,15 @@ export default function Index() {
                 size="lg"
                 className="bg-secondary text-secondary-foreground hover:bg-secondary/90 text-base font-semibold shadow-none"
               >
-                <Link to="/join">Apply as an Author</Link>
-              </Button>
-              <Button
-                asChild
-                size="lg"
-                variant="outline"
-                className="text-base"
-              >
-                <a href="https://publishnow.io" target="_blank" rel="noopener noreferrer">
-                  Start Writing on PublishNow.io
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </a>
+                <Link to="/join">Get Your Free Showcase</Link>
               </Button>
             </motion.div>
+            <motion.p variants={fadeUp} custom={3} className="mt-6 text-sm text-muted-foreground">
+              Not published yet?{" "}
+              <a href="https://publishnow.io" target="_blank" rel="noopener noreferrer" className="font-medium text-secondary hover:underline">
+                Publish your book with PublishNow.io →
+              </a>
+            </motion.p>
           </motion.div>
         </div>
       </section>
