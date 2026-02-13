@@ -128,7 +128,7 @@ export const authors: Author[] = [
     ],
     genres: ["Memoir", "Parenting", "Self-Help"],
     websiteUrl: "https://artoflife.sg/",
-    linkedinUrl: "https://www.linkedin.com/in/felicia-tan/",
+    linkedinUrl: "https://www.linkedin.com/in/feliciadesigner/",
     amazonAuthorUrl: "https://www.amazon.com/stores/author/B091G199L6",
     badge: "featured",
     services: ["Speaking", "Coaching"],
