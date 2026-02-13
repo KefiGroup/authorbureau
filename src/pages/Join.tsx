@@ -193,7 +193,7 @@ export default function Join() {
 
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
-                      <label className="mb-1.5 block text-sm font-medium">Full Name</label>
+                      <label className="mb-1.5 block text-sm font-medium">Full Name *</label>
                       <input
                         required
                         name="full_name"
@@ -203,7 +203,7 @@ export default function Join() {
                       />
                     </div>
                     <div>
-                      <label className="mb-1.5 block text-sm font-medium">Email</label>
+                      <label className="mb-1.5 block text-sm font-medium">Email *</label>
                       <input
                         required
                         name="email"
