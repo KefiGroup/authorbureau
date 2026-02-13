@@ -132,7 +132,7 @@ export default function Index() {
       {/* Meet the Founder */}
       <section id="meet-the-founder" className="py-24">
         <div className="container">
-          <div className="grid gap-12 lg:grid-cols-2 items-center">
+          <div className="grid gap-12 lg:grid-cols-2 items-start">
             {/* Photo */}
             <motion.div
               initial="hidden"
@@ -142,11 +142,11 @@ export default function Index() {
               variants={fadeUp}
               className="relative"
             >
-              <div className="rounded-2xl overflow-hidden bg-muted/30 shadow-lg">
+              <div className="rounded-2xl overflow-hidden bg-muted/30 shadow-lg max-h-[560px]">
                 <img
                   src={paulineFullPhoto}
                   alt="Pauline Teo — Founder of Authors Bureau"
-                  className="w-full object-cover"
+                  className="w-full h-full object-cover object-top max-h-[560px]"
                 />
               </div>
               <div className="absolute top-4 right-4">
