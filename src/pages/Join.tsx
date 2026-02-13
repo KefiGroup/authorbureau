@@ -123,7 +123,7 @@ export default function Join() {
                 "Professional author profile page",
                 "Book microsites for each title",
                 "Listed in searchable directory",
-                "Sell courses and digital products",
+                "Offer courses and digital products",
                 "Coaching and speaking tools",
                 "Cross-promotion with PublishNow.io",
               ].map((item, i) => (
