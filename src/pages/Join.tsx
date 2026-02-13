@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { CheckCircle2, BookOpen, ArrowRight, Award, Sparkles } from "lucide-react";
+import { CheckCircle2, BookOpen, ArrowRight, Award, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import BadgeDisplay from "@/components/BadgeDisplay";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -18,9 +20,45 @@ const fadeUp = {
 
 export default function Join() {
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setLoading(true);
+
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+
+    const fullName = (formData.get("full_name") as string).trim();
+    const email = (formData.get("email") as string).trim();
+    const websiteUrl = (formData.get("website_url") as string)?.trim() || null;
+    const amazonBookUrl = (formData.get("amazon_book_url") as string).trim();
+    const bio = (formData.get("bio") as string)?.trim() || null;
+    const genres = (formData.get("genres") as string)?.trim() || null;
+
+    if (!fullName || !email || !amazonBookUrl) {
+      toast({ title: "Please fill in all required fields", variant: "destructive" });
+      setLoading(false);
+      return;
+    }
+
+    const { error } = await supabase.from("author_applications").insert({
+      full_name: fullName.slice(0, 200),
+      email: email.slice(0, 255),
+      website_url: websiteUrl?.slice(0, 500),
+      amazon_book_url: amazonBookUrl.slice(0, 500),
+      bio: bio?.slice(0, 2000),
+      genres: genres?.slice(0, 500),
+    });
+
+    setLoading(false);
+
+    if (error) {
+      toast({ title: "Something went wrong. Please try again.", variant: "destructive" });
+      return;
+    }
+
     setSubmitted(true);
   };
 
@@ -133,6 +171,7 @@ export default function Join() {
                       <label className="mb-1.5 block text-sm font-medium">Full Name</label>
                       <input
                         required
+                        name="full_name"
                         type="text"
                         className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-secondary/50"
                         placeholder="Your name"
@@ -142,6 +181,7 @@ export default function Join() {
                       <label className="mb-1.5 block text-sm font-medium">Email</label>
                       <input
                         required
+                        name="email"
                         type="email"
                         className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-secondary/50"
                         placeholder="your@email.com"
@@ -151,26 +191,29 @@ export default function Join() {
 
                   <div>
                     <label className="mb-1.5 block text-sm font-medium">Website or LinkedIn</label>
-                    <input
-                      type="url"
-                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-secondary/50"
-                      placeholder="https://"
-                    />
+                      <input
+                        name="website_url"
+                        type="url"
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-secondary/50"
+                        placeholder="https://"
+                      />
                   </div>
 
                   <div>
                     <label className="mb-1.5 block text-sm font-medium">Amazon Book URL</label>
-                    <input
-                      required
-                      type="url"
-                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-secondary/50"
-                      placeholder="https://amazon.com/dp/..."
-                    />
+                      <input
+                        required
+                        name="amazon_book_url"
+                        type="url"
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-secondary/50"
+                        placeholder="https://amazon.com/dp/..."
+                      />
                   </div>
 
                   <div>
                     <label className="mb-1.5 block text-sm font-medium">Tell us about yourself</label>
                     <textarea
+                      name="bio"
                       rows={4}
                       className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-secondary/50"
                       placeholder="Share your author journey, credentials, and what you hope to achieve..."
@@ -180,6 +223,7 @@ export default function Join() {
                   <div>
                     <label className="mb-1.5 block text-sm font-medium">Genres / Topics</label>
                     <input
+                      name="genres"
                       type="text"
                       className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-secondary/50"
                       placeholder="e.g., Personal Development, Finance, AI"
@@ -189,10 +233,15 @@ export default function Join() {
                   <Button
                     type="submit"
                     size="lg"
+                    disabled={loading}
                     className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold shadow-[var(--shadow-gold)] rounded-full"
                   >
-                    <Award className="mr-2 h-5 w-5" />
-                    Submit Application
+                    {loading ? (
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    ) : (
+                      <Award className="mr-2 h-5 w-5" />
+                    )}
+                    {loading ? "Submitting..." : "Submit Application"}
                   </Button>
                 </form>
               )}
