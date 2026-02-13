@@ -11,7 +11,7 @@ import Footer from "@/components/Footer";
 
 import paulinePhoto from "@/assets/pauline-teo.jpeg";
 import bobPhoto from "@/assets/bob-battista.jpg";
-import feliciaPhoto from "@/assets/felicia-tan.png";
+import feliciaPhoto from "@/assets/felicia-tan-headshot.png";
 import besuckcessfulCover from "@/assets/besuckcessful-cover.jpg";
 import hiCover from "@/assets/hemispheric-intelligence-cover.png";
 import viCover from "@/assets/value-investing-women-cover.png";
