@@ -1,19 +1,42 @@
-import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useState, useCallback } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import logoIcon from "@/assets/logo-icon.png";
 
 const navLinks = [
-  { label: "Home", to: "/" },
-  { label: "Authors", to: "/directory" },
-  { label: "Join", to: "/join" },
+  { label: "Home", to: "/", hash: "" },
+  { label: "Featured Authors", to: "/", hash: "#featured-authors" },
+  { label: "How It Works", to: "/", hash: "#how-it-works" },
+  { label: "Books", to: "/", hash: "#books" },
+  { label: "Authors", to: "/directory", hash: "" },
+  { label: "Join", to: "/join", hash: "" },
 ];
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleNavClick = useCallback(
+    (link: (typeof navLinks)[0]) => {
+      setOpen(false);
+      if (link.hash) {
+        if (location.pathname === link.to) {
+          document.querySelector(link.hash)?.scrollIntoView({ behavior: "smooth" });
+        } else {
+          navigate(link.to);
+          setTimeout(() => {
+            document.querySelector(link.hash)?.scrollIntoView({ behavior: "smooth" });
+          }, 300);
+        }
+      } else {
+        navigate(link.to);
+      }
+    },
+    [location.pathname, navigate]
+  );
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
@@ -26,19 +49,19 @@ export default function Navbar() {
         </Link>
 
         {/* Desktop nav */}
-        <div className="hidden items-center gap-8 md:flex">
+        <div className="hidden items-center gap-6 md:flex">
           {navLinks.map((link) => (
-            <Link
-              key={link.to}
-              to={link.to}
+            <button
+              key={link.label}
+              onClick={() => handleNavClick(link)}
               className={`text-sm font-medium transition-colors hover:text-secondary ${
-                location.pathname === link.to
+                location.pathname === link.to && !link.hash
                   ? "text-secondary"
                   : "text-muted-foreground"
               }`}
             >
               {link.label}
-            </Link>
+            </button>
           ))}
           <a
             href="https://publishnow.io"
@@ -75,16 +98,15 @@ export default function Navbar() {
           >
             <div className="container flex flex-col gap-4 py-4">
               {navLinks.map((link) => (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  onClick={() => setOpen(false)}
-                  className={`text-sm font-medium ${
-                    location.pathname === link.to ? "text-secondary" : "text-muted-foreground"
+                <button
+                  key={link.label}
+                  onClick={() => handleNavClick(link)}
+                  className={`text-left text-sm font-medium ${
+                    location.pathname === link.to && !link.hash ? "text-secondary" : "text-muted-foreground"
                   }`}
                 >
                   {link.label}
-                </Link>
+                </button>
               ))}
               <a
                 href="https://publishnow.io"

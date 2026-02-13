@@ -97,7 +97,7 @@ export default function Index() {
       </section>
 
       {/* Featured Authors */}
-      <section className="py-24">
+      <section id="featured-authors" className="py-24">
         <div className="container">
           <motion.div
             initial="hidden"
@@ -163,7 +163,7 @@ export default function Index() {
       </section>
 
       {/* How It Works */}
-      <section className="border-y border-border bg-muted/50 py-24">
+      <section id="how-it-works" className="border-y border-border bg-muted/50 py-24">
         <div className="container">
           <motion.div
             initial="hidden"
@@ -218,7 +218,7 @@ export default function Index() {
       </section>
 
       {/* Books Showcase */}
-      <section className="py-24">
+      <section id="books" className="py-24">
         <div className="container">
           <motion.div
             initial="hidden"
