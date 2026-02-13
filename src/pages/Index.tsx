@@ -71,9 +71,7 @@ export default function Index() {
               custom={2}
               className="mx-auto mb-10 max-w-xl text-lg text-primary-foreground/70"
             >
-              Every author gets a professional showcase. Featured authors access
-              tools to sell courses, offer coaching, book speaking engagements,
-              and run events — all from one platform.
+              Every author gets a professional showcase. Featured authors access tools to offer their services, courses, coaching, book speaking engagements, and book launch events - All from one platform.
             </motion.p>
 
             <motion.div variants={fadeUp} custom={3} className="flex flex-wrap justify-center gap-4">
