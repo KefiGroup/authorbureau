@@ -10,6 +10,7 @@ import BookCard from "@/components/BookCard";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ServiceInquiryForm from "@/components/ServiceInquiryForm";
+import { useToast } from "@/hooks/use-toast";
 
 import paulinePhoto from "@/assets/pauline-teo.jpeg";
 import bobPhoto from "@/assets/bob-battista.jpg";
@@ -35,6 +36,7 @@ export default function AuthorProfile() {
   const author = getAuthorBySlug(slug || "");
   const [inquiryOpen, setInquiryOpen] = useState(false);
   const [selectedService, setSelectedService] = useState("");
+  const { toast } = useToast();
 
   if (!author) {
     return (
@@ -134,8 +136,17 @@ export default function AuthorProfile() {
                   </a>
                 )}
                 {author.email && (
-                  <a href={`mailto:${author.email}`}
-                    className="inline-flex items-center gap-1.5 text-sm text-primary-foreground/60 hover:text-secondary transition-colors">
+                  <a
+                    href={`mailto:${author.email}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => {
+                      // Fallback: copy email if mailto doesn't work (e.g. in iframes)
+                      navigator.clipboard?.writeText(author.email!);
+                      toast({ title: "Email copied!", description: author.email });
+                    }}
+                    className="inline-flex items-center gap-1.5 text-sm text-primary-foreground/60 hover:text-secondary transition-colors cursor-pointer"
+                  >
                     <Mail className="h-4 w-4" /> Email
                   </a>
                 )}
