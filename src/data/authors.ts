@@ -29,6 +29,7 @@ export interface Author {
 }
 
 export const authors: Author[] = [
+  // Order: Pauline, Felicia, Bob (left to right)
   {
     slug: "pauline-teo",
     name: "Pauline Teo",
@@ -80,33 +81,6 @@ export const authors: Author[] = [
     services: ["Speaking", "Coaching", "Courses"],
   },
   {
-    slug: "robert-battista",
-    name: "Robert J. Battista",
-    photo: "/src/assets/bob-battista.jpg",
-    title: "Healthtech AI Thought Leader",
-    bio: "Bob Battista is a writer, strategist, and technology executive focused on how emerging forms of intelligence should be designed, governed, and lived with responsibly. He is the founder of KEFI, a philosophy and framework for governed intelligence, and the builder behind TripSit.ai, We-Health.ai, 2percent.ai, Yassu.ai, and Salt.ai — platforms that apply this framework to pharma, healthcare, and enterprise. Across his career, he has worked at the intersection of technology, healthcare, data, and organizational decision-making, helping institutions navigate moments when new tools outpace existing norms.",
-    shortBio: "Founder of KEFI and builder of 5 AI platforms transforming pharma and healthcare. His debut book hit #1 New Release and Best Seller on Amazon.",
-    credentials: ["AI Thought Leader", "Technology Executive", "KEFI Founder", "Published Author"],
-    books: [
-      {
-        slug: "hemispheric-intelligence",
-        title: "Hemispheric Intelligence",
-        subtitle: "AI Done Right (and Left)",
-        description: "A work of architectural thinking about the future of intelligence. As AI moves from tools to infrastructure, the challenge is no longer whether machines can think, but how intelligence itself should be structured when consequences are real and irreversible. This book argues that today's dominant AI models collapse exploration, interpretation, and truth into a single fluent output, creating confidence without clarity and speed without judgment.",
-        coverImage: "/src/assets/hemispheric-intelligence-cover.png",
-        amazonUrl: "https://a.co/d/gxEmLou",
-        badges: ["#1 New Release", "Best Seller"],
-        genre: "Technology",
-      },
-    ],
-    genres: ["Technology", "AI", "Philosophy"],
-    websiteUrl: "https://www.bbattista.com/",
-    linkedinUrl: "https://www.linkedin.com/in/bob-battista-ceo/",
-    amazonAuthorUrl: "https://www.amazon.com/stores/author/B0GFXBRXH2",
-    badge: "publishnow-verified",
-    services: ["Speaking", "Consulting"],
-  },
-  {
     slug: "felicia-tan",
     name: "Felicia Tan",
     photo: "/src/assets/felicia-tan.png",
@@ -153,6 +127,33 @@ export const authors: Author[] = [
     amazonAuthorUrl: "https://www.amazon.com/stores/author/B091G199L6",
     badge: "featured",
     services: ["Speaking", "Coaching"],
+  },
+  {
+    slug: "robert-battista",
+    name: "Robert J. Battista",
+    photo: "/src/assets/bob-battista.jpg",
+    title: "Healthtech AI Thought Leader",
+    bio: "Bob Battista is a writer, strategist, and technology executive focused on how emerging forms of intelligence should be designed, governed, and lived with responsibly. He is the founder of KEFI, a philosophy and framework for governed intelligence, and the builder behind TripSit.ai, We-Health.ai, 2percent.ai, Yassu.ai, and Salt.ai — platforms that apply this framework to pharma, healthcare, and enterprise. Across his career, he has worked at the intersection of technology, healthcare, data, and organizational decision-making, helping institutions navigate moments when new tools outpace existing norms.",
+    shortBio: "Founder of KEFI and builder of 5 AI platforms transforming pharma and healthcare. His debut book hit #1 New Release and Best Seller on Amazon.",
+    credentials: ["AI Thought Leader", "Technology Executive", "KEFI Founder", "Published Author"],
+    books: [
+      {
+        slug: "hemispheric-intelligence",
+        title: "Hemispheric Intelligence",
+        subtitle: "AI Done Right (and Left)",
+        description: "A work of architectural thinking about the future of intelligence. As AI moves from tools to infrastructure, the challenge is no longer whether machines can think, but how intelligence itself should be structured when consequences are real and irreversible. This book argues that today's dominant AI models collapse exploration, interpretation, and truth into a single fluent output, creating confidence without clarity and speed without judgment.",
+        coverImage: "/src/assets/hemispheric-intelligence-cover.png",
+        amazonUrl: "https://a.co/d/gxEmLou",
+        badges: ["#1 New Release", "Best Seller"],
+        genre: "Technology",
+      },
+    ],
+    genres: ["Technology", "AI", "Philosophy"],
+    websiteUrl: "https://www.bbattista.com/",
+    linkedinUrl: "https://www.linkedin.com/in/bob-battista-ceo/",
+    amazonAuthorUrl: "https://www.amazon.com/stores/author/B0GFXBRXH2",
+    badge: "publishnow-verified",
+    services: ["Speaking", "Consulting"],
   },
 ];
 export function getAuthorBySlug(slug: string): Author | undefined {
