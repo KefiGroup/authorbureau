@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, BookOpen, Users, Globe, Award, Building2, GraduationCap, Mic, MapPin, ChevronLeft, ChevronRight, CheckCircle2, Monitor, Search, Globe2, Play, UserCheck, Calendar } from "lucide-react";
+import { ArrowRight, BookOpen, Users, Globe, Award, Building2, GraduationCap, Mic, MapPin, ChevronLeft, ChevronRight, CheckCircle2, Monitor, Search, Globe2, Play, UserCheck, Calendar, Crown, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import useEmblaCarousel from "embla-carousel-react";
@@ -411,12 +411,19 @@ export default function Index() {
             viewport={{ once: true, margin: "-100px" }}
             className="mb-16 text-center"
           >
-            <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
+            <motion.div variants={fadeUp} custom={0} className="mb-4 inline-flex items-center gap-2 rounded-full bg-accent/10 border border-accent/20 px-4 py-1.5 text-sm font-semibold text-accent">
+              <Sparkles className="h-4 w-4" />
+              FREE TIER
+            </motion.div>
+            <motion.p variants={fadeUp} custom={0.5} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
               Step 1 · How It Works
             </motion.p>
             <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-4xl">
               From Author to <span className="italic text-secondary">Authority</span>
             </motion.h2>
+            <motion.p variants={fadeUp} custom={1.5} className="mt-3 text-muted-foreground">
+              Everything you need to get discovered — completely free.
+            </motion.p>
           </motion.div>
 
           {/* Get Featured Card */}
@@ -562,7 +569,11 @@ export default function Index() {
             viewport={{ once: true, margin: "-100px" }}
             className="mb-16 text-center"
           >
-            <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
+            <motion.div variants={fadeUp} custom={0} className="mb-4 inline-flex items-center gap-2 rounded-full bg-secondary/10 border border-secondary/20 px-4 py-1.5 text-sm font-semibold text-secondary">
+              <Crown className="h-4 w-4" />
+              PREMIUM · $29/month
+            </motion.div>
+            <motion.p variants={fadeUp} custom={0.5} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
               Step 2 · How It Works
             </motion.p>
             <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-4xl">
@@ -597,6 +608,35 @@ export default function Index() {
               </motion.div>
             ))}
           </div>
+
+          {/* Premium CTA */}
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            custom={5}
+            variants={fadeUp}
+            className="mt-12 text-center"
+          >
+            <div className="inline-flex flex-col items-center gap-4 rounded-2xl bg-gradient-to-br from-primary to-primary/90 p-10 text-primary-foreground shadow-xl">
+              <Crown className="h-10 w-10 text-secondary" />
+              <h3 className="font-heading text-2xl font-bold">
+                Unlock All Monetisation Tools for <span className="text-secondary">$29/month</span>
+              </h3>
+              <p className="text-primary-foreground/70 max-w-lg">
+                Coaching & Events, Advanced Analytics, Priority Placement, Individual Websites, and Courseware Development.
+              </p>
+              <Button
+                asChild
+                size="lg"
+                className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold shadow-[var(--shadow-gold)] rounded-full px-8"
+              >
+                <Link to="/join">
+                  Go Premium <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+          </motion.div>
         </div>
       </section>
 
