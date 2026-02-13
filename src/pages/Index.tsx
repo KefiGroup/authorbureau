@@ -167,7 +167,7 @@ export default function Index() {
                 Built by an Author, <span className="italic text-secondary">for Authors</span>
               </motion.h2>
               <motion.p variants={fadeUp} custom={2} className="text-muted-foreground leading-relaxed mb-8">
-                AuthorsBureau.com was founded by <strong className="text-foreground">Pauline Teo</strong>, an international bestselling author and entrepreneur with over 25 years of experience in Learning & Development. She built this platform because she knows firsthand what authors need to turn their books into thriving businesses.
+                Authors Bureau.com was founded by <strong className="text-foreground">Pauline Teo</strong>, an international bestselling author and entrepreneur with over 25 years of experience in Learning & Development. She built this platform because she knows firsthand what authors need to turn their books into thriving businesses.
               </motion.p>
 
               <div className="space-y-5 mb-8">
@@ -363,13 +363,13 @@ export default function Index() {
             className="mb-16 text-center"
           >
             <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
-              Why AuthorsBureau
+              Why Authors Bureau
             </motion.p>
             <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-4xl">
               One Platform, <span className="italic text-secondary">Everything</span> You Need
             </motion.h2>
             <motion.p variants={fadeUp} custom={2} className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-              Stop juggling six different tools. AuthorsBureau replaces them all with a single, integrated platform where your book is the center of everything.
+              Stop juggling six different tools. Authors Bureau replaces them all with a single, integrated platform where your book is the center of everything.
             </motion.p>
           </motion.div>
 
