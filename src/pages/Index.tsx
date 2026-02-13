@@ -87,8 +87,7 @@ export default function Index() {
               <Button
                 asChild
                 size="lg"
-                variant="outline"
-                className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 text-base"
+                className="border-2 border-secondary bg-transparent text-secondary hover:bg-secondary hover:text-secondary-foreground text-base font-semibold"
               >
                 <Link to="/join">Get Featured</Link>
               </Button>
