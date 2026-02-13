@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { CheckCircle2, BookOpen, ArrowRight } from "lucide-react";
+import { CheckCircle2, BookOpen, ArrowRight, Award, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import BadgeDisplay from "@/components/BadgeDisplay";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
@@ -28,7 +30,13 @@ export default function Join() {
 
       <section className="border-b border-border bg-primary py-16 text-primary-foreground">
         <div className="container text-center">
-          <h1 className="mb-4 font-heading text-4xl font-bold">Join Authors Bureau</h1>
+          <div className="inline-flex items-center gap-2 rounded-full bg-secondary/15 px-4 py-2 text-sm text-secondary mb-4">
+            <Sparkles className="h-4 w-4" />
+            Join the Platform
+          </div>
+          <h1 className="mb-4 font-heading text-4xl font-bold">
+            Join Authors <span className="italic text-secondary">Bureau</span>
+          </h1>
           <p className="mx-auto max-w-lg text-primary-foreground/70">
             Apply to be featured in our directory. Get a professional author
             profile and book microsites.
@@ -37,7 +45,7 @@ export default function Join() {
       </section>
 
       <section className="py-16">
-        <div className="container max-w-4xl">
+        <div className="container max-w-5xl">
           <div className="grid gap-12 lg:grid-cols-5">
             {/* Benefits */}
             <motion.div
@@ -62,12 +70,22 @@ export default function Join() {
                   custom={i + 1}
                   className="mb-3 flex items-start gap-3"
                 >
-                  <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-success" />
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-secondary" />
                   <span className="text-sm text-muted-foreground">{item}</span>
                 </motion.div>
               ))}
 
-              <motion.div variants={fadeUp} custom={8} className="mt-8 rounded-xl border border-border bg-muted/50 p-5">
+              {/* Badge Tiers */}
+              <motion.div variants={fadeUp} custom={8} className="mt-8 space-y-3">
+                <h3 className="font-heading text-sm font-bold">Badge Tiers</h3>
+                {(["listed", "verified", "featured", "publishnow-verified"] as const).map((level) => (
+                  <div key={level} className="flex items-center gap-2">
+                    <BadgeDisplay level={level} size="sm" />
+                  </div>
+                ))}
+              </motion.div>
+
+              <motion.div variants={fadeUp} custom={9} className="mt-8 rounded-xl border border-border bg-card p-5 shadow-[var(--shadow-card)]">
                 <div className="flex items-center gap-2 mb-2">
                   <BookOpen className="h-5 w-5 text-secondary" />
                   <h3 className="font-heading font-bold text-sm">Write with PublishNow.io</h3>
@@ -93,9 +111,11 @@ export default function Join() {
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="rounded-xl border border-success/30 bg-success/5 p-12 text-center"
+                  className="rounded-2xl border border-secondary/20 bg-secondary/5 p-12 text-center"
                 >
-                  <CheckCircle2 className="mx-auto mb-4 h-12 w-12 text-success" />
+                  <div className="w-16 h-16 rounded-full bg-secondary/10 flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle2 className="h-8 w-8 text-secondary" />
+                  </div>
                   <h3 className="mb-2 font-heading text-xl font-bold">Application Submitted!</h3>
                   <p className="text-muted-foreground">
                     We'll review your application and get back to you within 48 hours.
@@ -104,7 +124,7 @@ export default function Join() {
               ) : (
                 <form
                   onSubmit={handleSubmit}
-                  className="space-y-5 rounded-xl border border-border bg-card p-8 shadow-[var(--shadow-card)]"
+                  className="space-y-5 rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-card)]"
                 >
                   <h2 className="font-heading text-xl font-bold">Author Application</h2>
 
@@ -169,8 +189,9 @@ export default function Join() {
                   <Button
                     type="submit"
                     size="lg"
-                    className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold shadow-none"
+                    className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold shadow-[var(--shadow-gold)] rounded-full"
                   >
+                    <Award className="mr-2 h-5 w-5" />
                     Submit Application
                   </Button>
                 </form>
