@@ -26,10 +26,8 @@ export default function Navbar() {
         if (location.pathname === link.to) {
           document.querySelector(link.hash)?.scrollIntoView({ behavior: "smooth" });
         } else {
-          navigate(link.to);
-          setTimeout(() => {
-            document.querySelector(link.hash)?.scrollIntoView({ behavior: "smooth" });
-          }, 300);
+          // Use native navigation for cross-page hash links
+          window.location.href = link.to + link.hash;
         }
       } else {
         navigate(link.to);

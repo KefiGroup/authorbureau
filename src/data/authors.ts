@@ -8,6 +8,8 @@ export interface Book {
   badges: string[];
   genre: string;
   price?: string;
+  kindlePrice?: string;
+  paperbackPrice?: string;
 }
 
 export interface Author {
@@ -48,6 +50,8 @@ export const authors: Author[] = [
         amazonUrl: "https://a.co/d/e3tGN8E",
         badges: ["#1 Best Seller", "#1 New Release"],
         genre: "Personal Development",
+        kindlePrice: "$9.99",
+        paperbackPrice: "$16.90",
       },
       {
         slug: "value-investing-for-women",
@@ -58,7 +62,8 @@ export const authors: Author[] = [
         amazonUrl: "https://www.amazon.com/Value-Investing-Women-Pauline-Teo-ebook/dp/B09HQ12ZSG",
         badges: ["3rd Reprint"],
         genre: "Finance",
-        price: "$6.99",
+        kindlePrice: "$6.99",
+        paperbackPrice: "$14.90",
       },
       {
         slug: "invest-like-buffett",
@@ -69,7 +74,8 @@ export const authors: Author[] = [
         amazonUrl: "https://www.amazon.com/Invest-Like-Buffett-Investing-Parents-ebook/dp/B09HPZVYDP",
         badges: ["3rd Reprint"],
         genre: "Finance",
-        price: "$6.99",
+        kindlePrice: "$6.99",
+        paperbackPrice: "$14.90",
       },
     ],
     genres: ["Personal Development", "Finance", "Self-Help"],
@@ -98,7 +104,8 @@ export const authors: Author[] = [
         amazonUrl: "https://www.amazon.com/dp/B0DKWG8Y85",
         badges: ["#1 Best Seller"],
         genre: "Memoir",
-        price: "$0.99",
+        kindlePrice: "$0.99",
+        paperbackPrice: "$12.99",
       },
       {
         slug: "lost-and-found",
@@ -109,6 +116,8 @@ export const authors: Author[] = [
         amazonUrl: "https://www.amazon.com/Lost-Found-Felicia-Tan/dp/9810904258",
         badges: [],
         genre: "Memoir",
+        kindlePrice: "$4.99",
+        paperbackPrice: "$12.99",
       },
       {
         slug: "a-gift-from-heaven",
@@ -119,6 +128,8 @@ export const authors: Author[] = [
         amazonUrl: "https://www.amazon.com/Gift-Heaven-Felicia-Tan/dp/9810934459",
         badges: [],
         genre: "Memoir",
+        kindlePrice: "$4.99",
+        paperbackPrice: "$12.99",
       },
     ],
     genres: ["Memoir", "Parenting", "Self-Help"],
@@ -146,6 +157,8 @@ export const authors: Author[] = [
         amazonUrl: "https://a.co/d/gxEmLou",
         badges: ["#1 New Release", "Best Seller"],
         genre: "Technology",
+        kindlePrice: "$9.99",
+        paperbackPrice: "$19.99",
       },
     ],
     genres: ["Technology", "AI", "Philosophy"],
