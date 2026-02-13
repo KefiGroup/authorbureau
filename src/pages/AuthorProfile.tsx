@@ -1,13 +1,16 @@
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ExternalLink, Mail, Linkedin, BookOpen, ArrowLeft, Mic, GraduationCap, Globe, Award, MapPin, Building2 } from "lucide-react";
+import { useState } from "react";
 import { getAuthorBySlug } from "@/data/authors";
+import { serviceDescriptions } from "@/data/serviceDescriptions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import BadgeDisplay from "@/components/BadgeDisplay";
 import BookCard from "@/components/BookCard";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import ServiceInquiryModal from "@/components/ServiceInquiryModal";
 
 import paulinePhoto from "@/assets/pauline-teo.jpeg";
 import bobPhoto from "@/assets/bob-battista.jpg";
@@ -31,6 +34,7 @@ const fadeUp = {
 export default function AuthorProfile() {
   const { slug } = useParams<{ slug: string }>();
   const author = getAuthorBySlug(slug || "");
+  const [selectedService, setSelectedService] = useState<string | null>(null);
 
   if (!author) {
     return (
