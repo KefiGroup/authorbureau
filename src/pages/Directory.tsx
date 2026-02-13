@@ -116,11 +116,11 @@ export default function Directory() {
                   <Card className="group overflow-hidden border-0 bg-card rounded-2xl shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-all duration-300 cursor-pointer">
                     <CardContent className="p-0">
                       {/* Photo area */}
-                      <div className="relative h-48 bg-muted/50 overflow-hidden">
+                      <div className="relative h-56 bg-muted/50 overflow-hidden">
                         <img
                           src={photoMap[author.slug]}
                           alt={author.name}
-                          className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                          className="w-full h-full object-cover object-[center_20%] group-hover:scale-105 transition-transform duration-500"
                         />
                         <div className="absolute top-3 right-3">
                           <BadgeDisplay level={author.badge} size="sm" />
