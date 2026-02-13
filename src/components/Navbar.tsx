@@ -9,7 +9,7 @@ const navLinks = [
   { label: "Home", to: "/", hash: "" },
   { label: "Featured Authors", to: "/", hash: "#featured-authors" },
   { label: "How It Works", to: "/", hash: "#how-it-works" },
-  { label: "Books", to: "/", hash: "#books" },
+  
   { label: "Authors", to: "/directory", hash: "" },
   { label: "Join", to: "/join", hash: "" },
 ];
