@@ -16,6 +16,9 @@ import besuckcessfulCover from "@/assets/besuckcessful-cover.jpg";
 import hiCover from "@/assets/hemispheric-intelligence-cover.png";
 import viWomenCover from "@/assets/value-investing-women-cover.png";
 import investBuffettCover from "@/assets/invest-like-buffett-cover.jpg";
+import tobabywithlove from "@/assets/to-baby-with-love-cover.png";
+import lostandfound from "@/assets/lost-and-found-cover.png";
+import giftfromheaven from "@/assets/gift-from-heaven-cover.png";
 
 const photoMap: Record<string, string> = {
   "pauline-teo": paulinePhoto,
@@ -28,6 +31,9 @@ const coverMap: Record<string, string> = {
   "hemispheric-intelligence": hiCover,
   "value-investing-for-women": viWomenCover,
   "invest-like-buffett": investBuffettCover,
+  "to-baby-with-love": tobabywithlove,
+  "lost-and-found": lostandfound,
+  "gift-from-heaven": giftfromheaven,
 };
 
 const fadeUp = {
