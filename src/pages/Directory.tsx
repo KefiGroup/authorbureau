@@ -112,9 +112,9 @@ export default function Directory() {
                 custom={i}
                 variants={fadeUp}
               >
-                <Link to={`/authors/${author.slug}`}>
-                  <Card className="group overflow-hidden border-0 bg-card rounded-2xl shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-all duration-300 cursor-pointer">
-                    <CardContent className="p-0">
+                <Link to={`/authors/${author.slug}`} className="h-full block">
+                  <Card className="group overflow-hidden border-0 bg-card rounded-2xl shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-all duration-300 cursor-pointer h-full flex flex-col">
+                    <CardContent className="p-0 flex flex-col flex-1">
                       {/* Photo area */}
                       <div className="relative h-56 bg-muted/50 overflow-hidden">
                         <img
@@ -126,7 +126,7 @@ export default function Directory() {
                           <BadgeDisplay level={author.badge} size="sm" />
                         </div>
                       </div>
-                      <div className="p-5">
+                      <div className="p-5 flex flex-col flex-1">
                         <h3 className="text-lg font-heading font-semibold group-hover:text-secondary transition-colors">
                           {author.name}
                         </h3>
@@ -156,7 +156,7 @@ export default function Directory() {
                           ))}
                         </div>
 
-                        <Button variant="outline" size="sm" className="w-full mt-4 rounded-full border-secondary/20 text-secondary hover:bg-secondary hover:text-secondary-foreground text-xs">
+                        <Button variant="outline" size="sm" className="w-full mt-auto pt-4 rounded-full border-secondary/20 text-secondary hover:bg-secondary hover:text-secondary-foreground text-xs">
                           View Profile
                         </Button>
                       </div>
