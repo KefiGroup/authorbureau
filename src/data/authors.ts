@@ -35,7 +35,7 @@ export const authors: Author[] = [
     photo: "/src/assets/pauline-teo.jpeg",
     title: "International Bestselling Author",
     bio: "Pauline Teo is an International Bestselling Author with her book, \"Be SUCKcessful\", reaching #1 on Amazon. She has previously authored 2 other Bestselling books titled \"Value Investing for Women\" and \"Invest Like Buffett for Parents\", both in their 3rd reprints. As a proud mother of 2, Pauline has been instrumental in leading a startup since 2011, eventually steering the company to become the largest Financial Education company in Singapore and Malaysia. She oversaw its successful listing, 8I Holdings, in 2014 (ASX:8I) and the spin-off of another subsidiary, 8VI Ltd (ASX:8VI) in 2018. With a Master's Degree in Instructional Design and Technology specializing in Adult Learning, she brings 25+ years of industry experience to her transformational teachings.",
-    shortBio: "International Bestselling Author, entrepreneur, and transformational teacher with 25+ years of experience.",
+    shortBio: "#1 Amazon Bestselling Author of 3 books, led a startup to ASX listing, and has spent 25+ years transforming lives through finance and personal development.",
     credentials: ["International Bestselling Author", "3x Published Author", "25+ Years Experience", "Master's in Instructional Design"],
     books: [
       {
@@ -85,7 +85,7 @@ export const authors: Author[] = [
     photo: "/src/assets/bob-battista.jpg",
     title: "Healthtech AI Thought Leader",
     bio: "Bob Battista is a writer, strategist, and technology executive focused on how emerging forms of intelligence should be designed, governed, and lived with responsibly. He is the founder of KEFI, a philosophy and framework for governed intelligence, and the builder behind TripSit.ai, We-Health.ai, 2percent.ai, Yassu.ai, and Salt.ai — platforms that apply this framework to pharma, healthcare, and enterprise. Across his career, he has worked at the intersection of technology, healthcare, data, and organizational decision-making, helping institutions navigate moments when new tools outpace existing norms.",
-    shortBio: "Writer, strategist, and technology executive building governed AI systems for high-stakes decision environments.",
+    shortBio: "Founder of KEFI and builder of 5 AI platforms transforming pharma and healthcare. His debut book hit #1 New Release and Best Seller on Amazon.",
     credentials: ["AI Thought Leader", "Technology Executive", "KEFI Founder", "Published Author"],
     books: [
       {
