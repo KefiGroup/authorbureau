@@ -1,0 +1,133 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+};
+
+interface EnrichmentResult {
+  pages?: number;
+  rating?: number;
+  reviewCount?: number;
+  categories?: string[];
+  price?: string;
+  description?: string;
+  error?: string;
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  try {
+    const { amazonUrl, authorProfileUrl } = await req.json();
+
+    if (!amazonUrl && !authorProfileUrl) {
+      return new Response(
+        JSON.stringify({ error: 'Amazon URL or Author Profile URL is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const firecrawlApiKey = Deno.env.get('FIRECRAWL_API_KEY');
+    if (!firecrawlApiKey) {
+      console.error('FIRECRAWL_API_KEY not configured');
+      return new Response(
+        JSON.stringify({ error: 'Firecrawl connector not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const result: EnrichmentResult = {};
+
+    // Scrape book data from Amazon
+    if (amazonUrl) {
+      try {
+        console.log('Scraping Amazon URL:', amazonUrl);
+        const bookResponse = await fetch('https://api.firecrawl.dev/v1/scrape', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${firecrawlApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            url: amazonUrl,
+            formats: ['markdown'],
+            onlyMainContent: true,
+            waitFor: 2000,
+          }),
+        });
+
+        const bookData = await bookResponse.json();
+
+        if (bookResponse.ok && bookData.markdown) {
+          const markdown = bookData.markdown.toLowerCase();
+
+          // Extract page count
+          const pageMatch = markdown.match(/(\d+)\s*(?:pages?|pages?:|pages?\s*:)/i);
+          if (pageMatch) {
+            result.pages = parseInt(pageMatch[1], 10);
+          }
+
+          // Extract rating (e.g., "4.5 out of 5" or "4.5 stars")
+          const ratingMatch = markdown.match(/(\d+\.?\d*)\s*(?:out of 5|stars?|\/5)/i);
+          if (ratingMatch) {
+            result.rating = parseFloat(ratingMatch[1]);
+          }
+
+          // Extract review count
+          const reviewMatch = markdown.match(/(?:(\d+(?:,\d+)*)\s*(?:customer\s+)?reviews?|ratings?:\s*(\d+(?:,\d+)*))/i);
+          if (reviewMatch) {
+            const reviewStr = (reviewMatch[1] || reviewMatch[2] || '').replace(/,/g, '');
+            result.reviewCount = parseInt(reviewStr, 10);
+          }
+
+          // Extract price
+          const priceMatch = markdown.match(/\$(\d+\.?\d{0,2})/);
+          if (priceMatch) {
+            result.price = `$${priceMatch[1]}`;
+          }
+
+          // Extract categories from the markdown content
+          const categoryMatches = markdown.match(/#[^#\n]+in(?:\s+)?(?:Books|Kindle|Audiobooks)?[^\n]*(?:\n|$)/gi);
+          if (categoryMatches && categoryMatches.length > 0) {
+            result.categories = categoryMatches
+              .map(cat => cat.replace(/#/g, '').trim())
+              .filter(cat => cat.length > 0)
+              .slice(0, 5);
+          }
+
+          console.log('Book data extracted:', result);
+        } else {
+          console.log('Book scrape response not ok or no markdown:', bookResponse.ok, !!bookData.markdown);
+        }
+      } catch (error) {
+        console.error('Error scraping book:', error);
+        result.error = `Error scraping Amazon book page: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      }
+    }
+
+    // Scrape author profile data from provided URL
+    if (authorProfileUrl) {
+      try {
+        console.log('Scraping author profile URL:', authorProfileUrl);
+        // Author profile scraping could be added here if needed
+      } catch (error) {
+        console.error('Error scraping author profile:', error);
+      }
+    }
+
+    return new Response(
+      JSON.stringify(result),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    console.error('Error in enrich-book-data:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(
+      JSON.stringify({ error: errorMessage }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+});
