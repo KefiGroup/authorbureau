@@ -271,7 +271,7 @@ export default function BookMicrosite() {
         <div className="container max-w-3xl text-center">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-secondary/30 bg-secondary/10 px-4 py-1.5 text-sm font-semibold text-secondary">
             <Award className="h-4 w-4" />
-            Powered by AuthorsBureau
+            Powered by Authors Bureau
           </div>
           <h2 className="font-heading text-2xl font-bold md:text-3xl mb-3">
             Everything You Need to Get Discovered — <span className="text-secondary">Completely FREE</span>

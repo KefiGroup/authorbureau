@@ -68,9 +68,9 @@ export default function Contact() {
                 </div>
                 <div>
                   <h3 className="font-heading font-bold text-sm">Email</h3>
-                  <a href="mailto:support@authorsbureau.com" className="text-sm text-muted-foreground hover:text-secondary transition-colors">
-                    support@authorsbureau.com
-                  </a>
+                   <a href="mailto:support@authorsbureau.com" className="text-sm text-muted-foreground hover:text-secondary transition-colors">
+                     support@authors-bureau.com
+                   </a>
                 </div>
               </motion.div>
 
