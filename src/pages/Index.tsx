@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, BookOpen, Users, Globe, Award, Building2, GraduationCap, Mic, MapPin, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, BookOpen, Users, Globe, Award, Building2, GraduationCap, Mic, MapPin, ChevronLeft, ChevronRight, CheckCircle2, Monitor } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import useEmblaCarousel from "embla-carousel-react";
@@ -449,6 +449,117 @@ export default function Index() {
                 </motion.div>
               ))}
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== MICROSITE SHOWCASE ==================== */}
+      <section className="py-24 bg-muted/30">
+        <div className="container">
+          <div className="grid gap-12 lg:grid-cols-2 items-center">
+            {/* Left — Copy */}
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }}>
+              <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
+                Your Book, Your Page
+              </motion.p>
+              <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-4xl mb-4">
+                Professional Book <span className="italic text-secondary">Microsites</span>
+              </motion.h2>
+              <motion.p variants={fadeUp} custom={2} className="text-lg text-muted-foreground leading-relaxed mb-8">
+                Every listed author gets a dedicated landing page for their book — designed to showcase your Amazon bestseller status, drive purchases, and build your reader community. <strong className="text-foreground">Completely free.</strong>
+              </motion.p>
+
+              <div className="space-y-4 mb-8">
+                {[
+                  "Amazon Bestseller badge & rankings showcase",
+                  "Book details, chapters & reader reviews",
+                  "Author bio with credentials & social links",
+                  "Direct Amazon & retailer purchase links",
+                  "Newsletter signup & free chapter downloads",
+                  "FAQ section & reader engagement tools",
+                ].map((item, i) => (
+                  <motion.div key={item} variants={fadeUp} custom={i + 3} className="flex items-center gap-3">
+                    <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-secondary" />
+                    <span className="text-muted-foreground">{item}</span>
+                  </motion.div>
+                ))}
+              </div>
+
+              <motion.div variants={fadeUp} custom={10}>
+                <Button
+                  asChild
+                  size="lg"
+                  className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold shadow-[var(--shadow-gold)] rounded-full px-8"
+                >
+                  <Link to="/create-microsite">
+                    Get Your Microsite <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              </motion.div>
+            </motion.div>
+
+            {/* Right — Browser Mockup */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, delay: 0.2 }}
+            >
+              <div className="rounded-2xl border border-border bg-card shadow-xl overflow-hidden">
+                {/* Browser chrome */}
+                <div className="flex items-center gap-3 border-b border-border px-4 py-3 bg-muted/50">
+                  <div className="flex gap-1.5">
+                    <div className="h-3 w-3 rounded-full bg-red-400" />
+                    <div className="h-3 w-3 rounded-full bg-yellow-400" />
+                    <div className="h-3 w-3 rounded-full bg-green-400" />
+                  </div>
+                  <div className="flex-1 text-center">
+                    <span className="inline-block rounded-full bg-background border border-border px-4 py-1 text-xs text-muted-foreground">
+                      authorsbureau.com/books/be-suckcessful
+                    </span>
+                  </div>
+                </div>
+
+                {/* Microsite preview */}
+                <div className="bg-primary p-8 text-primary-foreground">
+                  <div className="flex flex-col sm:flex-row items-center gap-6">
+                    <img
+                      src={besuckcessfulCover}
+                      alt="Be SUCKcessful book cover"
+                      className="h-40 rounded-lg shadow-2xl object-contain"
+                    />
+                    <div className="text-center sm:text-left">
+                      <h3 className="font-heading text-xl font-bold italic">Be SUCKcessful</h3>
+                      <p className="text-sm text-primary-foreground/70 italic">We SUCK Before We SUCCEED</p>
+                      <p className="text-xs text-primary-foreground/50 mt-1">by Pauline Teo</p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-secondary/20 px-2.5 py-0.5 text-xs font-semibold text-secondary">
+                          ⭐ #1 Best Seller
+                        </span>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-secondary/20 px-2.5 py-0.5 text-xs font-semibold text-secondary">
+                          ⭐ #1 New Release
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Fake page body lines */}
+                <div className="p-6 space-y-3">
+                  <div className="h-3 rounded-full bg-muted w-full" />
+                  <div className="h-3 rounded-full bg-muted w-5/6" />
+                  <div className="h-3 rounded-full bg-muted w-4/6" />
+                  <div className="flex gap-4 mt-6">
+                    <div className="flex-1 rounded-full bg-secondary/20 py-2.5 text-center text-sm font-semibold text-secondary">
+                      Buy on Amazon
+                    </div>
+                    <div className="flex-1 rounded-full border border-border py-2.5 text-center text-sm text-muted-foreground">
+                      Get Free Chapter
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
           </div>
         </div>
       </section>
