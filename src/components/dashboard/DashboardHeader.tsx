@@ -1,16 +1,18 @@
-import { LogOut, Crown, Menu } from "lucide-react";
+import { LogOut, Crown, Menu, Shield } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import type { User } from "@supabase/supabase-js";
 
 interface Props {
   user: User;
   isPremium: boolean;
+  isAdmin?: boolean;
   subscription: { subscribed: boolean; loading: boolean };
   onSignOut: () => void;
   onToggleSidebar: () => void;
 }
 
-export default function DashboardHeader({ user, isPremium, onSignOut, onToggleSidebar }: Props) {
+export default function DashboardHeader({ user, isPremium, isAdmin, onSignOut, onToggleSidebar }: Props) {
   return (
     <header className="flex h-16 items-center justify-between border-b border-border bg-card px-4 lg:px-8">
       <div className="flex items-center gap-3">
@@ -29,9 +31,16 @@ export default function DashboardHeader({ user, isPremium, onSignOut, onToggleSi
           </p>
         </div>
       </div>
-      <Button onClick={onSignOut} variant="ghost" size="sm" className="text-muted-foreground">
-        <LogOut className="mr-2 h-4 w-4" /> Sign Out
-      </Button>
+      <div className="flex items-center gap-2">
+        {isAdmin && (
+          <Button asChild variant="outline" size="sm" className="text-muted-foreground">
+            <Link to="/admin"><Shield className="mr-2 h-4 w-4" /> Admin Panel</Link>
+          </Button>
+        )}
+        <Button onClick={onSignOut} variant="ghost" size="sm" className="text-muted-foreground">
+          <LogOut className="mr-2 h-4 w-4" /> Sign Out
+        </Button>
+      </div>
     </header>
   );
 }
