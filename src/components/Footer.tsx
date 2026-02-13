@@ -30,6 +30,8 @@ export default function Footer() {
             <ul className="space-y-2 text-sm text-primary-foreground/70">
               <li><a href="https://publishnow.io" target="_blank" rel="noopener noreferrer" className="hover:text-secondary transition-colors">PublishNow.io</a></li>
               <li><a href="https://publishnow.io/ai-writing-studio" target="_blank" rel="noopener noreferrer" className="hover:text-secondary transition-colors">AI Writing Studio</a></li>
+              <li><a href="https://publishnow.io/ai-publishing-studio" target="_blank" rel="noopener noreferrer" className="hover:text-secondary transition-colors">AI Publishing Studio</a></li>
+              <li><a href="https://publishnow.io/ai-marketing-studio" target="_blank" rel="noopener noreferrer" className="hover:text-secondary transition-colors">AI Marketing Studio</a></li>
             </ul>
           </div>
 
@@ -38,7 +40,7 @@ export default function Footer() {
               Connect
             </h4>
             <ul className="space-y-2 text-sm text-primary-foreground/70">
-              <li><a href="mailto:support@authorsbureau.com" className="hover:text-secondary transition-colors">Contact Us</a></li>
+              <li><Link to="/contact" className="hover:text-secondary transition-colors">Contact Us</Link></li>
             </ul>
           </div>
         </div>
