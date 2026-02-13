@@ -79,7 +79,7 @@ export default function AuthorProfile() {
                   className="w-full max-w-sm mx-auto rounded-2xl object-cover object-top shadow-lg"
                   style={{ maxHeight: '480px' }}
                 />
-                <div className="absolute top-4 right-4">
+                <div className="absolute -top-3 -right-3">
                   <BadgeDisplay level={author.badge} size="sm" />
                 </div>
               </div>
