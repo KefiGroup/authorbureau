@@ -128,7 +128,6 @@ export default function Index() {
                   src={paulineFullPhoto}
                   alt="Pauline Teo — Founder of Authors Bureau"
                   className="w-full object-cover"
-                  style={{ maxHeight: '600px' }}
                 />
               </div>
               <div className="absolute top-4 right-4">
