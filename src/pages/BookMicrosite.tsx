@@ -11,20 +11,28 @@ import Footer from "@/components/Footer";
 
 import paulinePhoto from "@/assets/pauline-teo.jpeg";
 import bobPhoto from "@/assets/bob-battista.jpg";
+import feliciaPhoto from "@/assets/felicia-tan.png";
 import besuckcessfulCover from "@/assets/besuckcessful-cover.jpg";
 import hiCover from "@/assets/hemispheric-intelligence-cover.png";
 import viCover from "@/assets/value-investing-women-cover.png";
 import ilbCover from "@/assets/invest-like-buffett-cover.jpg";
+import tobabywithlove from "@/assets/to-baby-with-love-cover.png";
+import lostandfound from "@/assets/lost-and-found-cover.png";
+import giftfromheaven from "@/assets/gift-from-heaven-cover.png";
 
 const photoMap: Record<string, string> = {
   "pauline-teo": paulinePhoto,
   "robert-battista": bobPhoto,
+  "felicia-tan": feliciaPhoto,
 };
 const coverMap: Record<string, string> = {
   "be-suckcessful": besuckcessfulCover,
   "hemispheric-intelligence": hiCover,
   "value-investing-for-women": viCover,
   "invest-like-buffett": ilbCover,
+  "to-baby-with-love": tobabywithlove,
+  "lost-and-found": lostandfound,
+  "a-gift-from-heaven": giftfromheaven,
 };
 
 const fadeUp = {

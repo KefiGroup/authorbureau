@@ -33,7 +33,7 @@ const coverMap: Record<string, string> = {
   "invest-like-buffett": investBuffettCover,
   "to-baby-with-love": tobabywithlove,
   "lost-and-found": lostandfound,
-  "gift-from-heaven": giftfromheaven,
+  "a-gift-from-heaven": giftfromheaven,
 };
 
 const fadeUp = {
