@@ -133,54 +133,57 @@ export default function Index() {
               >
                 <Link
                   to={`/authors/${author.slug}`}
-                  className="group block overflow-hidden rounded-xl border border-border bg-card shadow-[var(--shadow-card)] transition-all duration-300 hover:shadow-[var(--shadow-card-hover)]"
+                  className="group block overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-all duration-300 h-full flex flex-col"
                 >
-                  <div className="flex flex-col sm:flex-row">
-                    <div className="flex-shrink-0 p-6">
-                      <img
-                        src={photoMap[author.slug]}
-                        alt={author.name}
-                        className="mx-auto h-32 w-32 rounded-full object-cover sm:mx-0"
-                      />
+                  {/* Photo - Full Height */}
+                  <div className="relative h-64 bg-muted/50 overflow-hidden">
+                    <img
+                      src={photoMap[author.slug]}
+                      alt={author.name}
+                      className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute top-3 right-3">
+                      <BadgeDisplay level={author.badge} size="sm" />
                     </div>
-                    <div className="flex-1 p-6 pt-0 sm:pl-0 sm:pt-6">
-                      <div className="mb-2 flex items-center gap-2">
-                        <span className="inline-flex items-center rounded-full bg-secondary/15 px-2.5 py-0.5 text-xs font-semibold text-secondary">
-                          {author.badge === "publishnow-verified" ? "✦ PublishNow Verified" : author.badge}
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 p-6 flex flex-col">
+                    <h3 className="font-heading text-lg font-bold group-hover:text-secondary transition-colors mb-1">
+                      {author.name}
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-3">{author.title}</p>
+                    <p className="text-sm text-muted-foreground mb-4 flex-1">{author.shortBio}</p>
+
+                    {/* Books */}
+                    <div className="mt-4 flex items-center gap-3 pb-4 border-b border-border/50">
+                      {author.books.slice(0, 3).map((book) => {
+                        const cover = coverMap[book.slug];
+                        return cover ? (
+                          <img
+                            key={book.slug}
+                            src={cover}
+                            alt={book.title}
+                            className="h-16 rounded shadow-md object-contain"
+                          />
+                        ) : (
+                          <div
+                            key={book.slug}
+                            className="flex h-16 w-12 items-center justify-center rounded bg-muted/80 shadow-md border border-border/50"
+                          >
+                            <BookOpen className="h-4 w-4 text-muted-foreground/50" />
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Genres */}
+                    <div className="mt-4 flex flex-wrap gap-1.5">
+                      {author.genres.slice(0, 3).map((g) => (
+                        <span key={g} className="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                          {g}
                         </span>
-                      </div>
-                      <h3 className="font-heading text-xl font-bold group-hover:text-secondary transition-colors">
-                        {author.name}
-                      </h3>
-                      <p className="mb-3 text-sm text-muted-foreground">{author.title}</p>
-                      <p className="text-sm text-muted-foreground">{author.shortBio}</p>
-                      <div className="mt-4 flex items-center gap-3">
-                        {author.books.slice(0, 3).map((book) => {
-                          const cover = coverMap[book.slug];
-                          return cover ? (
-                            <img
-                              key={book.slug}
-                              src={cover}
-                              alt={book.title}
-                              className="h-20 rounded shadow-md object-contain"
-                            />
-                          ) : (
-                            <div
-                              key={book.slug}
-                              className="flex h-20 w-14 items-center justify-center rounded bg-muted/80 shadow-md border border-border/50"
-                            >
-                              <BookOpen className="h-5 w-5 text-muted-foreground/50" />
-                            </div>
-                          );
-                        })}
-                      </div>
-                      <div className="mt-3 flex flex-wrap gap-1.5">
-                        {author.genres.map((g) => (
-                          <span key={g} className="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                            {g}
-                          </span>
-                        ))}
-                      </div>
+                      ))}
                     </div>
                   </div>
                 </Link>
