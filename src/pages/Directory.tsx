@@ -11,7 +11,7 @@ import Footer from "@/components/Footer";
 
 import paulinePhoto from "@/assets/pauline-teo-headshot.jpg";
 import bobPhoto from "@/assets/bob-battista-headshot.jpg";
-import feliciaPhoto from "@/assets/felicia-tan-headshot.jpg";
+import feliciaPhoto from "@/assets/felicia-tan.png";
 
 const photoMap: Record<string, string> = {
   "pauline-teo": paulinePhoto,
@@ -145,7 +145,7 @@ export default function Directory() {
                           )}
                         </div>
 
-                        <div className="flex flex-wrap gap-1.5 mt-3">
+                        <div className="flex flex-wrap gap-1.5 mt-3 mb-4">
                           {author.genres.slice(0, 3).map((genre) => (
                             <span
                               key={genre}
@@ -156,7 +156,7 @@ export default function Directory() {
                           ))}
                         </div>
 
-                        <Button variant="outline" size="sm" className="w-full mt-auto pt-4 rounded-full border-secondary/20 text-secondary hover:bg-secondary hover:text-secondary-foreground text-xs">
+                        <Button variant="outline" size="sm" className="w-full mt-auto rounded-full border-secondary/20 text-secondary hover:bg-secondary hover:text-secondary-foreground text-xs flex items-center justify-center">
                           View Profile
                         </Button>
                       </div>
