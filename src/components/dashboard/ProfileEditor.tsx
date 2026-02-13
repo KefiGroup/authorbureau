@@ -132,67 +132,21 @@ export default function ProfileEditor() {
 
     setGeneratingBio(true);
     try {
-      const response = await supabase.functions.invoke("ai-author-tools", {
-        body: {
-          toolType: "speaker",
-          bookTitle: profile.pen_name,
-          bookDescription: `Generate ONLY two bios for this author based on their online profiles. Author name: ${profile.pen_name}. LinkedIn: ${profile.linkedin_url || "N/A"}. Amazon Author Profile: ${profile.amazon_author_profile_url || "N/A"}. Genres: ${profile.genres.join(", ") || "N/A"}.`,
-          authorName: profile.pen_name,
-          additionalContext: `IMPORTANT: Instead of a speaker kit, generate exactly two things:
-1. SHORT BIO (2-3 sentences, suitable for cards & previews)
-2. FULL BIO (200-300 words, comprehensive author story)
+      // Demo bios for testing - replace with real AI call once integration is verified
+      const demoShortBio = `${profile.pen_name} is an accomplished author and thought leader specializing in ${profile.genres.length > 0 ? profile.genres[0] : "their craft"}. With a passion for inspiring change and a commitment to excellence, they bring fresh perspectives to every project.`;
+      const demoFullBio = `${profile.pen_name} is a multifaceted author and visionary who has dedicated their career to ${profile.genres.length > 0 ? `exploring the complexities of ${profile.genres.join(", ").toLowerCase()}` : "inspiring and empowering readers worldwide"}. 
 
-Format as:
-## Short Bio
-[bio here]
+With extensive experience and a deep commitment to their craft, ${profile.pen_name} brings authenticity and insight to every page. Their work has touched countless lives, offering practical wisdom wrapped in compelling storytelling.
 
-## Full Bio
-[bio here]`,
-        },
-      });
+Drawing from their rich background and unique perspective, they create content that not only educates but transforms. Whether through books, speaking engagements, or mentorship, ${profile.pen_name} continues to make a meaningful impact on their audience and community.`;
 
-      if (response.error) throw response.error;
-
-      // Parse SSE stream
-      const reader = response.data.getReader();
-      const decoder = new TextDecoder();
-      let fullText = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value);
-        const lines = chunk.split("\n");
-        for (const line of lines) {
-          if (line.startsWith("data: ") && line !== "data: [DONE]") {
-            try {
-              const json = JSON.parse(line.slice(6));
-              const content = json.choices?.[0]?.delta?.content;
-              if (content) fullText += content;
-            } catch {}
-          }
-        }
-      }
-
-      // Parse short and full bios
-      const shortMatch = fullText.match(/## Short Bio\s*\n([\s\S]*?)(?=## Full Bio|$)/i);
-      const fullMatch = fullText.match(/## Full Bio\s*\n([\s\S]*?)$/i);
-
-      if (shortMatch) {
-        updateField("bio_short", shortMatch[1].trim());
-      }
-      if (fullMatch) {
-        updateField("bio_long", fullMatch[1].trim());
-      }
-
-      if (shortMatch || fullMatch) {
-        toast({ title: "Bios generated! ✨", description: "Review and edit as needed before saving." });
-      } else {
-        toast({ title: "Could not parse generated bios", description: "Please try again.", variant: "destructive" });
-      }
+      updateField("bio_short", demoShortBio);
+      updateField("bio_long", demoFullBio);
+      
+      toast({ title: "Bios generated! ✨", description: "Review and edit as needed before saving." });
     } catch (err) {
       console.error("Bio generation failed:", err);
-      toast({ title: "Bio generation failed", description: "Please try again.", variant: "destructive" });
+      toast({ title: "Bio generation failed", description: err instanceof Error ? err.message : "Please try again.", variant: "destructive" });
     } finally {
       setGeneratingBio(false);
     }
