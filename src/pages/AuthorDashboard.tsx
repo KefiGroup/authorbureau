@@ -31,7 +31,6 @@ export default function AuthorDashboard() {
 
   if (loading) return null;
   if (!user) return <Navigate to="/auth" replace />;
-  if (isAdmin) return <Navigate to="/admin" replace />;
 
   const renderSection = () => {
     switch (activeSection) {
@@ -61,6 +60,7 @@ export default function AuthorDashboard() {
         <DashboardHeader
           user={user}
           isPremium={isPremium}
+          isAdmin={isAdmin}
           subscription={subscription}
           onSignOut={signOut}
           onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}

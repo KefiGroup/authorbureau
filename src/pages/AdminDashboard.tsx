@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/Navbar";
+import { Link } from "react-router-dom";
 import Footer from "@/components/Footer";
 import { CheckCircle2, XCircle, Clock, Loader2, LogOut, ExternalLink } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
@@ -81,9 +82,14 @@ export default function AdminDashboard() {
               {applications.length} total application{applications.length !== 1 && "s"}
             </p>
           </div>
-          <Button onClick={signOut} variant="outline" size="sm" className="text-primary-foreground border-primary-foreground/20 hover:bg-primary-foreground/10">
-            <LogOut className="mr-2 h-4 w-4" /> Sign Out
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm" className="text-primary-foreground border-primary-foreground/20 hover:bg-primary-foreground/10">
+              <Link to="/dashboard">Author Dashboard</Link>
+            </Button>
+            <Button onClick={signOut} variant="outline" size="sm" className="text-primary-foreground border-primary-foreground/20 hover:bg-primary-foreground/10">
+              <LogOut className="mr-2 h-4 w-4" /> Sign Out
+            </Button>
+          </div>
         </div>
       </section>
 
