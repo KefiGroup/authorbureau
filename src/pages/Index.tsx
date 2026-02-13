@@ -7,10 +7,12 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import heroBg from "@/assets/hero-bg.jpg";
 
-import paulinePhoto from "@/assets/pauline-teo.jpeg";
-import bobPhoto from "@/assets/bob-battista.jpg";
+import paulinePhoto from "@/assets/pauline-teo-headshot.jpg";
+import bobPhoto from "@/assets/bob-battista-headshot.jpg";
 import besuckcessfulCover from "@/assets/besuckcessful-cover.jpg";
 import hiCover from "@/assets/hemispheric-intelligence-cover.png";
+import viWomenCover from "@/assets/value-investing-women-cover.png";
+import investBuffettCover from "@/assets/invest-like-buffett-cover.jpg";
 
 const photoMap: Record<string, string> = {
   "pauline-teo": paulinePhoto,
@@ -20,6 +22,8 @@ const photoMap: Record<string, string> = {
 const coverMap: Record<string, string> = {
   "be-suckcessful": besuckcessfulCover,
   "hemispheric-intelligence": hiCover,
+  "value-investing-for-women": viWomenCover,
+  "invest-like-buffett": investBuffettCover,
 };
 
 const fadeUp = {
@@ -132,7 +136,7 @@ export default function Index() {
                       <img
                         src={photoMap[author.slug]}
                         alt={author.name}
-                        className="mx-auto h-32 w-32 rounded-xl object-cover sm:mx-0"
+                        className="mx-auto h-32 w-32 rounded-full object-cover sm:mx-0"
                       />
                     </div>
                     <div className="flex-1 p-6 pt-0 sm:pl-0 sm:pt-6">
@@ -145,7 +149,17 @@ export default function Index() {
                         {author.name}
                       </h3>
                       <p className="mb-3 text-sm text-muted-foreground">{author.title}</p>
-                      <p className="text-sm text-muted-foreground line-clamp-2">{author.shortBio}</p>
+                      <p className="text-sm text-muted-foreground">{author.shortBio}</p>
+                      <div className="mt-4 flex items-center gap-3">
+                        {author.books.slice(0, 3).map((book) => (
+                          <img
+                            key={book.slug}
+                            src={coverMap[book.slug] || book.coverImage}
+                            alt={book.title}
+                            className="h-20 rounded shadow-md object-contain"
+                          />
+                        ))}
+                      </div>
                       <div className="mt-3 flex flex-wrap gap-1.5">
                         {author.genres.map((g) => (
                           <span key={g} className="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
