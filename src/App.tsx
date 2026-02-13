@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Directory from "./pages/Directory";
 import AuthorProfile from "./pages/AuthorProfile";
 import BookMicrosite from "./pages/BookMicrosite";
+import CreateMicrosite from "./pages/CreateMicrosite";
 import Join from "./pages/Join";
 import Auth from "./pages/Auth";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="/directory" element={<Directory />} />
             <Route path="/authors/:slug" element={<AuthorProfile />} />
             <Route path="/books/:slug" element={<BookMicrosite />} />
+            <Route path="/create-microsite" element={<CreateMicrosite />} />
             <Route path="/join" element={<Join />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/admin" element={<AdminDashboard />} />
