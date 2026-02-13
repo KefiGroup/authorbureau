@@ -49,7 +49,7 @@ export default function AuthorDashboard() {
       case "book-enricher":
         return <BookEnricher />;
       default:
-        return <DashboardOverview />;
+        return <DashboardOverview onNavigate={(s) => setActiveSection(s as DashboardSection)} />;
     }
   };
 
