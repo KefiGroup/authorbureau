@@ -1,6 +1,7 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, ExternalLink, Star, ShoppingCart, BookOpen, Award, Quote, CheckCircle2, ArrowRight } from "lucide-react";
+import { ArrowLeft, ExternalLink, Star, ShoppingCart, BookOpen, Award, Quote, CheckCircle2, ArrowRight, Loader2 } from "lucide-react";
 import { getBookBySlug } from "@/data/authors";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,6 +9,7 @@ import BadgeDisplay from "@/components/BadgeDisplay";
 import BookCard from "@/components/BookCard";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { supabase } from "@/integrations/supabase/client";
 
 import paulinePhoto from "@/assets/pauline-teo.jpeg";
 import bobPhoto from "@/assets/bob-battista.jpg";
@@ -46,20 +48,51 @@ const fadeUp = {
 
 export default function BookMicrosite() {
   const { slug } = useParams<{ slug: string }>();
-  const result = getBookBySlug(slug || "");
+  const navigate = useNavigate();
+  const [dbBook, setDbBook] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDbBook = async () => {
+      try {
+        const { data } = await supabase
+          .from("books")
+          .select("*")
+          .eq("slug", slug || "")
+          .single();
+
+        if (data) {
+          setDbBook(data);
+        }
+      } catch (err) {
+        // Silently fail, will use hardcoded data
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDbBook();
+  }, [slug]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-secondary" />
+      </div>
+    );
+  }
+
+  const result = dbBook || getBookBySlug(slug || "");
 
   if (!result) {
     return (
       <div className="min-h-screen">
         <Navbar />
-        <div className="container py-24 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-secondary/10 flex items-center justify-center mx-auto mb-4">
-            <BookOpen className="h-8 w-8 text-secondary" />
-          </div>
-          <h1 className="font-heading text-3xl font-bold">Book not found</h1>
-          <p className="text-muted-foreground mt-2">The book you're looking for doesn't exist.</p>
-          <Button asChild className="mt-6" variant="outline">
-            <Link to="/directory">Browse Authors</Link>
+        <div className="container py-20 text-center">
+          <h1 className="font-heading text-2xl font-bold mb-4">Book Not Found</h1>
+          <Button onClick={() => navigate("/")} variant="outline">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back Home
           </Button>
         </div>
         <Footer />
@@ -67,254 +100,190 @@ export default function BookMicrosite() {
     );
   }
 
-  const { book, author } = result;
-  const otherBooks = author.books.filter((b) => b.slug !== book.slug);
+  // Handle both hardcoded and DB data formats
+  const book = dbBook
+    ? {
+        title: result.title,
+        subtitle: result.subtitle,
+        description: result.description,
+        rating: result.rating,
+        reviewCount: result.review_count,
+        pages: result.pages,
+        genre: result.genre,
+        badges: result.badges || [],
+        price: result.price,
+        amazonUrl: result.amazon_url,
+        cover: result.cover_image_url || "",
+        authorName: result.author_name,
+        authorBio: result.author_bio || "",
+      }
+    : result;
 
   return (
     <div className="min-h-screen">
       <Navbar />
 
-      {/* ==================== HERO ==================== */}
-      <section className="relative overflow-hidden bg-primary py-20 text-primary-foreground">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden border-b border-border bg-primary py-12 text-primary-foreground">
         <div className="container relative z-10">
-          <Link to={`/authors/${author.slug}`} className="mb-6 inline-flex items-center gap-1 text-sm text-primary-foreground/60 hover:text-secondary transition-colors">
-            <ArrowLeft className="h-4 w-4" /> {author.name}
-          </Link>
+          <motion.button
+            onClick={() => navigate("/")}
+            className="mb-6 flex items-center gap-2 text-primary-foreground/70 hover:text-primary-foreground transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </motion.button>
 
-          <div className="flex flex-col items-center gap-12 lg:flex-row">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6 }}
-              className="flex-shrink-0"
-            >
-              <img
-                src={coverMap[book.slug]}
-                alt={book.title}
-                className="h-80 rounded-xl object-contain shadow-2xl lg:h-[420px]"
-              />
+          <motion.div initial="hidden" animate="visible" className="mx-auto max-w-3xl">
+            <motion.div variants={fadeUp} custom={0}>
+              <h1 className="mb-2 font-heading text-4xl font-bold leading-tight md:text-5xl">
+                {book.title}
+              </h1>
             </motion.div>
 
-            <motion.div initial="hidden" animate="visible" className="text-center lg:text-left flex-1">
-              <motion.h1 variants={fadeUp} custom={0} className="font-heading text-4xl font-bold md:text-5xl italic">
-                {book.title}
-              </motion.h1>
-              <motion.p variants={fadeUp} custom={1} className="mt-2 text-xl italic text-primary-foreground/70">
+            {book.subtitle && (
+              <motion.p variants={fadeUp} custom={1} className="mb-4 text-xl italic text-primary-foreground/80">
                 {book.subtitle}
               </motion.p>
-              <motion.p variants={fadeUp} custom={2} className="mt-2 text-primary-foreground/60">
-                by{" "}
-                <Link to={`/authors/${author.slug}`} className="text-primary-foreground hover:text-secondary font-medium transition-colors">
-                  {author.name}
-                </Link>
-              </motion.p>
-
-              {/* Badges */}
-              <motion.div variants={fadeUp} custom={3} className="mt-4 flex flex-wrap justify-center gap-2 lg:justify-start">
-                {book.badges.map((b) => (
-                  <span key={b} className="inline-flex items-center gap-1.5 rounded-full border border-secondary/40 px-3 py-1 text-sm font-semibold text-secondary">
-                    <Star className="h-3.5 w-3.5 fill-secondary text-secondary" /> {b}
-                  </span>
-                ))}
-              </motion.div>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* ==================== ABOUT + METADATA + CTA ==================== */}
-      <section className="py-16">
-        <div className="container max-w-4xl">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }}>
-            <motion.h2 variants={fadeUp} custom={0} className="font-heading text-2xl font-bold mb-4">
-              About This Book
-            </motion.h2>
-            <motion.p variants={fadeUp} custom={1} className="text-lg leading-relaxed text-muted-foreground">
-              {book.description}
-            </motion.p>
-
-            {/* Book metadata */}
-            {(book.pages || book.genre || book.rating) && (
-              <motion.div variants={fadeUp} custom={2} className="mt-6 flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
-                {book.pages && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <BookOpen className="h-4 w-4 text-muted-foreground/60" /> {book.pages} pages
-                  </span>
-                )}
-                {book.genre && (
-                  <span>{book.genre}</span>
-                )}
-                {book.rating && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Star className="h-4 w-4 fill-secondary text-secondary" /> {book.rating}/5
-                  </span>
-                )}
-              </motion.div>
             )}
 
-            {/* CTA Buttons */}
-            <motion.div variants={fadeUp} custom={3} className="mt-8 flex flex-wrap gap-4">
-              <Button
-                asChild
-                size="lg"
-                className="bg-secondary text-secondary-foreground hover:bg-secondary/90 text-base font-semibold shadow-[var(--shadow-gold)] rounded-full px-8"
-              >
-                <a href={book.amazonUrl} target="_blank" rel="noopener noreferrer">
-                  Buy on Amazon
-                </a>
-              </Button>
-              <Button
-                asChild
-                size="lg"
-                variant="outline"
-                className="text-base font-semibold rounded-full px-8"
-              >
-                <a href={book.amazonUrl} target="_blank" rel="noopener noreferrer">
-                  Free Chapter
-                </a>
-              </Button>
-            </motion.div>
+            <motion.p variants={fadeUp} custom={2} className="text-primary-foreground/70">
+              by <span className="font-semibold">{book.authorName}</span>
+            </motion.p>
 
-            {/* Price info */}
-            {(book.kindlePrice || book.paperbackPrice) && (
-              <motion.div variants={fadeUp} custom={4} className="mt-4 flex flex-wrap gap-4 text-sm text-muted-foreground">
-                {book.kindlePrice && <span>Kindle: {book.kindlePrice}</span>}
-                {book.paperbackPrice && <span>Paperback: {book.paperbackPrice}</span>}
+            {/* Badges */}
+            {book.badges && book.badges.length > 0 && (
+              <motion.div variants={fadeUp} custom={3} className="mt-4 flex flex-wrap gap-2">
+                {book.badges.map((badge: string) => (
+                  <span key={badge} className="inline-flex items-center gap-1 rounded-full bg-secondary/20 px-3 py-1 text-xs font-semibold text-secondary">
+                    ⭐ {badge}
+                  </span>
+                ))}
               </motion.div>
             )}
           </motion.div>
         </div>
       </section>
 
-      {/* ==================== BESTSELLER PROOF ==================== */}
-      {book.badges.length > 0 && (
-        <section className="border-y border-border bg-muted/30 py-16">
-          <div className="container max-w-4xl">
-            <div className="flex items-center gap-2 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center">
-                <Award className="h-5 w-5 text-secondary" />
-              </div>
-              <h2 className="font-heading text-2xl font-bold">Bestseller Status</h2>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              {book.badges.map((badge) => (
-                <div key={badge} className="inline-flex items-center gap-2 rounded-xl bg-card border border-border px-5 py-3 shadow-[var(--shadow-card)]">
-                  <Star className="h-5 w-5 text-secondary" />
-                  <span className="font-semibold">{badge}</span>
-                  <span className="text-muted-foreground text-sm">on Amazon</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ==================== AUTHOR BIO ==================== */}
+      {/* Main Content */}
       <section className="py-16">
         <div className="container max-w-4xl">
-          <div className="flex items-center gap-2 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center">
-              <Quote className="h-5 w-5 text-secondary" />
-            </div>
-            <h2 className="font-heading text-2xl font-bold">About the Author</h2>
-          </div>
-          <Card className="border-0 shadow-[var(--shadow-card)] rounded-2xl overflow-hidden">
-            <CardContent className="p-0">
-              <div className="flex flex-col sm:flex-row">
-                <div className="sm:w-48 flex-shrink-0">
+          <motion.div initial="hidden" animate="visible" className="grid gap-12 lg:grid-cols-3">
+            {/* Sidebar */}
+            <motion.div variants={fadeUp} custom={0} className="lg:col-span-1">
+              <div className="sticky top-24">
+                {/* Cover */}
+                {book.cover && (
                   <img
-                    src={photoMap[author.slug]}
-                    alt={author.name}
-                    className="w-full h-48 sm:h-full object-cover"
+                    src={book.cover}
+                    alt={book.title}
+                    className="mb-6 w-full rounded-lg shadow-xl"
                   />
+                )}
+
+                {/* Stats */}
+                <div className="mb-6 space-y-3">
+                  {book.rating && (
+                    <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3 text-sm">
+                      <span className="text-muted-foreground">Rating</span>
+                      <div className="flex items-center gap-1">
+                        <span className="font-bold">{book.rating}</span>
+                        <Star className="h-4 w-4 fill-secondary text-secondary" />
+                      </div>
+                    </div>
+                  )}
+                  {book.reviewCount && (
+                    <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3 text-sm">
+                      <span className="text-muted-foreground">Reviews</span>
+                      <span className="font-bold">{book.reviewCount.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {book.pages && (
+                    <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3 text-sm">
+                      <span className="text-muted-foreground">Pages</span>
+                      <span className="font-bold">{book.pages}</span>
+                    </div>
+                  )}
+                  {book.genre && (
+                    <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3 text-sm">
+                      <span className="text-muted-foreground">Genre</span>
+                      <span className="font-bold">{book.genre}</span>
+                    </div>
+                  )}
                 </div>
-                <div className="p-6 flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h3 className="font-heading text-xl font-bold">{author.name}</h3>
-                    <BadgeDisplay level={author.badge} size="sm" />
+
+                {/* Price */}
+                {book.price && (
+                  <div className="mb-6 rounded-lg bg-secondary/10 border border-secondary/20 p-4 text-center">
+                    <p className="mb-2 text-sm text-muted-foreground">Starting from</p>
+                    <p className="font-heading text-2xl font-bold text-secondary">{book.price}</p>
                   </div>
-                  <p className="text-sm text-secondary font-medium">{author.title}</p>
-                  <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{author.shortBio}</p>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {author.credentials.slice(0, 3).map((c) => (
-                      <span key={c} className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                        <CheckCircle2 className="h-3 w-3 text-secondary" /> {c}
-                      </span>
-                    ))}
-                  </div>
-                  <Link
-                    to={`/authors/${author.slug}`}
-                    className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-secondary hover:underline"
+                )}
+
+                {/* CTA Button */}
+                {book.amazonUrl && (
+                  <Button
+                    asChild
+                    className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 rounded-full font-semibold"
                   >
-                    View Full Profile <ArrowRight className="h-3 w-3" />
-                  </Link>
-                </div>
+                    <a href={book.amazonUrl} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      Buy on Amazon
+                    </a>
+                  </Button>
+                )}
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
+            </motion.div>
 
-      {/* ==================== MORE BOOKS ==================== */}
-      {otherBooks.length > 0 && (
-        <section className="border-t border-border bg-muted/30 py-16">
-          <div className="container">
-            <h2 className="mb-8 font-heading text-2xl font-bold">
-              More by {author.name}
-            </h2>
-            <div className="grid gap-6 grid-cols-2 lg:grid-cols-4">
-              {otherBooks.map((b) => (
-                <BookCard key={b.slug} book={b} />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
+            {/* Main Content */}
+            <motion.div variants={fadeUp} custom={1} className="lg:col-span-2 space-y-8">
+              {/* Description */}
+              <div>
+                <h2 className="mb-4 font-heading text-2xl font-bold">About This Book</h2>
+                <p className="whitespace-pre-wrap leading-relaxed text-muted-foreground">
+                  {book.description}
+                </p>
+              </div>
 
-      {/* ==================== FINAL CTA ==================== */}
-      <section className="py-16">
-        <div className="container max-w-3xl text-center">
-          <h2 className="mb-4 font-heading text-3xl font-bold">
-            Get Your <span className="italic text-secondary">Copy</span>
-          </h2>
-          <p className="mx-auto mb-6 max-w-md text-muted-foreground">
-            Available on Amazon in Kindle and paperback formats.
-          </p>
-          <Button
-            asChild
-            size="lg"
-            className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold shadow-[var(--shadow-gold)] rounded-full px-8"
-          >
-            <a href={book.amazonUrl} target="_blank" rel="noopener noreferrer">
-              <ShoppingCart className="mr-2 h-5 w-5" />
-              Buy on Amazon
-            </a>
-          </Button>
-        </div>
-      </section>
+              {/* Author Bio */}
+              {book.authorBio && (
+                <Card>
+                  <CardContent className="pt-6">
+                    <h3 className="mb-3 font-heading text-lg font-bold">About the Author</h3>
+                    <p className="mb-4 text-sm leading-relaxed text-muted-foreground">{book.authorBio}</p>
+                    <p className="text-sm font-semibold text-secondary">{book.authorName}</p>
+                  </CardContent>
+                </Card>
+              )}
 
-      {/* ==================== PLATFORM PROMO ==================== */}
-      <section className="border-t border-border bg-primary py-16 text-primary-foreground">
-        <div className="container max-w-3xl text-center">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-secondary/30 bg-secondary/10 px-4 py-1.5 text-sm font-semibold text-secondary">
-            <Award className="h-4 w-4" />
-            Powered by Authors Bureau
-          </div>
-          <h2 className="font-heading text-2xl font-bold md:text-3xl mb-3">
-            Everything You Need to Get Discovered — <span className="text-secondary">Completely FREE</span>
-          </h2>
-          <p className="mx-auto max-w-xl text-primary-foreground/70 leading-relaxed">
-            Every listed author gets a dedicated landing page for their book, designed to showcase your Amazon bestseller status, drive purchases, and build your reader community.
-          </p>
-          <Button
-            asChild
-            size="lg"
-            className="mt-6 bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold rounded-full px-8"
-          >
-            <Link to="/join">
-              Get Your Free Microsite <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
+              {/* Call to Action */}
+              <Card className="border-2 border-secondary/30 bg-gradient-to-br from-secondary/5 to-transparent">
+                <CardContent className="pt-8 text-center">
+                  <Quote className="mx-auto mb-3 h-6 w-6 text-secondary/60" />
+                  <h3 className="mb-2 font-heading text-xl font-bold">Ready to Discover This Book?</h3>
+                  <p className="mb-6 text-muted-foreground">
+                    Join thousands of readers who have enjoyed this powerful book.
+                  </p>
+                  {book.amazonUrl && (
+                    <Button
+                      asChild
+                      className="bg-secondary text-secondary-foreground hover:bg-secondary/90 rounded-full font-semibold"
+                    >
+                      <a href={book.amazonUrl} target="_blank" rel="noopener noreferrer">
+                        <ShoppingCart className="mr-2 h-4 w-4" />
+                        Buy Now
+                      </a>
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Footer */}
+              <div className="border-t border-border pt-6 text-center text-xs text-muted-foreground">
+                <p>Powered by <span className="font-semibold text-secondary">Authors Bureau</span></p>
+              </div>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 

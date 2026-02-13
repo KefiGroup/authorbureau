@@ -125,6 +125,93 @@ export type Database = {
         }
         Relationships: []
       }
+      books: {
+        Row: {
+          ai_enriched: boolean | null
+          amazon_author_profile_url: string | null
+          amazon_url: string | null
+          author_bio: string | null
+          author_id: string
+          author_name: string | null
+          author_photo_url: string | null
+          badges: string[] | null
+          cover_image_url: string | null
+          created_at: string
+          currency: string | null
+          description: string | null
+          entry_mode: string | null
+          genre: string | null
+          id: string
+          kindle_price: string | null
+          pages: number | null
+          paperback_price: string | null
+          price: string | null
+          published_at: string | null
+          rating: number | null
+          review_count: number | null
+          slug: string
+          subtitle: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          ai_enriched?: boolean | null
+          amazon_author_profile_url?: string | null
+          amazon_url?: string | null
+          author_bio?: string | null
+          author_id: string
+          author_name?: string | null
+          author_photo_url?: string | null
+          badges?: string[] | null
+          cover_image_url?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          entry_mode?: string | null
+          genre?: string | null
+          id?: string
+          kindle_price?: string | null
+          pages?: number | null
+          paperback_price?: string | null
+          price?: string | null
+          published_at?: string | null
+          rating?: number | null
+          review_count?: number | null
+          slug: string
+          subtitle?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          ai_enriched?: boolean | null
+          amazon_author_profile_url?: string | null
+          amazon_url?: string | null
+          author_bio?: string | null
+          author_id?: string
+          author_name?: string | null
+          author_photo_url?: string | null
+          badges?: string[] | null
+          cover_image_url?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          entry_mode?: string | null
+          genre?: string | null
+          id?: string
+          kindle_price?: string | null
+          pages?: number | null
+          paperback_price?: string | null
+          price?: string | null
+          published_at?: string | null
+          rating?: number | null
+          review_count?: number | null
+          slug?: string
+          subtitle?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       coaching_packages: {
         Row: {
           author_id: string
