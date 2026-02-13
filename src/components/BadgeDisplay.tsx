@@ -1,6 +1,6 @@
 import { Shield, ShieldCheck, Star, Award } from "lucide-react";
 
-export type BadgeLevel = "listed" | "verified" | "featured" | "publishnow-verified";
+export type BadgeLevel = "listed" | "verified" | "featured" | "ab-verified";
 
 const badgeConfig: Record<BadgeLevel, {
   label: string;
@@ -22,8 +22,8 @@ const badgeConfig: Record<BadgeLevel, {
     icon: Star,
     className: "bg-secondary/10 text-secondary border border-secondary/20",
   },
-  "publishnow-verified": {
-    label: "PublishNow Verified",
+  "ab-verified": {
+    label: "Authors Bureau Verified",
     icon: Award,
     className: "bg-gradient-to-r from-secondary/10 to-secondary/5 text-secondary border border-secondary/20",
   },

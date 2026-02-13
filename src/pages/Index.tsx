@@ -150,7 +150,7 @@ export default function Index() {
                 />
               </div>
               <div className="absolute top-4 right-4">
-                <BadgeDisplay level="publishnow-verified" size="sm" />
+                <BadgeDisplay level="ab-verified" size="sm" />
               </div>
             </motion.div>
 
