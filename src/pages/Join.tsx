@@ -37,8 +37,6 @@ export default function Join() {
     const password = (formData.get("password") as string);
     const websiteUrl = (formData.get("website_url") as string)?.trim() || null;
     const amazonBookUrl = (formData.get("amazon_book_url") as string).trim();
-    const bio = (formData.get("bio") as string)?.trim() || null;
-    const genres = (formData.get("genres") as string)?.trim() || null;
 
     if (!fullName || !email || !password || !amazonBookUrl) {
       toast({ title: "Please fill in all required fields", variant: "destructive" });
@@ -75,8 +73,8 @@ export default function Join() {
       email: email.slice(0, 255),
       website_url: websiteUrl?.slice(0, 500),
       amazon_book_url: amazonBookUrl.slice(0, 500),
-      bio: bio?.slice(0, 2000),
-      genres: genres?.slice(0, 500),
+      bio: null,
+      genres: null,
     });
 
     setLoading(false);
@@ -248,25 +246,6 @@ export default function Join() {
                       />
                   </div>
 
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium">Tell us about yourself</label>
-                    <textarea
-                      name="bio"
-                      rows={4}
-                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-secondary/50"
-                      placeholder="Share your author journey, credentials, and what you hope to achieve..."
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium">Genres / Topics</label>
-                    <input
-                      name="genres"
-                      type="text"
-                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-secondary/50"
-                      placeholder="e.g., Personal Development, Finance, AI"
-                    />
-                  </div>
 
                   <Button
                     type="submit"
