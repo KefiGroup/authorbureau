@@ -1,0 +1,1 @@
+ALTER TABLE public.author_profiles ADD COLUMN IF NOT EXISTS amazon_author_profile_url TEXT;
