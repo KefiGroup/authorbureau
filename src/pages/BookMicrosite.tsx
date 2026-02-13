@@ -96,65 +96,92 @@ export default function BookMicrosite() {
             </motion.div>
 
             <motion.div initial="hidden" animate="visible" className="text-center lg:text-left flex-1">
-              {/* Badges */}
-              <motion.div variants={fadeUp} custom={0} className="mb-4 flex flex-wrap justify-center gap-2 lg:justify-start">
-                {book.badges.map((b) => (
-                  <span key={b} className="inline-flex items-center gap-1.5 rounded-full bg-secondary/20 px-3 py-1 text-sm font-semibold text-secondary">
-                    <Star className="h-3 w-3" /> {b}
-                  </span>
-                ))}
-              </motion.div>
-
-              <motion.h1 variants={fadeUp} custom={1} className="font-heading text-4xl font-bold md:text-5xl">
+              <motion.h1 variants={fadeUp} custom={0} className="font-heading text-4xl font-bold md:text-5xl italic">
                 {book.title}
               </motion.h1>
-              <motion.p variants={fadeUp} custom={2} className="mt-2 text-xl italic text-primary-foreground/70">
+              <motion.p variants={fadeUp} custom={1} className="mt-2 text-xl italic text-primary-foreground/70">
                 {book.subtitle}
               </motion.p>
-              <motion.p variants={fadeUp} custom={3} className="mt-2 text-primary-foreground/60">
+              <motion.p variants={fadeUp} custom={2} className="mt-2 text-primary-foreground/60">
                 by{" "}
-                <Link to={`/authors/${author.slug}`} className="text-secondary hover:underline font-medium">
+                <Link to={`/authors/${author.slug}`} className="text-primary-foreground hover:text-secondary font-medium transition-colors">
                   {author.name}
                 </Link>
               </motion.p>
 
-              {/* CTA Buttons */}
-              <motion.div variants={fadeUp} custom={4} className="mt-8 flex flex-wrap justify-center gap-4 lg:justify-start">
-                <Button
-                  asChild
-                  size="lg"
-                  className="bg-secondary text-secondary-foreground hover:bg-secondary/90 text-base font-semibold shadow-[var(--shadow-gold)] rounded-full px-8"
-                >
-                  <a href={book.amazonUrl} target="_blank" rel="noopener noreferrer">
-                    <ShoppingCart className="mr-2 h-5 w-5" />
-                    Order on Amazon
-                  </a>
-                </Button>
+              {/* Badges */}
+              <motion.div variants={fadeUp} custom={3} className="mt-4 flex flex-wrap justify-center gap-2 lg:justify-start">
+                {book.badges.map((b) => (
+                  <span key={b} className="inline-flex items-center gap-1.5 rounded-full border border-secondary/40 px-3 py-1 text-sm font-semibold text-secondary">
+                    <Star className="h-3.5 w-3.5 fill-secondary text-secondary" /> {b}
+                  </span>
+                ))}
               </motion.div>
-
-              {book.price && (
-                <motion.p variants={fadeUp} custom={5} className="mt-3 text-sm text-primary-foreground/50">
-                  Available from {book.price}
-                </motion.p>
-              )}
             </motion.div>
           </div>
         </div>
       </section>
 
-      {/* ==================== ABOUT THE BOOK ==================== */}
+      {/* ==================== ABOUT + METADATA + CTA ==================== */}
       <section className="py-16">
         <div className="container max-w-4xl">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }}>
-            <motion.div variants={fadeUp} custom={0} className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center">
-                <BookOpen className="h-5 w-5 text-secondary" />
-              </div>
-              <h2 className="font-heading text-2xl font-bold">About the Book</h2>
-            </motion.div>
+            <motion.h2 variants={fadeUp} custom={0} className="font-heading text-2xl font-bold mb-4">
+              About This Book
+            </motion.h2>
             <motion.p variants={fadeUp} custom={1} className="text-lg leading-relaxed text-muted-foreground">
               {book.description}
             </motion.p>
+
+            {/* Book metadata */}
+            {(book.pages || book.genre || book.rating) && (
+              <motion.div variants={fadeUp} custom={2} className="mt-6 flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
+                {book.pages && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <BookOpen className="h-4 w-4 text-muted-foreground/60" /> {book.pages} pages
+                  </span>
+                )}
+                {book.genre && (
+                  <span>{book.genre}</span>
+                )}
+                {book.rating && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Star className="h-4 w-4 fill-secondary text-secondary" /> {book.rating}/5
+                  </span>
+                )}
+              </motion.div>
+            )}
+
+            {/* CTA Buttons */}
+            <motion.div variants={fadeUp} custom={3} className="mt-8 flex flex-wrap gap-4">
+              <Button
+                asChild
+                size="lg"
+                className="bg-secondary text-secondary-foreground hover:bg-secondary/90 text-base font-semibold shadow-[var(--shadow-gold)] rounded-full px-8"
+              >
+                <a href={book.amazonUrl} target="_blank" rel="noopener noreferrer">
+                  Buy on Amazon
+                </a>
+              </Button>
+              <Button
+                asChild
+                size="lg"
+                variant="outline"
+                className="text-base font-semibold rounded-full px-8"
+              >
+                <a href={book.amazonUrl} target="_blank" rel="noopener noreferrer">
+                  Free Chapter
+                </a>
+              </Button>
+            </motion.div>
+
+            {/* Price info */}
+            {(book.kindlePrice || book.paperbackPrice) && (
+              <motion.div variants={fadeUp} custom={4} className="mt-4 flex flex-wrap gap-4 text-sm text-muted-foreground">
+                {book.kindlePrice && <span>Kindle: {book.kindlePrice}</span>}
+                {book.paperbackPrice && <span>Paperback: {book.paperbackPrice}</span>}
+              </motion.div>
+            )}
           </motion.div>
         </div>
       </section>
