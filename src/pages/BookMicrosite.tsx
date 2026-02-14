@@ -283,7 +283,7 @@ export default function BookMicrosite() {
                       </div>
                       <img
                         src={amazonBestsellerFelicia}
-                        alt="To Baby With Love - #1 Amazon Best Seller in Parenting Emotions & Feelings"
+                        alt="To Baby With Love - #1 Amazon Best Seller in Young Adult Health Books on Sexuality & Pregnancy"
                         className="w-full"
                       />
                     </CardContent>
