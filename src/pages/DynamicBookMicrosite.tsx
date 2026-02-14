@@ -14,7 +14,6 @@ interface Book {
   description: string;
   pages?: number;
   rating?: number;
-  review_count?: number;
   genre?: string;
   badges?: string[];
   price?: string;

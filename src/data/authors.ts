@@ -12,7 +12,6 @@ export interface Book {
   paperbackPrice?: string;
   pages?: number;
   rating?: number;
-  reviewCount?: number;
   categories?: string[];
 }
 
@@ -58,7 +57,6 @@ export const authors: Author[] = [
         paperbackPrice: "$8.99",
         pages: 248,
         rating: 4.8,
-        reviewCount: 42,
       },
       {
         slug: "value-investing-for-women",
@@ -72,7 +70,6 @@ export const authors: Author[] = [
         kindlePrice: "$6.99",
         pages: 180,
         rating: 4.6,
-        reviewCount: 28,
       },
       {
         slug: "invest-like-buffett",
@@ -86,7 +83,6 @@ export const authors: Author[] = [
         kindlePrice: "$6.99",
         pages: 160,
         rating: 4.5,
-        reviewCount: 22,
       },
     ],
     genres: ["Personal Development", "Finance", "Self-Help"],
@@ -119,7 +115,6 @@ export const authors: Author[] = [
         paperbackPrice: "$12.99",
         pages: 128,
         rating: 5.0,
-        reviewCount: 35,
       },
       {
         slug: "lost-and-found",
@@ -134,7 +129,6 @@ export const authors: Author[] = [
         paperbackPrice: "$16.90",
         pages: 196,
         rating: 4.7,
-        reviewCount: 18,
       },
       {
         slug: "a-gift-from-heaven",
@@ -149,7 +143,6 @@ export const authors: Author[] = [
         paperbackPrice: "$16.90",
         pages: 184,
         rating: 4.8,
-        reviewCount: 15,
       },
     ],
     genres: ["Memoir", "Parenting", "Self-Help"],
@@ -179,9 +172,8 @@ export const authors: Author[] = [
         genre: "Technology",
         kindlePrice: "$0.99",
         paperbackPrice: "$6.99",
-        pages: 312,
-        rating: 4.7,
-        reviewCount: 31,
+        pages: 98,
+        rating: 5.0,
       },
     ],
     genres: ["Technology", "AI", "Philosophy"],
