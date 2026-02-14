@@ -55,7 +55,7 @@ export const authors: Author[] = [
         genre: "Self-Help",
         kindlePrice: "$0.99",
         paperbackPrice: "$8.99",
-        pages: 248,
+        pages: 128,
         rating: 4.8,
       },
       {
