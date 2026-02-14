@@ -298,7 +298,7 @@ export default function BookMicrosite() {
                           <h3 className="font-heading text-lg font-bold">#1 Amazon Best Seller</h3>
                         </div>
                         <p className="text-sm text-muted-foreground mt-1">
-                          Ranked #1 in Parenting Emotions &amp; Feelings on Amazon USA
+                          Ranked #1 in College &amp; University Financial Aid on Amazon USA
                         </p>
                       </div>
                       <img
