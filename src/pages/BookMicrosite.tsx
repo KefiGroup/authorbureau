@@ -214,12 +214,6 @@ export default function BookMicrosite() {
                       </div>
                     </div>
                   )}
-                  {book.reviewCount && (
-                    <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3 text-sm">
-                      <span className="text-muted-foreground">Reviews</span>
-                      <span className="font-bold">{book.reviewCount.toLocaleString()}</span>
-                    </div>
-                  )}
                   {book.pages && (
                     <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3 text-sm">
                       <span className="text-muted-foreground">Pages</span>
