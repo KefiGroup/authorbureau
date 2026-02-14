@@ -82,7 +82,8 @@ export default function BookMicrosite() {
     );
   }
 
-  const result = dbBook || getBookBySlug(slug || "");
+  const hardcoded = getBookBySlug(slug || "");
+  const result = dbBook || hardcoded;
 
   if (!result) {
     return (
@@ -103,21 +104,35 @@ export default function BookMicrosite() {
   // Handle both hardcoded and DB data formats
   const book = dbBook
     ? {
-        title: result.title,
-        subtitle: result.subtitle,
-        description: result.description,
-        rating: result.rating,
-        reviewCount: result.review_count,
-        pages: result.pages,
-        genre: result.genre,
-        badges: result.badges || [],
-        price: result.price,
-        amazonUrl: result.amazon_url,
-        cover: result.cover_image_url || "",
-        authorName: result.author_name,
-        authorBio: result.author_bio || "",
+        title: dbBook.title,
+        subtitle: dbBook.subtitle,
+        description: dbBook.description,
+        rating: dbBook.rating,
+        reviewCount: dbBook.review_count,
+        pages: dbBook.pages,
+        genre: dbBook.genre,
+        badges: dbBook.badges || [],
+        price: dbBook.price,
+        amazonUrl: dbBook.amazon_url,
+        cover: dbBook.cover_image_url || "",
+        authorName: dbBook.author_name,
+        authorBio: dbBook.author_bio || "",
       }
-    : result;
+    : {
+        title: hardcoded!.book.title,
+        subtitle: hardcoded!.book.subtitle,
+        description: hardcoded!.book.description,
+        rating: hardcoded!.book.rating,
+        reviewCount: hardcoded!.book.reviewCount,
+        pages: hardcoded!.book.pages,
+        genre: hardcoded!.book.genre,
+        badges: hardcoded!.book.badges || [],
+        price: hardcoded!.book.kindlePrice || hardcoded!.book.paperbackPrice,
+        amazonUrl: hardcoded!.book.amazonUrl,
+        cover: coverMap[hardcoded!.book.slug] || "",
+        authorName: hardcoded!.author.name,
+        authorBio: hardcoded!.author.shortBio,
+      };
 
   return (
     <div className="min-h-screen">
