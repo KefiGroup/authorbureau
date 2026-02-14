@@ -101,13 +101,12 @@ serve(async (req) => {
 - Subtitle (if any)
 - Number of pages
 - Customer rating (e.g., 4.5 stars)
-- Number of reviews
 - Book price
 - Main genre/category
 - Bestseller badges or rankings
 - A concise 1-2 sentence description
 
-Format as JSON with keys: title, subtitle, pages, rating, reviewCount, price, genre, badges (array), description`;
+Format as JSON with keys: title, subtitle, pages, rating, price, genre, badges (array), description`;
 
     const aiExtractResponse = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",

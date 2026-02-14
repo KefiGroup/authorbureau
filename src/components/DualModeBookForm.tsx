@@ -17,7 +17,6 @@ interface BookFormData {
   description: string;
   pages: number | null;
   rating: number | null;
-  reviewCount: number | null;
   genre: string;
   badges: string[];
   price: string;
@@ -50,7 +49,6 @@ export default function DualModeBookForm({
     description: "",
     pages: null,
     rating: null,
-    reviewCount: null,
     genre: "",
     badges: [],
     price: "",
@@ -104,7 +102,7 @@ export default function DualModeBookForm({
       update("description", extracted.description || "");
       update("pages", extracted.pages ? parseInt(extracted.pages) : null);
       update("rating", extracted.rating ? parseFloat(extracted.rating) : null);
-      update("reviewCount", extracted.reviewCount ? parseInt(extracted.reviewCount) : null);
+      
       update("genre", extracted.genre || "");
       update("price", extracted.price || "");
       update("badges", extracted.badges || []);
@@ -195,7 +193,7 @@ export default function DualModeBookForm({
           slug,
           pages: form.pages,
           rating: form.rating,
-          review_count: form.reviewCount,
+          
           genre: form.genre || null,
           badges: form.badges,
           price: form.price || null,

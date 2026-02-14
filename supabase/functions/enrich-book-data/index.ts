@@ -8,7 +8,6 @@ const corsHeaders = {
 interface EnrichmentResult {
   pages?: number;
   rating?: number;
-  reviewCount?: number;
   categories?: string[];
   price?: string;
   description?: string;
@@ -76,12 +75,6 @@ serve(async (req) => {
             result.rating = parseFloat(ratingMatch[1]);
           }
 
-          // Extract review count
-          const reviewMatch = markdown.match(/(?:(\d+(?:,\d+)*)\s*(?:customer\s+)?reviews?|ratings?:\s*(\d+(?:,\d+)*))/i);
-          if (reviewMatch) {
-            const reviewStr = (reviewMatch[1] || reviewMatch[2] || '').replace(/,/g, '');
-            result.reviewCount = parseInt(reviewStr, 10);
-          }
 
           // Extract price
           const priceMatch = markdown.match(/\$(\d+\.?\d{0,2})/);

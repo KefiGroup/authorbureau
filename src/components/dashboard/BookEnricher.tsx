@@ -8,7 +8,6 @@ import { supabase } from '@/integrations/supabase/client';
 interface EnrichedData {
   pages?: number;
   rating?: number;
-  reviewCount?: number;
   categories?: string[];
   price?: string;
   description?: string;
@@ -66,7 +65,7 @@ export default function BookEnricher() {
     const lines = [];
     if (enrichedData.pages) lines.push(`Pages: ${enrichedData.pages}`);
     if (enrichedData.rating) lines.push(`Rating: ${enrichedData.rating}/5`);
-    if (enrichedData.reviewCount) lines.push(`Reviews: ${enrichedData.reviewCount}`);
+    
     if (enrichedData.price) lines.push(`Price: ${enrichedData.price}`);
     if (enrichedData.categories?.length) lines.push(`Categories: ${enrichedData.categories.join(', ')}`);
     
@@ -176,12 +175,6 @@ export default function BookEnricher() {
                     <span className="font-semibold">{enrichedData.rating}/5 ⭐</span>
                   </div>
                 )}
-                {enrichedData.reviewCount && (
-                  <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                    <span className="text-sm text-muted-foreground">Review Count</span>
-                    <span className="font-semibold">{enrichedData.reviewCount.toLocaleString()} reviews</span>
-                  </div>
-                )}
                 {enrichedData.price && (
                   <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
                     <span className="text-sm text-muted-foreground">Price</span>
@@ -201,7 +194,7 @@ export default function BookEnricher() {
                   </div>
                 ) : null}
 
-                {!enrichedData.pages && !enrichedData.rating && !enrichedData.reviewCount && (
+                {!enrichedData.pages && !enrichedData.rating && (
                   <p className="text-sm text-muted-foreground italic">
                     No metadata was able to be extracted. This may happen if the Amazon page structure is different or blocks scraping.
                   </p>
