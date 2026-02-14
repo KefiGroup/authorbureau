@@ -58,23 +58,27 @@ export default function BookMicrosite() {
   useEffect(() => {
     const fetchDbBook = async () => {
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("books")
           .select("*")
           .eq("slug", slug || "")
-          .single();
+          .maybeSingle();
 
-        if (data) {
+        if (!error && data) {
           setDbBook(data);
         }
       } catch (err) {
-        // Silently fail, will use hardcoded data
+        console.error("Failed to fetch book:", err);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchDbBook();
+
+    // Safety timeout
+    const timeout = setTimeout(() => setIsLoading(false), 5000);
+    return () => clearTimeout(timeout);
   }, [slug]);
 
   if (isLoading) {
