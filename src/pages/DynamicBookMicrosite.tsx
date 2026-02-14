@@ -197,12 +197,6 @@ export default function DynamicBookMicrosite() {
                       <span className="font-bold text-lg">{book.rating} ★</span>
                     </div>
                   )}
-                  {book.review_count && (
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                      <span className="text-muted-foreground">Reviews</span>
-                      <span className="font-bold">{book.review_count.toLocaleString()}</span>
-                    </div>
-                  )}
                   {book.pages && (
                     <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                       <span className="text-muted-foreground">Pages</span>

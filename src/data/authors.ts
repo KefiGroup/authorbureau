@@ -117,8 +117,8 @@ export const authors: Author[] = [
         genre: "Memoir",
         kindlePrice: "$0.99",
         paperbackPrice: "$12.99",
-        pages: 220,
-        rating: 4.9,
+        pages: 128,
+        rating: 5.0,
         reviewCount: 35,
       },
       {
