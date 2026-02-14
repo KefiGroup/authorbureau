@@ -52,7 +52,7 @@ export default function DynamicBookMicrosite() {
           .from("books")
           .select("*")
           .eq("slug", slug)
-          .single();
+          .maybeSingle();
 
         if (fetchError) throw fetchError;
         if (!data) {
