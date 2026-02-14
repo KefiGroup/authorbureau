@@ -16,6 +16,7 @@ import bobPhoto from "@/assets/bob-battista.jpg";
 import feliciaPhoto from "@/assets/felicia-tan-headshot.png";
 import amazonBestsellerFelicia from "@/assets/amazon-bestseller-felicia.jpeg";
 import amazonBestsellerPauline from "@/assets/amazon-bestseller-pauline.jpeg";
+import amazonBestsellerBob from "@/assets/amazon-bestseller-bob.png";
 import besuckcessfulCover from "@/assets/besuckcessful-cover.jpg";
 import hiCover from "@/assets/hemispheric-intelligence-cover.png";
 import viCover from "@/assets/value-investing-women-cover.png";
@@ -308,9 +309,33 @@ export default function BookMicrosite() {
                     </CardContent>
                   </Card>
                 </motion.div>
+               )}
+
+              {/* Amazon Bestseller Proof - Robert Battista */}
+              {slug === "hemispheric-intelligence" && (
+                <motion.div variants={fadeUp} custom={2}>
+                  <Card className="overflow-hidden border-2 border-secondary/30">
+                    <CardContent className="p-0">
+                      <div className="bg-secondary/10 px-6 py-3 border-b border-secondary/20">
+                        <div className="flex items-center gap-2">
+                          <Award className="h-5 w-5 text-secondary" />
+                          <h3 className="font-heading text-lg font-bold">#1 Amazon Best Seller & Hot New Release</h3>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          #1 Hot New Release and Best Seller in Epistemology on Amazon USA
+                        </p>
+                      </div>
+                      <img
+                        src={amazonBestsellerBob}
+                        alt="Hemispheric Intelligence - #1 Amazon Best Seller in Epistemology"
+                        className="w-full"
+                      />
+                    </CardContent>
+                  </Card>
+                </motion.div>
               )}
 
-              {/* Author Bio */}
+               {/* Author Bio */}
               {book.authorBio && (
                 <Card>
                   <CardContent className="pt-6">
