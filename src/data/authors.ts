@@ -56,7 +56,7 @@ export const authors: Author[] = [
         kindlePrice: "$0.99",
         paperbackPrice: "$8.99",
         pages: 128,
-        rating: 4.8,
+        rating: 5.0,
       },
       {
         slug: "value-investing-for-women",
