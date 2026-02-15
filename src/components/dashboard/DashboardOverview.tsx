@@ -58,7 +58,7 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
       label: "Book Listing",
       description: "Showcase your published books with covers, descriptions, and purchase links.",
       step: "Step 2",
-      target: "book-enricher",
+      target: "my-books",
     },
     {
       icon: Globe,
@@ -106,6 +106,9 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
             <h2 className="font-heading text-2xl font-bold">Welcome to Your Dashboard</h2>
             <p className="text-muted-foreground text-sm mt-1">
               Your launchpad from <strong>Author</strong> to <strong>Authority</strong>.
+              <span className="ml-2 text-[10px] font-semibold uppercase tracking-wider text-secondary/60">
+                Powered by PublishNow.io
+              </span>
             </p>
           </div>
           <Button variant="ghost" size="sm" onClick={checkSubscription} disabled={subscription.loading}>

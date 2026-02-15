@@ -13,7 +13,7 @@ interface Props {
 const navItems: { id: DashboardSection; label: string; icon: typeof LayoutDashboard; premiumOnly?: boolean }[] = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "profile", label: "Profile", icon: User },
-  { id: "book-enricher", label: "Book Enricher", icon: Zap },
+  { id: "my-books", label: "My Books", icon: BookOpen },
   { id: "ai-toolkit", label: "AI Toolkit", icon: Sparkles, premiumOnly: true },
   { id: "courses", label: "Courses", icon: GraduationCap, premiumOnly: true },
   { id: "speaking", label: "Speaking", icon: Mic, premiumOnly: true },
@@ -31,9 +31,14 @@ export default function DashboardSidebar({ activeSection, onSectionChange, colla
       <div className="flex h-16 items-center gap-2 border-b border-border px-4">
         <img src={logoIcon} alt="Authors Bureau" className="h-8 w-8 shrink-0" />
         {!collapsed && (
-          <span className="font-heading text-lg font-bold truncate">
-            Authors <span className="text-gradient-gold">Bureau</span>
-          </span>
+          <div className="min-w-0">
+            <span className="font-heading text-lg font-bold truncate block">
+              Authors <span className="text-gradient-gold">Bureau</span>
+            </span>
+            <span className="text-[9px] font-medium uppercase tracking-widest text-muted-foreground/60 leading-none">
+              AI Marketing Studio
+            </span>
+          </div>
         )}
       </div>
 
