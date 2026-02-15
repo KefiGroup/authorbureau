@@ -61,7 +61,9 @@ const AI_TOOLS = [
   },
 ];
 
-const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-author-tools`;
+import { SHARED_BACKEND_URL, SHARED_ANON_KEY } from "@/lib/shared-backend";
+
+const CHAT_URL = `${SHARED_BACKEND_URL}/functions/v1/ai-author-tools`;
 
 export default function AIToolkit() {
   const { isPremium } = useAuth();
@@ -88,7 +90,7 @@ export default function AIToolkit() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${SHARED_ANON_KEY}`,
         },
         body: JSON.stringify({
           toolType: selectedTool,

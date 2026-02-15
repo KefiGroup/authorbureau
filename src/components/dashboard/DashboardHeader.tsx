@@ -2,7 +2,7 @@ import { LogOut, Crown, Menu, Shield, ExternalLink, Loader2 } from "lucide-react
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
 import type { User } from "@supabase/supabase-js";
 
 interface Props {
@@ -24,7 +24,7 @@ export default function DashboardHeader({ user, isPremium, isAdmin, onSignOut, o
       if (!session) throw new Error("Not authenticated");
 
       const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sso-handoff`,
+        `${SHARED_BACKEND_URL}/functions/v1/sso-handoff`,
         {
           method: "POST",
           headers: {

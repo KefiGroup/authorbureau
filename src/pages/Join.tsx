@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import BadgeDisplay from "@/components/BadgeDisplay";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/shared-backend";
 import { useToast } from "@/hooks/use-toast";
 
 const fadeUp = {

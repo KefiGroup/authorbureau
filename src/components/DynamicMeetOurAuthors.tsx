@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, BookOpen } from "lucide-react";
 import { Link } from "react-router-dom";
 import useEmblaCarousel from "embla-carousel-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/shared-backend";
 
 interface BookWithAuthor {
   id: string;

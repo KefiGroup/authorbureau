@@ -5,7 +5,7 @@ import { BookOpen, ExternalLink, Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/shared-backend";
 
 interface Book {
   id: string;

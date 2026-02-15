@@ -9,7 +9,7 @@ import BadgeDisplay from "@/components/BadgeDisplay";
 import BookCard from "@/components/BookCard";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/shared-backend";
 
 import paulinePhoto from "@/assets/pauline-teo.jpeg";
 import bobPhoto from "@/assets/bob-battista.jpg";

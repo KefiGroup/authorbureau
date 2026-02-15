@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/shared-backend";
 import type { User, Session } from "@supabase/supabase-js";
 
 // Stripe tier config
