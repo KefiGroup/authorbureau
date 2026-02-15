@@ -10,9 +10,9 @@ import SpeakingProfile from "@/components/dashboard/SpeakingProfile";
 import CoachingCRM from "@/components/dashboard/CoachingCRM";
 import DashboardOverview from "@/components/dashboard/DashboardOverview";
 import AIToolkit from "@/components/dashboard/AIToolkit";
-import BookEnricher from "@/components/dashboard/BookEnricher";
+import MyBooks from "@/components/dashboard/MyBooks";
 
-export type DashboardSection = "overview" | "profile" | "courses" | "speaking" | "coaching" | "ai-toolkit" | "book-enricher";
+export type DashboardSection = "overview" | "profile" | "courses" | "speaking" | "coaching" | "ai-toolkit" | "my-books";
 
 export default function AuthorDashboard() {
   const { user, loading, isAdmin, isPremium, subscription, checkSubscription, signOut } = useAuth();
@@ -46,8 +46,8 @@ export default function AuthorDashboard() {
         return <CoachingCRM />;
       case "ai-toolkit":
         return <AIToolkit />;
-      case "book-enricher":
-        return <BookEnricher />;
+      case "my-books":
+        return <MyBooks />;
       default:
         return <DashboardOverview onNavigate={(s) => setActiveSection(s as DashboardSection)} />;
     }

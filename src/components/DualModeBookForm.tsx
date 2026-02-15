@@ -235,9 +235,15 @@ export default function DualModeBookForm({
         <h2 className="font-heading text-2xl font-bold mb-6">Add Your Book</h2>
 
         <Tabs value={mode} onValueChange={(v) => setMode(v as "amazon" | "manual")}>
-          <TabsList className="grid w-full grid-cols-2 mb-8">
+          <TabsList className="grid w-full grid-cols-3 mb-8">
             <TabsTrigger value="amazon">📦 Scrape from Amazon</TabsTrigger>
             <TabsTrigger value="manual">✍️ Manual Entry</TabsTrigger>
+            <TabsTrigger value="publishnow" disabled className="relative opacity-50 cursor-not-allowed">
+              🚀 PublishNow.io
+              <span className="absolute -top-2 -right-1 rounded-full bg-secondary px-1.5 py-0.5 text-[8px] font-bold text-secondary-foreground leading-none">
+                Soon
+              </span>
+            </TabsTrigger>
           </TabsList>
 
           {/* Amazon Scraping Mode */}
