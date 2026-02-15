@@ -55,6 +55,7 @@ export default function ServiceInquiryForm({ open, onOpenChange, authorName, aut
           email: form.email.trim(),
           phone: form.phone.trim(),
           message: form.message.trim(),
+          source_platform: "authorsbureau",
         },
       });
 

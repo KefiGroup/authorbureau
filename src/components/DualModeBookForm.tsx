@@ -87,6 +87,7 @@ export default function DualModeBookForm({
           body: {
             amazonBookUrl,
             amazonAuthorProfileUrl: amazonAuthorUrl || undefined,
+            source_platform: "authorsbureau",
           },
         }
       );

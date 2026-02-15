@@ -48,6 +48,7 @@ export default function AdminDashboard() {
 
   const updateStatus = async (id: string, status: string) => {
     setUpdatingId(id);
+    const app = applications.find((a) => a.id === id);
     const { error } = await supabase
       .from("author_applications")
       .update({ status })
@@ -57,9 +58,25 @@ export default function AdminDashboard() {
       toast({ title: "Update failed", variant: "destructive" });
     } else {
       setApplications((prev) =>
-        prev.map((app) => (app.id === id ? { ...app, status } : app))
+        prev.map((a) => (a.id === id ? { ...a, status } : a))
       );
       toast({ title: `Application ${status}` });
+
+      // Auto-grant marketing platform access on approval
+      if (status === "approved" && app?.email) {
+        try {
+          await supabase.functions.invoke("platform-access", {
+            body: {
+              action: "grant",
+              user_email: app.email,
+              platform: "marketing",
+              source_platform: "authorsbureau",
+            },
+          });
+        } catch (err) {
+          console.error("Failed to grant marketing access:", err);
+        }
+      }
     }
     setUpdatingId(null);
   };

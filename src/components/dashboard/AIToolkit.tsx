@@ -96,6 +96,7 @@ export default function AIToolkit() {
           bookDescription,
           authorName,
           additionalContext,
+          source_platform: "authorsbureau",
         }),
       });
 

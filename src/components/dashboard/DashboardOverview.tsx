@@ -23,7 +23,7 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
     setCheckoutLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { priceId: TIERS.premium.price_id },
+        body: { priceId: TIERS.premium.price_id, source_platform: "authorsbureau" },
       });
       if (error) throw error;
       if (data?.url) window.open(data.url, "_blank");
@@ -36,7 +36,9 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
   const handleManage = async () => {
     setPortalLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("customer-portal");
+      const { data, error } = await supabase.functions.invoke("customer-portal", {
+        body: { source_platform: "authorsbureau" },
+      });
       if (error) throw error;
       if (data?.url) window.open(data.url, "_blank");
     } catch (err: any) {

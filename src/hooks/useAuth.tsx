@@ -57,7 +57,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSubscription((prev) => ({ ...prev, loading: false }));
     }, 8000);
     try {
-      const { data, error } = await supabase.functions.invoke("check-subscription");
+      const { data, error } = await supabase.functions.invoke("check-subscription", {
+        body: { source_platform: "authorsbureau" },
+      });
       clearTimeout(timeout);
       if (error) throw error;
       setSubscription({

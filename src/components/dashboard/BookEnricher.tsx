@@ -35,6 +35,7 @@ export default function BookEnricher() {
         body: {
           amazonUrl: amazonUrl.trim() || null,
           authorProfileUrl: authorUrl.trim() || null,
+          source_platform: 'authorsbureau',
         },
       });
 
