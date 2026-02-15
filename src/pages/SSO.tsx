@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -21,7 +21,7 @@ export default function SSO() {
     (async () => {
       try {
         const res = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sso-handoff`,
+          `${SHARED_BACKEND_URL}/functions/v1/sso-handoff`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },

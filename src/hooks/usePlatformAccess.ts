@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
 
 interface PlatformAccessState {
   platforms: string[];
@@ -26,7 +26,7 @@ export function usePlatformAccess(): PlatformAccessState {
         }
 
         const res = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/platform-access`,
+          `${SHARED_BACKEND_URL}/functions/v1/platform-access`,
           {
             method: "POST",
             headers: {
@@ -57,7 +57,7 @@ export function usePlatformAccess(): PlatformAccessState {
       if (!session) throw new Error("Not authenticated");
 
       await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/platform-access`,
+        `${SHARED_BACKEND_URL}/functions/v1/platform-access`,
         {
           method: "POST",
           headers: {
