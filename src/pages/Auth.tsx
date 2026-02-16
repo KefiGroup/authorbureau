@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, ExternalLink, X, Mail } from "lucide-react";
+import { Loader2, ExternalLink, X, Mail, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/shared-backend";
 import Navbar from "@/components/Navbar";
@@ -14,6 +15,8 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [verifying, setVerifying] = useState(false);
   const { toast } = useToast();
 
   if (loading) return (
@@ -51,10 +54,32 @@ export default function Auth() {
     setSent(true);
   };
 
+  const handleVerifyOtp = async () => {
+    if (otp.length !== 6) return;
+    setVerifying(true);
+    const { error } = await supabase.auth.verifyOtp({
+      email: email.trim(),
+      token: otp,
+      type: "email",
+    });
+    setVerifying(false);
+    if (error) {
+      toast({ title: error.message, variant: "destructive" });
+      return;
+    }
+    // Auth state change will handle redirect
+  };
+
+  const handleBack = () => {
+    setSent(false);
+    setOtp("");
+  };
+
   const handleClose = () => {
     setShowModal(false);
     setEmail("");
     setSent(false);
+    setOtp("");
   };
 
   return (
@@ -104,13 +129,41 @@ export default function Auth() {
             </button>
 
             {sent ? (
-              <div className="text-center space-y-4 py-4">
-                <div className="w-14 h-14 rounded-full bg-secondary/10 flex items-center justify-center mx-auto">
-                  <Mail className="h-7 w-7 text-secondary" />
+              <div className="space-y-5">
+                <div>
+                  <h2 className="font-heading text-xl font-bold">Enter Verification Code</h2>
+                  <p className="text-sm text-muted-foreground mt-1">We sent a code to {email}</p>
                 </div>
-                <h2 className="font-heading text-xl font-bold">Check your email</h2>
-                <p className="text-sm text-muted-foreground">
-                  We sent a sign-in link to <strong className="text-foreground">{email}</strong>. Click the link in the email to continue.
+
+                <button onClick={handleBack} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <ArrowLeft className="h-4 w-4" /> Back
+                </button>
+
+                <div className="flex justify-center">
+                  <InputOTP maxLength={6} value={otp} onChange={setOtp}>
+                    <InputOTPGroup>
+                      <InputOTPSlot index={0} className="h-12 w-12 text-lg border-secondary/50" />
+                      <InputOTPSlot index={1} className="h-12 w-12 text-lg border-secondary/50" />
+                      <InputOTPSlot index={2} className="h-12 w-12 text-lg border-secondary/50" />
+                      <InputOTPSlot index={3} className="h-12 w-12 text-lg border-secondary/50" />
+                      <InputOTPSlot index={4} className="h-12 w-12 text-lg border-secondary/50" />
+                      <InputOTPSlot index={5} className="h-12 w-12 text-lg border-secondary/50" />
+                    </InputOTPGroup>
+                  </InputOTP>
+                </div>
+
+                <Button
+                  onClick={handleVerifyOtp}
+                  disabled={otp.length !== 6 || verifying}
+                  className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold rounded-full"
+                  size="lg"
+                >
+                  {verifying ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
+                  {verifying ? "Verifying..." : "Verify Code"}
+                </Button>
+
+                <p className="text-xs text-center text-muted-foreground">
+                  Or click the magic link in your email
                 </p>
               </div>
             ) : (
