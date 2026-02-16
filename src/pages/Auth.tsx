@@ -84,17 +84,23 @@ export default function Auth() {
       );
 
       const data = await res.json().catch(() => ({}));
+      console.log("[Auth] verify response status:", res.status, "data:", JSON.stringify(data));
 
       if (!res.ok) {
         throw new Error(data?.message || "Verification failed.");
       }
 
-      // If the edge function returns a session token, set it
-      if (data?.access_token && data?.refresh_token) {
+      // Try multiple possible response shapes from the edge function
+      const accessToken = data?.access_token || data?.session?.access_token;
+      const refreshToken = data?.refresh_token || data?.session?.refresh_token;
+
+      if (accessToken && refreshToken) {
         await supabase.auth.setSession({
-          access_token: data.access_token,
-          refresh_token: data.refresh_token,
+          access_token: accessToken,
+          refresh_token: refreshToken,
         });
+      } else {
+        console.warn("[Auth] No session tokens in verify response, keys:", Object.keys(data));
       }
       // Auth state change will handle redirect
     } catch (err: any) {
