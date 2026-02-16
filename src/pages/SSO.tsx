@@ -3,30 +3,16 @@ import { useNavigate, Link } from "react-router-dom";
 import { supabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-async function setSessionWithRetry(accessToken: string, refreshToken: string, maxAttempts = 3) {
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const { error } = await supabase.auth.setSession({
-      access_token: accessToken,
-      refresh_token: refreshToken,
-    });
-    if (!error) return;
-    const msg = error.message?.toLowerCase() ?? "";
-    if (msg.includes("abort") && attempt < maxAttempts) {
-      await new Promise(r => setTimeout(r, 500 * attempt));
-      continue;
-    }
-    throw error;
-  }
-}
+import { useAuth } from "@/hooks/useAuth";
 
 export default function SSO() {
   const navigate = useNavigate();
+  const { loading } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const hasRun = useRef(false);
 
   useEffect(() => {
-    if (hasRun.current) return;
+    if (loading || hasRun.current) return;
     hasRun.current = true;
 
     const params = new URLSearchParams(window.location.search);
@@ -61,18 +47,16 @@ export default function SSO() {
 
         if (cancelled) return;
 
-        await setSessionWithRetry(
-          data.session_data.access_token,
-          data.session_data.refresh_token,
-        );
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: data.session_data.access_token,
+          refresh_token: data.session_data.refresh_token,
+        });
+        if (sessionError) throw sessionError;
 
         if (!cancelled) navigate("/dashboard", { replace: true });
       } catch (err) {
         if (cancelled) return;
-        const isRetryable =
-          err instanceof TypeError ||
-          (err instanceof Error && err.message?.toLowerCase().includes("abort"));
-        if (attempt < 3 && isRetryable) {
+        if (attempt < 3 && err instanceof TypeError) {
           await new Promise((r) => setTimeout(r, 800 * attempt));
           if (!cancelled) return run(attempt + 1);
           return;
@@ -87,7 +71,7 @@ export default function SSO() {
     return () => {
       cancelled = true;
     };
-  }, [navigate]);
+  }, [loading, navigate]);
 
   if (error) {
     return (
