@@ -1,16 +1,20 @@
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, ExternalLink, X } from "lucide-react";
+import { Loader2, ExternalLink, X, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/shared-backend";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-
-const PUBLISHNOW_URL = "https://publishnowinterface.lovable.app";
 
 export default function Auth() {
   const { user, loading, isAdmin } = useAuth();
   const [showModal, setShowModal] = useState(false);
+  const [email, setEmail] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [sent, setSent] = useState(false);
+  const { toast } = useToast();
 
   if (loading) return (
     <div className="min-h-screen">
@@ -25,6 +29,34 @@ export default function Auth() {
   );
   if (user) return <Navigate to={isAdmin ? "/admin" : "/dashboard"} replace />;
 
+  const handleContinue = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setSubmitting(true);
+
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email.trim(),
+      options: {
+        emailRedirectTo: `${window.location.origin}/sso`,
+      },
+    });
+
+    setSubmitting(false);
+
+    if (error) {
+      toast({ title: error.message, variant: "destructive" });
+      return;
+    }
+
+    setSent(true);
+  };
+
+  const handleClose = () => {
+    setShowModal(false);
+    setEmail("");
+    setSent(false);
+  };
+
   return (
     <div className="min-h-screen">
       <Navbar />
@@ -33,7 +65,7 @@ export default function Auth() {
           <div className="rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-card)] text-center space-y-6">
             <h1 className="font-heading text-2xl font-bold">Sign In to AI Marketing Studio</h1>
             <p className="text-sm text-muted-foreground">
-              Authors Bureau uses your PublishNow account. Sign in through PublishNow, then navigate to the AI Marketing Studio from your dashboard.
+              Authors Bureau uses your PublishNow account. Sign in with the email you registered on PublishNow.
             </p>
 
             <Button
@@ -56,23 +88,62 @@ export default function Auth() {
       </section>
       <Footer />
 
-      {/* PublishNow iframe modal */}
+      {/* Sign-in modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="relative w-full max-w-3xl h-[80vh] rounded-2xl overflow-hidden border border-border shadow-2xl bg-background">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={handleClose}>
+          <div
+            className="relative w-full max-w-md mx-4 rounded-2xl border border-border bg-card p-8 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
-              onClick={() => setShowModal(false)}
-              className="absolute top-3 right-3 z-10 rounded-full bg-background/80 p-1.5 hover:bg-muted transition-colors"
+              onClick={handleClose}
+              className="absolute top-4 right-4 rounded-full p-1.5 hover:bg-muted transition-colors"
               aria-label="Close"
             >
-              <X className="h-5 w-5" />
+              <X className="h-5 w-5 text-muted-foreground" />
             </button>
-            <iframe
-              src={PUBLISHNOW_URL}
-              className="w-full h-full border-0"
-              title="Sign in via PublishNow"
-              allow="clipboard-write"
-            />
+
+            {sent ? (
+              <div className="text-center space-y-4 py-4">
+                <div className="w-14 h-14 rounded-full bg-secondary/10 flex items-center justify-center mx-auto">
+                  <Mail className="h-7 w-7 text-secondary" />
+                </div>
+                <h2 className="font-heading text-xl font-bold">Check your email</h2>
+                <p className="text-sm text-muted-foreground">
+                  We sent a sign-in link to <strong className="text-foreground">{email}</strong>. Click the link in the email to continue.
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleContinue} className="space-y-5">
+                <div>
+                  <h2 className="font-heading text-xl font-bold">Sign In</h2>
+                  <p className="text-sm text-muted-foreground mt-1">Enter your email to continue</p>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium">Email address</label>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    className="w-full rounded-lg border border-secondary/50 bg-background px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-secondary/50"
+                    autoFocus
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold rounded-full"
+                  size="lg"
+                >
+                  {submitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
+                  {submitting ? "Sending..." : "Continue"}
+                </Button>
+              </form>
+            )}
           </div>
         </div>
       )}
