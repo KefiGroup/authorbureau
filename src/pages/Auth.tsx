@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Navigate, useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, ADMIN_EMAILS } from "@/hooks/useAuth";
 import { Loader2, ExternalLink, X, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
@@ -67,7 +67,8 @@ export default function Auth() {
 
         // Clear hash from URL
         window.history.replaceState(null, "", location.pathname);
-        navigate("/dashboard", { replace: true });
+        const targetRoute = ADMIN_EMAILS.includes(user?.email?.toLowerCase() ?? "") ? "/admin" : "/dashboard";
+        navigate(targetRoute, { replace: true });
       } catch (err: any) {
         console.error("[Auth] magic link error:", err);
         toast({ title: err.message || "Magic link sign-in failed", variant: "destructive" });
@@ -88,7 +89,10 @@ export default function Auth() {
       <Footer />
     </div>
   );
-  if (user) return <Navigate to={isAdmin ? "/admin" : "/dashboard"} replace />;
+  if (user) {
+    const isKnownAdmin = isAdmin || ADMIN_EMAILS.includes(user.email?.toLowerCase() ?? "");
+    return <Navigate to={isKnownAdmin ? "/admin" : "/dashboard"} replace />;
+  }
 
   // Request code via shared backend edge function
   const handleContinue = async (e: React.FormEvent) => {
@@ -154,7 +158,8 @@ export default function Auth() {
           type,
         });
         if (otpError) throw otpError;
-        navigate("/dashboard", { replace: true });
+        const targetRoute = ADMIN_EMAILS.includes(email.trim().toLowerCase()) ? "/admin" : "/dashboard";
+        navigate(targetRoute, { replace: true });
         return;
       }
 
@@ -168,7 +173,8 @@ export default function Auth() {
           refresh_token: refreshToken,
         });
         if (sessionError) throw sessionError;
-        navigate("/dashboard", { replace: true });
+        const targetRoute2 = ADMIN_EMAILS.includes(email.trim().toLowerCase()) ? "/admin" : "/dashboard";
+        navigate(targetRoute2, { replace: true });
         return;
       }
 
