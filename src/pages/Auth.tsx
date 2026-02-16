@@ -24,7 +24,7 @@ export default function Auth() {
   if (user) return <Navigate to={isAdmin ? "/admin" : "/dashboard"} replace />;
 
   const handleSignIn = () => {
-    window.open(`${PUBLISHNOW_URL}/#/auth`, "_blank", "noopener,noreferrer");
+    window.open(PUBLISHNOW_URL, "_blank", "noopener,noreferrer");
   };
 
   return (
