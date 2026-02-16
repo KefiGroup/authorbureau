@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
+import { useAuth } from "@/hooks/useAuth";
 
 interface PlatformAccessState {
   platforms: string[];
@@ -11,6 +12,7 @@ interface PlatformAccessState {
 }
 
 export function usePlatformAccess(): PlatformAccessState {
+  const { isAdmin } = useAuth();
   const [platforms, setPlatforms] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [requesting, setRequesting] = useState(false);
@@ -82,8 +84,8 @@ export function usePlatformAccess(): PlatformAccessState {
 
   return {
     platforms,
-    loading,
-    hasMarketing: platforms.includes("marketing"),
+    loading: isAdmin ? false : loading,
+    hasMarketing: isAdmin ? true : platforms.includes("marketing"),
     requestAccess,
     requesting,
     requested,
