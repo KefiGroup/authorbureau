@@ -103,19 +103,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        supabase.rpc("has_role", {
+        const { data } = await supabase.rpc("has_role", {
           _user_id: session.user.id,
           _role: "admin",
-        }).then(({ data }) => {
-          const isAdminSession = sessionStorage.getItem(ADMIN_AUTH_KEY) === "true";
-          const isAdminEmail = ADMIN_EMAILS.includes(session.user.email ?? "");
-          setIsAdmin(!!data || isAdminSession || isAdminEmail);
         });
+        const isAdminSession = sessionStorage.getItem(ADMIN_AUTH_KEY) === "true";
+        const isAdminEmail = ADMIN_EMAILS.includes(session.user.email ?? "");
+        setIsAdmin(!!data || isAdminSession || isAdminEmail);
       }
 
       setLoading(false);

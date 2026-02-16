@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { Navigate, Link } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, ADMIN_EMAILS } from "@/hooks/useAuth";
 import { adminApi } from "@/lib/admin-api";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -151,7 +151,7 @@ export default function AdminDashboard() {
 
   if (loading) return null;
   if (!user) return <Navigate to="/admin-login" replace />;
-  if (!isAdmin) return <Navigate to="/dashboard" replace />;
+  if (!isAdmin && !ADMIN_EMAILS.includes(user?.email?.toLowerCase() ?? "")) return <Navigate to="/dashboard" replace />;
 
   const tabs: { key: Tab; label: string; icon: typeof BarChart3; superOnly?: boolean; pnAdminOnly?: boolean }[] = [
     { key: "overview", label: "Overview", icon: BarChart3 },
