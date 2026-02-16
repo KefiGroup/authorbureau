@@ -1,24 +1,29 @@
-import { useEffect, useState } from "react";
-import { useSearchParams, useNavigate, Link } from "react-router-dom";
+import { useEffect, useState, useRef } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function SSO() {
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const hasRun = useRef(false);
 
   useEffect(() => {
-    const token = searchParams.get("token");
-    const controller = new AbortController();
+    if (hasRun.current) return;
+    hasRun.current = true;
+
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
 
     if (!token) {
       setError("No SSO token provided.");
       return;
     }
 
-    (async () => {
+    let cancelled = false;
+
+    async function run(attempt = 1) {
       try {
         const res = await fetch(
           `${SHARED_BACKEND_URL}/functions/v1/sso-handoff`,
@@ -30,33 +35,42 @@ export default function SSO() {
               token,
               source_platform: "authorsbureau",
             }),
-            signal: controller.signal,
           }
         );
 
         const data = await res.json();
-
         if (!res.ok || !data.session_data) {
           throw new Error(data.error || "SSO validation failed");
         }
+
+        if (cancelled) return;
 
         const { error: sessionError } = await supabase.auth.setSession({
           access_token: data.session_data.access_token,
           refresh_token: data.session_data.refresh_token,
         });
-
         if (sessionError) throw sessionError;
 
-        navigate("/dashboard", { replace: true });
+        if (!cancelled) navigate("/dashboard", { replace: true });
       } catch (err) {
-        if (controller.signal.aborted) return;
-        console.error("SSO error:", err);
-        setError(err instanceof Error ? err.message : "SSO authentication failed");
+        if (cancelled) return;
+        // Retry transient/network errors up to 2 times
+        if (attempt < 3 && err instanceof TypeError) {
+          await new Promise((r) => setTimeout(r, 800 * attempt));
+          if (!cancelled) return run(attempt + 1);
+          return;
+        }
+        setError(
+          err instanceof Error ? err.message : "SSO authentication failed"
+        );
       }
-    })();
+    }
 
-    return () => controller.abort();
-  }, [searchParams, navigate]);
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [navigate]);
 
   if (error) {
     return (
