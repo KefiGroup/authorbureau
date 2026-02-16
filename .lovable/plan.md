@@ -1,106 +1,110 @@
 
 
-# Fix Three Authentication Issues
+# Bulletproof SSO Sign-In
 
-## Problems Identified
+## Root Cause
 
-### 1. SSO "signal is aborted without reason"
-**File:** `src/pages/SSO.tsx`
+The current `AbortController` fix is insufficient. The `useEffect` depends on `[searchParams, navigate]` -- the `searchParams` reference can change between renders, causing the effect to re-run, abort the previous fetch, and start a new one. In a race between abort and error-setting, the error can slip through.
 
-The SSO page's `useEffect` makes a `fetch` call but has no `AbortController`. React's strict mode (or re-renders caused by `searchParams`/`navigate` in the dependency array) unmounts and remounts the component, which aborts the in-flight fetch request. The browser reports this as "signal is aborted without reason".
+Additionally, even a single network hiccup shows a permanent failure with no way to recover.
 
-**Fix:** Add an `AbortController` to the fetch call and pass its signal. On cleanup, abort gracefully. Ignore abort errors so they don't display as failures.
+## Solution
 
-### 2. Admin OTP Verification Failing
-**File:** `src/pages/AdminAuth.tsx`
+Rewrite `src/pages/SSO.tsx` with three reliability guarantees:
 
-The admin OTP verification calls `supabase.auth.verifyOtp()` which can also be affected by the same race condition -- the `useAuth` hook's `onAuthStateChange` fires and awaits `supabase.rpc("has_role")` directly inside the callback, potentially causing a Supabase client deadlock. The redirect on line 68-69 also has a race: if `isAdmin` hasn't resolved, an admin user with an active session gets redirected to `/dashboard`.
+### 1. Run-once guard with `useRef`
+Use a ref (`hasRun`) to ensure the SSO validation fetch executes exactly once, regardless of re-renders, Strict Mode double-mounting, or dependency changes.
 
-**Fix:** Add `ADMIN_EMAILS` fallback check to the redirect guard (line 68-69) so known admin emails are never bounced to `/dashboard`.
+### 2. Empty dependency array
+Read `token` from `window.location.search` directly (or from the initial `searchParams` snapshot via ref) and use `navigate` via ref. This eliminates all dependency-driven re-runs. The effect fires once on mount, period.
 
-### 3. Session Lost on Refresh (Supabase Client Deadlock)
-**File:** `src/hooks/useAuth.tsx`
-
-The `onAuthStateChange` callback (line 84-103) directly `await`s `supabase.rpc("has_role")`. Per Supabase documentation, awaiting Supabase calls inside `onAuthStateChange` causes deadlocks -- the auth state change cannot complete until the RPC resolves, but the RPC may depend on the auth state. This can cause the session to silently fail to restore on page refresh.
-
-**Fix:** Wrap the RPC call inside `onAuthStateChange` in a `setTimeout(() => ..., 0)` so it dispatches asynchronously without blocking the auth state change listener. The `getSession` path (line 106-123) is fine since it's already outside the listener.
+### 3. Automatic retry with backoff
+If the fetch fails due to a network error (not a validation error), retry up to 2 times with a short delay before showing the error. This handles transient network issues during the SSO redirect.
 
 ## Changes
 
-### File 1: `src/hooks/useAuth.tsx`
-
-In the `onAuthStateChange` callback, avoid awaiting the `has_role` RPC directly. Instead, use `setTimeout` to dispatch it asynchronously:
+### File: `src/pages/SSO.tsx`
 
 ```text
-supabase.auth.onAuthStateChange((_event, session) => {
-  setSession(session);
-  setUser(session?.user ?? null);
+import { useEffect, useState, useRef } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { supabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
+import { Loader2, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-  if (session?.user) {
-    // Immediate fallback for known admins
-    const isAdminEmail = ADMIN_EMAILS.includes(session.user.email ?? "");
-    const isAdminSession = sessionStorage.getItem(ADMIN_AUTH_KEY) === "true";
-    if (isAdminEmail || isAdminSession) setIsAdmin(true);
+export default function SSO() {
+  const navigate = useNavigate();
+  const [error, setError] = useState<string | null>(null);
+  const hasRun = useRef(false);
 
-    // Dispatch RPC outside the listener to avoid deadlock
-    setTimeout(async () => {
-      const { data } = await supabase.rpc("has_role", { ... });
-      setIsAdmin(!!data || isAdminSession || isAdminEmail);
-    }, 0);
-  } else {
-    setIsAdmin(false);
-  }
-});
-```
+  useEffect(() => {
+    if (hasRun.current) return;          // strict-mode / re-render guard
+    hasRun.current = true;
 
-Remove the `async` keyword from the `onAuthStateChange` callback itself -- it should not be async.
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
 
-### File 2: `src/pages/SSO.tsx`
+    if (!token) { setError("No SSO token provided."); return; }
 
-Add an `AbortController` to the fetch call and ignore abort errors:
+    let cancelled = false;
 
-```text
-useEffect(() => {
-  const controller = new AbortController();
+    async function run(attempt = 1) {
+      try {
+        const res = await fetch(
+          `${SHARED_BACKEND_URL}/functions/v1/sso-handoff`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "validate", token, source_platform: "authorsbureau",
+            }),
+          }
+        );
+        const data = await res.json();
+        if (!res.ok || !data.session_data)
+          throw new Error(data.error || "SSO validation failed");
 
-  (async () => {
-    try {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { ... },
-        body: JSON.stringify({ ... }),
-        signal: controller.signal,
-      });
-      // ... rest of logic
-    } catch (err) {
-      if (controller.signal.aborted) return; // Ignore abort
-      setError(err instanceof Error ? err.message : "SSO authentication failed");
+        if (cancelled) return;
+
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: data.session_data.access_token,
+          refresh_token: data.session_data.refresh_token,
+        });
+        if (sessionError) throw sessionError;
+
+        if (!cancelled) navigate("/dashboard", { replace: true });
+      } catch (err) {
+        if (cancelled) return;
+        // Retry transient/network errors up to 2 times
+        if (attempt < 3 && err instanceof TypeError) {
+          await new Promise(r => setTimeout(r, 800 * attempt));
+          if (!cancelled) return run(attempt + 1);
+          return;
+        }
+        setError(err instanceof Error ? err.message : "SSO authentication failed");
+      }
     }
-  })();
 
-  return () => controller.abort();
-}, [searchParams, navigate]);
+    run();
+    return () => { cancelled = true; };
+  }, [navigate]);
+
+  // ... error and loading UI unchanged
+}
 ```
 
-### File 3: `src/pages/AdminAuth.tsx`
-
-Add `ADMIN_EMAILS` fallback to the redirect guard so admin users are never bounced to `/dashboard` while `isAdmin` is still resolving:
-
-```text
-import { useAuth, ADMIN_EMAILS } from "@/hooks/useAuth";
-
-// Replace lines 68-69:
-if (user && (isAdmin || ADMIN_EMAILS.includes(user.email?.toLowerCase() ?? "")))
-  return <Navigate to="/admin" replace />;
-if (user && !isAdmin && !ADMIN_EMAILS.includes(user.email?.toLowerCase() ?? ""))
-  return <Navigate to="/dashboard" replace />;
-```
+Key differences from current code:
+- **`useRef(hasRun)`** prevents double execution under any circumstance
+- **No `searchParams` dependency** -- reads URL params directly from `window.location.search`
+- **`cancelled` flag** instead of `AbortController` -- simpler, no "signal aborted" errors possible
+- **Retry logic** for network (`TypeError`) failures (up to 2 retries with backoff)
+- Dependency array is just `[navigate]` which is always stable
 
 ## Technical Details
 
-| File | Issue | Fix |
-|------|-------|-----|
-| `src/hooks/useAuth.tsx` | Deadlock: awaiting RPC inside `onAuthStateChange` | Use `setTimeout` to dispatch RPC outside listener; set immediate admin fallback |
-| `src/pages/SSO.tsx` | No AbortController on fetch; re-renders abort the request | Add AbortController with signal; ignore abort errors |
-| `src/pages/AdminAuth.tsx` | Redirect guard doesn't check `ADMIN_EMAILS` | Add email fallback to prevent wrong redirects |
-
+| Problem | Current behavior | Fixed behavior |
+|---------|-----------------|----------------|
+| Strict Mode double-mount | AbortController aborts first fetch, error can leak | `useRef` prevents second execution entirely |
+| searchParams re-render | Effect re-runs, aborts, restarts | No dependency on searchParams at all |
+| Network glitch | Permanent failure shown | Up to 2 automatic retries |
+| "signal is aborted" error | Supposed to be caught but still appears | No AbortController used -- impossible to occur |
