@@ -85,10 +85,10 @@ export default function Auth() {
       );
 
       const data = await res.json().catch(() => ({}));
-      console.log("[Auth] verify response status:", res.status, "data:", JSON.stringify(data));
+      console.log("[Auth] verify response:", res.status, JSON.stringify(data));
 
       if (!res.ok) {
-        throw new Error(data?.message || "Verification failed.");
+        throw new Error(data?.error || data?.message || `Verification failed (${res.status})`);
       }
 
       // Try multiple possible response shapes from the edge function
@@ -103,12 +103,19 @@ export default function Auth() {
         if (sessionError) throw sessionError;
         navigate("/dashboard", { replace: true });
         return;
-      } else {
-        console.warn("[Auth] No session tokens in verify response, keys:", Object.keys(data));
-        // Still try to navigate — the session may have been set via onAuthStateChange
-        navigate("/dashboard", { replace: true });
       }
+
+      // If no tokens returned, try native Supabase verifyOtp as fallback
+      console.warn("[Auth] No session tokens in response, trying native verifyOtp. Keys:", Object.keys(data));
+      const { error: otpError } = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token: otp,
+        type: "email",
+      });
+      if (otpError) throw otpError;
+      navigate("/dashboard", { replace: true });
     } catch (err: any) {
+      console.error("[Auth] verify error:", err);
       toast({ title: err.message || "Verification failed", variant: "destructive" });
     } finally {
       setVerifying(false);
