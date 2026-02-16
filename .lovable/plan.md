@@ -1,64 +1,77 @@
 
 
-# Fix Login Issue for fasahath@gmail.com
+# Add Platform Access Tab to Admin Dashboard
 
-## Problem
+## Overview
 
-There is a race condition in the login flow. When fasahath@gmail.com signs in via the Auth page:
-
-1. OTP verification succeeds and sets the session
-2. `onAuthStateChange` fires in `useAuth`, setting `user` immediately
-3. The Auth page sees `user` is set, checks `isAdmin` -- but it is still `false` because the async `has_role` RPC call hasn't resolved yet
-4. Auth page redirects to `/dashboard` (non-admin path)
-5. The AuthorDashboard checks `hasMarketing` via `usePlatformAccess`, which depends on `isAdmin`
-6. `isAdmin` is still `false` at this point, so the admin bypass doesn't kick in
-7. The platform-access API returns no "marketing" platform for this user
-8. Result: "Marketing Studio Access Required" screen
+Add a new "Platforms" tab to the Authors Bureau admin dashboard that mirrors the PublishNow platform access management UI. This tab displays all users with their platform access toggles (Writing, Publishing, Marketing) and allows admins to grant/revoke access. Only admins who are also admins on PublishNow will see this tab.
 
 ## Changes
 
-### 1. Fix race condition in Auth page redirect (`src/pages/Auth.tsx`)
+### 1. Add Platform Access API Methods (`src/lib/admin-api.ts`)
 
-After successful OTP verification, check the email against the known admin list *before* navigating, instead of relying on the async `isAdmin` state:
+Add new methods to the admin API helper:
 
-- After `verifyOtp` succeeds, check if the email matches an admin email
-- If yes, navigate to `/admin` directly
-- If no, navigate to `/dashboard`
-- This avoids depending on the async `isAdmin` computation from `useAuth`
+- **`checkPublishNowAdmin()`** -- calls `admin-stories` with `source_platform: 'publishnow'` and `action: 'check_super_admin'` (or a similar check) to verify the current user is a PublishNow admin. This is a cross-platform admin check.
+- **`listPlatformUsers()`** -- calls `platform-access` with `action: 'list'` and `source_platform: 'publishnow'` to fetch all users and their platform access states.
+- **`togglePlatformAccess(userId, platform, enabled)`** -- calls `platform-access` with `action: 'grant'` or `action: 'revoke'` to toggle a user's access to a specific platform.
 
-Also apply the same fix to the magic link flow (lines 62-70).
+A new helper function `callPlatformAccess(body)` will be added alongside the existing `callAdminAuth` and `callAdminStories` helpers, targeting the `platform-access` edge function.
 
-### 2. Fix initial redirect check in Auth page (`src/pages/Auth.tsx`)
+### 2. Add "Platforms" Tab to Admin Dashboard (`src/pages/AdminDashboard.tsx`)
 
-The existing redirect on line 91 (`if (user) return <Navigate to={isAdmin ? "/admin" : "/dashboard"} />`) also has a race condition. When `loading` becomes `false`, `isAdmin` may not have resolved yet.
+- Add `"platforms"` to the `Tab` type
+- Add a new tab entry with a shield/globe icon, visible only when `isPublishNowAdmin` is true
+- On mount, check if the logged-in user is a PublishNow admin (via the new `checkPublishNowAdmin()` API call)
+- When the Platforms tab is selected, fetch all users with their platform access data
 
-- Add a brief delay or ensure `loading` stays `true` until `isAdmin` has been determined
-- Alternatively, check the user email directly against `ADMIN_EMAILS` as an immediate fallback in the redirect logic
+The new `PlatformAccessTab` component will display:
+- A header showing "Platform Access" with a user count badge and a Refresh button
+- A search bar to filter users by email
+- A table with columns: Email, Writing, Publishing, Marketing (Authors Bureau), Source
+- Each platform column shows a toggle (Switch component) that can be flipped to grant/revoke access
+- A "Source" badge showing where the user originated from (e.g., "publishnow", "authorsbureau")
 
-### 3. Export ADMIN_EMAILS from useAuth (`src/hooks/useAuth.tsx`)
+### 3. UI Details for PlatformAccessTab
 
-Export the `ADMIN_EMAILS` array so it can be imported in the Auth page for the immediate email check during redirect.
+- Uses the existing `Switch` component from `@radix-ui/react-switch` for toggles
+- Search filters the displayed list client-side by email
+- Toggling a switch immediately calls the API and updates local state optimistically
+- On error, the toggle reverts and a toast notification appears
+- The table is responsive, scrollable on mobile
 
 ## Technical Details
 
-| File | Change |
-|------|--------|
-| `src/hooks/useAuth.tsx` | Export `ADMIN_EMAILS` constant |
-| `src/pages/Auth.tsx` | Import `ADMIN_EMAILS`, use email check for immediate redirect after OTP/magic link verification |
+### File changes summary
 
-The core fix is adding this logic in the Auth page's verify handlers:
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/lib/admin-api.ts` | Modify | Add `callPlatformAccess` helper, `listPlatformUsers`, `togglePlatformAccess`, `checkPublishNowAdmin` methods |
+| `src/pages/AdminDashboard.tsx` | Modify | Add `platforms` tab type, `isPublishNowAdmin` state, `PlatformAccessTab` component |
+
+### Access control logic
+
+The "Platforms" tab visibility depends on a separate admin check against the `publishnow` platform:
 
 ```text
-const targetRoute = ADMIN_EMAILS.includes(email.trim().toLowerCase()) ? "/admin" : "/dashboard";
-navigate(targetRoute, { replace: true });
+callAdminStories({
+  action: 'check_super_admin',
+  source_platform: 'publishnow'   // <-- check against PublishNow, not authorsbureau
+})
 ```
 
-And updating the existing redirect:
+If this returns successfully (user is a PublishNow admin), the tab is shown. If it fails or returns false, the tab is hidden.
+
+### Platform access API calls
 
 ```text
-if (user) {
-  const isKnownAdmin = isAdmin || ADMIN_EMAILS.includes(user.email ?? "");
-  return <Navigate to={isKnownAdmin ? "/admin" : "/dashboard"} replace />;
-}
+// List all users with platform access
+callPlatformAccess({ action: 'list', source_platform: 'publishnow' })
+
+// Grant access
+callPlatformAccess({ action: 'grant', user_id: '...', platform: 'writing', source_platform: 'publishnow' })
+
+// Revoke access
+callPlatformAccess({ action: 'revoke', user_id: '...', platform: 'writing', source_platform: 'publishnow' })
 ```
 
