@@ -105,15 +105,9 @@ export default function Auth() {
         return;
       }
 
-      // If no tokens returned, try native Supabase verifyOtp as fallback
-      console.warn("[Auth] No session tokens in response, trying native verifyOtp. Keys:", Object.keys(data));
-      const { error: otpError } = await supabase.auth.verifyOtp({
-        email: email.trim(),
-        token: otp,
-        type: "email",
-      });
-      if (otpError) throw otpError;
-      navigate("/dashboard", { replace: true });
+      // No tokens in response — log all keys for debugging and show clear error
+      console.error("[Auth] No session tokens in verify response. Response keys:", Object.keys(data), "Full data:", JSON.stringify(data));
+      throw new Error("Login succeeded but no session was returned. Please try again or contact support.");
     } catch (err: any) {
       console.error("[Auth] verify error:", err);
       toast({ title: err.message || "Verification failed", variant: "destructive" });
