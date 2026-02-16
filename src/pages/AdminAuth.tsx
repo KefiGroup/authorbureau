@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Navigate, useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, ADMIN_EMAILS } from "@/hooks/useAuth";
 import { Loader2, ShieldCheck, ArrowLeft, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
@@ -65,8 +65,8 @@ export default function AdminAuth() {
     );
   }
 
-  if (user && isAdmin) return <Navigate to="/admin" replace />;
-  if (user && !isAdmin) return <Navigate to="/dashboard" replace />;
+  if (user && (isAdmin || ADMIN_EMAILS.includes(user.email?.toLowerCase() ?? ""))) return <Navigate to="/admin" replace />;
+  if (user && !isAdmin && !ADMIN_EMAILS.includes(user.email?.toLowerCase() ?? "")) return <Navigate to="/dashboard" replace />;
 
   const handleContinue = async (e: React.FormEvent) => {
     e.preventDefault();

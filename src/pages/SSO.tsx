@@ -11,7 +11,7 @@ export default function SSO() {
 
   useEffect(() => {
     const token = searchParams.get("token");
-    const from = searchParams.get("from");
+    const controller = new AbortController();
 
     if (!token) {
       setError("No SSO token provided.");
@@ -30,6 +30,7 @@ export default function SSO() {
               token,
               source_platform: "authorsbureau",
             }),
+            signal: controller.signal,
           }
         );
 
@@ -48,10 +49,13 @@ export default function SSO() {
 
         navigate("/dashboard", { replace: true });
       } catch (err) {
+        if (controller.signal.aborted) return;
         console.error("SSO error:", err);
         setError(err instanceof Error ? err.message : "SSO authentication failed");
       }
     })();
+
+    return () => controller.abort();
   }, [searchParams, navigate]);
 
   if (error) {
