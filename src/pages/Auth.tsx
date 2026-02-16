@@ -1,7 +1,7 @@
-import { useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, ExternalLink, X, Mail, ArrowLeft } from "lucide-react";
+import { Loader2, ExternalLink, X, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { useToast } from "@/hooks/use-toast";
@@ -12,15 +12,72 @@ import Footer from "@/components/Footer";
 export default function Auth() {
   const { user, loading, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [showModal, setShowModal] = useState(false);
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
   const [otp, setOtp] = useState("");
   const [verifying, setVerifying] = useState(false);
+  const [magicLinkProcessing, setMagicLinkProcessing] = useState(false);
   const { toast } = useToast();
 
-  if (loading) return (
+  // Magic link handling: check for auth_token in URL hash on load
+  useEffect(() => {
+    const hash = location.hash;
+    if (!hash) return;
+
+    const params = new URLSearchParams(hash.replace("#", ""));
+    const authToken = params.get("auth_token");
+    if (!authToken) return;
+
+    setMagicLinkProcessing(true);
+
+    (async () => {
+      try {
+        const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/user-auth`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "verify_token",
+            token: authToken,
+            source_platform: "authorsbureau",
+          }),
+        });
+
+        const data = await res.json().catch(() => ({}));
+        console.log("[Auth] verify_token response:", res.status, JSON.stringify(data));
+
+        if (!res.ok) {
+          throw new Error(data?.error || data?.message || "Magic link verification failed");
+        }
+
+        const tokenHash = data?.token_hash;
+        const type = data?.type || "email";
+
+        if (!tokenHash) {
+          throw new Error("No token_hash returned from magic link verification.");
+        }
+
+        const { error: otpError } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type,
+        });
+        if (otpError) throw otpError;
+
+        // Clear hash from URL
+        window.history.replaceState(null, "", location.pathname);
+        navigate("/dashboard", { replace: true });
+      } catch (err: any) {
+        console.error("[Auth] magic link error:", err);
+        toast({ title: err.message || "Magic link sign-in failed", variant: "destructive" });
+      } finally {
+        setMagicLinkProcessing(false);
+      }
+    })();
+  }, [location.hash]);
+
+  if (loading || magicLinkProcessing) return (
     <div className="min-h-screen">
       <Navbar />
       <section className="py-20">
@@ -33,24 +90,22 @@ export default function Auth() {
   );
   if (user) return <Navigate to={isAdmin ? "/admin" : "/dashboard"} replace />;
 
+  // Request code via shared backend edge function
   const handleContinue = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
     setSubmitting(true);
 
     try {
-      const res = await fetch(
-        `${SHARED_BACKEND_URL}/functions/v1/user-auth`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: email.trim(),
-            action: 'request_code',
-            source_platform: 'authorsbureau',
-          }),
-        }
-      );
+      const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/user-auth`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim(),
+          action: "request_code",
+          source_platform: "authorsbureau",
+        }),
+      });
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
@@ -65,24 +120,22 @@ export default function Auth() {
     }
   };
 
+  // Verify code via shared backend, then use token_hash with supabase.auth.verifyOtp
   const handleVerifyOtp = async () => {
     if (otp.length !== 6) return;
     setVerifying(true);
 
     try {
-      const res = await fetch(
-        `${SHARED_BACKEND_URL}/functions/v1/user-auth`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: email.trim(),
-            action: 'verify',
-            code: otp,
-            source_platform: 'authorsbureau',
-          }),
-        }
-      );
+      const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/user-auth`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim(),
+          action: "verify",
+          code: otp,
+          source_platform: "authorsbureau",
+        }),
+      });
 
       const data = await res.json().catch(() => ({}));
       console.log("[Auth] verify response:", res.status, JSON.stringify(data));
@@ -91,7 +144,21 @@ export default function Auth() {
         throw new Error(data?.error || data?.message || `Verification failed (${res.status})`);
       }
 
-      // Try multiple possible response shapes from the edge function
+      // Use token_hash + type to call supabase.auth.verifyOtp
+      const tokenHash = data?.token_hash;
+      const type = data?.type || "email";
+
+      if (tokenHash) {
+        const { error: otpError } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type,
+        });
+        if (otpError) throw otpError;
+        navigate("/dashboard", { replace: true });
+        return;
+      }
+
+      // Fallback: try session tokens directly (access_token/refresh_token)
       const accessToken = data?.access_token || data?.session?.access_token || data?.session_data?.access_token;
       const refreshToken = data?.refresh_token || data?.session?.refresh_token || data?.session_data?.refresh_token;
 
@@ -105,8 +172,7 @@ export default function Auth() {
         return;
       }
 
-      // No tokens in response — log all keys for debugging and show clear error
-      console.error("[Auth] No session tokens in verify response. Response keys:", Object.keys(data), "Full data:", JSON.stringify(data));
+      console.error("[Auth] No token_hash or session tokens in verify response. Keys:", Object.keys(data));
       throw new Error("Login succeeded but no session was returned. Please try again or contact support.");
     } catch (err: any) {
       console.error("[Auth] verify error:", err);
