@@ -12,6 +12,7 @@ import CreateMicrosite from "./pages/CreateMicrosite";
 import Join from "./pages/Join";
 import Auth from "./pages/Auth";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminAuth from "./pages/AdminAuth";
 import AuthorDashboard from "./pages/AuthorDashboard";
 import Contact from "./pages/Contact";
 import SSO from "./pages/SSO";
@@ -36,6 +37,7 @@ const AppRoutes = () => (
     <Route path="/create-microsite" element={<ProtectedRoute><CreateMicrosite /></ProtectedRoute>} />
     <Route path="/join" element={<Join />} />
     <Route path="/auth" element={<Auth />} />
+    <Route path="/admin-login" element={<AdminAuth />} />
     <Route path="/admin" element={<AdminDashboard />} />
     <Route path="/dashboard" element={<AuthorDashboard />} />
     <Route path="/contact" element={<Contact />} />
