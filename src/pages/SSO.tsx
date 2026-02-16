@@ -4,6 +4,22 @@ import { supabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+async function setSessionWithRetry(accessToken: string, refreshToken: string, maxAttempts = 3) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const { error } = await supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    });
+    if (!error) return;
+    const msg = error.message?.toLowerCase() ?? "";
+    if (msg.includes("abort") && attempt < maxAttempts) {
+      await new Promise(r => setTimeout(r, 500 * attempt));
+      continue;
+    }
+    throw error;
+  }
+}
+
 export default function SSO() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
@@ -45,17 +61,18 @@ export default function SSO() {
 
         if (cancelled) return;
 
-        const { error: sessionError } = await supabase.auth.setSession({
-          access_token: data.session_data.access_token,
-          refresh_token: data.session_data.refresh_token,
-        });
-        if (sessionError) throw sessionError;
+        await setSessionWithRetry(
+          data.session_data.access_token,
+          data.session_data.refresh_token,
+        );
 
         if (!cancelled) navigate("/dashboard", { replace: true });
       } catch (err) {
         if (cancelled) return;
-        // Retry transient/network errors up to 2 times
-        if (attempt < 3 && err instanceof TypeError) {
+        const isRetryable =
+          err instanceof TypeError ||
+          (err instanceof Error && err.message?.toLowerCase().includes("abort"));
+        if (attempt < 3 && isRetryable) {
           await new Promise((r) => setTimeout(r, 800 * attempt));
           if (!cancelled) return run(attempt + 1);
           return;
