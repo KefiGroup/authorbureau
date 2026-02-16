@@ -6,7 +6,7 @@ import type { User, Session } from "@supabase/supabase-js";
 const ADMIN_AUTH_KEY = "ab_admin_auth";
 
 // Known admin emails (fallback when admin-auth session flag isn't set)
-const ADMIN_EMAILS = ["fasahath@gmail.com", "pauline@publishnow.io"];
+export const ADMIN_EMAILS = ["fasahath@gmail.com", "pauline@publishnow.io"];
 
 // Stripe tier config
 export const TIERS = {
