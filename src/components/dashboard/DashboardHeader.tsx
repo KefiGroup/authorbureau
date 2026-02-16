@@ -59,7 +59,7 @@ export default function DashboardHeader({ user, isPremium, isAdmin, onSignOut, o
           <Menu className="h-5 w-5" />
         </button>
         <div>
-          <h1 className="font-heading text-lg font-bold">Author Dashboard</h1>
+          <h1 className="font-heading text-lg font-bold">AI Marketing Studio</h1>
           <p className="text-xs text-muted-foreground flex items-center gap-1.5">
             {user.email}
             {isPremium && (
