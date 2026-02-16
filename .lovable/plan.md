@@ -1,43 +1,101 @@
 
 
-# Add Admin User and Test OTP Sign-In
+# Build Authors Bureau Admin Panel with Shared Backend
 
 ## Overview
 
-The sign-in system uses the shared PublishNow backend, which automatically creates user accounts on first sign-in. No manual user creation is needed -- `fasahath@gmail.com` simply needs to enter their email at `/auth` and the backend will send an OTP code.
-
-However, there are two issues to address to ensure smooth testing:
+Replace the current admin dashboard (which queries local tables directly) with a new admin panel that uses the shared PublishNow backend's `admin-auth` and `admin-stories` edge functions. This gives platform-scoped admin access, meaning only Authors Bureau-specific data, admins, and users are shown.
 
 ## Changes
 
-### 1. Bypass Platform Access Check for Admin Users
+### 1. Create Admin Login Page (`src/pages/AdminAuth.tsx`)
 
-Currently, after sign-in, the dashboard requires "marketing" platform access (checked via the shared backend). Admin users like `fasahath@gmail.com` could be blocked by this check. We should ensure admins automatically bypass this gate.
+A dedicated admin sign-in page at `/admin-login` that uses the `admin-auth` edge function instead of `user-auth`:
 
-**File: `src/hooks/usePlatformAccess.ts`**
-- Accept `isAdmin` as a parameter or import `useAuth` internally
-- If the user is an admin, automatically set `hasMarketing: true` without calling the platform-access endpoint
+- **Email entry** -- calls `admin-auth` with `{ email, action: 'request_code', source_platform: 'authorsbureau' }`
+- **OTP verification** -- calls `admin-auth` with `{ email, action: 'verify', code, source_platform: 'authorsbureau' }`, then uses the returned `token_hash` with `supabase.auth.verifyOtp()`
+- **Magic link handling** -- checks URL hash for `auth_token`, calls `admin-auth` with `{ action: 'verify_token', token, source_platform: 'authorsbureau' }`
+- **Password login** (optional) -- calls `admin-auth` with `{ email, password, action: 'password_login', source_platform: 'authorsbureau' }`
+- On success, redirects to `/admin`
+- If the user is not an admin for `authorsbureau`, the backend will reject the request and the page shows an appropriate error
 
-### 2. Ensure Admin Redirect Works
+### 2. Rewrite Admin Dashboard (`src/pages/AdminDashboard.tsx`)
 
-The Auth page (line 91) redirects admins to `/admin` and non-admins to `/dashboard`. Since `fasahath@gmail.com` is in `LOCAL_ADMIN_EMAILS`, they will be redirected to `/admin` after sign-in. We should verify the `/admin` page also handles loading and access gracefully.
+Replace the current dashboard that queries local Supabase tables with one that calls the shared `admin-stories` edge function for all data. The dashboard will have tabbed navigation:
 
-### 3. No Database Changes Needed
+- **Overview tab** -- calls `admin-stories` with `{ action: 'stats', source_platform: 'authorsbureau' }` to show platform stats (total users, submissions, books, admins)
+- **Submissions tab** -- calls `{ action: 'list', source_platform: 'authorsbureau' }` to list author applications with approve/reject actions (calls `{ action: 'update_status', ... }`)
+- **Users tab** -- calls `{ action: 'list_users', source_platform: 'authorsbureau' }` to show registered users
+- **Books tab** -- calls `{ action: 'list_books', source_platform: 'authorsbureau' }` to show published books
+- **Admins tab** (super admin only) -- calls `{ action: 'list_admins', source_platform: 'authorsbureau' }` to manage admins; promote/demote via `{ action: 'promote_admin' }` and `{ action: 'demote_admin' }`
 
-The shared PublishNow backend's `user-auth` edge function handles user creation automatically when `request_code` is called. A profile will be auto-created in the local database via the existing `handle_new_user` trigger once the session is established.
+All API calls include `Authorization: Bearer <session.access_token>` header.
+
+### 3. Create Admin API Helper (`src/lib/admin-api.ts`)
+
+A utility module to centralize all admin API calls:
+
+```text
+adminApi.requestCode(email)
+adminApi.verify(email, code)
+adminApi.verifyToken(token)
+adminApi.stats()
+adminApi.listSubmissions(page?, status?)
+adminApi.updateSubmissionStatus(id, status)
+adminApi.listUsers(page?)
+adminApi.listBooks(page?)
+adminApi.listAdmins()
+adminApi.promoteAdmin(email)
+adminApi.demoteAdmin(userId)
+adminApi.isSuperAdmin()
+```
+
+Each function automatically includes `source_platform: 'authorsbureau'` and the current session token.
+
+### 4. Update Auth Hook (`src/hooks/useAuth.tsx`)
+
+- Remove the `LOCAL_ADMIN_EMAILS` hardcoded fallback (admin status will be determined by the shared backend's `admin-auth` verification success)
+- Add an `isAdminAuth` flag that gets set when the user successfully authenticates via the `admin-auth` endpoint
+- Keep the `has_role` RPC check as a secondary fallback
+
+### 5. Update Routing (`src/App.tsx`)
+
+- Add route: `/admin-login` pointing to `AdminAuth`
+- Keep `/admin` pointing to the rewritten `AdminDashboard`
+- Update the existing `/auth` page to redirect admins to `/admin` after login (already done)
+
+### 6. Super Admin Detection
+
+Call the shared backend to check if the current user is a super admin for Authors Bureau. This determines whether the "Admins" management tab is visible. Implementation:
+
+- In the admin dashboard, call `admin-stories` with `{ action: 'check_super_admin', source_platform: 'authorsbureau' }` (or call the `is_platform_super_admin` RPC via the shared Supabase client)
+- Store result in component state
+- Conditionally render the Admins tab
 
 ## Technical Details
 
-- **`src/hooks/usePlatformAccess.ts`**: Add admin bypass logic so admins always have `hasMarketing: true`
-- **`src/pages/Auth.tsx`**: No changes needed -- the current flow already supports any email
-- **`src/hooks/useAuth.tsx`**: Already has `fasahath@gmail.com` in `LOCAL_ADMIN_EMAILS`
+### File changes summary
 
-## Testing Steps
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/lib/admin-api.ts` | Create | Centralized admin API helper |
+| `src/pages/AdminAuth.tsx` | Create | Admin-specific login page |
+| `src/pages/AdminDashboard.tsx` | Rewrite | Use shared backend instead of local queries |
+| `src/hooks/useAuth.tsx` | Modify | Remove hardcoded admin emails, add admin auth flag |
+| `src/App.tsx` | Modify | Add `/admin-login` route |
 
-1. Navigate to `/auth`
-2. Click "Sign In via PublishNow"
-3. Enter `fasahath@gmail.com` and click Continue
-4. Check email for OTP code
-5. Enter the 6-digit code
-6. Verify redirect to `/admin` (since user is admin)
+### API endpoints used
+
+All requests go to `https://wuftdpnekscrsghqtssd.supabase.co/functions/v1/`:
+
+- `admin-auth` -- authentication (request_code, verify, verify_token, password_login)
+- `admin-stories` -- data operations (stats, list, list_users, list_books, list_admins, update_status, promote_admin, demote_admin)
+- `platform-access` -- granting marketing access on approval
+
+### Security considerations
+
+- Admin status is validated server-side by the shared backend (not client-side)
+- The `admin-auth` function only allows users whose `admin_platforms` array includes `'authorsbureau'`
+- Super admin privileges are checked via server-side function, not client logic
+- Session tokens are obtained through `supabase.auth.verifyOtp()` after backend verification
 
