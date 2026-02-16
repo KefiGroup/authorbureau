@@ -2,8 +2,8 @@ import { useState, useEffect, createContext, useContext, ReactNode, useCallback 
 import { supabase } from "@/lib/shared-backend";
 import type { User, Session } from "@supabase/supabase-js";
 
-// Local admin emails (checked as fallback when shared backend role check fails)
-const LOCAL_ADMIN_EMAILS = ["fasahath@gmail.com"];
+// Admin status key for sessionStorage (set by AdminAuth page on successful admin-auth login)
+const ADMIN_AUTH_KEY = "ab_admin_auth";
 
 // Stripe tier config
 export const TIERS = {
@@ -88,8 +88,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             _user_id: session.user.id,
             _role: "admin",
           });
-          const isLocalAdmin = LOCAL_ADMIN_EMAILS.includes(session.user.email?.toLowerCase() ?? "");
-          setIsAdmin(!!data || isLocalAdmin);
+          const isAdminSession = sessionStorage.getItem(ADMIN_AUTH_KEY) === "true";
+          setIsAdmin(!!data || isAdminSession);
         } else {
           setIsAdmin(false);
           setSubscription({ subscribed: false, productId: null, subscriptionEnd: null, loading: false });
@@ -108,8 +108,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           _user_id: session.user.id,
           _role: "admin",
         }).then(({ data }) => {
-          const isLocalAdmin = LOCAL_ADMIN_EMAILS.includes(session.user.email?.toLowerCase() ?? "");
-          setIsAdmin(!!data || isLocalAdmin);
+          const isAdminSession = sessionStorage.getItem(ADMIN_AUTH_KEY) === "true";
+          setIsAdmin(!!data || isAdminSession);
         });
       }
 
