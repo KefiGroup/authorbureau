@@ -92,8 +92,8 @@ export default function Auth() {
       }
 
       // Try multiple possible response shapes from the edge function
-      const accessToken = data?.access_token || data?.session?.access_token;
-      const refreshToken = data?.refresh_token || data?.session?.refresh_token;
+      const accessToken = data?.access_token || data?.session?.access_token || data?.session_data?.access_token;
+      const refreshToken = data?.refresh_token || data?.session?.refresh_token || data?.session_data?.refresh_token;
 
       if (accessToken && refreshToken) {
         const { error: sessionError } = await supabase.auth.setSession({
