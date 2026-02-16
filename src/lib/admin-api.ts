@@ -33,6 +33,36 @@ async function callAdminStories(body: Record<string, unknown>) {
   return data;
 }
 
+async function callAdminStoriesCross(body: Record<string, unknown>) {
+  const token = await getToken();
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/admin-stories`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error || data?.message || `Request failed (${res.status})`);
+  return data;
+}
+
+async function callPlatformAccess(body: Record<string, unknown>) {
+  const token = await getToken();
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/platform-access`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error || data?.message || `Request failed (${res.status})`);
+  return data;
+}
+
 export const adminApi = {
   // Auth
   requestCode: (email: string) =>
@@ -71,4 +101,19 @@ export const adminApi = {
     callAdminStories({ action: "demote_admin", user_id: userId }),
 
   isSuperAdmin: () => callAdminStories({ action: "check_super_admin" }),
+
+  // Platform Access (cross-platform, requires PublishNow admin)
+  checkPublishNowAdmin: () =>
+    callAdminStoriesCross({ action: "check_super_admin", source_platform: "publishnow" }),
+
+  listPlatformUsers: () =>
+    callPlatformAccess({ action: "list", source_platform: "publishnow" }),
+
+  togglePlatformAccess: (userId: string, platform: string, enabled: boolean) =>
+    callPlatformAccess({
+      action: enabled ? "grant" : "revoke",
+      user_id: userId,
+      platform,
+      source_platform: "publishnow",
+    }),
 };

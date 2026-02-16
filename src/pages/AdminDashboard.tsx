@@ -10,10 +10,11 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import {
   CheckCircle2, XCircle, Clock, Loader2, LogOut, ExternalLink,
-  Users, BookOpen, BarChart3, ShieldCheck, UserPlus, UserMinus,
+  Users, BookOpen, BarChart3, ShieldCheck, UserPlus, UserMinus, Globe,
 } from "lucide-react";
+import PlatformAccessTab from "@/components/admin/PlatformAccessTab";
 
-type Tab = "overview" | "submissions" | "users" | "books" | "admins";
+type Tab = "overview" | "submissions" | "users" | "books" | "admins" | "platforms";
 
 const statusConfig: Record<string, { label: string; icon: typeof Clock; className: string }> = {
   pending: { label: "Pending", icon: Clock, className: "bg-amber-100 text-amber-800 border-amber-200" },
@@ -27,6 +28,7 @@ export default function AdminDashboard() {
 
   const [tab, setTab] = useState<Tab>("overview");
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [isPublishNowAdmin, setIsPublishNowAdmin] = useState(false);
 
   // Overview
   const [stats, setStats] = useState<any>(null);
@@ -98,6 +100,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (!isAdmin) return;
     adminApi.isSuperAdmin().then((data) => setIsSuperAdmin(!!data?.is_super_admin)).catch(() => {});
+    adminApi.checkPublishNowAdmin().then((data) => setIsPublishNowAdmin(!!data?.is_super_admin)).catch(() => {});
   }, [isAdmin]);
 
   // Fetch data when tab changes
@@ -150,12 +153,13 @@ export default function AdminDashboard() {
   if (!user) return <Navigate to="/admin-login" replace />;
   if (!isAdmin) return <Navigate to="/dashboard" replace />;
 
-  const tabs: { key: Tab; label: string; icon: typeof BarChart3; superOnly?: boolean }[] = [
+  const tabs: { key: Tab; label: string; icon: typeof BarChart3; superOnly?: boolean; pnAdminOnly?: boolean }[] = [
     { key: "overview", label: "Overview", icon: BarChart3 },
     { key: "submissions", label: "Submissions", icon: Clock },
     { key: "users", label: "Users", icon: Users },
     { key: "books", label: "Books", icon: BookOpen },
     { key: "admins", label: "Admins", icon: ShieldCheck, superOnly: true },
+    { key: "platforms", label: "Platforms", icon: Globe, pnAdminOnly: true },
   ];
 
   return (
@@ -182,7 +186,7 @@ export default function AdminDashboard() {
       {/* Tabs */}
       <div className="border-b border-border">
         <div className="container flex gap-1 overflow-x-auto py-2">
-          {tabs.filter((t) => !t.superOnly || isSuperAdmin).map((t) => {
+          {tabs.filter((t) => (!t.superOnly || isSuperAdmin) && (!t.pnAdminOnly || isPublishNowAdmin)).map((t) => {
             const Icon = t.icon;
             return (
               <Button
@@ -214,6 +218,7 @@ export default function AdminDashboard() {
           )}
           {tab === "users" && <UsersTab users={users} loading={usersLoading} />}
           {tab === "books" && <BooksTab books={books} loading={booksLoading} />}
+          {tab === "platforms" && <PlatformAccessTab />}
           {tab === "admins" && (
             <AdminsTab
               admins={admins}
