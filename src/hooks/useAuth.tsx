@@ -2,6 +2,9 @@ import { useState, useEffect, createContext, useContext, ReactNode, useCallback 
 import { supabase } from "@/lib/shared-backend";
 import type { User, Session } from "@supabase/supabase-js";
 
+// Local admin emails (checked as fallback when shared backend role check fails)
+const LOCAL_ADMIN_EMAILS = ["fasahath@gmail.com"];
+
 // Stripe tier config
 export const TIERS = {
   premium: {
@@ -85,7 +88,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             _user_id: session.user.id,
             _role: "admin",
           });
-          setIsAdmin(!!data);
+          const isLocalAdmin = LOCAL_ADMIN_EMAILS.includes(session.user.email?.toLowerCase() ?? "");
+          setIsAdmin(!!data || isLocalAdmin);
         } else {
           setIsAdmin(false);
           setSubscription({ subscribed: false, productId: null, subscriptionEnd: null, loading: false });
@@ -103,7 +107,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         supabase.rpc("has_role", {
           _user_id: session.user.id,
           _role: "admin",
-        }).then(({ data }) => setIsAdmin(!!data));
+        }).then(({ data }) => {
+          const isLocalAdmin = LOCAL_ADMIN_EMAILS.includes(session.user.email?.toLowerCase() ?? "");
+          setIsAdmin(!!data || isLocalAdmin);
+        });
       }
 
       setLoading(false);
