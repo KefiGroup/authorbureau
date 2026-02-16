@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, ExternalLink } from "lucide-react";
+import { Loader2, ExternalLink, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -9,6 +10,7 @@ const PUBLISHNOW_URL = "https://publishnowinterface.lovable.app";
 
 export default function Auth() {
   const { user, loading, isAdmin } = useAuth();
+  const [showModal, setShowModal] = useState(false);
 
   if (loading) return (
     <div className="min-h-screen">
@@ -23,10 +25,6 @@ export default function Auth() {
   );
   if (user) return <Navigate to={isAdmin ? "/admin" : "/dashboard"} replace />;
 
-  const handleSignIn = () => {
-    window.open(PUBLISHNOW_URL, "_blank", "noopener,noreferrer");
-  };
-
   return (
     <div className="min-h-screen">
       <Navbar />
@@ -39,7 +37,7 @@ export default function Auth() {
             </p>
 
             <Button
-              onClick={handleSignIn}
+              onClick={() => setShowModal(true)}
               className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold rounded-full"
               size="lg"
             >
@@ -57,6 +55,27 @@ export default function Auth() {
         </div>
       </section>
       <Footer />
+
+      {/* PublishNow iframe modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="relative w-full max-w-3xl h-[80vh] rounded-2xl overflow-hidden border border-border shadow-2xl bg-background">
+            <button
+              onClick={() => setShowModal(false)}
+              className="absolute top-3 right-3 z-10 rounded-full bg-background/80 p-1.5 hover:bg-muted transition-colors"
+              aria-label="Close"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <iframe
+              src={PUBLISHNOW_URL}
+              className="w-full h-full border-0"
+              title="Sign in via PublishNow"
+              allow="clipboard-write"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
