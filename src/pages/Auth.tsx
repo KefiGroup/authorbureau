@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2, ExternalLink, X, Mail, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import Footer from "@/components/Footer";
 
 export default function Auth() {
   const { user, loading, isAdmin } = useAuth();
+  const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -95,14 +96,18 @@ export default function Auth() {
       const refreshToken = data?.refresh_token || data?.session?.refresh_token;
 
       if (accessToken && refreshToken) {
-        await supabase.auth.setSession({
+        const { error: sessionError } = await supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken,
         });
+        if (sessionError) throw sessionError;
+        navigate("/dashboard", { replace: true });
+        return;
       } else {
         console.warn("[Auth] No session tokens in verify response, keys:", Object.keys(data));
+        // Still try to navigate — the session may have been set via onAuthStateChange
+        navigate("/dashboard", { replace: true });
       }
-      // Auth state change will handle redirect
     } catch (err: any) {
       toast({ title: err.message || "Verification failed", variant: "destructive" });
     } finally {
