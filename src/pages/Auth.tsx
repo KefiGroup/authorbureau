@@ -5,7 +5,7 @@ import { Loader2, ExternalLink, X, Mail, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/shared-backend";
+import { supabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
@@ -37,37 +37,71 @@ export default function Auth() {
     if (!email.trim()) return;
     setSubmitting(true);
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
-      options: {
-        emailRedirectTo: `${window.location.origin}/sso`,
-      },
-    });
+    try {
+      const res = await fetch(
+        `${SHARED_BACKEND_URL}/functions/v1/user-auth`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: email.trim(),
+            action: 'request_code',
+            source_platform: 'authorsbureau',
+          }),
+        }
+      );
 
-    setSubmitting(false);
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData?.message || "Failed to send verification code.");
+      }
 
-    if (error) {
-      toast({ title: error.message, variant: "destructive" });
-      return;
+      setSent(true);
+    } catch (err: any) {
+      toast({ title: err.message || "Something went wrong", variant: "destructive" });
+    } finally {
+      setSubmitting(false);
     }
-
-    setSent(true);
   };
 
   const handleVerifyOtp = async () => {
     if (otp.length !== 6) return;
     setVerifying(true);
-    const { error } = await supabase.auth.verifyOtp({
-      email: email.trim(),
-      token: otp,
-      type: "email",
-    });
-    setVerifying(false);
-    if (error) {
-      toast({ title: error.message, variant: "destructive" });
-      return;
+
+    try {
+      const res = await fetch(
+        `${SHARED_BACKEND_URL}/functions/v1/user-auth`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: email.trim(),
+            action: 'verify',
+            code: otp,
+            source_platform: 'authorsbureau',
+          }),
+        }
+      );
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data?.message || "Verification failed.");
+      }
+
+      // If the edge function returns a session token, set it
+      if (data?.access_token && data?.refresh_token) {
+        await supabase.auth.setSession({
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+        });
+      }
+      // Auth state change will handle redirect
+    } catch (err: any) {
+      toast({ title: err.message || "Verification failed", variant: "destructive" });
+    } finally {
+      setVerifying(false);
     }
-    // Auth state change will handle redirect
   };
 
   const handleBack = () => {
