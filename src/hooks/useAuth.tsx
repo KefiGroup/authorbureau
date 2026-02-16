@@ -82,18 +82,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          const { data } = await supabase.rpc("has_role", {
-            _user_id: session.user.id,
-            _role: "admin",
-          });
-          const isAdminSession = sessionStorage.getItem(ADMIN_AUTH_KEY) === "true";
+          // Immediate fallback for known admins
           const isAdminEmail = ADMIN_EMAILS.includes(session.user.email ?? "");
-          setIsAdmin(!!data || isAdminSession || isAdminEmail);
+          const isAdminSession = sessionStorage.getItem(ADMIN_AUTH_KEY) === "true";
+          if (isAdminEmail || isAdminSession) setIsAdmin(true);
+
+          // Dispatch RPC outside the listener to avoid Supabase client deadlock
+          const userId = session.user.id;
+          setTimeout(async () => {
+            const { data } = await supabase.rpc("has_role", {
+              _user_id: userId,
+              _role: "admin",
+            });
+            setIsAdmin(!!data || isAdminSession || isAdminEmail);
+          }, 0);
         } else {
           setIsAdmin(false);
           setSubscription({ subscribed: false, productId: null, subscriptionEnd: null, loading: false });
