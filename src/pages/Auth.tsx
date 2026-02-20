@@ -72,7 +72,7 @@ export default function Auth() {
         // After verifyOtp, user state hasn't updated yet — use supabase to get the session email
         const { data: sessionData } = await supabase.auth.getUser();
         const sessionEmail = sessionData?.user?.email?.toLowerCase() ?? "";
-        const targetRoute = ADMIN_EMAILS.includes(sessionEmail) ? "/admin" : "/dashboard";
+        const targetRoute = "/dashboard";
         navigate(targetRoute, { replace: true });
       } catch (err: any) {
         console.error("[Auth] magic link error:", err);
@@ -163,7 +163,7 @@ export default function Auth() {
           type,
         });
         if (otpError) throw otpError;
-        const targetRoute = ADMIN_EMAILS.includes(email.trim().toLowerCase()) ? "/admin" : "/dashboard";
+        const targetRoute = "/dashboard";
         navigate(targetRoute, { replace: true });
         return;
       }
@@ -178,7 +178,7 @@ export default function Auth() {
           refresh_token: refreshToken,
         });
         if (sessionError) throw sessionError;
-        const targetRoute2 = ADMIN_EMAILS.includes(email.trim().toLowerCase()) ? "/admin" : "/dashboard";
+        const targetRoute2 = "/dashboard";
         navigate(targetRoute2, { replace: true });
         return;
       }
