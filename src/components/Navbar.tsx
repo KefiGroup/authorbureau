@@ -4,6 +4,8 @@ import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
+import { redirectToPublishNow } from "@/lib/publishnow-redirect";
+import { useToast } from "@/hooks/use-toast";
 import logoIcon from "@/assets/logo-icon.png";
 
 const navLinks = [
@@ -20,6 +22,17 @@ export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
+  const { toast } = useToast();
+
+  const handlePublishNowClick = useCallback(() => {
+    if (user) {
+      redirectToPublishNow("/dashboard").then(({ error }) => {
+        if (error) toast({ title: "Could not open PublishNow", description: error, variant: "destructive" });
+      });
+    } else {
+      window.open("https://publishnow.io", "_blank");
+    }
+  }, [user, toast]);
 
   const handleNavClick = useCallback(
     (link: (typeof navLinks)[0]) => {
@@ -52,15 +65,13 @@ export default function Navbar() {
         <div className="hidden items-center gap-6 md:flex">
           {navLinks.map((link) =>
             link.external ? (
-              <a
+              <button
                 key={link.label}
-                href={link.to}
-                target="_blank"
-                rel="noopener noreferrer"
+                onClick={handlePublishNowClick}
                 className="text-sm font-medium text-muted-foreground transition-colors hover:text-secondary"
               >
                 {link.label}
-              </a>
+              </button>
             ) : (
               <button
                 key={link.label}
@@ -111,15 +122,13 @@ export default function Navbar() {
             <div className="container flex flex-col gap-4 py-4">
               {navLinks.map((link) =>
                 link.external ? (
-                  <a
+                  <button
                     key={link.label}
-                    href={link.to}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm font-medium text-muted-foreground"
+                    onClick={() => { setOpen(false); handlePublishNowClick(); }}
+                    className="text-left text-sm font-medium text-muted-foreground"
                   >
                     {link.label} →
-                  </a>
+                  </button>
                 ) : (
                   <button
                     key={link.label}
