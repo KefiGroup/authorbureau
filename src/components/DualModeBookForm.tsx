@@ -175,10 +175,10 @@ export default function DualModeBookForm({
 
   const handleSaveBook = async (formOverride?: BookFormData | React.MouseEvent) => {
     const f = (formOverride && 'title' in formOverride) ? formOverride as BookFormData : form;
-    if (!f.title || !f.authorName || !f.description) {
+    if (!f.title || !f.description) {
       toast({
         title: "Missing required fields",
-        description: "Please fill in title, author name, and description",
+        description: "Please fill in title and description",
         variant: "destructive",
       });
       return;
@@ -418,40 +418,37 @@ export default function DualModeBookForm({
           </TabsContent>
         </Tabs>
 
-        {/* Common Fields (visible in both modes) */}
+        {/* Common Fields — only book-specific extras, no author duplication */}
         <div className="border-t pt-8 mt-8 space-y-6">
-          <h3 className="font-heading font-bold">Author & Metadata</h3>
+          <h3 className="font-heading font-bold">Additional Details</h3>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <Label>Author Name *</Label>
-              <Input
-                value={form.authorName}
-                onChange={(e) => update("authorName", e.target.value)}
-                placeholder="Your name"
-              />
+          {/* Show these fields only in manual mode (Amazon mode gets them from scrape) */}
+          {mode === "manual" && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <Label>Amazon Book URL (optional)</Label>
+                <Input
+                  value={form.amazonUrl}
+                  onChange={(e) => update("amazonUrl", e.target.value)}
+                  placeholder="https://amazon.com/dp/..."
+                />
+              </div>
+              <div>
+                <Label>Rating (out of 5)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="5"
+                  step="0.1"
+                  value={form.rating || ""}
+                  onChange={(e) => update("rating", e.target.value ? parseFloat(e.target.value) : null)}
+                  placeholder="e.g. 4.7"
+                />
+              </div>
             </div>
-            <div>
-              <Label>Amazon Book URL</Label>
-              <Input
-                value={form.amazonUrl}
-                onChange={(e) => update("amazonUrl", e.target.value)}
-                placeholder="https://amazon.com/dp/..."
-              />
-            </div>
-          </div>
+          )}
 
-          <div>
-            <Label>Author Bio</Label>
-            <Textarea
-              value={form.authorBio}
-              onChange={(e) => update("authorBio", e.target.value)}
-              placeholder="Brief bio about yourself"
-              rows={3}
-            />
-          </div>
-
-          {/* Badges */}
+          {/* Badges — relevant for both modes */}
           <div>
             <Label>Bestseller Badges</Label>
             <div className="flex gap-2 mb-2">
@@ -486,21 +483,6 @@ export default function DualModeBookForm({
               ))}
             </div>
           </div>
-
-          {mode === "manual" && (
-            <div>
-              <Label>Rating (out of 5)</Label>
-              <Input
-                type="number"
-                min="0"
-                max="5"
-                step="0.1"
-                value={form.rating || ""}
-                onChange={(e) => update("rating", e.target.value ? parseFloat(e.target.value) : null)}
-                placeholder="e.g. 4.7"
-              />
-            </div>
-          )}
 
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4">
