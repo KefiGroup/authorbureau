@@ -187,15 +187,34 @@ export default function ProfileEditor() {
     }
     setGeneratingBio(true);
     try {
-      const shortBio = `${profile.pen_name} is an accomplished author and thought leader specializing in ${profile.genres.length > 0 ? profile.genres[0] : "their craft"}. With a passion for inspiring change and a commitment to excellence, they bring fresh perspectives to every project.`;
-      const fullBio = `${profile.pen_name} is a multifaceted author and visionary who has dedicated their career to ${profile.genres.length > 0 ? `exploring the complexities of ${profile.genres.join(", ").toLowerCase()}` : "inspiring and empowering readers worldwide"}.\n\nWith extensive experience and a deep commitment to their craft, ${profile.pen_name} brings authenticity and insight to every page. Their work has touched countless lives, offering practical wisdom wrapped in compelling storytelling.\n\nDrawing from their rich background and unique perspective, they create content that not only educates but transforms. Whether through books, speaking engagements, or mentorship, ${profile.pen_name} continues to make a meaningful impact on their audience and community.`;
-      updateField("bio_short", shortBio);
-      // Need to set bio_long separately since updateField triggers debounce per call
-      setProfile((prev) => ({ ...prev, bio_long: fullBio }));
+      // Fetch book titles for context
+      let bookTitles: string[] = [];
+      try {
+        const { data: books } = await supabase.from("books").select("title").eq("author_id", user!.id);
+        if (books) bookTitles = books.map((b) => b.title);
+      } catch {}
+
+      const { data, error } = await supabase.functions.invoke("generate-author-bio", {
+        body: {
+          authorName: profile.pen_name,
+          tagline: profile.tagline,
+          linkedinUrl: profile.linkedin_url,
+          amazonUrl: profile.amazon_author_profile_url,
+          genres: profile.genres,
+          bookTitles,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      updateField("bio_short", data.short_bio || "");
+      setProfile((prev) => ({ ...prev, bio_long: data.full_bio || "" }));
       debouncedSave();
       toast({ title: "Bios generated! ✨", description: "Review and edit as needed." });
-    } catch (err) {
-      toast({ title: "Bio generation failed", variant: "destructive" });
+    } catch (err: any) {
+      console.error("Bio generation failed:", err);
+      toast({ title: "Bio generation failed", description: err?.message || "Please try again.", variant: "destructive" });
     } finally {
       setGeneratingBio(false);
     }
