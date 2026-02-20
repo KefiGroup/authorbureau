@@ -166,7 +166,7 @@ export default function DynamicBookMicrosite() {
             transition={{ delay: 0.2 }}
             className="text-primary-foreground/70"
           >
-            by <span className="font-semibold">{book.author_name}</span>
+            by <span className="font-semibold">{book.author_name || authorProfile?.pen_name || "Unknown Author"}</span>
           </motion.p>
         </div>
       </section>
@@ -291,7 +291,7 @@ export default function DynamicBookMicrosite() {
                         {book.author_bio || authorProfile?.bio_short || authorProfile?.bio_long}
                       </p>
                       <p className="text-sm font-semibold text-secondary">
-                        {book.author_name}
+                        {book.author_name || authorProfile?.pen_name}
                       </p>
                     </div>
                   </div>
