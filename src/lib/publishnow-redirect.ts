@@ -1,4 +1,4 @@
-import { supabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
+import { supabase, SHARED_BACKEND_URL, SHARED_ANON_KEY } from "@/lib/shared-backend";
 
 const PUBLISHNOW_SSO_URL = "https://publishnowinterface.lovable.app/#/sso";
 
@@ -20,6 +20,7 @@ export async function redirectToPublishNow(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        apikey: SHARED_ANON_KEY,
         Authorization: `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({
