@@ -221,10 +221,10 @@ export default function Auth() {
             </Button>
 
             <p className="text-xs text-muted-foreground">
-              Don't have an account?{" "}
-              <a href="https://publishnow.io" target="_blank" rel="noopener noreferrer" className="text-secondary font-medium hover:underline">
-                Get Featured
-              </a>
+              Want to get featured?{" "}
+              <button onClick={() => setShowModal(true)} className="text-secondary font-medium hover:underline">
+                Sign in to get started
+              </button>
             </p>
           </div>
         </div>
