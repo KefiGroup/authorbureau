@@ -2,6 +2,7 @@ import { User, BookOpen, Mic, GraduationCap, LayoutDashboard, ChevronLeft, Chevr
 import type { DashboardSection } from "@/pages/AuthorDashboard";
 import logoIcon from "@/assets/logo-icon.png";
 import { redirectToPublishNow } from "@/lib/publishnow-redirect";
+import { toast } from "@/hooks/use-toast";
 
 interface Props {
   activeSection: DashboardSection;
@@ -56,7 +57,7 @@ export default function DashboardSidebar({ activeSection, onSectionChange, colla
                 if (isLocked) return;
                 if (item.external) {
                   redirectToPublishNow("/profile").then(({ error }) => {
-                    if (error) console.error("SSO redirect failed:", error);
+                    if (error) toast({ title: "Could not open Profile", description: error, variant: "destructive" });
                   });
                 } else {
                   onSectionChange(item.id as DashboardSection);
