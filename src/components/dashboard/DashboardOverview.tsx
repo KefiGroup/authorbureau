@@ -24,7 +24,11 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
     setSsoLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
+      if (!session) {
+        // No session — just open PublishNow directly
+        window.open("https://publishnowinterface.lovable.app", "_blank");
+        return;
+      }
       const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/sso-handoff`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
@@ -34,12 +38,19 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
           source_platform: "authorsbureau",
         }),
       });
-      const data = await res.json();
-      if (!res.ok || !data.token) throw new Error(data.error || "SSO failed");
+      const data = await res.json().catch(() => ({}));
+      console.log("[Profile SSO] response:", res.status, data);
+      if (!res.ok || !data.token) {
+        // Fallback: open PublishNow directly without SSO
+        console.warn("[Profile SSO] Fallback to direct link");
+        window.open("https://publishnowinterface.lovable.app", "_blank");
+        return;
+      }
       window.open(`https://publishnowinterface.lovable.app/#/sso?token=${data.token}&from=authorsbureau&redirect=profile`, "_blank");
     } catch (err) {
       console.error("SSO redirect to profile failed:", err);
-      toast({ title: "Could not open profile", description: "Please try again.", variant: "destructive" });
+      // Fallback: open PublishNow directly
+      window.open("https://publishnowinterface.lovable.app", "_blank");
     } finally {
       setSsoLoading(false);
     }

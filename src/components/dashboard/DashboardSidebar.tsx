@@ -29,33 +29,28 @@ export default function DashboardSidebar({ activeSection, onSectionChange, colla
     setSsoLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
-
-      const res = await fetch(
-        `${SHARED_BACKEND_URL}/functions/v1/sso-handoff`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            action: "generate",
-            session_data: {
-              access_token: session.access_token,
-              refresh_token: session.refresh_token,
-            },
-            source_platform: "authorsbureau",
-          }),
-        }
-      );
-
-      const data = await res.json();
-      if (!res.ok || !data.token) throw new Error(data.error || "Failed to generate SSO token");
-
+      if (!session) {
+        window.open("https://publishnowinterface.lovable.app", "_blank");
+        return;
+      }
+      const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/sso-handoff`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({
+          action: "generate",
+          session_data: { access_token: session.access_token, refresh_token: session.refresh_token },
+          source_platform: "authorsbureau",
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.token) {
+        window.open("https://publishnowinterface.lovable.app", "_blank");
+        return;
+      }
       window.open(`https://publishnowinterface.lovable.app/#/sso?token=${data.token}&from=authorsbureau&redirect=profile`, "_blank");
     } catch (err) {
       console.error("SSO redirect to profile failed:", err);
+      window.open("https://publishnowinterface.lovable.app", "_blank");
     } finally {
       setSsoLoading(false);
     }
