@@ -137,29 +137,23 @@ export default function DualModeBookForm({
 
     setIsUploading(true);
     try {
-      // Sync auth session to Cloud before upload
-      const synced = await syncSession();
-      if (!synced) {
-        toast({ title: "Authentication error", description: "Please sign in again", variant: "destructive" });
-        setIsUploading(false);
-        return;
-      }
 
       // Show preview immediately
       const previewUrl = URL.createObjectURL(file);
       setCoverPreview(previewUrl);
 
       const ext = file.name.split(".").pop() || "jpg";
-      const filePath = `${authorId}/${Date.now()}.${ext}`;
+      const filePath = `book-covers/${authorId}/${Date.now()}.${ext}`;
 
-      const { error: uploadError } = await cloudSupabase.storage
-        .from("book-covers")
+      // Upload to shared backend storage (where auth session lives)
+      const { error: uploadError } = await sharedSupabase.storage
+        .from("author-photos")
         .upload(filePath, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = cloudSupabase.storage
-        .from("book-covers")
+      const { data: urlData } = sharedSupabase.storage
+        .from("author-photos")
         .getPublicUrl(filePath);
 
       update("coverImageUrl", urlData.publicUrl);
