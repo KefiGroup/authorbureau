@@ -19,7 +19,7 @@ export default function Footer() {
             </h4>
             <ul className="space-y-2 text-sm text-primary-foreground/70">
               <li><Link to="/directory" className="hover:text-secondary transition-colors">Author Directory</Link></li>
-              <li><a href="https://publishnow.io" target="_blank" rel="noopener noreferrer" className="hover:text-secondary transition-colors">Get Featured</a></li>
+              <li><Link to="/auth" className="hover:text-secondary transition-colors">Get Featured</Link></li>
             </ul>
           </div>
 
