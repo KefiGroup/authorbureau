@@ -89,6 +89,17 @@ export default function ProfileEditor() {
     finally { setLoading(false); }
   };
 
+  // Immediate save (no debounce) — used on unmount / beforeunload
+  const saveNow = useCallback(async () => {
+    if (!user || !hasLoadedRef.current) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    try {
+      await supabase
+        .from("author_profiles")
+        .upsert({ user_id: user.id, ...profileRef.current } as any, { onConflict: "user_id" });
+    } catch (err) { console.error("Flush save error:", err); }
+  }, [user]);
+
   // Auto-save with debounce
   const debouncedSave = useCallback(() => {
     if (!user || !hasLoadedRef.current) return;
@@ -109,6 +120,16 @@ export default function ProfileEditor() {
       } catch { setSaveStatus("error"); }
     }, 1500);
   }, [user]);
+
+  // Flush any pending save when component unmounts or user navigates away
+  useEffect(() => {
+    const handleBeforeUnload = () => { saveNow(); };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      saveNow(); // flush on unmount (e.g. switching tabs in dashboard)
+    };
+  }, [saveNow]);
 
   const updateField = (field: keyof AuthorProfile, value: string) => {
     setProfile((prev) => ({ ...prev, [field]: value }));
