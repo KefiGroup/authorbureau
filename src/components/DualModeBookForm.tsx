@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Upload, Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, AlertTriangle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -86,6 +86,7 @@ export default function DualModeBookForm({
   const [amazonBookUrl, setAmazonBookUrl] = useState("");
   const [amazonAuthorUrl, setAmazonAuthorUrl] = useState("");
   const [badgeInput, setBadgeInput] = useState("");
+  const [scrapeError, setScrapeError] = useState<string | null>(null);
 
   const update = (field: keyof BookFormData, value: any) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -100,6 +101,7 @@ export default function DualModeBookForm({
       return;
     }
 
+    setScrapeError(null);
     setIsLoading(true);
     try {
       const { data, error } = await cloudSupabase.functions.invoke(
@@ -140,18 +142,17 @@ export default function DualModeBookForm({
         description: "Auto-saving your book...",
       });
 
-      // Auto-save after a short delay to let state update
       setTimeout(() => {
         handleSaveBook(updatedForm);
       }, 100);
     } catch (err) {
       console.error("Scrape error:", err);
+      setScrapeError(
+        "Amazon is currently blocking automated data extraction. Please switch to Manual Entry to add your book details directly."
+      );
       toast({
-        title: "Scraping failed",
-        description:
-          err instanceof Error
-            ? err.message
-            : "Could not extract data from Amazon. Please try manual entry.",
+        title: "Amazon extraction unavailable",
+        description: "Please use Manual Entry instead.",
         variant: "destructive",
       });
     } finally {
@@ -320,7 +321,29 @@ export default function DualModeBookForm({
               </Button>
             </div>
 
-            {form.title && (
+            {scrapeError && (
+              <Alert variant="destructive" className="border-destructive/40 bg-destructive/5">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="flex flex-col gap-3">
+                  <span>{scrapeError}</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-fit"
+                    onClick={() => {
+                      setMode("manual");
+                      setScrapeError(null);
+                      // Carry over the Amazon URL to the manual form
+                      update("amazonUrl", amazonBookUrl);
+                    }}
+                  >
+                    ✍️ Switch to Manual Entry
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {form.title && !scrapeError && (
               <Alert className="bg-secondary/10 border-secondary/30">
                 <AlertCircle className="h-4 w-4 text-secondary" />
                 <AlertDescription className="text-secondary/80">
