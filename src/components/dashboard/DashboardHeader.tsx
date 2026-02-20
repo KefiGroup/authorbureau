@@ -2,8 +2,7 @@ import { LogOut, Crown, Menu, Shield, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import type { User } from "@supabase/supabase-js";
-
-const PUBLISHNOW_URL = "https://publishnow.io/#/dashboard";
+import { redirectToPublishNow } from "@/lib/publishnow-redirect";
 
 interface Props {
   user: User;
@@ -35,10 +34,8 @@ export default function DashboardHeader({ user, isPremium, isAdmin, onSignOut, o
         </div>
       </div>
       <div className="flex items-center gap-2">
-        <Button asChild variant="outline" size="sm" className="text-muted-foreground">
-          <a href={PUBLISHNOW_URL} target="_blank" rel="noopener noreferrer">
-            <ExternalLink className="mr-2 h-4 w-4" /> Go to PublishNow
-          </a>
+        <Button variant="outline" size="sm" className="text-muted-foreground" onClick={() => redirectToPublishNow("/dashboard")}>
+          <ExternalLink className="mr-2 h-4 w-4" /> Go to PublishNow
         </Button>
         {isAdmin && (
           <Button asChild variant="outline" size="sm" className="text-muted-foreground">
