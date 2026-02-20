@@ -95,8 +95,7 @@ export default function Auth() {
     </div>
   );
   if (user) {
-    const isKnownAdmin = isAdmin || ADMIN_EMAILS.includes(user.email?.toLowerCase() ?? "");
-    return <Navigate to={isKnownAdmin ? "/admin" : "/dashboard"} replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   // Request code via shared backend edge function
