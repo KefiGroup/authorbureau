@@ -70,10 +70,7 @@ export default function Auth() {
         // Clear hash from URL
         window.history.replaceState(null, "", location.pathname);
         // After verifyOtp, user state hasn't updated yet — use supabase to get the session email
-        const { data: sessionData } = await supabase.auth.getUser();
-        const sessionEmail = sessionData?.user?.email?.toLowerCase() ?? "";
-        const targetRoute = "/dashboard";
-        navigate(targetRoute, { replace: true });
+        // Don't navigate — let the useAuth listener + the `if (user)` redirect handle it automatically
       } catch (err: any) {
         console.error("[Auth] magic link error:", err);
         toast({ title: err.message || "Magic link sign-in failed", variant: "destructive" });
@@ -162,8 +159,7 @@ export default function Auth() {
           type,
         });
         if (otpError) throw otpError;
-        const targetRoute = "/dashboard";
-        navigate(targetRoute, { replace: true });
+        // Don't navigate here — let the useAuth listener + the `if (user)` redirect handle it
         return;
       }
 
@@ -177,8 +173,7 @@ export default function Auth() {
           refresh_token: refreshToken,
         });
         if (sessionError) throw sessionError;
-        const targetRoute2 = "/dashboard";
-        navigate(targetRoute2, { replace: true });
+        // Don't navigate here — let the useAuth listener + the `if (user)` redirect handle it
         return;
       }
 
