@@ -143,7 +143,7 @@ export default function DualModeBookForm({
       setCoverPreview(previewUrl);
 
       const ext = file.name.split(".").pop() || "jpg";
-      const filePath = `book-covers/${authorId}/${Date.now()}.${ext}`;
+      const filePath = `${authorId}/book-cover-${Date.now()}.${ext}`;
 
       // Upload to shared backend storage (where auth session lives)
       const { error: uploadError } = await sharedSupabase.storage
