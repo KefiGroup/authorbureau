@@ -238,15 +238,7 @@ export default function DualModeBookForm({
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div>
-              <Label>Price</Label>
-              <Input
-                value={form.price}
-                onChange={(e) => update("price", e.target.value)}
-                placeholder="e.g. $9.99"
-              />
-            </div>
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <Label>Kindle Price</Label>
               <Input
