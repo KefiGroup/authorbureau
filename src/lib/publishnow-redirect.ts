@@ -1,4 +1,4 @@
-import { supabase, SHARED_BACKEND_URL, SHARED_ANON_KEY } from "@/lib/shared-backend";
+import { supabase } from "@/lib/shared-backend";
 
 const PUBLISHNOW_SSO_URL = "https://publishnowinterface.lovable.app/#/sso";
 
@@ -16,26 +16,19 @@ export async function redirectToPublishNow(
       return { error: "Not authenticated" };
     }
 
-    const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/sso-handoff`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: SHARED_ANON_KEY,
-        Authorization: `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({
+    const { data, error } = await supabase.functions.invoke("sso-handoff", {
+      body: {
         action: "generate",
         source_platform: "authorsbureau",
         session_data: {
           access_token: session.access_token,
           refresh_token: session.refresh_token,
         },
-      }),
+      },
     });
 
-    const data = await res.json();
-    if (!res.ok || !data.token) {
-      throw new Error(data.error || "Failed to generate SSO token");
+    if (error || !data?.token) {
+      throw new Error(data?.error || error?.message || "Failed to generate SSO token");
     }
 
     const url = `${PUBLISHNOW_SSO_URL}?token=${data.token}&from=authorsbureau&redirect=${encodeURIComponent(targetPath)}`;
