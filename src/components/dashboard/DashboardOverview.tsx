@@ -8,8 +8,7 @@ import {
   User, Globe, Star, ArrowRight, Rocket, Award,
 } from "lucide-react";
 import { useState } from "react";
-
-const PUBLISHNOW_PROFILE_URL = "https://publishnow.io/#/profile";
+import { redirectToPublishNow } from "@/lib/publishnow-redirect";
 
 interface DashboardOverviewProps {
   onNavigate?: (section: string) => void;
@@ -21,8 +20,11 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
 
-  const handleProfileRedirect = () => {
-    window.open(PUBLISHNOW_PROFILE_URL, "_blank");
+  const handleProfileRedirect = async () => {
+    const { error } = await redirectToPublishNow("/profile");
+    if (error) {
+      toast({ title: "Could not open profile", description: error, variant: "destructive" });
+    }
   };
 
   const handleUpgrade = async () => {

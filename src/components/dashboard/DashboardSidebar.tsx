@@ -1,6 +1,7 @@
 import { User, BookOpen, Mic, GraduationCap, LayoutDashboard, ChevronLeft, ChevronRight, Crown, Sparkles, ExternalLink } from "lucide-react";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
 import logoIcon from "@/assets/logo-icon.png";
+import { redirectToPublishNow } from "@/lib/publishnow-redirect";
 
 interface Props {
   activeSection: DashboardSection;
@@ -9,8 +10,6 @@ interface Props {
   onToggleCollapse: () => void;
   isPremium: boolean;
 }
-
-const PUBLISHNOW_PROFILE_URL = "https://publishnow.io/#/profile";
 
 const navItems: { id: DashboardSection | "profile-external"; label: string; icon: typeof LayoutDashboard; premiumOnly?: boolean; external?: boolean }[] = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
@@ -56,7 +55,7 @@ export default function DashboardSidebar({ activeSection, onSectionChange, colla
               onClick={() => {
                 if (isLocked) return;
                 if (item.external) {
-                  window.open(PUBLISHNOW_PROFILE_URL, "_blank");
+                  redirectToPublishNow("/profile");
                 } else {
                   onSectionChange(item.id as DashboardSection);
                 }
