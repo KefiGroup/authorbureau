@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/shared-backend";
+import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 
 interface BookFormData {
   title: string;
@@ -101,7 +102,7 @@ export default function DualModeBookForm({
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke(
+      const { data, error } = await cloudSupabase.functions.invoke(
         "scrape-amazon-book",
         {
           body: {
