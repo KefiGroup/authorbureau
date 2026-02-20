@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Upload, Loader2, AlertCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -60,6 +60,26 @@ export default function DualModeBookForm({
     authorName: "",
     authorBio: "",
   });
+
+  // Auto-fill author fields from profile
+  useEffect(() => {
+    async function loadProfile() {
+      const { data } = await supabase
+        .from("author_profiles")
+        .select("pen_name, bio_short, bio_long, photo_url")
+        .eq("user_id", authorId)
+        .maybeSingle();
+      if (data) {
+        setForm((prev) => ({
+          ...prev,
+          authorName: prev.authorName || data.pen_name || "",
+          authorBio: prev.authorBio || data.bio_short || data.bio_long || "",
+          coverImageUrl: prev.coverImageUrl || data.photo_url || "",
+        }));
+      }
+    }
+    loadProfile();
+  }, [authorId]);
 
   // Amazon mode fields
   const [amazonBookUrl, setAmazonBookUrl] = useState("");
