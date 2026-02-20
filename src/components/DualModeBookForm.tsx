@@ -100,10 +100,10 @@ export default function DualModeBookForm({
   };
 
   const handleSaveBook = async () => {
-    if (!form.title || !form.description) {
+    if (!form.title || !form.description || !form.amazonUrl) {
       toast({
         title: "Missing required fields",
-        description: "Please fill in title and description",
+        description: "Please fill in title, description, and Amazon book URL",
         variant: "destructive",
       });
       return;
@@ -121,7 +121,7 @@ export default function DualModeBookForm({
         .from("books")
         .select("id")
         .eq("slug", slug)
-        .single();
+        .maybeSingle();
 
       if (existingBook) {
         toast({
@@ -157,7 +157,10 @@ export default function DualModeBookForm({
         .select("id")
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("DB insert error:", error.message, error.code, error.details);
+        throw error;
+      }
 
       toast({
         title: "Book saved successfully!",
@@ -260,7 +263,7 @@ export default function DualModeBookForm({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label>Amazon Book URL (optional)</Label>
+              <Label>Amazon Book URL *</Label>
               <Input
                 value={form.amazonUrl}
                 onChange={(e) => update("amazonUrl", e.target.value)}
