@@ -55,7 +55,9 @@ export default function DashboardSidebar({ activeSection, onSectionChange, colla
               onClick={() => {
                 if (isLocked) return;
                 if (item.external) {
-                  redirectToPublishNow("/profile");
+                  redirectToPublishNow("/profile").then(({ error }) => {
+                    if (error) console.error("SSO redirect failed:", error);
+                  });
                 } else {
                   onSectionChange(item.id as DashboardSection);
                 }
