@@ -10,7 +10,7 @@ interface Props {
   isPremium: boolean;
 }
 
-const PUBLISHNOW_URL = "https://publishnow.io";
+const PUBLISHNOW_PROFILE_URL = "https://publishnow.io/#/profile";
 
 const navItems: { id: DashboardSection | "profile-external"; label: string; icon: typeof LayoutDashboard; premiumOnly?: boolean; external?: boolean }[] = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
@@ -56,7 +56,7 @@ export default function DashboardSidebar({ activeSection, onSectionChange, colla
               onClick={() => {
                 if (isLocked) return;
                 if (item.external) {
-                  window.open(PUBLISHNOW_URL, "_blank");
+                  window.open(PUBLISHNOW_PROFILE_URL, "_blank");
                 } else {
                   onSectionChange(item.id as DashboardSection);
                 }
