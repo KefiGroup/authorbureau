@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ExternalLink, Mail, Linkedin, BookOpen, ArrowLeft, Mic, GraduationCap, Globe, Award, MapPin, Building2 } from "lucide-react";
 import { getAuthorBySlug } from "@/data/authors";
+import type { Book as StaticBook } from "@/data/authors";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import BadgeDisplay from "@/components/BadgeDisplay";
@@ -11,6 +12,8 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ServiceInquiryForm from "@/components/ServiceInquiryForm";
 import { useToast } from "@/hooks/use-toast";
+import { supabase as cloudSupabase } from "@/integrations/supabase/client";
+import { supabase as sharedSupabase } from "@/lib/shared-backend";
 
 import paulinePhoto from "@/assets/pauline-teo.jpeg";
 import bobPhoto from "@/assets/bob-battista.jpg";
@@ -36,7 +39,59 @@ export default function AuthorProfile() {
   const author = getAuthorBySlug(slug || "");
   const [inquiryOpen, setInquiryOpen] = useState(false);
   const [selectedService, setSelectedService] = useState("");
+  const [dynamicBooks, setDynamicBooks] = useState<StaticBook[]>([]);
   const { toast } = useToast();
+
+  // Fetch dynamic books from DB that match this author
+  useEffect(() => {
+    if (!author) return;
+    const fetchDynamicBooks = async () => {
+      try {
+        // Find user_id from shared backend by matching author name
+        const { data: profiles } = await sharedSupabase
+          .from("author_profiles")
+          .select("user_id, pen_name")
+          .ilike("pen_name", author.name);
+
+        if (!profiles || profiles.length === 0) return;
+
+        const userIds = profiles.map((p) => p.user_id);
+        const staticSlugs = author.books.map((b) => b.slug);
+
+        const { data: dbBooks } = await cloudSupabase
+          .from("books")
+          .select("*")
+          .in("author_id", userIds)
+          .not("published_at", "is", null);
+
+        if (!dbBooks) return;
+
+        // Filter out books that already exist in static data
+        const newBooks = dbBooks
+          .filter((b) => !staticSlugs.includes(b.slug))
+          .map((b) => ({
+            slug: b.slug,
+            title: b.title,
+            subtitle: b.subtitle || "",
+            description: b.description || "",
+            coverImage: b.cover_image_url || "",
+            amazonUrl: b.amazon_url || "",
+            badges: b.badges || [],
+            genre: b.genre || "",
+            price: b.price || undefined,
+            kindlePrice: b.kindle_price || undefined,
+            paperbackPrice: b.paperback_price || undefined,
+            pages: b.pages || undefined,
+            rating: b.rating ? Number(b.rating) : undefined,
+          }));
+
+        setDynamicBooks(newBooks);
+      } catch (err) {
+        console.error("Failed to fetch dynamic books:", err);
+      }
+    };
+    fetchDynamicBooks();
+  }, [author]);
 
   if (!author) {
     return (
@@ -163,6 +218,9 @@ export default function AuthorProfile() {
           </h2>
           <div className="grid gap-6 grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {author.books.map((book) => (
+              <BookCard key={book.slug} book={book} />
+            ))}
+            {dynamicBooks.map((book) => (
               <BookCard key={book.slug} book={book} />
             ))}
           </div>
