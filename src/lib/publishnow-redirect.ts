@@ -10,8 +10,9 @@ export async function redirectToPublishNow(
   targetPath: string = "/dashboard"
 ): Promise<{ error?: string }> {
   try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const session = sessionData?.session;
+    // Force-refresh the session to ensure a fresh JWT
+    const { data: refreshData } = await supabase.auth.refreshSession();
+    const session = refreshData?.session;
     if (!session?.access_token) {
       return { error: "Not authenticated — please sign in first." };
     }
