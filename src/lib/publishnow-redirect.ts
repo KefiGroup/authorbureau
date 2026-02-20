@@ -11,8 +11,8 @@ export async function redirectToPublishNow(
 ): Promise<{ error?: string }> {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
-    const accessToken = sessionData?.session?.access_token;
-    if (!accessToken) {
+    const session = sessionData?.session;
+    if (!session?.access_token) {
       return { error: "Not authenticated" };
     }
 
@@ -20,11 +20,15 @@ export async function redirectToPublishNow(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({
         action: "generate",
         source_platform: "authorsbureau",
+        session_data: {
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+        },
       }),
     });
 
