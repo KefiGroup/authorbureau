@@ -119,27 +119,31 @@ export default function DualModeBookForm({
 
       // Populate form with scraped data
       const extracted = data.data;
-      update("title", extracted.title || "");
-      update("subtitle", extracted.subtitle || "");
-      update("description", extracted.description || "");
-      update("pages", extracted.pages ? parseInt(extracted.pages) : null);
-      update("rating", extracted.rating ? parseFloat(extracted.rating) : null);
-      
-      update("genre", extracted.genre || "");
-      update("price", extracted.price || "");
-      update("badges", extracted.badges || []);
-
-      if (extracted.authorInfo) {
-        update("authorName", extracted.authorInfo.name || "");
-        update("authorBio", extracted.authorInfo.bio || "");
-      }
-
-      update("amazonUrl", amazonBookUrl);
+      const updatedForm = {
+        ...form,
+        title: extracted.title || form.title,
+        subtitle: extracted.subtitle || form.subtitle,
+        description: extracted.description || form.description,
+        pages: extracted.pages ? parseInt(extracted.pages) : form.pages,
+        rating: extracted.rating ? parseFloat(extracted.rating) : form.rating,
+        genre: extracted.genre || form.genre,
+        price: extracted.price || form.price,
+        badges: extracted.badges?.length ? extracted.badges : form.badges,
+        authorName: extracted.authorInfo?.name || form.authorName,
+        authorBio: extracted.authorInfo?.bio || form.authorBio,
+        amazonUrl: amazonBookUrl,
+      };
+      setForm(updatedForm);
 
       toast({
         title: "Amazon data extracted successfully!",
-        description: "Review and adjust the details below, then save.",
+        description: "Auto-saving your book...",
       });
+
+      // Auto-save after a short delay to let state update
+      setTimeout(() => {
+        handleSaveBook(updatedForm);
+      }, 100);
     } catch (err) {
       console.error("Scrape error:", err);
       toast({
@@ -169,8 +173,9 @@ export default function DualModeBookForm({
     );
   };
 
-  const handleSaveBook = async () => {
-    if (!form.title || !form.authorName || !form.description) {
+  const handleSaveBook = async (formOverride?: BookFormData | React.MouseEvent) => {
+    const f = (formOverride && 'title' in formOverride) ? formOverride as BookFormData : form;
+    if (!f.title || !f.authorName || !f.description) {
       toast({
         title: "Missing required fields",
         description: "Please fill in title, author name, and description",
@@ -182,7 +187,7 @@ export default function DualModeBookForm({
     setIsLoading(true);
     try {
       // Generate slug from title
-      const slug = form.title
+      const slug = f.title
         .toLowerCase()
         .replace(/[^\w\s-]/g, "")
         .replace(/\s+/g, "-")
@@ -209,22 +214,22 @@ export default function DualModeBookForm({
         .from("books")
         .insert({
           author_id: authorId,
-          title: form.title,
-          subtitle: form.subtitle || null,
-          description: form.description,
+          title: f.title,
+          subtitle: f.subtitle || null,
+          description: f.description,
           slug,
-          pages: form.pages,
-          rating: form.rating,
+          pages: f.pages,
+          rating: f.rating,
           
-          genre: form.genre || null,
-          badges: form.badges,
-          price: form.price || null,
-          currency: form.currency,
-          kindle_price: form.kindlePrice || null,
-          paperback_price: form.paperbackPrice || null,
-          amazon_url: form.amazonUrl || null,
-          author_name: form.authorName,
-          author_bio: form.authorBio || null,
+          genre: f.genre || null,
+          badges: f.badges,
+          price: f.price || null,
+          currency: f.currency,
+          kindle_price: f.kindlePrice || null,
+          paperback_price: f.paperbackPrice || null,
+          amazon_url: f.amazonUrl || null,
+          author_name: f.authorName,
+          author_bio: f.authorBio || null,
           entry_mode: mode,
           ai_enriched: mode === "amazon",
         })
