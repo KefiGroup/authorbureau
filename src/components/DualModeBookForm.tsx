@@ -446,7 +446,7 @@ export default function DualModeBookForm({
                   Saving...
                 </>
               ) : (
-                "Save Book & Create Microsite"
+                "Save Book"
               )}
             </Button>
             <Button onClick={onCancel} variant="outline" disabled={isLoading}>
