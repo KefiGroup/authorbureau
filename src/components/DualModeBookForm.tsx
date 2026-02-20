@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Loader2, AlertCircle, AlertTriangle } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,7 +9,6 @@ import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/shared-backend";
-import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 
 interface BookFormData {
   title: string;
@@ -42,7 +40,6 @@ export default function DualModeBookForm({
   onCancel,
 }: DualModeBookFormProps) {
   const { toast } = useToast();
-  const [mode, setMode] = useState<"amazon" | "manual">("amazon");
   const [isLoading, setIsLoading] = useState(false);
   const [form, setForm] = useState<BookFormData>({
     title: "",
@@ -82,83 +79,10 @@ export default function DualModeBookForm({
     loadProfile();
   }, [authorId]);
 
-  // Amazon mode fields
-  const [amazonBookUrl, setAmazonBookUrl] = useState("");
-  const [amazonAuthorUrl, setAmazonAuthorUrl] = useState("");
   const [badgeInput, setBadgeInput] = useState("");
-  const [scrapeError, setScrapeError] = useState<string | null>(null);
 
   const update = (field: keyof BookFormData, value: any) =>
     setForm((prev) => ({ ...prev, [field]: value }));
-
-  const handleScrapeAmazon = async () => {
-    if (!amazonBookUrl) {
-      toast({
-        title: "Amazon book URL required",
-        description: "Please enter the Amazon book link",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setScrapeError(null);
-    setIsLoading(true);
-    try {
-      const { data, error } = await cloudSupabase.functions.invoke(
-        "scrape-amazon-book",
-        {
-          body: {
-            amazonBookUrl,
-            amazonAuthorProfileUrl: amazonAuthorUrl || undefined,
-            source_platform: "authorsbureau",
-          },
-        }
-      );
-
-      if (error || !data?.success) {
-        throw new Error(data?.error || "Failed to scrape Amazon page");
-      }
-
-      // Populate form with scraped data
-      const extracted = data.data;
-      const updatedForm = {
-        ...form,
-        title: extracted.title || form.title,
-        subtitle: extracted.subtitle || form.subtitle,
-        description: extracted.description || form.description,
-        pages: extracted.pages ? parseInt(extracted.pages) : form.pages,
-        rating: extracted.rating ? parseFloat(extracted.rating) : form.rating,
-        genre: extracted.genre || form.genre,
-        price: extracted.price || form.price,
-        badges: extracted.badges?.length ? extracted.badges : form.badges,
-        authorName: extracted.authorInfo?.name || form.authorName,
-        authorBio: extracted.authorInfo?.bio || form.authorBio,
-        amazonUrl: amazonBookUrl,
-      };
-      setForm(updatedForm);
-
-      toast({
-        title: "Amazon data extracted successfully!",
-        description: "Auto-saving your book...",
-      });
-
-      setTimeout(() => {
-        handleSaveBook(updatedForm);
-      }, 100);
-    } catch (err) {
-      console.error("Scrape error:", err);
-      setScrapeError(
-        "Amazon is currently blocking automated data extraction. Please switch to Manual Entry to add your book details directly."
-      );
-      toast({
-        title: "Amazon extraction unavailable",
-        description: "Please use Manual Entry instead.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleAddBadge = () => {
     if (badgeInput.trim()) {
@@ -174,9 +98,8 @@ export default function DualModeBookForm({
     );
   };
 
-  const handleSaveBook = async (formOverride?: BookFormData | React.MouseEvent) => {
-    const f = (formOverride && 'title' in formOverride) ? formOverride as BookFormData : form;
-    if (!f.title || !f.description) {
+  const handleSaveBook = async () => {
+    if (!form.title || !form.description) {
       toast({
         title: "Missing required fields",
         description: "Please fill in title and description",
@@ -187,14 +110,12 @@ export default function DualModeBookForm({
 
     setIsLoading(true);
     try {
-      // Generate slug from title
-      const slug = f.title
+      const slug = form.title
         .toLowerCase()
         .replace(/[^\w\s-]/g, "")
         .replace(/\s+/g, "-")
         .slice(0, 50);
 
-      // Check if slug already exists
       const { data: existingBook } = await supabase
         .from("books")
         .select("id")
@@ -210,29 +131,27 @@ export default function DualModeBookForm({
         return;
       }
 
-      // Insert book
       const { data: newBook, error } = await supabase
         .from("books")
         .insert({
           author_id: authorId,
-          title: f.title,
-          subtitle: f.subtitle || null,
-          description: f.description,
+          title: form.title,
+          subtitle: form.subtitle || null,
+          description: form.description,
           slug,
-          pages: f.pages,
-          rating: f.rating,
-          
-          genre: f.genre || null,
-          badges: f.badges,
-          price: f.price || null,
-          currency: f.currency,
-          kindle_price: f.kindlePrice || null,
-          paperback_price: f.paperbackPrice || null,
-          amazon_url: f.amazonUrl || null,
-          author_name: f.authorName,
-          author_bio: f.authorBio || null,
-          entry_mode: mode,
-          ai_enriched: mode === "amazon",
+          pages: form.pages,
+          rating: form.rating,
+          genre: form.genre || null,
+          badges: form.badges,
+          price: form.price || null,
+          currency: form.currency,
+          kindle_price: form.kindlePrice || null,
+          paperback_price: form.paperbackPrice || null,
+          amazon_url: form.amazonUrl || null,
+          author_name: form.authorName,
+          author_bio: form.authorBio || null,
+          entry_mode: "manual",
+          ai_enriched: false,
         })
         .select("id")
         .single();
@@ -262,216 +181,114 @@ export default function DualModeBookForm({
       <Card className="p-8">
         <h2 className="font-heading text-2xl font-bold mb-6">Add Your Book</h2>
 
-        <Tabs value={mode} onValueChange={(v) => setMode(v as "amazon" | "manual")}>
-          <TabsList className="grid w-full grid-cols-3 mb-8">
-            <TabsTrigger value="amazon">📦 Scrape from Amazon</TabsTrigger>
-            <TabsTrigger value="manual">✍️ Manual Entry</TabsTrigger>
-            <TabsTrigger value="publishnow" disabled className="relative opacity-50 cursor-not-allowed">
-              🚀 PublishNow.io
-              <span className="absolute -top-2 -right-1 rounded-full bg-secondary px-1.5 py-0.5 text-[8px] font-bold text-secondary-foreground leading-none">
-                Soon
-              </span>
-            </TabsTrigger>
-          </TabsList>
+        <Alert className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Enter your book details below. Author info is pulled from your profile automatically.
+          </AlertDescription>
+        </Alert>
 
-          {/* Amazon Scraping Mode */}
-          <TabsContent value="amazon" className="space-y-6">
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Paste your Amazon book and author profile links. We'll automatically extract
-                title, rating, pages, and more.
-              </AlertDescription>
-            </Alert>
-
-            <div className="space-y-4">
-              <div>
-                <Label>Amazon Book URL *</Label>
-                <Input
-                  value={amazonBookUrl}
-                  onChange={(e) => setAmazonBookUrl(e.target.value)}
-                  placeholder="https://amazon.com/dp/..."
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div>
-                <Label>Amazon Author Profile URL (optional)</Label>
-                <Input
-                  value={amazonAuthorUrl}
-                  onChange={(e) => setAmazonAuthorUrl(e.target.value)}
-                  placeholder="https://amazon.com/author/..."
-                  disabled={isLoading}
-                />
-              </div>
-
-              <Button
-                onClick={handleScrapeAmazon}
-                disabled={isLoading || !amazonBookUrl}
-                className="w-full"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Scraping...
-                  </>
-                ) : (
-                  "Extract Data from Amazon"
-                )}
-              </Button>
-            </div>
-
-            {scrapeError && (
-              <Alert variant="destructive" className="border-destructive/40 bg-destructive/5">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription className="flex flex-col gap-3">
-                  <span>{scrapeError}</span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-fit"
-                    onClick={() => {
-                      setMode("manual");
-                      setScrapeError(null);
-                      // Carry over the Amazon URL to the manual form
-                      update("amazonUrl", amazonBookUrl);
-                    }}
-                  >
-                    ✍️ Switch to Manual Entry
-                  </Button>
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {form.title && !scrapeError && (
-              <Alert className="bg-secondary/10 border-secondary/30">
-                <AlertCircle className="h-4 w-4 text-secondary" />
-                <AlertDescription className="text-secondary/80">
-                  Data extracted! Review and customize below before saving.
-                </AlertDescription>
-              </Alert>
-            )}
-          </TabsContent>
-
-          {/* Manual Entry Mode */}
-          <TabsContent value="manual" className="space-y-6">
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Manually enter your book details. You can upload a cover image and set custom
-                pricing.
-              </AlertDescription>
-            </Alert>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <Label>Book Title *</Label>
-                <Input
-                  value={form.title}
-                  onChange={(e) => update("title", e.target.value)}
-                  placeholder="Enter book title"
-                />
-              </div>
-              <div>
-                <Label>Subtitle</Label>
-                <Input
-                  value={form.subtitle}
-                  onChange={(e) => update("subtitle", e.target.value)}
-                  placeholder="Optional subtitle"
-                />
-              </div>
-            </div>
-
+        <div className="space-y-6">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label>Description *</Label>
-              <Textarea
-                value={form.description}
-                onChange={(e) => update("description", e.target.value)}
-                placeholder="Tell readers about your book"
-                rows={4}
+              <Label>Book Title *</Label>
+              <Input
+                value={form.title}
+                onChange={(e) => update("title", e.target.value)}
+                placeholder="Enter book title"
               />
             </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <Label>Pages</Label>
-                <Input
-                  type="number"
-                  value={form.pages || ""}
-                  onChange={(e) => update("pages", e.target.value ? parseInt(e.target.value) : null)}
-                  placeholder="e.g. 256"
-                />
-              </div>
-              <div>
-                <Label>Genre</Label>
-                <Input
-                  value={form.genre}
-                  onChange={(e) => update("genre", e.target.value)}
-                  placeholder="e.g. Self-Help, Finance"
-                />
-              </div>
+            <div>
+              <Label>Subtitle</Label>
+              <Input
+                value={form.subtitle}
+                onChange={(e) => update("subtitle", e.target.value)}
+                placeholder="Optional subtitle"
+              />
             </div>
+          </div>
 
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div>
-                <Label>Price</Label>
-                <Input
-                  value={form.price}
-                  onChange={(e) => update("price", e.target.value)}
-                  placeholder="e.g. $9.99"
-                />
-              </div>
-              <div>
-                <Label>Kindle Price</Label>
-                <Input
-                  value={form.kindlePrice}
-                  onChange={(e) => update("kindlePrice", e.target.value)}
-                  placeholder="e.g. $4.99"
-                />
-              </div>
-              <div>
-                <Label>Paperback Price</Label>
-                <Input
-                  value={form.paperbackPrice}
-                  onChange={(e) => update("paperbackPrice", e.target.value)}
-                  placeholder="e.g. $12.99"
-                />
-              </div>
+          <div>
+            <Label>Description *</Label>
+            <Textarea
+              value={form.description}
+              onChange={(e) => update("description", e.target.value)}
+              placeholder="Tell readers about your book"
+              rows={4}
+            />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label>Pages</Label>
+              <Input
+                type="number"
+                value={form.pages || ""}
+                onChange={(e) => update("pages", e.target.value ? parseInt(e.target.value) : null)}
+                placeholder="e.g. 256"
+              />
             </div>
-          </TabsContent>
-        </Tabs>
-
-        {/* Common Fields — only book-specific extras, no author duplication */}
-        <div className="border-t pt-8 mt-8 space-y-6">
-          <h3 className="font-heading font-bold">Additional Details</h3>
-
-          {/* Show these fields only in manual mode (Amazon mode gets them from scrape) */}
-          {mode === "manual" && (
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <Label>Amazon Book URL (optional)</Label>
-                <Input
-                  value={form.amazonUrl}
-                  onChange={(e) => update("amazonUrl", e.target.value)}
-                  placeholder="https://amazon.com/dp/..."
-                />
-              </div>
-              <div>
-                <Label>Rating (out of 5)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="5"
-                  step="0.1"
-                  value={form.rating || ""}
-                  onChange={(e) => update("rating", e.target.value ? parseFloat(e.target.value) : null)}
-                  placeholder="e.g. 4.7"
-                />
-              </div>
+            <div>
+              <Label>Genre</Label>
+              <Input
+                value={form.genre}
+                onChange={(e) => update("genre", e.target.value)}
+                placeholder="e.g. Self-Help, Finance"
+              />
             </div>
-          )}
+          </div>
 
-          {/* Badges — relevant for both modes */}
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div>
+              <Label>Price</Label>
+              <Input
+                value={form.price}
+                onChange={(e) => update("price", e.target.value)}
+                placeholder="e.g. $9.99"
+              />
+            </div>
+            <div>
+              <Label>Kindle Price</Label>
+              <Input
+                value={form.kindlePrice}
+                onChange={(e) => update("kindlePrice", e.target.value)}
+                placeholder="e.g. $4.99"
+              />
+            </div>
+            <div>
+              <Label>Paperback Price</Label>
+              <Input
+                value={form.paperbackPrice}
+                onChange={(e) => update("paperbackPrice", e.target.value)}
+                placeholder="e.g. $12.99"
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label>Amazon Book URL (optional)</Label>
+              <Input
+                value={form.amazonUrl}
+                onChange={(e) => update("amazonUrl", e.target.value)}
+                placeholder="https://amazon.com/dp/..."
+              />
+            </div>
+            <div>
+              <Label>Rating (out of 5)</Label>
+              <Input
+                type="number"
+                min="0"
+                max="5"
+                step="0.1"
+                value={form.rating || ""}
+                onChange={(e) => update("rating", e.target.value ? parseFloat(e.target.value) : null)}
+                placeholder="e.g. 4.7"
+              />
+            </div>
+          </div>
+
+          {/* Badges */}
           <div>
             <Label>Bestseller Badges</Label>
             <div className="flex gap-2 mb-2">
