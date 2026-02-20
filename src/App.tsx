@@ -35,8 +35,11 @@ function AuthTokenRedirect() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (location.pathname !== "/auth" && location.hash.includes("auth_token")) {
-      navigate(`/auth${location.hash}`, { replace: true });
+    const hash = location.hash || "";
+    if (location.pathname !== "/auth" && hash.includes("auth_token")) {
+      // Normalize hash: #/?auth_token=... → #?auth_token=...
+      const normalizedHash = hash.replace(/^#\/?/, "#");
+      navigate(`/auth${normalizedHash}`, { replace: true });
     }
   }, [location, navigate]);
 

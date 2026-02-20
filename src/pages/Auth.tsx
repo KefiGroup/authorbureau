@@ -27,7 +27,9 @@ export default function Auth() {
     const hash = location.hash;
     if (!hash) return;
 
-    const params = new URLSearchParams(hash.replace("#", ""));
+    // Hash can be "#/?auth_token=..." or "#?auth_token=..." — normalize before parsing
+    const cleanHash = hash.replace(/^#\/?/, "");
+    const params = new URLSearchParams(cleanHash);
     const authToken = params.get("auth_token");
     if (!authToken) return;
 
@@ -67,7 +69,10 @@ export default function Auth() {
 
         // Clear hash from URL
         window.history.replaceState(null, "", location.pathname);
-        const targetRoute = ADMIN_EMAILS.includes(user?.email?.toLowerCase() ?? "") ? "/admin" : "/dashboard";
+        // After verifyOtp, user state hasn't updated yet — use supabase to get the session email
+        const { data: sessionData } = await supabase.auth.getUser();
+        const sessionEmail = sessionData?.user?.email?.toLowerCase() ?? "";
+        const targetRoute = ADMIN_EMAILS.includes(sessionEmail) ? "/admin" : "/dashboard";
         navigate(targetRoute, { replace: true });
       } catch (err: any) {
         console.error("[Auth] magic link error:", err);
