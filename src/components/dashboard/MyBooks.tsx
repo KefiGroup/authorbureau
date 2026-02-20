@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
+import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { BookOpen, Plus, ExternalLink, Pencil, Loader2, Upload } from "lucide-react";
+import { BookOpen, Plus, ExternalLink, Pencil, Loader2, Upload, Globe } from "lucide-react";
 import DualModeBookForm from "@/components/DualModeBookForm";
 
 interface Book {
@@ -23,9 +25,11 @@ interface Book {
 
 export default function MyBooks() {
   const { user, session } = useAuth();
+  const { toast } = useToast();
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [publishing, setPublishing] = useState<string | null>(null);
 
   const syncSession = async () => {
     if (!session) return;
@@ -69,6 +73,46 @@ export default function MyBooks() {
       case "amazon": return "bg-accent/15 text-accent";
       case "publishnow": return "bg-secondary/15 text-secondary";
       default: return "bg-muted text-muted-foreground";
+    }
+  };
+
+  const handlePublish = async (bookId: string) => {
+    setPublishing(bookId);
+    try {
+      const { data: { session } } = await sharedSupabase.auth.getSession();
+      if (!session) {
+        toast({ title: "Not signed in", variant: "destructive" });
+        return;
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/publish-book`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ bookId }),
+        }
+      );
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+
+      toast({
+        title: "Microsite Published! 🎉",
+        description: `Your book microsite is now live at /books/${result.slug}`,
+      });
+      fetchBooks();
+    } catch (err) {
+      toast({
+        title: "Publish failed",
+        description: err instanceof Error ? err.message : "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setPublishing(null);
     }
   };
 
@@ -165,7 +209,7 @@ export default function MyBooks() {
 
                 {/* Actions */}
                 <div className="flex gap-2 pt-1">
-                  {book.published_at && (
+                  {book.published_at ? (
                     <a
                       href={`/books/${book.slug}`}
                       target="_blank"
@@ -175,6 +219,20 @@ export default function MyBooks() {
                       <ExternalLink className="h-3.5 w-3.5" />
                       View Microsite
                     </a>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs h-7"
+                      disabled={publishing === book.id}
+                      onClick={() => handlePublish(book.id)}
+                    >
+                      {publishing === book.id ? (
+                        <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Publishing...</>
+                      ) : (
+                        <><Globe className="h-3 w-3 mr-1" />Publish Microsite</>
+                      )}
+                    </Button>
                   )}
                 </div>
               </div>
