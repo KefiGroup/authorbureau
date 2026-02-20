@@ -39,39 +39,117 @@ serve(async (req) => {
       );
     }
 
-    // Scrape the Amazon book page
-    console.log("Scraping Amazon book page:", amazonBookUrl);
-    const bookScrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        url: amazonBookUrl,
-        formats: ["markdown"],
-        onlyMainContent: true,
-      }),
-    });
+    // Resolve short URLs (a.co, amzn.to) using Firecrawl to get the final URL
+    let resolvedBookUrl = amazonBookUrl.trim();
+    try {
+      const urlObj = new URL(resolvedBookUrl);
+      if (['a.co', 'amzn.to', 'amzn.com'].includes(urlObj.hostname)) {
+        console.log("Short URL detected, using Firecrawl to resolve:", resolvedBookUrl);
+        const resolveRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            url: resolvedBookUrl,
+            formats: ["links"],
+            waitFor: 3000,
+          }),
+        });
+        if (resolveRes.ok) {
+          const resolveData = await resolveRes.json();
+          const sourceUrl = resolveData.data?.metadata?.sourceURL || resolveData.data?.metadata?.url;
+          if (sourceUrl && sourceUrl.includes("amazon.com")) {
+            resolvedBookUrl = sourceUrl;
+            console.log("Resolved short URL to:", resolvedBookUrl);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("URL resolution failed, using original:", e);
+    }
 
-    if (!bookScrapeResponse.ok) {
-      const error = await bookScrapeResponse.json();
-      console.error("Firecrawl book scrape error:", error);
+    // Try scraping the Amazon book page directly first
+    let bookMarkdown = "";
+    console.log("Attempting to scrape Amazon book page:", resolvedBookUrl);
+
+    try {
+      const bookScrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url: resolvedBookUrl,
+          formats: ["markdown"],
+          onlyMainContent: true,
+          waitFor: 5000,
+          location: { country: "US", languages: ["en"] },
+          proxy: "stealth",
+        }),
+      });
+
+      if (bookScrapeResponse.ok) {
+        const bookData = await bookScrapeResponse.json();
+        bookMarkdown = bookData.data?.markdown || bookData.markdown || "";
+        console.log("Direct scrape result length:", bookMarkdown.length);
+      }
+    } catch (e) {
+      console.error("Direct scrape failed:", e);
+    }
+
+    // If direct scrape failed or returned garbage, fall back to search
+    const isBlockedContent = !bookMarkdown || bookMarkdown.length < 200 ||
+      bookMarkdown.toLowerCase().includes("page not found") ||
+      bookMarkdown.toLowerCase().includes("couldn't find that page");
+
+    if (isBlockedContent) {
+      console.log("Direct scrape blocked by Amazon, falling back to search...");
+      // Extract ASIN or search term from the URL
+      const asinMatch = resolvedBookUrl.match(/\/dp\/([A-Z0-9]{10})/i) ||
+        resolvedBookUrl.match(/\/([A-Z0-9]{10})(?:[/?]|$)/i);
+      const searchQuery = asinMatch
+        ? `amazon book ${asinMatch[1]} pages rating price`
+        : `site:amazon.com ${resolvedBookUrl.split('/').pop()} book`;
+
+      console.log("Searching for book info:", searchQuery);
+      try {
+        const searchResponse = await fetch("https://api.firecrawl.dev/v1/search", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            query: searchQuery,
+            limit: 3,
+            scrapeOptions: { formats: ["markdown"] },
+          }),
+        });
+
+        if (searchResponse.ok) {
+          const searchData = await searchResponse.json();
+          // Combine markdown from all results
+          const results = searchData.data || [];
+          bookMarkdown = results.map((r: any) => r.markdown || "").join("\n\n");
+          console.log("Search fallback result length:", bookMarkdown.length);
+        }
+      } catch (e) {
+        console.error("Search fallback failed:", e);
+      }
+    }
+
+    if (!bookMarkdown || bookMarkdown.length < 100) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: error.error || "Failed to scrape Amazon book page",
+          error: "Could not find book information. Amazon may be blocking scraping. Please try manual entry instead.",
         }),
-        {
-          status: bookScrapeResponse.status,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    const bookData = await bookScrapeResponse.json();
-    const bookMarkdown = bookData.data?.markdown || bookData.markdown || "";
-    console.log("Firecrawl response keys:", Object.keys(bookData), "has markdown:", !!bookMarkdown);
 
     // Scrape author profile if provided
     let authorData = { markdown: "" };
