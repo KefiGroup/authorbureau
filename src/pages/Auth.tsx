@@ -220,12 +220,6 @@ export default function Auth() {
               Sign In via PublishNow
             </Button>
 
-            <p className="text-xs text-muted-foreground">
-              Don't have an account?{" "}
-              <a href="/join" className="text-secondary font-medium hover:underline">
-                Join as an Author
-              </a>
-            </p>
           </div>
         </div>
       </section>

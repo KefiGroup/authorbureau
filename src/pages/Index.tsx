@@ -122,7 +122,7 @@ export default function Index() {
                 size="lg"
                 className="border-2 border-secondary bg-transparent text-secondary hover:bg-secondary hover:text-secondary-foreground text-base font-semibold"
               >
-                <Link to="/join">Get Featured</Link>
+                <a href="https://publishnow.io" target="_blank" rel="noopener noreferrer">Get Featured</a>
               </Button>
             </motion.div>
           </motion.div>
@@ -450,9 +450,9 @@ export default function Index() {
                 size="lg"
                 className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold shadow-[var(--shadow-gold)] rounded-full px-8"
               >
-                <Link to="/join">
+                <a href="https://publishnow.io" target="_blank" rel="noopener noreferrer">
                   Apply Now <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
+                </a>
               </Button>
             </div>
           </motion.div>
@@ -490,9 +490,9 @@ export default function Index() {
                   size="lg"
                   className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold shadow-[var(--shadow-gold)] rounded-full px-8"
                 >
-                  <Link to="/join">
+                  <a href="https://publishnow.io" target="_blank" rel="noopener noreferrer">
                     Get Featured <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
+                  </a>
                 </Button>
               </motion.div>
             </motion.div>
