@@ -5,10 +5,9 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Crown, Loader2, CheckCircle2, BookOpen, Mic,
   GraduationCap, Lock, ExternalLink, RefreshCw,
-  User, Globe, Star, ArrowRight, Rocket, Award,
+  User, ArrowRight, Rocket, Award,
 } from "lucide-react";
 import { useState } from "react";
-import { redirectToPublishNow } from "@/lib/publishnow-redirect";
 
 interface DashboardOverviewProps {
   onNavigate?: (section: string) => void;
@@ -19,13 +18,6 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
   const { toast } = useToast();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
-
-  const handleProfileRedirect = async () => {
-    const { error } = await redirectToPublishNow("/profile");
-    if (error) {
-      toast({ title: "Could not open profile", description: error, variant: "destructive" });
-    }
-  };
 
   const handleUpgrade = async () => {
     setCheckoutLoading(true);
@@ -58,31 +50,17 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
   const freeFeatures = [
     {
       icon: User,
-      label: "Author Profile",
-      description: "Create your professional author profile to be discovered by readers and industry partners. Click 'Profile' in the left navigation bar to get started.",
+      label: "Fill In Your Profile",
+      description: "Set up your author profile with bio, photo, and credentials. Your profile powers your directory listing, credibility badges, and public microsite pages.",
       step: "Step 1",
       target: "profile-sidebar",
     },
     {
       icon: BookOpen,
-      label: "Book Listing",
-      description: "Showcase your published books with covers, descriptions, and purchase links.",
+      label: "Add Your Books",
+      description: "Add your published books via Amazon link or manually. Book data is used to generate your microsites automatically.",
       step: "Step 2",
       target: "my-books",
-    },
-    {
-      icon: Globe,
-      label: "Directory Listing",
-      description: "Get listed in the Authors Bureau directory and increase your visibility. Click 'Profile' in the left navigation bar.",
-      step: "Step 3",
-      target: "profile-sidebar",
-    },
-    {
-      icon: Star,
-      label: "Credibility Badges",
-      description: "Earn badges like 'AB Verified' and 'Featured Author' to build trust. Click 'Profile' in the left navigation bar.",
-      step: "Step 4",
-      target: "profile-sidebar",
     },
   ];
 
@@ -160,15 +138,15 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
         )}
       </div>
 
-      {/* FRAMEWORK STEP 1: From Author to Authority (Free Tier) */}
+      {/* Getting Started: 2 simple steps */}
       <div>
         <div className="flex items-center gap-3 mb-5">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
             <Award className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="font-heading text-xl font-bold">From Author to Authority</h2>
-            <p className="text-sm text-muted-foreground">Free tier — establish your credibility and visibility</p>
+            <h2 className="font-heading text-xl font-bold">Get Started</h2>
+            <p className="text-sm text-muted-foreground">Two steps to build your author authority and microsites</p>
           </div>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -183,7 +161,6 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
                   onNavigate?.(f.target);
                 }
               }}
-              disabled={false}
               className="rounded-xl border border-border bg-card p-5 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:border-secondary/40 transition-all text-left cursor-pointer group"
             >
               <div className="flex items-center gap-3 mb-2">
@@ -198,9 +175,9 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
               <p className="text-sm text-muted-foreground">{f.description}</p>
               <span className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-secondary opacity-0 group-hover:opacity-100 transition-opacity">
                 {f.target === "profile-sidebar" ? (
-                  <>Use Profile in sidebar <ArrowRight className="h-3 w-3" /></>
+                  <>Go to Profile <ArrowRight className="h-3 w-3" /></>
                 ) : (
-                  <>Go to {f.label} <ArrowRight className="h-3 w-3" /></>
+                  <>Go to My Books <ArrowRight className="h-3 w-3" /></>
                 )}
               </span>
             </button>
