@@ -178,10 +178,10 @@ export default function AdminDashboard() {
             <p className="text-primary-foreground/70 text-sm mt-1">Authors Bureau administration</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button asChild variant="outline" size="sm" className="text-primary-foreground border-primary-foreground/20 hover:bg-primary-foreground/10">
+            <Button asChild variant="outline" size="sm" className="text-primary-foreground border-primary-foreground/40 hover:bg-primary-foreground/10 bg-primary-foreground/10">
               <Link to="/dashboard">Author Dashboard</Link>
             </Button>
-            <Button onClick={signOut} variant="outline" size="sm" className="text-primary-foreground border-primary-foreground/20 hover:bg-primary-foreground/10">
+            <Button onClick={signOut} variant="outline" size="sm" className="text-primary-foreground border-primary-foreground/40 hover:bg-primary-foreground/10 bg-primary-foreground/10">
               <LogOut className="mr-2 h-4 w-4" /> Sign Out
             </Button>
           </div>
