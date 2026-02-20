@@ -1,10 +1,12 @@
 import { supabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
 
 const PUBLISHNOW_SSO_URL = "https://publishnowinterface.lovable.app/#/sso";
+const PUBLISHNOW_DIRECT_URL = "https://publishnowinterface.lovable.app/#";
 
 /**
  * Generate an SSO token via the shared backend and redirect to PublishNow
  * with an optional target path (e.g. /profile, /dashboard).
+ * Falls back to a direct link if SSO fails, so the user is never blocked.
  */
 export async function redirectToPublishNow(
   targetPath: string = "/dashboard"
@@ -13,10 +15,11 @@ export async function redirectToPublishNow(
     const { data: sessionData } = await supabase.auth.getSession();
     const session = sessionData?.session;
     if (!session?.access_token) {
-      return { error: "Not authenticated" };
+      // No session — open direct link as fallback
+      window.open(`${PUBLISHNOW_DIRECT_URL}${targetPath}`, "_blank");
+      return {};
     }
 
-    // Generate action requires Authorization header for JWT auth.
     const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/sso-handoff`, {
       method: "POST",
       headers: {
@@ -35,13 +38,17 @@ export async function redirectToPublishNow(
 
     const data = await res.json();
     if (!res.ok || !data.token) {
-      throw new Error(data.error || `SSO failed (${res.status})`);
+      // SSO failed — fall back to direct link
+      window.open(`${PUBLISHNOW_DIRECT_URL}${targetPath}`, "_blank");
+      return {};
     }
 
     const url = `${PUBLISHNOW_SSO_URL}?token=${data.token}&from=authorsbureau&redirect=${encodeURIComponent(targetPath)}`;
     window.open(url, "_blank");
     return {};
-  } catch (err: any) {
-    return { error: err.message || "SSO redirect failed" };
+  } catch {
+    // Network or other error — fall back to direct link
+    window.open(`${PUBLISHNOW_DIRECT_URL}${targetPath}`, "_blank");
+    return {};
   }
 }
