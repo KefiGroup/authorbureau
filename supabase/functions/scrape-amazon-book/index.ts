@@ -70,7 +70,8 @@ serve(async (req) => {
     }
 
     const bookData = await bookScrapeResponse.json();
-    const bookMarkdown = bookData.markdown || "";
+    const bookMarkdown = bookData.data?.markdown || bookData.markdown || "";
+    console.log("Firecrawl response keys:", Object.keys(bookData), "has markdown:", !!bookMarkdown);
 
     // Scrape author profile if provided
     let authorData = { markdown: "" };
@@ -90,7 +91,8 @@ serve(async (req) => {
       });
 
       if (authorScrapeResponse.ok) {
-        authorData = await authorScrapeResponse.json();
+        const rawAuthor = await authorScrapeResponse.json();
+        authorData = { markdown: rawAuthor.data?.markdown || rawAuthor.markdown || "" };
       }
     }
 
