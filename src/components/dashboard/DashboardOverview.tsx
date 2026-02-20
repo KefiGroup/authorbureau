@@ -59,9 +59,9 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
     {
       icon: User,
       label: "Author Profile",
-      description: "Create your professional author profile to be discovered by readers and industry partners.",
+      description: "Create your professional author profile to be discovered by readers and industry partners. Click 'Profile' in the left navigation bar to get started.",
       step: "Step 1",
-      target: "profile-external",
+      target: "profile-sidebar",
     },
     {
       icon: BookOpen,
@@ -73,16 +73,16 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
     {
       icon: Globe,
       label: "Directory Listing",
-      description: "Get listed in the Authors Bureau directory and increase your visibility.",
+      description: "Get listed in the Authors Bureau directory and increase your visibility. Click 'Profile' in the left navigation bar.",
       step: "Step 3",
-      target: "profile-external",
+      target: "profile-sidebar",
     },
     {
       icon: Star,
       label: "Credibility Badges",
-      description: "Earn badges like 'AB Verified' and 'Featured Author' to build trust.",
+      description: "Earn badges like 'AB Verified' and 'Featured Author' to build trust. Click 'Profile' in the left navigation bar.",
       step: "Step 4",
-      target: "profile-external",
+      target: "profile-sidebar",
     },
   ];
 
@@ -177,8 +177,8 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
               key={f.label}
               type="button"
               onClick={() => {
-                if (f.target === "profile-external") {
-                  handleProfileRedirect();
+                if (f.target === "profile-sidebar") {
+                  toast({ title: "Go to Profile", description: "Click 'Profile' in the left navigation bar to edit your author profile." });
                 } else {
                   onNavigate?.(f.target);
                 }
@@ -197,8 +197,8 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
               </div>
               <p className="text-sm text-muted-foreground">{f.description}</p>
               <span className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-secondary opacity-0 group-hover:opacity-100 transition-opacity">
-                {f.target === "profile-external" ? (
-                  <>Go to Author Profile <ExternalLink className="h-3 w-3" /></>
+                {f.target === "profile-sidebar" ? (
+                  <>Use Profile in sidebar <ArrowRight className="h-3 w-3" /></>
                 ) : (
                   <>Go to {f.label} <ArrowRight className="h-3 w-3" /></>
                 )}

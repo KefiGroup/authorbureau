@@ -1,11 +1,10 @@
 import { supabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
 
 const PUBLISHNOW_SSO_URL = "https://publishnowinterface.lovable.app/#/sso";
-const PUBLISHNOW_DIRECT_URL = "https://publishnowinterface.lovable.app/#";
 
 /**
- * Generate an SSO token via the shared backend and redirect to PublishNow.
- * Falls back to a direct link if SSO fails.
+ * Generate an SSO token via the shared backend and redirect to PublishNow
+ * with an optional target path (e.g. /profile, /dashboard).
  */
 export async function redirectToPublishNow(
   targetPath: string = "/dashboard"
@@ -14,11 +13,10 @@ export async function redirectToPublishNow(
     const { data: sessionData } = await supabase.auth.getSession();
     const session = sessionData?.session;
     if (!session?.access_token) {
-      // Not authenticated — open PublishNow directly (they'll see their own login)
-      window.open(`${PUBLISHNOW_DIRECT_URL}${targetPath}`, "_blank");
-      return {};
+      return { error: "Not authenticated" };
     }
 
+    // Generate action requires Authorization header for JWT auth.
     const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/sso-handoff`, {
       method: "POST",
       headers: {
@@ -37,19 +35,13 @@ export async function redirectToPublishNow(
 
     const data = await res.json();
     if (!res.ok || !data.token) {
-      // SSO generate failed — fall back to direct link
-      console.warn("[SSO] generate failed, opening direct link:", data.error || res.status);
-      window.open(`${PUBLISHNOW_DIRECT_URL}${targetPath}`, "_blank");
-      return {};
+      throw new Error(data.error || `SSO failed (${res.status})`);
     }
 
     const url = `${PUBLISHNOW_SSO_URL}?token=${data.token}&from=authorsbureau&redirect=${encodeURIComponent(targetPath)}`;
     window.open(url, "_blank");
     return {};
   } catch (err: any) {
-    // Network error — fall back to direct link
-    console.warn("[SSO] error, opening direct link:", err.message);
-    window.open(`${PUBLISHNOW_DIRECT_URL}${targetPath}`, "_blank");
-    return {};
+    return { error: err.message || "SSO redirect failed" };
   }
 }
