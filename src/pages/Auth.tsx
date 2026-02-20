@@ -206,7 +206,7 @@ export default function Auth() {
       <section className="py-20">
         <div className="container max-w-md">
           <div className="rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-card)] text-center space-y-6">
-            <h1 className="font-heading text-2xl font-bold">Sign In to AI Marketing Studio</h1>
+            <h1 className="font-heading text-2xl font-bold">Sign In to Authors Bureau</h1>
             <p className="text-sm text-muted-foreground">
               Authors Bureau uses your PublishNow account. Sign in with the email you registered on PublishNow.
             </p>
@@ -220,6 +220,12 @@ export default function Auth() {
               Sign In via PublishNow
             </Button>
 
+            <p className="text-xs text-muted-foreground">
+              Don't have an account?{" "}
+              <a href="https://publishnow.io" target="_blank" rel="noopener noreferrer" className="text-secondary font-medium hover:underline">
+                Get Featured
+              </a>
+            </p>
           </div>
         </div>
       </section>
