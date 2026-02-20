@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Loader2, AlertCircle, Image, Link as LinkIcon } from "lucide-react";
+import { Loader2, AlertCircle, Image, Link as LinkIcon, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -85,6 +85,49 @@ export default function DualModeBookForm({
   
 
   const [badgeInput, setBadgeInput] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleFileUpload = async (file: File) => {
+    setIsUploading(true);
+    try {
+      const { data: { session } } = await sharedSupabase.auth.getSession();
+      if (!session) {
+        toast({ title: "Not signed in", description: "Please sign in first", variant: "destructive" });
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-book-cover`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: formData,
+        }
+      );
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || "Upload failed");
+      }
+
+      update("coverImageUrl", result.url);
+      toast({ title: "Cover uploaded!", description: "Image uploaded successfully." });
+    } catch (err) {
+      console.error("Upload error:", err);
+      toast({
+        title: "Upload failed",
+        description: err instanceof Error ? err.message : "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const update = (field: keyof BookFormData, value: any) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -189,11 +232,39 @@ export default function DualModeBookForm({
         </Alert>
 
         <div className="space-y-6">
-          {/* Book Cover Image URL */}
+          {/* Book Cover Image */}
           <div>
-            <Label>Book Cover Image URL</Label>
+            <Label>Book Cover Image</Label>
             <div className="flex gap-3 items-start mt-1">
-              <div className="flex-1">
+              <div className="flex-1 space-y-2">
+                {/* File Upload */}
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isUploading}
+                    onClick={() => document.getElementById("cover-file-input")?.click()}
+                  >
+                    {isUploading ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Uploading...</>
+                    ) : (
+                      <><Upload className="mr-2 h-4 w-4" />Upload Image</>
+                    )}
+                  </Button>
+                  <span className="text-xs text-muted-foreground">or paste URL below</span>
+                  <input
+                    id="cover-file-input"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleFileUpload(file);
+                    }}
+                  />
+                </div>
+                {/* URL Input */}
                 <div className="relative">
                   <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -203,9 +274,6 @@ export default function DualModeBookForm({
                     className="pl-9"
                   />
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  Right-click your book cover on Amazon → "Copy image address" and paste here
-                </p>
               </div>
               {form.coverImageUrl && (
                 <img
