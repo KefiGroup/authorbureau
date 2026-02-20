@@ -155,13 +155,13 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
               key={f.label}
               type="button"
               onClick={() => {
-                if (f.target === "profile-sidebar") {
-                  toast({ title: "Go to Profile", description: "Click 'Profile' in the left navigation bar to edit your author profile." });
-                } else {
+                if (f.target !== "profile-sidebar") {
                   onNavigate?.(f.target);
                 }
               }}
-              className="rounded-xl border border-border bg-card p-5 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:border-secondary/40 transition-all text-left cursor-pointer group"
+              className={`rounded-xl border border-border bg-card p-5 shadow-[var(--shadow-card)] transition-all text-left ${
+                f.target === "profile-sidebar" ? "cursor-default" : "cursor-pointer hover:shadow-[var(--shadow-card-hover)] hover:border-secondary/40 group"
+              }`}
             >
               <div className="flex items-center gap-3 mb-2">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-secondary/15 transition-colors">
@@ -173,13 +173,15 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">{f.description}</p>
-              <span className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-secondary opacity-0 group-hover:opacity-100 transition-opacity">
-                {f.target === "profile-sidebar" ? (
-                  <>Go to Profile <ArrowRight className="h-3 w-3" /></>
-                ) : (
-                  <>Go to My Books <ArrowRight className="h-3 w-3" /></>
-                )}
-              </span>
+              {f.target === "profile-sidebar" ? (
+                <p className="mt-3 text-xs font-semibold text-secondary">
+                  👈 Click <span className="underline">Profile</span> in the left navigation bar to get started.
+                </p>
+              ) : (
+                <span className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-secondary opacity-0 group-hover:opacity-100 transition-opacity">
+                  Go to My Books <ArrowRight className="h-3 w-3" />
+                </span>
+              )}
             </button>
           ))}
         </div>
