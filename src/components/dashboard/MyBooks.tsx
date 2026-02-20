@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/shared-backend";
+import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,15 +22,28 @@ interface Book {
 }
 
 export default function MyBooks() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
 
+  const syncSession = async () => {
+    if (!session) return;
+    try {
+      await cloudSupabase.auth.setSession({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token,
+      });
+    } catch (err) {
+      console.error("Session sync failed:", err);
+    }
+  };
+
   const fetchBooks = async () => {
     if (!user) return;
     setLoading(true);
-    const { data } = await supabase
+    await syncSession();
+    const { data } = await cloudSupabase
       .from("books")
       .select("id, title, subtitle, slug, cover_image_url, published_at, entry_mode, genre, rating, badges, created_at")
       .eq("author_id", user.id)

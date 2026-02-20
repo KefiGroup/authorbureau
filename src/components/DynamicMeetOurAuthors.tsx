@@ -3,7 +3,8 @@ import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, BookOpen } from "lucide-react";
 import { Link } from "react-router-dom";
 import useEmblaCarousel from "embla-carousel-react";
-import { supabase } from "@/lib/shared-backend";
+import { supabase as sharedSupabase } from "@/lib/shared-backend";
+import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 
 interface BookWithAuthor {
   id: string;
@@ -60,14 +61,14 @@ export default function DynamicMeetOurAuthors() {
     const fetchAuthorsWithBooks = async () => {
       try {
         // Fetch all author profiles
-        const { data: authorsData, error: authError } = await supabase
+        const { data: authorsData, error: authError } = await sharedSupabase
           .from("author_profiles")
           .select("id, user_id, bio_short, genres, photo_url");
 
         if (authError) throw authError;
 
-        // Fetch all published books
-        const { data: booksData, error: booksError } = await supabase
+        // Fetch all published books (from Cloud project)
+        const { data: booksData, error: booksError } = await cloudSupabase
           .from("books")
           .select("id, title, subtitle, slug, cover_image_url, rating, pages, badges, amazon_url, author_id")
           .not("published_at", "is", null);

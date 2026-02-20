@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/shared-backend";
+import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface BookFormData {
   title: string;
@@ -42,6 +43,7 @@ export default function DualModeBookForm({
   onCancel,
 }: DualModeBookFormProps) {
   const { toast } = useToast();
+  const { session } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
@@ -65,10 +67,10 @@ export default function DualModeBookForm({
     authorPhotoUrl: "",
   });
 
-  // Auto-fill author fields from profile
+  // Auto-fill author fields from profile (shared backend has profiles)
   useEffect(() => {
     async function loadProfile() {
-      const { data } = await supabase
+      const { data } = await sharedSupabase
         .from("author_profiles")
         .select("pen_name, bio_short, bio_long, photo_url")
         .eq("user_id", authorId)
@@ -84,6 +86,21 @@ export default function DualModeBookForm({
     }
     loadProfile();
   }, [authorId]);
+
+  // Sync shared backend session to Cloud client for book operations
+  const syncSession = async () => {
+    if (!session) return false;
+    try {
+      await cloudSupabase.auth.setSession({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token,
+      });
+      return true;
+    } catch (err) {
+      console.error("Session sync failed:", err);
+      return false;
+    }
+  };
 
   const [badgeInput, setBadgeInput] = useState("");
 
@@ -166,13 +183,21 @@ export default function DualModeBookForm({
 
     setIsLoading(true);
     try {
+      // Sync auth session to Cloud before book operations
+      const synced = await syncSession();
+      if (!synced) {
+        toast({ title: "Authentication error", description: "Please sign in again", variant: "destructive" });
+        setIsLoading(false);
+        return;
+      }
+
       const slug = form.title
         .toLowerCase()
         .replace(/[^\w\s-]/g, "")
         .replace(/\s+/g, "-")
         .slice(0, 50);
 
-      const { data: existingBook } = await supabase
+      const { data: existingBook } = await cloudSupabase
         .from("books")
         .select("id")
         .eq("slug", slug)
@@ -187,7 +212,7 @@ export default function DualModeBookForm({
         return;
       }
 
-      const { data: newBook, error } = await supabase
+      const { data: newBook, error } = await cloudSupabase
         .from("books")
         .insert({
           author_id: authorId,
