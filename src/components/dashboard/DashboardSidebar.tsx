@@ -1,7 +1,5 @@
-import { User, BookOpen, Mic, GraduationCap, LayoutDashboard, ChevronLeft, ChevronRight, Crown, Sparkles, Zap, ExternalLink, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { User, BookOpen, Mic, GraduationCap, LayoutDashboard, ChevronLeft, ChevronRight, Crown, Sparkles, ExternalLink } from "lucide-react";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
-import { supabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
 import logoIcon from "@/assets/logo-icon.png";
 
 interface Props {
@@ -11,6 +9,8 @@ interface Props {
   onToggleCollapse: () => void;
   isPremium: boolean;
 }
+
+const PUBLISHNOW_URL = "https://publishnow.io";
 
 const navItems: { id: DashboardSection | "profile-external"; label: string; icon: typeof LayoutDashboard; premiumOnly?: boolean; external?: boolean }[] = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
@@ -23,39 +23,6 @@ const navItems: { id: DashboardSection | "profile-external"; label: string; icon
 ];
 
 export default function DashboardSidebar({ activeSection, onSectionChange, collapsed, onToggleCollapse, isPremium }: Props) {
-  const [ssoLoading, setSsoLoading] = useState(false);
-
-  const handleProfileRedirect = async () => {
-    setSsoLoading(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        window.open("https://publishnowinterface.lovable.app", "_blank");
-        return;
-      }
-      const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/sso-handoff`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({
-          action: "generate",
-          session_data: { access_token: session.access_token, refresh_token: session.refresh_token },
-          source_platform: "authorsbureau",
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.token) {
-        window.open("https://publishnowinterface.lovable.app", "_blank");
-        return;
-      }
-      window.open(`https://publishnowinterface.lovable.app/#/sso?token=${data.token}&from=authorsbureau&redirect=profile`, "_blank");
-    } catch (err) {
-      console.error("SSO redirect to profile failed:", err);
-      window.open("https://publishnowinterface.lovable.app", "_blank");
-    } finally {
-      setSsoLoading(false);
-    }
-  };
-
   return (
     <aside
       className={`hidden lg:flex flex-col border-r border-border bg-card transition-all duration-200 ${
@@ -82,7 +49,6 @@ export default function DashboardSidebar({ activeSection, onSectionChange, colla
         {navItems.map((item) => {
           const isLocked = item.premiumOnly && !isPremium;
           const isActive = !item.external && activeSection === item.id;
-          const isProfileLoading = item.external && ssoLoading;
 
           return (
             <button
@@ -90,12 +56,12 @@ export default function DashboardSidebar({ activeSection, onSectionChange, colla
               onClick={() => {
                 if (isLocked) return;
                 if (item.external) {
-                  handleProfileRedirect();
+                  window.open(PUBLISHNOW_URL, "_blank");
                 } else {
                   onSectionChange(item.id as DashboardSection);
                 }
               }}
-              disabled={isLocked || isProfileLoading}
+              disabled={isLocked}
               className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                 isActive
                   ? "bg-primary text-primary-foreground"
@@ -105,11 +71,7 @@ export default function DashboardSidebar({ activeSection, onSectionChange, colla
               }`}
               title={isLocked ? "Premium feature" : item.external ? "Edit on PublishNow.io" : item.label}
             >
-              {isProfileLoading ? (
-                <Loader2 className="h-5 w-5 shrink-0 animate-spin" />
-              ) : (
-                <item.icon className="h-5 w-5 shrink-0" />
-              )}
+              <item.icon className="h-5 w-5 shrink-0" />
               {!collapsed && (
                 <>
                   <span className="truncate">{item.label}</span>

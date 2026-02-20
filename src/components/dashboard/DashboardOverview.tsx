@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+const PUBLISHNOW_URL = "https://publishnow.io";
+
 interface DashboardOverviewProps {
   onNavigate?: (section: string) => void;
 }
@@ -18,42 +20,9 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
   const { toast } = useToast();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
-  const [ssoLoading, setSsoLoading] = useState(false);
 
-  const handleProfileRedirect = async () => {
-    setSsoLoading(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        // No session — just open PublishNow directly
-        window.open("https://publishnowinterface.lovable.app", "_blank");
-        return;
-      }
-      const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/sso-handoff`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({
-          action: "generate",
-          session_data: { access_token: session.access_token, refresh_token: session.refresh_token },
-          source_platform: "authorsbureau",
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      console.log("[Profile SSO] response:", res.status, data);
-      if (!res.ok || !data.token) {
-        // Fallback: open PublishNow directly without SSO
-        console.warn("[Profile SSO] Fallback to direct link");
-        window.open("https://publishnowinterface.lovable.app", "_blank");
-        return;
-      }
-      window.open(`https://publishnowinterface.lovable.app/#/sso?token=${data.token}&from=authorsbureau&redirect=profile`, "_blank");
-    } catch (err) {
-      console.error("SSO redirect to profile failed:", err);
-      // Fallback: open PublishNow directly
-      window.open("https://publishnowinterface.lovable.app", "_blank");
-    } finally {
-      setSsoLoading(false);
-    }
+  const handleProfileRedirect = () => {
+    window.open(PUBLISHNOW_URL, "_blank");
   };
 
   const handleUpgrade = async () => {
@@ -212,7 +181,7 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
                   onNavigate?.(f.target);
                 }
               }}
-              disabled={f.target === "profile-external" && ssoLoading}
+              disabled={false}
               className="rounded-xl border border-border bg-card p-5 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:border-secondary/40 transition-all text-left cursor-pointer group"
             >
               <div className="flex items-center gap-3 mb-2">
