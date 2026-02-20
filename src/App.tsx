@@ -1,8 +1,9 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Directory from "./pages/Directory";
@@ -28,22 +29,39 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// Redirect auth_token from any page to /auth
+function AuthTokenRedirect() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (location.pathname !== "/auth" && location.hash.includes("auth_token")) {
+      navigate(`/auth${location.hash}`, { replace: true });
+    }
+  }, [location, navigate]);
+
+  return null;
+}
+
 const AppRoutes = () => (
-  <Routes>
-    <Route path="/" element={<Index />} />
-    <Route path="/directory" element={<Directory />} />
-    <Route path="/authors/:slug" element={<AuthorProfile />} />
-    <Route path="/books/:slug" element={<BookMicrosite />} />
-    <Route path="/create-microsite" element={<ProtectedRoute><CreateMicrosite /></ProtectedRoute>} />
-    <Route path="/join" element={<Join />} />
-    <Route path="/auth" element={<Auth />} />
-    <Route path="/admin-login" element={<AdminAuth />} />
-    <Route path="/admin" element={<AdminDashboard />} />
-    <Route path="/dashboard" element={<AuthorDashboard />} />
-    <Route path="/contact" element={<Contact />} />
-    <Route path="/sso" element={<SSO />} />
-    <Route path="*" element={<NotFound />} />
-  </Routes>
+  <>
+    <AuthTokenRedirect />
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/directory" element={<Directory />} />
+      <Route path="/authors/:slug" element={<AuthorProfile />} />
+      <Route path="/books/:slug" element={<BookMicrosite />} />
+      <Route path="/create-microsite" element={<ProtectedRoute><CreateMicrosite /></ProtectedRoute>} />
+      <Route path="/join" element={<Join />} />
+      <Route path="/auth" element={<Auth />} />
+      <Route path="/admin-login" element={<AdminAuth />} />
+      <Route path="/admin" element={<AdminDashboard />} />
+      <Route path="/dashboard" element={<AuthorDashboard />} />
+      <Route path="/contact" element={<Contact />} />
+      <Route path="/sso" element={<SSO />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  </>
 );
 
 const App = () => (
