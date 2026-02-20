@@ -1,5 +1,5 @@
 import { useAuth, TIERS } from "@/hooks/useAuth";
-import { supabase } from "@/lib/shared-backend";
+import { supabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -18,6 +18,32 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
   const { toast } = useToast();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [ssoLoading, setSsoLoading] = useState(false);
+
+  const handleProfileRedirect = async () => {
+    setSsoLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+      const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/sso-handoff`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({
+          action: "generate",
+          session_data: { access_token: session.access_token, refresh_token: session.refresh_token },
+          source_platform: "authorsbureau",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.token) throw new Error(data.error || "SSO failed");
+      window.open(`https://publishnowinterface.lovable.app/#/sso?token=${data.token}&from=authorsbureau&redirect=profile`, "_blank");
+    } catch (err) {
+      console.error("SSO redirect to profile failed:", err);
+      toast({ title: "Could not open profile", description: "Please try again.", variant: "destructive" });
+    } finally {
+      setSsoLoading(false);
+    }
+  };
 
   const handleUpgrade = async () => {
     setCheckoutLoading(true);
@@ -53,7 +79,7 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
       label: "Author Profile",
       description: "Create your professional author profile to be discovered by readers and industry partners.",
       step: "Step 1",
-      target: "profile",
+      target: "profile-external",
     },
     {
       icon: BookOpen,
@@ -67,14 +93,14 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
       label: "Directory Listing",
       description: "Get listed in the Authors Bureau directory and increase your visibility.",
       step: "Step 3",
-      target: "profile",
+      target: "profile-external",
     },
     {
       icon: Star,
       label: "Credibility Badges",
       description: "Earn badges like 'AB Verified' and 'Featured Author' to build trust.",
       step: "Step 4",
-      target: "profile",
+      target: "profile-external",
     },
   ];
 
@@ -168,7 +194,14 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
             <button
               key={f.label}
               type="button"
-              onClick={() => onNavigate?.(f.target)}
+              onClick={() => {
+                if (f.target === "profile-external") {
+                  handleProfileRedirect();
+                } else {
+                  onNavigate?.(f.target);
+                }
+              }}
+              disabled={f.target === "profile-external" && ssoLoading}
               className="rounded-xl border border-border bg-card p-5 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:border-secondary/40 transition-all text-left cursor-pointer group"
             >
               <div className="flex items-center gap-3 mb-2">
@@ -182,7 +215,11 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
               </div>
               <p className="text-sm text-muted-foreground">{f.description}</p>
               <span className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-secondary opacity-0 group-hover:opacity-100 transition-opacity">
-                Go to {f.label} <ArrowRight className="h-3 w-3" />
+                {f.target === "profile-external" ? (
+                  <>Go to Author Profile <ExternalLink className="h-3 w-3" /></>
+                ) : (
+                  <>Go to {f.label} <ArrowRight className="h-3 w-3" /></>
+                )}
               </span>
             </button>
           ))}
