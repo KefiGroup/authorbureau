@@ -37,6 +37,17 @@ serve(async (req) => {
 
     const body = await req.json();
 
+    // Fetch author name from shared profile if not provided
+    let authorName = body.authorName || null;
+    if (!authorName) {
+      const { data: profile } = await sharedClient
+        .from("author_profiles")
+        .select("pen_name")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (profile?.pen_name) authorName = profile.pen_name;
+    }
+
     // 2. Generate slug
     const slug = body.title
       .toLowerCase()
@@ -81,7 +92,7 @@ serve(async (req) => {
         kindle_price: body.kindlePrice || null,
         paperback_price: body.paperbackPrice || null,
         amazon_url: body.amazonUrl,
-        author_name: body.authorName || null,
+        author_name: authorName,
         author_bio: body.authorBio || null,
         author_photo_url: body.authorPhotoUrl || null,
         cover_image_url: body.coverImageUrl || null,
