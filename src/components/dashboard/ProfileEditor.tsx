@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/shared-backend";
+import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -211,7 +212,7 @@ export default function ProfileEditor() {
       // Fetch book titles for context
       let bookTitles: string[] = [];
       try {
-        const { data: books } = await supabase.from("books").select("title").eq("author_id", user!.id);
+        const { data: books } = await cloudSupabase.from("books").select("title").eq("author_id", user!.id);
         if (books) bookTitles = books.map((b) => b.title);
       } catch {}
 

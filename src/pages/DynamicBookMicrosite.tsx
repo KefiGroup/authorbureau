@@ -5,7 +5,8 @@ import { BookOpen, ExternalLink, Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { supabase } from "@/lib/shared-backend";
+import { supabase as cloudSupabase } from "@/integrations/supabase/client";
+import { supabase as sharedSupabase } from "@/lib/shared-backend";
 
 interface Book {
   id: string;
@@ -57,7 +58,7 @@ export default function DynamicBookMicrosite() {
       if (!slug) return;
 
       try {
-        const { data, error: fetchError } = await supabase
+        const { data, error: fetchError } = await cloudSupabase
           .from("books")
           .select("*")
           .eq("slug", slug)
@@ -73,7 +74,7 @@ export default function DynamicBookMicrosite() {
         setBook(bookData);
 
         // Fetch author profile for photo/bio enrichment
-        const { data: profile } = await supabase
+        const { data: profile } = await sharedSupabase
           .from("author_profiles")
           .select("photo_url, bio_short, bio_long, pen_name")
           .eq("user_id", bookData.author_id)
