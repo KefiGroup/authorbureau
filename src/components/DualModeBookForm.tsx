@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, Upload, X, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/shared-backend";
+import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 
 interface BookFormData {
   title: string;
@@ -26,6 +27,7 @@ interface BookFormData {
   amazonUrl: string;
   authorName: string;
   authorBio: string;
+  authorPhotoUrl: string;
 }
 
 interface DualModeBookFormProps {
@@ -41,6 +43,9 @@ export default function DualModeBookForm({
 }: DualModeBookFormProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<BookFormData>({
     title: "",
     subtitle: "",
@@ -57,6 +62,7 @@ export default function DualModeBookForm({
     amazonUrl: "",
     authorName: "",
     authorBio: "",
+    authorPhotoUrl: "",
   });
 
   // Auto-fill author fields from profile
@@ -72,7 +78,7 @@ export default function DualModeBookForm({
           ...prev,
           authorName: prev.authorName || data.pen_name || "",
           authorBio: prev.authorBio || data.bio_short || data.bio_long || "",
-          coverImageUrl: prev.coverImageUrl || data.photo_url || "",
+          authorPhotoUrl: prev.authorPhotoUrl || data.photo_url || "",
         }));
       }
     }
@@ -96,6 +102,56 @@ export default function DualModeBookForm({
       "badges",
       form.badges.filter((_, i) => i !== index)
     );
+  };
+
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type and size
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Invalid file", description: "Please upload an image file", variant: "destructive" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Cover image must be under 5MB", variant: "destructive" });
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      // Show preview immediately
+      const previewUrl = URL.createObjectURL(file);
+      setCoverPreview(previewUrl);
+
+      const ext = file.name.split(".").pop() || "jpg";
+      const filePath = `${authorId}/${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await cloudSupabase.storage
+        .from("book-covers")
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = cloudSupabase.storage
+        .from("book-covers")
+        .getPublicUrl(filePath);
+
+      update("coverImageUrl", urlData.publicUrl);
+      toast({ title: "Cover uploaded!", description: "Your book cover has been uploaded." });
+    } catch (err) {
+      console.error("Upload error:", err);
+      setCoverPreview(null);
+      toast({ title: "Upload failed", description: "Please try again", variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const removeCover = () => {
+    update("coverImageUrl", "");
+    setCoverPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleSaveBook = async () => {
@@ -147,9 +203,11 @@ export default function DualModeBookForm({
           currency: form.currency,
           kindle_price: form.kindlePrice || null,
           paperback_price: form.paperbackPrice || null,
-          amazon_url: form.amazonUrl || null,
+          amazon_url: form.amazonUrl,
           author_name: form.authorName,
           author_bio: form.authorBio || null,
+          author_photo_url: form.authorPhotoUrl || null,
+          cover_image_url: form.coverImageUrl || null,
           entry_mode: "manual",
           ai_enriched: false,
         })
@@ -179,6 +237,8 @@ export default function DualModeBookForm({
     }
   };
 
+  const displayCover = coverPreview || form.coverImageUrl;
+
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
       <Card className="p-8">
@@ -192,6 +252,65 @@ export default function DualModeBookForm({
         </Alert>
 
         <div className="space-y-6">
+          {/* Book Cover Upload */}
+          <div>
+            <Label>Book Cover Image</Label>
+            <div className="mt-2">
+              {displayCover ? (
+                <div className="relative inline-block">
+                  <img
+                    src={displayCover}
+                    alt="Book cover preview"
+                    className="h-48 w-auto rounded-lg shadow-md object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={removeCover}
+                    className="absolute -top-2 -right-2 rounded-full bg-destructive text-destructive-foreground p-1 shadow-md hover:bg-destructive/90"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="flex flex-col items-center justify-center w-36 h-48 rounded-lg border-2 border-dashed border-muted-foreground/30 hover:border-secondary/50 transition-colors cursor-pointer bg-muted/30"
+                >
+                  {isUploading ? (
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  ) : (
+                    <>
+                      <Image className="h-8 w-8 text-muted-foreground/50 mb-2" />
+                      <span className="text-xs text-muted-foreground">Upload Cover</span>
+                    </>
+                  )}
+                </button>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleCoverUpload}
+                className="hidden"
+              />
+              {displayCover && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                >
+                  <Upload className="h-3.5 w-3.5 mr-1.5" />
+                  Replace
+                </Button>
+              )}
+            </div>
+          </div>
+
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <Label>Book Title *</Label>
@@ -241,7 +360,15 @@ export default function DualModeBookForm({
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div>
+              <Label>Hardcover Price</Label>
+              <Input
+                value={form.price}
+                onChange={(e) => update("price", e.target.value)}
+                placeholder="e.g. $24.99"
+              />
+            </div>
             <div>
               <Label>Kindle Price</Label>
               <Input
@@ -319,9 +446,25 @@ export default function DualModeBookForm({
             </div>
           </div>
 
+          {/* Auto-filled Author Info (read-only display) */}
+          {(form.authorName || form.authorPhotoUrl) && (
+            <div className="rounded-lg bg-muted/50 border border-border p-4">
+              <Label className="text-xs text-muted-foreground mb-2 block">Author Info (from your profile)</Label>
+              <div className="flex items-center gap-3">
+                {form.authorPhotoUrl && (
+                  <img src={form.authorPhotoUrl} alt={form.authorName} className="w-10 h-10 rounded-full object-cover" />
+                )}
+                <div>
+                  <p className="font-semibold text-sm">{form.authorName}</p>
+                  {form.authorBio && <p className="text-xs text-muted-foreground line-clamp-1">{form.authorBio}</p>}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4">
-            <Button onClick={handleSaveBook} disabled={isLoading} className="flex-1">
+            <Button onClick={handleSaveBook} disabled={isLoading || isUploading} className="flex-1">
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
