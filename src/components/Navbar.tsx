@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
 import logoIcon from "@/assets/logo-icon.png";
 
 const navLinks = [
@@ -18,6 +19,7 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, isAdmin } = useAuth();
 
   const handleNavClick = useCallback(
     (link: (typeof navLinks)[0]) => {
@@ -26,7 +28,6 @@ export default function Navbar() {
         if (location.pathname === link.to) {
           document.querySelector(link.hash)?.scrollIntoView({ behavior: "smooth" });
         } else {
-          // Use native navigation for cross-page hash links
           window.location.href = link.to + link.hash;
         }
       } else {
@@ -35,6 +36,8 @@ export default function Navbar() {
     },
     [location.pathname, navigate]
   );
+
+  const dashboardPath = isAdmin ? "/admin" : "/dashboard";
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
@@ -72,15 +75,23 @@ export default function Navbar() {
               </button>
             )
           )}
-          <Link
-            to="/auth"
-            className="text-sm font-semibold text-secondary transition-colors hover:text-secondary/80"
-          >
-            Sign In
-          </Link>
-          <Button asChild variant="default" size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-none rounded-full">
-            <Link to="/auth">Get Featured</Link>
-          </Button>
+          {user ? (
+            <Button asChild variant="default" size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-none rounded-full">
+              <Link to={dashboardPath}>Dashboard</Link>
+            </Button>
+          ) : (
+            <>
+              <Link
+                to="/auth"
+                className="text-sm font-semibold text-secondary transition-colors hover:text-secondary/80"
+              >
+                Sign In
+              </Link>
+              <Button asChild variant="default" size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-none rounded-full">
+                <Link to="/auth">Get Featured</Link>
+              </Button>
+            </>
+          )}
         </div>
 
         {/* Mobile toggle */}
@@ -121,20 +132,32 @@ export default function Navbar() {
                   </button>
                 )
               )}
-              <Link
-                to="/auth"
-                onClick={() => setOpen(false)}
-                className="text-sm font-semibold text-secondary"
-              >
-                Sign In
-              </Link>
-              <Link
-                to="/auth"
-                onClick={() => setOpen(false)}
-                className="inline-flex w-fit items-center rounded-full bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground"
-              >
-                Get Featured
-              </Link>
+              {user ? (
+                <Link
+                  to={dashboardPath}
+                  onClick={() => setOpen(false)}
+                  className="inline-flex w-fit items-center rounded-full bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground"
+                >
+                  Dashboard
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    to="/auth"
+                    onClick={() => setOpen(false)}
+                    className="text-sm font-semibold text-secondary"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    to="/auth"
+                    onClick={() => setOpen(false)}
+                    className="inline-flex w-fit items-center rounded-full bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground"
+                  >
+                    Get Featured
+                  </Link>
+                </>
+              )}
             </div>
           </motion.div>
         )}
