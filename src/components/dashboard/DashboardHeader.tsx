@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import type { User } from "@supabase/supabase-js";
 
-const PUBLISHNOW_URL = "https://publishnow.io";
+const PUBLISHNOW_URL = "https://publishnow.io/#/dashboard";
 
 interface Props {
   user: User;

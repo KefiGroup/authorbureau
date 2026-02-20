@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-const PUBLISHNOW_URL = "https://publishnow.io";
+const PUBLISHNOW_PROFILE_URL = "https://publishnow.io/#/profile";
 
 interface DashboardOverviewProps {
   onNavigate?: (section: string) => void;
@@ -22,7 +22,7 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
   const [portalLoading, setPortalLoading] = useState(false);
 
   const handleProfileRedirect = () => {
-    window.open(PUBLISHNOW_URL, "_blank");
+    window.open(PUBLISHNOW_PROFILE_URL, "_blank");
   };
 
   const handleUpgrade = async () => {
