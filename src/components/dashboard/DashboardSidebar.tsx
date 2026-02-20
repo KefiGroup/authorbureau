@@ -1,5 +1,7 @@
-import { User, BookOpen, Mic, GraduationCap, LayoutDashboard, ChevronLeft, ChevronRight, Crown, Sparkles, Zap } from "lucide-react";
+import { User, BookOpen, Mic, GraduationCap, LayoutDashboard, ChevronLeft, ChevronRight, Crown, Sparkles, Zap, ExternalLink, Loader2 } from "lucide-react";
+import { useState } from "react";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
+import { supabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
 import logoIcon from "@/assets/logo-icon.png";
 
 interface Props {
@@ -10,9 +12,9 @@ interface Props {
   isPremium: boolean;
 }
 
-const navItems: { id: DashboardSection; label: string; icon: typeof LayoutDashboard; premiumOnly?: boolean }[] = [
+const navItems: { id: DashboardSection | "profile-external"; label: string; icon: typeof LayoutDashboard; premiumOnly?: boolean; external?: boolean }[] = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
-  { id: "profile", label: "Profile", icon: User },
+  { id: "profile-external", label: "Profile", icon: User, external: true },
   { id: "my-books", label: "My Books", icon: BookOpen },
   { id: "ai-toolkit", label: "AI Toolkit", icon: Sparkles, premiumOnly: true },
   { id: "courses", label: "Courses", icon: GraduationCap, premiumOnly: true },
@@ -21,6 +23,44 @@ const navItems: { id: DashboardSection; label: string; icon: typeof LayoutDashbo
 ];
 
 export default function DashboardSidebar({ activeSection, onSectionChange, collapsed, onToggleCollapse, isPremium }: Props) {
+  const [ssoLoading, setSsoLoading] = useState(false);
+
+  const handleProfileRedirect = async () => {
+    setSsoLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const res = await fetch(
+        `${SHARED_BACKEND_URL}/functions/v1/sso-handoff`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            action: "generate",
+            session_data: {
+              access_token: session.access_token,
+              refresh_token: session.refresh_token,
+            },
+            source_platform: "authorsbureau",
+          }),
+        }
+      );
+
+      const data = await res.json();
+      if (!res.ok || !data.token) throw new Error(data.error || "Failed to generate SSO token");
+
+      window.open(`https://publishnowinterface.lovable.app/#/sso?token=${data.token}&from=authorsbureau&redirect=profile`, "_blank");
+    } catch (err) {
+      console.error("SSO redirect to profile failed:", err);
+    } finally {
+      setSsoLoading(false);
+    }
+  };
+
   return (
     <aside
       className={`hidden lg:flex flex-col border-r border-border bg-card transition-all duration-200 ${
@@ -46,13 +86,21 @@ export default function DashboardSidebar({ activeSection, onSectionChange, colla
       <nav className="flex-1 py-4 space-y-1 px-2">
         {navItems.map((item) => {
           const isLocked = item.premiumOnly && !isPremium;
-          const isActive = activeSection === item.id;
+          const isActive = !item.external && activeSection === item.id;
+          const isProfileLoading = item.external && ssoLoading;
 
           return (
             <button
               key={item.id}
-              onClick={() => !isLocked && onSectionChange(item.id)}
-              disabled={isLocked}
+              onClick={() => {
+                if (isLocked) return;
+                if (item.external) {
+                  handleProfileRedirect();
+                } else {
+                  onSectionChange(item.id as DashboardSection);
+                }
+              }}
+              disabled={isLocked || isProfileLoading}
               className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                 isActive
                   ? "bg-primary text-primary-foreground"
@@ -60,13 +108,18 @@ export default function DashboardSidebar({ activeSection, onSectionChange, colla
                   ? "text-muted-foreground/50 cursor-not-allowed"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
-              title={isLocked ? "Premium feature" : item.label}
+              title={isLocked ? "Premium feature" : item.external ? "Edit on PublishNow.io" : item.label}
             >
-              <item.icon className="h-5 w-5 shrink-0" />
+              {isProfileLoading ? (
+                <Loader2 className="h-5 w-5 shrink-0 animate-spin" />
+              ) : (
+                <item.icon className="h-5 w-5 shrink-0" />
+              )}
               {!collapsed && (
                 <>
                   <span className="truncate">{item.label}</span>
                   {isLocked && <Crown className="ml-auto h-3.5 w-3.5 text-secondary" />}
+                  {item.external && <ExternalLink className="ml-auto h-3.5 w-3.5 text-muted-foreground/50" />}
                 </>
               )}
             </button>
