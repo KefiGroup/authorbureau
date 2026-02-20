@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
-import { supabase as sharedSupabase } from "@/lib/shared-backend";
+// sharedSupabase imported below after lucide icons
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { BookOpen, Plus, ExternalLink, Pencil, Loader2, Upload, Globe } from "lucide-react";
+import { BookOpen, Plus, ExternalLink, Pencil, Loader2, Upload, Globe, ImagePlus } from "lucide-react";
+import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import DualModeBookForm from "@/components/DualModeBookForm";
 
 interface Book {
@@ -30,6 +31,7 @@ export default function MyBooks() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [publishing, setPublishing] = useState<string | null>(null);
+  const [uploadingCover, setUploadingCover] = useState<string | null>(null);
 
   const syncSession = async () => {
     if (!session) return;
@@ -116,6 +118,42 @@ export default function MyBooks() {
     }
   };
 
+  const handleUploadCover = async (bookId: string, file: File) => {
+    setUploadingCover(bookId);
+    try {
+      const { data: { session } } = await sharedSupabase.auth.getSession();
+      if (!session) {
+        toast({ title: "Not signed in", variant: "destructive" });
+        return;
+      }
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("bookId", bookId);
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-book-cover`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${session.access_token}` },
+          body: formData,
+        }
+      );
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+
+      toast({ title: "Cover updated! 📸" });
+      fetchBooks();
+    } catch (err) {
+      toast({
+        title: "Upload failed",
+        description: err instanceof Error ? err.message : "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingCover(null);
+    }
+  };
+
   if (showForm && user) {
     return (
       <div className="max-w-3xl">
@@ -172,12 +210,37 @@ export default function MyBooks() {
           {books.map((book) => (
             <Card key={book.id} className="overflow-hidden hover:shadow-[var(--shadow-card-hover)] transition-shadow group">
               {/* Cover */}
-              <div className="aspect-[3/2] bg-muted flex items-center justify-center overflow-hidden">
+              <div className="aspect-[3/2] bg-muted flex items-center justify-center overflow-hidden relative">
                 {book.cover_image_url ? (
                   <img src={book.cover_image_url} alt={book.title} className="h-full w-full object-cover" />
                 ) : (
                   <BookOpen className="h-10 w-10 text-muted-foreground/30" />
                 )}
+                {/* Upload cover overlay */}
+                <label
+                  className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-colors cursor-pointer"
+                  htmlFor={`cover-upload-${book.id}`}
+                >
+                  <span className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 text-white text-xs font-medium bg-black/60 rounded-full px-3 py-1.5">
+                    {uploadingCover === book.id ? (
+                      <><Loader2 className="h-3.5 w-3.5 animate-spin" />Uploading...</>
+                    ) : (
+                      <><ImagePlus className="h-3.5 w-3.5" />{book.cover_image_url ? "Change Cover" : "Add Cover"}</>
+                    )}
+                  </span>
+                </label>
+                <input
+                  id={`cover-upload-${book.id}`}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={uploadingCover === book.id}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleUploadCover(book.id, file);
+                    e.target.value = "";
+                  }}
+                />
               </div>
 
               <div className="p-4 space-y-3">
