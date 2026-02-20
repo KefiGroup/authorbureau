@@ -115,58 +115,47 @@ export default function DualModeBookForm({
 
     setIsLoading(true);
     try {
-
-      const slug = form.title
-        .toLowerCase()
-        .replace(/[^\w\s-]/g, "")
-        .replace(/\s+/g, "-")
-        .slice(0, 50);
-
-      const { data: existingBook } = await sharedSupabase
-        .from("books")
-        .select("id")
-        .eq("slug", slug)
-        .maybeSingle();
-
-      if (existingBook) {
-        toast({
-          title: "Book already exists",
-          description: "A book with this title already exists. Please use a different title.",
-          variant: "destructive",
-        });
+      // Get the current session token from shared backend
+      const { data: { session } } = await sharedSupabase.auth.getSession();
+      if (!session) {
+        toast({ title: "Not signed in", description: "Please sign in first", variant: "destructive" });
+        setIsLoading(false);
         return;
       }
 
-      const { data: newBook, error } = await sharedSupabase
-        .from("books")
-        .insert({
-          author_id: authorId,
-          title: form.title,
-          subtitle: form.subtitle || null,
-          description: form.description,
-          slug,
-          pages: form.pages,
-          rating: form.rating,
-          genre: form.genre || null,
-          badges: form.badges,
-          price: form.price || null,
-          currency: form.currency,
-          kindle_price: form.kindlePrice || null,
-          paperback_price: form.paperbackPrice || null,
-          amazon_url: form.amazonUrl,
-          author_name: form.authorName,
-          author_bio: form.authorBio || null,
-          author_photo_url: form.authorPhotoUrl || null,
-          cover_image_url: form.coverImageUrl || null,
-          entry_mode: "manual",
-          ai_enriched: false,
-        })
-        .select("id")
-        .single();
+      // Call edge function which handles save with service role
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/save-book`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            title: form.title,
+            subtitle: form.subtitle,
+            description: form.description,
+            pages: form.pages,
+            rating: form.rating,
+            genre: form.genre,
+            badges: form.badges,
+            price: form.price,
+            currency: form.currency,
+            kindlePrice: form.kindlePrice,
+            paperbackPrice: form.paperbackPrice,
+            amazonUrl: form.amazonUrl,
+            authorName: form.authorName,
+            authorBio: form.authorBio,
+            authorPhotoUrl: form.authorPhotoUrl,
+            coverImageUrl: form.coverImageUrl,
+          }),
+        }
+      );
 
-      if (error) {
-        console.error("DB insert error:", error.message, error.code, error.details);
-        throw error;
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to save book");
       }
 
       toast({
@@ -174,7 +163,7 @@ export default function DualModeBookForm({
         description: "Your microsite is now live.",
       });
 
-      onSuccess?.(newBook.id);
+      onSuccess?.(result.id);
     } catch (err) {
       console.error("Save error:", err);
       toast({
