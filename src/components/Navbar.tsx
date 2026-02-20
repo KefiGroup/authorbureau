@@ -79,7 +79,7 @@ export default function Navbar() {
             Sign In
           </Link>
           <Button asChild variant="default" size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-none rounded-full">
-            <Link to="/join">Get Featured</Link>
+            <a href="https://publishnow.io" target="_blank" rel="noopener noreferrer">Get Featured</a>
           </Button>
         </div>
 
@@ -128,13 +128,15 @@ export default function Navbar() {
               >
                 Sign In
               </Link>
-              <Link
-                to="/join"
+              <a
+                href="https://publishnow.io"
+                target="_blank"
+                rel="noopener noreferrer"
                 onClick={() => setOpen(false)}
                 className="inline-flex w-fit items-center rounded-full bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground"
               >
                 Get Featured
-              </Link>
+              </a>
             </div>
           </motion.div>
         )}
