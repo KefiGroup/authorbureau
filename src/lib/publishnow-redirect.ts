@@ -1,16 +1,45 @@
-const PUBLISHNOW_BASE = "https://publishnowinterface.lovable.app/#";
+import { supabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
+
+const PUBLISHNOW_SSO_URL = "https://publishnowinterface.lovable.app/#/sso";
 
 /**
- * Open PublishNow in a new tab at the given path.
- * SSO handoff is currently unavailable, so we link directly.
+ * Generate an SSO token via the shared backend and redirect to PublishNow
+ * with an optional target path (e.g. /profile, /dashboard).
  */
 export async function redirectToPublishNow(
   targetPath: string = "/dashboard"
 ): Promise<{ error?: string }> {
   try {
-    window.open(`${PUBLISHNOW_BASE}${targetPath}`, "_blank");
+    const { data: sessionData } = await supabase.auth.getSession();
+    const session = sessionData?.session;
+    if (!session?.access_token) {
+      return { error: "Not authenticated" };
+    }
+
+    // Call sso-handoff the same way as the validate flow in SSO.tsx —
+    // no Authorization header, just Content-Type + body with session_data.
+    const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/sso-handoff`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "generate",
+        source_platform: "authorsbureau",
+        session_data: {
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+        },
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.token) {
+      throw new Error(data.error || `SSO failed (${res.status})`);
+    }
+
+    const url = `${PUBLISHNOW_SSO_URL}?token=${data.token}&from=authorsbureau&redirect=${encodeURIComponent(targetPath)}`;
+    window.open(url, "_blank");
     return {};
   } catch (err: any) {
-    return { error: err.message || "Could not open PublishNow" };
+    return { error: err.message || "SSO redirect failed" };
   }
 }
