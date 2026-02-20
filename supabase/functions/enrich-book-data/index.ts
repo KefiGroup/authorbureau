@@ -59,9 +59,10 @@ serve(async (req) => {
         });
 
         const bookData = await bookResponse.json();
+        const rawMarkdown = bookData.data?.markdown || bookData.markdown || "";
 
-        if (bookResponse.ok && bookData.markdown) {
-          const markdown = bookData.markdown.toLowerCase();
+        if (bookResponse.ok && rawMarkdown) {
+          const markdown = rawMarkdown.toLowerCase();
 
           // Extract page count
           const pageMatch = markdown.match(/(\d+)\s*(?:pages?|pages?:|pages?\s*:)/i);
