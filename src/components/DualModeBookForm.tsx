@@ -137,6 +137,14 @@ export default function DualModeBookForm({
 
     setIsUploading(true);
     try {
+      // Sync auth session to Cloud before upload
+      const synced = await syncSession();
+      if (!synced) {
+        toast({ title: "Authentication error", description: "Please sign in again", variant: "destructive" });
+        setIsUploading(false);
+        return;
+      }
+
       // Show preview immediately
       const previewUrl = URL.createObjectURL(file);
       setCoverPreview(previewUrl);
