@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/shared-backend";
+import { supabase } from "@/integrations/supabase/client";
+import { supabase as sharedSupabase } from "@/lib/shared-backend";
 
 interface BookFormData {
   title: string;
@@ -62,7 +63,7 @@ export default function DualModeBookForm({
   // Auto-fill author fields from profile
   useEffect(() => {
     async function loadProfile() {
-      const { data } = await supabase
+      const { data } = await sharedSupabase
         .from("author_profiles")
         .select("pen_name, bio_short, bio_long, photo_url")
         .eq("user_id", authorId)
