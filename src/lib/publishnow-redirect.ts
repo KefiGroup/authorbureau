@@ -16,11 +16,14 @@ export async function redirectToPublishNow(
       return { error: "Not authenticated" };
     }
 
-    // Call sso-handoff the same way as the validate flow in SSO.tsx —
-    // no Authorization header, just Content-Type + body with session_data.
+    // Generate action requires Authorization header for JWT auth.
+    // No apikey header — matches the validate call pattern in SSO.tsx.
     const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/sso-handoff`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
       body: JSON.stringify({
         action: "generate",
         source_platform: "authorsbureau",
