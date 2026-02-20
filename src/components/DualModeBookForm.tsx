@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Loader2, AlertCircle, Upload, X, Image } from "lucide-react";
+import { Loader2, AlertCircle, Image, Link as LinkIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -45,9 +45,6 @@ export default function DualModeBookForm({
   const { toast } = useToast();
   const { session } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [coverPreview, setCoverPreview] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<BookFormData>({
     title: "",
     subtitle: "",
@@ -119,58 +116,6 @@ export default function DualModeBookForm({
       "badges",
       form.badges.filter((_, i) => i !== index)
     );
-  };
-
-  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type and size
-    if (!file.type.startsWith("image/")) {
-      toast({ title: "Invalid file", description: "Please upload an image file", variant: "destructive" });
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: "File too large", description: "Cover image must be under 5MB", variant: "destructive" });
-      return;
-    }
-
-    setIsUploading(true);
-    try {
-
-      // Show preview immediately
-      const previewUrl = URL.createObjectURL(file);
-      setCoverPreview(previewUrl);
-
-      const ext = file.name.split(".").pop() || "jpg";
-      const filePath = `${authorId}/book-cover-${Date.now()}.${ext}`;
-
-      // Upload to shared backend storage (where auth session lives)
-      const { error: uploadError } = await sharedSupabase.storage
-        .from("author-photos")
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = sharedSupabase.storage
-        .from("author-photos")
-        .getPublicUrl(filePath);
-
-      update("coverImageUrl", urlData.publicUrl);
-      toast({ title: "Cover uploaded!", description: "Your book cover has been uploaded." });
-    } catch (err) {
-      console.error("Upload error:", err);
-      setCoverPreview(null);
-      toast({ title: "Upload failed", description: "Please try again", variant: "destructive" });
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const removeCover = () => {
-    update("coverImageUrl", "");
-    setCoverPreview(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleSaveBook = async () => {
@@ -264,8 +209,6 @@ export default function DualModeBookForm({
     }
   };
 
-  const displayCover = coverPreview || form.coverImageUrl;
-
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
       <Card className="p-8">
@@ -279,61 +222,31 @@ export default function DualModeBookForm({
         </Alert>
 
         <div className="space-y-6">
-          {/* Book Cover Upload */}
+          {/* Book Cover Image URL */}
           <div>
-            <Label>Book Cover Image</Label>
-            <div className="mt-2">
-              {displayCover ? (
-                <div className="relative inline-block">
-                  <img
-                    src={displayCover}
-                    alt="Book cover preview"
-                    className="h-48 w-auto rounded-lg shadow-md object-cover"
+            <Label>Book Cover Image URL</Label>
+            <div className="flex gap-3 items-start mt-1">
+              <div className="flex-1">
+                <div className="relative">
+                  <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    value={form.coverImageUrl}
+                    onChange={(e) => update("coverImageUrl", e.target.value)}
+                    placeholder="Paste image URL (e.g. from Amazon or your website)"
+                    className="pl-9"
                   />
-                  <button
-                    type="button"
-                    onClick={removeCover}
-                    className="absolute -top-2 -right-2 rounded-full bg-destructive text-destructive-foreground p-1 shadow-md hover:bg-destructive/90"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
                 </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading}
-                  className="flex flex-col items-center justify-center w-36 h-48 rounded-lg border-2 border-dashed border-muted-foreground/30 hover:border-secondary/50 transition-colors cursor-pointer bg-muted/30"
-                >
-                  {isUploading ? (
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                  ) : (
-                    <>
-                      <Image className="h-8 w-8 text-muted-foreground/50 mb-2" />
-                      <span className="text-xs text-muted-foreground">Upload Cover</span>
-                    </>
-                  )}
-                </button>
-              )}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleCoverUpload}
-                className="hidden"
-              />
-              {displayCover && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="mt-2"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading}
-                >
-                  <Upload className="h-3.5 w-3.5 mr-1.5" />
-                  Replace
-                </Button>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Right-click your book cover on Amazon → "Copy image address" and paste here
+                </p>
+              </div>
+              {form.coverImageUrl && (
+                <img
+                  src={form.coverImageUrl}
+                  alt="Cover preview"
+                  className="h-20 w-auto rounded-md shadow-sm object-cover shrink-0"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
               )}
             </div>
           </div>
@@ -491,7 +404,7 @@ export default function DualModeBookForm({
 
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4">
-            <Button onClick={handleSaveBook} disabled={isLoading || isUploading} className="flex-1">
+            <Button onClick={handleSaveBook} disabled={isLoading} className="flex-1">
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
