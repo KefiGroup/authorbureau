@@ -30,8 +30,18 @@ export default function AuthorDashboard() {
     const syncProfile = async () => {
       try {
         const { supabase: sharedSupabase } = await import("@/lib/shared-backend");
-        const { data: { session } } = await sharedSupabase.auth.getSession();
-        if (!session) return;
+        const { supabase: cloudClient } = await import("@/integrations/supabase/client");
+        
+        // Try shared session first (has the profile data), fallback to Cloud
+        let token: string | null = null;
+        const { data: sharedSession } = await sharedSupabase.auth.getSession();
+        if (sharedSession?.session?.access_token) {
+          token = sharedSession.session.access_token;
+        } else {
+          const { data: cloudSession } = await cloudClient.auth.getSession();
+          token = cloudSession?.session?.access_token || null;
+        }
+        if (!token) return;
 
         await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-author-profile`,
@@ -39,7 +49,7 @@ export default function AuthorDashboard() {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${session.access_token}`,
+              Authorization: `Bearer ${token}`,
             },
           }
         );

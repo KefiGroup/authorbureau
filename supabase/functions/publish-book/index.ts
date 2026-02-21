@@ -1,22 +1,35 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
 const SHARED_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnRkcG5la3NjcnNnaHF0c3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MDYzODksImV4cCI6MjA4NDQ4MjM4OX0.o2qA4tLao4UtxPGxSnavXIYKUmVZvS99pHtnL220L-s";
 
-serve(async (req) => {
+async function resolveUserId(token: string): Promise<{ userId: string | null; error?: string }> {
+  const cloudAdmin = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+  const { data: { user: cloudUser } } = await cloudAdmin.auth.getUser(token);
+  if (cloudUser) return { userId: cloudUser.id };
+
+  const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
+  const { data: { user: sharedUser }, error } = await sharedClient.auth.getUser(token);
+  if (error || !sharedUser) return { userId: null, error: "Invalid session" };
+  return { userId: sharedUser.id };
+}
+
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Verify user on shared backend
     const authHeader = req.headers.get("authorization") ?? "";
     const token = authHeader.replace("Bearer ", "");
     if (!token) {
@@ -26,10 +39,9 @@ serve(async (req) => {
       });
     }
 
-    const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
-    const { data: { user }, error: authError } = await sharedClient.auth.getUser(token);
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Invalid session" }), {
+    const { userId, error: authErr } = await resolveUserId(token);
+    if (!userId) {
+      return new Response(JSON.stringify({ error: authErr }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -55,7 +67,7 @@ serve(async (req) => {
       .eq("id", bookId)
       .single();
 
-    if (!book || book.author_id !== user.id) {
+    if (!book || book.author_id !== userId) {
       return new Response(JSON.stringify({ error: "Book not found or not yours" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
