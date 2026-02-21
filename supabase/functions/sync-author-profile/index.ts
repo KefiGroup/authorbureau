@@ -10,6 +10,38 @@ const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
 const SHARED_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnRkcG5la3NjcnNnaHF0c3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MDYzODksImV4cCI6MjA4NDQ4MjM4OX0.o2qA4tLao4UtxPGxSnavXIYKUmVZvS99pHtnL220L-s";
 
+// Helper: query shared backend author_profiles via REST
+async function fetchSharedProfile(
+  userId: string,
+  token: string | null
+): Promise<any | null> {
+  // Build headers — include token only if it's a shared backend token
+  const headers: Record<string, string> = {
+    apikey: SHARED_ANON_KEY,
+    "Content-Type": "application/json",
+  };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  // Query by user_id
+  const url = `${SHARED_BACKEND_URL}/rest/v1/author_profiles?user_id=eq.${userId}&select=*&limit=1`;
+  const res = await fetch(url, { headers });
+
+  if (res.ok) {
+    const data = await res.json();
+    console.log("Shared profile query (user_id=" + userId + "):", data.length, "rows");
+    if (Array.isArray(data) && data.length > 0) {
+      console.log("Shared profile columns:", Object.keys(data[0]));
+      console.log("Shared profile data:", JSON.stringify(data[0]).slice(0, 500));
+      return data[0];
+    }
+  } else {
+    console.log("Shared profile query failed:", res.status);
+  }
+  return null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -30,20 +62,23 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Resolve user from shared backend (primary auth source)
+    // Resolve user — try shared backend first, then Cloud
     const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
-    const { data: { user: sharedUser }, error: sharedErr } = await sharedClient.auth.getUser(token);
-    
+    const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
+
     let userId: string;
+    let sharedUserId: string | null = null;
     let userEmail: string | undefined;
     let userMeta: Record<string, any> = {};
+    let isSharedToken = false;
 
     if (sharedUser) {
       userId = sharedUser.id;
+      sharedUserId = sharedUser.id;
       userEmail = sharedUser.email;
       userMeta = sharedUser.user_metadata || {};
+      isSharedToken = true;
     } else {
-      // Fallback to Cloud auth
       const { data: { user: cloudUser } } = await cloudAdmin.auth.getUser(token);
       if (!cloudUser) {
         return new Response(JSON.stringify({ error: "Invalid session" }), {
@@ -54,71 +89,81 @@ Deno.serve(async (req) => {
       userId = cloudUser.id;
       userEmail = cloudUser.email;
       userMeta = cloudUser.user_metadata || {};
+
+      // Try to find the corresponding shared backend user by email
+      if (userEmail) {
+        const { data: { users } } = await sharedClient.auth.admin.listUsers();
+        // admin.listUsers won't work with anon key — skip this approach
+        // Instead, we'll query the shared profile without auth (anon access)
+      }
     }
 
-    console.log("Syncing profile for user:", userId, "email:", userEmail);
+    console.log("Syncing profile for user:", userId, "email:", userEmail, "isSharedToken:", isSharedToken);
     console.log("User metadata keys:", Object.keys(userMeta));
 
-    // Try to fetch author_profiles from shared backend via REST
+    // Fetch author profile from shared backend
     let profile: any = null;
 
-    // Attempt 1: query by id (shared backend uses id = auth.uid())
-    const res1 = await fetch(
-      `${SHARED_BACKEND_URL}/rest/v1/author_profiles?user_id=eq.${userId}&select=*&limit=1`,
-      {
-        headers: {
-          apikey: SHARED_ANON_KEY,
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    if (res1.ok) {
-      const data1 = await res1.json();
-      console.log("Profile query by id returned:", data1.length, "rows");
-      if (Array.isArray(data1) && data1.length > 0) {
-        profile = data1[0];
-      }
-    } else {
-      console.log("Profile query by id failed:", await res1.text());
+    if (isSharedToken && sharedUserId) {
+      // Use the shared token — this should work with RLS
+      profile = await fetchSharedProfile(sharedUserId, token);
     }
 
-    // Attempt 2: RLS-filtered query (should return only the user's own profile)
-    if (!profile) {
-      const res2 = await fetch(
-        `${SHARED_BACKEND_URL}/rest/v1/author_profiles?select=*&limit=1`,
+    // If that failed or we're on Cloud token, try without auth (anon access)
+    // The shared backend likely has a public SELECT policy on author_profiles
+    if (!profile && sharedUserId) {
+      console.log("Retrying shared profile query without auth token...");
+      profile = await fetchSharedProfile(sharedUserId, null);
+    }
+
+    // If we're on Cloud token, we don't know the shared user_id
+    // Try RLS-filtered query without auth to get any accessible profiles
+    if (!profile && !isSharedToken) {
+      console.log("Cloud token — trying anon query for all accessible profiles...");
+      const res = await fetch(
+        `${SHARED_BACKEND_URL}/rest/v1/author_profiles?select=*`,
         {
           headers: {
             apikey: SHARED_ANON_KEY,
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
       );
-
-      if (res2.ok) {
-        const data2 = await res2.json();
-        console.log("RLS-filtered profile query returned:", data2.length, "rows");
-        if (Array.isArray(data2) && data2.length > 0) {
-          profile = data2[0];
+      if (res.ok) {
+        const allProfiles = await res.json();
+        console.log("Anon query returned:", allProfiles.length, "profiles");
+        // Match by pen_name or display_name from Cloud user metadata
+        if (Array.isArray(allProfiles) && allProfiles.length > 0) {
+          const displayName = userMeta.display_name || userMeta.full_name || userMeta.name;
+          if (displayName) {
+            profile = allProfiles.find(
+              (p: any) => p.pen_name?.toLowerCase() === displayName.toLowerCase()
+            );
+            if (profile) {
+              console.log("Matched profile by display_name:", displayName);
+              // Also capture the shared user_id for future reference
+              sharedUserId = profile.user_id;
+            }
+          }
         }
+      } else {
+        console.log("Anon profile query failed:", res.status);
       }
     }
 
-    // Build profile data from whatever source we have
+    // Build profile data
     // Priority: shared backend profile > user metadata > email-derived name
-    const penName = profile?.pen_name 
+    const penName = profile?.pen_name
       || profile?.display_name
-      || userMeta.pen_name 
-      || userMeta.display_name 
-      || userMeta.full_name 
+      || userMeta.pen_name
+      || userMeta.display_name
+      || userMeta.full_name
       || userMeta.name
       || (userEmail ? userEmail.split("@")[0] : null);
 
-    const bioShort = profile?.bio_short || userMeta.bio_short || userMeta.bio || null;
+    const bioShort = profile?.bio_short || profile?.bio || userMeta.bio_short || userMeta.bio || null;
     const bioLong = profile?.bio_long || userMeta.bio_long || null;
-    const photoUrl = profile?.photo_url || userMeta.photo_url || userMeta.avatar_url || null;
+    const photoUrl = profile?.photo_url || profile?.avatar_url || userMeta.photo_url || userMeta.avatar_url || null;
 
     console.log("Resolved pen_name:", penName, "bio:", !!bioShort, "photo:", !!photoUrl);
 
@@ -158,7 +203,7 @@ Deno.serve(async (req) => {
     const { data: upserted, error: upsertError } = await cloudAdmin
       .from("author_profiles")
       .upsert(upsertData, { onConflict: "user_id" })
-      .select("id, pen_name, photo_url")
+      .select("id, pen_name, photo_url, bio_short, genres")
       .single();
 
     if (upsertError) {
@@ -169,7 +214,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Backfill ALL books by this author that are missing author_name
+    // Backfill books by this author with latest profile data
     const { error: backfillError } = await cloudAdmin
       .from("books")
       .update({
@@ -183,6 +228,24 @@ Deno.serve(async (req) => {
       console.error("Backfill error:", backfillError);
     } else {
       console.log("Backfilled books for author:", userId);
+    }
+
+    // Also backfill books under shared user ID if different
+    if (sharedUserId && sharedUserId !== userId) {
+      const { error: backfillError2 } = await cloudAdmin
+        .from("books")
+        .update({
+          author_name: penName,
+          author_bio: bioShort || bioLong,
+          author_photo_url: photoUrl,
+        })
+        .eq("author_id", sharedUserId);
+
+      if (backfillError2) {
+        console.error("Backfill (shared ID) error:", backfillError2);
+      } else {
+        console.log("Backfilled books for shared author:", sharedUserId);
+      }
     }
 
     return new Response(
