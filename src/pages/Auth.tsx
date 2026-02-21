@@ -102,8 +102,9 @@ export default function Auth() {
     setSubmitting(true);
 
     try {
-      // Clear any stale session to prevent token conflicts with OTP flow
-      await supabase.auth.signOut().catch(() => {});
+      // Clear any stale LOCAL session to prevent token conflicts with OTP flow
+      // Use 'local' scope to avoid server-side revocation that could interfere with OTP
+      await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
 
       const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/user-auth`, {
         method: "POST",
