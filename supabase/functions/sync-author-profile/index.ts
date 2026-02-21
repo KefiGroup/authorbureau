@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
 
     // Attempt 1: query by id (shared backend uses id = auth.uid())
     const res1 = await fetch(
-      `${SHARED_BACKEND_URL}/rest/v1/author_profiles?id=eq.${userId}&select=*&limit=1`,
+      `${SHARED_BACKEND_URL}/rest/v1/author_profiles?user_id=eq.${userId}&select=*&limit=1`,
       {
         headers: {
           apikey: SHARED_ANON_KEY,
@@ -177,8 +177,7 @@ Deno.serve(async (req) => {
         author_bio: bioShort || bioLong,
         author_photo_url: photoUrl,
       })
-      .eq("author_id", userId)
-      .is("author_name", null);
+      .eq("author_id", userId);
 
     if (backfillError) {
       console.error("Backfill error:", backfillError);
