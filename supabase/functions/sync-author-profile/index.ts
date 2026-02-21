@@ -30,30 +30,41 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Resolve user ID — try Cloud first, then shared backend
+    // Resolve user from shared backend (primary auth source)
+    const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
+    const { data: { user: sharedUser }, error: sharedErr } = await sharedClient.auth.getUser(token);
+    
     let userId: string;
-    const { data: { user: cloudUser } } = await cloudAdmin.auth.getUser(token);
-    if (cloudUser) {
-      userId = cloudUser.id;
+    let userEmail: string | undefined;
+    let userMeta: Record<string, any> = {};
+
+    if (sharedUser) {
+      userId = sharedUser.id;
+      userEmail = sharedUser.email;
+      userMeta = sharedUser.user_metadata || {};
     } else {
-      const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
-      const { data: { user: sharedUser }, error } = await sharedClient.auth.getUser(token);
-      if (error || !sharedUser) {
+      // Fallback to Cloud auth
+      const { data: { user: cloudUser } } = await cloudAdmin.auth.getUser(token);
+      if (!cloudUser) {
         return new Response(JSON.stringify({ error: "Invalid session" }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      userId = sharedUser.id;
+      userId = cloudUser.id;
+      userEmail = cloudUser.email;
+      userMeta = cloudUser.user_metadata || {};
     }
 
-    // Fetch profile from shared backend using REST API directly
-    // Try multiple column name patterns since the shared backend schema may differ
+    console.log("Syncing profile for user:", userId, "email:", userEmail);
+    console.log("User metadata keys:", Object.keys(userMeta));
+
+    // Try to fetch author_profiles from shared backend via REST
     let profile: any = null;
 
-    // Attempt 1: query by user_id
+    // Attempt 1: query by id (shared backend uses id = auth.uid())
     const res1 = await fetch(
-      `${SHARED_BACKEND_URL}/rest/v1/author_profiles?user_id=eq.${userId}&select=*&limit=1`,
+      `${SHARED_BACKEND_URL}/rest/v1/author_profiles?id=eq.${userId}&select=*&limit=1`,
       {
         headers: {
           apikey: SHARED_ANON_KEY,
@@ -65,17 +76,18 @@ Deno.serve(async (req) => {
 
     if (res1.ok) {
       const data1 = await res1.json();
+      console.log("Profile query by id returned:", data1.length, "rows");
       if (Array.isArray(data1) && data1.length > 0) {
         profile = data1[0];
       }
     } else {
-      console.log("user_id query failed, trying id column...", await res1.text());
+      console.log("Profile query by id failed:", await res1.text());
     }
 
-    // Attempt 2: query by id (some schemas use id = auth.uid())
+    // Attempt 2: RLS-filtered query (should return only the user's own profile)
     if (!profile) {
       const res2 = await fetch(
-        `${SHARED_BACKEND_URL}/rest/v1/author_profiles?id=eq.${userId}&select=*&limit=1`,
+        `${SHARED_BACKEND_URL}/rest/v1/author_profiles?select=*&limit=1`,
         {
           headers: {
             apikey: SHARED_ANON_KEY,
@@ -87,84 +99,61 @@ Deno.serve(async (req) => {
 
       if (res2.ok) {
         const data2 = await res2.json();
+        console.log("RLS-filtered profile query returned:", data2.length, "rows");
         if (Array.isArray(data2) && data2.length > 0) {
           profile = data2[0];
         }
-      } else {
-        console.log("id query also failed:", await res2.text());
       }
     }
 
-    // Attempt 3: Just get the user's profile (RLS should filter to current user)
-    if (!profile) {
-      const res3 = await fetch(
-        `${SHARED_BACKEND_URL}/rest/v1/author_profiles?select=*&limit=1`,
-        {
-          headers: {
-            apikey: SHARED_ANON_KEY,
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
+    // Build profile data from whatever source we have
+    // Priority: shared backend profile > user metadata > email-derived name
+    const penName = profile?.pen_name 
+      || profile?.display_name
+      || userMeta.pen_name 
+      || userMeta.display_name 
+      || userMeta.full_name 
+      || userMeta.name
+      || (userEmail ? userEmail.split("@")[0] : null);
+
+    const bioShort = profile?.bio_short || userMeta.bio_short || userMeta.bio || null;
+    const bioLong = profile?.bio_long || userMeta.bio_long || null;
+    const photoUrl = profile?.photo_url || userMeta.photo_url || userMeta.avatar_url || null;
+
+    console.log("Resolved pen_name:", penName, "bio:", !!bioShort, "photo:", !!photoUrl);
+
+    if (!penName) {
+      return new Response(
+        JSON.stringify({ synced: false, message: "No profile data found" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
-
-      if (res3.ok) {
-        const data3 = await res3.json();
-        if (Array.isArray(data3) && data3.length > 0) {
-          profile = data3[0];
-        }
-      } else {
-        console.log("RLS-filtered query also failed:", await res3.text());
-      }
-    }
-
-    if (!profile) {
-      // Try to get basic info from the user's auth metadata
-      const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
-      const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
-      const meta = sharedUser?.user_metadata;
-      
-      if (meta && (meta.pen_name || meta.display_name || meta.full_name)) {
-        profile = {
-          pen_name: meta.pen_name || meta.display_name || meta.full_name || null,
-          bio_short: meta.bio_short || meta.bio || null,
-          bio_long: meta.bio_long || null,
-          photo_url: meta.photo_url || meta.avatar_url || null,
-        };
-      } else {
-        return new Response(
-          JSON.stringify({ synced: false, message: "No profile found on shared backend" }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
     }
 
     // Upsert into Cloud's author_profiles using service role
     const upsertData: Record<string, any> = {
       user_id: userId,
+      pen_name: penName,
       updated_at: new Date().toISOString(),
     };
 
-    // Map known fields (handle both naming conventions)
-    if (profile.pen_name) upsertData.pen_name = profile.pen_name;
-    if (profile.bio_short) upsertData.bio_short = profile.bio_short;
-    if (profile.bio_long) upsertData.bio_long = profile.bio_long;
-    if (profile.photo_url) upsertData.photo_url = profile.photo_url;
-    if (profile.cover_photo_url) upsertData.cover_photo_url = profile.cover_photo_url;
-    if (profile.tagline) upsertData.tagline = profile.tagline;
-    if (profile.genres) upsertData.genres = profile.genres;
-    if (profile.website_url) upsertData.website_url = profile.website_url;
-    if (profile.linkedin_url) upsertData.linkedin_url = profile.linkedin_url;
-    if (profile.twitter_url) upsertData.twitter_url = profile.twitter_url;
-    if (profile.instagram_url) upsertData.instagram_url = profile.instagram_url;
-    if (profile.youtube_url) upsertData.youtube_url = profile.youtube_url;
-    if (profile.amazon_author_profile_url) upsertData.amazon_author_profile_url = profile.amazon_author_profile_url;
-    if (profile.location_city) upsertData.location_city = profile.location_city;
-    if (profile.location_country) upsertData.location_country = profile.location_country;
-    if (profile.credentials) upsertData.credentials = profile.credentials;
-    if (profile.is_speaker != null) upsertData.is_speaker = profile.is_speaker;
-    if (profile.speaker_fee_range) upsertData.speaker_fee_range = profile.speaker_fee_range;
-    if (profile.availability_notes) upsertData.availability_notes = profile.availability_notes;
+    if (bioShort) upsertData.bio_short = bioShort;
+    if (bioLong) upsertData.bio_long = bioLong;
+    if (photoUrl) upsertData.photo_url = photoUrl;
+    if (profile?.cover_photo_url) upsertData.cover_photo_url = profile.cover_photo_url;
+    if (profile?.tagline) upsertData.tagline = profile.tagline;
+    if (profile?.genres) upsertData.genres = profile.genres;
+    if (profile?.website_url) upsertData.website_url = profile.website_url;
+    if (profile?.linkedin_url) upsertData.linkedin_url = profile.linkedin_url;
+    if (profile?.twitter_url) upsertData.twitter_url = profile.twitter_url;
+    if (profile?.instagram_url) upsertData.instagram_url = profile.instagram_url;
+    if (profile?.youtube_url) upsertData.youtube_url = profile.youtube_url;
+    if (profile?.amazon_author_profile_url) upsertData.amazon_author_profile_url = profile.amazon_author_profile_url;
+    if (profile?.location_city) upsertData.location_city = profile.location_city;
+    if (profile?.location_country) upsertData.location_country = profile.location_country;
+    if (profile?.credentials) upsertData.credentials = profile.credentials;
+    if (profile?.is_speaker != null) upsertData.is_speaker = profile.is_speaker;
+    if (profile?.speaker_fee_range) upsertData.speaker_fee_range = profile.speaker_fee_range;
+    if (profile?.availability_notes) upsertData.availability_notes = profile.availability_notes;
 
     const { data: upserted, error: upsertError } = await cloudAdmin
       .from("author_profiles")
@@ -180,21 +169,21 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Backfill any existing books missing author data
-    const penName = profile.pen_name || null;
-    const bio = profile.bio_short || profile.bio_long || null;
-    const photoUrl = profile.photo_url || null;
+    // Backfill ALL books by this author that are missing author_name
+    const { error: backfillError } = await cloudAdmin
+      .from("books")
+      .update({
+        author_name: penName,
+        author_bio: bioShort || bioLong,
+        author_photo_url: photoUrl,
+      })
+      .eq("author_id", userId)
+      .is("author_name", null);
 
-    if (penName || bio || photoUrl) {
-      await cloudAdmin
-        .from("books")
-        .update({
-          author_name: penName,
-          author_bio: bio,
-          author_photo_url: photoUrl,
-        })
-        .eq("author_id", userId)
-        .is("author_name", null);
+    if (backfillError) {
+      console.error("Backfill error:", backfillError);
+    } else {
+      console.log("Backfilled books for author:", userId);
     }
 
     return new Response(
