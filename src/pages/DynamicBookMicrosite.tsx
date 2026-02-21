@@ -5,8 +5,6 @@ import { BookOpen, ExternalLink, Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { supabase as cloudSupabase } from "@/integrations/supabase/client";
-import { supabase as sharedSupabase } from "@/lib/shared-backend";
 
 interface Book {
   id: string;
@@ -29,12 +27,6 @@ interface Book {
   author_photo_url?: string;
 }
 
-interface AuthorProfile {
-  photo_url?: string;
-  bio_short?: string;
-  bio_long?: string;
-  pen_name?: string;
-}
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -49,7 +41,6 @@ export default function DynamicBookMicrosite() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [book, setBook] = useState<Book | null>(null);
-  const [authorProfile, setAuthorProfile] = useState<AuthorProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,28 +49,20 @@ export default function DynamicBookMicrosite() {
       if (!slug) return;
 
       try {
-        const { data, error: fetchError } = await cloudSupabase
-          .from("books")
-          .select("*")
-          .eq("slug", slug)
-          .maybeSingle();
-
-        if (fetchError) throw fetchError;
-        if (!data) {
-          setError("Book not found");
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-book`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ slug }),
+          }
+        );
+        const result = await res.json();
+        if (!res.ok || !result.book) {
+          setError(result.error || "Book not found");
           return;
         }
-
-        const bookData = data as Book;
-        setBook(bookData);
-
-        // Fetch author profile for photo/bio enrichment
-        const { data: profile } = await sharedSupabase
-          .from("author_profiles")
-          .select("photo_url, bio_short, bio_long, pen_name")
-          .eq("user_id", bookData.author_id)
-          .maybeSingle();
-        if (profile) setAuthorProfile(profile);
+        setBook(result.book as Book);
       } catch (err) {
         console.error("Failed to fetch book:", err);
         setError("Failed to load book");
@@ -166,7 +149,7 @@ export default function DynamicBookMicrosite() {
             transition={{ delay: 0.2 }}
             className="text-primary-foreground/70"
           >
-            by <span className="font-semibold">{book.author_name || authorProfile?.pen_name || "Unknown Author"}</span>
+            by <span className="font-semibold">{book.author_name || "Unknown Author"}</span>
           </motion.p>
         </div>
       </section>
@@ -275,23 +258,23 @@ export default function DynamicBookMicrosite() {
               </div>
 
               {/* Author */}
-              {(book.author_bio || authorProfile?.bio_short || authorProfile?.bio_long) && (
+              {book.author_bio && (
                 <div className="rounded-lg bg-muted/50 border border-border p-6">
                   <h3 className="font-heading text-lg font-bold mb-3">About the Author</h3>
                   <div className="flex gap-4 items-start">
-                    {(book.author_photo_url || authorProfile?.photo_url) && (
+                    {book.author_photo_url && (
                       <img
-                        src={book.author_photo_url || authorProfile?.photo_url}
+                        src={book.author_photo_url}
                         alt={book.author_name}
                         className="w-16 h-16 rounded-full object-cover shrink-0"
                       />
                     )}
                     <div>
                       <p className="text-sm leading-relaxed text-muted-foreground mb-3">
-                        {book.author_bio || authorProfile?.bio_short || authorProfile?.bio_long}
+                        {book.author_bio}
                       </p>
                       <p className="text-sm font-semibold text-secondary">
-                        {book.author_name || authorProfile?.pen_name}
+                        {book.author_name}
                       </p>
                     </div>
                   </div>
