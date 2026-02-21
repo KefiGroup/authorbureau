@@ -14,59 +14,67 @@ const SHARED_ANON_KEY =
 async function fetchSharedProfile(
   userId: string,
   email: string,
-  token: string | null
+  token: string
 ): Promise<any | null> {
-  const headers: Record<string, string> = {
-    apikey: SHARED_ANON_KEY,
-    "Content-Type": "application/json",
-  };
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-
-  // Strategy 1: Query by user_id (most likely — Supabase standard)
-  const strategies = [
-    { label: "user_id", url: `${SHARED_BACKEND_URL}/rest/v1/author_profiles?user_id=eq.${userId}&select=*` },
-    { label: "user_email", url: `${SHARED_BACKEND_URL}/rest/v1/author_profiles?user_email=eq.${encodeURIComponent(email)}&select=*` },
-    { label: "email", url: `${SHARED_BACKEND_URL}/rest/v1/author_profiles?email=eq.${encodeURIComponent(email)}&select=*` },
-    { label: "account_id", url: `${SHARED_BACKEND_URL}/rest/v1/author_profiles?account_id=eq.${userId}&select=*` },
-  ];
-
-  for (const s of strategies) {
-    const res = await fetch(s.url, { headers });
+  // Strategy 1: Use the user's own token (RLS will match auth.jwt()->>'email' = user_email)
+  {
+    const headers: Record<string, string> = {
+      apikey: SHARED_ANON_KEY,
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    };
+    // Query ALL profiles for this user (RLS should filter by their JWT)
+    const url = `${SHARED_BACKEND_URL}/rest/v1/author_profiles?select=*`;
+    const res = await fetch(url, { headers });
     if (res.ok) {
       const data = await res.json();
-      console.log(`Strategy ${s.label}: ${data.length} rows`);
+      console.log(`Strategy token-all: ${data.length} rows`);
       if (Array.isArray(data) && data.length > 0) {
-        const primary = data.find((p: any) => p.is_default || p.is_primary || p.author_type === "primary") || data[0];
-        console.log("Found shared profile via", s.label, ":", JSON.stringify(primary).slice(0, 800));
+        const primary = data.find((p: any) => p.is_default || p.is_primary) || data[0];
+        console.log("Found shared profile via token-all:", JSON.stringify(primary).slice(0, 800));
         return primary;
       }
     } else {
-      const body = (await res.text()).slice(0, 200);
-      console.log(`Strategy ${s.label} failed: ${res.status} ${body}`);
+      console.log(`Strategy token-all failed: ${res.status} ${(await res.text()).slice(0, 200)}`);
     }
   }
 
-  // Strategy 5: Grab OpenAPI definition to discover actual columns
-  try {
-    const defRes = await fetch(`${SHARED_BACKEND_URL}/rest/v1/`, {
-      headers: { apikey: SHARED_ANON_KEY },
-    });
-    if (defRes.ok) {
-      const spec = await defRes.json();
-      const apDef = spec?.definitions?.author_profiles;
-      if (apDef) {
-        const cols = Object.keys(apDef.properties || {});
-        console.log("Shared author_profiles columns:", cols.join(", "));
-      } else {
-        // List all tables
-        const tables = Object.keys(spec?.definitions || {});
-        console.log("Shared tables:", tables.join(", "));
+  // Strategy 2: Query by user_email with token
+  {
+    const headers: Record<string, string> = {
+      apikey: SHARED_ANON_KEY,
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    };
+    const url = `${SHARED_BACKEND_URL}/rest/v1/author_profiles?user_email=eq.${encodeURIComponent(email)}&select=*`;
+    const res = await fetch(url, { headers });
+    if (res.ok) {
+      const data = await res.json();
+      console.log(`Strategy token-email: ${data.length} rows`);
+      if (Array.isArray(data) && data.length > 0) {
+        console.log("Found shared profile via token-email:", JSON.stringify(data[0]).slice(0, 800));
+        return data[0];
+      }
+    } else {
+      console.log(`Strategy token-email failed: ${res.status}`);
+    }
+  }
+
+  // Strategy 3: Anon key (no token) — in case table is public
+  {
+    const headers: Record<string, string> = {
+      apikey: SHARED_ANON_KEY,
+      "Content-Type": "application/json",
+    };
+    const url = `${SHARED_BACKEND_URL}/rest/v1/author_profiles?user_email=eq.${encodeURIComponent(email)}&select=*`;
+    const res = await fetch(url, { headers });
+    if (res.ok) {
+      const data = await res.json();
+      console.log(`Strategy anon-email: ${data.length} rows`);
+      if (Array.isArray(data) && data.length > 0) {
+        return data[0];
       }
     }
-  } catch (e) {
-    console.log("OpenAPI discovery error:", e.message);
   }
 
   return null;
@@ -182,11 +190,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch from shared backend by email (with token for RLS, then without)
-    let sharedProfile = await fetchSharedProfile(userEmail, token);
-    if (!sharedProfile) {
-      sharedProfile = await fetchSharedProfile(userEmail, null);
-    }
+    // Fetch from shared backend using user's token for RLS
+    const sharedProfile = await fetchSharedProfile(userId, userEmail, token);
 
     // Map shared data to local fields
     const mapped = sharedProfile ? mapSharedToLocal(sharedProfile) : {};
