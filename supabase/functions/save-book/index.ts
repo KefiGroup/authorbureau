@@ -66,6 +66,21 @@ serve(async (req) => {
       if (!authorPhotoUrl && localProfile.photo_url) authorPhotoUrl = localProfile.photo_url;
     }
 
+    // Fallback: get author name from shared backend user metadata or email
+    if (!authorName) {
+      const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
+      const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
+      if (sharedUser) {
+        const meta = sharedUser.user_metadata || {};
+        authorName = meta.pen_name || meta.display_name || meta.full_name || meta.name || null;
+        if (!authorName && sharedUser.email) {
+          authorName = sharedUser.email.split("@")[0];
+        }
+        if (!authorBio) authorBio = meta.bio_short || meta.bio || null;
+        if (!authorPhotoUrl) authorPhotoUrl = meta.photo_url || meta.avatar_url || null;
+      }
+    }
+
     // 3. Generate slug
     const slug = body.title
       .toLowerCase()
