@@ -30,21 +30,21 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Resolve user ID
+    // Resolve user ID — shared backend first (primary auth)
     let userId: string;
-    const { data: { user: cloudUser } } = await cloudAdmin.auth.getUser(token);
-    if (cloudUser) {
-      userId = cloudUser.id;
+    const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
+    const { data: { user: sharedUser }, error: sharedErr } = await sharedClient.auth.getUser(token);
+    if (sharedUser) {
+      userId = sharedUser.id;
     } else {
-      const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
-      const { data: { user: sharedUser }, error } = await sharedClient.auth.getUser(token);
-      if (error || !sharedUser) {
+      const { data: { user: cloudUser } } = await cloudAdmin.auth.getUser(token);
+      if (!cloudUser) {
         return new Response(JSON.stringify({ error: "Invalid session" }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      userId = sharedUser.id;
+      userId = cloudUser.id;
     }
 
     // Fetch books using service role (bypasses RLS)

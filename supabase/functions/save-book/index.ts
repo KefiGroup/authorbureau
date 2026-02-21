@@ -25,26 +25,26 @@ serve(async (req) => {
       });
     }
 
-    // Try Cloud auth first, then shared backend
+    // Try shared backend first (primary auth), then Cloud
     const cloudAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
     let userId: string;
-    const { data: { user: cloudUser } } = await cloudAdmin.auth.getUser(token);
-    if (cloudUser) {
-      userId = cloudUser.id;
+    const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
+    const { data: { user: sharedUser }, error: sharedErr } = await sharedClient.auth.getUser(token);
+    if (sharedUser) {
+      userId = sharedUser.id;
     } else {
-      const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
-      const { data: { user: sharedUser }, error: sharedErr } = await sharedClient.auth.getUser(token);
-      if (sharedErr || !sharedUser) {
+      const { data: { user: cloudUser } } = await cloudAdmin.auth.getUser(token);
+      if (!cloudUser) {
         return new Response(JSON.stringify({ error: "Invalid session" }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      userId = sharedUser.id;
+      userId = cloudUser.id;
     }
 
     const body = await req.json();
