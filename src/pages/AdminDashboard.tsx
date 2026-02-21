@@ -83,8 +83,21 @@ export default function AdminDashboard() {
   const fetchBooks = useCallback(async () => {
     setBooksLoading(true);
     try {
-      const data = await adminApi.listBooks(booksPage);
-      setBooks(data?.books || data?.data || []);
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-books`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({ action: "list", page: booksPage }),
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setBooks(data?.books || []);
     } catch { toast({ title: "Failed to load books", variant: "destructive" }); }
     setBooksLoading(false);
   }, [booksPage]);
@@ -156,14 +169,14 @@ export default function AdminDashboard() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-book`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-books`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${session?.access_token}`,
           },
-          body: JSON.stringify({ bookId }),
+          body: JSON.stringify({ action: "delete", bookId }),
         }
       );
       const data = await res.json();

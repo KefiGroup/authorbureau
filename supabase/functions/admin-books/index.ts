@@ -48,22 +48,38 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { bookId } = await req.json();
-    if (!bookId) {
-      return new Response(JSON.stringify({ error: "bookId is required" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const { action, bookId, page = 1 } = await req.json();
+
+    if (action === "list") {
+      const pageSize = 20;
+      const from = (page - 1) * pageSize;
+      const { data: books, error } = await adminClient
+        .from("books")
+        .select("id, title, author_name, genre, cover_image_url, slug")
+        .order("created_at", { ascending: false })
+        .range(from, from + pageSize - 1);
+
+      if (error) throw error;
+      return new Response(JSON.stringify({ books: books || [] }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { error: deleteError } = await adminClient
-      .from("books")
-      .delete()
-      .eq("id", bookId);
+    if (action === "delete") {
+      if (!bookId) {
+        return new Response(JSON.stringify({ error: "bookId is required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { error: deleteError } = await adminClient.from("books").delete().eq("id", bookId);
+      if (deleteError) throw deleteError;
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    if (deleteError) throw deleteError;
-
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    return new Response(JSON.stringify({ error: "Unknown action" }), {
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
     return new Response(JSON.stringify({ error: err.message }), {
