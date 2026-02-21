@@ -168,8 +168,16 @@ export default function DualModeBookForm({
 
     setIsLoading(true);
     try {
-      // Get the current session token from shared backend
-      const { data: { session } } = await sharedSupabase.auth.getSession();
+      // Try Cloud session first, then shared backend
+      const { supabase: cloudClient } = await import("@/integrations/supabase/client");
+      let session: any = null;
+      const { data: cloudSession } = await cloudClient.auth.getSession();
+      if (cloudSession?.session) {
+        session = cloudSession.session;
+      } else {
+        const { data: sharedSession } = await sharedSupabase.auth.getSession();
+        session = sharedSession?.session;
+      }
       if (!session) {
         toast({ title: "Not signed in", description: "Please sign in first", variant: "destructive" });
         setIsLoading(false);
