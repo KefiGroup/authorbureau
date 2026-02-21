@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
@@ -16,7 +16,6 @@ serve(async (req) => {
   }
 
   try {
-    // 1. Verify user on shared backend using their token
     const authHeader = req.headers.get("authorization") ?? "";
     const token = authHeader.replace("Bearer ", "");
     if (!token) {
@@ -26,22 +25,29 @@ serve(async (req) => {
       });
     }
 
-    const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY, {
-      global: { headers: { Authorization: `Bearer ${token}` } },
-    });
-    const { data: { user }, error: authError } = await sharedClient.auth.getUser(token);
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Invalid session" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const body = await req.json();
+    // Try Cloud auth first, then shared backend
     const cloudAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    let userId: string;
+    const { data: { user: cloudUser } } = await cloudAdmin.auth.getUser(token);
+    if (cloudUser) {
+      userId = cloudUser.id;
+    } else {
+      const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
+      const { data: { user: sharedUser }, error: sharedErr } = await sharedClient.auth.getUser(token);
+      if (sharedErr || !sharedUser) {
+        return new Response(JSON.stringify({ error: "Invalid session" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      userId = sharedUser.id;
+    }
+
+    const body = await req.json();
 
     // 2. Read author data from Cloud's local author_profiles (synced earlier)
     let authorName = body.authorName || null;
@@ -51,7 +57,7 @@ serve(async (req) => {
     const { data: localProfile } = await cloudAdmin
       .from("author_profiles")
       .select("pen_name, bio_short, bio_long, photo_url")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .maybeSingle();
 
     if (localProfile) {
@@ -85,7 +91,7 @@ serve(async (req) => {
     const { data: newBook, error: insertError } = await cloudAdmin
       .from("books")
       .insert({
-        author_id: user.id,
+        author_id: userId,
         title: body.title,
         subtitle: body.subtitle || null,
         description: body.description,
