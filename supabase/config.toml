@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.send-service-inquiry-email]
 verify_jwt = false
+
+[functions.list-my-books]
+verify_jwt = false
