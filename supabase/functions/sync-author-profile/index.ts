@@ -10,8 +10,9 @@ const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
 const SHARED_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnRkcG5la3NjcnNnaHF0c3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MDYzODksImV4cCI6MjA4NDQ4MjM4OX0.o2qA4tLao4UtxPGxSnavXIYKUmVZvS99pHtnL220L-s";
 
-/** Fetch author profile from shared backend by email */
+/** Try multiple query strategies to find the profile on the shared backend */
 async function fetchSharedProfile(
+  userId: string,
   email: string,
   token: string | null
 ): Promise<any | null> {
@@ -23,21 +24,51 @@ async function fetchSharedProfile(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const url = `${SHARED_BACKEND_URL}/rest/v1/author_profiles?user_email=eq.${encodeURIComponent(email)}&select=*`;
-  const res = await fetch(url, { headers });
+  // Strategy 1: Query by user_id (most likely — Supabase standard)
+  const strategies = [
+    { label: "user_id", url: `${SHARED_BACKEND_URL}/rest/v1/author_profiles?user_id=eq.${userId}&select=*` },
+    { label: "user_email", url: `${SHARED_BACKEND_URL}/rest/v1/author_profiles?user_email=eq.${encodeURIComponent(email)}&select=*` },
+    { label: "email", url: `${SHARED_BACKEND_URL}/rest/v1/author_profiles?email=eq.${encodeURIComponent(email)}&select=*` },
+    { label: "account_id", url: `${SHARED_BACKEND_URL}/rest/v1/author_profiles?account_id=eq.${userId}&select=*` },
+  ];
 
-  if (res.ok) {
-    const data = await res.json();
-    console.log(`Shared profile query (email=${email}):`, data.length, "rows");
-    if (Array.isArray(data) && data.length > 0) {
-      // Prefer the "primary" / "is_default" profile if multiple exist
-      const primary = data.find((p: any) => p.is_default || p.author_type === "primary") || data[0];
-      console.log("Found shared profile:", JSON.stringify(primary).slice(0, 500));
-      return primary;
+  for (const s of strategies) {
+    const res = await fetch(s.url, { headers });
+    if (res.ok) {
+      const data = await res.json();
+      console.log(`Strategy ${s.label}: ${data.length} rows`);
+      if (Array.isArray(data) && data.length > 0) {
+        const primary = data.find((p: any) => p.is_default || p.is_primary || p.author_type === "primary") || data[0];
+        console.log("Found shared profile via", s.label, ":", JSON.stringify(primary).slice(0, 800));
+        return primary;
+      }
+    } else {
+      const body = (await res.text()).slice(0, 200);
+      console.log(`Strategy ${s.label} failed: ${res.status} ${body}`);
     }
-  } else {
-    console.log("Shared profile query failed:", res.status, (await res.text()).slice(0, 200));
   }
+
+  // Strategy 5: Grab OpenAPI definition to discover actual columns
+  try {
+    const defRes = await fetch(`${SHARED_BACKEND_URL}/rest/v1/`, {
+      headers: { apikey: SHARED_ANON_KEY },
+    });
+    if (defRes.ok) {
+      const spec = await defRes.json();
+      const apDef = spec?.definitions?.author_profiles;
+      if (apDef) {
+        const cols = Object.keys(apDef.properties || {});
+        console.log("Shared author_profiles columns:", cols.join(", "));
+      } else {
+        // List all tables
+        const tables = Object.keys(spec?.definitions || {});
+        console.log("Shared tables:", tables.join(", "));
+      }
+    }
+  } catch (e) {
+    console.log("OpenAPI discovery error:", e.message);
+  }
+
   return null;
 }
 
