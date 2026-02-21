@@ -1,0 +1,1 @@
+ALTER TABLE public.author_profiles DROP CONSTRAINT author_profiles_user_id_fkey;
