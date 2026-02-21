@@ -11,6 +11,11 @@ const SHARED_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnRkcG5la3NjcnNnaHF0c3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MDYzODksImV4cCI6MjA4NDQ4MjM4OX0.o2qA4tLao4UtxPGxSnavXIYKUmVZvS99pHtnL220L-s";
 
 async function resolveUserId(token: string): Promise<{ userId: string | null; error?: string }> {
+  // Shared backend first (primary auth source)
+  const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
+  const { data: { user: sharedUser }, error } = await sharedClient.auth.getUser(token);
+  if (sharedUser) return { userId: sharedUser.id };
+
   const cloudAdmin = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -18,10 +23,7 @@ async function resolveUserId(token: string): Promise<{ userId: string | null; er
   const { data: { user: cloudUser } } = await cloudAdmin.auth.getUser(token);
   if (cloudUser) return { userId: cloudUser.id };
 
-  const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
-  const { data: { user: sharedUser }, error } = await sharedClient.auth.getUser(token);
-  if (error || !sharedUser) return { userId: null, error: "Invalid session" };
-  return { userId: sharedUser.id };
+  return { userId: null, error: "Invalid session" };
 }
 
 Deno.serve(async (req) => {
