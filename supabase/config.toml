@@ -8,3 +8,39 @@ verify_jwt = false
 
 [functions.customer-portal]
 verify_jwt = false
+
+[functions.sync-author-profile]
+verify_jwt = false
+
+[functions.save-book]
+verify_jwt = false
+
+[functions.upload-book-cover]
+verify_jwt = false
+
+[functions.update-book-cover]
+verify_jwt = false
+
+[functions.publish-book]
+verify_jwt = false
+
+[functions.get-book]
+verify_jwt = false
+
+[functions.admin-books]
+verify_jwt = false
+
+[functions.enrich-book-data]
+verify_jwt = false
+
+[functions.generate-author-bio]
+verify_jwt = false
+
+[functions.ai-author-tools]
+verify_jwt = false
+
+[functions.scrape-amazon-book]
+verify_jwt = false
+
+[functions.send-service-inquiry-email]
+verify_jwt = false

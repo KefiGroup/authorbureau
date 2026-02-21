@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
-// sharedSupabase imported below after lucide icons
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -24,6 +23,15 @@ interface Book {
   created_at: string;
 }
 
+async function getActiveToken(): Promise<string | null> {
+  // Try Cloud session first
+  const { data: cloudSession } = await cloudSupabase.auth.getSession();
+  if (cloudSession?.session?.access_token) return cloudSession.session.access_token;
+  // Fallback to shared backend
+  const { data: sharedSession } = await sharedSupabase.auth.getSession();
+  return sharedSession?.session?.access_token || null;
+}
+
 export default function MyBooks() {
   const { user, session } = useAuth();
   const { toast } = useToast();
@@ -33,28 +41,30 @@ export default function MyBooks() {
   const [publishing, setPublishing] = useState<string | null>(null);
   const [uploadingCover, setUploadingCover] = useState<string | null>(null);
 
-  const syncSession = async () => {
-    if (!session) return;
-    try {
-      await cloudSupabase.auth.setSession({
-        access_token: session.access_token,
-        refresh_token: session.refresh_token,
-      });
-    } catch (err) {
-      console.error("Session sync failed:", err);
-    }
-  };
-
   const fetchBooks = async () => {
     if (!user) return;
     setLoading(true);
-    await syncSession();
-    const { data } = await cloudSupabase
-      .from("books")
-      .select("id, title, subtitle, slug, cover_image_url, published_at, entry_mode, genre, rating, badges, created_at")
-      .eq("author_id", user.id)
-      .order("created_at", { ascending: false });
-    setBooks(data || []);
+    try {
+      // Use service-role-backed edge function isn't needed here;
+      // just query Cloud DB directly with the shared token set
+      const token = await getActiveToken();
+      if (token) {
+        try {
+          await cloudSupabase.auth.setSession({
+            access_token: token,
+            refresh_token: session?.refresh_token || "",
+          });
+        } catch {}
+      }
+      const { data } = await cloudSupabase
+        .from("books")
+        .select("id, title, subtitle, slug, cover_image_url, published_at, entry_mode, genre, rating, badges, created_at")
+        .eq("author_id", user.id)
+        .order("created_at", { ascending: false });
+      setBooks(data || []);
+    } catch (err) {
+      console.error("Failed to fetch books:", err);
+    }
     setLoading(false);
   };
 
@@ -81,8 +91,8 @@ export default function MyBooks() {
   const handlePublish = async (bookId: string) => {
     setPublishing(bookId);
     try {
-      const { data: { session } } = await sharedSupabase.auth.getSession();
-      if (!session) {
+      const token = await getActiveToken();
+      if (!token) {
         toast({ title: "Not signed in", variant: "destructive" });
         return;
       }
@@ -93,7 +103,7 @@ export default function MyBooks() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ bookId }),
         }
@@ -121,8 +131,8 @@ export default function MyBooks() {
   const handleUploadCover = async (bookId: string, file: File) => {
     setUploadingCover(bookId);
     try {
-      const { data: { session } } = await sharedSupabase.auth.getSession();
-      if (!session) {
+      const token = await getActiveToken();
+      if (!token) {
         toast({ title: "Not signed in", variant: "destructive" });
         return;
       }
@@ -134,7 +144,7 @@ export default function MyBooks() {
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-book-cover`,
         {
           method: "POST",
-          headers: { Authorization: `Bearer ${session.access_token}` },
+          headers: { Authorization: `Bearer ${token}` },
           body: formData,
         }
       );
