@@ -15,7 +15,6 @@ async function fetchSharedProfile(
   userId: string,
   token: string | null
 ): Promise<any | null> {
-  // Build headers — include token only if it's a shared backend token
   const headers: Record<string, string> = {
     apikey: SHARED_ANON_KEY,
     "Content-Type": "application/json",
@@ -24,21 +23,43 @@ async function fetchSharedProfile(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  // Query by user_id
-  const url = `${SHARED_BACKEND_URL}/rest/v1/author_profiles?user_id=eq.${userId}&select=*&limit=1`;
-  const res = await fetch(url, { headers });
+  // Try multiple possible column names for the user link
+  const columnAttempts = ["user_id", "account_id", "owner_id", "id"];
+  
+  for (const col of columnAttempts) {
+    const url = `${SHARED_BACKEND_URL}/rest/v1/author_profiles?${col}=eq.${userId}&select=*&limit=1`;
+    const res = await fetch(url, { headers });
+    
+    if (res.ok) {
+      const data = await res.json();
+      console.log(`Profile query (${col}=${userId}):`, data.length, "rows");
+      if (Array.isArray(data) && data.length > 0) {
+        console.log("Found profile via column:", col);
+        console.log("Profile columns:", Object.keys(data[0]));
+        console.log("Profile data:", JSON.stringify(data[0]).slice(0, 800));
+        return data[0];
+      }
+    } else {
+      console.log(`Profile query (${col}) failed:`, res.status);
+    }
+  }
 
+  // Last resort: get ALL accessible profiles (RLS-filtered)
+  console.log("Trying unfiltered RLS query...");
+  const url = `${SHARED_BACKEND_URL}/rest/v1/author_profiles?select=*&limit=5`;
+  const res = await fetch(url, { headers });
   if (res.ok) {
     const data = await res.json();
-    console.log("Shared profile query (user_id=" + userId + "):", data.length, "rows");
+    console.log("Unfiltered query returned:", data.length, "rows");
     if (Array.isArray(data) && data.length > 0) {
-      console.log("Shared profile columns:", Object.keys(data[0]));
-      console.log("Shared profile data:", JSON.stringify(data[0]).slice(0, 500));
-      return data[0];
+      console.log("First profile columns:", Object.keys(data[0]));
+      console.log("First profile:", JSON.stringify(data[0]).slice(0, 800));
+      return data[0]; // RLS should filter to user's own
     }
   } else {
-    console.log("Shared profile query failed:", res.status);
+    console.log("Unfiltered query failed:", res.status);
   }
+
   return null;
 }
 
