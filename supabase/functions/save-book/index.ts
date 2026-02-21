@@ -38,38 +38,36 @@ serve(async (req) => {
     }
 
     const body = await req.json();
+    const cloudAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
 
-    // Fetch author profile from shared backend (with auth for RLS)
+    // 2. Read author data from Cloud's local author_profiles (synced earlier)
     let authorName = body.authorName || null;
     let authorBio = body.authorBio || null;
     let authorPhotoUrl = body.authorPhotoUrl || null;
 
-    const { data: profile } = await sharedClient
+    const { data: localProfile } = await cloudAdmin
       .from("author_profiles")
       .select("pen_name, bio_short, bio_long, photo_url")
       .eq("user_id", user.id)
       .maybeSingle();
 
-    if (profile) {
-      if (!authorName && profile.pen_name) authorName = profile.pen_name;
-      if (!authorBio && (profile.bio_short || profile.bio_long)) authorBio = profile.bio_short || profile.bio_long;
-      if (!authorPhotoUrl && profile.photo_url) authorPhotoUrl = profile.photo_url;
+    if (localProfile) {
+      if (!authorName && localProfile.pen_name) authorName = localProfile.pen_name;
+      if (!authorBio && (localProfile.bio_short || localProfile.bio_long)) authorBio = localProfile.bio_short || localProfile.bio_long;
+      if (!authorPhotoUrl && localProfile.photo_url) authorPhotoUrl = localProfile.photo_url;
     }
 
-    // 2. Generate slug
+    // 3. Generate slug
     const slug = body.title
       .toLowerCase()
       .replace(/[^\w\s-]/g, "")
       .replace(/\s+/g, "-")
       .slice(0, 50);
 
-    // 3. Insert into Cloud project using service role (bypasses RLS)
-    const cloudAdmin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
-    // Check for duplicate slug
+    // 4. Check for duplicate slug
     const { data: existing } = await cloudAdmin
       .from("books")
       .select("id")
@@ -83,6 +81,7 @@ serve(async (req) => {
       );
     }
 
+    // 5. Insert book
     const { data: newBook, error: insertError } = await cloudAdmin
       .from("books")
       .insert({

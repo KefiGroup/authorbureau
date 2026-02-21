@@ -62,10 +62,11 @@ export default function DualModeBookForm({
     authorPhotoUrl: "",
   });
 
-  // Auto-fill author fields from profile (shared backend has profiles)
+  // Auto-fill author fields from Cloud's local author_profiles (synced from PublishNow)
   useEffect(() => {
     async function loadProfile() {
-      const { data } = await sharedSupabase
+      const { supabase: cloudSupabase } = await import("@/integrations/supabase/client");
+      const { data } = await cloudSupabase
         .from("author_profiles")
         .select("pen_name, bio_short, bio_long, photo_url")
         .eq("user_id", authorId)

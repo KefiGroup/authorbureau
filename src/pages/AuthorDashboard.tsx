@@ -25,6 +25,32 @@ export default function AuthorDashboard() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { hasMarketing, loading: accessLoading, requestAccess, requesting, requested } = usePlatformAccess();
 
+  // Sync author profile from PublishNow → Cloud on dashboard load
+  useEffect(() => {
+    const syncProfile = async () => {
+      try {
+        const { supabase: sharedSupabase } = await import("@/lib/shared-backend");
+        const { data: { session } } = await sharedSupabase.auth.getSession();
+        if (!session) return;
+
+        await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-author-profile`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          }
+        );
+      } catch (err) {
+        console.error("Profile sync failed:", err);
+      }
+    };
+
+    if (user) syncProfile();
+  }, [user]);
+
   useEffect(() => {
     const status = searchParams.get("checkout");
     if (status === "success") {
