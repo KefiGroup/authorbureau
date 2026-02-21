@@ -102,6 +102,9 @@ export default function Auth() {
     setSubmitting(true);
 
     try {
+      // Clear any stale session to prevent token conflicts with OTP flow
+      await supabase.auth.signOut().catch(() => {});
+
       const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/user-auth`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -146,6 +149,7 @@ export default function Auth() {
       console.log("[Auth] verify response:", res.status, JSON.stringify(data));
 
       if (!res.ok) {
+        console.error("[Auth] verify error response body:", JSON.stringify(data));
         throw new Error(data?.error || data?.message || `Verification failed (${res.status})`);
       }
 
