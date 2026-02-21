@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Navigate, Link } from "react-router-dom";
 import { useAuth, ADMIN_EMAILS } from "@/hooks/useAuth";
 import { adminApi } from "@/lib/admin-api";
@@ -47,6 +48,7 @@ export default function AdminDashboard() {
   const [books, setBooks] = useState<AdminBook[]>([]);
   const [booksLoading, setBooksLoading] = useState(false);
   const [booksPage, setBooksPage] = useState(1);
+  const [deletingBookId, setDeletingBookId] = useState<string | null>(null);
 
   // Admins
   const [admins, setAdmins] = useState<AdminInfo[]>([]);
@@ -149,6 +151,31 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleDeleteBook = async (bookId: string) => {
+    setDeletingBookId(bookId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-book`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({ bookId }),
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Delete failed");
+      setBooks((prev) => prev.filter((b) => b.id !== bookId));
+      toast({ title: "Book deleted" });
+    } catch (err: any) {
+      toast({ title: err.message || "Delete failed", variant: "destructive" });
+    }
+    setDeletingBookId(null);
+  };
+
   const handleNavigate = (targetTab: string, filter?: string) => {
     setTab(targetTab as Tab);
     if (filter && targetTab === "submissions") setSubsFilter(filter);
@@ -230,7 +257,7 @@ export default function AdminDashboard() {
             <UsersTab users={users} loading={usersLoading} onRefresh={fetchUsers} page={usersPage} setPage={setUsersPage} />
           )}
           {tab === "books" && (
-            <BooksTab books={books} loading={booksLoading} onRefresh={fetchBooks} page={booksPage} setPage={setBooksPage} />
+            <BooksTab books={books} loading={booksLoading} onRefresh={fetchBooks} onDelete={handleDeleteBook} deletingId={deletingBookId} page={booksPage} setPage={setBooksPage} />
           )}
           {tab === "platforms" && <PlatformAccessTab />}
           {tab === "admins" && (

@@ -1,19 +1,32 @@
 import { useState, useMemo } from "react";
-import { Loader2, RefreshCw, Search, BookOpen } from "lucide-react";
+import { Loader2, RefreshCw, Search, BookOpen, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import type { AdminBook } from "@/types/admin";
 
 interface BooksTabProps {
   books: AdminBook[];
   loading: boolean;
   onRefresh: () => void;
+  onDelete: (bookId: string) => Promise<void>;
+  deletingId: string | null;
   page: number;
   setPage: (p: number) => void;
 }
 
-export default function BooksTab({ books, loading, onRefresh, page, setPage }: BooksTabProps) {
+export default function BooksTab({ books, loading, onRefresh, onDelete, deletingId, page, setPage }: BooksTabProps) {
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(
@@ -84,6 +97,27 @@ export default function BooksTab({ books, loading, onRefresh, page, setPage }: B
               {b.genre && (
                 <Badge variant="outline" className="text-xs shrink-0">{b.genre}</Badge>
               )}
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm" disabled={deletingId === b.id}>
+                    {deletingId === b.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete "{b.title}"?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently remove this book and its microsite. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => onDelete(b.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           ))}
         </div>
