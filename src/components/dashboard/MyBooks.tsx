@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
-import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { BookOpen, Plus, ExternalLink, Pencil, Loader2, Upload, Globe, ImagePlus } from "lucide-react";
+import { BookOpen, Plus, ExternalLink, Loader2, Globe, ImagePlus } from "lucide-react";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
+import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import DualModeBookForm from "@/components/DualModeBookForm";
 
 interface Book {
@@ -24,16 +23,14 @@ interface Book {
 }
 
 async function getActiveToken(): Promise<string | null> {
-  // Try Cloud session first
   const { data: cloudSession } = await cloudSupabase.auth.getSession();
   if (cloudSession?.session?.access_token) return cloudSession.session.access_token;
-  // Fallback to shared backend
   const { data: sharedSession } = await sharedSupabase.auth.getSession();
   return sharedSession?.session?.access_token || null;
 }
 
 export default function MyBooks() {
-  const { user, session } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,23 +42,27 @@ export default function MyBooks() {
     if (!user) return;
     setLoading(true);
     try {
-      // Use service-role-backed edge function isn't needed here;
-      // just query Cloud DB directly with the shared token set
       const token = await getActiveToken();
-      if (token) {
-        try {
-          await cloudSupabase.auth.setSession({
-            access_token: token,
-            refresh_token: session?.refresh_token || "",
-          });
-        } catch {}
+      if (!token) {
+        setLoading(false);
+        return;
       }
-      const { data } = await cloudSupabase
-        .from("books")
-        .select("id, title, subtitle, slug, cover_image_url, published_at, entry_mode, genre, rating, badges, created_at")
-        .eq("author_id", user.id)
-        .order("created_at", { ascending: false });
-      setBooks(data || []);
+
+      // Use edge function to fetch books (bypasses JWT/RLS mismatch)
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+      setBooks(result.books || []);
     } catch (err) {
       console.error("Failed to fetch books:", err);
     }
@@ -181,7 +182,6 @@ export default function MyBooks() {
 
   return (
     <div className="max-w-5xl space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="font-heading text-2xl font-bold">My Books</h2>
@@ -195,7 +195,6 @@ export default function MyBooks() {
         </Button>
       </div>
 
-      {/* Book Grid */}
       {loading ? (
         <div className="flex items-center justify-center py-20 text-muted-foreground">
           <Loader2 className="h-5 w-5 animate-spin mr-2" />
@@ -219,14 +218,12 @@ export default function MyBooks() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {books.map((book) => (
             <Card key={book.id} className="overflow-hidden hover:shadow-[var(--shadow-card-hover)] transition-shadow group">
-              {/* Cover */}
               <div className="aspect-[3/2] bg-muted flex items-center justify-center overflow-hidden relative">
                 {book.cover_image_url ? (
                   <img src={book.cover_image_url} alt={book.title} className="h-full w-full object-cover" />
                 ) : (
                   <BookOpen className="h-10 w-10 text-muted-foreground/30" />
                 )}
-                {/* Upload cover overlay */}
                 <label
                   className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-colors cursor-pointer"
                   htmlFor={`cover-upload-${book.id}`}
@@ -261,7 +258,6 @@ export default function MyBooks() {
                   )}
                 </div>
 
-                {/* Status & Source Badges */}
                 <div className="flex flex-wrap gap-1.5">
                   <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                     book.published_at
@@ -275,12 +271,10 @@ export default function MyBooks() {
                   </span>
                 </div>
 
-                {/* Genre */}
                 {book.genre && (
                   <p className="text-[11px] text-muted-foreground truncate">{book.genre}</p>
                 )}
 
-                {/* Actions */}
                 <div className="flex gap-2 pt-1">
                   {book.published_at ? (
                     <a
