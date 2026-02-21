@@ -10,71 +10,37 @@ const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
 const SHARED_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnRkcG5la3NjcnNnaHF0c3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MDYzODksImV4cCI6MjA4NDQ4MjM4OX0.o2qA4tLao4UtxPGxSnavXIYKUmVZvS99pHtnL220L-s";
 
-/** Try multiple query strategies to find the profile on the shared backend */
+/** Fetch profile from shared backend using service role key to bypass RLS */
 async function fetchSharedProfile(
-  userId: string,
-  email: string,
-  token: string
+  email: string
 ): Promise<any | null> {
-  // Strategy 1: Use the user's own token (RLS will match auth.jwt()->>'email' = user_email)
-  {
-    const headers: Record<string, string> = {
-      apikey: SHARED_ANON_KEY,
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`,
-    };
-    // Query ALL profiles for this user (RLS should filter by their JWT)
-    const url = `${SHARED_BACKEND_URL}/rest/v1/author_profiles?select=*`;
-    const res = await fetch(url, { headers });
-    if (res.ok) {
-      const data = await res.json();
-      console.log(`Strategy token-all: ${data.length} rows`);
-      if (Array.isArray(data) && data.length > 0) {
-        const primary = data.find((p: any) => p.is_default || p.is_primary) || data[0];
-        console.log("Found shared profile via token-all:", JSON.stringify(primary).slice(0, 800));
-        return primary;
-      }
-    } else {
-      console.log(`Strategy token-all failed: ${res.status} ${(await res.text()).slice(0, 200)}`);
-    }
+  const SERVICE_ROLE_KEY = Deno.env.get("SHARED_BACKEND_SERVICE_ROLE_KEY");
+  if (!SERVICE_ROLE_KEY) {
+    console.error("SHARED_BACKEND_SERVICE_ROLE_KEY not set");
+    return null;
   }
 
-  // Strategy 2: Query by user_email with token
-  {
-    const headers: Record<string, string> = {
-      apikey: SHARED_ANON_KEY,
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`,
-    };
-    const url = `${SHARED_BACKEND_URL}/rest/v1/author_profiles?user_email=eq.${encodeURIComponent(email)}&select=*`;
-    const res = await fetch(url, { headers });
-    if (res.ok) {
-      const data = await res.json();
-      console.log(`Strategy token-email: ${data.length} rows`);
-      if (Array.isArray(data) && data.length > 0) {
-        console.log("Found shared profile via token-email:", JSON.stringify(data[0]).slice(0, 800));
-        return data[0];
-      }
-    } else {
-      console.log(`Strategy token-email failed: ${res.status}`);
-    }
+  const headers: Record<string, string> = {
+    apikey: SHARED_ANON_KEY,
+    Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+    "Content-Type": "application/json",
+  };
+
+  const url = `${SHARED_BACKEND_URL}/rest/v1/author_profiles?user_email=eq.${encodeURIComponent(email)}&select=*`;
+  const res = await fetch(url, { headers });
+
+  if (!res.ok) {
+    console.error(`Shared backend query failed: ${res.status} ${(await res.text()).slice(0, 200)}`);
+    return null;
   }
 
-  // Strategy 3: Anon key (no token) — in case table is public
-  {
-    const headers: Record<string, string> = {
-      apikey: SHARED_ANON_KEY,
-      "Content-Type": "application/json",
-    };
-    const url = `${SHARED_BACKEND_URL}/rest/v1/author_profiles?user_email=eq.${encodeURIComponent(email)}&select=*`;
-    const res = await fetch(url, { headers });
-    if (res.ok) {
-      const data = await res.json();
-      console.log(`Strategy anon-email: ${data.length} rows`);
-      if (Array.isArray(data) && data.length > 0) {
-        return data[0];
-      }
-    }
+  const data = await res.json();
+  console.log(`Shared backend returned ${data.length} profiles for ${email}`);
+
+  if (Array.isArray(data) && data.length > 0) {
+    const primary = data.find((p: any) => p.is_default || p.is_primary) || data[0];
+    console.log("Found shared profile:", JSON.stringify(primary).slice(0, 800));
+    return primary;
   }
 
   return null;
@@ -191,7 +157,7 @@ Deno.serve(async (req) => {
     }
 
     // Fetch from shared backend using user's token for RLS
-    const sharedProfile = await fetchSharedProfile(userId, userEmail, token);
+    const sharedProfile = await fetchSharedProfile(userEmail);
 
     // Map shared data to local fields
     const mapped = sharedProfile ? mapSharedToLocal(sharedProfile) : {};
