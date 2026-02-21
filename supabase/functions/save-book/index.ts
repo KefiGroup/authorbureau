@@ -26,7 +26,9 @@ serve(async (req) => {
       });
     }
 
-    const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
+    const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
     const { data: { user }, error: authError } = await sharedClient.auth.getUser(token);
     if (authError || !user) {
       return new Response(JSON.stringify({ error: "Invalid session" }), {
@@ -37,15 +39,21 @@ serve(async (req) => {
 
     const body = await req.json();
 
-    // Fetch author name from shared profile if not provided
+    // Fetch author profile from shared backend (with auth for RLS)
     let authorName = body.authorName || null;
-    if (!authorName) {
-      const { data: profile } = await sharedClient
-        .from("author_profiles")
-        .select("pen_name")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (profile?.pen_name) authorName = profile.pen_name;
+    let authorBio = body.authorBio || null;
+    let authorPhotoUrl = body.authorPhotoUrl || null;
+
+    const { data: profile } = await sharedClient
+      .from("author_profiles")
+      .select("pen_name, bio_short, bio_long, photo_url")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (profile) {
+      if (!authorName && profile.pen_name) authorName = profile.pen_name;
+      if (!authorBio && (profile.bio_short || profile.bio_long)) authorBio = profile.bio_short || profile.bio_long;
+      if (!authorPhotoUrl && profile.photo_url) authorPhotoUrl = profile.photo_url;
     }
 
     // 2. Generate slug
@@ -93,8 +101,8 @@ serve(async (req) => {
         paperback_price: body.paperbackPrice || null,
         amazon_url: body.amazonUrl,
         author_name: authorName,
-        author_bio: body.authorBio || null,
-        author_photo_url: body.authorPhotoUrl || null,
+        author_bio: authorBio,
+        author_photo_url: authorPhotoUrl,
         cover_image_url: body.coverImageUrl || null,
         entry_mode: "manual",
         ai_enriched: false,
