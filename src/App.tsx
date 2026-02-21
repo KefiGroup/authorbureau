@@ -8,7 +8,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Directory from "./pages/Directory";
 import AuthorProfile from "./pages/AuthorProfile";
-import BookMicrosite from "./pages/BookMicrosite";
+import DynamicBookMicrosite from "./pages/DynamicBookMicrosite";
 import CreateMicrosite from "./pages/CreateMicrosite";
 import Join from "./pages/Join";
 import Auth from "./pages/Auth";
@@ -53,7 +53,7 @@ const AppRoutes = () => (
       <Route path="/" element={<Index />} />
       <Route path="/directory" element={<Directory />} />
       <Route path="/authors/:slug" element={<AuthorProfile />} />
-      <Route path="/books/:slug" element={<BookMicrosite />} />
+      <Route path="/books/:slug" element={<DynamicBookMicrosite />} />
       <Route path="/create-microsite" element={<ProtectedRoute><CreateMicrosite /></ProtectedRoute>} />
       <Route path="/join" element={<Join />} />
       <Route path="/auth" element={<Auth />} />
