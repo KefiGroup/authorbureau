@@ -30,7 +30,7 @@ interface AuthorProfile {
 const GENRE_OPTIONS = [
   "Business", "Self-Help", "Finance", "Leadership", "Health & Wellness",
   "Parenting", "Fiction", "Memoir", "Technology", "Education",
-  "Spirituality", "Science", "Travel", "Cooking", "Children's",
+  "Spirituality", "Science", "Travel", "Cooking", "Children's", "Religion",
 ];
 
 const EMPTY_PROFILE: AuthorProfile = {
