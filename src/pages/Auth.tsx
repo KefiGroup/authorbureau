@@ -193,6 +193,40 @@ export default function Auth() {
         return;
       }
 
+      // Try extracting tokens from authUrl if present
+      const authUrl = data?.authUrl || data?.auth_url;
+      if (authUrl) {
+        console.log("[Auth] authUrl found:", authUrl);
+        try {
+          const url = new URL(authUrl);
+          // Check query params
+          const urlTokenHash = url.searchParams.get("token_hash") || url.searchParams.get("token");
+          const urlType = url.searchParams.get("type") || "email";
+          if (urlTokenHash) {
+            const { error: otpError } = await supabase.auth.verifyOtp({
+              token_hash: urlTokenHash,
+              type: urlType as any,
+            });
+            if (otpError) throw otpError;
+            return;
+          }
+          // Check hash fragment for session tokens
+          const hashParams = new URLSearchParams(url.hash.replace(/^#\/?/, ""));
+          const hashAccess = hashParams.get("access_token");
+          const hashRefresh = hashParams.get("refresh_token");
+          if (hashAccess && hashRefresh) {
+            const { error: sessionError } = await supabase.auth.setSession({
+              access_token: hashAccess,
+              refresh_token: hashRefresh,
+            });
+            if (sessionError) throw sessionError;
+            return;
+          }
+        } catch (urlErr: any) {
+          console.error("[Auth] authUrl parse error:", urlErr);
+        }
+      }
+
       // Show actual response keys + session_data keys for diagnosis
       const sdKeys = data?.session_data ? Object.keys(data.session_data).join(", ") : "N/A";
       console.error("[Auth] No token_hash or session tokens found. Full data:", JSON.stringify(data).substring(0, 500));
