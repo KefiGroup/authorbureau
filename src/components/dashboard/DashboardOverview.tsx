@@ -40,9 +40,20 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || "Sync failed");
 
+      const parts: string[] = [];
+      if (result.fieldsUpdated?.length > 0) {
+        parts.push(`${result.fieldsUpdated.length} profile field(s) updated`);
+      }
+      if (result.booksImported > 0) {
+        parts.push(`${result.booksImported} book(s) imported`);
+      }
+      if (result.booksUpdated > 0) {
+        parts.push(`${result.booksUpdated} book(s) updated`);
+      }
+
       toast({
-        title: "Profile synced from PublishNow ✅",
-        description: `${result.booksSynced || 0} book(s) imported. Source: ${result.source}`,
+        title: parts.length > 0 ? "Profile synced from PublishNow ✅" : "Everything up to date ✅",
+        description: parts.length > 0 ? parts.join(", ") : "Your local profile matches PublishNow.",
       });
     } catch (err: any) {
       toast({ title: "Sync failed", description: err.message, variant: "destructive" });

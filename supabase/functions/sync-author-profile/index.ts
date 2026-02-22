@@ -10,13 +10,14 @@ const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
 const SHARED_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnRkcG5la3NjcnNnaHF0c3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MDYzODksImV4cCI6MjA4NDQ4MjM4OX0.o2qA4tLao4UtxPGxSnavXIYKUmVZvS99pHtnL220L-s";
 
+// Fields that are Authors Bureau-specific and should never be overwritten by sync
+const LOCAL_ONLY_BOOK_FIELDS = new Set([
+  "ai_enriched", "badges", "rating", "review_count",
+  "kindle_price", "paperback_price", "published_at",
+]);
+
 /** Call PublishNow's pull-shared-profile endpoint */
-async function fetchFromPublishNow(email: string): Promise<{
-  profiles: any[];
-  documents: any[];
-  book_projects: any[];
-  platforms: any[];
-} | null> {
+async function fetchFromPublishNow(email: string) {
   const secret = Deno.env.get("CROSS_PLATFORM_SECRET");
   if (!secret) {
     console.error("CROSS_PLATFORM_SECRET not set");
@@ -74,6 +75,39 @@ function mapProfileToLocal(p: any): Record<string, any> {
   }
 
   return mapped;
+}
+
+/** Smart merge: only update fields where remote has a value and local is empty OR remote is newer */
+function smartMerge(
+  local: Record<string, any> | null,
+  remote: Record<string, any>,
+): { merged: Record<string, any>; fieldsUpdated: string[] } {
+  const fieldsUpdated: string[] = [];
+  const merged: Record<string, any> = {};
+
+  for (const [key, remoteVal] of Object.entries(remote)) {
+    // Skip null/empty remote values — never erase local data
+    if (remoteVal == null || remoteVal === "" || (Array.isArray(remoteVal) && remoteVal.length === 0)) {
+      continue;
+    }
+
+    const localVal = local?.[key];
+
+    // If local is empty/null, always use remote
+    if (localVal == null || localVal === "" || (Array.isArray(localVal) && localVal.length === 0)) {
+      merged[key] = remoteVal;
+      fieldsUpdated.push(key);
+      continue;
+    }
+
+    // If both have values and they differ, use remote (PublishNow is source of truth)
+    if (JSON.stringify(localVal) !== JSON.stringify(remoteVal)) {
+      merged[key] = remoteVal;
+      fieldsUpdated.push(key);
+    }
+  }
+
+  return { merged, fieldsUpdated };
 }
 
 /** Generate a URL-safe slug from a title */
@@ -136,30 +170,49 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Fetch existing local profile
+    const { data: localProfile } = await cloudAdmin
+      .from("author_profiles")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle();
+
     // Pull data from PublishNow
     const pulled = await fetchFromPublishNow(userEmail);
-    console.log("Pulled from PublishNow:", pulled ? `${pulled.profiles?.length} profiles, ${pulled.book_projects?.length} books` : "null");
+    console.log("Pulled from PublishNow:", pulled ? `${pulled.profiles?.length} profiles, ${pulled.book_projects?.length || pulled.books?.length || 0} books` : "null");
 
     const sharedProfile = pulled?.profiles?.[0] ?? null;
     const mapped = sharedProfile ? mapProfileToLocal(sharedProfile) : {};
 
     // Fallback pen_name
     const penName = mapped.pen_name
+      || localProfile?.pen_name
       || userMeta.pen_name
       || userMeta.display_name
       || userMeta.full_name
       || userMeta.name
       || userEmail.split("@")[0];
 
-    console.log("Resolved pen_name:", penName, "bio:", !!mapped.bio_short, "photo:", !!mapped.photo_url);
+    // Smart merge: only update fields that changed
+    const { merged: profileUpdates, fieldsUpdated } = smartMerge(localProfile, {
+      pen_name: penName,
+      ...mapped,
+    });
 
-    // Upsert author profile
+    console.log("Fields to update:", fieldsUpdated.length > 0 ? fieldsUpdated.join(", ") : "none");
+
+    // Upsert with only changed fields + metadata
     const upsertData: Record<string, any> = {
       user_id: userId,
-      pen_name: penName,
       updated_at: new Date().toISOString(),
-      ...mapped,
+      last_synced_at: new Date().toISOString(),
+      ...profileUpdates,
     };
+
+    // If no local profile exists, ensure pen_name is set
+    if (!localProfile) {
+      upsertData.pen_name = penName;
+    }
 
     const { data: upserted, error: upsertError } = await cloudAdmin
       .from("author_profiles")
@@ -175,21 +228,37 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Sync books from PublishNow
-    let booksSynced = 0;
-    if (pulled?.book_projects && Array.isArray(pulled.book_projects)) {
-      for (const book of pulled.book_projects) {
+    // Sync books from PublishNow with smart merge
+    let booksImported = 0;
+    let booksUpdated = 0;
+    const remoteBooks = pulled?.book_projects || pulled?.books || [];
+
+    if (Array.isArray(remoteBooks)) {
+      for (const book of remoteBooks) {
         const title = book.title || book.name;
         if (!title) continue;
 
         const slug = slugify(title);
+
+        // Check if book already exists locally
+        const { data: existingBook } = await cloudAdmin
+          .from("books")
+          .select("*")
+          .eq("slug", slug)
+          .maybeSingle();
+
         const bookData: Record<string, any> = {
           author_id: userId,
           title,
           slug,
           updated_at: new Date().toISOString(),
+          entry_mode: "imported",
+          author_name: penName,
+          author_bio: mapped.bio_short || mapped.bio_long || null,
+          author_photo_url: mapped.photo_url || null,
         };
 
+        // Add optional fields only if they have values
         if (book.subtitle) bookData.subtitle = book.subtitle;
         if (book.description) bookData.description = book.description;
         if (book.cover_image_url || book.cover_url) bookData.cover_image_url = book.cover_image_url || book.cover_url;
@@ -197,21 +266,42 @@ Deno.serve(async (req) => {
         if (book.genre || book.category) bookData.genre = book.genre || book.category;
         if (book.pages) bookData.pages = book.pages;
         if (book.price) bookData.price = String(book.price);
-        if (book.isbn) bookData.entry_mode = "imported";
-        bookData.author_name = penName;
-        bookData.author_bio = mapped.bio_short || mapped.bio_long || null;
-        bookData.author_photo_url = mapped.photo_url || null;
 
-        const { error: bookError } = await cloudAdmin
-          .from("books")
-          .upsert(bookData, { onConflict: "slug" })
-          .select("id")
-          .single();
+        if (existingBook) {
+          // Smart merge for existing books: skip local-only fields
+          const updateData: Record<string, any> = {};
+          for (const [key, val] of Object.entries(bookData)) {
+            if (LOCAL_ONLY_BOOK_FIELDS.has(key)) continue;
+            if (val == null || val === "") continue;
+            if (JSON.stringify(existingBook[key]) !== JSON.stringify(val)) {
+              updateData[key] = val;
+            }
+          }
 
-        if (bookError) {
-          console.error("Book upsert error for", title, ":", bookError.message);
+          if (Object.keys(updateData).length > 0) {
+            updateData.updated_at = new Date().toISOString();
+            const { error: bookError } = await cloudAdmin
+              .from("books")
+              .update(updateData)
+              .eq("id", existingBook.id);
+
+            if (bookError) {
+              console.error("Book update error for", title, ":", bookError.message);
+            } else {
+              booksUpdated++;
+            }
+          }
         } else {
-          booksSynced++;
+          // New book — insert
+          const { error: bookError } = await cloudAdmin
+            .from("books")
+            .insert(bookData);
+
+          if (bookError) {
+            console.error("Book insert error for", title, ":", bookError.message);
+          } else {
+            booksImported++;
+          }
         }
       }
     }
@@ -230,7 +320,9 @@ Deno.serve(async (req) => {
       JSON.stringify({
         synced: true,
         profile: upserted,
-        booksSynced,
+        fieldsUpdated,
+        booksImported,
+        booksUpdated,
         source: sharedProfile ? "publishnow" : "metadata",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
