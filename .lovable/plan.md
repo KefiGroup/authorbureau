@@ -1,38 +1,18 @@
 
 
-## Add Shared Backend Service Role Key and Update Sync Function
+## Re-enter the Shared Backend Service Role Key
 
-### Step 1: Add the Secret
-Add a new secret called `SHARED_BACKEND_SERVICE_ROLE_KEY` with the value you copied from the PublishNow.io Supabase dashboard (Settings > API > Service Role Key).
+### What we'll do
+Update the `SHARED_BACKEND_SERVICE_ROLE_KEY` secret with the correct value from your PublishNow.io backend.
 
-### Step 2: Update the Edge Function
-Modify `supabase/functions/sync-author-profile/index.ts` to use the service role key instead of the anon key when querying the shared backend. This bypasses RLS and allows the function to read author profiles directly.
+### Steps
+1. Use the secret management tool to prompt you to enter the new key value
+2. Redeploy the `sync-author-profile` edge function so it picks up the updated secret
+3. Test the function to confirm it can now query the shared backend successfully
 
-### Technical Details
-
-**File to modify:** `supabase/functions/sync-author-profile/index.ts`
-
-Changes:
-1. Read `SHARED_BACKEND_SERVICE_ROLE_KEY` from environment variables
-2. Use it in the `Authorization` header (as `Bearer <service_role_key>`) or as the `apikey` when querying the shared backend's REST API
-3. Query `author_profiles` by `user_email` using the service role key, which bypasses RLS entirely
-4. Remove the multi-strategy fallback logic since service role access makes it unnecessary
-
-**Key code change:**
-```typescript
-const SERVICE_ROLE_KEY = Deno.env.get("SHARED_BACKEND_SERVICE_ROLE_KEY");
-
-// Use service role key to bypass RLS on shared backend
-const headers = {
-  apikey: SHARED_ANON_KEY,
-  Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-  "Content-Type": "application/json",
-};
-
-const url = `${SHARED_BACKEND_URL}/rest/v1/author_profiles?user_email=eq.${encodeURIComponent(email)}&select=*`;
-const res = await fetch(url, { headers });
+### What you need ready
+The **service_role** key from your PublishNow.io backend dashboard. It should look like a long string with two dots in it, similar to:
 ```
-
-### Step 3: Deploy and Test
-The edge function will be redeployed automatically. Refreshing the dashboard will trigger the sync and should now successfully pull Pauline's profile data (bio, photo, etc.) from PublishNow.io.
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIs...
+```
 
