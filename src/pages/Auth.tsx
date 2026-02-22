@@ -154,8 +154,15 @@ export default function Auth() {
         throw new Error(data?.error || data?.message || `Verification failed (${res.status})`);
       }
 
-      // Deep-search for token_hash across possible nesting levels
-      const tokenHash = data?.token_hash || data?.data?.token_hash || data?.session?.token_hash || data?.result?.token_hash;
+      // Log session_data contents for debugging
+      if (data?.session_data) {
+        console.log("[Auth] session_data contents:", JSON.stringify(data.session_data));
+      }
+
+      // Deep-search for token_hash across possible nesting levels including session_data
+      const tokenHash = data?.token_hash || data?.data?.token_hash || data?.session?.token_hash
+        || data?.result?.token_hash || data?.session_data?.token_hash
+        || data?.session_data?.session?.token_hash;
       const type = data?.type || data?.data?.type || "email";
 
       if (tokenHash) {
@@ -167,9 +174,15 @@ export default function Auth() {
         return;
       }
 
-      // Deep-search for session tokens across possible nesting levels
-      const accessToken = data?.access_token || data?.session?.access_token || data?.session_data?.access_token || data?.data?.access_token || data?.data?.session?.access_token || data?.result?.access_token;
-      const refreshToken = data?.refresh_token || data?.session?.refresh_token || data?.session_data?.refresh_token || data?.data?.refresh_token || data?.data?.session?.refresh_token || data?.result?.refresh_token;
+      // Deep-search for session tokens across possible nesting levels including session_data.session
+      const accessToken = data?.access_token || data?.session?.access_token
+        || data?.session_data?.access_token || data?.session_data?.session?.access_token
+        || data?.data?.access_token || data?.data?.session?.access_token
+        || data?.result?.access_token;
+      const refreshToken = data?.refresh_token || data?.session?.refresh_token
+        || data?.session_data?.refresh_token || data?.session_data?.session?.refresh_token
+        || data?.data?.refresh_token || data?.data?.session?.refresh_token
+        || data?.result?.refresh_token;
 
       if (accessToken && refreshToken) {
         const { error: sessionError } = await supabase.auth.setSession({
@@ -180,10 +193,10 @@ export default function Auth() {
         return;
       }
 
-      // Show actual response keys for diagnosis
-      const allKeys = JSON.stringify(data).substring(0, 500);
-      console.error("[Auth] No token_hash or session tokens in verify response. Full data:", allKeys);
-      throw new Error(`No session in response. Keys: ${Object.keys(data).join(", ")}. Check console for full response.`);
+      // Show actual response keys + session_data keys for diagnosis
+      const sdKeys = data?.session_data ? Object.keys(data.session_data).join(", ") : "N/A";
+      console.error("[Auth] No token_hash or session tokens found. Full data:", JSON.stringify(data).substring(0, 500));
+      throw new Error(`No session found. Top keys: ${Object.keys(data).join(", ")}. session_data keys: ${sdKeys}`);
     } catch (err: any) {
       console.error("[Auth] verify error:", err);
       toast({ title: err.message || "Verification failed", variant: "destructive" });
