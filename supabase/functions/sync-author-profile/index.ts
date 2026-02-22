@@ -62,7 +62,7 @@ function mapProfileToLocal(p: any): Record<string, any> {
   }
 
   // Top-level fields (new schema), with JSONB fallbacks for backward compat
-  const tagline = p.tagline || p.extra_data?.tagline;
+  const tagline = p.tagline || p.headline || p.title_tagline || p.extra_data?.tagline;
   if (tagline) mapped.tagline = tagline;
 
   const city = p.city || p.extra_data?.location_city;
@@ -226,7 +226,21 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Debug: log raw profile data to diagnose missing fields
+    if (sharedProfile) {
+      console.log("Raw profile keys:", Object.keys(sharedProfile).join(", "));
+      console.log("Raw tagline:", JSON.stringify(sharedProfile.tagline));
+      console.log("Raw headline:", JSON.stringify(sharedProfile.headline));
+      console.log("Raw title_tagline:", JSON.stringify(sharedProfile.title_tagline));
+      console.log("Raw short_bio:", JSON.stringify(sharedProfile.short_bio));
+      console.log("Raw city:", JSON.stringify(sharedProfile.city));
+      console.log("Raw country:", JSON.stringify(sharedProfile.country));
+      console.log("Raw amazon_author_url:", JSON.stringify(sharedProfile.amazon_author_url));
+      console.log("Raw extra_data:", JSON.stringify(sharedProfile.extra_data));
+    }
+
     const mapped = sharedProfile ? mapProfileToLocal(sharedProfile) : {};
+    console.log("Mapped output:", JSON.stringify(mapped));
 
     // Fallback pen_name
     const penName = mapped.pen_name
