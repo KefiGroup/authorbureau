@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Crown, Loader2, CheckCircle2, BookOpen, Mic,
   GraduationCap, Lock, ExternalLink, RefreshCw,
-  User, ArrowRight, Rocket, Award,
+  User, ArrowRight, Rocket, Award, Download,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -18,6 +18,37 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
   const { toast } = useToast();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [syncLoading, setSyncLoading] = useState(false);
+
+  const handleSyncFromPublishNow = async () => {
+    setSyncLoading(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) throw new Error("Not authenticated");
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-author-profile`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Sync failed");
+
+      toast({
+        title: "Profile synced from PublishNow ✅",
+        description: `${result.booksSynced || 0} book(s) imported. Source: ${result.source}`,
+      });
+    } catch (err: any) {
+      toast({ title: "Sync failed", description: err.message, variant: "destructive" });
+    }
+    setSyncLoading(false);
+  };
 
   const handleUpgrade = async () => {
     setCheckoutLoading(true);
@@ -99,10 +130,16 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
               </span>
             </p>
           </div>
-          <Button variant="ghost" size="sm" onClick={checkSubscription} disabled={subscription.loading}>
-            <RefreshCw className={`h-4 w-4 mr-1 ${subscription.loading ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleSyncFromPublishNow} disabled={syncLoading}>
+              {syncLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
+              Sync from PublishNow
+            </Button>
+            <Button variant="ghost" size="sm" onClick={checkSubscription} disabled={subscription.loading}>
+              <RefreshCw className={`h-4 w-4 mr-1 ${subscription.loading ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
 
         {subscription.loading ? (
