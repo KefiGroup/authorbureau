@@ -44,10 +44,12 @@ function mapProfileToLocal(p: any): Record<string, any> {
   const mapped: Record<string, any> = {};
 
   if (p.pen_name || p.profile_name) mapped.pen_name = p.pen_name || p.profile_name;
-  if (p.bio) {
-    mapped.bio_short = p.bio.length > 300 ? p.bio.slice(0, 300) : p.bio;
-    mapped.bio_long = p.bio;
-  }
+
+  // Bio: prefer top-level short_bio, fall back to truncating bio
+  const shortBio = p.short_bio || (p.bio && p.bio.length > 300 ? p.bio.slice(0, 300) : p.bio);
+  if (shortBio) mapped.bio_short = shortBio;
+  if (p.bio) mapped.bio_long = p.bio;
+
   if (p.profile_picture_url) mapped.photo_url = p.profile_picture_url;
   if (p.website) mapped.website_url = p.website;
   if (p.genres && Array.isArray(p.genres)) mapped.genres = p.genres;
@@ -58,18 +60,33 @@ function mapProfileToLocal(p: any): Record<string, any> {
       mapped.credentials = [p.credentials];
     }
   }
+
+  // Top-level fields (new schema), with JSONB fallbacks for backward compat
+  const tagline = p.tagline || p.extra_data?.tagline;
+  if (tagline) mapped.tagline = tagline;
+
+  const city = p.city || p.extra_data?.location_city;
+  if (city) mapped.location_city = city;
+
+  const country = p.country || p.extra_data?.location_country;
+  if (country) mapped.location_country = country;
+
+  const linkedinUrl = p.linkedin_url || p.social_links?.linkedin;
+  if (linkedinUrl) mapped.linkedin_url = linkedinUrl;
+
+  const amazonUrl = p.amazon_author_url || p.social_links?.amazon;
+  if (amazonUrl) mapped.amazon_author_profile_url = amazonUrl;
+
+  // These remain in social_links JSONB
   if (p.social_links && typeof p.social_links === "object") {
     const sl = p.social_links;
-    if (sl.linkedin) mapped.linkedin_url = sl.linkedin;
     if (sl.twitter) mapped.twitter_url = sl.twitter;
     if (sl.instagram) mapped.instagram_url = sl.instagram;
     if (sl.youtube) mapped.youtube_url = sl.youtube;
-    if (sl.amazon) mapped.amazon_author_profile_url = sl.amazon;
   }
+
+  // These remain in extra_data JSONB
   if (p.extra_data && typeof p.extra_data === "object") {
-    if (p.extra_data.tagline) mapped.tagline = p.extra_data.tagline;
-    if (p.extra_data.location_city) mapped.location_city = p.extra_data.location_city;
-    if (p.extra_data.location_country) mapped.location_country = p.extra_data.location_country;
     if (p.extra_data.is_speaker != null) mapped.is_speaker = p.extra_data.is_speaker;
     if (p.extra_data.speaker_fee_range) mapped.speaker_fee_range = p.extra_data.speaker_fee_range;
   }
