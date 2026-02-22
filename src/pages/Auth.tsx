@@ -154,9 +154,9 @@ export default function Auth() {
         throw new Error(data?.error || data?.message || `Verification failed (${res.status})`);
       }
 
-      // Use token_hash + type to call supabase.auth.verifyOtp
-      const tokenHash = data?.token_hash;
-      const type = data?.type || "email";
+      // Deep-search for token_hash across possible nesting levels
+      const tokenHash = data?.token_hash || data?.data?.token_hash || data?.session?.token_hash || data?.result?.token_hash;
+      const type = data?.type || data?.data?.type || "email";
 
       if (tokenHash) {
         const { error: otpError } = await supabase.auth.verifyOtp({
@@ -164,13 +164,12 @@ export default function Auth() {
           type,
         });
         if (otpError) throw otpError;
-        // Don't navigate here — let the useAuth listener + the `if (user)` redirect handle it
         return;
       }
 
-      // Fallback: try session tokens directly (access_token/refresh_token)
-      const accessToken = data?.access_token || data?.session?.access_token || data?.session_data?.access_token;
-      const refreshToken = data?.refresh_token || data?.session?.refresh_token || data?.session_data?.refresh_token;
+      // Deep-search for session tokens across possible nesting levels
+      const accessToken = data?.access_token || data?.session?.access_token || data?.session_data?.access_token || data?.data?.access_token || data?.data?.session?.access_token || data?.result?.access_token;
+      const refreshToken = data?.refresh_token || data?.session?.refresh_token || data?.session_data?.refresh_token || data?.data?.refresh_token || data?.data?.session?.refresh_token || data?.result?.refresh_token;
 
       if (accessToken && refreshToken) {
         const { error: sessionError } = await supabase.auth.setSession({
@@ -178,12 +177,13 @@ export default function Auth() {
           refresh_token: refreshToken,
         });
         if (sessionError) throw sessionError;
-        // Don't navigate here — let the useAuth listener + the `if (user)` redirect handle it
         return;
       }
 
-      console.error("[Auth] No token_hash or session tokens in verify response. Keys:", Object.keys(data));
-      throw new Error("Login succeeded but no session was returned. Please try again or contact support.");
+      // Show actual response keys for diagnosis
+      const allKeys = JSON.stringify(data).substring(0, 500);
+      console.error("[Auth] No token_hash or session tokens in verify response. Full data:", allKeys);
+      throw new Error(`No session in response. Keys: ${Object.keys(data).join(", ")}. Check console for full response.`);
     } catch (err: any) {
       console.error("[Auth] verify error:", err);
       toast({ title: err.message || "Verification failed", variant: "destructive" });
