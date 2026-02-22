@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { slug } = await req.json();
+    const { slug, preview } = await req.json();
     if (!slug) {
       return new Response(JSON.stringify({ error: "slug is required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -24,13 +24,17 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Fetch book
-    const { data: book, error } = await cloudClient
+    // Fetch book — skip published_at check when preview=true
+    let query = cloudClient
       .from("books")
       .select("*")
-      .eq("slug", slug)
-      .not("published_at", "is", null)
-      .maybeSingle();
+      .eq("slug", slug);
+
+    if (!preview) {
+      query = query.not("published_at", "is", null);
+    }
+
+    const { data: book, error } = await query.maybeSingle();
 
     if (error) throw error;
     if (!book) {
