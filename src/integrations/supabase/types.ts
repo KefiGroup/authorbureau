@@ -63,6 +63,7 @@ export type Database = {
           id: string
           instagram_url: string | null
           is_speaker: boolean | null
+          last_synced_at: string | null
           linkedin_url: string | null
           location_city: string | null
           location_country: string | null
@@ -88,6 +89,7 @@ export type Database = {
           id?: string
           instagram_url?: string | null
           is_speaker?: boolean | null
+          last_synced_at?: string | null
           linkedin_url?: string | null
           location_city?: string | null
           location_country?: string | null
@@ -113,6 +115,7 @@ export type Database = {
           id?: string
           instagram_url?: string | null
           is_speaker?: boolean | null
+          last_synced_at?: string | null
           linkedin_url?: string | null
           location_city?: string | null
           location_country?: string | null
