@@ -4,8 +4,6 @@ import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { redirectToPublishNow } from "@/lib/publishnow-redirect";
-import { useToast } from "@/hooks/use-toast";
 import logoIcon from "@/assets/logo-icon.png";
 
 const navLinks = [
@@ -14,7 +12,6 @@ const navLinks = [
   { label: "Meet our Authors", to: "/", hash: "#featured-authors" },
   { label: "How It Works", to: "/", hash: "#how-it-works" },
   { label: "Authors", to: "/directory", hash: "" },
-  { label: "PublishNow.io", to: "https://publishnow.io", hash: "", external: true },
 ];
 
 export default function Navbar() {
@@ -22,17 +19,6 @@ export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
-  const { toast } = useToast();
-
-  const handlePublishNowClick = useCallback(() => {
-    if (user) {
-      redirectToPublishNow("/dashboard").then(({ error }) => {
-        if (error) toast({ title: "Could not open PublishNow", description: error, variant: "destructive" });
-      });
-    } else {
-      window.open("https://publishnow.io", "_blank");
-    }
-  }, [user, toast]);
 
   const handleNavClick = useCallback(
     (link: (typeof navLinks)[0]) => {
@@ -63,16 +49,7 @@ export default function Navbar() {
         </Link>
 
         <div className="hidden items-center gap-6 md:flex">
-          {navLinks.map((link) =>
-            link.external ? (
-              <button
-                key={link.label}
-                onClick={handlePublishNowClick}
-                className="text-sm font-medium text-muted-foreground transition-colors hover:text-secondary"
-              >
-                {link.label}
-              </button>
-            ) : (
+          {navLinks.map((link) => (
               <button
                 key={link.label}
                 onClick={() => handleNavClick(link)}
@@ -84,8 +61,7 @@ export default function Navbar() {
               >
                 {link.label}
               </button>
-            )
-          )}
+          ))}
           {user ? (
             <Button asChild variant="default" size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-none rounded-full">
               <Link to={dashboardPath}>Dashboard</Link>
@@ -120,16 +96,7 @@ export default function Navbar() {
             className="overflow-hidden border-t border-border md:hidden"
           >
             <div className="container flex flex-col gap-4 py-4">
-              {navLinks.map((link) =>
-                link.external ? (
-                  <button
-                    key={link.label}
-                    onClick={() => { setOpen(false); handlePublishNowClick(); }}
-                    className="text-left text-sm font-medium text-muted-foreground"
-                  >
-                    {link.label} →
-                  </button>
-                ) : (
+              {navLinks.map((link) => (
                   <button
                     key={link.label}
                     onClick={() => handleNavClick(link)}
@@ -139,8 +106,7 @@ export default function Navbar() {
                   >
                     {link.label}
                   </button>
-                )
-              )}
+              ))}
               {user ? (
                 <Link
                   to={dashboardPath}

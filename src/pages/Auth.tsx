@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import { useAuth, ADMIN_EMAILS } from "@/hooks/useAuth";
-import { Loader2, ExternalLink, X, ArrowLeft } from "lucide-react";
+import { Loader2, X, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { useToast } from "@/hooks/use-toast";
@@ -259,7 +259,7 @@ export default function Auth() {
           <div className="rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-card)] text-center space-y-6">
             <h1 className="font-heading text-2xl font-bold">Sign In to Authors Bureau</h1>
             <p className="text-sm text-muted-foreground">
-              Authors Bureau uses your PublishNow account. Sign in with the email you registered on PublishNow.
+              Enter your email to get started.
             </p>
 
             <Button
@@ -267,8 +267,7 @@ export default function Auth() {
               className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold rounded-full"
               size="lg"
             >
-              <ExternalLink className="mr-2 h-4 w-4" />
-              Sign In via PublishNow
+              Sign In
             </Button>
 
             <p className="text-xs text-muted-foreground">
