@@ -1,57 +1,54 @@
 
 
-# Update Sync Mapper for New Top-Level Columns from PublishNow
+# Fix Profile Sync: Wrong Profile Being Selected
 
 ## Problem
 
-The `mapProfileToLocal` function in `sync-author-profile/index.ts` still extracts several fields from nested JSONB (`extra_data` and `social_links`), but PublishNow has promoted these to top-level columns. Since `pull-shared-profile` returns `SELECT *`, the data now arrives as direct fields -- but the mapper ignores them and looks in the wrong places.
+The `sync-author-profile` edge function calls `pull-shared-profile` which returns **2 profiles** for `fasahath@gmail.com`. The sync blindly picks `profiles[0]` (line 201), which is an older profile ("Fasa's Wandering Mind"). The actual profile the user edited on PublishNow ("Fasa Husain" with tagline "Author, Speaker, Entrepreneur" and LinkedIn URL) is `profiles[1]` and is being completely ignored.
 
-## Affected Fields
+This means the tagline, LinkedIn URL, and correct pen name never get synced.
 
-| Field | Old location (JSONB) | New location (top-level) |
-|-------|---------------------|------------------------|
-| tagline | extra_data.tagline | p.tagline |
-| short_bio | (derived from p.bio) | p.short_bio |
-| location_city | extra_data.location_city | p.city |
-| location_country | extra_data.location_country | p.country |
-| linkedin_url | social_links.linkedin | p.linkedin_url |
-| amazon_author_profile_url | social_links.amazon | p.amazon_author_url |
+## Current local state
 
-Twitter, Instagram, YouTube remain in `social_links` JSONB -- no change needed for those.
+| Field | Local Value | Expected (from PublishNow) |
+|-------|------------|---------------------------|
+| pen_name | Fasa's Wandering Mind | Fasa Husain |
+| tagline | null | Author, Speaker, Entrepreneur |
+| linkedin_url | null | https://www.linkedin.com/in/fasahath-husain/ |
+| bio_short | (filled from old profile) | (should match PublishNow) |
 
-## Changes
+## Fix
 
-### 1. Update `sync-author-profile/index.ts` -- `mapProfileToLocal` function
+### 1. Update `sync-author-profile/index.ts` -- Smart profile selection (line 201)
 
-Rewrite the mapping to read from top-level columns first (the new schema), falling back to the old JSONB paths for backward compatibility:
+Instead of blindly picking `profiles[0]`, select the **most recently updated profile** from the array. This ensures the profile the user most recently edited on PublishNow is the one that gets synced.
 
-- `p.tagline` directly (instead of `extra_data.tagline`)
-- `p.short_bio` maps to `bio_short` (instead of truncating `p.bio`)
-- `p.bio` maps to `bio_long` (keep as-is)
-- `p.city` maps to `location_city` (instead of `extra_data.location_city`)
-- `p.country` maps to `location_country` (instead of `extra_data.location_country`)
-- `p.linkedin_url` directly (instead of `social_links.linkedin`)
-- `p.amazon_author_url` maps to `amazon_author_profile_url` (instead of `social_links.amazon`)
-- Twitter/Instagram/YouTube still read from `social_links` JSONB (unchanged)
-- `extra_data.is_speaker` and `extra_data.speaker_fee_range` still read from `extra_data` (unchanged)
+Replace:
+```typescript
+const sharedProfile = pulled?.profiles?.[0] ?? null;
+```
 
-### 2. Update `ProfileEditor.tsx` -- Add "Religion" genre
+With logic that:
+1. If only 1 profile, use it (no change in behavior)
+2. If multiple profiles, pick the one with the most recent `updated_at` timestamp
+3. Fallback to the first profile if no timestamps exist
 
-Add "Religion" to the `GENRE_OPTIONS` array to match the expanded genre list on PublishNow.
+### 2. Add debug logging
 
-### 3. No database migration needed
+Add a log line showing which profile was selected and why (e.g., "Selected profile 1 of 2 (most recent: 2026-02-22)") to make future debugging easier.
 
-The local `author_profiles` table already has all the necessary columns (`tagline`, `bio_short`, `location_city`, `location_country`, `linkedin_url`, `amazon_author_profile_url`). This is purely a mapping/logic fix.
+### 3. Merge data from all profiles (optional enhancement)
 
-## Technical Details
+As a secondary improvement, after selecting the primary profile, scan other profiles for any fields that the primary profile is missing. This way if one profile has a LinkedIn URL and another has a tagline, both get captured.
 
-### Files to modify
-- `supabase/functions/sync-author-profile/index.ts` -- update `mapProfileToLocal` function (lines 43-78)
-- `src/components/dashboard/ProfileEditor.tsx` -- add "Religion" to GENRE_OPTIONS (line 31-34)
+## Files to modify
 
-### What stays the same
-- `smartMerge` function -- works correctly regardless of field source
-- Book sync logic -- unaffected
-- ProfileEditor read/write logic -- already uses correct column names since it writes directly to the shared DB
-- Authentication flow -- unchanged
+- `supabase/functions/sync-author-profile/index.ts` -- lines 201-202: add smart profile selection logic
+
+## What stays the same
+
+- `mapProfileToLocal` -- already correctly maps the new top-level columns
+- `smartMerge` -- works correctly once it receives the right data
+- `ProfileEditor` -- no changes needed
+- Database schema -- no changes needed
 
