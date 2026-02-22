@@ -1,58 +1,31 @@
 
 
-## Fix: Extract session tokens from `session_data` object
+## Fix: Use `authUrl` to Complete Authentication
 
 ### Problem
-The shared backend verify endpoint returns these keys: `success`, `email`, `authUrl`, `session_data`. The current code checks `data?.session_data?.access_token` but the tokens are nested deeper inside `session_data` (likely under `session_data.session.access_token` or similar).
+The shared backend verify endpoint returns `{success, email, authUrl, session_data}` where `session_data` is null. The actual authentication token is embedded in the `authUrl` field, not in `session_data`. The current code never looks at `authUrl`.
 
 ### Solution
-Update `src/pages/Auth.tsx` to:
+Update `src/pages/Auth.tsx` to extract the token hash from `authUrl` and use it with `supabase.auth.verifyOtp()`.
 
-1. Add deeper extraction from the `session_data` object, checking paths like:
-   - `session_data.session.access_token`
-   - `session_data.access_token`
-   - `session_data.token_hash`
-2. Also check for `token_hash` inside `session_data`
-3. Add a temporary console log of `JSON.stringify(data.session_data)` so if it still fails, we can see the exact structure
+The `authUrl` likely has a format like:
+`https://...supabase.co/auth/v1/verify?token=...&type=email` or contains a token hash in its query parameters or fragment.
 
 ### Technical Details
 
-**File: `src/pages/Auth.tsx`** (lines ~157-186)
+**File: `src/pages/Auth.tsx`** -- Update `handleVerifyOtp`:
 
-Update the token extraction to include `session_data` sub-paths:
+1. Before the deep-search fallback error, add logic to parse `authUrl`:
+   - Extract `token_hash`, `token`, or `access_token`/`refresh_token` from the URL's query params or hash fragment
+   - If a `token_hash` or `token` is found, call `supabase.auth.verifyOtp({ token_hash, type: "email" })`
+   - If `access_token` and `refresh_token` are found in the URL fragment, call `supabase.auth.setSession()`
 
-```typescript
-// Deep-search for token_hash — now also inside session_data
-const tokenHash = data?.token_hash || data?.data?.token_hash || data?.session?.token_hash 
-  || data?.result?.token_hash || data?.session_data?.token_hash 
-  || data?.session_data?.session?.token_hash;
+2. Add a console log of the raw `authUrl` value for debugging in case the URL format is unexpected
 
-// Deep-search for session tokens — now also inside session_data.session
-const accessToken = data?.access_token || data?.session?.access_token 
-  || data?.session_data?.access_token || data?.session_data?.session?.access_token
-  || data?.data?.access_token || data?.data?.session?.access_token 
-  || data?.result?.access_token;
+3. The parsing logic will:
+   - Create a `URL` object from `authUrl`
+   - Check `searchParams` for `token_hash`, `token`, `access_token`
+   - Check the hash fragment (after `#`) for token parameters
+   - Use whichever token is found to complete the auth flow
 
-const refreshToken = data?.refresh_token || data?.session?.refresh_token 
-  || data?.session_data?.refresh_token || data?.session_data?.session?.refresh_token
-  || data?.data?.refresh_token || data?.data?.session?.refresh_token 
-  || data?.result?.refresh_token;
-```
-
-Additionally, log the full `session_data` structure before extraction so that if it still fails, we'll see exactly what's inside:
-
-```typescript
-if (data?.session_data) {
-  console.log("[Auth] session_data contents:", JSON.stringify(data.session_data));
-}
-```
-
-Update the fallback error to show `session_data` keys too:
-
-```typescript
-const sdKeys = data?.session_data ? Object.keys(data.session_data).join(", ") : "N/A";
-throw new Error(`No session found. Top keys: ${Object.keys(data).join(", ")}. session_data keys: ${sdKeys}`);
-```
-
-This will either resolve the issue immediately (if tokens are nested under `session_data.session`) or give us the exact structure to fix it definitively.
-
+This should resolve the login issue since the backend is clearly providing the auth URL instead of raw session tokens.
