@@ -25,6 +25,7 @@ Deno.serve(async (req) => {
     }
 
     const SERVICE_ROLE_KEY = Deno.env.get("SHARED_BACKEND_SERVICE_ROLE_KEY");
+    console.log("Key length:", SERVICE_ROLE_KEY?.length, "starts:", SERVICE_ROLE_KEY?.substring(0, 20), "dots:", SERVICE_ROLE_KEY?.split(".").length);
     if (!SERVICE_ROLE_KEY) {
       return new Response(JSON.stringify({ error: "SHARED_BACKEND_SERVICE_ROLE_KEY not configured" }), {
         status: 500,
