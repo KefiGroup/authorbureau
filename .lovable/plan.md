@@ -1,54 +1,59 @@
 
 
-# Fix Profile Sync: Wrong Profile Being Selected
+# Fix Missing Tagline (and other fields) in Profile Sync
 
-## Problem
+## Root Cause
 
-The `sync-author-profile` edge function calls `pull-shared-profile` which returns **2 profiles** for `fasahath@gmail.com`. The sync blindly picks `profiles[0]` (line 201), which is an older profile ("Fasa's Wandering Mind"). The actual profile the user edited on PublishNow ("Fasa Husain" with tagline "Author, Speaker, Entrepreneur" and LinkedIn URL) is `profiles[1]` and is being completely ignored.
+The edge function logs show that on the very first sync, `tagline` was NOT in the list of updated fields (`pen_name, bio_short, bio_long, photo_url, website_url, genres, credentials, linkedin_url`). This means the `pull-shared-profile` endpoint is either:
 
-This means the tagline, LinkedIn URL, and correct pen name never get synced.
+1. Returning the tagline under a different field name (e.g., `headline` instead of `tagline`)
+2. Not returning it at all for this profile
+3. The profile on PublishNow stores tagline in a field the mapper doesn't check
 
-## Current local state
+Since we can't directly call `pull-shared-profile` to inspect the response, we need to add diagnostic logging to the sync function.
 
-| Field | Local Value | Expected (from PublishNow) |
-|-------|------------|---------------------------|
-| pen_name | Fasa's Wandering Mind | Fasa Husain |
-| tagline | null | Author, Speaker, Entrepreneur |
-| linkedin_url | null | https://www.linkedin.com/in/fasahath-husain/ |
-| bio_short | (filled from old profile) | (should match PublishNow) |
+## Changes
 
-## Fix
+### 1. Add raw profile debug logging (`sync-author-profile/index.ts`)
 
-### 1. Update `sync-author-profile/index.ts` -- Smart profile selection (line 201)
+After profile selection (line 229), log the raw keys and specific fields of the selected profile so we can see exactly what `pull-shared-profile` returns:
 
-Instead of blindly picking `profiles[0]`, select the **most recently updated profile** from the array. This ensures the profile the user most recently edited on PublishNow is the one that gets synced.
-
-Replace:
 ```typescript
-const sharedProfile = pulled?.profiles?.[0] ?? null;
+// After sharedProfile is selected, before mapping
+if (sharedProfile) {
+  console.log("Raw profile keys:", Object.keys(sharedProfile).join(", "));
+  console.log("Raw profile tagline:", JSON.stringify(sharedProfile.tagline));
+  console.log("Raw profile short_bio:", JSON.stringify(sharedProfile.short_bio));
+  console.log("Raw profile city:", JSON.stringify(sharedProfile.city));
+  console.log("Raw profile country:", JSON.stringify(sharedProfile.country));
+  console.log("Raw profile amazon_author_url:", JSON.stringify(sharedProfile.amazon_author_url));
+  console.log("Raw profile headline:", JSON.stringify(sharedProfile.headline));
+}
 ```
 
-With logic that:
-1. If only 1 profile, use it (no change in behavior)
-2. If multiple profiles, pick the one with the most recent `updated_at` timestamp
-3. Fallback to the first profile if no timestamps exist
+Also log the mapped output:
+```typescript
+const mapped = sharedProfile ? mapProfileToLocal(sharedProfile) : {};
+console.log("Mapped output:", JSON.stringify(mapped));
+```
 
-### 2. Add debug logging
+### 2. Add fallback field name for tagline
 
-Add a log line showing which profile was selected and why (e.g., "Selected profile 1 of 2 (most recent: 2026-02-22)") to make future debugging easier.
+The PublishNow profile page might store the tagline as `headline` or `title_tagline`. Update `mapProfileToLocal` to also check these fallback names:
 
-### 3. Merge data from all profiles (optional enhancement)
+```typescript
+const tagline = p.tagline || p.headline || p.extra_data?.tagline;
+```
 
-As a secondary improvement, after selecting the primary profile, scan other profiles for any fields that the primary profile is missing. This way if one profile has a LinkedIn URL and another has a tagline, both get captured.
+### 3. Deploy and trigger sync
+
+After deploying, trigger a sync to capture the raw profile data in logs. This will tell us exactly which field names need mapping.
 
 ## Files to modify
 
-- `supabase/functions/sync-author-profile/index.ts` -- lines 201-202: add smart profile selection logic
+- `supabase/functions/sync-author-profile/index.ts` -- add debug logging + tagline field name fallback
 
-## What stays the same
+## What this achieves
 
-- `mapProfileToLocal` -- already correctly maps the new top-level columns
-- `smartMerge` -- works correctly once it receives the right data
-- `ProfileEditor` -- no changes needed
-- Database schema -- no changes needed
-
+- Immediate: adds `headline` fallback which may fix the issue
+- Diagnostic: raw profile logging will reveal the exact field names returned by `pull-shared-profile`, allowing us to fix any remaining mismatches
