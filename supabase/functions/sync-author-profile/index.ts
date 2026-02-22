@@ -198,7 +198,34 @@ Deno.serve(async (req) => {
     const pulled = await fetchFromPublishNow(userEmail);
     console.log("Pulled from PublishNow:", pulled ? `${pulled.profiles?.length} profiles, ${pulled.book_projects?.length || pulled.books?.length || 0} books` : "null");
 
-    const sharedProfile = pulled?.profiles?.[0] ?? null;
+    // Smart profile selection: pick most recently updated profile
+    const profiles = pulled?.profiles ?? [];
+    let sharedProfile: any = null;
+    if (profiles.length === 1) {
+      sharedProfile = profiles[0];
+      console.log("Single profile found:", sharedProfile.pen_name || sharedProfile.profile_name);
+    } else if (profiles.length > 1) {
+      // Sort by updated_at descending, pick most recent
+      const sorted = [...profiles].sort((a: any, b: any) => {
+        const ta = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+        const tb = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+        return tb - ta;
+      });
+      sharedProfile = sorted[0];
+      const selectedIdx = profiles.indexOf(sharedProfile);
+      console.log(`Selected profile ${selectedIdx + 1} of ${profiles.length} ("${sharedProfile.pen_name || sharedProfile.profile_name}", updated: ${sharedProfile.updated_at})`);
+
+      // Merge missing fields from other profiles
+      for (const other of sorted.slice(1)) {
+        for (const [key, val] of Object.entries(other)) {
+          if (val != null && val !== "" && (sharedProfile[key] == null || sharedProfile[key] === "")) {
+            sharedProfile[key] = val;
+            console.log(`  Filled missing field "${key}" from secondary profile`);
+          }
+        }
+      }
+    }
+
     const mapped = sharedProfile ? mapProfileToLocal(sharedProfile) : {};
 
     // Fallback pen_name
