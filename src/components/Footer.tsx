@@ -25,13 +25,12 @@ export default function Footer() {
 
           <div>
             <h4 className="mb-4 font-heading text-sm font-semibold uppercase tracking-wider text-secondary">
-              Ecosystem
+              Writing & Publishing
             </h4>
             <ul className="space-y-2 text-sm text-primary-foreground/70">
               <li><a href="https://publishnow.io" target="_blank" rel="noopener noreferrer" className="hover:text-secondary transition-colors">PublishNow.io</a></li>
               <li><a href="https://publishnow.io/ai-writing-studio" target="_blank" rel="noopener noreferrer" className="hover:text-secondary transition-colors">AI Writing Studio</a></li>
               <li><a href="https://publishnow.io/ai-publishing-studio" target="_blank" rel="noopener noreferrer" className="hover:text-secondary transition-colors">AI Publishing Studio</a></li>
-              <li><a href="https://publishnow.io/ai-marketing-studio" target="_blank" rel="noopener noreferrer" className="hover:text-secondary transition-colors">AI Marketing Studio</a></li>
             </ul>
           </div>
 
@@ -46,7 +45,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-8 border-t border-primary-foreground/10 pt-8 text-center text-xs text-primary-foreground/50" style={{ fontFamily: 'var(--font-body)' }}>
-          © {new Date().getFullYear()} Authors Bureau. Part of the PublishNow ecosystem.
+          © {new Date().getFullYear()} Authors Bureau. Authors Bureau and PublishNow.io are sister platforms.
         </div>
       </div>
     </footer>

@@ -52,8 +52,8 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
       }
 
       toast({
-        title: parts.length > 0 ? "Profile synced from PublishNow ✅" : "Everything up to date ✅",
-        description: parts.length > 0 ? parts.join(", ") : "Your local profile matches PublishNow.",
+        title: parts.length > 0 ? "Profile synced ✅" : "Everything up to date ✅",
+        description: parts.length > 0 ? parts.join(", ") : "Your profile is up to date.",
       });
     } catch (err: any) {
       toast({ title: "Sync failed", description: err.message, variant: "destructive" });
@@ -95,7 +95,7 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
       label: "Fill In Your Profile",
       description: "Set up your author profile with bio, photo, and credentials. Your profile powers your directory listing, credibility badges, and public microsite pages.",
       step: "Step 1",
-      target: "profile-sidebar",
+      target: "profile",
     },
     {
       icon: BookOpen,
@@ -135,16 +135,13 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
           <div>
             <h2 className="font-heading text-2xl font-bold">Welcome to Your Dashboard</h2>
             <p className="text-muted-foreground text-sm mt-1">
-              Your launchpad from <strong>Author</strong> to <strong>Authority</strong>.
-              <span className="ml-2 text-[10px] font-semibold uppercase tracking-wider text-secondary/60">
-                Powered by PublishNow.io
-              </span>
+            Your launchpad from <strong>Author</strong> to <strong>Authority</strong>.
             </p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={handleSyncFromPublishNow} disabled={syncLoading}>
               {syncLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
-              Sync from PublishNow
+              Sync Profile
             </Button>
             <Button variant="ghost" size="sm" onClick={checkSubscription} disabled={subscription.loading}>
               <RefreshCw className={`h-4 w-4 mr-1 ${subscription.loading ? "animate-spin" : ""}`} />
@@ -202,14 +199,8 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
             <button
               key={f.label}
               type="button"
-              onClick={() => {
-                if (f.target !== "profile-sidebar") {
-                  onNavigate?.(f.target);
-                }
-              }}
-              className={`rounded-xl border border-border bg-card p-5 shadow-[var(--shadow-card)] transition-all text-left ${
-                f.target === "profile-sidebar" ? "cursor-default" : "cursor-pointer hover:shadow-[var(--shadow-card-hover)] hover:border-secondary/40 group"
-              }`}
+              onClick={() => onNavigate?.(f.target)}
+              className="rounded-xl border border-border bg-card p-5 shadow-[var(--shadow-card)] transition-all text-left cursor-pointer hover:shadow-[var(--shadow-card-hover)] hover:border-secondary/40 group"
             >
               <div className="flex items-center gap-3 mb-2">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-secondary/15 transition-colors">
@@ -221,15 +212,9 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">{f.description}</p>
-              {f.target === "profile-sidebar" ? (
-                <p className="mt-3 text-xs font-semibold text-secondary">
-                  👈 Click <span className="underline">Profile</span> in the left navigation bar to get started.
-                </p>
-              ) : (
-                <span className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-secondary opacity-0 group-hover:opacity-100 transition-opacity">
-                  Go to My Books <ArrowRight className="h-3 w-3" />
-                </span>
-              )}
+              <span className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-secondary opacity-0 group-hover:opacity-100 transition-opacity">
+                Go to {f.label} <ArrowRight className="h-3 w-3" />
+              </span>
             </button>
           ))}
         </div>

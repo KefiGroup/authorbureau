@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
-// Profile editing is now handled on PublishNow.io
+import ProfileEditor from "@/components/dashboard/ProfileEditor";
 import CourseBuilder from "@/components/dashboard/CourseBuilder";
 import SpeakingProfile from "@/components/dashboard/SpeakingProfile";
 import CoachingCRM from "@/components/dashboard/CoachingCRM";
@@ -15,7 +15,7 @@ import MyBooks from "@/components/dashboard/MyBooks";
 import { Button } from "@/components/ui/button";
 import { Loader2, ShieldCheck, CheckCircle2 } from "lucide-react";
 
-export type DashboardSection = "overview" | "courses" | "speaking" | "coaching" | "ai-toolkit" | "my-books";
+export type DashboardSection = "overview" | "profile" | "courses" | "speaking" | "coaching" | "ai-toolkit" | "my-books";
 
 export default function AuthorDashboard() {
   const { user, loading, isAdmin, isPremium, subscription, checkSubscription, signOut } = useAuth();
@@ -117,6 +117,8 @@ export default function AuthorDashboard() {
 
   const renderSection = () => {
     switch (activeSection) {
+      case "profile":
+        return <ProfileEditor />;
       case "courses":
         return <CourseBuilder />;
       case "speaking":

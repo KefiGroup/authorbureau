@@ -11,7 +11,7 @@ import logoWithText from "@/assets/logo-with-text.png";
 type Stage = "waiting" | "connecting" | "session" | "success" | "error" | "timeout";
 
 const STAGE_CONFIG: Record<"connecting" | "session" | "success", { label: string; progress: number }> = {
-  connecting: { label: "Connecting to PublishNow…", progress: 33 },
+  connecting: { label: "Connecting…", progress: 33 },
   session: { label: "Setting up your session…", progress: 66 },
   success: { label: "You're in!", progress: 100 },
 };
@@ -21,13 +21,13 @@ function friendlyError(raw: string): { title: string; body: string } {
   if (lower.includes("expired") || lower.includes("invalid") || lower.includes("sso validation failed")) {
     return {
       title: "This sign-in link has expired",
-      body: "Please go back to PublishNow and try again. Sign-in links can only be used once.",
+      body: "Please try again. Sign-in links can only be used once.",
     };
   }
   if (lower.includes("no sso token")) {
     return {
       title: "No sign-in link found",
-      body: "It looks like you arrived here without a sign-in link. Please sign in from PublishNow or use email sign-in below.",
+      body: "It looks like you arrived here without a sign-in link. Please use email sign-in below.",
     };
   }
   if (raw.includes("TypeError") || lower.includes("fetch") || lower.includes("network")) {
