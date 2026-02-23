@@ -45,13 +45,21 @@ function mapProfileToLocal(p: any): Record<string, any> {
 
   if (p.pen_name || p.profile_name) mapped.pen_name = p.pen_name || p.profile_name;
 
-  // Bio: prefer top-level short_bio, fall back to truncating bio
-  const shortBio = p.short_bio || (p.bio && p.bio.length > 300 ? p.bio.slice(0, 300) : p.bio);
-  if (shortBio) mapped.bio_short = shortBio;
-  if (p.bio) mapped.bio_long = p.bio;
+  // Bio: prefer `bio` (new schema), fall back to `short_bio` (old schema)
+  const bio = p.bio || p.short_bio;
+  if (bio) {
+    mapped.bio_short = bio.length > 300 ? bio.slice(0, 300) : bio;
+    mapped.bio_long = bio;
+  }
 
-  if (p.profile_picture_url) mapped.photo_url = p.profile_picture_url;
-  if (p.website) mapped.website_url = p.website;
+  // Photo: prefer `profile_photo_url` (new), fall back to `profile_picture_url` (old)
+  const photoUrl = p.profile_photo_url || p.profile_picture_url;
+  if (photoUrl) mapped.photo_url = photoUrl;
+
+  // Website: prefer `social_links.website` (new), fall back to `website` (old)
+  const website = p.social_links?.website || p.website;
+  if (website) mapped.website_url = website;
+
   if (p.genres && Array.isArray(p.genres)) mapped.genres = p.genres;
   if (p.credentials) {
     try {
@@ -61,7 +69,7 @@ function mapProfileToLocal(p: any): Record<string, any> {
     }
   }
 
-  // Top-level fields (new schema), with JSONB fallbacks for backward compat
+  // Tagline: top-level fields with fallbacks
   const tagline = p.tagline || p.headline || p.title_tagline || p.extra_data?.tagline;
   if (tagline) mapped.tagline = tagline;
 
@@ -71,13 +79,14 @@ function mapProfileToLocal(p: any): Record<string, any> {
   const country = p.country || p.extra_data?.location_country;
   if (country) mapped.location_country = country;
 
+  // LinkedIn & Amazon: top-level fields (new schema), with social_links fallbacks
   const linkedinUrl = p.linkedin_url || p.social_links?.linkedin;
   if (linkedinUrl) mapped.linkedin_url = linkedinUrl;
 
   const amazonUrl = p.amazon_author_url || p.social_links?.amazon;
   if (amazonUrl) mapped.amazon_author_profile_url = amazonUrl;
 
-  // These remain in social_links JSONB
+  // Social links from structured object
   if (p.social_links && typeof p.social_links === "object") {
     const sl = p.social_links;
     if (sl.twitter) mapped.twitter_url = sl.twitter;
@@ -85,7 +94,7 @@ function mapProfileToLocal(p: any): Record<string, any> {
     if (sl.youtube) mapped.youtube_url = sl.youtube;
   }
 
-  // These remain in extra_data JSONB
+  // Extra data fallbacks
   if (p.extra_data && typeof p.extra_data === "object") {
     if (p.extra_data.is_speaker != null) mapped.is_speaker = p.extra_data.is_speaker;
     if (p.extra_data.speaker_fee_range) mapped.speaker_fee_range = p.extra_data.speaker_fee_range;
@@ -198,45 +207,15 @@ Deno.serve(async (req) => {
     const pulled = await fetchFromPublishNow(userEmail);
     console.log("Pulled from PublishNow:", pulled ? `${pulled.profiles?.length} profiles, ${pulled.book_projects?.length || pulled.books?.length || 0} books` : "null");
 
-    // Smart profile selection: pick most recently updated profile
-    const profiles = pulled?.profiles ?? [];
-    let sharedProfile: any = null;
-    if (profiles.length === 1) {
-      sharedProfile = profiles[0];
-      console.log("Single profile found:", sharedProfile.pen_name || sharedProfile.profile_name);
-    } else if (profiles.length > 1) {
-      // Sort by updated_at descending, pick most recent
-      const sorted = [...profiles].sort((a: any, b: any) => {
-        const ta = a.updated_at ? new Date(a.updated_at).getTime() : 0;
-        const tb = b.updated_at ? new Date(b.updated_at).getTime() : 0;
-        return tb - ta;
-      });
-      sharedProfile = sorted[0];
-      const selectedIdx = profiles.indexOf(sharedProfile);
-      console.log(`Selected profile ${selectedIdx + 1} of ${profiles.length} ("${sharedProfile.pen_name || sharedProfile.profile_name}", updated: ${sharedProfile.updated_at})`);
+    // Use primary_profile directly (guaranteed single correct identity), fallback to profiles[0]
+    const sharedProfile = pulled?.primary_profile ?? pulled?.profiles?.[0] ?? null;
 
-      // Merge missing fields from other profiles
-      for (const other of sorted.slice(1)) {
-        for (const [key, val] of Object.entries(other)) {
-          if (val != null && val !== "" && (sharedProfile[key] == null || sharedProfile[key] === "")) {
-            sharedProfile[key] = val;
-            console.log(`  Filled missing field "${key}" from secondary profile`);
-          }
-        }
-      }
-    }
-
-    // Debug: log raw profile data to diagnose missing fields
     if (sharedProfile) {
+      console.log("Using primary profile:", sharedProfile.pen_name || sharedProfile.profile_name);
       console.log("Raw profile keys:", Object.keys(sharedProfile).join(", "));
-      console.log("Raw tagline:", JSON.stringify(sharedProfile.tagline));
-      console.log("Raw headline:", JSON.stringify(sharedProfile.headline));
-      console.log("Raw title_tagline:", JSON.stringify(sharedProfile.title_tagline));
-      console.log("Raw short_bio:", JSON.stringify(sharedProfile.short_bio));
-      console.log("Raw city:", JSON.stringify(sharedProfile.city));
-      console.log("Raw country:", JSON.stringify(sharedProfile.country));
-      console.log("Raw amazon_author_url:", JSON.stringify(sharedProfile.amazon_author_url));
-      console.log("Raw extra_data:", JSON.stringify(sharedProfile.extra_data));
+      console.log("Raw bio:", JSON.stringify(sharedProfile.bio?.slice(0, 80)));
+      console.log("Raw social_links:", JSON.stringify(sharedProfile.social_links));
+      console.log("Raw profile_photo_url:", JSON.stringify(sharedProfile.profile_photo_url));
     }
 
     const mapped = sharedProfile ? mapProfileToLocal(sharedProfile) : {};
