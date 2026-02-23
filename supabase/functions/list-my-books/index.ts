@@ -58,8 +58,8 @@ Deno.serve(async (req) => {
       // No body or invalid JSON — default to list
     }
 
-    // Handle delete action
-    if (action === "delete") {
+    // Handle unpublish action
+    if (action === "unpublish") {
       if (!bookId) {
         return new Response(JSON.stringify({ error: "bookId is required" }), {
           status: 400,
@@ -67,15 +67,15 @@ Deno.serve(async (req) => {
         });
       }
 
-      const { error: deleteError } = await cloudAdmin
+      const { error: unpublishError } = await cloudAdmin
         .from("books")
-        .delete()
+        .update({ published_at: null })
         .eq("id", bookId)
         .eq("author_id", userId);
 
-      if (deleteError) {
-        console.error("Delete error:", deleteError);
-        return new Response(JSON.stringify({ error: deleteError.message }), {
+      if (unpublishError) {
+        console.error("Unpublish error:", unpublishError);
+        return new Response(JSON.stringify({ error: unpublishError.message }), {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });

@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { BookOpen, Plus, ExternalLink, Loader2, Globe, ImagePlus, Trash2 } from "lucide-react";
+import { BookOpen, Plus, ExternalLink, Loader2, Globe, ImagePlus, EyeOff } from "lucide-react";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import DualModeBookForm from "@/components/DualModeBookForm";
@@ -41,7 +41,7 @@ export default function MyBooks() {
   const [showForm, setShowForm] = useState(false);
   const [publishing, setPublishing] = useState<string | null>(null);
   const [uploadingCover, setUploadingCover] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState<string | null>(null);
+  const [unpublishing, setUnpublishing] = useState<string | null>(null);
 
   const fetchBooks = async () => {
     if (!user) return;
@@ -170,8 +170,8 @@ export default function MyBooks() {
     }
   };
 
-  const handleDelete = async (bookId: string) => {
-    setDeleting(bookId);
+  const handleUnpublish = async (bookId: string) => {
+    setUnpublishing(bookId);
     try {
       const token = await getActiveToken();
       if (!token) {
@@ -187,23 +187,23 @@ export default function MyBooks() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ action: "delete", bookId }),
+          body: JSON.stringify({ action: "unpublish", bookId }),
         }
       );
 
       const result = await response.json();
       if (!response.ok) throw new Error(result.error);
 
-      toast({ title: "Book deleted 🗑️" });
+      toast({ title: "Microsite taken down 🔒" });
       fetchBooks();
     } catch (err) {
       toast({
-        title: "Delete failed",
+        title: "Unpublish failed",
         description: err instanceof Error ? err.message : "Please try again",
         variant: "destructive",
       });
     } finally {
-      setDeleting(null);
+      setUnpublishing(null);
     }
   };
 
@@ -346,39 +346,41 @@ export default function MyBooks() {
                     )}
                   </div>
 
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                        disabled={deleting === book.id}
-                      >
-                        {deleting === book.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-3.5 w-3.5" />
-                        )}
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete this microsite?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will permanently delete "{book.title}" and its microsite. This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          onClick={() => handleDelete(book.id)}
+                  {book.published_at && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-muted-foreground hover:text-orange-600"
+                          disabled={unpublishing === book.id}
                         >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                          {unpublishing === book.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <EyeOff className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Take down this microsite?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will unpublish the microsite for "{book.title}". The book will remain in your dashboard and can be re-published later.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            className="bg-orange-600 text-white hover:bg-orange-700"
+                            onClick={() => handleUnpublish(book.id)}
+                          >
+                            Unpublish
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
                 </div>
               </div>
             </Card>
