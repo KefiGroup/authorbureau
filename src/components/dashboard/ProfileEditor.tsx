@@ -27,6 +27,9 @@ interface AuthorProfile {
   genres: string[];
 }
 
+// Track the row ID so saves target the correct profile
+let profileRowId: string | null = null;
+
 const GENRE_OPTIONS = [
   "Business", "Self-Help", "Finance", "Leadership", "Health & Wellness",
   "Parenting", "Fiction", "Memoir", "Technology", "Education",
@@ -69,9 +72,15 @@ export default function ProfileEditor() {
   const fetchProfile = async () => {
     try {
       const { data, error } = await supabase
-        .from("author_profiles").select("*").eq("user_id", user!.id).maybeSingle();
+        .from("author_profiles")
+        .select("*")
+        .eq("user_id", user!.id)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
       if (error) console.error("Error fetching profile:", error.message);
       else if (data) {
+        profileRowId = data.id;
         const loaded: AuthorProfile = {
           pen_name: data.pen_name || "", bio_short: data.bio_short || "",
           bio_long: data.bio_long || "", tagline: data.tagline || "",
@@ -91,15 +100,33 @@ export default function ProfileEditor() {
   };
 
   // Immediate save (no debounce) — used on unmount / beforeunload
+  const saveProfile = useCallback(async (profileData: AuthorProfile) => {
+    if (!user) return;
+    if (profileRowId) {
+      // Update existing row by ID
+      return supabase
+        .from("author_profiles")
+        .update({ ...profileData } as any)
+        .eq("id", profileRowId);
+    } else {
+      // Insert new row
+      const { data } = await supabase
+        .from("author_profiles")
+        .insert({ user_id: user.id, ...profileData } as any)
+        .select("id")
+        .single();
+      if (data) profileRowId = data.id;
+      return { error: null };
+    }
+  }, [user]);
+
   const saveNow = useCallback(async () => {
     if (!user || !hasLoadedRef.current) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     try {
-      await supabase
-        .from("author_profiles")
-        .upsert({ user_id: user.id, ...profileRef.current } as any, { onConflict: "user_id" });
+      await saveProfile(profileRef.current);
     } catch (err) { console.error("Flush save error:", err); }
-  }, [user]);
+  }, [user, saveProfile]);
 
   // Auto-save with debounce
   const debouncedSave = useCallback(() => {
@@ -108,11 +135,9 @@ export default function ProfileEditor() {
     setSaveStatus("saving");
     debounceRef.current = setTimeout(async () => {
       try {
-        const { error } = await supabase
-          .from("author_profiles")
-          .upsert({ user_id: user.id, ...profileRef.current } as any, { onConflict: "user_id" });
-        if (error) {
-          console.error("Auto-save error:", error.message);
+        const result = await saveProfile(profileRef.current);
+        if (result?.error) {
+          console.error("Auto-save error:", result.error.message);
           setSaveStatus("error");
         } else {
           setSaveStatus("saved");
