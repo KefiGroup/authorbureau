@@ -1,59 +1,43 @@
 
 
-# Fix Missing Tagline (and other fields) in Profile Sync
+# Fix Profile Sync: Multiple Profiles Breaking ProfileEditor
 
-## Root Cause
+## Root Cause Analysis
 
-The edge function logs show that on the very first sync, `tagline` was NOT in the list of updated fields (`pen_name, bio_short, bio_long, photo_url, website_url, genres, credentials, linkedin_url`). This means the `pull-shared-profile` endpoint is either:
+The diagnostic logs revealed three distinct issues:
 
-1. Returning the tagline under a different field name (e.g., `headline` instead of `tagline`)
-2. Not returning it at all for this profile
-3. The profile on PublishNow stores tagline in a field the mapper doesn't check
+### Issue 1 (Critical): ProfileEditor fails silently with multiple profiles
+The `fetchProfile` function in `ProfileEditor.tsx` uses `.maybeSingle()` which **throws an error when more than one row is returned**. Since this user has 2 profiles in the shared backend, the query errors out silently, and the editor displays all empty fields. This is why the Authors Bureau dashboard (image-24) shows blank fields despite data existing.
 
-Since we can't directly call `pull-shared-profile` to inspect the response, we need to add diagnostic logging to the sync function.
+### Issue 2 (Data Issue): Tagline is empty in the shared database
+The raw logs confirm: `Raw tagline: ""` -- an empty string, not null. The PublishNow UI (image-25) shows "Author, Speaker, Entrepreneur" in the Tagline field, but this value is NOT stored in the `tagline` column. This is a PublishNow-side issue -- the tagline data needs to be saved/migrated to the `tagline` column on their end.
+
+### Issue 3 (Already Fixed): Sync data is actually correct
+The local database already has the correct data synced: `pen_name: "Fasa Husain"`, `linkedin_url: "https://www.linkedin.com/in/fasahath-husain/"`, `bio_short` filled. The sync IS working -- the problem is that the ProfileEditor can't display it due to Issue 1.
 
 ## Changes
 
-### 1. Add raw profile debug logging (`sync-author-profile/index.ts`)
+### 1. Fix ProfileEditor query to handle multiple profiles (`src/components/dashboard/ProfileEditor.tsx`)
 
-After profile selection (line 229), log the raw keys and specific fields of the selected profile so we can see exactly what `pull-shared-profile` returns:
+Change the `fetchProfile` function to use `.order("updated_at", { ascending: false }).limit(1).single()` instead of `.maybeSingle()`. This ensures:
+- When multiple profiles exist, the most recently updated one is loaded
+- Consistent behavior with the sync function's profile selection logic
 
-```typescript
-// After sharedProfile is selected, before mapping
-if (sharedProfile) {
-  console.log("Raw profile keys:", Object.keys(sharedProfile).join(", "));
-  console.log("Raw profile tagline:", JSON.stringify(sharedProfile.tagline));
-  console.log("Raw profile short_bio:", JSON.stringify(sharedProfile.short_bio));
-  console.log("Raw profile city:", JSON.stringify(sharedProfile.city));
-  console.log("Raw profile country:", JSON.stringify(sharedProfile.country));
-  console.log("Raw profile amazon_author_url:", JSON.stringify(sharedProfile.amazon_author_url));
-  console.log("Raw profile headline:", JSON.stringify(sharedProfile.headline));
-}
-```
+### 2. Fix the save/upsert to target the correct profile
 
-Also log the mapped output:
-```typescript
-const mapped = sharedProfile ? mapProfileToLocal(sharedProfile) : {};
-console.log("Mapped output:", JSON.stringify(mapped));
-```
+The current `upsert` uses `onConflict: "user_id"` which may not work correctly with multiple profiles. Change saves to use `.update()` targeting the specific profile row (by `id`), falling back to `.insert()` if no profile exists.
 
-### 2. Add fallback field name for tagline
+### 3. Note for PublishNow team
 
-The PublishNow profile page might store the tagline as `headline` or `title_tagline`. Update `mapProfileToLocal` to also check these fallback names:
+The tagline field on the shared backend's `author_profiles` table is empty for this user despite the PublishNow UI showing "Author, Speaker, Entrepreneur". PublishNow needs to ensure the tagline value is persisted to the `tagline` column when saved.
 
-```typescript
-const tagline = p.tagline || p.headline || p.extra_data?.tagline;
-```
+## Technical Details
 
-### 3. Deploy and trigger sync
+### Files to modify
+- `src/components/dashboard/ProfileEditor.tsx` -- fix `fetchProfile` to handle multiple profiles, and fix save logic to target the correct profile row
 
-After deploying, trigger a sync to capture the raw profile data in logs. This will tell us exactly which field names need mapping.
+### What stays the same
+- `sync-author-profile/index.ts` -- already handles multiple profiles correctly
+- Database schema -- no changes needed
+- Auth flow -- unchanged
 
-## Files to modify
-
-- `supabase/functions/sync-author-profile/index.ts` -- add debug logging + tagline field name fallback
-
-## What this achieves
-
-- Immediate: adds `headline` fallback which may fix the issue
-- Diagnostic: raw profile logging will reveal the exact field names returned by `pull-shared-profile`, allowing us to fix any remaining mismatches
