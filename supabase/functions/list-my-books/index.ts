@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
     // Resolve user ID — shared backend first (primary auth)
     let userId: string;
     const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
-    const { data: { user: sharedUser }, error: sharedErr } = await sharedClient.auth.getUser(token);
+    const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
     if (sharedUser) {
       userId = sharedUser.id;
     } else {
@@ -47,7 +47,47 @@ Deno.serve(async (req) => {
       userId = cloudUser.id;
     }
 
-    // Fetch books using service role (bypasses RLS)
+    // Parse request body for action
+    let action = "list";
+    let bookId: string | null = null;
+    try {
+      const body = await req.json();
+      action = body.action || "list";
+      bookId = body.bookId || null;
+    } catch {
+      // No body or invalid JSON — default to list
+    }
+
+    // Handle delete action
+    if (action === "delete") {
+      if (!bookId) {
+        return new Response(JSON.stringify({ error: "bookId is required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { error: deleteError } = await cloudAdmin
+        .from("books")
+        .delete()
+        .eq("id", bookId)
+        .eq("author_id", userId);
+
+      if (deleteError) {
+        console.error("Delete error:", deleteError);
+        return new Response(JSON.stringify({ error: deleteError.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(
+        JSON.stringify({ success: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Default: list books
     const { data: books, error: queryError } = await cloudAdmin
       .from("books")
       .select("id, title, subtitle, slug, cover_image_url, published_at, entry_mode, genre, rating, badges, created_at")

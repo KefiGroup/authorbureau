@@ -3,10 +3,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { BookOpen, Plus, ExternalLink, Loader2, Globe, ImagePlus } from "lucide-react";
+import { BookOpen, Plus, ExternalLink, Loader2, Globe, ImagePlus, Trash2 } from "lucide-react";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import DualModeBookForm from "@/components/DualModeBookForm";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Book {
   id: string;
@@ -37,6 +41,7 @@ export default function MyBooks() {
   const [showForm, setShowForm] = useState(false);
   const [publishing, setPublishing] = useState<string | null>(null);
   const [uploadingCover, setUploadingCover] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const fetchBooks = async () => {
     if (!user) return;
@@ -165,6 +170,43 @@ export default function MyBooks() {
     }
   };
 
+  const handleDelete = async (bookId: string) => {
+    setDeleting(bookId);
+    try {
+      const token = await getActiveToken();
+      if (!token) {
+        toast({ title: "Not signed in", variant: "destructive" });
+        return;
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ action: "delete", bookId }),
+        }
+      );
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+
+      toast({ title: "Book deleted 🗑️" });
+      fetchBooks();
+    } catch (err) {
+      toast({
+        title: "Delete failed",
+        description: err instanceof Error ? err.message : "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleting(null);
+    }
+  };
+
   if (showForm && user) {
     return (
       <div className="max-w-3xl">
@@ -275,32 +317,68 @@ export default function MyBooks() {
                   <p className="text-[11px] text-muted-foreground truncate">{book.genre}</p>
                 )}
 
-                <div className="flex gap-2 pt-1">
-                  {book.published_at ? (
-                    <a
-                      href={`/books/${book.slug}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-xs font-medium text-secondary hover:text-secondary/80 transition-colors"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" />
-                      View Microsite
-                    </a>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-xs h-7"
-                      disabled={publishing === book.id}
-                      onClick={() => handlePublish(book.id)}
-                    >
-                      {publishing === book.id ? (
-                        <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Publishing...</>
-                      ) : (
-                        <><Globe className="h-3 w-3 mr-1" />Publish Microsite</>
-                      )}
-                    </Button>
-                  )}
+                <div className="flex items-center justify-between gap-2 pt-1">
+                  <div>
+                    {book.published_at ? (
+                      <a
+                        href={`/books/${book.slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs font-medium text-secondary hover:text-secondary/80 transition-colors"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        View Microsite
+                      </a>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs h-7"
+                        disabled={publishing === book.id}
+                        onClick={() => handlePublish(book.id)}
+                      >
+                        {publishing === book.id ? (
+                          <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Publishing...</>
+                        ) : (
+                          <><Globe className="h-3 w-3 mr-1" />Publish Microsite</>
+                        )}
+                      </Button>
+                    )}
+                  </div>
+
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        disabled={deleting === book.id}
+                      >
+                        {deleting === book.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete this microsite?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently delete "{book.title}" and its microsite. This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          onClick={() => handleDelete(book.id)}
+                        >
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
             </Card>
