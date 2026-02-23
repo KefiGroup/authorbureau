@@ -1,62 +1,41 @@
 
 
-# Use `primary_profile` from pull-shared-profile + Add Secondary Pen Names
+# Fix ProfileEditor Reading from Wrong Database
 
-## Summary
+## Root Cause
 
-The `pull-shared-profile` endpoint now returns a dedicated `primary_profile` field that is guaranteed to be the correct identity. This eliminates the need for our sorting/merging workaround. We also need to update the profile mapper to handle new field names (`bio` instead of `short_bio`, `social_links` as a structured object, `profile_photo_url`).
+The `ProfileEditor` component imports its Supabase client from `@/lib/shared-backend` (the PublishNow shared database), but the `sync-author-profile` edge function writes synced data to the **Cloud database** (this project's own backend). The editor has been reading from the wrong database the entire time, which is why it always shows empty fields -- the shared backend has the raw profiles, but the synced/mapped data lives in the Cloud database.
 
-## Changes
+## Fix
 
-### 1. Simplify profile selection in `sync-author-profile/index.ts`
+### 1. Change the database import in `ProfileEditor.tsx`
 
-Replace the sorting + merging logic (lines 201-243) with:
-
+On line 3, change:
 ```typescript
-const sharedProfile = pulled?.primary_profile ?? pulled?.profiles?.[0] ?? null;
+import { supabase } from "@/lib/shared-backend";
+```
+to:
+```typescript
+import { supabase } from "@/integrations/supabase/client";
 ```
 
-- Uses `primary_profile` directly (guaranteed single correct identity)
-- Falls back to `profiles[0]` for backward compatibility
-- Remove the sort/merge block and associated debug logging (no longer needed)
-
-### 2. Update `mapProfileToLocal` for new field names
-
-Based on the documentation, the profile object uses:
-- `bio` (not `short_bio`) for the biography text
-- `profile_photo_url` (not `profile_picture_url`) for the photo
-- `social_links` object with keys: `twitter`, `instagram`, `goodreads`, `facebook`, `tiktok`, `youtube`, `website`
-- `linkedin_url` and `amazon_author_url` as top-level fields
-
-Update the mapper to check these field names as primary sources with existing names as fallbacks.
-
-### 3. Add secondary pen names to AuthorProfile page (optional display)
-
-On `src/pages/AuthorProfile.tsx`, after fetching dynamic books, also fetch secondary profiles from the sync response. Display an "Also writes as..." section below the author bio if secondary pen names exist.
-
-This requires storing secondary pen names during sync. Add a `secondary_pen_names` JSONB column (or store in `extra_data`) on the local `author_profiles` table during sync:
-
+And remove the now-unused cloud import on line 4:
 ```typescript
-const secondaryNames = (pulled?.profiles ?? [])
-  .filter(p => p.author_type === 'secondary')
-  .map(p => p.pen_name);
+import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 ```
 
-### 4. Verify with a test call
+Since the main `supabase` import now IS the cloud client, the `cloudSupabase` alias is no longer needed. Update the one usage of `cloudSupabase` (line 240, fetching book titles for bio generation) to use `supabase` instead.
 
-After deploying, trigger a sync for `fasahath@gmail.com` and confirm:
-- `primary_profile` is used (pen_name = "Fasa Husain")
-- Tagline, LinkedIn, and other fields populate correctly
-- No more profile sorting/selection ambiguity
+### 2. Photo upload storage bucket
+
+The photo upload on line 206 uses `supabase.storage` -- this will now correctly point to the Cloud storage bucket (`author-photos`) which already exists and is public. No changes needed here.
 
 ## Files to modify
 
-- `supabase/functions/sync-author-profile/index.ts` -- simplify selection to use `primary_profile`, update mapper field names
-- `src/pages/AuthorProfile.tsx` -- (optional) display "Also writes as..." for secondary pen names
+- `src/components/dashboard/ProfileEditor.tsx` -- switch database client from shared backend to Cloud
 
-## What stays the same
+## What this fixes
 
-- `ProfileEditor.tsx` -- reads from local DB, already fixed with `.order().limit(1)`
-- Database schema -- no new columns needed (secondary pen names can go in existing `extra_data` JSONB)
-- Auth flow -- unchanged
-
+- Profile data (pen name, bio, tagline, LinkedIn, etc.) synced by the edge function will now be visible in the editor
+- Saves will write to the same database the sync writes to
+- Photo uploads will continue working with the Cloud storage bucket
