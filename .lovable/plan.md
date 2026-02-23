@@ -1,41 +1,36 @@
 
 
-# Fix ProfileEditor Reading from Wrong Database
+# Allow Deletion of Book Microsites
 
-## Root Cause
+## Overview
 
-The `ProfileEditor` component imports its Supabase client from `@/lib/shared-backend` (the PublishNow shared database), but the `sync-author-profile` edge function writes synced data to the **Cloud database** (this project's own backend). The editor has been reading from the wrong database the entire time, which is why it always shows empty fields -- the shared backend has the raw profiles, but the synced/mapped data lives in the Cloud database.
+Add a delete button to each book card in the "My Books" dashboard section, with a confirmation dialog to prevent accidental deletion.
 
-## Fix
+## Changes
 
-### 1. Change the database import in `ProfileEditor.tsx`
+### 1. Add delete action to the `list-my-books` edge function
 
-On line 3, change:
-```typescript
-import { supabase } from "@/lib/shared-backend";
-```
-to:
-```typescript
-import { supabase } from "@/integrations/supabase/client";
-```
+Extend `supabase/functions/list-my-books/index.ts` to accept an optional `action` field in the request body:
+- No action or `action: "list"` -- current behavior (list books)
+- `action: "delete"` with `bookId` -- deletes the book, but only if `author_id` matches the authenticated user
 
-And remove the now-unused cloud import on line 4:
-```typescript
-import { supabase as cloudSupabase } from "@/integrations/supabase/client";
-```
+This keeps the auth resolution logic (shared + cloud) in one place and avoids creating a new function.
 
-Since the main `supabase` import now IS the cloud client, the `cloudSupabase` alias is no longer needed. Update the one usage of `cloudSupabase` (line 240, fetching book titles for bio generation) to use `supabase` instead.
+### 2. Add delete UI to `src/components/dashboard/MyBooks.tsx`
 
-### 2. Photo upload storage bucket
+- Import `Trash2` icon from lucide-react and the `AlertDialog` component
+- Add a `handleDelete` function that calls the edge function with `action: "delete"` and `bookId`
+- Add a small trash icon button on each book card (bottom-right of the actions area)
+- Wrap with an `AlertDialog` confirmation: "Delete this microsite? This action cannot be undone."
+- Show loading state during deletion
+- Refresh book list after successful deletion
 
-The photo upload on line 206 uses `supabase.storage` -- this will now correctly point to the Cloud storage bucket (`author-photos`) which already exists and is public. No changes needed here.
+### Visual placement
+
+The delete button will appear as a subtle icon button next to the existing "Publish Microsite" or "View Microsite" link, styled with a destructive/muted color that becomes more prominent on hover.
 
 ## Files to modify
 
-- `src/components/dashboard/ProfileEditor.tsx` -- switch database client from shared backend to Cloud
+- `supabase/functions/list-my-books/index.ts` -- add delete action handling
+- `src/components/dashboard/MyBooks.tsx` -- add delete button with confirmation dialog
 
-## What this fixes
-
-- Profile data (pen name, bio, tagline, LinkedIn, etc.) synced by the edge function will now be visible in the editor
-- Saves will write to the same database the sync writes to
-- Photo uploads will continue working with the Cloud storage bucket
