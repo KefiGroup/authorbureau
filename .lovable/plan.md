@@ -1,43 +1,62 @@
 
 
-# Fix Profile Sync: Multiple Profiles Breaking ProfileEditor
+# Use `primary_profile` from pull-shared-profile + Add Secondary Pen Names
 
-## Root Cause Analysis
+## Summary
 
-The diagnostic logs revealed three distinct issues:
-
-### Issue 1 (Critical): ProfileEditor fails silently with multiple profiles
-The `fetchProfile` function in `ProfileEditor.tsx` uses `.maybeSingle()` which **throws an error when more than one row is returned**. Since this user has 2 profiles in the shared backend, the query errors out silently, and the editor displays all empty fields. This is why the Authors Bureau dashboard (image-24) shows blank fields despite data existing.
-
-### Issue 2 (Data Issue): Tagline is empty in the shared database
-The raw logs confirm: `Raw tagline: ""` -- an empty string, not null. The PublishNow UI (image-25) shows "Author, Speaker, Entrepreneur" in the Tagline field, but this value is NOT stored in the `tagline` column. This is a PublishNow-side issue -- the tagline data needs to be saved/migrated to the `tagline` column on their end.
-
-### Issue 3 (Already Fixed): Sync data is actually correct
-The local database already has the correct data synced: `pen_name: "Fasa Husain"`, `linkedin_url: "https://www.linkedin.com/in/fasahath-husain/"`, `bio_short` filled. The sync IS working -- the problem is that the ProfileEditor can't display it due to Issue 1.
+The `pull-shared-profile` endpoint now returns a dedicated `primary_profile` field that is guaranteed to be the correct identity. This eliminates the need for our sorting/merging workaround. We also need to update the profile mapper to handle new field names (`bio` instead of `short_bio`, `social_links` as a structured object, `profile_photo_url`).
 
 ## Changes
 
-### 1. Fix ProfileEditor query to handle multiple profiles (`src/components/dashboard/ProfileEditor.tsx`)
+### 1. Simplify profile selection in `sync-author-profile/index.ts`
 
-Change the `fetchProfile` function to use `.order("updated_at", { ascending: false }).limit(1).single()` instead of `.maybeSingle()`. This ensures:
-- When multiple profiles exist, the most recently updated one is loaded
-- Consistent behavior with the sync function's profile selection logic
+Replace the sorting + merging logic (lines 201-243) with:
 
-### 2. Fix the save/upsert to target the correct profile
+```typescript
+const sharedProfile = pulled?.primary_profile ?? pulled?.profiles?.[0] ?? null;
+```
 
-The current `upsert` uses `onConflict: "user_id"` which may not work correctly with multiple profiles. Change saves to use `.update()` targeting the specific profile row (by `id`), falling back to `.insert()` if no profile exists.
+- Uses `primary_profile` directly (guaranteed single correct identity)
+- Falls back to `profiles[0]` for backward compatibility
+- Remove the sort/merge block and associated debug logging (no longer needed)
 
-### 3. Note for PublishNow team
+### 2. Update `mapProfileToLocal` for new field names
 
-The tagline field on the shared backend's `author_profiles` table is empty for this user despite the PublishNow UI showing "Author, Speaker, Entrepreneur". PublishNow needs to ensure the tagline value is persisted to the `tagline` column when saved.
+Based on the documentation, the profile object uses:
+- `bio` (not `short_bio`) for the biography text
+- `profile_photo_url` (not `profile_picture_url`) for the photo
+- `social_links` object with keys: `twitter`, `instagram`, `goodreads`, `facebook`, `tiktok`, `youtube`, `website`
+- `linkedin_url` and `amazon_author_url` as top-level fields
 
-## Technical Details
+Update the mapper to check these field names as primary sources with existing names as fallbacks.
 
-### Files to modify
-- `src/components/dashboard/ProfileEditor.tsx` -- fix `fetchProfile` to handle multiple profiles, and fix save logic to target the correct profile row
+### 3. Add secondary pen names to AuthorProfile page (optional display)
 
-### What stays the same
-- `sync-author-profile/index.ts` -- already handles multiple profiles correctly
-- Database schema -- no changes needed
+On `src/pages/AuthorProfile.tsx`, after fetching dynamic books, also fetch secondary profiles from the sync response. Display an "Also writes as..." section below the author bio if secondary pen names exist.
+
+This requires storing secondary pen names during sync. Add a `secondary_pen_names` JSONB column (or store in `extra_data`) on the local `author_profiles` table during sync:
+
+```typescript
+const secondaryNames = (pulled?.profiles ?? [])
+  .filter(p => p.author_type === 'secondary')
+  .map(p => p.pen_name);
+```
+
+### 4. Verify with a test call
+
+After deploying, trigger a sync for `fasahath@gmail.com` and confirm:
+- `primary_profile` is used (pen_name = "Fasa Husain")
+- Tagline, LinkedIn, and other fields populate correctly
+- No more profile sorting/selection ambiguity
+
+## Files to modify
+
+- `supabase/functions/sync-author-profile/index.ts` -- simplify selection to use `primary_profile`, update mapper field names
+- `src/pages/AuthorProfile.tsx` -- (optional) display "Also writes as..." for secondary pen names
+
+## What stays the same
+
+- `ProfileEditor.tsx` -- reads from local DB, already fixed with `.order().limit(1)`
+- Database schema -- no new columns needed (secondary pen names can go in existing `extra_data` JSONB)
 - Auth flow -- unchanged
 
