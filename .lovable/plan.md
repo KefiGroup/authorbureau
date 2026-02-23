@@ -1,36 +1,32 @@
 
 
-# Allow Deletion of Book Microsites
+# Unpublish Microsite Instead of Deleting Book
 
-## Overview
+## Problem
 
-Add a delete button to each book card in the "My Books" dashboard section, with a confirmation dialog to prevent accidental deletion.
+The current "delete" action removes the entire book record from the database. The user wants to only take down the microsite (unpublish) while keeping the book data intact.
 
 ## Changes
 
-### 1. Add delete action to the `list-my-books` edge function
+### 1. Update `supabase/functions/list-my-books/index.ts`
 
-Extend `supabase/functions/list-my-books/index.ts` to accept an optional `action` field in the request body:
-- No action or `action: "list"` -- current behavior (list books)
-- `action: "delete"` with `bookId` -- deletes the book, but only if `author_id` matches the authenticated user
+Replace the `action: "delete"` handler with `action: "unpublish"`:
+- Instead of deleting the row, set `published_at` to `null` on the matching book
+- This removes the public microsite at `/books/:slug` while preserving all book data
 
-This keeps the auth resolution logic (shared + cloud) in one place and avoids creating a new function.
+### 2. Update `src/components/dashboard/MyBooks.tsx`
 
-### 2. Add delete UI to `src/components/dashboard/MyBooks.tsx`
-
-- Import `Trash2` icon from lucide-react and the `AlertDialog` component
-- Add a `handleDelete` function that calls the edge function with `action: "delete"` and `bookId`
-- Add a small trash icon button on each book card (bottom-right of the actions area)
-- Wrap with an `AlertDialog` confirmation: "Delete this microsite? This action cannot be undone."
-- Show loading state during deletion
-- Refresh book list after successful deletion
-
-### Visual placement
-
-The delete button will appear as a subtle icon button next to the existing "Publish Microsite" or "View Microsite" link, styled with a destructive/muted color that becomes more prominent on hover.
+- Rename `handleDelete` to `handleUnpublish`
+- Change the edge function call to send `action: "unpublish"` instead of `action: "delete"`
+- Update the confirmation dialog text:
+  - Title: "Take down this microsite?"
+  - Description: "This will unpublish the microsite for '[title]'. The book will remain in your dashboard and can be re-published later."
+- Only show the unpublish button on published books (where `published_at` is not null)
+- Change the icon/button styling to be less destructive (e.g., keep `Trash2` or switch to a more appropriate icon like `GlobeLock` or `EyeOff`)
+- Update toast message to "Microsite taken down" instead of "Book deleted"
 
 ## Files to modify
 
-- `supabase/functions/list-my-books/index.ts` -- add delete action handling
-- `src/components/dashboard/MyBooks.tsx` -- add delete button with confirmation dialog
+- `supabase/functions/list-my-books/index.ts` -- change delete to unpublish (set `published_at = null`)
+- `src/components/dashboard/MyBooks.tsx` -- update UI labels, confirmation text, and only show on published books
 
