@@ -36,6 +36,9 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
   const [stateLoading, setStateLoading] = useState(true);
   const [missingFields, setMissingFields] = useState<string[]>([]);
   const [showIncompleteDialog, setShowIncompleteDialog] = useState(false);
+  const [popupDismissed, setPopupDismissed] = useState(() => {
+    return sessionStorage.getItem("profile_popup_dismissed") === "true";
+  });
 
   useEffect(() => {
     if (!user) return;
@@ -72,7 +75,9 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
             setProfileStatus("done");
           } else {
             setProfileStatus("in-progress");
-            setShowIncompleteDialog(true);
+            if (!popupDismissed) {
+              setShowIncompleteDialog(true);
+            }
           }
           // Directory status
           if (profile.directory_status === "listed") {
@@ -525,13 +530,22 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
 
           <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button
-              onClick={() => { setShowIncompleteDialog(false); handleGoToPublishNow(); }}
+              onClick={() => { 
+                setShowIncompleteDialog(false); 
+                setPopupDismissed(true);
+                sessionStorage.setItem("profile_popup_dismissed", "true");
+                handleGoToPublishNow(); 
+              }}
               className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
             >
               <ExternalLink className="h-4 w-4 mr-2" />
               Complete on PublishNow
             </Button>
-            <Button variant="outline" onClick={() => setShowIncompleteDialog(false)}>
+            <Button variant="outline" onClick={() => { 
+              setShowIncompleteDialog(false); 
+              setPopupDismissed(true);
+              sessionStorage.setItem("profile_popup_dismissed", "true");
+            }}>
               I'll Do It Later
             </Button>
           </DialogFooter>
