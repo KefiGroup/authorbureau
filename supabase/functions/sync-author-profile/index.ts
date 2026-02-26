@@ -48,7 +48,7 @@ function mapProfileToLocal(p: any): Record<string, any> {
   // Bio: prefer `bio` (new schema), fall back to `short_bio` (old schema)
   const bio = p.bio || p.short_bio;
   if (bio) {
-    mapped.bio_short = bio.length > 300 ? bio.slice(0, 300) : bio;
+    mapped.bio_short = bio;
     mapped.bio_long = bio;
   }
 
