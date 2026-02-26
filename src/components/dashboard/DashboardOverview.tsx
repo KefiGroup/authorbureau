@@ -191,13 +191,13 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
   const getStartedSteps = [
     {
       icon: Eye,
-      label: "Review Your Profile",
+      label: profileStatus === "pending" ? "Create Your Profile" : "Review Your Profile",
       description: profileStatus === "pending"
-        ? "Create your author profile on PublishNow first, then come back and click 'Sync Profile' to import it here."
-        : "Your profile has been synced from PublishNow. To make changes, edit on PublishNow and sync again.",
+        ? "Head over to PublishNow to set up your author profile — add your bio, photo, and book details. Then come back and sync."
+        : "Your profile has been synced. To make changes, edit on PublishNow and sync again.",
       step: "Step 1",
-      actionLabel: profileStatus === "pending" ? "Create on PublishNow" : "View Profile",
-      target: profileStatus === "pending" ? "__create" : "profile",
+      actionLabel: profileStatus === "pending" ? "Go to PublishNow →" : "Edit on PublishNow →",
+      target: "__publishnow_profile",
       status: profileStatus,
     },
     {
@@ -325,10 +325,12 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
             <div className="flex items-start gap-3">
               <AlertCircle className="h-5 w-5 text-secondary mt-0.5 shrink-0" />
               <div>
-                <p className="text-sm font-semibold text-foreground">Welcome! You're brand new — here's how to get started.</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  To join the Authors Directory, you'll first need to create your author profile on our partner platform <strong>PublishNow</strong>. Once that's done, come back here and sync it.
-                </p>
+              <p className="text-sm font-semibold text-foreground">Welcome! Here's how to get started:</p>
+              <ol className="text-sm text-muted-foreground mt-2 space-y-1 list-decimal list-inside">
+                <li><strong>Create your profile</strong> on PublishNow (bio, photo, book details)</li>
+                <li><strong>Come back here</strong> and click <strong>"Sync Profile"</strong> to import it</li>
+                <li>Our team reviews your profile for the Authors Directory</li>
+              </ol>
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 ml-8">
@@ -336,14 +338,14 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
                 asChild
                 className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
               >
-                <a href="https://publishnow.io" target="_blank" rel="noopener noreferrer">
+                <a href="https://publishnow.io/#/profile" target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="h-4 w-4 mr-2" />
-                  Step A: Create Profile on PublishNow
+                  Create My Profile on PublishNow
                 </a>
               </Button>
               <Button variant="outline" onClick={handleSyncFromPublishNow} disabled={syncLoading}>
                 {syncLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
-                Step B: Sync Profile Here
+                I've Done It — Sync Now
               </Button>
             </div>
           </div>
@@ -357,8 +359,8 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
                 key={f.label}
                 type="button"
                 onClick={() => {
-                  if (f.target === "__create") {
-                    window.open("https://publishnow.io", "_blank");
+                  if (f.target === "__publishnow_profile") {
+                    window.open("https://publishnow.io/#/profile", "_blank");
                   } else if (f.target === "__sync") {
                     handleSyncFromPublishNow();
                   } else {
