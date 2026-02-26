@@ -1,0 +1,1 @@
+ALTER TABLE books ADD COLUMN IF NOT EXISTS bestseller_proof_url text;
