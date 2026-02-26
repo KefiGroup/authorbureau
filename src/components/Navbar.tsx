@@ -31,6 +31,7 @@ export default function Navbar() {
         }
       } else {
         navigate(link.to);
+        window.scrollTo({ top: 0, behavior: "smooth" });
       }
     },
     [location.pathname, navigate]
