@@ -157,9 +157,12 @@ export default function Auth() {
     if (otp.length !== 6) return;
     setSubmitting(true);
     try {
-      const data = await authFetch({ action: "verify", email: email.trim(), code: otp });
+    const data = await authFetch({ action: "verify", email: email.trim(), code: otp });
       console.log("[Auth] verify response:", JSON.stringify(data));
-      if (data?.session_data) {
+      if (data && data.success === false) {
+        throw new Error(data.error || "Verification failed. Please try again.");
+      }
+      if (data?.session_data?.access_token) {
         await establishSession(data.session_data);
       } else if (data?.authUrl) {
         window.location.href = data.authUrl;
@@ -179,9 +182,12 @@ export default function Auth() {
     if (!email.trim() || !password) return;
     setSubmitting(true);
     try {
-      const data = await authFetch({ action: "password_login", email: email.trim(), password });
+    const data = await authFetch({ action: "password_login", email: email.trim(), password });
       console.log("[Auth] password_login response:", JSON.stringify(data));
-      if (data?.session_data) {
+      if (data && data.success === false) {
+        throw new Error(data.error || "Sign-in failed. Please try again.");
+      }
+      if (data?.session_data?.access_token) {
         await establishSession(data.session_data);
       } else if (data?.authUrl) {
         window.location.href = data.authUrl;
@@ -219,14 +225,17 @@ export default function Auth() {
     }
     setSubmitting(true);
     try {
-      const data = await authFetch({
+    const data = await authFetch({
         action: "reset_password",
         email: email.trim(),
         code: otp,
         password,
       });
       console.log("[Auth] reset_password response:", JSON.stringify(data));
-      if (data?.session_data) {
+      if (data && data.success === false) {
+        throw new Error(data.error || "Password reset failed. Please try again.");
+      }
+      if (data?.session_data?.access_token) {
         await establishSession(data.session_data);
         toast({ title: "Password reset successfully!" });
       } else if (data?.authUrl) {
