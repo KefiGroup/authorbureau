@@ -218,7 +218,9 @@ export default function DynamicBookMicrosite() {
                 <div className="space-y-2 mb-6">
                   {book.price && (
                     <div className="text-center p-3 rounded-lg bg-secondary/10 border border-secondary/20">
-                      <span className="text-sm text-muted-foreground block">Hardcover</span>
+                      <span className="text-sm text-muted-foreground block">
+                        {book.kindle_price || book.paperback_price ? "Hardcover" : "Price"}
+                      </span>
                       <span className="font-heading text-2xl font-bold text-secondary">{book.price}</span>
                     </div>
                   )}
