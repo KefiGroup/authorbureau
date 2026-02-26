@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, RefreshCw, CheckCircle, XCircle, Star, BookOpen, Globe } from "lucide-react";
+import { Loader2, RefreshCw, BookOpen, Globe, Filter } from "lucide-react";
 
 interface DirectoryAuthor {
   user_id: string;
@@ -17,16 +18,25 @@ interface DirectoryAuthor {
   book_count?: number;
 }
 
+const ALL_STATUSES = ["unlisted", "listed", "verified", "featured"] as const;
+
+const statusColors: Record<string, string> = {
+  unlisted: "bg-muted text-muted-foreground",
+  listed: "bg-blue-100 text-blue-800",
+  verified: "bg-green-100 text-green-800",
+  featured: "bg-amber-100 text-amber-800",
+};
+
 export default function AuthorsTab() {
   const [authors, setAuthors] = useState<DirectoryAuthor[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [filterStatus, setFilterStatus] = useState<string>("all");
   const { toast } = useToast();
 
   const fetchAuthors = useCallback(async () => {
     setLoading(true);
     try {
-      // Fetch all author profiles
       const { data: profiles, error } = await supabase
         .from("author_profiles")
         .select("user_id, pen_name, photo_url, bio_short, genres, directory_status, author_slug, created_at")
@@ -34,7 +44,6 @@ export default function AuthorsTab() {
 
       if (error) throw error;
 
-      // Fetch book counts
       const { data: books } = await supabase
         .from("books")
         .select("author_id")
@@ -74,19 +83,19 @@ export default function AuthorsTab() {
       setAuthors((prev) =>
         prev.map((a) => (a.user_id === userId ? { ...a, directory_status: newStatus } : a))
       );
-      toast({ title: `Author ${newStatus === "unlisted" ? "removed from" : "added to"} directory` });
+      toast({ title: `Author status changed to "${newStatus}"` });
     } catch (err: any) {
       toast({ title: err.message || "Update failed", variant: "destructive" });
     }
     setUpdatingId(null);
   };
 
-  const statusColors: Record<string, string> = {
-    unlisted: "bg-muted text-muted-foreground",
-    listed: "bg-blue-100 text-blue-800",
-    verified: "bg-green-100 text-green-800",
-    featured: "bg-amber-100 text-amber-800",
-  };
+  const filtered = filterStatus === "all" ? authors : authors.filter((a) => a.directory_status === filterStatus);
+
+  const counts = authors.reduce((acc, a) => {
+    acc[a.directory_status] = (acc[a.directory_status] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
   return (
     <div>
@@ -94,7 +103,7 @@ export default function AuthorsTab() {
         <div>
           <h2 className="font-heading text-2xl font-bold">Author Directory Management</h2>
           <p className="text-muted-foreground text-sm mt-1">
-            Approve authors to appear in the public directory
+            Manage author visibility and status in the public directory
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={fetchAuthors} disabled={loading}>
@@ -103,18 +112,34 @@ export default function AuthorsTab() {
         </Button>
       </div>
 
+      {/* Status filter pills */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        {[{ key: "all", label: "All", count: authors.length }, ...ALL_STATUSES.map((s) => ({ key: s, label: s.charAt(0).toUpperCase() + s.slice(1), count: counts[s] || 0 }))].map((f) => (
+          <button
+            key={f.key}
+            onClick={() => setFilterStatus(f.key)}
+            className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+              filterStatus === f.key
+                ? "bg-secondary text-secondary-foreground"
+                : "bg-muted text-muted-foreground hover:bg-muted/80"
+            }`}
+          >
+            {f.label} ({f.count})
+          </button>
+        ))}
+      </div>
+
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-secondary" />
         </div>
-      ) : authors.length === 0 ? (
-        <p className="text-center text-muted-foreground py-12">No author profiles found.</p>
+      ) : filtered.length === 0 ? (
+        <p className="text-center text-muted-foreground py-12">No authors found.</p>
       ) : (
         <div className="space-y-3">
-          {authors.map((author) => (
+          {filtered.map((author) => (
             <Card key={author.user_id} className="border">
               <CardContent className="p-4 flex items-center gap-4">
-                {/* Photo */}
                 {author.photo_url ? (
                   <img src={author.photo_url} alt={author.pen_name || ""} className="w-12 h-12 rounded-full object-cover shrink-0" />
                 ) : (
@@ -123,11 +148,10 @@ export default function AuthorsTab() {
                   </div>
                 )}
 
-                {/* Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="font-semibold truncate">{author.pen_name || "Unnamed Author"}</h3>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[author.directory_status] || statusColors.unlisted}`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[author.directory_status] || statusColors.unlisted}`}>
                       {author.directory_status}
                     </span>
                   </div>
@@ -147,69 +171,28 @@ export default function AuthorsTab() {
                   </div>
                 </div>
 
-                {/* Actions */}
-                <div className="flex items-center gap-2 shrink-0">
-                  {author.directory_status === "unlisted" && (
-                    <Button
-                      size="sm"
-                      onClick={() => updateStatus(author.user_id, "listed")}
-                      disabled={updatingId === author.user_id}
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                      {updatingId === author.user_id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-1" />}
-                      Approve
-                    </Button>
-                  )}
-                  {author.directory_status === "listed" && (
-                    <>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => updateStatus(author.user_id, "verified")}
-                        disabled={updatingId === author.user_id}
-                      >
-                        <Star className="h-4 w-4 mr-1" /> Verify
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => updateStatus(author.user_id, "unlisted")}
-                        disabled={updatingId === author.user_id}
-                      >
-                        <XCircle className="h-4 w-4 mr-1" /> Remove
-                      </Button>
-                    </>
-                  )}
-                  {author.directory_status === "verified" && (
-                    <>
-                      <Button
-                        size="sm"
-                        onClick={() => updateStatus(author.user_id, "featured")}
-                        disabled={updatingId === author.user_id}
-                        className="bg-amber-600 hover:bg-amber-700 text-white"
-                      >
-                        <Star className="h-4 w-4 mr-1" /> Feature
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => updateStatus(author.user_id, "unlisted")}
-                        disabled={updatingId === author.user_id}
-                      >
-                        <XCircle className="h-4 w-4 mr-1" /> Remove
-                      </Button>
-                    </>
-                  )}
-                  {author.directory_status === "featured" && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => updateStatus(author.user_id, "listed")}
-                      disabled={updatingId === author.user_id}
-                    >
-                      <XCircle className="h-4 w-4 mr-1" /> Unfeature
-                    </Button>
-                  )}
+                {/* Status dropdown */}
+                <div className="shrink-0 w-36">
+                  <Select
+                    value={author.directory_status}
+                    onValueChange={(val) => updateStatus(author.user_id, val)}
+                    disabled={updatingId === author.user_id}
+                  >
+                    <SelectTrigger className="h-9 text-xs">
+                      {updatingId === author.user_id ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <SelectValue />
+                      )}
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ALL_STATUSES.map((s) => (
+                        <SelectItem key={s} value={s} className="text-xs capitalize">
+                          {s.charAt(0).toUpperCase() + s.slice(1)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </CardContent>
             </Card>
