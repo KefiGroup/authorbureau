@@ -1,71 +1,100 @@
 
 
-## Assessment: This is a PublishNow backend issue
+# PublishNow "My Books" Cross-Platform Integration Plan
 
-### Evidence
-
-1. **Our client code is correct.** The current `Auth.tsx` already has the `authUrl` fallback, diagnostic logging, and improved error messages deployed in source.
-
-2. **The user sees the OLD toast text** ("No session returned.") on the custom domain. This means either:
-   - The custom domain is serving a stale bundle (deployment lag), OR
-   - The backend is returning a non-200 status with `{ error: "No session returned." }` as the error string — which would be thrown by `authFetch` before our handler code ever runs.
-
-3. **Either way, the backend is not returning `session_data`** on a successful OTP verify. Our code correctly checks for it. The backend's `verify` action is expected to return `{ success: true, session_data: { access_token, refresh_token } }` per the integration notes.
-
-### Recommendation
-
-**Yes — flag this to PublishNow.** Here is a message you can send them:
+This plan addresses all 8 checklist items from the PublishNow integration notes.
 
 ---
 
-> **Subject: `verify` action not returning `session_data` for Authors Bureau**
->
-> When calling `user-auth` with `{ action: "verify", email, code, source_platform: "authorsbureau" }`, the OTP verification succeeds (HTTP 200) but the response does not contain `session_data`. This prevents us from establishing a local session.
->
-> **Expected response:**
-> ```json
-> { "success": true, "session_data": { "access_token": "...", "refresh_token": "..." } }
-> ```
->
-> **Actual response:** Missing `session_data` (and no `authUrl` fallback either).
->
-> **Questions:**
-> 1. Is `session_data` supposed to be returned for `source_platform: "authorsbureau"` on the `verify` action?
-> 2. If token exchange fails server-side, is `authUrl` returned as a fallback? If so, what HTTP status is used?
-> 3. Could this be related to the user account not yet existing on the Authors Bureau platform (first-time sign-up scenario)?
->
-> Our client already handles both `session_data` (direct session) and `authUrl` (redirect fallback). We just need one of them in the response.
+## Changes Overview
+
+### 1. Add `/my-books` route (App.tsx)
+- Add a new route `/my-books` that renders the AuthorDashboard with `my-books` as the active section
+- This supports the SSO redirect from PublishNow: `/sso?token=...&redirect=%2Fmy-books`
+
+### 2. SSO page honors `redirect` query parameter (SSO.tsx)
+- Currently SSO always redirects to `/dashboard` after session establishment
+- Change it to read `redirect` from URL search params and navigate there instead (default `/dashboard`)
+
+### 3. AuthorDashboard accepts initial section from URL (AuthorDashboard.tsx)
+- When navigated to `/my-books`, the dashboard should open with the "my-books" tab active
+- Add logic to detect the `/my-books` path and set `activeSection` accordingly on mount
+
+### 4. Update `save-book` edge function (save-book/index.ts)
+Major changes to support cross-platform book push:
+
+**New authentication path: `platform_secret`**
+- If request body contains `platform_secret`, validate it against `CROSS_PLATFORM_SECRET` env var
+- Resolve `author_id` by looking up user via `email` field in the shared backend
+- Skip JWT auth entirely for this path
+
+**Honor `entry_mode` from payload**
+- Use `body.entry_mode` if provided, fall back to `"manual"`
+
+**Honor `auto_publish`**
+- If `body.auto_publish === true`, set `published_at = now()`
+
+**Handle duplicate slugs for cross-platform**
+- For `platform_secret` auth: if slug already exists for same author, return existing book ID instead of error 409
+- For JWT auth: keep existing behavior (reject duplicates)
+
+**Accept nested `book` object**
+- PublishNow sends data nested under a `book` key; extract fields from `body.book` if present
+
+### 5. MyBooks UI badge for PublishNow books (MyBooks.tsx)
+- Already implemented: `getSourceLabel` returns "PublishNow.io" for `entry_mode === "publishnow"`
+- Already implemented: `getSourceColor` returns secondary styling for publishnow/imported
+- No changes needed here
 
 ---
 
-### Additional client-side hardening (small, implement now)
-
-While waiting for PublishNow's response, add one small safeguard:
-
-**File: `src/pages/Auth.tsx`**
-
-In the `authFetch` helper, when catching the error response, also extract and preserve `authUrl` from the error body so that even if the backend returns a non-200 status with an `authUrl` field, we can still redirect:
-
-```typescript
-async function authFetch(body) {
-  const res = await fetch(...);
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    if (data?.authUrl) {
-      window.location.href = data.authUrl;
-      return data; // never reaches caller
-    }
-    throw new Error(friendlyError(res.status, data?.error || data?.message));
-  }
-  return data;
-}
-```
-
-This covers the edge case where the backend returns a 4xx status but includes a redirect URL. One change, one file.
-
-### Files to modify
+## File Changes
 
 | File | Change |
 |------|--------|
-| `src/pages/Auth.tsx` | Extract `authUrl` from error responses in `authFetch` and redirect before throwing |
+| `src/App.tsx` | Add `/my-books` route pointing to AuthorDashboard |
+| `src/pages/SSO.tsx` | Read `redirect` param, navigate to it after session success |
+| `src/pages/AuthorDashboard.tsx` | Detect `/my-books` path and set initial active section |
+| `supabase/functions/save-book/index.ts` | Add `platform_secret` auth path, honor `entry_mode`, `auto_publish`, handle nested `book` object, smart duplicate handling |
+
+---
+
+## Technical Details
+
+### save-book authentication flow (updated)
+
+```text
+Request received
+  ├─ body.platform_secret exists?
+  │   ├─ YES → validate against CROSS_PLATFORM_SECRET
+  │   │        → look up user by body.email in shared backend auth
+  │   │        → use that user ID as author_id
+  │   │        → extract book fields from body.book (nested)
+  │   │        → use body.book.entry_mode (or "publishnow")
+  │   │        → if body.book.auto_publish → set published_at = now()
+  │   │        → duplicate slug + same author → return existing book
+  │   │        → duplicate slug + different author → append random suffix
+  │   └─ NO  → existing JWT dual-auth flow (unchanged)
+  │           → entry_mode = body.entry_mode || "manual"
+  │           → duplicate slug → reject 409
+  └─ Insert book → return { id, slug }
+```
+
+### SSO redirect flow
+
+```text
+PublishNow sidebar → "My Books" click
+  → SSO handoff generates token
+  → Redirect to: /sso?token=XXX&from=publishnow&redirect=%2Fmy-books
+  → SSO.tsx validates token, establishes session
+  → Reads redirect param → navigates to /my-books
+  → /my-books route renders AuthorDashboard
+  → AuthorDashboard detects /my-books path → sets activeSection="my-books"
+```
+
+### Duplicate slug strategy for cross-platform push
+
+When `platform_secret` auth is used:
+- Query by slug AND author_id — if match found, return existing `{ id, slug }` (idempotent)
+- Query by slug with different author — append `-2`, `-3` etc. to slug
 
