@@ -1,24 +1,78 @@
 import { useAuth, TIERS } from "@/hooks/useAuth";
 import { supabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
+import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import {
   Crown, Loader2, CheckCircle2, BookOpen, Mic,
   GraduationCap, Lock, ExternalLink, RefreshCw,
   User, ArrowRight, Rocket, Award, Download, Clock, Eye,
+  AlertCircle, Circle,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface DashboardOverviewProps {
   onNavigate?: (section: string) => void;
 }
 
+type StepStatus = "pending" | "in-progress" | "done";
+
 export default function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
-  const { isPremium, subscription, checkSubscription } = useAuth();
+  const { user, isPremium, subscription, checkSubscription } = useAuth();
   const { toast } = useToast();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
   const [syncLoading, setSyncLoading] = useState(false);
+
+  // State-aware onboarding
+  const [profileStatus, setProfileStatus] = useState<StepStatus>("pending");
+  const [directoryStatus, setDirectoryStatus] = useState<StepStatus>("pending");
+  const [booksStatus, setBooksStatus] = useState<StepStatus>("pending");
+  const [bookCount, setBookCount] = useState(0);
+  const [stateLoading, setStateLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchState = async () => {
+      setStateLoading(true);
+      try {
+        // Check author profile
+        const { data: profile } = await cloudSupabase
+          .from("author_profiles")
+          .select("directory_status, pen_name, bio_short")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (profile) {
+          // Profile exists — step 1 done
+          setProfileStatus("done");
+          // Directory status
+          if (profile.directory_status === "listed") {
+            setDirectoryStatus("done");
+          } else {
+            setDirectoryStatus("in-progress"); // unlisted = awaiting approval
+          }
+        } else {
+          setProfileStatus("pending");
+          setDirectoryStatus("pending");
+        }
+
+        // Check books
+        const { data: books } = await cloudSupabase
+          .from("books")
+          .select("id")
+          .eq("author_id", user.id);
+
+        const count = books?.length || 0;
+        setBookCount(count);
+        setBooksStatus(count > 0 ? "done" : "pending");
+      } catch (err) {
+        console.error("Failed to fetch onboarding state:", err);
+      }
+      setStateLoading(false);
+    };
+    fetchState();
+  }, [user]);
 
   const handleSyncFromPublishNow = async () => {
     setSyncLoading(true);
@@ -55,6 +109,26 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
         title: parts.length > 0 ? "Profile synced ✅" : "Everything up to date ✅",
         description: parts.length > 0 ? parts.join(", ") : "Your profile is up to date.",
       });
+
+      // Re-fetch state after sync
+      if (user) {
+        const { data: profile } = await cloudSupabase
+          .from("author_profiles")
+          .select("directory_status")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (profile) {
+          setProfileStatus("done");
+          setDirectoryStatus(profile.directory_status === "listed" ? "done" : "in-progress");
+        }
+        const { data: books } = await cloudSupabase
+          .from("books")
+          .select("id")
+          .eq("author_id", user.id);
+        const count = books?.length || 0;
+        setBookCount(count);
+        setBooksStatus(count > 0 ? "done" : "pending");
+      }
     } catch (err: any) {
       toast({ title: "Sync failed", description: err.message, variant: "destructive" });
     }
@@ -89,30 +163,66 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
     setPortalLoading(false);
   };
 
+  const stepStatusIcon = (status: StepStatus) => {
+    switch (status) {
+      case "done":
+        return <CheckCircle2 className="h-4 w-4 text-green-600" />;
+      case "in-progress":
+        return <Clock className="h-4 w-4 text-secondary animate-pulse" />;
+      default:
+        return <Circle className="h-4 w-4 text-muted-foreground/40" />;
+    }
+  };
+
+  const stepStatusLabel = (status: StepStatus, context: string) => {
+    switch (status) {
+      case "done":
+        return <span className="text-xs font-medium text-green-600">Complete</span>;
+      case "in-progress":
+        return <span className="text-xs font-medium text-secondary">Awaiting Review</span>;
+      default:
+        return <span className="text-xs font-medium text-muted-foreground">Not Started</span>;
+    }
+  };
+
+  // Determine which step is "current" for the user
+  const currentStep = profileStatus === "pending" ? 1 : directoryStatus !== "done" ? 2 : booksStatus === "pending" ? 3 : 0;
+
   const getStartedSteps = [
     {
       icon: Eye,
       label: "Review Your Profile",
-      description: "Your profile is synced from PublishNow. Review it here — to make changes, edit on PublishNow and sync again. Our team will review and list you in the Authors Directory.",
+      description: profileStatus === "pending"
+        ? "First, sync your profile from PublishNow using the button above. This imports your author identity, bio, and photo to the Authors Bureau."
+        : "Your profile has been synced from PublishNow. To make changes, edit on PublishNow and sync again.",
       step: "Step 1",
-      actionLabel: "View Profile",
-      target: "profile",
+      actionLabel: profileStatus === "pending" ? "Sync Now" : "View Profile",
+      target: profileStatus === "pending" ? "__sync" : "profile",
+      status: profileStatus,
     },
     {
       icon: Clock,
       label: "Await Directory Approval",
-      description: "Our team will review your profile. Once approved, you'll appear in the public Authors Directory alongside other featured authors.",
+      description: directoryStatus === "done"
+        ? "You're approved and listed in the public Authors Directory!"
+        : profileStatus === "pending"
+        ? "Once you sync your profile, our team will review it for the Authors Directory."
+        : "Our team is reviewing your profile. Once approved, you'll appear in the public Authors Directory alongside other featured authors.",
       step: "Step 2",
       actionLabel: "Check Status",
       target: "profile",
+      status: directoryStatus,
     },
     {
       icon: BookOpen,
       label: "Add Your Books",
-      description: "Add your published books to generate microsites. Each book is reviewed by our team before going live — just like Felicia's and Bob's.",
+      description: booksStatus === "done"
+        ? `You have ${bookCount} book(s) added. Each is reviewed by our team before going live.`
+        : "Add your published books to generate microsites. Each book is reviewed by our team before going live — just like Felicia's and Bob's.",
       step: "Step 3",
-      actionLabel: "My Books",
+      actionLabel: booksStatus === "done" ? "Manage Books" : "Add a Book",
       target: "my-books",
+      status: booksStatus,
     },
   ];
 
@@ -201,36 +311,82 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
           </div>
           <div>
             <h2 className="font-heading text-xl font-bold">Get Started</h2>
-            <p className="text-sm text-muted-foreground">Your path to the Authors Directory</p>
+            <p className="text-sm text-muted-foreground">
+              {currentStep === 0
+                ? "You're all set! Keep adding books and growing your presence."
+                : `You're on Step ${currentStep} — follow the steps below to get listed.`}
+            </p>
           </div>
         </div>
+
+        {/* Contextual banner for new users */}
+        {profileStatus === "pending" && !stateLoading && (
+          <div className="mb-4 rounded-xl border border-secondary/30 bg-secondary/5 p-4 flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-secondary mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-foreground">Welcome! Let's get you set up.</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Click <strong>"Sync Profile"</strong> above to import your author profile from PublishNow. 
+                If you don't have a PublishNow account yet, <a href="https://publishnow.io" target="_blank" rel="noopener noreferrer" className="text-secondary underline hover:no-underline">create one here</a> first.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="grid gap-4 sm:grid-cols-3">
-          {getStartedSteps.map((f) => (
-            <button
-              key={f.label}
-              type="button"
-              onClick={() => onNavigate?.(f.target)}
-              className="rounded-xl border border-border bg-card p-5 shadow-[var(--shadow-card)] transition-all text-left cursor-pointer hover:shadow-[var(--shadow-card-hover)] hover:border-secondary/40 group"
-            >
-              <div className="flex items-center gap-3 mb-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-secondary/15 transition-colors">
-                  <f.icon className="h-5 w-5 text-primary group-hover:text-secondary transition-colors" />
+          {getStartedSteps.map((f, i) => {
+            const isCurrent = currentStep === i + 1;
+            return (
+              <button
+                key={f.label}
+                type="button"
+                onClick={() => {
+                  if (f.target === "__sync") {
+                    handleSyncFromPublishNow();
+                  } else {
+                    onNavigate?.(f.target);
+                  }
+                }}
+                className={`rounded-xl border p-5 shadow-[var(--shadow-card)] transition-all text-left cursor-pointer group ${
+                  isCurrent
+                    ? "border-secondary/50 bg-secondary/5 ring-1 ring-secondary/20 hover:shadow-[var(--shadow-card-hover)]"
+                    : f.status === "done"
+                    ? "border-green-200 bg-green-50/30 hover:shadow-[var(--shadow-card-hover)]"
+                    : "border-border bg-card hover:shadow-[var(--shadow-card-hover)] hover:border-secondary/40"
+                }`}
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <div className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
+                    isCurrent ? "bg-secondary/15" : f.status === "done" ? "bg-green-100" : "bg-primary/10 group-hover:bg-secondary/15"
+                  }`}>
+                    <f.icon className={`h-5 w-5 transition-colors ${
+                      isCurrent ? "text-secondary" : f.status === "done" ? "text-green-600" : "text-primary group-hover:text-secondary"
+                    }`} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-secondary">{f.step}</span>
+                      {!stateLoading && stepStatusIcon(f.status)}
+                    </div>
+                    <h3 className="font-heading font-semibold text-sm">{f.label}</h3>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-secondary">{f.step}</span>
-                  <h3 className="font-heading font-semibold text-sm">{f.label}</h3>
+                <p className="text-sm text-muted-foreground">{f.description}</p>
+                <div className="flex items-center justify-between mt-3">
+                  {!stateLoading && stepStatusLabel(f.status, f.label)}
+                  <span className={`inline-flex items-center gap-1 text-xs font-semibold transition-opacity ${
+                    isCurrent ? "text-secondary opacity-100" : "text-secondary opacity-0 group-hover:opacity-100"
+                  }`}>
+                    {f.actionLabel} <ArrowRight className="h-3 w-3" />
+                  </span>
                 </div>
-              </div>
-              <p className="text-sm text-muted-foreground">{f.description}</p>
-              <span className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-secondary opacity-0 group-hover:opacity-100 transition-opacity">
-                {f.actionLabel} <ArrowRight className="h-3 w-3" />
-              </span>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* FRAMEWORK STEP 2: Author Monetisation (Premium Tier) */}
+      {/* Author Monetisation (Premium Tier) */}
       <div>
         <div className="flex items-center gap-3 mb-5">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
