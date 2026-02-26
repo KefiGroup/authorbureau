@@ -56,7 +56,7 @@ export default function Directory() {
       try {
         const res = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-directory-authors`,
-          { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }
+          { method: "POST", headers: { "Content-Type": "application/json", "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: "{}" }
         );
         if (res.ok) {
           const data = await res.json();
