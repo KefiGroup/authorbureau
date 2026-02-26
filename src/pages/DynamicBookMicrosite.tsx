@@ -25,6 +25,7 @@ interface Book {
   author_name: string;
   author_bio?: string;
   author_photo_url?: string;
+  bestseller_proof_url?: string;
 }
 
 
@@ -278,6 +279,18 @@ export default function DynamicBookMicrosite() {
                       </p>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* Amazon Bestseller Proof */}
+              {book.bestseller_proof_url && (
+                <div className="rounded-lg border border-border p-6">
+                  <h3 className="font-heading text-lg font-bold mb-4">Amazon Bestseller Proof</h3>
+                  <img
+                    src={book.bestseller_proof_url}
+                    alt={`${book.title} Amazon Bestseller ranking`}
+                    className="w-full rounded-lg shadow-md"
+                  />
                 </div>
               )}
 
