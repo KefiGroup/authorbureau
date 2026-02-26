@@ -126,8 +126,9 @@ export default function SSO() {
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
         setStage("success");
 
+        const redirectTo = params.get("redirect") || "/dashboard";
         setTimeout(() => {
-          if (!cancelled) navigate("/dashboard", { replace: true });
+          if (!cancelled) navigate(redirectTo, { replace: true });
         }, 600);
       } catch (err) {
         if (cancelled) return;
