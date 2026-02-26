@@ -16,6 +16,7 @@ const coverMap: Record<string, string> = {
   "hemispheric-intelligence": hiCover,
   "value-investing-for-women": viCover,
   "invest-like-buffett": ilbCover,
+  "invest-like-buffett-value-investing-for-parents": ilbCover,
   "to-baby-with-love": tobabywithlove,
   "lost-and-found": lostandfound,
   "a-gift-from-heaven": giftfromheaven,
@@ -62,7 +63,7 @@ export default function BookCard({ book, showAuthor = false, authorName }: BookC
             {showAuthor && authorName && (
               <p className="text-xs text-muted-foreground mt-1.5">by {authorName}</p>
             )}
-            {(book.kindlePrice || book.paperbackPrice) && (
+            {(book.kindlePrice || book.paperbackPrice || book.price) && (
               <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
                 {book.kindlePrice && (
                   <div className="flex items-center gap-1">
@@ -75,6 +76,12 @@ export default function BookCard({ book, showAuthor = false, authorName }: BookC
                   <div className="flex items-center gap-1">
                     <span className="font-semibold text-foreground">{book.paperbackPrice}</span>
                     <span>Paperback</span>
+                  </div>
+                )}
+                {!book.kindlePrice && !book.paperbackPrice && book.price && (
+                  <div className="flex items-center gap-1">
+                    <BookOpen className="h-3 w-3 text-secondary" />
+                    <span className="font-semibold text-foreground">{book.price}</span>
                   </div>
                 )}
               </div>
