@@ -91,17 +91,24 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
 
   const freeFeatures = [
     {
-      icon: User,
-      label: "Fill In Your Profile",
-      description: "Set up your author profile with bio, photo, and credentials. Your profile powers your directory listing, credibility badges, and public microsite pages.",
+      icon: Download,
+      label: "Sync Your Profile",
+      description: "Import your author profile and books from your PublishNow account. Your synced data powers your directory listing, microsites, and credibility badges.",
       step: "Step 1",
+      action: () => handleSyncFromPublishNow(),
+    },
+    {
+      icon: User,
+      label: "Review Your Profile",
+      description: "Check and refine your synced profile — update your bio, photo, tagline, and credentials. Your profile is your public author page.",
+      step: "Step 2",
       target: "profile",
     },
     {
       icon: BookOpen,
-      label: "Add Your Books",
-      description: "Add your published books via Amazon link or manually. Book data is used to generate your microsites automatically.",
-      step: "Step 2",
+      label: "Add More Books",
+      description: "Synced books go live automatically. You can also add books manually — these will be reviewed by our team before publishing.",
+      step: "Step 3",
       target: "my-books",
     },
   ];
