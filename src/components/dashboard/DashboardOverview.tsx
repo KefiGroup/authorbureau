@@ -4,10 +4,13 @@ import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import {
   Crown, Loader2, CheckCircle2, BookOpen, Mic,
   GraduationCap, Lock, ExternalLink, RefreshCw,
   User, ArrowRight, Rocket, Award, Download, Clock, Eye,
-  AlertCircle, Circle,
+  AlertCircle, Circle, AlertTriangle,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -30,6 +33,8 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
   const [booksStatus, setBooksStatus] = useState<StepStatus>("pending");
   const [bookCount, setBookCount] = useState(0);
   const [stateLoading, setStateLoading] = useState(true);
+  const [missingFields, setMissingFields] = useState<string[]>([]);
+  const [showIncompleteDialog, setShowIncompleteDialog] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -53,10 +58,20 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
 
           const isComplete = hasName && hasPhoto && hasBio && hasTagline && hasGenres;
 
+          // Track what's missing for the reminder dialog
+          const missing: string[] = [];
+          if (!hasName) missing.push("Author Name");
+          if (!hasPhoto) missing.push("Profile Photo");
+          if (!hasBio) missing.push("Bio");
+          if (!hasTagline) missing.push("Tagline");
+          if (!hasGenres) missing.push("Genres");
+          setMissingFields(missing);
+
           if (isComplete) {
             setProfileStatus("done");
           } else {
             setProfileStatus("in-progress");
+            setShowIncompleteDialog(true);
           }
           // Directory status
           if (profile.directory_status === "listed") {
@@ -477,6 +492,47 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
           ))}
         </div>
       </div>
+
+      {/* Incomplete Profile Reminder Dialog */}
+      <Dialog open={showIncompleteDialog} onOpenChange={setShowIncompleteDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-1">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary/15">
+                <AlertTriangle className="h-5 w-5 text-secondary" />
+              </div>
+              <DialogTitle className="font-heading text-lg">Complete Your Profile</DialogTitle>
+            </div>
+            <DialogDescription className="text-sm">
+              Your profile is synced but missing some details needed to build your author page. Please complete these on PublishNow and sync again:
+            </DialogDescription>
+          </DialogHeader>
+
+          <ul className="space-y-2 my-2">
+            {missingFields.map((field) => (
+              <li key={field} className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Circle className="h-2 w-2 text-secondary fill-secondary shrink-0" />
+                {field}
+              </li>
+            ))}
+          </ul>
+
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              asChild
+              className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
+            >
+              <a href="https://publishnow.io/#/profile" target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Complete on PublishNow
+              </a>
+            </Button>
+            <Button variant="outline" onClick={() => setShowIncompleteDialog(false)}>
+              I'll Do It Later
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
