@@ -93,9 +93,9 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
     {
       icon: Eye,
       label: "Review Your Profile",
-      description: "Your profile is automatically synced from your publishing account. Review and refine your bio, photo, and credentials here.",
+      description: "Your profile is synced from PublishNow automatically. Review it here — to make changes, edit on PublishNow and sync again.",
       step: "Step 1",
-      actionLabel: "Open Profile",
+      actionLabel: "View Profile",
       target: "profile",
     },
     {

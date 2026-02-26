@@ -1,13 +1,14 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Sparkles, Check, Upload, X, CloudUpload, Download, ArrowRight } from "lucide-react";
-import PhotoCropModal from "./PhotoCropModal";
+import {
+  Loader2, ExternalLink, Download, MapPin, Globe, Linkedin,
+  Twitter, Instagram, Youtube, BookOpen, RefreshCw,
+} from "lucide-react";
+import { supabase as sharedSupabase } from "@/lib/shared-backend";
+import { redirectToPublishNow } from "@/lib/publishnow-redirect";
 
 interface AuthorProfile {
   pen_name: string;
@@ -24,25 +25,15 @@ interface AuthorProfile {
   youtube_url: string;
   amazon_author_profile_url: string;
   genres: string[];
+  directory_status: string;
 }
-
-// Track the row ID so saves target the correct profile
-let profileRowId: string | null = null;
-
-const GENRE_OPTIONS = [
-  "Business", "Self-Help", "Finance", "Leadership", "Health & Wellness",
-  "Parenting", "Fiction", "Memoir", "Technology", "Education",
-  "Spirituality", "Science", "Travel", "Cooking", "Children's", "Religion",
-];
 
 const EMPTY_PROFILE: AuthorProfile = {
   pen_name: "", bio_short: "", bio_long: "", tagline: "", photo_url: "",
   location_city: "", location_country: "", website_url: "", linkedin_url: "",
   twitter_url: "", instagram_url: "", youtube_url: "", amazon_author_profile_url: "",
-  genres: [],
+  genres: [], directory_status: "unlisted",
 };
-
-type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 interface ProfileEditorProps {
   onNavigate?: (section: string) => void;
@@ -52,28 +43,17 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [profileExists, setProfileExists] = useState(false);
-  const [generatingBio, setGeneratingBio] = useState(false);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
-  const [cropModalOpen, setCropModalOpen] = useState(false);
-  const [cropImageSrc, setCropImageSrc] = useState("");
+  const [syncing, setSyncing] = useState(false);
   const [profile, setProfile] = useState<AuthorProfile>(EMPTY_PROFILE);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
-  const profileRef = useRef(profile);
-  const hasLoadedRef = useRef(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Keep ref in sync
-  profileRef.current = profile;
+  const [profileExists, setProfileExists] = useState(false);
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
-    const timeout = setTimeout(() => setLoading(false), 8000);
-    fetchProfile().finally(() => clearTimeout(timeout));
+    fetchProfile();
   }, [user]);
 
   const fetchProfile = async () => {
+    setLoading(true);
     try {
       const { data, error } = await supabase
         .from("author_profiles")
@@ -84,191 +64,67 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
         .maybeSingle();
       if (error) console.error("Error fetching profile:", error.message);
       else if (data) {
-        profileRowId = data.id;
         setProfileExists(true);
-        const loaded: AuthorProfile = {
-          pen_name: data.pen_name || "", bio_short: data.bio_short || "",
-          bio_long: data.bio_long || "", tagline: data.tagline || "",
-          photo_url: data.photo_url || "", location_city: data.location_city || "",
-          location_country: data.location_country || "", website_url: data.website_url || "",
-          linkedin_url: data.linkedin_url || "", twitter_url: data.twitter_url || "",
-          instagram_url: data.instagram_url || "", youtube_url: data.youtube_url || "",
+        setProfile({
+          pen_name: data.pen_name || "",
+          bio_short: data.bio_short || "",
+          bio_long: data.bio_long || "",
+          tagline: data.tagline || "",
+          photo_url: data.photo_url || "",
+          location_city: data.location_city || "",
+          location_country: data.location_country || "",
+          website_url: data.website_url || "",
+          linkedin_url: data.linkedin_url || "",
+          twitter_url: data.twitter_url || "",
+          instagram_url: data.instagram_url || "",
+          youtube_url: data.youtube_url || "",
           amazon_author_profile_url: (data as any).amazon_author_profile_url || "",
           genres: (data.genres as string[]) || [],
-        };
-        setProfile(loaded);
-        profileRef.current = loaded;
+          directory_status: data.directory_status || "unlisted",
+        });
       }
-      hasLoadedRef.current = true;
-    } catch (err) { console.error("Profile fetch failed:", err); }
-    finally { setLoading(false); }
-  };
-
-  // Immediate save (no debounce) — used on unmount / beforeunload
-  const saveProfile = useCallback(async (profileData: AuthorProfile) => {
-    if (!user) return;
-    if (profileRowId) {
-      // Update existing row by ID
-      return supabase
-        .from("author_profiles")
-        .update({ ...profileData } as any)
-        .eq("id", profileRowId);
-    } else {
-      // Insert new row
-      const { data } = await supabase
-        .from("author_profiles")
-        .insert({ user_id: user.id, ...profileData } as any)
-        .select("id")
-        .single();
-      if (data) profileRowId = data.id;
-      return { error: null };
-    }
-  }, [user]);
-
-  const saveNow = useCallback(async () => {
-    if (!user || !hasLoadedRef.current) return;
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    try {
-      await saveProfile(profileRef.current);
-    } catch (err) { console.error("Flush save error:", err); }
-  }, [user, saveProfile]);
-
-  // Auto-save with debounce
-  const debouncedSave = useCallback(() => {
-    if (!user || !hasLoadedRef.current) return;
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    setSaveStatus("saving");
-    debounceRef.current = setTimeout(async () => {
-      try {
-        const result = await saveProfile(profileRef.current);
-        if (result?.error) {
-          console.error("Auto-save error:", result.error.message);
-          setSaveStatus("error");
-        } else {
-          setSaveStatus("saved");
-          setTimeout(() => setSaveStatus("idle"), 2000);
-        }
-      } catch { setSaveStatus("error"); }
-    }, 1500);
-  }, [user]);
-
-  // Flush any pending save when component unmounts or user navigates away
-  useEffect(() => {
-    const handleBeforeUnload = () => { saveNow(); };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      saveNow(); // flush on unmount (e.g. switching tabs in dashboard)
-    };
-  }, [saveNow]);
-
-  const updateField = (field: keyof AuthorProfile, value: string) => {
-    setProfile((prev) => ({ ...prev, [field]: value }));
-    debouncedSave();
-  };
-
-  const toggleGenre = (genre: string) => {
-    setProfile((prev) => ({
-      ...prev,
-      genres: prev.genres.includes(genre)
-        ? prev.genres.filter((g) => g !== genre)
-        : [...prev.genres, genre],
-    }));
-    debouncedSave();
-  };
-
-  // Photo upload handler
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-
-    if (!file.type.startsWith("image/")) {
-      toast({ title: "Please select an image file", variant: "destructive" });
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: "Image must be under 5MB", variant: "destructive" });
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      setCropImageSrc(reader.result as string);
-      setCropModalOpen(true);
-    };
-    reader.readAsDataURL(file);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
-  const handleCroppedUpload = async (blob: Blob) => {
-    if (!user) return;
-    setCropModalOpen(false);
-    setUploadingPhoto(true);
-    try {
-      const filePath = `${user.id}/profile.jpg`;
-      const file = new File([blob], "profile.jpg", { type: "image/jpeg" });
-
-      const { error: uploadError } = await supabase.storage
-        .from("author-photos")
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("author-photos")
-        .getPublicUrl(filePath);
-
-      updateField("photo_url", `${publicUrl}?t=${Date.now()}`);
-      toast({ title: "Photo uploaded! ✨" });
     } catch (err) {
-      console.error("Photo upload failed:", err);
-      toast({ title: "Upload failed", description: err instanceof Error ? err.message : "Try again", variant: "destructive" });
+      console.error("Profile fetch failed:", err);
     } finally {
-      setUploadingPhoto(false);
+      setLoading(false);
     }
   };
 
-  const handleGenerateBio = async () => {
-    if (!profile.pen_name) {
-      toast({ title: "Please enter your name first", variant: "destructive" });
-      return;
-    }
-    if (!profile.linkedin_url && !profile.amazon_author_profile_url) {
-      toast({ title: "Please provide a LinkedIn or Amazon Author Profile URL", variant: "destructive" });
-      return;
-    }
-    setGeneratingBio(true);
+  const handleSync = async () => {
+    setSyncing(true);
     try {
-      // Fetch book titles for context
-      let bookTitles: string[] = [];
-      try {
-        const { data: books } = await supabase.from("books").select("title").eq("author_id", user!.id);
-        if (books) bookTitles = books.map((b) => b.title);
-      } catch {}
+      let token: string | null = null;
+      const { data: sharedSession } = await sharedSupabase.auth.getSession();
+      if (sharedSession?.session?.access_token) {
+        token = sharedSession.session.access_token;
+      } else {
+        const { data: cloudSession } = await supabase.auth.getSession();
+        token = cloudSession?.session?.access_token || null;
+      }
+      if (!token) throw new Error("Not authenticated");
 
-      const { data, error } = await supabase.functions.invoke("generate-author-bio", {
-        body: {
-          authorName: profile.pen_name,
-          tagline: profile.tagline,
-          linkedinUrl: profile.linkedin_url,
-          amazonUrl: profile.amazon_author_profile_url,
-          genres: profile.genres,
-          bookTitles,
-        },
-      });
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-author-profile`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        }
+      );
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Sync failed");
 
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      updateField("bio_short", data.short_bio || "");
-      setProfile((prev) => ({ ...prev, bio_long: data.full_bio || "" }));
-      debouncedSave();
-      toast({ title: "Bios generated! ✨", description: "Review and edit as needed." });
+      toast({ title: "Profile synced ✅" });
+      await fetchProfile();
     } catch (err: any) {
-      console.error("Bio generation failed:", err);
-      toast({ title: "Bio generation failed", description: err?.message || "Please try again.", variant: "destructive" });
-    } finally {
-      setGeneratingBio(false);
+      toast({ title: "Sync failed", description: err.message, variant: "destructive" });
+    }
+    setSyncing(false);
+  };
+
+  const handleEditOnPublishNow = async () => {
+    const result = await redirectToPublishNow("/dashboard");
+    if (result.error) {
+      window.open("https://publishnow.io/dashboard", "_blank");
     }
   };
 
@@ -280,149 +136,160 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
     );
   }
 
-  const SaveIndicator = () => {
-    if (saveStatus === "idle") return null;
+  if (!profileExists) {
     return (
-      <div className={`flex items-center gap-1.5 text-xs font-medium transition-opacity ${
-        saveStatus === "saved" ? "text-emerald-600" : saveStatus === "error" ? "text-destructive" : "text-muted-foreground"
-      }`}>
-        {saveStatus === "saving" && <><Loader2 className="h-3 w-3 animate-spin" /> Saving…</>}
-        {saveStatus === "saved" && <><Check className="h-3 w-3" /> Saved</>}
-        {saveStatus === "error" && <><X className="h-3 w-3" /> Error saving</>}
+      <div className="max-w-xl mx-auto text-center py-16 space-y-6">
+        <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+          <Download className="h-8 w-8 text-primary" />
+        </div>
+        <div>
+          <h2 className="font-heading text-2xl font-bold">No Profile Synced Yet</h2>
+          <p className="text-muted-foreground text-sm mt-2 max-w-md mx-auto">
+            Your author profile is managed on PublishNow. Click below to sync it to Authors Bureau, or set up your profile on PublishNow first.
+          </p>
+        </div>
+        <div className="flex gap-3 justify-center">
+          <Button onClick={handleSync} disabled={syncing} className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
+            {syncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+            Sync Now
+          </Button>
+          <Button variant="outline" onClick={handleEditOnPublishNow}>
+            <ExternalLink className="h-4 w-4 mr-2" /> Set Up on PublishNow
+          </Button>
+        </div>
       </div>
     );
-  };
+  }
+
+  const statusLabel = profile.directory_status === "listed" ? "Listed" : profile.directory_status === "pending" ? "Pending Review" : "Unlisted";
+  const statusColor = profile.directory_status === "listed" ? "bg-emerald-100 text-emerald-800" : profile.directory_status === "pending" ? "bg-amber-100 text-amber-800" : "bg-muted text-muted-foreground";
+
+  const socialLinks = [
+    { url: profile.website_url, icon: Globe, label: "Website" },
+    { url: profile.linkedin_url, icon: Linkedin, label: "LinkedIn" },
+    { url: profile.twitter_url, icon: Twitter, label: "X / Twitter" },
+    { url: profile.instagram_url, icon: Instagram, label: "Instagram" },
+    { url: profile.youtube_url, icon: Youtube, label: "YouTube" },
+    { url: profile.amazon_author_profile_url, icon: BookOpen, label: "Amazon Author" },
+  ].filter((l) => l.url);
 
   return (
     <div className="max-w-3xl space-y-8">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="font-heading text-2xl font-bold">Author Profile</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            This information appears on your public author page and directory listing.
+            Your profile is managed on PublishNow and synced here automatically.
           </p>
         </div>
-        <SaveIndicator />
-      </div>
-
-      {/* Identity */}
-      <section className="rounded-xl border border-border bg-card p-6 space-y-5">
-        <h3 className="font-heading text-lg font-semibold">Identity</h3>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="pen_name">Pen Name / Display Name</Label>
-            <Input id="pen_name" value={profile.pen_name} onChange={(e) => updateField("pen_name", e.target.value)} placeholder="Your public author name" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="tagline">Tagline</Label>
-            <Input id="tagline" value={profile.tagline} onChange={(e) => updateField("tagline", e.target.value)} placeholder="e.g. Author, Speaker, Entrepreneur" />
-          </div>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="linkedin_url">LinkedIn Profile URL</Label>
-            <Input id="linkedin_url" value={profile.linkedin_url} onChange={(e) => updateField("linkedin_url", e.target.value)} placeholder="https://linkedin.com/in/..." />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="amazon_author_profile_url">Amazon Author Profile URL</Label>
-            <Input id="amazon_author_profile_url" value={profile.amazon_author_profile_url} onChange={(e) => updateField("amazon_author_profile_url", e.target.value)} placeholder="https://amazon.com/author/..." />
-          </div>
-        </div>
-        <div className="flex items-center gap-3 rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3">
-          <Sparkles className="h-5 w-5 text-primary shrink-0" />
-          <p className="text-sm text-muted-foreground flex-1">Fill in your name and at least one profile URL above, then let AI draft your bios.</p>
-          <Button variant="outline" size="sm" onClick={handleGenerateBio} disabled={generatingBio} className="shrink-0">
-            {generatingBio ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-            Generate Bios
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing}>
+            {syncing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
+            Sync
+          </Button>
+          <Button size="sm" onClick={handleEditOnPublishNow} className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
+            <ExternalLink className="h-4 w-4 mr-1" /> Edit on PublishNow
           </Button>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="bio_short">Short Bio (for cards & previews)</Label>
-          <Textarea id="bio_short" value={profile.bio_short} onChange={(e) => updateField("bio_short", e.target.value)} placeholder="A brief 1-2 sentence bio" rows={2} />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="bio_long">Full Bio</Label>
-          <Textarea id="bio_long" value={profile.bio_long} onChange={(e) => updateField("bio_long", e.target.value)} placeholder="Your complete author story, background, and mission" rows={6} />
+      </div>
+
+      {/* Profile Card */}
+      <section className="rounded-xl border border-border bg-card p-6">
+        <div className="flex items-start gap-5">
+          {profile.photo_url ? (
+            <img src={profile.photo_url} alt={profile.pen_name} className="h-24 w-24 rounded-full object-cover border-2 border-border shrink-0" />
+          ) : (
+            <div className="h-24 w-24 rounded-full border-2 border-dashed border-border flex items-center justify-center bg-muted shrink-0">
+              <span className="text-2xl font-bold text-muted-foreground">
+                {profile.pen_name?.[0]?.toUpperCase() || "?"}
+              </span>
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h3 className="font-heading text-xl font-bold">{profile.pen_name || "No name set"}</h3>
+              <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${statusColor}`}>
+                {statusLabel}
+              </span>
+            </div>
+            {profile.tagline && (
+              <p className="text-muted-foreground text-sm mt-1">{profile.tagline}</p>
+            )}
+            {(profile.location_city || profile.location_country) && (
+              <p className="text-muted-foreground text-xs mt-2 flex items-center gap-1">
+                <MapPin className="h-3 w-3" />
+                {[profile.location_city, profile.location_country].filter(Boolean).join(", ")}
+              </p>
+            )}
+          </div>
         </div>
       </section>
 
-      {/* Photo & Location */}
-      <section className="rounded-xl border border-border bg-card p-6 space-y-5">
-        <h3 className="font-heading text-lg font-semibold">Photo & Location</h3>
-        <div className="space-y-3">
-          <Label>Profile Photo</Label>
-          <div className="flex items-start gap-5">
-            {profile.photo_url ? (
-              <img src={profile.photo_url} alt="Profile" className="h-24 w-24 rounded-full object-cover border-2 border-border" />
-            ) : (
-              <div className="h-24 w-24 rounded-full border-2 border-dashed border-border flex items-center justify-center bg-muted">
-                <Upload className="h-6 w-6 text-muted-foreground" />
-              </div>
-            )}
-            <div className="space-y-2 flex-1">
-              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" id="photo-upload" />
-              <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploadingPhoto}>
-                {uploadingPhoto ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CloudUpload className="mr-2 h-4 w-4" />}
-                {profile.photo_url ? "Change Photo" : "Upload Photo"}
-              </Button>
-              <p className="text-xs text-muted-foreground">JPG, PNG or WebP. Max 5MB.</p>
-              <div className="space-y-1">
-                <Label htmlFor="photo_url" className="text-xs">Or paste a URL</Label>
-                <Input id="photo_url" value={profile.photo_url} onChange={(e) => updateField("photo_url", e.target.value)} placeholder="https://..." className="text-xs h-8" />
-              </div>
+      {/* Bio */}
+      {(profile.bio_short || profile.bio_long) && (
+        <section className="rounded-xl border border-border bg-card p-6 space-y-4">
+          <h3 className="font-heading text-lg font-semibold">About</h3>
+          {profile.bio_short && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Short Bio</p>
+              <p className="text-sm">{profile.bio_short}</p>
             </div>
-          </div>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="location_city">City</Label>
-            <Input id="location_city" value={profile.location_city} onChange={(e) => updateField("location_city", e.target.value)} placeholder="Singapore" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="location_country">Country</Label>
-            <Input id="location_country" value={profile.location_country} onChange={(e) => updateField("location_country", e.target.value)} placeholder="Singapore" />
-          </div>
-        </div>
-      </section>
+          )}
+          {profile.bio_long && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Full Bio</p>
+              <p className="text-sm whitespace-pre-line">{profile.bio_long}</p>
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Genres */}
-      <section className="rounded-xl border border-border bg-card p-6 space-y-4">
-        <h3 className="font-heading text-lg font-semibold">Genres & Expertise</h3>
-        <p className="text-sm text-muted-foreground">Select all that apply to your books and expertise.</p>
-        <div className="flex flex-wrap gap-2">
-          {GENRE_OPTIONS.map((genre) => (
-            <button key={genre} onClick={() => toggleGenre(genre)} className={`rounded-full px-3 py-1.5 text-sm font-medium border transition-colors ${
-              profile.genres.includes(genre)
-                ? "bg-primary text-primary-foreground border-primary"
-                : "bg-card text-muted-foreground border-border hover:border-primary/50"
-            }`}>{genre}</button>
-          ))}
-        </div>
-      </section>
+      {profile.genres.length > 0 && (
+        <section className="rounded-xl border border-border bg-card p-6 space-y-3">
+          <h3 className="font-heading text-lg font-semibold">Genres & Expertise</h3>
+          <div className="flex flex-wrap gap-2">
+            {profile.genres.map((genre) => (
+              <span key={genre} className="rounded-full px-3 py-1.5 text-sm font-medium bg-primary/10 text-primary border border-primary/20">
+                {genre}
+              </span>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Social Links */}
-      <section className="rounded-xl border border-border bg-card p-6 space-y-5">
-        <h3 className="font-heading text-lg font-semibold">Other Links & Social</h3>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {[
-            { id: "website_url", label: "Website", placeholder: "https://yoursite.com" },
-            { id: "twitter_url", label: "X / Twitter", placeholder: "https://x.com/..." },
-            { id: "instagram_url", label: "Instagram", placeholder: "https://instagram.com/..." },
-            { id: "youtube_url", label: "YouTube", placeholder: "https://youtube.com/@..." },
-          ].map((field) => (
-            <div key={field.id} className="space-y-2">
-              <Label htmlFor={field.id}>{field.label}</Label>
-              <Input id={field.id} value={profile[field.id as keyof AuthorProfile] as string} onChange={(e) => updateField(field.id as keyof AuthorProfile, e.target.value)} placeholder={field.placeholder} />
-            </div>
-          ))}
-        </div>
-      </section>
-      <PhotoCropModal
-        open={cropModalOpen}
-        imageSrc={cropImageSrc}
-        onClose={() => setCropModalOpen(false)}
-        onCropComplete={handleCroppedUpload}
-      />
+      {socialLinks.length > 0 && (
+        <section className="rounded-xl border border-border bg-card p-6 space-y-3">
+          <h3 className="font-heading text-lg font-semibold">Links & Social</h3>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {socialLinks.map((link) => (
+              <a
+                key={link.label}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 rounded-lg border border-border p-3 text-sm hover:bg-muted/50 transition-colors"
+              >
+                <link.icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="font-medium">{link.label}</span>
+                <ExternalLink className="h-3 w-3 text-muted-foreground ml-auto" />
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Edit reminder */}
+      <div className="rounded-xl border border-dashed border-secondary/40 bg-secondary/5 p-5 text-center">
+        <p className="text-sm text-muted-foreground">
+          Need to update your profile? All changes are made on <strong>PublishNow</strong> and synced here automatically.
+        </p>
+        <Button variant="outline" size="sm" onClick={handleEditOnPublishNow} className="mt-3 border-secondary/30 text-secondary hover:bg-secondary/10">
+          <ExternalLink className="h-4 w-4 mr-1" /> Edit Profile on PublishNow
+        </Button>
+      </div>
     </div>
   );
 }
