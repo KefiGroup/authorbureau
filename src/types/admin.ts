@@ -24,6 +24,9 @@ export interface AdminBook {
   genre?: string;
   cover_image_url?: string;
   slug: string;
+  published_at?: string | null;
+  created_at?: string;
+  entry_mode?: string;
 }
 
 export interface AdminInfo {
