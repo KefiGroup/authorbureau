@@ -91,26 +91,18 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
 
   const getStartedSteps = [
     {
-      icon: Download,
-      label: "Import Your Profile",
-      description: "We'll pull your author profile, bio, photo, and published books from your account automatically. This is the fastest way to get set up.",
-      step: "Step 1",
-      actionLabel: syncLoading ? "Syncing..." : "Import Now",
-      action: () => handleSyncFromPublishNow(),
-    },
-    {
       icon: User,
-      label: "Review & Refine",
-      description: "Once imported, review your profile details — update your bio, photo, tagline, and credentials to make your author page shine.",
-      step: "Step 2",
+      label: "Set Up Your Profile",
+      description: "Fill in your author profile with your bio, photo, tagline, and credentials. Your profile powers your directory listing and public author page.",
+      step: "Step 1",
       actionLabel: "Open Profile",
       target: "profile",
     },
     {
       icon: BookOpen,
-      label: "Add More Books",
-      description: "Imported books go live automatically. You can also add books manually — these will be reviewed by our team before publishing.",
-      step: "Step 3",
+      label: "Add Your Books",
+      description: "Add your published books manually. Our team will review and approve them before they go live with their own microsites.",
+      step: "Step 2",
       actionLabel: "My Books",
       target: "my-books",
     },
