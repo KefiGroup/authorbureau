@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Search, BookOpen, Mic, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { authors as staticAuthors } from "@/data/authors";
-import { Button } from "@/components/ui/button";
+
 import { Card, CardContent } from "@/components/ui/card";
 import BadgeDisplay from "@/components/BadgeDisplay";
 import Navbar from "@/components/Navbar";
@@ -178,7 +178,7 @@ export default function Directory() {
           )}
 
           {/* Results */}
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {filtered.map((author, i) => (
               <motion.div
                 key={author.slug}
@@ -187,59 +187,57 @@ export default function Directory() {
                 custom={i}
                 variants={fadeUp}
               >
-                <Link to={`/authors/${author.slug}`} className="h-full block">
-                  <Card className="group overflow-hidden border-0 bg-card rounded-2xl shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-all duration-300 cursor-pointer h-full flex flex-col">
-                    <CardContent className="p-0 flex flex-col flex-1">
-                      {/* Photo area */}
-                      <div className="relative h-56 bg-muted/50 overflow-hidden">
-                        {author.photo ? (
-                          <img
-                            src={author.photo}
-                            alt={author.name}
-                            className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-muted/30">
-                            <BookOpen className="h-12 w-12 text-muted-foreground/30" />
-                          </div>
-                        )}
-                        <div className="absolute top-3 right-3">
-                          <BadgeDisplay level={author.badge} size="sm" />
-                        </div>
-                      </div>
-                      <div className="p-5 flex flex-col flex-1">
-                        <h3 className="text-lg font-heading font-semibold group-hover:text-secondary transition-colors">
-                          {author.name}
-                        </h3>
-                        <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{author.title}</p>
-
-                        <div className="flex items-center gap-3 mt-3 pt-3 border-t border-border/50">
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <BookOpen className="h-3.5 w-3.5 text-secondary/60" />
-                            <span>{author.books.length} Books</span>
-                          </div>
-                          {author.services.includes("Speaking") && (
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <Mic className="h-3.5 w-3.5 text-secondary/60" />
-                              <span>Speaker</span>
+                <Link to={`/authors/${author.slug}`} className="block h-full">
+                  <Card className="group overflow-hidden border border-border/60 bg-card rounded-xl hover:shadow-md hover:border-secondary/30 transition-all duration-300 cursor-pointer h-full">
+                    <CardContent className="p-4 flex flex-col h-full">
+                      <div className="flex items-start gap-3">
+                        {/* Compact avatar */}
+                        <div className="relative shrink-0">
+                          {author.photo ? (
+                            <img
+                              src={author.photo}
+                              alt={author.name}
+                              className="w-14 h-14 rounded-full object-cover object-top ring-2 ring-border/50 group-hover:ring-secondary/40 transition-all"
+                            />
+                          ) : (
+                            <div className="w-14 h-14 rounded-full bg-muted/40 flex items-center justify-center ring-2 ring-border/50">
+                              <BookOpen className="h-5 w-5 text-muted-foreground/40" />
                             </div>
                           )}
                         </div>
-
-                        <div className="flex flex-wrap gap-1.5 mt-3 mb-4">
-                          {author.genres.slice(0, 3).map((genre) => (
-                            <span
-                              key={genre}
-                              className="text-[11px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/50"
-                            >
-                              {genre}
-                            </span>
-                          ))}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <h3 className="text-sm font-heading font-semibold truncate group-hover:text-secondary transition-colors">
+                              {author.name}
+                            </h3>
+                            <BadgeDisplay level={author.badge} size="sm" showLabel={false} />
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{author.title}</p>
                         </div>
+                      </div>
 
-                        <Button variant="outline" size="sm" className="w-full mt-auto rounded-full border-secondary/20 text-secondary hover:bg-secondary hover:text-secondary-foreground text-xs flex items-center justify-center">
-                          View Profile
-                        </Button>
+                      <div className="flex items-center gap-3 mt-3 pt-2 border-t border-border/40">
+                        <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                          <BookOpen className="h-3 w-3 text-secondary/50" />
+                          <span>{author.books.length} {author.books.length === 1 ? "Book" : "Books"}</span>
+                        </div>
+                        {author.services.includes("Speaking") && (
+                          <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                            <Mic className="h-3 w-3 text-secondary/50" />
+                            <span>Speaker</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {author.genres.slice(0, 3).map((genre) => (
+                          <span
+                            key={genre}
+                            className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted/60 text-muted-foreground"
+                          >
+                            {genre}
+                          </span>
+                        ))}
                       </div>
                     </CardContent>
                   </Card>
