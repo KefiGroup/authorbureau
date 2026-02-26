@@ -1,6 +1,7 @@
 import { useAuth, TIERS } from "@/hooks/useAuth";
 import { supabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
+import { redirectToPublishNow } from "@/lib/publishnow-redirect";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -160,6 +161,13 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
       toast({ title: "Sync failed", description: err.message, variant: "destructive" });
     }
     setSyncLoading(false);
+  };
+
+  const handleGoToPublishNow = async () => {
+    const result = await redirectToPublishNow("/profile");
+    if (result.error) {
+      toast({ title: "Could not open PublishNow", description: result.error, variant: "destructive" });
+    }
   };
 
   const handleUpgrade = async () => {
@@ -364,13 +372,11 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
             </div>
             <div className="flex flex-col sm:flex-row gap-3 ml-8">
               <Button
-                asChild
+                onClick={handleGoToPublishNow}
                 className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
               >
-                <a href="https://publishnow.io/#/profile" target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Create My Profile on PublishNow
-                </a>
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Create My Profile on PublishNow
               </Button>
               <Button variant="outline" onClick={handleSyncFromPublishNow} disabled={syncLoading}>
                 {syncLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
@@ -389,7 +395,7 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
                 type="button"
                 onClick={() => {
                   if (f.target === "__publishnow_profile") {
-                    window.open("https://publishnow.io/#/profile", "_blank");
+                    handleGoToPublishNow();
                   } else if (f.target === "__sync") {
                     handleSyncFromPublishNow();
                   } else {
@@ -519,13 +525,11 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
 
           <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button
-              asChild
+              onClick={handleGoToPublishNow}
               className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
             >
-              <a href="https://publishnow.io/#/profile" target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Complete on PublishNow
-              </a>
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Complete on PublishNow
             </Button>
             <Button variant="outline" onClick={() => setShowIncompleteDialog(false)}>
               I'll Do It Later
