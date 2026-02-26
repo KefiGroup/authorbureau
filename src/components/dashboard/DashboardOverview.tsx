@@ -44,8 +44,14 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
           .maybeSingle();
 
         if (profile) {
-          // Profile exists — step 1 done
-          setProfileStatus("done");
+          // Profile exists — check if it has meaningful data
+          const hasName = !!profile.pen_name?.trim();
+          const hasBio = !!profile.bio_short?.trim();
+          if (hasName && hasBio) {
+            setProfileStatus("done");
+          } else {
+            setProfileStatus("in-progress");
+          }
           // Directory status
           if (profile.directory_status === "listed") {
             setDirectoryStatus("done");
@@ -191,12 +197,14 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
   const getStartedSteps = [
     {
       icon: Eye,
-      label: profileStatus === "pending" ? "Create Your Profile" : "Review Your Profile",
+      label: profileStatus === "pending" ? "Create Your Profile" : profileStatus === "in-progress" ? "Complete Your Profile" : "Review Your Profile",
       description: profileStatus === "pending"
         ? "Head over to PublishNow to set up your author profile — add your bio, photo, and book details. Then come back and sync."
+        : profileStatus === "in-progress"
+        ? "Your profile is synced but incomplete — make sure you've added your name and bio on PublishNow, then sync again."
         : "Your profile has been synced. To make changes, edit on PublishNow and sync again.",
       step: "Step 1",
-      actionLabel: profileStatus === "pending" ? "Go to PublishNow →" : "Edit on PublishNow →",
+      actionLabel: profileStatus === "done" ? "Edit on PublishNow →" : "Go to PublishNow →",
       target: "__publishnow_profile",
       status: profileStatus,
     },
