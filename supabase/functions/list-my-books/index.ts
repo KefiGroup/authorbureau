@@ -35,15 +35,18 @@ Deno.serve(async (req) => {
     let altUserId: string | null = null;
     const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
     const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
+    console.log("Shared user:", sharedUser?.id, sharedUser?.email);
     if (sharedUser) {
       userId = sharedUser.id;
       // Also find local Cloud user ID for books saved under it
       const { data: { user: cloudUser } } = await cloudAdmin.auth.getUser(token);
+      console.log("Cloud user (alt):", cloudUser?.id);
       if (cloudUser && cloudUser.id !== userId) {
         altUserId = cloudUser.id;
       }
     } else {
       const { data: { user: cloudUser } } = await cloudAdmin.auth.getUser(token);
+      console.log("Cloud user (primary):", cloudUser?.id, cloudUser?.email);
       if (!cloudUser) {
         return new Response(JSON.stringify({ error: "Invalid session" }), {
           status: 401,
@@ -63,6 +66,7 @@ Deno.serve(async (req) => {
             );
             if (matched && matched.id !== userId) {
               altUserId = matched.id;
+              console.log("Resolved alt shared ID:", altUserId);
             }
           } catch (_) {}
         }
@@ -72,6 +76,7 @@ Deno.serve(async (req) => {
     // Collect all user IDs for querying
     const userIds = [userId];
     if (altUserId) userIds.push(altUserId);
+    console.log("Querying books for userIds:", userIds);
 
     // Parse request body for action
     let action = "list";
