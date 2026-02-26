@@ -175,12 +175,12 @@ export default function DynamicMeetOurAuthors() {
                     className="group block overflow-hidden rounded-2xl bg-card shadow-lg hover:shadow-xl transition-all duration-300 h-full flex flex-col border-b-4 border-secondary/60"
                   >
                     {/* Photo */}
-                    <div className="relative h-72 bg-muted/30 overflow-hidden">
+                    <div className="relative h-80 bg-muted/30 overflow-hidden">
                       {author.photo_url ? (
                         <img
                           src={author.photo_url}
                           alt={author.name}
-                          className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                          className="w-full h-full object-cover object-[center_20%] group-hover:scale-105 transition-transform duration-500"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-muted/50">
