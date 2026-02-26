@@ -1,18 +1,18 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
+const SHARED_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnRkcG5la3NjcnNnaHF0c3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MDYzODksImV4cCI6MjA4NDQ4MjM4OX0.o2qA4tLao4UtxPGxSnavXIYKUmVZvS99pHtnL220L-s";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
-const SHARED_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnRkcG5la3NjcnNnaHF0c3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MDYzODksImV4cCI6MjA4NDQ4MjM4OX0.o2qA4tLao4UtxPGxSnavXIYKUmVZvS99pHtnL220L-s";
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
@@ -30,53 +30,33 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Resolve user ID — shared backend first (primary auth)
+    // Resolve user ID — always prefer Cloud user ID since data is stored under it
     let userId: string;
-    let altUserId: string | null = null;
-    const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
-    const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
-    console.log("Shared user:", sharedUser?.id, sharedUser?.email);
-    if (sharedUser) {
-      userId = sharedUser.id;
-      // Also find local Cloud user ID for books saved under it
-      const { data: { user: cloudUser } } = await cloudAdmin.auth.getUser(token);
-      console.log("Cloud user (alt):", cloudUser?.id);
-      if (cloudUser && cloudUser.id !== userId) {
-        altUserId = cloudUser.id;
-      }
+
+    // Try Cloud auth first
+    const { data: { user: cloudUser } } = await cloudAdmin.auth.getUser(token);
+    if (cloudUser) {
+      userId = cloudUser.id;
     } else {
-      const { data: { user: cloudUser } } = await cloudAdmin.auth.getUser(token);
-      console.log("Cloud user (primary):", cloudUser?.id, cloudUser?.email);
-      if (!cloudUser) {
+      // Fallback: try shared backend (for SSO sessions)
+      const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
+      const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
+      if (!sharedUser) {
         return new Response(JSON.stringify({ error: "Invalid session" }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      userId = cloudUser.id;
-      // Check if there's a profile under a shared backend ID
-      if (cloudUser.email) {
-        const sharedServiceKey = Deno.env.get("SHARED_BACKEND_SERVICE_ROLE_KEY");
-        if (sharedServiceKey) {
-          try {
-            const sharedAdmin = createClient(SHARED_BACKEND_URL, sharedServiceKey);
-            const { data: { users: sharedUsers } } = await sharedAdmin.auth.admin.listUsers();
-            const matched = sharedUsers?.find(
-              (u: any) => u.email?.toLowerCase() === cloudUser.email!.toLowerCase()
-            );
-            if (matched && matched.id !== userId) {
-              altUserId = matched.id;
-              console.log("Resolved alt shared ID:", altUserId);
-            }
-          } catch (_) {}
-        }
+      // For shared backend users, find their Cloud user ID by email
+      userId = sharedUser.id;
+      if (sharedUser.email) {
+        const { data: { users } } = await cloudAdmin.auth.admin.listUsers();
+        const localMatch = users?.find(
+          (u: any) => u.email?.toLowerCase() === sharedUser.email?.toLowerCase()
+        );
+        if (localMatch) userId = localMatch.id;
       }
     }
-    
-    // Collect all user IDs for querying
-    const userIds = [userId];
-    if (altUserId) userIds.push(altUserId);
-    console.log("Querying books for userIds:", userIds);
 
     // Parse request body for action
     let action = "list";
@@ -96,7 +76,7 @@ Deno.serve(async (req) => {
         .from("books")
         .select("*")
         .eq("id", bookId)
-        .in("author_id", userIds)
+        .eq("author_id", userId)
         .single();
 
       if (getError || !book) {
@@ -140,7 +120,7 @@ Deno.serve(async (req) => {
         .from("books")
         .update(updateData)
         .eq("id", bookId)
-        .in("author_id", userIds);
+        .eq("author_id", userId);
 
       if (updateError) {
         return new Response(JSON.stringify({ error: updateError.message }), {
@@ -167,7 +147,7 @@ Deno.serve(async (req) => {
         .from("books")
         .update({ published_at: null })
         .eq("id", bookId)
-        .in("author_id", userIds);
+        .eq("author_id", userId);
 
       if (unpublishError) {
         console.error("Unpublish error:", unpublishError);
@@ -187,7 +167,7 @@ Deno.serve(async (req) => {
     const { data: books, error: queryError } = await cloudAdmin
       .from("books")
       .select("id, title, subtitle, slug, cover_image_url, published_at, entry_mode, genre, rating, badges, created_at")
-      .in("author_id", userIds)
+      .eq("author_id", userId)
       .order("created_at", { ascending: false });
 
     if (queryError) {
