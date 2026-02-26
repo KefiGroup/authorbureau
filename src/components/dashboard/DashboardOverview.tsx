@@ -525,7 +525,7 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
 
           <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button
-              onClick={handleGoToPublishNow}
+              onClick={() => { setShowIncompleteDialog(false); handleGoToPublishNow(); }}
               className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
             >
               <ExternalLink className="h-4 w-4 mr-2" />
