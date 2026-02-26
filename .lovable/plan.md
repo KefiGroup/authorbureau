@@ -1,59 +1,71 @@
 
 
-## Diagnosis: "No session returned" on OTP Verification
+## Assessment: This is a PublishNow backend issue
 
-The screenshot shows the OTP flow reaching the verify step successfully (the API call to `user-auth` with `action: "verify"` completes without an HTTP error), but the response body does not contain `session_data`. This triggers the `throw new Error("No session returned.")` at line 156 of `Auth.tsx`.
+### Evidence
 
-### Root Cause
+1. **Our client code is correct.** The current `Auth.tsx` already has the `authUrl` fallback, diagnostic logging, and improved error messages deployed in source.
 
-The `authFetch` helper only throws if `res.ok` is false (HTTP error). When the API returns `200 OK` but with an unexpected response shape (e.g., `{ success: true, email: "..." }` without `session_data`), the code falls through to the "No session returned" branch.
+2. **The user sees the OLD toast text** ("No session returned.") on the custom domain. This means either:
+   - The custom domain is serving a stale bundle (deployment lag), OR
+   - The backend is returning a non-200 status with `{ error: "No session returned." }` as the error string — which would be thrown by `authFetch` before our handler code ever runs.
 
-Possible reasons the backend returns no `session_data`:
-1. The user account was just created (first sign-up) and the backend may need an extra step or return a different structure for new users
-2. A server-side token exchange failure (the integration notes mention this can happen, returning `{ session_data: null }`)
-3. The response includes a field like `authUrl` as a fallback (the magic link handler checks for this, but the OTP handler does not)
+3. **Either way, the backend is not returning `session_data`** on a successful OTP verify. Our code correctly checks for it. The backend's `verify` action is expected to return `{ success: true, session_data: { access_token, refresh_token } }` per the integration notes.
 
-### Plan
+### Recommendation
+
+**Yes — flag this to PublishNow.** Here is a message you can send them:
+
+---
+
+> **Subject: `verify` action not returning `session_data` for Authors Bureau**
+>
+> When calling `user-auth` with `{ action: "verify", email, code, source_platform: "authorsbureau" }`, the OTP verification succeeds (HTTP 200) but the response does not contain `session_data`. This prevents us from establishing a local session.
+>
+> **Expected response:**
+> ```json
+> { "success": true, "session_data": { "access_token": "...", "refresh_token": "..." } }
+> ```
+>
+> **Actual response:** Missing `session_data` (and no `authUrl` fallback either).
+>
+> **Questions:**
+> 1. Is `session_data` supposed to be returned for `source_platform: "authorsbureau"` on the `verify` action?
+> 2. If token exchange fails server-side, is `authUrl` returned as a fallback? If so, what HTTP status is used?
+> 3. Could this be related to the user account not yet existing on the Authors Bureau platform (first-time sign-up scenario)?
+>
+> Our client already handles both `session_data` (direct session) and `authUrl` (redirect fallback). We just need one of them in the response.
+
+---
+
+### Additional client-side hardening (small, implement now)
+
+While waiting for PublishNow's response, add one small safeguard:
 
 **File: `src/pages/Auth.tsx`**
 
-1. **Add `authUrl` fallback to the OTP verify handler** (lines 148-162) — mirror the same logic from the magic link handler: if `session_data` is null/missing but `authUrl` exists, redirect the user there
-
-2. **Add diagnostic logging** — temporarily log the full response from `authFetch` in the OTP verify handler so we can see exactly what the backend returns. This will help pinpoint whether it is a missing field or a different response structure
-
-3. **Improve the error message** — instead of the generic "No session returned", show a more helpful message like "Sign-in succeeded but session could not be established. Please try the magic link in your email instead."
-
-### Changes
-
-**`handleVerifyOtp` in `src/pages/Auth.tsx` (lines 148-162):**
+In the `authFetch` helper, when catching the error response, also extract and preserve `authUrl` from the error body so that even if the backend returns a non-200 status with an `authUrl` field, we can still redirect:
 
 ```typescript
-const handleVerifyOtp = async () => {
-  if (otp.length !== 6) return;
-  setSubmitting(true);
-  try {
-    const data = await authFetch({ action: "verify", email: email.trim(), code: otp });
-    console.log("[Auth] verify response:", JSON.stringify(data));
-    if (data?.session_data) {
-      await establishSession(data.session_data);
-    } else if (data?.authUrl) {
+async function authFetch(body) {
+  const res = await fetch(...);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    if (data?.authUrl) {
       window.location.href = data.authUrl;
-      return;
-    } else {
-      throw new Error("Sign-in verified but no session was returned. Please try the magic link in your email instead.");
+      return data; // never reaches caller
     }
-  } catch (err: any) {
-    toast({ title: err.message, variant: "destructive" });
-  } finally {
-    setSubmitting(false);
+    throw new Error(friendlyError(res.status, data?.error || data?.message));
   }
-};
+  return data;
+}
 ```
 
-Apply the same `authUrl` fallback and diagnostic logging to `handlePasswordLogin` and `handleResetPassword` as well.
+This covers the edge case where the backend returns a 4xx status but includes a redirect URL. One change, one file.
 
-**Files to modify:**
-- `src/pages/Auth.tsx` — add `authUrl` fallback + console logging to all three session-establishing handlers (verify OTP, password login, reset password)
+### Files to modify
 
-This is a small, targeted fix. After deploying, check the browser console to see the actual response shape from the backend, which will confirm whether it is a backend issue to flag to PublishNow or a client-side parsing issue.
+| File | Change |
+|------|--------|
+| `src/pages/Auth.tsx` | Extract `authUrl` from error responses in `authFetch` and redirect before throwing |
 
