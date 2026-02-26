@@ -4,8 +4,8 @@ import { ArrowRight, BookOpen, Users, Globe, Award, Building2, GraduationCap, Mi
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import useEmblaCarousel from "embla-carousel-react";
-import { authors } from "@/data/authors";
 import BadgeDisplay from "@/components/BadgeDisplay";
+import DynamicMeetOurAuthors from "@/components/DynamicMeetOurAuthors";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import heroBg from "@/assets/hero-bg.jpg";
@@ -239,119 +239,8 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Featured Authors */}
-      <section id="featured-authors" className="py-24" style={{ background: "var(--gradient-hero)" }}>
-        <div className="container">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            className="mb-16 text-center"
-          >
-            <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
-              Featured Authors
-            </motion.p>
-            <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-4xl text-primary-foreground">
-              Meet Our Authors
-            </motion.h2>
-          </motion.div>
-
-          <div className="relative px-6">
-            {/* Carousel */}
-            <div className="overflow-hidden" ref={emblaRef}>
-              <div className="flex gap-8">
-                {authors.map((author, i) => (
-                  <motion.div
-                    key={author.slug}
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true }}
-                    custom={i}
-                    variants={fadeUp}
-                    className="min-w-0 flex-[0_0_100%] sm:flex-[0_0_50%] lg:flex-[0_0_33.333%]"
-                  >
-                    <Link
-                      to={`/authors/${author.slug}`}
-                      className="group block overflow-hidden rounded-2xl bg-card shadow-lg hover:shadow-xl transition-all duration-300 h-full flex flex-col border-b-4 border-secondary/60"
-                    >
-                      {/* Photo */}
-                      <div className="relative h-72 bg-muted/30 overflow-hidden">
-                        <img
-                          src={photoMap[author.slug]}
-                          alt={author.name}
-                          className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-card/40 to-transparent" />
-                        <div className="absolute top-3 right-3">
-                          <BadgeDisplay level={author.badge} size="sm" />
-                        </div>
-                      </div>
-
-                      {/* Content */}
-                      <div className="flex-1 p-6 flex flex-col">
-                        <h3 className="font-heading text-lg font-bold group-hover:text-secondary transition-colors mb-1">
-                          {author.name}
-                        </h3>
-                        <p className="text-sm font-medium text-secondary/80 mb-3">{author.title}</p>
-                        <p className="text-sm text-muted-foreground mb-4 flex-1 leading-relaxed">{author.shortBio}</p>
-
-                        {/* Books */}
-                        <div className="mt-4 flex items-center gap-3 pb-4 border-b border-border/50">
-                          {author.books.slice(0, 3).map((book) => {
-                            const cover = coverMap[book.slug];
-                            return cover ? (
-                              <img
-                                key={book.slug}
-                                src={cover}
-                                alt={book.title}
-                                className="h-16 rounded shadow-md object-contain hover:scale-110 transition-transform"
-                              />
-                            ) : (
-                              <div
-                                key={book.slug}
-                                className="flex h-16 w-12 items-center justify-center rounded bg-muted/80 shadow-md border border-border/50"
-                              >
-                                <BookOpen className="h-4 w-4 text-muted-foreground/50" />
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        {/* Genres */}
-                        <div className="mt-4 flex flex-wrap gap-1.5">
-                          {author.genres.slice(0, 3).map((g) => (
-                            <span key={g} className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                              {g}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </Link>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-
-            {/* Navigation arrows */}
-            <button
-              onClick={() => emblaApi?.scrollPrev()}
-              disabled={!canScrollPrev}
-              className="absolute -left-2 top-1/2 -translate-y-1/2 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-secondary-foreground shadow-[var(--shadow-gold)] disabled:opacity-30 hover:bg-secondary/90 transition-colors"
-              aria-label="Previous author"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            <button
-              onClick={() => emblaApi?.scrollNext()}
-              disabled={!canScrollNext}
-              className="absolute -right-2 top-1/2 -translate-y-1/2 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-secondary-foreground shadow-[var(--shadow-gold)] disabled:opacity-30 hover:bg-secondary/90 transition-colors"
-              aria-label="Next author"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
-      </section>
+      {/* Featured Authors - Dynamic from Database */}
+      <DynamicMeetOurAuthors />
 
       {/* ==================== HOW IT WORKS — 6 Platform Cards ==================== */}
       <section id="how-it-works" className="border-y border-border bg-muted/50 py-24">
