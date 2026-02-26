@@ -1,114 +1,59 @@
 
 
-# Complete Auth Overhaul — Password Login, Forgot Password, Session Fixes
+## Diagnosis: "No session returned" on OTP Verification
 
-## Summary
+The screenshot shows the OTP flow reaching the verify step successfully (the API call to `user-auth` with `action: "verify"` completes without an HTTP error), but the response body does not contain `session_data`. This triggers the `throw new Error("No session returned.")` at line 156 of `Auth.tsx`.
 
-Rebuild the Auth page to support all sign-in methods from the PublishNow integration notes, simplify session establishment using the confirmed `session_data` format, fix the SSO `signOut()` gap, and add a Set Password section to the dashboard.
+### Root Cause
 
----
+The `authFetch` helper only throws if `res.ok` is false (HTTP error). When the API returns `200 OK` but with an unexpected response shape (e.g., `{ success: true, email: "..." }` without `session_data`), the code falls through to the "No session returned" branch.
 
-## Nothing to flag back to PublishNow
+Possible reasons the backend returns no `session_data`:
+1. The user account was just created (first sign-up) and the backend may need an extra step or return a different structure for new users
+2. A server-side token exchange failure (the integration notes mention this can happen, returning `{ session_data: null }`)
+3. The response includes a field like `authUrl` as a fallback (the magic link handler checks for this, but the OTP handler does not)
 
-Their confirmation resolves all open questions. `verify_token` returns `session_data`, `verify` (OTP) returns `session_data`, and `password_login` returns `session_data`. We can use one unified session handler for all flows.
+### Plan
 
----
+**File: `src/pages/Auth.tsx`**
 
-## Phase 1: Rebuild `src/pages/Auth.tsx`
+1. **Add `authUrl` fallback to the OTP verify handler** (lines 148-162) — mirror the same logic from the magic link handler: if `session_data` is null/missing but `authUrl` exists, redirect the user there
 
-### Remove the modal pattern
-Replace the current "Sign In" button → modal flow with an **inline card** directly on the page. No extra click needed.
+2. **Add diagnostic logging** — temporarily log the full response from `authFetch` in the OTP verify handler so we can see exactly what the backend returns. This will help pinpoint whether it is a missing field or a different response structure
 
-### Add sign-in mode toggle
-Two tabs/modes at the top of the card: **"Email Code"** and **"Password"**. Default to Email Code.
+3. **Improve the error message** — instead of the generic "No session returned", show a more helpful message like "Sign-in succeeded but session could not be established. Please try the magic link in your email instead."
 
-### Email Code mode (streamlined)
-- Keep email input → request OTP → enter 6-digit code flow
-- **Add "Resend Code" button** with 60-second countdown timer (`useState` + `setInterval`)
-- Keep "Or click the magic link in your email" hint
+### Changes
 
-### Password mode (new)
-- Email + password fields
-- Call `action: "password_login"` on submit
-- **"Forgot password?" link** below the password field — switches to forgot-password sub-flow
-
-### Forgot password sub-flow (new, inline states)
-1. **Email screen**: enter email → call `action: "forgot_password"` → show generic success message
-2. **Reset screen**: 6-digit code + new password + confirm password → call `action: "reset_password"`
-3. On success, establish session from returned `session_data`
-
-### Unified session establishment
-Replace all the deep-search `token_hash` / nested access logic with one simple function:
+**`handleVerifyOtp` in `src/pages/Auth.tsx` (lines 148-162):**
 
 ```typescript
-async function establishSession(sessionData) {
-  await supabase.auth.signOut({ scope: 'local' });
-  await supabase.auth.setSession({
-    access_token: sessionData.access_token,
-    refresh_token: sessionData.refresh_token,
-  });
-}
+const handleVerifyOtp = async () => {
+  if (otp.length !== 6) return;
+  setSubmitting(true);
+  try {
+    const data = await authFetch({ action: "verify", email: email.trim(), code: otp });
+    console.log("[Auth] verify response:", JSON.stringify(data));
+    if (data?.session_data) {
+      await establishSession(data.session_data);
+    } else if (data?.authUrl) {
+      window.location.href = data.authUrl;
+      return;
+    } else {
+      throw new Error("Sign-in verified but no session was returned. Please try the magic link in your email instead.");
+    }
+  } catch (err: any) {
+    toast({ title: err.message, variant: "destructive" });
+  } finally {
+    setSubmitting(false);
+  }
+};
 ```
 
-Used by: OTP verify, magic link verify_token, password login, reset password, and the `authUrl` fallback (if `session_data` is null, redirect to `authUrl`).
+Apply the same `authUrl` fallback and diagnostic logging to `handlePasswordLogin` and `handleResetPassword` as well.
 
-### Error handling
-Map specific status codes to user-friendly messages:
-- 401 → "Invalid credentials" / "Invalid or expired code"
-- 429 → "Too many attempts. Please wait a moment and try again."
-- 400 → Show the server's error message directly
-- Network errors → "Connection problem. Please check your internet."
+**Files to modify:**
+- `src/pages/Auth.tsx` — add `authUrl` fallback + console logging to all three session-establishing handlers (verify OTP, password login, reset password)
 
----
-
-## Phase 2: Fix `src/pages/SSO.tsx`
-
-Add `signOut()` before `setSession()` per the integration notes:
-
-```typescript
-await supabase.auth.signOut({ scope: 'local' });
-await supabase.auth.setSession({ ... });
-```
-
-One-line addition around line 116.
-
----
-
-## Phase 3: Add Set Password to Dashboard
-
-### New component or section in ProfileEditor / dashboard settings
-- "Set a Password" card (only visible when user is signed in)
-- New password + confirm password fields (min 8 chars, client-side validation)
-- Calls `supabase.functions.invoke('user-auth', { body: { action: 'set_password', password, source_platform: 'authorsbureau' } })` — JWT included automatically
-- Success toast: "Password set successfully"
-
----
-
-## Files to modify
-
-| File | Changes |
-|------|---------|
-| `src/pages/Auth.tsx` | Full rebuild: inline card, mode toggle, password login, forgot/reset password, resend timer, unified session handler, error mapping |
-| `src/pages/SSO.tsx` | Add `signOut()` before `setSession()` (~1 line) |
-| `src/components/dashboard/ProfileEditor.tsx` | Add "Set Password" section |
-
-No database migrations needed. No edge functions to create. All API endpoints already exist on the shared backend.
-
----
-
-## Technical Details
-
-**API calls summary:**
-
-| Action | Endpoint body | When |
-|--------|--------------|------|
-| `request_code` | `{ action, email, source_platform }` | Email Code mode — send OTP |
-| `verify` | `{ action, email, code, source_platform }` | Email Code mode — verify OTP |
-| `verify_token` | `{ action, token, source_platform }` | Magic link arrival |
-| `password_login` | `{ action, email, password, source_platform }` | Password mode |
-| `forgot_password` | `{ action, email, source_platform }` | Forgot password step 1 |
-| `reset_password` | `{ action, email, code, password, source_platform }` | Forgot password step 2 |
-| `set_password` | `{ action, password, source_platform }` + JWT header | Dashboard settings |
-
-All successful responses return `{ success: true, session_data: { access_token, refresh_token } }` (except `forgot_password` which returns `{ success: true, message }` and `request_code`).
+This is a small, targeted fix. After deploying, check the browser console to see the actual response shape from the backend, which will confirm whether it is a backend issue to flag to PublishNow or a client-side parsing issue.
 
