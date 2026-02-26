@@ -310,7 +310,6 @@ export default function AdminDashboard() {
             />
           )}
           {tab === "platforms" && <PlatformAccessTab />}
-          {tab === "authors" && <AuthorsTab />}
           {tab === "admins" && (
             <AdminsTab
               admins={admins}
