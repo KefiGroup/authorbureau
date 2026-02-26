@@ -212,6 +212,7 @@ serve(async (req) => {
         author_bio: authorBio,
         author_photo_url: authorPhotoUrl,
         cover_image_url: bookData.coverImageUrl || bookData.cover_image_url || null,
+        bestseller_proof_url: bookData.bestsellerProofUrl || bookData.bestseller_proof_url || null,
         entry_mode: entryMode,
         ai_enriched: false,
         published_at: autoPublish ? new Date().toISOString() : null,

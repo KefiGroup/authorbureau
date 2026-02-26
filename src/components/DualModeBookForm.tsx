@@ -27,6 +27,7 @@ interface BookFormData {
   authorName: string;
   authorBio: string;
   authorPhotoUrl: string;
+  bestsellerProofUrl: string;
 }
 
 interface DualModeBookFormProps {
@@ -60,6 +61,7 @@ export default function DualModeBookForm({
     authorName: "",
     authorBio: "",
     authorPhotoUrl: "",
+    bestsellerProofUrl: "",
   });
 
   // Auto-fill author fields from Cloud's local author_profiles (synced from PublishNow)
@@ -87,6 +89,7 @@ export default function DualModeBookForm({
 
   const [badgeInput, setBadgeInput] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingProof, setIsUploadingProof] = useState(false);
 
   const handleFileUpload = async (file: File) => {
     setIsUploading(true);
@@ -210,6 +213,7 @@ export default function DualModeBookForm({
             authorBio: form.authorBio,
             authorPhotoUrl: form.authorPhotoUrl,
             coverImageUrl: form.coverImageUrl,
+            bestsellerProofUrl: form.bestsellerProofUrl,
           }),
         }
       );
@@ -439,6 +443,86 @@ export default function DualModeBookForm({
             </div>
           </div>
 
+          {/* Bestseller Proof Image */}
+          <div>
+            <Label>Bestseller Proof Screenshot</Label>
+            <p className="text-xs text-muted-foreground mb-2">Upload a screenshot showing your Amazon bestseller rank or badge</p>
+            <div className="flex gap-3 items-start">
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isUploadingProof}
+                    onClick={() => document.getElementById("proof-file-input")?.click()}
+                  >
+                    {isUploadingProof ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Uploading...</>
+                    ) : (
+                      <><Upload className="mr-2 h-4 w-4" />Upload Image</>
+                    )}
+                  </Button>
+                  <span className="text-xs text-muted-foreground">or paste URL below</span>
+                  <input
+                    id="proof-file-input"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setIsUploadingProof(true);
+                      try {
+                        const { supabase: cloudClient } = await import("@/integrations/supabase/client");
+                        let session: any = null;
+                        const { data: cloudSession } = await cloudClient.auth.getSession();
+                        if (cloudSession?.session) session = cloudSession.session;
+                        else {
+                          const { data: sharedSession } = await sharedSupabase.auth.getSession();
+                          session = sharedSession?.session;
+                        }
+                        if (!session) { toast({ title: "Not signed in", variant: "destructive" }); return; }
+
+                        const formData = new FormData();
+                        formData.append("file", file);
+
+                        const response = await fetch(
+                          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-book-cover`,
+                          { method: "POST", headers: { Authorization: `Bearer ${session.access_token}` }, body: formData }
+                        );
+                        const result = await response.json();
+                        if (!response.ok) throw new Error(result.error || "Upload failed");
+                        update("bestsellerProofUrl", result.url);
+                        toast({ title: "Proof image uploaded!" });
+                      } catch (err) {
+                        toast({ title: "Upload failed", description: err instanceof Error ? err.message : "Please try again", variant: "destructive" });
+                      } finally {
+                        setIsUploadingProof(false);
+                      }
+                    }}
+                  />
+                </div>
+                <div className="relative">
+                  <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    value={form.bestsellerProofUrl}
+                    onChange={(e) => update("bestsellerProofUrl", e.target.value)}
+                    placeholder="Paste bestseller proof image URL"
+                    className="pl-9"
+                  />
+                </div>
+              </div>
+              {form.bestsellerProofUrl && (
+                <img
+                  src={form.bestsellerProofUrl}
+                  alt="Bestseller proof"
+                  className="h-20 w-auto rounded-md shadow-sm object-cover shrink-0"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
+              )}
+            </div>
+          </div>
           {/* Auto-filled Author Info (read-only display) */}
           {(form.authorName || form.authorPhotoUrl) && (
             <div className="rounded-lg bg-muted/50 border border-border p-4">
