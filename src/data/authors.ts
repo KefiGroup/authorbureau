@@ -65,6 +65,8 @@ export const authors: Author[] = [
         amazonUrl: "",
         badges: ["Best Seller"],
         genre: "Business",
+        kindlePrice: "$9.99",
+        paperbackPrice: "$14.99",
       },
       {
         slug: "invest-like-buffett",
@@ -75,6 +77,8 @@ export const authors: Author[] = [
         amazonUrl: "",
         badges: ["Best Seller"],
         genre: "Business",
+        kindlePrice: "$9.99",
+        paperbackPrice: "$14.99",
       },
     ],
     genres: ["Business", "Self-Help", "Finance"],
