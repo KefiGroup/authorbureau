@@ -150,10 +150,14 @@ export default function Auth() {
     setSubmitting(true);
     try {
       const data = await authFetch({ action: "verify", email: email.trim(), code: otp });
+      console.log("[Auth] verify response:", JSON.stringify(data));
       if (data?.session_data) {
         await establishSession(data.session_data);
+      } else if (data?.authUrl) {
+        window.location.href = data.authUrl;
+        return;
       } else {
-        throw new Error("No session returned.");
+        throw new Error("Sign-in verified but no session was returned. Please try the magic link in your email instead.");
       }
     } catch (err: any) {
       toast({ title: err.message, variant: "destructive" });
@@ -168,10 +172,14 @@ export default function Auth() {
     setSubmitting(true);
     try {
       const data = await authFetch({ action: "password_login", email: email.trim(), password });
+      console.log("[Auth] password_login response:", JSON.stringify(data));
       if (data?.session_data) {
         await establishSession(data.session_data);
+      } else if (data?.authUrl) {
+        window.location.href = data.authUrl;
+        return;
       } else {
-        throw new Error("No session returned.");
+        throw new Error("Sign-in verified but no session was returned. Please try the magic link in your email instead.");
       }
     } catch (err: any) {
       toast({ title: err.message, variant: "destructive" });
@@ -209,11 +217,15 @@ export default function Auth() {
         code: otp,
         password,
       });
+      console.log("[Auth] reset_password response:", JSON.stringify(data));
       if (data?.session_data) {
         await establishSession(data.session_data);
         toast({ title: "Password reset successfully!" });
+      } else if (data?.authUrl) {
+        window.location.href = data.authUrl;
+        return;
       } else {
-        throw new Error("No session returned.");
+        throw new Error("Sign-in verified but no session was returned. Please try the magic link in your email instead.");
       }
     } catch (err: any) {
       toast({ title: err.message, variant: "destructive" });
