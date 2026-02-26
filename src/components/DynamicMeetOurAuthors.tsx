@@ -60,10 +60,11 @@ export default function DynamicMeetOurAuthors() {
   useEffect(() => {
     const fetchAuthorsWithBooks = async () => {
       try {
-        // Fetch all author profiles
-        const { data: authorsData, error: authError } = await sharedSupabase
+        // Fetch author profiles from Cloud DB (already synced)
+        const { data: authorsData, error: authError } = await cloudSupabase
           .from("author_profiles")
-          .select("id, user_id, bio_short, genres, photo_url");
+          .select("user_id, pen_name, bio_short, genres, photo_url, author_slug, directory_status")
+          .in("directory_status", ["listed", "verified", "featured"]);
 
         if (authError) throw authError;
 
@@ -87,9 +88,9 @@ export default function DynamicMeetOurAuthors() {
         // Transform and filter authors with books
         const transformedAuthors = (authorsData || [])
           .map((author: any) => ({
-            id: author.id,
-            slug: author.user_id,
-            name: author.bio_short?.split("\n")[0] || "Author",
+            id: author.user_id,
+            slug: author.author_slug || author.user_id,
+            name: author.pen_name || "Author",
             bio_short: author.bio_short,
             photo_url: author.photo_url,
             genres: author.genres || [],

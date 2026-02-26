@@ -53,12 +53,14 @@ export type Database = {
       author_profiles: {
         Row: {
           amazon_author_profile_url: string | null
+          author_slug: string | null
           availability_notes: string | null
           bio_long: string | null
           bio_short: string | null
           cover_photo_url: string | null
           created_at: string
           credentials: Json | null
+          directory_status: string
           genres: string[] | null
           id: string
           instagram_url: string | null
@@ -79,12 +81,14 @@ export type Database = {
         }
         Insert: {
           amazon_author_profile_url?: string | null
+          author_slug?: string | null
           availability_notes?: string | null
           bio_long?: string | null
           bio_short?: string | null
           cover_photo_url?: string | null
           created_at?: string
           credentials?: Json | null
+          directory_status?: string
           genres?: string[] | null
           id?: string
           instagram_url?: string | null
@@ -105,12 +109,14 @@ export type Database = {
         }
         Update: {
           amazon_author_profile_url?: string | null
+          author_slug?: string | null
           availability_notes?: string | null
           bio_long?: string | null
           bio_short?: string | null
           cover_photo_url?: string | null
           created_at?: string
           credentials?: Json | null
+          directory_status?: string
           genres?: string[] | null
           id?: string
           instagram_url?: string | null

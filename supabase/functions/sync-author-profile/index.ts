@@ -239,10 +239,14 @@ Deno.serve(async (req) => {
     console.log("Fields to update:", fieldsUpdated.length > 0 ? fieldsUpdated.join(", ") : "none");
 
     // Upsert with only changed fields + metadata
+    // Generate author_slug from pen_name
+    const authorSlug = slugify(penName);
+
     const upsertData: Record<string, any> = {
       user_id: userId,
       updated_at: new Date().toISOString(),
       last_synced_at: new Date().toISOString(),
+      author_slug: authorSlug,
       ...profileUpdates,
     };
 
@@ -289,6 +293,7 @@ Deno.serve(async (req) => {
           title,
           slug,
           updated_at: new Date().toISOString(),
+          published_at: new Date().toISOString(),
           entry_mode: "imported",
           author_name: penName,
           author_bio: mapped.bio_short || mapped.bio_long || null,
