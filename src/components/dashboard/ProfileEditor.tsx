@@ -280,28 +280,6 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
     );
   }
 
-  if (!profileExists) {
-    return (
-      <div className="max-w-xl mx-auto text-center py-16 space-y-6">
-        <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
-          <Download className="h-8 w-8 text-primary" />
-        </div>
-        <div>
-          <h2 className="font-heading text-2xl font-bold">No Profile Yet</h2>
-          <p className="text-muted-foreground text-sm mt-2 max-w-md mx-auto">
-            Import your author profile first. Head to the Overview and click <strong>"Import Now"</strong> to pull your profile, bio, photo, and books automatically.
-          </p>
-        </div>
-        <Button
-          onClick={() => onNavigate?.("overview")}
-          className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
-        >
-          Go to Overview <ArrowRight className="ml-2 h-4 w-4" />
-        </Button>
-      </div>
-    );
-  }
-
   const SaveIndicator = () => {
     if (saveStatus === "idle") return null;
     return (
