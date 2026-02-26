@@ -50,12 +50,77 @@ Deno.serve(async (req) => {
     // Parse request body for action
     let action = "list";
     let bookId: string | null = null;
+    let bodyData: any = {};
     try {
-      const body = await req.json();
-      action = body.action || "list";
-      bookId = body.bookId || null;
+      bodyData = await req.json();
+      action = bodyData.action || "list";
+      bookId = bodyData.bookId || null;
     } catch {
       // No body or invalid JSON — default to list
+    }
+
+    // Handle get single book (for editing)
+    if (action === "get" && bookId) {
+      const { data: book, error: getError } = await cloudAdmin
+        .from("books")
+        .select("*")
+        .eq("id", bookId)
+        .eq("author_id", userId)
+        .single();
+
+      if (getError || !book) {
+        return new Response(JSON.stringify({ error: "Book not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ book }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Handle update action
+    if (action === "update" && bookId) {
+      const updateData: Record<string, any> = {};
+      const fieldMap: Record<string, string> = {
+        title: "title", subtitle: "subtitle", description: "description",
+        pages: "pages", rating: "rating", genre: "genre", badges: "badges",
+        price: "price", currency: "currency",
+        kindlePrice: "kindle_price", paperbackPrice: "paperback_price",
+        amazonUrl: "amazon_url", coverImageUrl: "cover_image_url",
+        bestsellerProofUrl: "bestseller_proof_url",
+      };
+
+      for (const [clientKey, dbKey] of Object.entries(fieldMap)) {
+        if (bodyData[clientKey] !== undefined) {
+          updateData[dbKey] = bodyData[clientKey];
+        }
+      }
+
+      if (Object.keys(updateData).length === 0) {
+        return new Response(JSON.stringify({ error: "No fields to update" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { error: updateError } = await cloudAdmin
+        .from("books")
+        .update(updateData)
+        .eq("id", bookId)
+        .eq("author_id", userId);
+
+      if (updateError) {
+        return new Response(JSON.stringify({ error: updateError.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Handle unpublish action
