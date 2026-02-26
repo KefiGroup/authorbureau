@@ -39,15 +39,21 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
         // Check author profile
         const { data: profile } = await cloudSupabase
           .from("author_profiles")
-          .select("directory_status, pen_name, bio_short")
+          .select("directory_status, pen_name, bio_short, bio_long, photo_url, tagline, genres")
           .eq("user_id", user.id)
           .maybeSingle();
 
         if (profile) {
-          // Profile exists — check if it has meaningful data
+          // Profile exists — check if it has all fields needed for the author page
           const hasName = !!profile.pen_name?.trim();
-          const hasBio = !!profile.bio_short?.trim();
-          if (hasName && hasBio) {
+          const hasPhoto = !!profile.photo_url?.trim();
+          const hasBio = !!(profile.bio_long?.trim() || profile.bio_short?.trim());
+          const hasTagline = !!profile.tagline?.trim();
+          const hasGenres = Array.isArray(profile.genres) && profile.genres.length > 0;
+
+          const isComplete = hasName && hasPhoto && hasBio && hasTagline && hasGenres;
+
+          if (isComplete) {
             setProfileStatus("done");
           } else {
             setProfileStatus("in-progress");
