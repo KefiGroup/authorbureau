@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Crown, Loader2, CheckCircle2, BookOpen, Mic,
   GraduationCap, Lock, ExternalLink, RefreshCw,
-  User, ArrowRight, Rocket, Award, Download,
+  User, ArrowRight, Rocket, Award, Download, Clock, Eye,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -91,9 +91,9 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
 
   const getStartedSteps = [
     {
-      icon: User,
-      label: "Set Up Your Profile",
-      description: "Fill in your author profile with your bio, photo, tagline, and credentials. Your profile powers your directory listing and public author page.",
+      icon: Eye,
+      label: "Review Your Profile",
+      description: "Your profile is automatically synced from your publishing account. Review and refine your bio, photo, and credentials here.",
       step: "Step 1",
       actionLabel: "Open Profile",
       target: "profile",
@@ -101,10 +101,18 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
     {
       icon: BookOpen,
       label: "Add Your Books",
-      description: "Add your published books manually. Our team will review and approve them before they go live with their own microsites.",
+      description: "Synced books go live automatically. You can also add books manually — these will be reviewed by our team before publishing.",
       step: "Step 2",
       actionLabel: "My Books",
       target: "my-books",
+    },
+    {
+      icon: Clock,
+      label: "Await Approval",
+      description: "Our team will review your profile and books. Once approved, you'll appear in the Authors Directory with live microsites.",
+      step: "Step 3",
+      actionLabel: "Learn More",
+      target: "overview",
     },
   ];
 
@@ -185,7 +193,7 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
         )}
       </div>
 
-      {/* Getting Started: 3 steps */}
+      {/* Getting Started */}
       <div>
         <div className="flex items-center gap-3 mb-5">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
@@ -193,7 +201,7 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
           </div>
           <div>
             <h2 className="font-heading text-xl font-bold">Get Started</h2>
-            <p className="text-sm text-muted-foreground">Three steps to build your author authority and microsites</p>
+            <p className="text-sm text-muted-foreground">Your path to the Authors Directory</p>
           </div>
         </div>
         <div className="grid gap-4 sm:grid-cols-3">
@@ -201,17 +209,12 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
             <button
               key={f.label}
               type="button"
-              disabled={f.action ? syncLoading : false}
-              onClick={() => f.action ? f.action() : onNavigate?.(f.target!)}
-              className="rounded-xl border border-border bg-card p-5 shadow-[var(--shadow-card)] transition-all text-left cursor-pointer hover:shadow-[var(--shadow-card-hover)] hover:border-secondary/40 group disabled:opacity-60 disabled:cursor-wait"
+              onClick={() => onNavigate?.(f.target)}
+              className="rounded-xl border border-border bg-card p-5 shadow-[var(--shadow-card)] transition-all text-left cursor-pointer hover:shadow-[var(--shadow-card-hover)] hover:border-secondary/40 group"
             >
               <div className="flex items-center gap-3 mb-2">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-secondary/15 transition-colors">
-                  {f.action && syncLoading ? (
-                    <Loader2 className="h-5 w-5 text-secondary animate-spin" />
-                  ) : (
-                    <f.icon className="h-5 w-5 text-primary group-hover:text-secondary transition-colors" />
-                  )}
+                  <f.icon className="h-5 w-5 text-primary group-hover:text-secondary transition-colors" />
                 </div>
                 <div>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-secondary">{f.step}</span>
