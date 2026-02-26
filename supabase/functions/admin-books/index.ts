@@ -63,19 +63,67 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { action, bookId, page = 1 } = await req.json();
+    const { action, bookId, page = 1, filter } = await req.json();
 
     if (action === "list") {
       const pageSize = 20;
       const from = (page - 1) * pageSize;
-      const { data: books, error } = await adminClient
+      
+      let query = adminClient
         .from("books")
-        .select("id, title, author_name, genre, cover_image_url, slug")
-        .order("created_at", { ascending: false })
-        .range(from, from + pageSize - 1);
+        .select("id, title, author_name, genre, cover_image_url, slug, published_at, created_at, entry_mode")
+        .order("created_at", { ascending: false });
 
+      // Filter: "pending" = not published, "published" = published, default = all
+      if (filter === "pending") {
+        query = query.is("published_at", null);
+      } else if (filter === "published") {
+        query = query.not("published_at", "is", null);
+      }
+
+      const { data: books, error } = await query.range(from, from + pageSize - 1);
       if (error) throw error;
-      return new Response(JSON.stringify({ books: books || [] }), {
+
+      // Also get pending count for badge
+      const { count: pendingCount } = await adminClient
+        .from("books")
+        .select("id", { count: "exact", head: true })
+        .is("published_at", null);
+
+      return new Response(JSON.stringify({ books: books || [], pendingCount: pendingCount || 0 }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "approve") {
+      if (!bookId) {
+        return new Response(JSON.stringify({ error: "bookId is required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { error: approveError } = await adminClient
+        .from("books")
+        .update({ published_at: new Date().toISOString() })
+        .eq("id", bookId);
+      if (approveError) throw approveError;
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "reject") {
+      if (!bookId) {
+        return new Response(JSON.stringify({ error: "bookId is required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      // Unpublish (set published_at to null)
+      const { error: rejectError } = await adminClient
+        .from("books")
+        .update({ published_at: null })
+        .eq("id", bookId);
+      if (rejectError) throw rejectError;
+      return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -89,6 +137,25 @@ Deno.serve(async (req) => {
       const { error: deleteError } = await adminClient.from("books").delete().eq("id", bookId);
       if (deleteError) throw deleteError;
       return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "pending-counts") {
+      const { count: pendingBooks } = await adminClient
+        .from("books")
+        .select("id", { count: "exact", head: true })
+        .is("published_at", null);
+
+      const { count: pendingAuthors } = await adminClient
+        .from("author_profiles")
+        .select("id", { count: "exact", head: true })
+        .eq("directory_status", "unlisted");
+
+      return new Response(JSON.stringify({
+        pendingBooks: pendingBooks || 0,
+        pendingAuthors: pendingAuthors || 0,
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

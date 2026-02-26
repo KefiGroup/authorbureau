@@ -1,4 +1,4 @@
-import { Loader2, Users, Clock, BookOpen, ShieldCheck, ArrowRight, RefreshCw, AlertCircle } from "lucide-react";
+import { Loader2, Users, Clock, BookOpen, ShieldCheck, ArrowRight, RefreshCw, AlertCircle, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { AdminStats, Submission } from "@/types/admin";
@@ -8,6 +8,8 @@ interface OverviewTabProps {
   loading: boolean;
   onRefresh: () => void;
   onNavigate: (tab: string, filter?: string) => void;
+  pendingBookCount?: number;
+  pendingAuthorCount?: number;
 }
 
 const statusColors: Record<string, string> = {
@@ -16,7 +18,7 @@ const statusColors: Record<string, string> = {
   rejected: "bg-red-100 text-red-800 border-red-200",
 };
 
-export default function OverviewTab({ stats, loading, onRefresh, onNavigate }: OverviewTabProps) {
+export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pendingBookCount = 0, pendingAuthorCount = 0 }: OverviewTabProps) {
   if (loading || !stats) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -36,7 +38,20 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate }: O
       action: () => onNavigate("submissions"),
       badge: pendingCount > 0 ? `${pendingCount} pending` : undefined,
     },
-    { label: "Books", value: stats.total_books ?? stats.books ?? 0, icon: BookOpen, action: () => onNavigate("books") },
+    {
+      label: "Books",
+      value: stats.total_books ?? stats.books ?? 0,
+      icon: BookOpen,
+      action: () => onNavigate("books"),
+      badge: pendingBookCount > 0 ? `${pendingBookCount} pending` : undefined,
+    },
+    {
+      label: "Authors",
+      value: pendingAuthorCount,
+      icon: UserCheck,
+      action: () => onNavigate("authors"),
+      badge: pendingAuthorCount > 0 ? `${pendingAuthorCount} unlisted` : undefined,
+    },
     { label: "Admins", value: stats.total_admins ?? stats.admins ?? 0, icon: ShieldCheck, action: () => onNavigate("admins") },
   ];
 
@@ -53,7 +68,7 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate }: O
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {cards.map((c) => {
           const Icon = c.icon;
           return (
@@ -81,6 +96,28 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate }: O
       <div className="space-y-3">
         <h3 className="font-heading font-semibold text-sm text-muted-foreground uppercase tracking-wider">Quick Actions</h3>
         <div className="flex gap-3 flex-wrap">
+          {pendingBookCount > 0 && (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => onNavigate("books", "pending")}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              <BookOpen className="h-4 w-4 mr-1.5" />
+              Review {pendingBookCount} Pending Book{pendingBookCount !== 1 ? "s" : ""}
+            </Button>
+          )}
+          {pendingAuthorCount > 0 && (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => onNavigate("authors")}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              <UserCheck className="h-4 w-4 mr-1.5" />
+              Review {pendingAuthorCount} Unlisted Author{pendingAuthorCount !== 1 ? "s" : ""}
+            </Button>
+          )}
           {pendingCount > 0 && (
             <Button
               variant="default"
@@ -94,9 +131,6 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate }: O
           )}
           <Button variant="outline" size="sm" onClick={() => onNavigate("users")}>
             <Users className="h-4 w-4 mr-1.5" /> View All Users
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => onNavigate("books")}>
-            <BookOpen className="h-4 w-4 mr-1.5" /> View All Books
           </Button>
         </div>
       </div>

@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { BookOpen, Plus, ExternalLink, Loader2, Globe, ImagePlus, EyeOff } from "lucide-react";
+import { BookOpen, Plus, ExternalLink, Loader2, ImagePlus, EyeOff, Clock } from "lucide-react";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import DualModeBookForm from "@/components/DualModeBookForm";
@@ -39,7 +39,6 @@ export default function MyBooks() {
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [publishing, setPublishing] = useState<string | null>(null);
   const [uploadingCover, setUploadingCover] = useState<string | null>(null);
   const [unpublishing, setUnpublishing] = useState<string | null>(null);
 
@@ -48,12 +47,8 @@ export default function MyBooks() {
     setLoading(true);
     try {
       const token = await getActiveToken();
-      if (!token) {
-        setLoading(false);
-        return;
-      }
+      if (!token) { setLoading(false); return; }
 
-      // Use edge function to fetch books (bypasses JWT/RLS mismatch)
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`,
         {
@@ -64,7 +59,6 @@ export default function MyBooks() {
           },
         }
       );
-
       const result = await response.json();
       if (!response.ok) throw new Error(result.error);
       setBooks(result.books || []);
@@ -74,14 +68,13 @@ export default function MyBooks() {
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchBooks();
-  }, [user]);
+  useEffect(() => { fetchBooks(); }, [user]);
 
   const getSourceLabel = (mode: string | null) => {
     switch (mode) {
       case "amazon": return "Amazon Import";
       case "publishnow": return "PublishNow.io";
+      case "imported": return "PublishNow.io";
       default: return "Manual";
     }
   };
@@ -89,48 +82,8 @@ export default function MyBooks() {
   const getSourceColor = (mode: string | null) => {
     switch (mode) {
       case "amazon": return "bg-accent/15 text-accent";
-      case "publishnow": return "bg-secondary/15 text-secondary";
+      case "publishnow": case "imported": return "bg-secondary/15 text-secondary";
       default: return "bg-muted text-muted-foreground";
-    }
-  };
-
-  const handlePublish = async (bookId: string) => {
-    setPublishing(bookId);
-    try {
-      const token = await getActiveToken();
-      if (!token) {
-        toast({ title: "Not signed in", variant: "destructive" });
-        return;
-      }
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/publish-book`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ bookId }),
-        }
-      );
-
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error);
-
-      toast({
-        title: "Microsite Published! 🎉",
-        description: `Your book microsite is now live at /books/${result.slug}`,
-      });
-      fetchBooks();
-    } catch (err) {
-      toast({
-        title: "Publish failed",
-        description: err instanceof Error ? err.message : "Please try again",
-        variant: "destructive",
-      });
-    } finally {
-      setPublishing(null);
     }
   };
 
@@ -138,33 +91,21 @@ export default function MyBooks() {
     setUploadingCover(bookId);
     try {
       const token = await getActiveToken();
-      if (!token) {
-        toast({ title: "Not signed in", variant: "destructive" });
-        return;
-      }
+      if (!token) { toast({ title: "Not signed in", variant: "destructive" }); return; }
       const formData = new FormData();
       formData.append("file", file);
       formData.append("bookId", bookId);
 
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-book-cover`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData,
-        }
+        { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: formData }
       );
       const result = await response.json();
       if (!response.ok) throw new Error(result.error);
-
       toast({ title: "Cover updated! 📸" });
       fetchBooks();
     } catch (err) {
-      toast({
-        title: "Upload failed",
-        description: err instanceof Error ? err.message : "Please try again",
-        variant: "destructive",
-      });
+      toast({ title: "Upload failed", description: err instanceof Error ? err.message : "Please try again", variant: "destructive" });
     } finally {
       setUploadingCover(null);
     }
@@ -174,34 +115,22 @@ export default function MyBooks() {
     setUnpublishing(bookId);
     try {
       const token = await getActiveToken();
-      if (!token) {
-        toast({ title: "Not signed in", variant: "destructive" });
-        return;
-      }
+      if (!token) { toast({ title: "Not signed in", variant: "destructive" }); return; }
 
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ action: "unpublish", bookId }),
         }
       );
-
       const result = await response.json();
       if (!response.ok) throw new Error(result.error);
-
       toast({ title: "Microsite taken down 🔒" });
       fetchBooks();
     } catch (err) {
-      toast({
-        title: "Unpublish failed",
-        description: err instanceof Error ? err.message : "Please try again",
-        variant: "destructive",
-      });
+      toast({ title: "Unpublish failed", description: err instanceof Error ? err.message : "Please try again", variant: "destructive" });
     } finally {
       setUnpublishing(null);
     }
@@ -212,10 +141,7 @@ export default function MyBooks() {
       <div className="max-w-3xl">
         <DualModeBookForm
           authorId={user.id}
-          onSuccess={() => {
-            setShowForm(false);
-            fetchBooks();
-          }}
+          onSuccess={() => { setShowForm(false); fetchBooks(); }}
           onCancel={() => setShowForm(false)}
         />
       </div>
@@ -228,7 +154,7 @@ export default function MyBooks() {
         <div>
           <h2 className="font-heading text-2xl font-bold">My Books</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage your book microsites — add, edit, and track your listings.
+            Manage your book microsites — add books and track approval status.
           </p>
         </div>
         <Button onClick={() => setShowForm(true)} className="bg-secondary text-secondary-foreground hover:bg-secondary/90 w-fit">
@@ -239,8 +165,7 @@ export default function MyBooks() {
 
       {loading ? (
         <div className="flex items-center justify-center py-20 text-muted-foreground">
-          <Loader2 className="h-5 w-5 animate-spin mr-2" />
-          Loading books...
+          <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading books...
         </div>
       ) : books.length === 0 ? (
         <Card className="flex flex-col items-center justify-center py-16 px-8 text-center border-dashed">
@@ -249,11 +174,10 @@ export default function MyBooks() {
           </div>
           <h3 className="font-heading text-lg font-semibold mb-2">No books yet</h3>
           <p className="text-sm text-muted-foreground max-w-sm mb-6">
-            Add your first book to create a professional microsite. Import from Amazon or enter details manually.
+            Add your first book to create a professional microsite. Your book will be reviewed by our team before going live.
           </p>
           <Button onClick={() => setShowForm(true)} className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
-            <Plus className="h-4 w-4 mr-1.5" />
-            Add Your First Book
+            <Plus className="h-4 w-4 mr-1.5" /> Add Your First Book
           </Button>
         </Card>
       ) : (
@@ -304,9 +228,9 @@ export default function MyBooks() {
                   <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                     book.published_at
                       ? "bg-accent/15 text-accent"
-                      : "bg-muted text-muted-foreground"
+                      : "bg-amber-100 text-amber-800"
                   }`}>
-                    {book.published_at ? "Published" : "Draft"}
+                    {book.published_at ? "Published" : "⏳ Pending Approval"}
                   </span>
                   <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${getSourceColor(book.entry_mode)}`}>
                     {getSourceLabel(book.entry_mode)}
@@ -326,23 +250,12 @@ export default function MyBooks() {
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 text-xs font-medium text-secondary hover:text-secondary/80 transition-colors"
                       >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                        View Microsite
+                        <ExternalLink className="h-3.5 w-3.5" /> View Microsite
                       </a>
                     ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-xs h-7"
-                        disabled={publishing === book.id}
-                        onClick={() => handlePublish(book.id)}
-                      >
-                        {publishing === book.id ? (
-                          <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Publishing...</>
-                        ) : (
-                          <><Globe className="h-3 w-3 mr-1" />Publish Microsite</>
-                        )}
-                      </Button>
+                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                        <Clock className="h-3.5 w-3.5" /> Awaiting admin review
+                      </span>
                     )}
                   </div>
 
@@ -350,8 +263,7 @@ export default function MyBooks() {
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button
-                          size="icon"
-                          variant="ghost"
+                          size="icon" variant="ghost"
                           className="h-7 w-7 text-muted-foreground hover:text-orange-600"
                           disabled={unpublishing === book.id}
                         >
@@ -366,7 +278,7 @@ export default function MyBooks() {
                         <AlertDialogHeader>
                           <AlertDialogTitle>Take down this microsite?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            This will unpublish the microsite for "{book.title}". The book will remain in your dashboard and can be re-published later.
+                            This will unpublish the microsite for "{book.title}". The book will remain in your dashboard and can be re-approved later.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

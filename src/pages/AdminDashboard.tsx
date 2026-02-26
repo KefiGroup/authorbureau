@@ -49,7 +49,11 @@ export default function AdminDashboard() {
   const [books, setBooks] = useState<AdminBook[]>([]);
   const [booksLoading, setBooksLoading] = useState(false);
   const [booksPage, setBooksPage] = useState(1);
+  const [booksFilter, setBooksFilter] = useState("all");
   const [deletingBookId, setDeletingBookId] = useState<string | null>(null);
+  const [approvingBookId, setApprovingBookId] = useState<string | null>(null);
+  const [pendingBookCount, setPendingBookCount] = useState(0);
+  const [pendingAuthorCount, setPendingAuthorCount] = useState(0);
 
   // Admins
   const [admins, setAdmins] = useState<AdminInfo[]>([]);
@@ -93,15 +97,38 @@ export default function AdminDashboard() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${session?.access_token}`,
           },
-          body: JSON.stringify({ action: "list", page: booksPage }),
+          body: JSON.stringify({ action: "list", page: booksPage, filter: booksFilter }),
         }
       );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setBooks(data?.books || []);
+      setPendingBookCount(data?.pendingCount || 0);
     } catch { toast({ title: "Failed to load books", variant: "destructive" }); }
     setBooksLoading(false);
-  }, [booksPage]);
+  }, [booksPage, booksFilter]);
+
+  const fetchPendingCounts = useCallback(async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-books`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({ action: "pending-counts" }),
+        }
+      );
+      const data = await res.json();
+      if (res.ok) {
+        setPendingBookCount(data.pendingBooks || 0);
+        setPendingAuthorCount(data.pendingAuthors || 0);
+      }
+    } catch {}
+  }, []);
 
   const fetchAdmins = useCallback(async () => {
     setAdminsLoading(true);
@@ -122,12 +149,12 @@ export default function AdminDashboard() {
   // Fetch data when tab/page/filter changes
   useEffect(() => {
     if (!isAdmin) return;
-    if (tab === "overview") fetchStats();
+    if (tab === "overview") { fetchStats(); fetchPendingCounts(); }
     else if (tab === "submissions") fetchSubmissions();
     else if (tab === "users") fetchUsers();
     else if (tab === "books") fetchBooks();
     else if (tab === "admins") fetchAdmins();
-  }, [tab, isAdmin, subsFilter, subsPage, usersPage, booksPage]);
+  }, [tab, isAdmin, subsFilter, subsPage, usersPage, booksPage, booksFilter]);
 
   const updateStatus = async (id: string, status: string) => {
     setUpdatingId(id);
@@ -173,10 +200,7 @@ export default function AdminDashboard() {
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-books`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session?.access_token}`,
-          },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
           body: JSON.stringify({ action: "delete", bookId }),
         }
       );
@@ -190,9 +214,54 @@ export default function AdminDashboard() {
     setDeletingBookId(null);
   };
 
+  const handleApproveBook = async (bookId: string) => {
+    setApprovingBookId(bookId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-books`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+          body: JSON.stringify({ action: "approve", bookId }),
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Approve failed");
+      toast({ title: "Book approved & microsite published! 🎉" });
+      fetchBooks();
+    } catch (err: any) {
+      toast({ title: err.message || "Approve failed", variant: "destructive" });
+    }
+    setApprovingBookId(null);
+  };
+
+  const handleRejectBook = async (bookId: string) => {
+    setApprovingBookId(bookId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-books`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+          body: JSON.stringify({ action: "reject", bookId }),
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Reject failed");
+      toast({ title: "Book unpublished" });
+      fetchBooks();
+    } catch (err: any) {
+      toast({ title: err.message || "Reject failed", variant: "destructive" });
+    }
+    setApprovingBookId(null);
+  };
+
   const handleNavigate = (targetTab: string, filter?: string) => {
     setTab(targetTab as Tab);
     if (filter && targetTab === "submissions") setSubsFilter(filter);
+    if (filter && targetTab === "books") setBooksFilter(filter);
   };
 
   if (loading) return null;
@@ -253,7 +322,14 @@ export default function AdminDashboard() {
       <section className="py-8">
         <div className="container">
           {tab === "overview" && (
-            <OverviewTab stats={stats} loading={statsLoading} onRefresh={fetchStats} onNavigate={handleNavigate} />
+            <OverviewTab
+              stats={stats}
+              loading={statsLoading}
+              onRefresh={() => { fetchStats(); fetchPendingCounts(); }}
+              onNavigate={handleNavigate}
+              pendingBookCount={pendingBookCount}
+              pendingAuthorCount={pendingAuthorCount}
+            />
           )}
           {tab === "submissions" && (
             <SubmissionsTab
@@ -272,7 +348,21 @@ export default function AdminDashboard() {
             <UsersTab users={users} loading={usersLoading} onRefresh={fetchUsers} page={usersPage} setPage={setUsersPage} />
           )}
           {tab === "books" && (
-            <BooksTab books={books} loading={booksLoading} onRefresh={fetchBooks} onDelete={handleDeleteBook} deletingId={deletingBookId} page={booksPage} setPage={setBooksPage} />
+            <BooksTab
+              books={books}
+              loading={booksLoading}
+              onRefresh={fetchBooks}
+              onDelete={handleDeleteBook}
+              onApprove={handleApproveBook}
+              onReject={handleRejectBook}
+              deletingId={deletingBookId}
+              approvingId={approvingBookId}
+              pendingCount={pendingBookCount}
+              page={booksPage}
+              setPage={setBooksPage}
+              filter={booksFilter}
+              setFilter={setBooksFilter}
+            />
           )}
           {tab === "platforms" && <PlatformAccessTab />}
           {tab === "authors" && <AuthorsTab />}
