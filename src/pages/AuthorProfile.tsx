@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ExternalLink, Mail, Linkedin, BookOpen, ArrowLeft, Mic, GraduationCap, Globe, Award, MapPin, Building2 } from "lucide-react";
+import { ExternalLink, Mail, Linkedin, BookOpen, ArrowLeft, Mic, GraduationCap, Globe, Award, Loader2 } from "lucide-react";
 import { getAuthorBySlug } from "@/data/authors";
 import type { Book as StaticBook } from "@/data/authors";
 import { Button } from "@/components/ui/button";
@@ -11,19 +11,33 @@ import BookCard from "@/components/BookCard";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ServiceInquiryForm from "@/components/ServiceInquiryForm";
-import { useToast } from "@/hooks/use-toast";
-import { supabase as cloudSupabase } from "@/integrations/supabase/client";
-import { supabase as sharedSupabase } from "@/lib/shared-backend";
 
 import paulinePhoto from "@/assets/pauline-teo.jpeg";
 import bobPhoto from "@/assets/bob-battista.jpg";
 import feliciaPhoto from "@/assets/felicia-tan-headshot.png";
 
-const photoMap: Record<string, string> = {
+const staticPhotoMap: Record<string, string> = {
   "pauline-teo": paulinePhoto,
   "robert-battista": bobPhoto,
   "felicia-tan": feliciaPhoto,
 };
+
+interface DynamicAuthor {
+  slug: string;
+  name: string;
+  photo: string;
+  title: string;
+  bio: string;
+  shortBio: string;
+  credentials: any[];
+  genres: string[];
+  badge: "listed" | "verified" | "featured" | "ab-verified";
+  services: string[];
+  books: StaticBook[];
+  websiteUrl?: string;
+  linkedinUrl?: string;
+  amazonAuthorUrl?: string;
+}
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -36,62 +50,71 @@ const fadeUp = {
 
 export default function AuthorProfile() {
   const { slug } = useParams<{ slug: string }>();
-  const author = getAuthorBySlug(slug || "");
+  const staticAuthor = getAuthorBySlug(slug || "");
+  const [dynamicAuthor, setDynamicAuthor] = useState<DynamicAuthor | null>(null);
+  const [isLoading, setIsLoading] = useState(!staticAuthor);
   const [inquiryOpen, setInquiryOpen] = useState(false);
   const [selectedService, setSelectedService] = useState("");
-  const [dynamicBooks, setDynamicBooks] = useState<StaticBook[]>([]);
-  const { toast } = useToast();
 
-  // Fetch dynamic books from DB that match this author
+  // Fetch dynamic author if not found in static data
   useEffect(() => {
-    if (!author) return;
-    const fetchDynamicBooks = async () => {
+    if (staticAuthor || !slug) {
+      setIsLoading(false);
+      return;
+    }
+
+    const fetchDynamic = async () => {
       try {
-        // Find user_id from shared backend by matching author name
-        const { data: profiles } = await sharedSupabase
-          .from("author_profiles")
-          .select("user_id, pen_name")
-          .ilike("pen_name", author.name);
-
-        if (!profiles || profiles.length === 0) return;
-
-        const userIds = profiles.map((p) => p.user_id);
-        const staticSlugs = author.books.map((b) => b.slug);
-
-        const { data: dbBooks } = await cloudSupabase
-          .from("books")
-          .select("*")
-          .in("author_id", userIds)
-          .not("published_at", "is", null);
-
-        if (!dbBooks) return;
-
-        // Filter out books that already exist in static data
-        const newBooks = dbBooks
-          .filter((b) => !staticSlugs.includes(b.slug))
-          .map((b) => ({
-            slug: b.slug,
-            title: b.title,
-            subtitle: b.subtitle || "",
-            description: b.description || "",
-            coverImage: b.cover_image_url || "",
-            amazonUrl: b.amazon_url || "",
-            badges: b.badges || [],
-            genre: b.genre || "",
-            price: b.price || undefined,
-            kindlePrice: b.kindle_price || undefined,
-            paperbackPrice: b.paperback_price || undefined,
-            pages: b.pages || undefined,
-            rating: b.rating ? Number(b.rating) : undefined,
-          }));
-
-        setDynamicBooks(newBooks);
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-author-profile`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ slug }),
+          }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data.author) {
+            setDynamicAuthor(data.author);
+          }
+        }
       } catch (err) {
-        console.error("Failed to fetch dynamic books:", err);
+        console.error("Failed to fetch author:", err);
+      } finally {
+        setIsLoading(false);
       }
     };
-    fetchDynamicBooks();
-  }, [author]);
+    fetchDynamic();
+  }, [slug, staticAuthor]);
+
+  // Resolve which author to render
+  const author = staticAuthor
+    ? {
+        slug: staticAuthor.slug,
+        name: staticAuthor.name,
+        photo: staticPhotoMap[staticAuthor.slug] || staticAuthor.photo,
+        title: staticAuthor.title,
+        bio: staticAuthor.bio,
+        shortBio: staticAuthor.shortBio,
+        credentials: staticAuthor.credentials,
+        genres: staticAuthor.genres,
+        badge: staticAuthor.badge,
+        services: staticAuthor.services,
+        books: staticAuthor.books,
+        websiteUrl: staticAuthor.websiteUrl,
+        linkedinUrl: staticAuthor.linkedinUrl,
+        amazonAuthorUrl: staticAuthor.amazonAuthorUrl,
+      }
+    : dynamicAuthor;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-secondary" />
+      </div>
+    );
+  }
 
   if (!author) {
     return (
@@ -112,6 +135,10 @@ export default function AuthorProfile() {
     );
   }
 
+  const credentialsList = Array.isArray(author.credentials)
+    ? author.credentials.map((c: any) => (typeof c === "string" ? c : c.label || c.title || String(c)))
+    : [];
+
   return (
     <div className="min-h-screen">
       <Navbar />
@@ -126,29 +153,40 @@ export default function AuthorProfile() {
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-10 items-start">
             {/* Photo */}
             <div className="lg:col-span-2">
-              <motion.img
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5 }}
-                src={photoMap[author.slug]}
-                alt={author.name}
-                className="w-full max-w-sm mx-auto rounded-2xl object-cover object-top shadow-lg"
-                style={{ maxHeight: '480px' }}
-              />
+              {author.photo ? (
+                <motion.img
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5 }}
+                  src={author.photo}
+                  alt={author.name}
+                  className="w-full max-w-sm mx-auto rounded-2xl object-cover object-top shadow-lg"
+                  style={{ maxHeight: '480px' }}
+                />
+              ) : (
+                <div className="w-full max-w-sm mx-auto rounded-2xl bg-primary-foreground/10 flex items-center justify-center" style={{ height: '360px' }}>
+                  <BookOpen className="h-16 w-16 text-primary-foreground/30" />
+                </div>
+              )}
             </div>
 
             {/* Info */}
             <div className="lg:col-span-3">
-              <h1 className="font-heading text-3xl font-bold md:text-4xl">{author.name}</h1>
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="font-heading text-3xl font-bold md:text-4xl">{author.name}</h1>
+                <BadgeDisplay level={author.badge} size="sm" />
+              </div>
               <p className="mt-2 text-lg text-primary-foreground/70">{author.title}</p>
 
-              <div className="mt-5 flex flex-wrap gap-2">
-                {author.credentials.map((c) => (
-                  <span key={c} className="rounded-full border border-primary-foreground/20 px-3 py-1 text-xs text-primary-foreground/70">
-                    {c}
-                  </span>
-                ))}
-              </div>
+              {credentialsList.length > 0 && (
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {credentialsList.map((c: string) => (
+                    <span key={c} className="rounded-full border border-primary-foreground/20 px-3 py-1 text-xs text-primary-foreground/70">
+                      {c}
+                    </span>
+                  ))}
+                </div>
+              )}
 
               {/* Quick stats */}
               <div className="flex flex-wrap items-center gap-4 mt-5 pt-4 border-t border-primary-foreground/10">
@@ -203,7 +241,7 @@ export default function AuthorProfile() {
             <motion.h2 variants={fadeUp} custom={0} className="mb-4 font-heading text-2xl font-bold">
               About {author.name}
             </motion.h2>
-            <motion.p variants={fadeUp} custom={1} className="text-muted-foreground leading-relaxed text-base">
+            <motion.p variants={fadeUp} custom={1} className="text-muted-foreground leading-relaxed text-base whitespace-pre-wrap">
               {author.bio}
             </motion.p>
           </motion.div>
@@ -211,21 +249,20 @@ export default function AuthorProfile() {
       </section>
 
       {/* Books */}
-      <section className="border-t border-border bg-muted/30 py-16">
-        <div className="container">
-          <h2 className="mb-8 font-heading text-2xl font-bold">
-            Books by {author.name}
-          </h2>
-          <div className="grid gap-6 grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {author.books.map((book) => (
-              <BookCard key={book.slug} book={book} />
-            ))}
-            {dynamicBooks.map((book) => (
-              <BookCard key={book.slug} book={book} />
-            ))}
+      {author.books.length > 0 && (
+        <section className="border-t border-border bg-muted/30 py-16">
+          <div className="container">
+            <h2 className="mb-8 font-heading text-2xl font-bold">
+              Books by {author.name}
+            </h2>
+            <div className="grid gap-6 grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {author.books.map((book) => (
+                <BookCard key={book.slug} book={book} />
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Services */}
       {author.services.length > 0 && (

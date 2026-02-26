@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { LogOut, Users, BookOpen, BarChart3, ShieldCheck, Clock, Globe } from "lucide-react";
+import { LogOut, Users, BookOpen, BarChart3, ShieldCheck, Clock, Globe, UserCheck } from "lucide-react";
 
 import OverviewTab from "@/components/admin/OverviewTab";
 import SubmissionsTab from "@/components/admin/SubmissionsTab";
@@ -15,10 +15,11 @@ import UsersTab from "@/components/admin/UsersTab";
 import BooksTab from "@/components/admin/BooksTab";
 import AdminsTab from "@/components/admin/AdminsTab";
 import PlatformAccessTab from "@/components/admin/PlatformAccessTab";
+import AuthorsTab from "@/components/admin/AuthorsTab";
 
 import type { AdminStats, Submission, AdminUser, AdminBook, AdminInfo } from "@/types/admin";
 
-type Tab = "overview" | "submissions" | "users" | "books" | "admins" | "platforms";
+type Tab = "overview" | "submissions" | "users" | "books" | "authors" | "admins" | "platforms";
 
 export default function AdminDashboard() {
   const { user, loading, isAdmin, signOut } = useAuth();
@@ -203,6 +204,7 @@ export default function AdminDashboard() {
     { key: "submissions", label: "Submissions", icon: Clock },
     { key: "users", label: "Users", icon: Users },
     { key: "books", label: "Books", icon: BookOpen },
+    { key: "authors", label: "Authors", icon: UserCheck },
     { key: "admins", label: "Admins", icon: ShieldCheck, superOnly: true },
     { key: "platforms", label: "Platforms", icon: Globe, pnAdminOnly: true },
   ];
@@ -273,6 +275,7 @@ export default function AdminDashboard() {
             <BooksTab books={books} loading={booksLoading} onRefresh={fetchBooks} onDelete={handleDeleteBook} deletingId={deletingBookId} page={booksPage} setPage={setBooksPage} />
           )}
           {tab === "platforms" && <PlatformAccessTab />}
+          {tab === "authors" && <AuthorsTab />}
           {tab === "admins" && (
             <AdminsTab
               admins={admins}
