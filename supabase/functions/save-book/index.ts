@@ -96,7 +96,37 @@ serve(async (req) => {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
+        // Cloud-only user: check if there's an author_profiles record under
+        // a shared backend ID that we should use instead (dual-ID resolution)
         userId = cloudUser.id;
+        const { data: profileForCloudUser } = await cloudAdmin
+          .from("author_profiles")
+          .select("user_id")
+          .eq("user_id", cloudUser.id)
+          .maybeSingle();
+        if (!profileForCloudUser && cloudUser.email) {
+          // No profile under Cloud ID — look for a profile whose shared backend
+          // user has the same email
+          const sharedServiceKey = Deno.env.get("SHARED_BACKEND_SERVICE_ROLE_KEY");
+          if (sharedServiceKey) {
+            const sharedAdmin = createClient(SHARED_BACKEND_URL, sharedServiceKey);
+            const { data: { users: sharedUsers } } = await sharedAdmin.auth.admin.listUsers();
+            const matchedShared = sharedUsers?.find(
+              (u: any) => u.email?.toLowerCase() === cloudUser.email!.toLowerCase()
+            );
+            if (matchedShared) {
+              const { data: sharedProfile } = await cloudAdmin
+                .from("author_profiles")
+                .select("user_id")
+                .eq("user_id", matchedShared.id)
+                .maybeSingle();
+              if (sharedProfile) {
+                userId = matchedShared.id;
+                console.log("Resolved Cloud user to shared backend ID:", userId);
+              }
+            }
+          }
+        }
       }
 
       bookData = body;

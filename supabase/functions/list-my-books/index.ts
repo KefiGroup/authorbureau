@@ -32,10 +32,16 @@ Deno.serve(async (req) => {
 
     // Resolve user ID — shared backend first (primary auth)
     let userId: string;
+    let altUserId: string | null = null;
     const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
     const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
     if (sharedUser) {
       userId = sharedUser.id;
+      // Also find local Cloud user ID for books saved under it
+      const { data: { user: cloudUser } } = await cloudAdmin.auth.getUser(token);
+      if (cloudUser && cloudUser.id !== userId) {
+        altUserId = cloudUser.id;
+      }
     } else {
       const { data: { user: cloudUser } } = await cloudAdmin.auth.getUser(token);
       if (!cloudUser) {
@@ -45,7 +51,27 @@ Deno.serve(async (req) => {
         });
       }
       userId = cloudUser.id;
+      // Check if there's a profile under a shared backend ID
+      if (cloudUser.email) {
+        const sharedServiceKey = Deno.env.get("SHARED_BACKEND_SERVICE_ROLE_KEY");
+        if (sharedServiceKey) {
+          try {
+            const sharedAdmin = createClient(SHARED_BACKEND_URL, sharedServiceKey);
+            const { data: { users: sharedUsers } } = await sharedAdmin.auth.admin.listUsers();
+            const matched = sharedUsers?.find(
+              (u: any) => u.email?.toLowerCase() === cloudUser.email!.toLowerCase()
+            );
+            if (matched && matched.id !== userId) {
+              altUserId = matched.id;
+            }
+          } catch (_) {}
+        }
+      }
     }
+    
+    // Collect all user IDs for querying
+    const userIds = [userId];
+    if (altUserId) userIds.push(altUserId);
 
     // Parse request body for action
     let action = "list";
@@ -65,7 +91,7 @@ Deno.serve(async (req) => {
         .from("books")
         .select("*")
         .eq("id", bookId)
-        .eq("author_id", userId)
+        .in("author_id", userIds)
         .single();
 
       if (getError || !book) {
@@ -109,7 +135,7 @@ Deno.serve(async (req) => {
         .from("books")
         .update(updateData)
         .eq("id", bookId)
-        .eq("author_id", userId);
+        .in("author_id", userIds);
 
       if (updateError) {
         return new Response(JSON.stringify({ error: updateError.message }), {
@@ -136,7 +162,7 @@ Deno.serve(async (req) => {
         .from("books")
         .update({ published_at: null })
         .eq("id", bookId)
-        .eq("author_id", userId);
+        .in("author_id", userIds);
 
       if (unpublishError) {
         console.error("Unpublish error:", unpublishError);
@@ -156,7 +182,7 @@ Deno.serve(async (req) => {
     const { data: books, error: queryError } = await cloudAdmin
       .from("books")
       .select("id, title, subtitle, slug, cover_image_url, published_at, entry_mode, genre, rating, badges, created_at")
-      .eq("author_id", userId)
+      .in("author_id", userIds)
       .order("created_at", { ascending: false });
 
     if (queryError) {
