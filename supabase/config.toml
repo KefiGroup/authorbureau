@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.list-my-books]
 verify_jwt = false
+
+[functions.list-directory-authors]
+verify_jwt = false
