@@ -1,78 +1,96 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Navigate, useNavigate, useLocation } from "react-router-dom";
-import { useAuth, ADMIN_EMAILS } from "@/hooks/useAuth";
-import { Loader2, X, ArrowLeft } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { Loader2, ArrowLeft, Mail, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
+// ─── Unified session helper ───
+async function establishSession(sessionData: { access_token: string; refresh_token: string }) {
+  await supabase.auth.signOut({ scope: "local" });
+  const { error } = await supabase.auth.setSession({
+    access_token: sessionData.access_token,
+    refresh_token: sessionData.refresh_token,
+  });
+  if (error) throw error;
+}
+
+// ─── Error mapping ───
+function friendlyError(status: number, serverMsg?: string): string {
+  if (status === 429) return "Too many attempts. Please wait a moment and try again.";
+  if (status === 401) return serverMsg?.toLowerCase().includes("credential") ? "Invalid credentials." : "Invalid or expired code.";
+  if (status === 400 && serverMsg) return serverMsg;
+  if (status >= 500) return "Something went wrong on our end. Please try again.";
+  return serverMsg || "Something went wrong.";
+}
+
+async function authFetch(body: Record<string, unknown>) {
+  const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/user-auth`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...body, source_platform: "authorsbureau" }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(friendlyError(res.status, data?.error || data?.message));
+  return data;
+}
+
+type SignInMode = "code" | "password";
+type FlowState = "email" | "otp" | "password-login" | "forgot-email" | "forgot-reset";
+
 export default function Auth() {
-  const { user, loading, isAdmin } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [showModal, setShowModal] = useState(false);
-  const [email, setEmail] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [sent, setSent] = useState(false);
-  const [otp, setOtp] = useState("");
-  const [verifying, setVerifying] = useState(false);
-  const [magicLinkProcessing, setMagicLinkProcessing] = useState(false);
   const { toast } = useToast();
 
-  // Magic link handling: check for auth_token in URL hash on load
+  const [mode, setMode] = useState<SignInMode>("code");
+  const [flow, setFlow] = useState<FlowState>("email");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [otp, setOtp] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [magicLinkProcessing, setMagicLinkProcessing] = useState(false);
+
+  // Resend timer
+  const [resendCooldown, setResendCooldown] = useState(0);
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const id = setInterval(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearInterval(id);
+  }, [resendCooldown]);
+
+  // ─── Magic link handling ───
   useEffect(() => {
     const hash = location.hash;
     if (!hash) return;
-
-    // Hash can be "#/?auth_token=..." or "#?auth_token=..." — normalize before parsing
     const cleanHash = hash.replace(/^#\/?/, "");
     const params = new URLSearchParams(cleanHash);
     const authToken = params.get("auth_token");
     if (!authToken) return;
 
     setMagicLinkProcessing(true);
-
     (async () => {
       try {
-        const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/user-auth`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "verify_token",
-            token: authToken,
-            source_platform: "authorsbureau",
-          }),
-        });
-
-        const data = await res.json().catch(() => ({}));
-        console.log("[Auth] verify_token response:", res.status, JSON.stringify(data));
-
-        if (!res.ok) {
-          throw new Error(data?.error || data?.message || "Magic link verification failed");
+        const data = await authFetch({ action: "verify_token", token: authToken });
+        if (data?.session_data) {
+          await establishSession(data.session_data);
+        } else if (data?.authUrl) {
+          window.location.href = data.authUrl;
+          return;
+        } else {
+          throw new Error("No session returned from magic link.");
         }
-
-        const tokenHash = data?.token_hash;
-        const type = data?.type || "email";
-
-        if (!tokenHash) {
-          throw new Error("No token_hash returned from magic link verification.");
-        }
-
-        const { error: otpError } = await supabase.auth.verifyOtp({
-          token_hash: tokenHash,
-          type,
-        });
-        if (otpError) throw otpError;
-
-        // Clear hash from URL
         window.history.replaceState(null, "", location.pathname);
-        // After verifyOtp, user state hasn't updated yet — use supabase to get the session email
-        // Don't navigate — let the useAuth listener + the `if (user)` redirect handle it automatically
       } catch (err: any) {
-        console.error("[Auth] magic link error:", err);
         toast({ title: err.message || "Magic link sign-in failed", variant: "destructive" });
       } finally {
         setMagicLinkProcessing(false);
@@ -80,294 +98,394 @@ export default function Auth() {
     })();
   }, [location.hash]);
 
-  if (loading || magicLinkProcessing) return (
-    <div className="min-h-screen">
-      <Navbar />
-      <section className="py-20">
-        <div className="container max-w-md flex justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-secondary" />
-        </div>
-      </section>
-      <Footer />
-    </div>
-  );
-  if (user) {
-    return <Navigate to="/dashboard" replace />;
+  // ─── Redirect if already signed in ───
+  if (loading || magicLinkProcessing) {
+    return (
+      <div className="min-h-screen">
+        <Navbar />
+        <section className="py-20">
+          <div className="container max-w-md flex justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-secondary" />
+          </div>
+        </section>
+        <Footer />
+      </div>
+    );
   }
+  if (user) return <Navigate to="/dashboard" replace />;
 
-  // Request code via shared backend edge function
-  const handleContinue = async (e: React.FormEvent) => {
+  // ─── Handlers ───
+  const handleRequestCode = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
     setSubmitting(true);
-
     try {
-      // Clear any stale LOCAL session to prevent token conflicts with OTP flow
-      // Use 'local' scope to avoid server-side revocation that could interfere with OTP
-      await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
-
-      const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/user-auth`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: email.trim(),
-          action: "request_code",
-          source_platform: "authorsbureau",
-        }),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData?.message || "Failed to send verification code.");
-      }
-
-      setSent(true);
+      await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+      await authFetch({ action: "request_code", email: email.trim() });
+      setFlow("otp");
+      setResendCooldown(60);
     } catch (err: any) {
-      toast({ title: err.message || "Something went wrong", variant: "destructive" });
+      toast({ title: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Verify code via shared backend, then use token_hash with supabase.auth.verifyOtp
-  const handleVerifyOtp = async () => {
-    if (otp.length !== 6) return;
-    setVerifying(true);
-
+  const handleResendCode = async () => {
+    if (resendCooldown > 0) return;
+    setSubmitting(true);
     try {
-      const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/user-auth`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: email.trim(),
-          action: "verify",
-          code: otp,
-          source_platform: "authorsbureau",
-        }),
-      });
-
-      const data = await res.json().catch(() => ({}));
-      console.log("[Auth] verify response:", res.status, JSON.stringify(data));
-
-      if (!res.ok) {
-        console.error("[Auth] verify error response body:", JSON.stringify(data));
-        throw new Error(data?.error || data?.message || `Verification failed (${res.status})`);
-      }
-
-      // Log session_data contents for debugging
-      if (data?.session_data) {
-        console.log("[Auth] session_data contents:", JSON.stringify(data.session_data));
-      }
-
-      // Deep-search for token_hash across possible nesting levels including session_data
-      const tokenHash = data?.token_hash || data?.data?.token_hash || data?.session?.token_hash
-        || data?.result?.token_hash || data?.session_data?.token_hash
-        || data?.session_data?.session?.token_hash;
-      const type = data?.type || data?.data?.type || "email";
-
-      if (tokenHash) {
-        const { error: otpError } = await supabase.auth.verifyOtp({
-          token_hash: tokenHash,
-          type,
-        });
-        if (otpError) throw otpError;
-        return;
-      }
-
-      // Deep-search for session tokens across possible nesting levels including session_data.session
-      const accessToken = data?.access_token || data?.session?.access_token
-        || data?.session_data?.access_token || data?.session_data?.session?.access_token
-        || data?.data?.access_token || data?.data?.session?.access_token
-        || data?.result?.access_token;
-      const refreshToken = data?.refresh_token || data?.session?.refresh_token
-        || data?.session_data?.refresh_token || data?.session_data?.session?.refresh_token
-        || data?.data?.refresh_token || data?.data?.session?.refresh_token
-        || data?.result?.refresh_token;
-
-      if (accessToken && refreshToken) {
-        const { error: sessionError } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        });
-        if (sessionError) throw sessionError;
-        return;
-      }
-
-      // Try extracting tokens from authUrl if present
-      const authUrl = data?.authUrl || data?.auth_url;
-      if (authUrl) {
-        console.log("[Auth] authUrl found:", authUrl);
-        try {
-          const url = new URL(authUrl);
-          // Check query params
-          const urlTokenHash = url.searchParams.get("token_hash") || url.searchParams.get("token");
-          const urlType = url.searchParams.get("type") || "email";
-          if (urlTokenHash) {
-            const { error: otpError } = await supabase.auth.verifyOtp({
-              token_hash: urlTokenHash,
-              type: urlType as any,
-            });
-            if (otpError) throw otpError;
-            return;
-          }
-          // Check hash fragment for session tokens
-          const hashParams = new URLSearchParams(url.hash.replace(/^#\/?/, ""));
-          const hashAccess = hashParams.get("access_token");
-          const hashRefresh = hashParams.get("refresh_token");
-          if (hashAccess && hashRefresh) {
-            const { error: sessionError } = await supabase.auth.setSession({
-              access_token: hashAccess,
-              refresh_token: hashRefresh,
-            });
-            if (sessionError) throw sessionError;
-            return;
-          }
-        } catch (urlErr: any) {
-          console.error("[Auth] authUrl parse error:", urlErr);
-        }
-      }
-
-      // Show actual response keys + session_data keys for diagnosis
-      const sdKeys = data?.session_data ? Object.keys(data.session_data).join(", ") : "N/A";
-      console.error("[Auth] No token_hash or session tokens found. Full data:", JSON.stringify(data).substring(0, 500));
-      throw new Error(`No session found. Top keys: ${Object.keys(data).join(", ")}. session_data keys: ${sdKeys}`);
+      await authFetch({ action: "request_code", email: email.trim() });
+      setResendCooldown(60);
+      toast({ title: "New code sent to your email." });
     } catch (err: any) {
-      console.error("[Auth] verify error:", err);
-      toast({ title: err.message || "Verification failed", variant: "destructive" });
+      toast({ title: err.message, variant: "destructive" });
     } finally {
-      setVerifying(false);
+      setSubmitting(false);
     }
   };
 
-  const handleBack = () => {
-    setSent(false);
-    setOtp("");
+  const handleVerifyOtp = async () => {
+    if (otp.length !== 6) return;
+    setSubmitting(true);
+    try {
+      const data = await authFetch({ action: "verify", email: email.trim(), code: otp });
+      if (data?.session_data) {
+        await establishSession(data.session_data);
+      } else {
+        throw new Error("No session returned.");
+      }
+    } catch (err: any) {
+      toast({ title: err.message, variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleClose = () => {
-    setShowModal(false);
-    setEmail("");
-    setSent(false);
-    setOtp("");
+  const handlePasswordLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !password) return;
+    setSubmitting(true);
+    try {
+      const data = await authFetch({ action: "password_login", email: email.trim(), password });
+      if (data?.session_data) {
+        await establishSession(data.session_data);
+      } else {
+        throw new Error("No session returned.");
+      }
+    } catch (err: any) {
+      toast({ title: err.message, variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
+  const handleForgotEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setSubmitting(true);
+    try {
+      await authFetch({ action: "forgot_password", email: email.trim() });
+      setFlow("forgot-reset");
+    } catch (err: any) {
+      toast({ title: err.message, variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (otp.length !== 6 || !password || password !== confirmPassword) return;
+    if (password.length < 8) {
+      toast({ title: "Password must be at least 8 characters.", variant: "destructive" });
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const data = await authFetch({
+        action: "reset_password",
+        email: email.trim(),
+        code: otp,
+        password,
+      });
+      if (data?.session_data) {
+        await establishSession(data.session_data);
+        toast({ title: "Password reset successfully!" });
+      } else {
+        throw new Error("No session returned.");
+      }
+    } catch (err: any) {
+      toast({ title: err.message, variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const resetFlow = () => {
+    setFlow(mode === "code" ? "email" : "password-login");
+    setOtp("");
+    setPassword("");
+    setConfirmPassword("");
+  };
+
+  const switchMode = (newMode: SignInMode) => {
+    setMode(newMode);
+    setFlow(newMode === "code" ? "email" : "password-login");
+    setOtp("");
+    setPassword("");
+    setConfirmPassword("");
+  };
+
+  // ─── Render ───
   return (
     <div className="min-h-screen">
       <Navbar />
       <section className="py-20">
         <div className="container max-w-md">
-          <div className="rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-card)] text-center space-y-6">
-            <h1 className="font-heading text-2xl font-bold">Sign In to Authors Bureau</h1>
-            <p className="text-sm text-muted-foreground">
-              Enter your email to get started.
-            </p>
+          <div className="rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-card)] space-y-6">
+            <div className="text-center">
+              <h1 className="font-heading text-2xl font-bold">Sign In to Authors Bureau</h1>
+              <p className="text-sm text-muted-foreground mt-1">Choose how you'd like to sign in.</p>
+            </div>
 
-            <Button
-              onClick={() => setShowModal(true)}
-              className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold rounded-full"
-              size="lg"
-            >
-              Sign In
-            </Button>
+            {/* Mode toggle — only show when not in a sub-flow */}
+            {(flow === "email" || flow === "password-login") && (
+              <Tabs value={mode} onValueChange={(v) => switchMode(v as SignInMode)} className="w-full">
+                <TabsList className="w-full grid grid-cols-2">
+                  <TabsTrigger value="code" className="gap-1.5">
+                    <Mail className="h-4 w-4" /> Email Code
+                  </TabsTrigger>
+                  <TabsTrigger value="password" className="gap-1.5">
+                    <KeyRound className="h-4 w-4" /> Password
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            )}
 
-            <p className="text-xs text-muted-foreground">
-              Want to get featured?{" "}
-              <button onClick={() => setShowModal(true)} className="text-secondary font-medium hover:underline">
-                Sign in to get started
-              </button>
-            </p>
-          </div>
-        </div>
-      </section>
-      <Footer />
-
-      {/* Sign-in modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={handleClose}>
-          <div
-            className="relative w-full max-w-md mx-4 rounded-2xl border border-border bg-card p-8 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={handleClose}
-              className="absolute top-4 right-4 rounded-full p-1.5 hover:bg-muted transition-colors"
-              aria-label="Close"
-            >
-              <X className="h-5 w-5 text-muted-foreground" />
-            </button>
-
-            {sent ? (
-              <div className="space-y-5">
+            {/* ─── Email Code: enter email ─── */}
+            {flow === "email" && (
+              <form onSubmit={handleRequestCode} className="space-y-4">
                 <div>
-                  <h2 className="font-heading text-xl font-bold">Enter Verification Code</h2>
-                  <p className="text-sm text-muted-foreground mt-1">We sent a code to {email}</p>
-                </div>
-
-                <button onClick={handleBack} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  <ArrowLeft className="h-4 w-4" /> Back
-                </button>
-
-                <div className="flex justify-center">
-                  <InputOTP maxLength={6} value={otp} onChange={setOtp}>
-                    <InputOTPGroup>
-                      <InputOTPSlot index={0} className="h-12 w-12 text-lg border-secondary/50" />
-                      <InputOTPSlot index={1} className="h-12 w-12 text-lg border-secondary/50" />
-                      <InputOTPSlot index={2} className="h-12 w-12 text-lg border-secondary/50" />
-                      <InputOTPSlot index={3} className="h-12 w-12 text-lg border-secondary/50" />
-                      <InputOTPSlot index={4} className="h-12 w-12 text-lg border-secondary/50" />
-                      <InputOTPSlot index={5} className="h-12 w-12 text-lg border-secondary/50" />
-                    </InputOTPGroup>
-                  </InputOTP>
-                </div>
-
-                <Button
-                  onClick={handleVerifyOtp}
-                  disabled={otp.length !== 6 || verifying}
-                  className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold rounded-full"
-                  size="lg"
-                >
-                  {verifying ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
-                  {verifying ? "Verifying..." : "Verify Code"}
-                </Button>
-
-                <p className="text-xs text-center text-muted-foreground">
-                  Or click the magic link in your email
-                </p>
-              </div>
-            ) : (
-              <form onSubmit={handleContinue} className="space-y-5">
-                <div>
-                  <h2 className="font-heading text-xl font-bold">Sign In</h2>
-                  <p className="text-sm text-muted-foreground mt-1">Enter your email to continue</p>
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium">Email address</label>
-                  <input
+                  <Label htmlFor="email">Email address</Label>
+                  <Input
+                    id="email"
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="your@email.com"
-                    className="w-full rounded-lg border border-secondary/50 bg-background px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-secondary/50"
                     autoFocus
+                    className="mt-1.5"
                   />
                 </div>
-
                 <Button
                   type="submit"
                   disabled={submitting}
                   className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold rounded-full"
                   size="lg"
                 >
-                  {submitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
-                  {submitting ? "Sending..." : "Continue"}
+                  {submitting && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
+                  {submitting ? "Sending…" : "Send Sign-In Code"}
+                </Button>
+              </form>
+            )}
+
+            {/* ─── Email Code: verify OTP ─── */}
+            {flow === "otp" && (
+              <div className="space-y-5">
+                <div>
+                  <h2 className="font-heading text-lg font-bold">Enter Verification Code</h2>
+                  <p className="text-sm text-muted-foreground mt-1">We sent a 6-character code to <strong>{email}</strong></p>
+                </div>
+
+                <button onClick={resetFlow} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <ArrowLeft className="h-4 w-4" /> Back
+                </button>
+
+                <div className="flex justify-center">
+                  <InputOTP maxLength={6} value={otp} onChange={setOtp}>
+                    <InputOTPGroup>
+                      {[0, 1, 2, 3, 4, 5].map((i) => (
+                        <InputOTPSlot key={i} index={i} className="h-12 w-12 text-lg border-secondary/50" />
+                      ))}
+                    </InputOTPGroup>
+                  </InputOTP>
+                </div>
+
+                <Button
+                  onClick={handleVerifyOtp}
+                  disabled={otp.length !== 6 || submitting}
+                  className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold rounded-full"
+                  size="lg"
+                >
+                  {submitting && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
+                  {submitting ? "Verifying…" : "Verify Code"}
+                </Button>
+
+                <div className="text-center space-y-1">
+                  <button
+                    onClick={handleResendCode}
+                    disabled={resendCooldown > 0 || submitting}
+                    className="text-sm font-medium text-secondary hover:underline disabled:text-muted-foreground disabled:no-underline"
+                  >
+                    {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : "Resend Code"}
+                  </button>
+                  <p className="text-xs text-muted-foreground">Or click the magic link in your email</p>
+                </div>
+              </div>
+            )}
+
+            {/* ─── Password: login ─── */}
+            {flow === "password-login" && (
+              <form onSubmit={handlePasswordLogin} className="space-y-4">
+                <div>
+                  <Label htmlFor="pw-email">Email address</Label>
+                  <Input
+                    id="pw-email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    autoFocus
+                    className="mt-1.5"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="pw-password">Password</Label>
+                  <Input
+                    id="pw-password"
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    className="mt-1.5"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setFlow("forgot-email")}
+                    className="text-xs text-secondary hover:underline mt-1.5"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+                <Button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold rounded-full"
+                  size="lg"
+                >
+                  {submitting && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
+                  {submitting ? "Signing in…" : "Sign In"}
+                </Button>
+              </form>
+            )}
+
+            {/* ─── Forgot password: enter email ─── */}
+            {flow === "forgot-email" && (
+              <form onSubmit={handleForgotEmail} className="space-y-4">
+                <div>
+                  <h2 className="font-heading text-lg font-bold">Reset Your Password</h2>
+                  <p className="text-sm text-muted-foreground mt-1">We'll send a reset code to your email.</p>
+                </div>
+
+                <button type="button" onClick={resetFlow} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <ArrowLeft className="h-4 w-4" /> Back to sign in
+                </button>
+
+                <div>
+                  <Label htmlFor="forgot-email">Email address</Label>
+                  <Input
+                    id="forgot-email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    className="mt-1.5"
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold rounded-full"
+                  size="lg"
+                >
+                  {submitting && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
+                  {submitting ? "Sending…" : "Send Reset Code"}
+                </Button>
+              </form>
+            )}
+
+            {/* ─── Forgot password: enter code + new password ─── */}
+            {flow === "forgot-reset" && (
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                <div>
+                  <h2 className="font-heading text-lg font-bold">Set New Password</h2>
+                  <p className="text-sm text-muted-foreground mt-1">Enter the 6-character code sent to <strong>{email}</strong> and your new password.</p>
+                </div>
+
+                <button type="button" onClick={() => setFlow("forgot-email")} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <ArrowLeft className="h-4 w-4" /> Back
+                </button>
+
+                <div className="flex justify-center">
+                  <InputOTP maxLength={6} value={otp} onChange={setOtp}>
+                    <InputOTPGroup>
+                      {[0, 1, 2, 3, 4, 5].map((i) => (
+                        <InputOTPSlot key={i} index={i} className="h-12 w-12 text-lg border-secondary/50" />
+                      ))}
+                    </InputOTPGroup>
+                  </InputOTP>
+                </div>
+
+                <div>
+                  <Label htmlFor="new-pw">New password</Label>
+                  <Input
+                    id="new-pw"
+                    type="password"
+                    required
+                    minLength={8}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Minimum 8 characters"
+                    className="mt-1.5"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="confirm-pw">Confirm password</Label>
+                  <Input
+                    id="confirm-pw"
+                    type="password"
+                    required
+                    minLength={8}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Re-enter your password"
+                    className="mt-1.5"
+                  />
+                  {password && confirmPassword && password !== confirmPassword && (
+                    <p className="text-xs text-destructive mt-1">Passwords do not match.</p>
+                  )}
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={otp.length !== 6 || !password || password !== confirmPassword || submitting}
+                  className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold rounded-full"
+                  size="lg"
+                >
+                  {submitting && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
+                  {submitting ? "Resetting…" : "Reset Password & Sign In"}
                 </Button>
               </form>
             )}
           </div>
         </div>
-      )}
+      </section>
+      <Footer />
     </div>
   );
 }

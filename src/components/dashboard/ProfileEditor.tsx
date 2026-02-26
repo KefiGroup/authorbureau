@@ -2,13 +2,87 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
   Loader2, ExternalLink, Download, MapPin, Globe, Linkedin,
-  Twitter, Instagram, Youtube, BookOpen, RefreshCw,
+  Twitter, Instagram, Youtube, BookOpen, RefreshCw, KeyRound,
 } from "lucide-react";
-import { supabase as sharedSupabase } from "@/lib/shared-backend";
+import { supabase as sharedSupabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
 import { redirectToPublishNow } from "@/lib/publishnow-redirect";
+
+function SetPasswordSection() {
+  const { toast } = useToast();
+  const [pw, setPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const handleSetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pw.length < 8) {
+      toast({ title: "Password must be at least 8 characters.", variant: "destructive" });
+      return;
+    }
+    if (pw !== confirmPw) {
+      toast({ title: "Passwords do not match.", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/user-auth`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${(await sharedSupabase.auth.getSession()).data.session?.access_token}`,
+        },
+        body: JSON.stringify({
+          action: "set_password",
+          password: pw,
+          source_platform: "authorsbureau",
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Failed to set password.");
+      toast({ title: "Password set successfully ✅" });
+      setPw("");
+      setConfirmPw("");
+    } catch (err: any) {
+      toast({ title: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section className="rounded-xl border border-border bg-card p-6 space-y-4">
+      <div className="flex items-center gap-2">
+        <KeyRound className="h-5 w-5 text-muted-foreground" />
+        <h3 className="font-heading text-lg font-semibold">Set a Password</h3>
+      </div>
+      <p className="text-sm text-muted-foreground">
+        Set a password for faster sign-in next time. This is optional — you can always use email codes instead.
+      </p>
+      <form onSubmit={handleSetPassword} className="space-y-3 max-w-sm">
+        <div>
+          <Label htmlFor="set-pw">New password</Label>
+          <Input id="set-pw" type="password" minLength={8} value={pw} onChange={(e) => setPw(e.target.value)} placeholder="Minimum 8 characters" className="mt-1" />
+        </div>
+        <div>
+          <Label htmlFor="set-pw-confirm">Confirm password</Label>
+          <Input id="set-pw-confirm" type="password" minLength={8} value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} placeholder="Re-enter password" className="mt-1" />
+          {pw && confirmPw && pw !== confirmPw && (
+            <p className="text-xs text-destructive mt-1">Passwords do not match.</p>
+          )}
+        </div>
+        <Button type="submit" disabled={saving || !pw || pw !== confirmPw} size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
+          {saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+          {saving ? "Setting…" : "Set Password"}
+        </Button>
+      </form>
+    </section>
+  );
+}
 
 interface AuthorProfile {
   pen_name: string;
@@ -280,6 +354,9 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
           </div>
         </section>
       )}
+
+      {/* Set Password */}
+      <SetPasswordSection />
 
       {/* Edit reminder */}
       <div className="rounded-xl border border-dashed border-secondary/40 bg-secondary/5 p-5 text-center">
