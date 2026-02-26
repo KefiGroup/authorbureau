@@ -7,11 +7,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { LogOut, Users, BookOpen, BarChart3, ShieldCheck, Clock, Globe, UserCheck } from "lucide-react";
+import { LogOut, BookOpen, BarChart3, ShieldCheck, Globe, UserCheck } from "lucide-react";
 
 import OverviewTab from "@/components/admin/OverviewTab";
-import SubmissionsTab from "@/components/admin/SubmissionsTab";
-import UsersTab from "@/components/admin/UsersTab";
 import BooksTab from "@/components/admin/BooksTab";
 import AdminsTab from "@/components/admin/AdminsTab";
 import PlatformAccessTab from "@/components/admin/PlatformAccessTab";
@@ -19,7 +17,7 @@ import AuthorsTab from "@/components/admin/AuthorsTab";
 
 import type { AdminStats, Submission, AdminUser, AdminBook, AdminInfo } from "@/types/admin";
 
-type Tab = "overview" | "submissions" | "users" | "books" | "authors" | "admins" | "platforms";
+type Tab = "overview" | "books" | "authors" | "admins" | "platforms";
 
 export default function AdminDashboard() {
   const { user, loading, isAdmin, signOut } = useAuth();
@@ -33,17 +31,8 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
 
-  // Submissions
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [subsLoading, setSubsLoading] = useState(false);
-  const [subsFilter, setSubsFilter] = useState("all");
-  const [subsPage, setSubsPage] = useState(1);
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  // Users
-  const [users, setUsers] = useState<AdminUser[]>([]);
-  const [usersLoading, setUsersLoading] = useState(false);
-  const [usersPage, setUsersPage] = useState(1);
+
 
   // Books
   const [books, setBooks] = useState<AdminBook[]>([]);
@@ -67,23 +56,8 @@ export default function AdminDashboard() {
     setStatsLoading(false);
   }, []);
 
-  const fetchSubmissions = useCallback(async () => {
-    setSubsLoading(true);
-    try {
-      const data = await adminApi.listSubmissions(subsPage, subsFilter === "all" ? undefined : subsFilter);
-      setSubmissions(data?.submissions || data?.data || []);
-    } catch { toast({ title: "Failed to load submissions", variant: "destructive" }); }
-    setSubsLoading(false);
-  }, [subsFilter, subsPage]);
 
-  const fetchUsers = useCallback(async () => {
-    setUsersLoading(true);
-    try {
-      const data = await adminApi.listUsers(usersPage);
-      setUsers(data?.users || data?.data || []);
-    } catch { toast({ title: "Failed to load users", variant: "destructive" }); }
-    setUsersLoading(false);
-  }, [usersPage]);
+
 
   const fetchBooks = useCallback(async () => {
     setBooksLoading(true);
@@ -150,23 +124,12 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (!isAdmin) return;
     if (tab === "overview") { fetchStats(); fetchPendingCounts(); }
-    else if (tab === "submissions") fetchSubmissions();
-    else if (tab === "users") fetchUsers();
     else if (tab === "books") fetchBooks();
     else if (tab === "admins") fetchAdmins();
-  }, [tab, isAdmin, subsFilter, subsPage, usersPage, booksPage, booksFilter]);
+  }, [tab, isAdmin, booksPage, booksFilter]);
 
-  const updateStatus = async (id: string, status: string) => {
-    setUpdatingId(id);
-    try {
-      await adminApi.updateSubmissionStatus(id, status);
-      setSubmissions((prev) => prev.map((a) => (a.id === id ? { ...a, status: status as Submission["status"] } : a)));
-      toast({ title: `Application ${status}` });
-    } catch {
-      toast({ title: "Update failed", variant: "destructive" });
-    }
-    setUpdatingId(null);
-  };
+
+
 
   const handlePromote = async () => {
     if (!promoteEmail.trim()) return;
@@ -260,7 +223,6 @@ export default function AdminDashboard() {
 
   const handleNavigate = (targetTab: string, filter?: string) => {
     setTab(targetTab as Tab);
-    if (filter && targetTab === "submissions") setSubsFilter(filter);
     if (filter && targetTab === "books") setBooksFilter(filter);
   };
 
@@ -270,10 +232,8 @@ export default function AdminDashboard() {
 
   const tabs: { key: Tab; label: string; icon: typeof BarChart3; superOnly?: boolean; pnAdminOnly?: boolean }[] = [
     { key: "overview", label: "Overview", icon: BarChart3 },
-    { key: "submissions", label: "Submissions", icon: Clock },
-    { key: "users", label: "Users", icon: Users },
-    { key: "books", label: "Books", icon: BookOpen },
     { key: "authors", label: "Authors", icon: UserCheck },
+    { key: "books", label: "Books", icon: BookOpen },
     { key: "admins", label: "Admins", icon: ShieldCheck, superOnly: true },
     { key: "platforms", label: "Platforms", icon: Globe, pnAdminOnly: true },
   ];
@@ -331,22 +291,7 @@ export default function AdminDashboard() {
               pendingAuthorCount={pendingAuthorCount}
             />
           )}
-          {tab === "submissions" && (
-            <SubmissionsTab
-              submissions={submissions}
-              loading={subsLoading}
-              filter={subsFilter}
-              setFilter={setSubsFilter}
-              updatingId={updatingId}
-              updateStatus={updateStatus}
-              onRefresh={fetchSubmissions}
-              page={subsPage}
-              setPage={setSubsPage}
-            />
-          )}
-          {tab === "users" && (
-            <UsersTab users={users} loading={usersLoading} onRefresh={fetchUsers} page={usersPage} setPage={setUsersPage} />
-          )}
+          {tab === "authors" && <AuthorsTab />}
           {tab === "books" && (
             <BooksTab
               books={books}
