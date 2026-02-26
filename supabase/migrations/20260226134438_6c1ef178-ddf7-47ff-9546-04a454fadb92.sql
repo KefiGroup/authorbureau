@@ -1,0 +1,1 @@
+UPDATE books SET author_id = '50a60e39-3090-487e-aea4-75b86a1cf76a' WHERE id = 'bbd45616-21c3-45aa-97a3-227beec7bd88' AND author_id = '5fd84779-8ac5-49f6-9524-0d7f1dcd4f33';
