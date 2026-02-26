@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Sparkles, Check, Upload, X, CloudUpload } from "lucide-react";
+import { Loader2, Sparkles, Check, Upload, X, CloudUpload, Download, ArrowRight } from "lucide-react";
 import PhotoCropModal from "./PhotoCropModal";
 
 interface AuthorProfile {
@@ -44,10 +44,15 @@ const EMPTY_PROFILE: AuthorProfile = {
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
-export default function ProfileEditor() {
+interface ProfileEditorProps {
+  onNavigate?: (section: string) => void;
+}
+
+export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [profileExists, setProfileExists] = useState(false);
   const [generatingBio, setGeneratingBio] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
@@ -80,6 +85,7 @@ export default function ProfileEditor() {
       if (error) console.error("Error fetching profile:", error.message);
       else if (data) {
         profileRowId = data.id;
+        setProfileExists(true);
         const loaded: AuthorProfile = {
           pen_name: data.pen_name || "", bio_short: data.bio_short || "",
           bio_long: data.bio_long || "", tagline: data.tagline || "",
@@ -270,6 +276,28 @@ export default function ProfileEditor() {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!profileExists) {
+    return (
+      <div className="max-w-xl mx-auto text-center py-16 space-y-6">
+        <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+          <Download className="h-8 w-8 text-primary" />
+        </div>
+        <div>
+          <h2 className="font-heading text-2xl font-bold">No Profile Yet</h2>
+          <p className="text-muted-foreground text-sm mt-2 max-w-md mx-auto">
+            Import your author profile first. Head to the Overview and click <strong>"Import Now"</strong> to pull your profile, bio, photo, and books automatically.
+          </p>
+        </div>
+        <Button
+          onClick={() => onNavigate?.("overview")}
+          className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
+        >
+          Go to Overview <ArrowRight className="ml-2 h-4 w-4" />
+        </Button>
       </div>
     );
   }

@@ -118,7 +118,7 @@ export default function AuthorDashboard() {
   const renderSection = () => {
     switch (activeSection) {
       case "profile":
-        return <ProfileEditor />;
+        return <ProfileEditor onNavigate={(s) => setActiveSection(s as DashboardSection)} />;
       case "courses":
         return <CourseBuilder />;
       case "speaking":
