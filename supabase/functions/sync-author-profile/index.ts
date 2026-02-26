@@ -45,12 +45,15 @@ function mapProfileToLocal(p: any): Record<string, any> {
 
   if (p.pen_name || p.profile_name) mapped.pen_name = p.pen_name || p.profile_name;
 
-  // Bio: prefer `bio` (new schema), fall back to `short_bio` (old schema)
-  const bio = p.bio || p.short_bio;
-  if (bio) {
-    mapped.bio_short = bio;
-    mapped.bio_long = bio;
-  }
+  // Short bio: dedicated field from PublishNow
+  const shortBio = p.short_bio || p.bio_short;
+  if (shortBio) mapped.bio_short = shortBio;
+
+  // Full bio: prefer `bio` (full/long), fall back to `full_bio`, then `bio_long`
+  const fullBio = p.bio || p.full_bio || p.bio_long;
+  if (fullBio) mapped.bio_long = fullBio;
+
+  // If only one exists, don't cross-populate — keep them separate
 
   // Photo: prefer `profile_photo_url` (new), fall back to `profile_picture_url` (old)
   const photoUrl = p.profile_photo_url || p.profile_picture_url;
