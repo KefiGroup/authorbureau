@@ -101,7 +101,7 @@ export default function DynamicBookMicrosite() {
   }
 
   const badgeList = Array.isArray(book.badges) ? book.badges : [];
-
+  const isAmazonLink = book.amazon_url?.includes("amazon.com") || book.amazon_url?.includes("a.co");
   return (
     <div className="min-h-screen">
       <Navbar />
@@ -241,7 +241,7 @@ export default function DynamicBookMicrosite() {
                   <Button asChild className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 rounded-full font-semibold">
                     <a href={book.amazon_url} target="_blank" rel="noopener noreferrer">
                       <ExternalLink className="mr-2 h-4 w-4" />
-                      Buy on Amazon
+                      {isAmazonLink ? "Buy on Amazon" : "Get Your Copy"}
                     </a>
                   </Button>
                 )}
@@ -298,7 +298,7 @@ export default function DynamicBookMicrosite() {
               <div className="rounded-lg bg-gradient-to-r from-secondary/10 to-secondary/5 border border-secondary/20 p-8 text-center">
                 <h3 className="font-heading text-xl font-bold mb-3">Ready to Read?</h3>
                 <p className="text-muted-foreground mb-6">
-                  Discover why readers love this book. Available on Amazon in multiple formats.
+                  {isAmazonLink ? "Discover why readers love this book. Available on Amazon in multiple formats." : "Discover why readers love this book. Get your copy today."}
                 </p>
                 {book.amazon_url && (
                   <Button asChild className="bg-secondary text-secondary-foreground hover:bg-secondary/90 rounded-full font-semibold">
