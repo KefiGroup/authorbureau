@@ -193,11 +193,11 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
       icon: Eye,
       label: "Review Your Profile",
       description: profileStatus === "pending"
-        ? "First, sync your profile from PublishNow using the button above. This imports your author identity, bio, and photo to the Authors Bureau."
+        ? "Create your author profile on PublishNow first, then come back and click 'Sync Profile' to import it here."
         : "Your profile has been synced from PublishNow. To make changes, edit on PublishNow and sync again.",
       step: "Step 1",
-      actionLabel: profileStatus === "pending" ? "Sync Now" : "View Profile",
-      target: profileStatus === "pending" ? "__sync" : "profile",
+      actionLabel: profileStatus === "pending" ? "Create on PublishNow" : "View Profile",
+      target: profileStatus === "pending" ? "__create" : "profile",
       status: profileStatus,
     },
     {
@@ -321,14 +321,30 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
 
         {/* Contextual banner for new users */}
         {profileStatus === "pending" && !stateLoading && (
-          <div className="mb-4 rounded-xl border border-secondary/30 bg-secondary/5 p-4 flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-secondary mt-0.5 shrink-0" />
-            <div>
-              <p className="text-sm font-semibold text-foreground">Welcome! Let's get you set up.</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Click <strong>"Sync Profile"</strong> above to import your author profile from PublishNow. 
-                If you don't have a PublishNow account yet, <a href="https://publishnow.io" target="_blank" rel="noopener noreferrer" className="text-secondary underline hover:no-underline">create one here</a> first.
-              </p>
+          <div className="mb-4 rounded-xl border border-secondary/30 bg-secondary/5 p-5 flex flex-col gap-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-secondary mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-foreground">Welcome! You're brand new — here's how to get started.</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  To join the Authors Directory, you'll first need to create your author profile on our partner platform <strong>PublishNow</strong>. Once that's done, come back here and sync it.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 ml-8">
+              <Button
+                asChild
+                className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
+              >
+                <a href="https://publishnow.io" target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Step A: Create Profile on PublishNow
+                </a>
+              </Button>
+              <Button variant="outline" onClick={handleSyncFromPublishNow} disabled={syncLoading}>
+                {syncLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                Step B: Sync Profile Here
+              </Button>
             </div>
           </div>
         )}
@@ -341,7 +357,9 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
                 key={f.label}
                 type="button"
                 onClick={() => {
-                  if (f.target === "__sync") {
+                  if (f.target === "__create") {
+                    window.open("https://publishnow.io", "_blank");
+                  } else if (f.target === "__sync") {
                     handleSyncFromPublishNow();
                   } else {
                     onNavigate?.(f.target);
