@@ -10,49 +10,102 @@ const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
 const SHARED_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnRkcG5la3NjcnNnaHF0c3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MDYzODksImV4cCI6MjA4NDQ4MjM4OX0.o2qA4tLao4UtxPGxSnavXIYKUmVZvS99pHtnL220L-s";
 
+function generateSlug(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .slice(0, 50);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const authHeader = req.headers.get("authorization") ?? "";
-    const token = authHeader.replace("Bearer ", "");
-    if (!token) {
-      return new Response(JSON.stringify({ error: "No auth token" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Try shared backend first (primary auth), then Cloud
     const cloudAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    const body = await req.json();
+
     let userId: string;
-    const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
-    const { data: { user: sharedUser }, error: sharedErr } = await sharedClient.auth.getUser(token);
-    if (sharedUser) {
-      userId = sharedUser.id;
-    } else {
-      const { data: { user: cloudUser } } = await cloudAdmin.auth.getUser(token);
-      if (!cloudUser) {
-        return new Response(JSON.stringify({ error: "Invalid session" }), {
+    let bookData: any;
+    let isPlatformPush = false;
+
+    // ─── Auth path: platform_secret (cross-platform push) ───
+    if (body.platform_secret) {
+      isPlatformPush = true;
+      const expectedSecret = Deno.env.get("CROSS_PLATFORM_SECRET");
+      if (!expectedSecret || body.platform_secret !== expectedSecret) {
+        return new Response(JSON.stringify({ error: "Invalid platform secret" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (!body.email) {
+        return new Response(JSON.stringify({ error: "Email required for cross-platform push" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Resolve user by email from shared backend
+      const sharedServiceKey = Deno.env.get("SHARED_BACKEND_SERVICE_ROLE_KEY");
+      const sharedAdmin = createClient(SHARED_BACKEND_URL, sharedServiceKey || SHARED_ANON_KEY);
+
+      // Use admin API to look up user by email
+      const { data: userList, error: listErr } = await sharedAdmin.auth.admin.listUsers();
+      const matchedUser = userList?.users?.find(
+        (u: any) => u.email?.toLowerCase() === body.email.toLowerCase()
+      );
+
+      if (!matchedUser) {
+        return new Response(JSON.stringify({ error: "User not found for email: " + body.email }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      userId = matchedUser.id;
+      bookData = body.book || body;
+    }
+    // ─── Auth path: JWT (existing flow, unchanged) ───
+    else {
+      const authHeader = req.headers.get("authorization") ?? "";
+      const token = authHeader.replace("Bearer ", "");
+      if (!token) {
+        return new Response(JSON.stringify({ error: "No auth token" }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      userId = cloudUser.id;
+
+      const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
+      const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
+      if (sharedUser) {
+        userId = sharedUser.id;
+      } else {
+        const { data: { user: cloudUser } } = await cloudAdmin.auth.getUser(token);
+        if (!cloudUser) {
+          return new Response(JSON.stringify({ error: "Invalid session" }), {
+            status: 401,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        userId = cloudUser.id;
+      }
+
+      bookData = body;
     }
 
-    const body = await req.json();
-
-    // 2. Read author data from Cloud's local author_profiles (synced earlier)
-    let authorName = body.authorName || null;
-    let authorBio = body.authorBio || null;
-    let authorPhotoUrl = body.authorPhotoUrl || null;
+    // ─── Resolve author metadata ───
+    let authorName = bookData.authorName || bookData.author_name || null;
+    let authorBio = bookData.authorBio || bookData.author_bio || null;
+    let authorPhotoUrl = bookData.authorPhotoUrl || bookData.author_photo_url || null;
 
     const { data: localProfile } = await cloudAdmin
       .from("author_profiles")
@@ -66,66 +119,102 @@ serve(async (req) => {
       if (!authorPhotoUrl && localProfile.photo_url) authorPhotoUrl = localProfile.photo_url;
     }
 
-    // Fallback: get author name from shared backend user metadata or email
+    // Fallback: shared backend user metadata
     if (!authorName) {
       const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
-      const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
-      if (sharedUser) {
-        const meta = sharedUser.user_metadata || {};
-        authorName = meta.pen_name || meta.display_name || meta.full_name || meta.name || null;
-        if (!authorName && sharedUser.email) {
-          authorName = sharedUser.email.split("@")[0];
+      const sharedServiceKey = Deno.env.get("SHARED_BACKEND_SERVICE_ROLE_KEY");
+      const lookupClient = sharedServiceKey
+        ? createClient(SHARED_BACKEND_URL, sharedServiceKey)
+        : sharedClient;
+
+      try {
+        const { data: { user: metaUser } } = isPlatformPush
+          ? await lookupClient.auth.admin.getUserById(userId)
+          : await sharedClient.auth.getUser(req.headers.get("authorization")?.replace("Bearer ", "") || "");
+
+        if (metaUser) {
+          const meta = metaUser.user_metadata || {};
+          authorName = meta.pen_name || meta.display_name || meta.full_name || meta.name || null;
+          if (!authorName && metaUser.email) authorName = metaUser.email.split("@")[0];
+          if (!authorBio) authorBio = meta.bio_short || meta.bio || null;
+          if (!authorPhotoUrl) authorPhotoUrl = meta.photo_url || meta.avatar_url || null;
         }
-        if (!authorBio) authorBio = meta.bio_short || meta.bio || null;
-        if (!authorPhotoUrl) authorPhotoUrl = meta.photo_url || meta.avatar_url || null;
-      }
+      } catch (_) { /* non-fatal */ }
     }
 
-    // 3. Generate slug
-    const slug = body.title
-      .toLowerCase()
-      .replace(/[^\w\s-]/g, "")
-      .replace(/\s+/g, "-")
-      .slice(0, 50);
+    // ─── Generate slug ───
+    const title = bookData.title;
+    if (!title) {
+      return new Response(JSON.stringify({ error: "Title is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    // 4. Check for duplicate slug
+    let slug = generateSlug(title);
+
+    // ─── Duplicate slug handling ───
     const { data: existing } = await cloudAdmin
       .from("books")
-      .select("id")
+      .select("id, author_id")
       .eq("slug", slug)
       .maybeSingle();
 
     if (existing) {
-      return new Response(
-        JSON.stringify({ error: "A book with this title already exists" }),
-        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      if (isPlatformPush && existing.author_id === userId) {
+        // Idempotent: return existing book
+        return new Response(
+          JSON.stringify({ id: existing.id, slug, existing: true }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } else if (isPlatformPush) {
+        // Different author, append suffix
+        let suffix = 2;
+        while (true) {
+          const candidate = `${slug}-${suffix}`;
+          const { data: check } = await cloudAdmin.from("books").select("id").eq("slug", candidate).maybeSingle();
+          if (!check) { slug = candidate; break; }
+          suffix++;
+          if (suffix > 20) { slug = `${slug}-${Date.now()}`; break; }
+        }
+      } else {
+        // JWT auth: reject duplicate
+        return new Response(
+          JSON.stringify({ error: "A book with this title already exists" }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
-    // 5. Insert book
+    // ─── Determine entry_mode and auto_publish ───
+    const entryMode = bookData.entry_mode || (isPlatformPush ? "publishnow" : "manual");
+    const autoPublish = bookData.auto_publish === true;
+
+    // ─── Insert book ───
     const { data: newBook, error: insertError } = await cloudAdmin
       .from("books")
       .insert({
         author_id: userId,
-        title: body.title,
-        subtitle: body.subtitle || null,
-        description: body.description,
+        title: bookData.title,
+        subtitle: bookData.subtitle || null,
+        description: bookData.description || null,
         slug,
-        pages: body.pages || null,
-        rating: body.rating || null,
-        genre: body.genre || null,
-        badges: body.badges || [],
-        price: body.price || null,
-        currency: body.currency || "USD",
-        kindle_price: body.kindlePrice || null,
-        paperback_price: body.paperbackPrice || null,
-        amazon_url: body.amazonUrl,
+        pages: bookData.pages || null,
+        rating: bookData.rating || null,
+        genre: bookData.genre || null,
+        badges: bookData.badges || [],
+        price: bookData.price || null,
+        currency: bookData.currency || "USD",
+        kindle_price: bookData.kindlePrice || bookData.kindle_price || null,
+        paperback_price: bookData.paperbackPrice || bookData.paperback_price || null,
+        amazon_url: bookData.amazonUrl || bookData.amazon_url || "",
         author_name: authorName,
         author_bio: authorBio,
         author_photo_url: authorPhotoUrl,
-        cover_image_url: body.coverImageUrl || null,
-        entry_mode: "manual",
+        cover_image_url: bookData.coverImageUrl || bookData.cover_image_url || null,
+        entry_mode: entryMode,
         ai_enriched: false,
+        published_at: autoPublish ? new Date().toISOString() : null,
       })
       .select("id")
       .single();

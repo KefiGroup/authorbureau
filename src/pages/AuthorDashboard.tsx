@@ -1,4 +1,4 @@
-import { Navigate, useSearchParams } from "react-router-dom";
+import { Navigate, useSearchParams, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlatformAccess } from "@/hooks/usePlatformAccess";
 import { useToast } from "@/hooks/use-toast";
@@ -17,11 +17,14 @@ import { Loader2, ShieldCheck, CheckCircle2 } from "lucide-react";
 
 export type DashboardSection = "overview" | "profile" | "courses" | "speaking" | "coaching" | "ai-toolkit" | "my-books";
 
-export default function AuthorDashboard() {
+export default function AuthorDashboard({ initialSection }: { initialSection?: DashboardSection }) {
   const { user, loading, isAdmin, isPremium, subscription, checkSubscription, signOut } = useAuth();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
-  const [activeSection, setActiveSection] = useState<DashboardSection>("overview");
+  const location = useLocation();
+  const [activeSection, setActiveSection] = useState<DashboardSection>(
+    initialSection || (location.pathname === "/my-books" ? "my-books" : "overview")
+  );
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { hasMarketing, loading: accessLoading, requestAccess, requesting, requested } = usePlatformAccess();
 

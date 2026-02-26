@@ -60,6 +60,7 @@ const AppRoutes = () => (
       <Route path="/admin-login" element={<AdminAuth />} />
       <Route path="/admin" element={<AdminDashboard />} />
       <Route path="/dashboard" element={<AuthorDashboard />} />
+      <Route path="/my-books" element={<AuthorDashboard initialSection="my-books" />} />
       <Route path="/contact" element={<Contact />} />
       <Route path="/sso" element={<SSO />} />
       <Route path="*" element={<NotFound />} />
