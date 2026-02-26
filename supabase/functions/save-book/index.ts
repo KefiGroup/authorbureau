@@ -145,7 +145,7 @@ serve(async (req) => {
 
     if (localProfile) {
       if (!authorName && localProfile.pen_name) authorName = localProfile.pen_name;
-      if (!authorBio && (localProfile.bio_short || localProfile.bio_long)) authorBio = localProfile.bio_short || localProfile.bio_long;
+      if (!authorBio && (localProfile.bio_long || localProfile.bio_short)) authorBio = localProfile.bio_long || localProfile.bio_short;
       if (!authorPhotoUrl && localProfile.photo_url) authorPhotoUrl = localProfile.photo_url;
     }
 
