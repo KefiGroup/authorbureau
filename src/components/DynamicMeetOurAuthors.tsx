@@ -180,7 +180,7 @@ export default function DynamicMeetOurAuthors() {
                         <img
                           src={author.photo_url}
                           alt={author.name}
-                          className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                          className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-muted/50">
