@@ -38,7 +38,15 @@ async function authFetch(body: Record<string, unknown>) {
     body: JSON.stringify({ ...body, source_platform: "authorsbureau" }),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(friendlyError(res.status, data?.error || data?.message));
+  if (!res.ok) {
+    // If backend returns a redirect URL even on error responses, follow it
+    if (data?.authUrl) {
+      console.log("[Auth] authFetch: error response contained authUrl, redirecting:", data.authUrl);
+      window.location.href = data.authUrl;
+      return data;
+    }
+    throw new Error(friendlyError(res.status, data?.error || data?.message));
+  }
   return data;
 }
 
