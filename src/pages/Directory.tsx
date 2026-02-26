@@ -212,7 +212,7 @@ export default function Directory() {
                             </h3>
                             <BadgeDisplay level={author.badge} size="sm" showLabel={false} />
                           </div>
-                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{author.title}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{author.title}</p>
                         </div>
                       </div>
 
