@@ -52,7 +52,22 @@ export default function AdminDashboard() {
 
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
-    try { setStats(await adminApi.stats()); } catch { toast({ title: "Failed to load stats", variant: "destructive" }); }
+    try {
+      // Fetch stats from local Cloud database
+      const [booksRes, authorsRes, adminsRes] = await Promise.all([
+        supabase.from("books").select("id", { count: "exact", head: true }),
+        supabase.from("author_profiles").select("id", { count: "exact", head: true }),
+        supabase.from("user_roles").select("id", { count: "exact", head: true }).eq("role", "admin"),
+      ]);
+      setStats({
+        total_users: (authorsRes.count ?? 0),
+        total_books: (booksRes.count ?? 0),
+        total_admins: (adminsRes.count ?? 0),
+        total_submissions: 0,
+        pending_submissions: 0,
+        recent_submissions: [],
+      });
+    } catch { toast({ title: "Failed to load stats", variant: "destructive" }); }
     setStatsLoading(false);
   }, []);
 
