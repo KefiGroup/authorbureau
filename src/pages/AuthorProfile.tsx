@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { ExternalLink, Mail, Linkedin, BookOpen, ArrowLeft, Mic, GraduationCap, Globe, Award, Loader2 } from "lucide-react";
 import { getAuthorBySlug } from "@/data/authors";
 import type { Book as StaticBook } from "@/data/authors";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import BadgeDisplay from "@/components/BadgeDisplay";
@@ -52,6 +53,7 @@ export default function AuthorProfile() {
   const { slug } = useParams<{ slug: string }>();
   const staticAuthor = getAuthorBySlug(slug || "");
   const [dynamicAuthor, setDynamicAuthor] = useState<DynamicAuthor | null>(null);
+  const [dbBooks, setDbBooks] = useState<StaticBook[] | null>(null);
   const [isLoading, setIsLoading] = useState(!staticAuthor);
   const [inquiryOpen, setInquiryOpen] = useState(false);
   const [selectedService, setSelectedService] = useState("");
@@ -88,6 +90,41 @@ export default function AuthorProfile() {
     fetchDynamic();
   }, [slug, staticAuthor]);
 
+  // For static authors, also fetch their books from DB to get latest edits
+  useEffect(() => {
+    if (!staticAuthor) return;
+    const slugs = staticAuthor.books.map((b) => b.slug);
+    if (slugs.length === 0) return;
+
+    supabase
+      .from("books")
+      .select("*")
+      .in("slug", slugs)
+      .not("published_at", "is", null)
+      .then(({ data }) => {
+        if (!data || data.length === 0) return;
+        const merged: StaticBook[] = staticAuthor.books.map((sb) => {
+          const db = data.find((d) => d.slug === sb.slug);
+          if (!db) return sb;
+          return {
+            ...sb,
+            title: db.title || sb.title,
+            subtitle: db.subtitle || sb.subtitle,
+            description: db.description || sb.description,
+            kindlePrice: db.kindle_price || sb.kindlePrice,
+            paperbackPrice: db.paperback_price || sb.paperbackPrice,
+            price: db.price || sb.price,
+            pages: db.pages || sb.pages,
+            rating: db.rating ? Number(db.rating) : sb.rating,
+            badges: db.badges && db.badges.length > 0 ? db.badges : sb.badges,
+            genre: db.genre || sb.genre,
+            amazonUrl: db.amazon_url || sb.amazonUrl,
+          };
+        });
+        setDbBooks(merged);
+      });
+  }, [staticAuthor]);
+
   // Resolve which author to render
   const author = staticAuthor
     ? {
@@ -101,7 +138,7 @@ export default function AuthorProfile() {
         genres: staticAuthor.genres,
         badge: staticAuthor.badge,
         services: staticAuthor.services,
-        books: staticAuthor.books,
+        books: dbBooks || staticAuthor.books,
         websiteUrl: staticAuthor.websiteUrl,
         linkedinUrl: staticAuthor.linkedinUrl,
         amazonAuthorUrl: staticAuthor.amazonAuthorUrl,
