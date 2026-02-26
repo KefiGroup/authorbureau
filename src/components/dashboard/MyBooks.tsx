@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { BookOpen, Plus, ExternalLink, Loader2, ImagePlus, EyeOff, Clock } from "lucide-react";
+import { BookOpen, Plus, ExternalLink, Loader2, ImagePlus, EyeOff, Clock, Pencil } from "lucide-react";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import DualModeBookForm from "@/components/DualModeBookForm";
@@ -24,6 +24,14 @@ interface Book {
   rating: number | null;
   badges: string[] | null;
   created_at: string;
+  description?: string | null;
+  pages?: number | null;
+  price?: string | null;
+  currency?: string | null;
+  kindle_price?: string | null;
+  paperback_price?: string | null;
+  amazon_url?: string | null;
+  bestseller_proof_url?: string | null;
 }
 
 async function getActiveToken(): Promise<string | null> {
@@ -39,6 +47,7 @@ export default function MyBooks() {
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingBook, setEditingBook] = useState<Book | null>(null);
   const [uploadingCover, setUploadingCover] = useState<string | null>(null);
   const [unpublishing, setUnpublishing] = useState<string | null>(null);
 
@@ -136,13 +145,54 @@ export default function MyBooks() {
     }
   };
 
+  const handleEdit = async (book: Book) => {
+    // Fetch full book data
+    try {
+      const token = await getActiveToken();
+      if (!token) return;
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ action: "get", bookId: book.id }),
+        }
+      );
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+      setEditingBook(result.book);
+      setShowForm(true);
+    } catch (err) {
+      toast({ title: "Failed to load book data", variant: "destructive" });
+    }
+  };
+
   if (showForm && user) {
+    const initialData = editingBook ? {
+      title: editingBook.title || "",
+      subtitle: editingBook.subtitle || "",
+      description: editingBook.description || "",
+      pages: editingBook.pages || null,
+      rating: editingBook.rating || null,
+      genre: editingBook.genre || "",
+      badges: editingBook.badges || [],
+      price: editingBook.price || "",
+      currency: editingBook.currency || "USD",
+      kindlePrice: editingBook.kindle_price || "",
+      paperbackPrice: editingBook.paperback_price || "",
+      coverImageUrl: editingBook.cover_image_url || "",
+      amazonUrl: editingBook.amazon_url || "",
+      bestsellerProofUrl: editingBook.bestseller_proof_url || "",
+    } : undefined;
+
     return (
       <div className="max-w-3xl">
         <DualModeBookForm
           authorId={user.id}
-          onSuccess={() => { setShowForm(false); fetchBooks(); }}
-          onCancel={() => setShowForm(false)}
+          editBookId={editingBook?.id}
+          initialData={initialData}
+          onSuccess={() => { setShowForm(false); setEditingBook(null); fetchBooks(); }}
+          onCancel={() => { setShowForm(false); setEditingBook(null); }}
         />
       </div>
     );
@@ -259,40 +309,50 @@ export default function MyBooks() {
                     )}
                   </div>
 
-                  {book.published_at && (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          size="icon" variant="ghost"
-                          className="h-7 w-7 text-muted-foreground hover:text-orange-600"
-                          disabled={unpublishing === book.id}
-                        >
-                          {unpublishing === book.id ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <EyeOff className="h-3.5 w-3.5" />
-                          )}
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Take down this microsite?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This will unpublish the microsite for "{book.title}". The book will remain in your dashboard and can be re-approved later.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            className="bg-orange-600 text-white hover:bg-orange-700"
-                            onClick={() => handleUnpublish(book.id)}
+                  <div className="flex items-center gap-1">
+                    <Button
+                      size="icon" variant="ghost"
+                      className="h-7 w-7 text-muted-foreground hover:text-secondary"
+                      onClick={() => handleEdit(book)}
+                      title="Edit book"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    {book.published_at && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            size="icon" variant="ghost"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            disabled={unpublishing === book.id}
                           >
-                            Unpublish
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  )}
+                            {unpublishing === book.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <EyeOff className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Take down this microsite?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will unpublish the microsite for "{book.title}". The book will remain in your dashboard and can be re-approved later.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              onClick={() => handleUnpublish(book.id)}
+                            >
+                              Unpublish
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                  </div>
                 </div>
               </div>
             </Card>

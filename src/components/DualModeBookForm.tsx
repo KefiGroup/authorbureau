@@ -32,12 +32,16 @@ interface BookFormData {
 
 interface DualModeBookFormProps {
   authorId: string;
+  editBookId?: string;
+  initialData?: Partial<BookFormData>;
   onSuccess?: (bookId: string) => void;
   onCancel?: () => void;
 }
 
 export default function DualModeBookForm({
   authorId,
+  editBookId,
+  initialData,
   onSuccess,
   onCancel,
 }: DualModeBookFormProps) {
@@ -45,23 +49,23 @@ export default function DualModeBookForm({
   
   const [isLoading, setIsLoading] = useState(false);
   const [form, setForm] = useState<BookFormData>({
-    title: "",
-    subtitle: "",
-    description: "",
-    pages: null,
-    rating: null,
-    genre: "",
-    badges: [],
-    price: "",
-    currency: "USD",
-    kindlePrice: "",
-    paperbackPrice: "",
-    coverImageUrl: "",
-    amazonUrl: "",
-    authorName: "",
-    authorBio: "",
-    authorPhotoUrl: "",
-    bestsellerProofUrl: "",
+    title: initialData?.title || "",
+    subtitle: initialData?.subtitle || "",
+    description: initialData?.description || "",
+    pages: initialData?.pages || null,
+    rating: initialData?.rating || null,
+    genre: initialData?.genre || "",
+    badges: initialData?.badges || [],
+    price: initialData?.price || "",
+    currency: initialData?.currency || "USD",
+    kindlePrice: initialData?.kindlePrice || "",
+    paperbackPrice: initialData?.paperbackPrice || "",
+    coverImageUrl: initialData?.coverImageUrl || "",
+    amazonUrl: initialData?.amazonUrl || "",
+    authorName: initialData?.authorName || "",
+    authorBio: initialData?.authorBio || "",
+    authorPhotoUrl: initialData?.authorPhotoUrl || "",
+    bestsellerProofUrl: initialData?.bestsellerProofUrl || "",
   });
 
   // Auto-fill author fields from Cloud's local author_profiles (synced from PublishNow)
@@ -187,36 +191,55 @@ export default function DualModeBookForm({
         return;
       }
 
-      // Call edge function which handles save with service role
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/save-book`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            title: form.title,
-            subtitle: form.subtitle,
-            description: form.description,
-            pages: form.pages,
-            rating: form.rating,
-            genre: form.genre,
-            badges: form.badges,
-            price: form.price,
-            currency: form.currency,
-            kindlePrice: form.kindlePrice,
-            paperbackPrice: form.paperbackPrice,
-            amazonUrl: form.amazonUrl,
-            authorName: form.authorName,
-            authorBio: form.authorBio,
-            authorPhotoUrl: form.authorPhotoUrl,
-            coverImageUrl: form.coverImageUrl,
-            bestsellerProofUrl: form.bestsellerProofUrl,
-          }),
-        }
-      );
+      const bookPayload = {
+        title: form.title,
+        subtitle: form.subtitle,
+        description: form.description,
+        pages: form.pages,
+        rating: form.rating,
+        genre: form.genre,
+        badges: form.badges,
+        price: form.price,
+        currency: form.currency,
+        kindlePrice: form.kindlePrice,
+        paperbackPrice: form.paperbackPrice,
+        amazonUrl: form.amazonUrl,
+        authorName: form.authorName,
+        authorBio: form.authorBio,
+        authorPhotoUrl: form.authorPhotoUrl,
+        coverImageUrl: form.coverImageUrl,
+        bestsellerProofUrl: form.bestsellerProofUrl,
+      };
+
+      let response: Response;
+
+      if (editBookId) {
+        // Update existing book
+        response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ action: "update", bookId: editBookId, ...bookPayload }),
+          }
+        );
+      } else {
+        // Create new book
+        response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/save-book`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify(bookPayload),
+          }
+        );
+      }
 
       const result = await response.json();
       if (!response.ok) {
@@ -224,8 +247,8 @@ export default function DualModeBookForm({
       }
 
       toast({
-        title: "Book saved successfully!",
-        description: "Your microsite is now live.",
+        title: editBookId ? "Book updated!" : "Book saved successfully!",
+        description: editBookId ? "Your changes have been saved." : "Your book is pending admin review.",
       });
 
       onSuccess?.(result.id);
@@ -244,7 +267,7 @@ export default function DualModeBookForm({
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
       <Card className="p-8">
-        <h2 className="font-heading text-2xl font-bold mb-6">Add Your Book</h2>
+        <h2 className="font-heading text-2xl font-bold mb-6">{editBookId ? "Edit Book" : "Add Your Book"}</h2>
 
         <Alert className="mb-6">
           <AlertCircle className="h-4 w-4" />
@@ -548,7 +571,7 @@ export default function DualModeBookForm({
                   Saving...
                 </>
               ) : (
-                "Save Book"
+                editBookId ? "Update Book" : "Save Book"
               )}
             </Button>
             <Button onClick={onCancel} variant="outline" disabled={isLoading}>
