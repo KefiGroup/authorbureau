@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
 
       if (profile) {
         if (!book.author_name && profile.pen_name) book.author_name = profile.pen_name;
-        if (!book.author_bio) book.author_bio = profile.bio_short || profile.bio_long || null;
+        if (!book.author_bio) book.author_bio = profile.bio_long || profile.bio_short || null;
         if (!book.author_photo_url && profile.photo_url) book.author_photo_url = profile.photo_url;
 
         // Backfill so this doesn't happen again
