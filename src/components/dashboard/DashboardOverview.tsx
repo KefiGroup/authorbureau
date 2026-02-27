@@ -14,6 +14,7 @@ import {
   AlertCircle, Circle, AlertTriangle,
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import BadgeDisplay, { type BadgeLevel } from "@/components/BadgeDisplay";
 
 interface DashboardOverviewProps {
   onNavigate?: (section: string) => void;
@@ -32,6 +33,7 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
   const [profileStatus, setProfileStatus] = useState<StepStatus>("pending");
   const [directoryStatus, setDirectoryStatus] = useState<StepStatus>("pending");
   const [booksStatus, setBooksStatus] = useState<StepStatus>("pending");
+  const [actualDirectoryStatus, setActualDirectoryStatus] = useState<string>("unlisted");
   const [bookCount, setBookCount] = useState(0);
   const [stateLoading, setStateLoading] = useState(true);
   const [missingFields, setMissingFields] = useState<string[]>([]);
@@ -81,6 +83,7 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
       if (!isComplete && !popupDismissed) setShowIncompleteDialog(true);
 
       const approvedStatuses = ["listed", "verified", "featured"];
+      setActualDirectoryStatus(profile.directory_status || "unlisted");
       setDirectoryStatus(approvedStatuses.includes(profile.directory_status) ? "done" : "in-progress");
     } else {
       setProfileStatus("pending");
@@ -238,16 +241,17 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
     },
     {
       icon: Clock,
-      label: "Await Directory Approval",
+      label: directoryStatus === "done" ? "Directory Approved" : "Await Directory Approval",
       description: directoryStatus === "done"
-        ? "You're approved and listed in the public Authors Directory!"
+        ? "You're approved and visible in the public Authors Directory!"
         : profileStatus === "pending"
         ? "Once you sync your profile, our team will review it for the Authors Directory."
         : "Our team is reviewing your profile. Once approved, you'll appear in the public Authors Directory alongside other featured authors.",
       step: "Step 2",
-      actionLabel: "Check Status",
-      target: "profile",
+      actionLabel: directoryStatus === "done" ? "View Directory" : "Check Status",
+      target: directoryStatus === "done" ? "__directory" : "profile",
       status: directoryStatus,
+      badge: directoryStatus === "done" ? actualDirectoryStatus as BadgeLevel : undefined,
     },
     {
       icon: BookOpen,
@@ -397,6 +401,8 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
                     handleGoToPublishNow();
                   } else if (f.target === "__sync") {
                     handleSyncFromPublishNow();
+                  } else if (f.target === "__directory") {
+                    window.open("/directory", "_blank");
                   } else {
                     onNavigate?.(f.target);
                   }
@@ -426,6 +432,11 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground">{f.description}</p>
+                {(f as any).badge && (
+                  <div className="mt-2">
+                    <BadgeDisplay level={(f as any).badge} size="sm" />
+                  </div>
+                )}
                 <div className="flex items-center justify-between mt-3">
                   {!stateLoading && stepStatusLabel(f.status, f.label)}
                   <span className={`inline-flex items-center gap-1 text-xs font-semibold transition-opacity ${

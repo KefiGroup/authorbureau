@@ -184,8 +184,14 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
     );
   }
 
-  const statusLabel = profile.directory_status === "listed" ? "Listed" : profile.directory_status === "pending" ? "Pending Review" : "Unlisted";
-  const statusColor = profile.directory_status === "listed" ? "bg-emerald-100 text-emerald-800" : profile.directory_status === "pending" ? "bg-amber-100 text-amber-800" : "bg-muted text-muted-foreground";
+  const approvedStatuses = ["listed", "verified", "featured"];
+  const isApproved = approvedStatuses.includes(profile.directory_status);
+  const statusLabel = isApproved
+    ? profile.directory_status.charAt(0).toUpperCase() + profile.directory_status.slice(1)
+    : profile.directory_status === "unlisted" ? "Awaiting Approval" : "Unlisted";
+  const statusColor = isApproved
+    ? profile.directory_status === "featured" ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"
+    : "bg-muted text-muted-foreground";
 
   const socialLinks = [
     { url: profile.website_url, icon: Globe, label: "Website" },
