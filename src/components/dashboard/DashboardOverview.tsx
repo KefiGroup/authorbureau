@@ -1,6 +1,6 @@
 import { useAuth, TIERS } from "@/hooks/useAuth";
 import { supabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
-import { supabase as cloudSupabase } from "@/integrations/supabase/client";
+
 import { redirectToPublishNow } from "@/lib/publishnow-redirect";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -47,7 +47,7 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
       try {
         // Check author profile
         console.log("[Dashboard] Checking profile for user:", user.id, user.email);
-        const { data: profile, error: profileErr } = await cloudSupabase
+        const { data: profile, error: profileErr } = await supabase
           .from("author_profiles")
           .select("directory_status, pen_name, bio_short, bio_long, photo_url, tagline, genres")
           .eq("user_id", user.id)
@@ -94,13 +94,13 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
 
         // Check books — dual ownership: author_id OR owner_email
         const email = user.email || "";
-        const { data: booksByAuthor, error: booksErr } = await cloudSupabase
+        const { data: booksByAuthor, error: booksErr } = await supabase
           .from("books")
           .select("id")
           .eq("author_id", user.id);
         console.log("[Dashboard] Books by author_id:", booksByAuthor, "Error:", booksErr);
         const { data: booksByEmail } = email
-          ? await cloudSupabase
+          ? await supabase
               .from("books")
               .select("id")
               .eq("owner_email", email)
@@ -160,7 +160,7 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
 
       // Re-fetch state after sync
       if (user) {
-        const { data: profile } = await cloudSupabase
+        const { data: profile } = await supabase
           .from("author_profiles")
           .select("directory_status")
           .eq("user_id", user.id)
@@ -170,9 +170,9 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
           setDirectoryStatus(profile.directory_status === "listed" ? "done" : "in-progress");
         }
         const userEmail = user.email || "";
-        const { data: bA } = await cloudSupabase.from("books").select("id").eq("author_id", user.id);
+        const { data: bA } = await supabase.from("books").select("id").eq("author_id", user.id);
         const { data: bE } = userEmail
-          ? await cloudSupabase.from("books").select("id").eq("owner_email", userEmail).neq("author_id", user.id)
+          ? await supabase.from("books").select("id").eq("owner_email", userEmail).neq("author_id", user.id)
           : { data: [] };
         const ids = new Set([...(bA || []).map((b: any) => b.id), ...(bE || []).map((b: any) => b.id)]);
         const count = ids.size;
