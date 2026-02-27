@@ -10,30 +10,25 @@ const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
 const SHARED_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnRkcG5la3NjcnNnaHF0c3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MDYzODksImV4cCI6MjA4NDQ4MjM4OX0.o2qA4tLao4UtxPGxSnavXIYKUmVZvS99pHtnL220L-s";
 
-async function lookupUserByEmail(
-  sharedUrl: string,
-  serviceRoleKey: string,
+async function resolveUserViaSharedProfile(
+  platformSecret: string,
   email: string
-): Promise<{ id: string; email: string; user_metadata?: any } | null> {
+): Promise<{ userId: string; profile: any } | null> {
   const res = await fetch(
-    `${sharedUrl}/auth/v1/admin/users?filter=${encodeURIComponent(email)}`,
+    `${SHARED_BACKEND_URL}/functions/v1/pull-shared-profile`,
     {
-      headers: {
-        Authorization: `Bearer ${serviceRoleKey}`,
-        apikey: serviceRoleKey,
-      },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ platform_secret: platformSecret, email }),
     }
   );
   if (!res.ok) {
-    console.error("GoTrue lookup failed:", res.status, await res.text());
+    console.error("pull-shared-profile failed:", res.status, await res.text());
     return null;
   }
-  const { users } = await res.json();
-  return (
-    users?.find(
-      (u: any) => u.email?.toLowerCase() === email.toLowerCase()
-    ) ?? null
-  );
+  const data = await res.json();
+  if (!data.primary_profile) return null;
+  return { userId: data.primary_profile.user_id, profile: data.primary_profile };
 }
 
 function generateSlug(title: string): string {
@@ -60,6 +55,7 @@ serve(async (req) => {
     let userId: string;
     let bookData: any;
     let isPlatformPush = false;
+    let sharedProfile: any = null; // profile data from pull-shared-profile
 
     // ─── Auth path: platform_secret (cross-platform push) ───
     if (body.platform_secret) {
@@ -79,28 +75,21 @@ serve(async (req) => {
         });
       }
 
-      // Resolve user by email from shared backend
-      const sharedServiceKey = Deno.env.get("SHARED_BACKEND_SERVICE_ROLE_KEY");
-      if (!sharedServiceKey) {
-        return new Response(JSON.stringify({ error: "Missing SHARED_BACKEND_SERVICE_ROLE_KEY" }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      // Resolve user via pull-shared-profile endpoint
+      const resolved = await resolveUserViaSharedProfile(body.platform_secret, body.email);
 
-      const matchedUser = await lookupUserByEmail(SHARED_BACKEND_URL, sharedServiceKey, body.email);
-
-      if (!matchedUser) {
+      if (!resolved) {
         return new Response(JSON.stringify({ error: "User not found for email: " + body.email }), {
           status: 404,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      userId = matchedUser.id;
+      userId = resolved.userId;
+      sharedProfile = resolved.profile;
       bookData = body.book || body;
     }
-    // ─── Auth path: JWT (existing flow, unchanged) ───
+    // ─── Auth path: JWT (existing flow) ───
     else {
       const authHeader = req.headers.get("authorization") ?? "";
       const token = authHeader.replace("Bearer ", "");
@@ -123,8 +112,6 @@ serve(async (req) => {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        // Cloud-only user: check if there's an author_profiles record under
-        // a shared backend ID that we should use instead (dual-ID resolution)
         userId = cloudUser.id;
         const { data: profileForCloudUser } = await cloudAdmin
           .from("author_profiles")
@@ -132,19 +119,18 @@ serve(async (req) => {
           .eq("user_id", cloudUser.id)
           .maybeSingle();
         if (!profileForCloudUser && cloudUser.email) {
-          // No profile under Cloud ID — look for a profile whose shared backend
-          // user has the same email
-          const sharedServiceKey = Deno.env.get("SHARED_BACKEND_SERVICE_ROLE_KEY");
-          if (sharedServiceKey) {
-            const matchedShared = await lookupUserByEmail(SHARED_BACKEND_URL, sharedServiceKey, cloudUser.email!);
-            if (matchedShared) {
-              const { data: sharedProfile } = await cloudAdmin
+          // No profile under Cloud ID — resolve via pull-shared-profile
+          const crossSecret = Deno.env.get("CROSS_PLATFORM_SECRET");
+          if (crossSecret) {
+            const resolved = await resolveUserViaSharedProfile(crossSecret, cloudUser.email!);
+            if (resolved) {
+              const { data: sharedProfileRow } = await cloudAdmin
                 .from("author_profiles")
                 .select("user_id")
-                .eq("user_id", matchedShared.id)
+                .eq("user_id", resolved.userId)
                 .maybeSingle();
-              if (sharedProfile) {
-                userId = matchedShared.id;
+              if (sharedProfileRow) {
+                userId = resolved.userId;
                 console.log("Resolved Cloud user to shared backend ID:", userId);
               }
             }
@@ -160,6 +146,13 @@ serve(async (req) => {
     let authorBio = bookData.authorBio || bookData.author_bio || null;
     let authorPhotoUrl = bookData.authorPhotoUrl || bookData.author_photo_url || null;
 
+    // Use shared profile data if available (from platform push)
+    if (sharedProfile) {
+      if (!authorName && sharedProfile.pen_name) authorName = sharedProfile.pen_name;
+      if (!authorBio && (sharedProfile.bio_long || sharedProfile.bio_short)) authorBio = sharedProfile.bio_long || sharedProfile.bio_short;
+      if (!authorPhotoUrl && sharedProfile.photo_url) authorPhotoUrl = sharedProfile.photo_url;
+    }
+
     const { data: localProfile } = await cloudAdmin
       .from("author_profiles")
       .select("pen_name, bio_short, bio_long, photo_url")
@@ -172,19 +165,13 @@ serve(async (req) => {
       if (!authorPhotoUrl && localProfile.photo_url) authorPhotoUrl = localProfile.photo_url;
     }
 
-    // Fallback: shared backend user metadata
-    if (!authorName) {
+    // Fallback: shared backend user metadata (JWT path only)
+    if (!authorName && !isPlatformPush) {
       const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
-      const sharedServiceKey = Deno.env.get("SHARED_BACKEND_SERVICE_ROLE_KEY");
-      const lookupClient = sharedServiceKey
-        ? createClient(SHARED_BACKEND_URL, sharedServiceKey)
-        : sharedClient;
-
       try {
-        const { data: { user: metaUser } } = isPlatformPush
-          ? await lookupClient.auth.admin.getUserById(userId)
-          : await sharedClient.auth.getUser(req.headers.get("authorization")?.replace("Bearer ", "") || "");
-
+        const { data: { user: metaUser } } = await sharedClient.auth.getUser(
+          req.headers.get("authorization")?.replace("Bearer ", "") || ""
+        );
         if (metaUser) {
           const meta = metaUser.user_metadata || {};
           authorName = meta.pen_name || meta.display_name || meta.full_name || meta.name || null;
@@ -215,13 +202,11 @@ serve(async (req) => {
 
     if (existing) {
       if (isPlatformPush && existing.author_id === userId) {
-        // Idempotent: return existing book
         return new Response(
           JSON.stringify({ id: existing.id, slug, existing: true }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       } else if (isPlatformPush) {
-        // Different author, append suffix
         let suffix = 2;
         while (true) {
           const candidate = `${slug}-${suffix}`;
@@ -231,7 +216,6 @@ serve(async (req) => {
           if (suffix > 20) { slug = `${slug}-${Date.now()}`; break; }
         }
       } else {
-        // JWT auth: reject duplicate
         return new Response(
           JSON.stringify({ error: "A book with this title already exists" }),
           { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
