@@ -10,6 +10,32 @@ const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
 const SHARED_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnRkcG5la3NjcnNnaHF0c3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MDYzODksImV4cCI6MjA4NDQ4MjM4OX0.o2qA4tLao4UtxPGxSnavXIYKUmVZvS99pHtnL220L-s";
 
+async function lookupUserByEmail(
+  sharedUrl: string,
+  serviceRoleKey: string,
+  email: string
+): Promise<{ id: string; email: string; user_metadata?: any } | null> {
+  const res = await fetch(
+    `${sharedUrl}/auth/v1/admin/users?filter=${encodeURIComponent(email)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${serviceRoleKey}`,
+        apikey: serviceRoleKey,
+      },
+    }
+  );
+  if (!res.ok) {
+    console.error("GoTrue lookup failed:", res.status, await res.text());
+    return null;
+  }
+  const { users } = await res.json();
+  return (
+    users?.find(
+      (u: any) => u.email?.toLowerCase() === email.toLowerCase()
+    ) ?? null
+  );
+}
+
 function generateSlug(title: string): string {
   return title
     .toLowerCase()
@@ -55,13 +81,14 @@ serve(async (req) => {
 
       // Resolve user by email from shared backend
       const sharedServiceKey = Deno.env.get("SHARED_BACKEND_SERVICE_ROLE_KEY");
-      const sharedAdmin = createClient(SHARED_BACKEND_URL, sharedServiceKey || SHARED_ANON_KEY);
+      if (!sharedServiceKey) {
+        return new Response(JSON.stringify({ error: "Missing SHARED_BACKEND_SERVICE_ROLE_KEY" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
-      // Use admin API to look up user by email
-      const { data: userList, error: listErr } = await sharedAdmin.auth.admin.listUsers();
-      const matchedUser = userList?.users?.find(
-        (u: any) => u.email?.toLowerCase() === body.email.toLowerCase()
-      );
+      const matchedUser = await lookupUserByEmail(SHARED_BACKEND_URL, sharedServiceKey, body.email);
 
       if (!matchedUser) {
         return new Response(JSON.stringify({ error: "User not found for email: " + body.email }), {
@@ -109,11 +136,7 @@ serve(async (req) => {
           // user has the same email
           const sharedServiceKey = Deno.env.get("SHARED_BACKEND_SERVICE_ROLE_KEY");
           if (sharedServiceKey) {
-            const sharedAdmin = createClient(SHARED_BACKEND_URL, sharedServiceKey);
-            const { data: { users: sharedUsers } } = await sharedAdmin.auth.admin.listUsers();
-            const matchedShared = sharedUsers?.find(
-              (u: any) => u.email?.toLowerCase() === cloudUser.email!.toLowerCase()
-            );
+            const matchedShared = await lookupUserByEmail(SHARED_BACKEND_URL, sharedServiceKey, cloudUser.email!);
             if (matchedShared) {
               const { data: sharedProfile } = await cloudAdmin
                 .from("author_profiles")
