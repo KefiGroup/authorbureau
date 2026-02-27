@@ -180,21 +180,12 @@ export default function AuthorsTab() {
             <Card key={author.user_id} className="border">
               <CardContent className="p-4 flex items-center gap-4 relative">
                 {author.photo_url ? (
-                  <div className="relative shrink-0">
-                    <img
-                      src={author.photo_url}
-                      alt={author.pen_name || ""}
-                      className="w-12 h-12 rounded-full object-cover"
-                      style={{ objectPosition: `50% ${author.photo_crop_y || '0%'}` }}
-                    />
-                    <button
-                      onClick={() => startCropEdit(author)}
-                      className="absolute -bottom-1 -right-1 bg-secondary text-secondary-foreground rounded-full p-0.5 hover:bg-secondary/80"
-                      title="Adjust photo position"
-                    >
-                      <ImageIcon className="h-3 w-3" />
-                    </button>
-                  </div>
+                  <img
+                    src={author.photo_url}
+                    alt={author.pen_name || ""}
+                    className="w-12 h-12 rounded-full object-cover shrink-0"
+                    style={{ objectPosition: `50% ${author.photo_crop_y || '0%'}` }}
+                  />
                 ) : (
                   <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center shrink-0">
                     <BookOpen className="h-5 w-5 text-muted-foreground" />
@@ -251,6 +242,14 @@ export default function AuthorsTab() {
                       <a href={`/authors/${author.author_slug}`} target="_blank" className="flex items-center gap-1 text-secondary hover:underline">
                         <Globe className="h-3 w-3" /> View
                       </a>
+                    )}
+                    {author.photo_url && (
+                      <button
+                        onClick={() => startCropEdit(author)}
+                        className="flex items-center gap-1 text-secondary hover:underline"
+                      >
+                        <ImageIcon className="h-3 w-3" /> Adjust Photo
+                      </button>
                     )}
                   </div>
                 </div>
