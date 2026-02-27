@@ -3,13 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, RefreshCw, BookOpen, Globe, Filter } from "lucide-react";
+import { Loader2, RefreshCw, BookOpen, Globe, ImageIcon } from "lucide-react";
 
 interface DirectoryAuthor {
   user_id: string;
   pen_name: string | null;
   photo_url: string | null;
+  photo_crop_y: string | null;
   bio_short: string | null;
   genres: string[] | null;
   directory_status: string;
@@ -32,6 +34,8 @@ export default function AuthorsTab() {
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [cropEditing, setCropEditing] = useState<string | null>(null);
+  const [cropValue, setCropValue] = useState<number>(0);
   const { toast } = useToast();
 
   const fetchAuthors = useCallback(async () => {
@@ -39,7 +43,7 @@ export default function AuthorsTab() {
     try {
       const { data: profiles, error } = await supabase
         .from("author_profiles")
-        .select("user_id, pen_name, photo_url, bio_short, genres, directory_status, author_slug, created_at")
+        .select("user_id, pen_name, photo_url, photo_crop_y, bio_short, genres, directory_status, author_slug, created_at")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -105,6 +109,28 @@ export default function AuthorsTab() {
 
   const filtered = filterStatus === "all" ? authors : authors.filter((a) => a.directory_status === filterStatus);
 
+  const startCropEdit = (author: DirectoryAuthor) => {
+    setCropEditing(author.user_id);
+    setCropValue(parseInt(author.photo_crop_y || "0", 10));
+  };
+
+  const saveCrop = async (userId: string) => {
+    try {
+      const { error } = await supabase
+        .from("author_profiles")
+        .update({ photo_crop_y: `${cropValue}%` } as any)
+        .eq("user_id", userId);
+      if (error) throw error;
+      setAuthors((prev) =>
+        prev.map((a) => (a.user_id === userId ? { ...a, photo_crop_y: `${cropValue}%` } : a))
+      );
+      toast({ title: "Photo position saved" });
+    } catch {
+      toast({ title: "Failed to save", variant: "destructive" });
+    }
+    setCropEditing(null);
+  };
+
   const counts = authors.reduce((acc, a) => {
     acc[a.directory_status] = (acc[a.directory_status] || 0) + 1;
     return acc;
@@ -152,12 +178,57 @@ export default function AuthorsTab() {
         <div className="space-y-3">
           {filtered.map((author) => (
             <Card key={author.user_id} className="border">
-              <CardContent className="p-4 flex items-center gap-4">
+              <CardContent className="p-4 flex items-center gap-4 relative">
                 {author.photo_url ? (
-                  <img src={author.photo_url} alt={author.pen_name || ""} className="w-12 h-12 rounded-full object-cover shrink-0" />
+                  <div className="relative shrink-0">
+                    <img
+                      src={author.photo_url}
+                      alt={author.pen_name || ""}
+                      className="w-12 h-12 rounded-full object-cover"
+                      style={{ objectPosition: `50% ${author.photo_crop_y || '0%'}` }}
+                    />
+                    <button
+                      onClick={() => startCropEdit(author)}
+                      className="absolute -bottom-1 -right-1 bg-secondary text-secondary-foreground rounded-full p-0.5 hover:bg-secondary/80"
+                      title="Adjust photo position"
+                    >
+                      <ImageIcon className="h-3 w-3" />
+                    </button>
+                  </div>
                 ) : (
                   <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center shrink-0">
                     <BookOpen className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                )}
+
+                {/* Photo crop editor */}
+                {cropEditing === author.user_id && author.photo_url && (
+                  <div className="absolute left-0 right-0 top-full mt-2 z-20 bg-card border rounded-lg p-4 shadow-lg">
+                    <p className="text-xs font-medium mb-2">Adjust photo vertical position</p>
+                    <div className="flex items-center gap-4">
+                      <div className="w-20 h-24 rounded overflow-hidden border shrink-0">
+                        <img
+                          src={author.photo_url}
+                          alt="Preview"
+                          className="w-full h-full object-cover"
+                          style={{ objectPosition: `50% ${cropValue}%` }}
+                        />
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <Slider
+                          value={[cropValue]}
+                          onValueChange={([v]) => setCropValue(v)}
+                          min={0}
+                          max={50}
+                          step={1}
+                        />
+                        <p className="text-xs text-muted-foreground">Position: {cropValue}% from top</p>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={() => setCropEditing(null)}>Cancel</Button>
+                          <Button size="sm" onClick={() => saveCrop(author.user_id)}>Save</Button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
 
