@@ -83,9 +83,18 @@ Deno.serve(async (req) => {
           .eq("owner_email", userEmail)
       : { data: [] };
 
+    // Also match by author_name = pen_name (cross-platform ID mismatch)
+    const { data: booksByName } = profile?.pen_name
+      ? await cloudAdmin
+          .from("books")
+          .select("id")
+          .eq("author_name", profile.pen_name)
+      : { data: [] };
+
     const allIds = new Set([
       ...(booksByAuthor || []).map((b: any) => b.id),
       ...(booksByEmail || []).map((b: any) => b.id),
+      ...(booksByName || []).map((b: any) => b.id),
     ]);
     console.log("dashboard-state: totalBooks=", allIds.size);
 
