@@ -243,7 +243,49 @@ Deno.serve(async (req) => {
 
     // Upsert with only changed fields + metadata
     // Generate author_slug from pen_name
-    const authorSlug = slugify(penName);
+    let authorSlug = slugify(penName);
+
+    // Handle slug conflicts: check if another user already holds this slug
+    const { data: conflicting } = await cloudAdmin
+      .from("author_profiles")
+      .select("user_id, directory_status, pen_name, bio_short, bio_long, photo_url")
+      .eq("author_slug", authorSlug)
+      .neq("user_id", userId)
+      .maybeSingle();
+
+    if (conflicting) {
+      const isOrphan = conflicting.directory_status === "unlisted"
+        && !conflicting.bio_short && !conflicting.bio_long && !conflicting.photo_url;
+
+      if (isOrphan) {
+        // Merge: reassign orphan's books to real user, then delete orphan
+        console.log(`Merging orphaned profile (user_id=${conflicting.user_id}) into ${userId}`);
+        await cloudAdmin
+          .from("books")
+          .update({ author_id: userId })
+          .eq("author_id", conflicting.user_id);
+        await cloudAdmin
+          .from("author_profiles")
+          .delete()
+          .eq("user_id", conflicting.user_id);
+      } else {
+        // Legitimate conflict: append suffix
+        let suffix = 2;
+        while (true) {
+          const candidate = `${authorSlug}-${suffix}`;
+          const { data: check } = await cloudAdmin
+            .from("author_profiles")
+            .select("user_id")
+            .eq("author_slug", candidate)
+            .neq("user_id", userId)
+            .maybeSingle();
+          if (!check) { authorSlug = candidate; break; }
+          suffix++;
+          if (suffix > 20) { authorSlug = `${authorSlug}-${userId.slice(0, 8)}`; break; }
+        }
+        console.log(`Slug conflict resolved: using ${authorSlug}`);
+      }
+    }
 
     const upsertData: Record<string, any> = {
       user_id: userId,
