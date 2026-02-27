@@ -38,6 +38,7 @@ Deno.serve(async (req) => {
 
     const userId = sharedUser.id;
     const userEmail = sharedUser.email || "";
+    console.log("dashboard-state: userId=", userId, "email=", userEmail);
 
     // Use service role to query local DB (bypasses RLS mismatch)
     const cloudAdmin = createClient(
@@ -46,17 +47,19 @@ Deno.serve(async (req) => {
     );
 
     // Fetch profile
-    const { data: profile } = await cloudAdmin
+    const { data: profile, error: profileErr } = await cloudAdmin
       .from("author_profiles")
       .select("directory_status, pen_name, bio_short, bio_long, photo_url, tagline, genres")
       .eq("user_id", userId)
       .maybeSingle();
+    console.log("dashboard-state: profile=", JSON.stringify(profile), "err=", profileErr);
 
     // Count books (by author_id + owner_email, deduplicated)
-    const { data: booksByAuthor } = await cloudAdmin
+    const { data: booksByAuthor, error: booksErr } = await cloudAdmin
       .from("books")
       .select("id")
       .eq("author_id", userId);
+    console.log("dashboard-state: booksByAuthor=", booksByAuthor?.length, "err=", booksErr);
 
     const { data: booksByEmail } = userEmail
       ? await cloudAdmin
@@ -70,6 +73,7 @@ Deno.serve(async (req) => {
       ...(booksByAuthor || []).map((b: any) => b.id),
       ...(booksByEmail || []).map((b: any) => b.id),
     ]);
+    console.log("dashboard-state: totalBooks=", allIds.size);
 
     return new Response(
       JSON.stringify({ profile: profile || null, bookCount: allIds.size }),
