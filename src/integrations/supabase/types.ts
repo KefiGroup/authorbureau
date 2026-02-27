@@ -156,6 +156,7 @@ export type Database = {
           genre: string | null
           id: string
           kindle_price: string | null
+          owner_email: string | null
           pages: number | null
           paperback_price: string | null
           price: string | null
@@ -185,6 +186,7 @@ export type Database = {
           genre?: string | null
           id?: string
           kindle_price?: string | null
+          owner_email?: string | null
           pages?: number | null
           paperback_price?: string | null
           price?: string | null
@@ -214,6 +216,7 @@ export type Database = {
           genre?: string | null
           id?: string
           kindle_price?: string | null
+          owner_email?: string | null
           pages?: number | null
           paperback_price?: string | null
           price?: string | null
