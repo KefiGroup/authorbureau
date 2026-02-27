@@ -77,6 +77,33 @@ export default function DynamicBookMicrosite() {
     fetchBook();
   }, [slug]);
 
+  const metaDescription = book?.description?.slice(0, 155) || (book ? `${book.title} by ${book.author_name}` : "Book Microsite | Authors Bureau");
+  const pageUrl = `${window.location.origin}/books/${slug}`;
+
+  useDocumentMeta({
+    title: book ? `${book.title} by ${book.author_name || "Unknown Author"} | Authors Bureau` : "Book | Authors Bureau",
+    description: metaDescription,
+    ogTitle: book?.title,
+    ogDescription: metaDescription,
+    ogImage: book?.cover_image_url || undefined,
+    ogUrl: pageUrl,
+    twitterCard: "summary_large_image",
+    jsonLd: book ? {
+      "@context": "https://schema.org",
+      "@type": "Book",
+      name: book.title,
+      ...(book.subtitle && { alternativeHeadline: book.subtitle }),
+      description: book.description,
+      image: book.cover_image_url,
+      url: pageUrl,
+      author: { "@type": "Person", name: book.author_name || "Unknown Author" },
+      ...(book.pages && { numberOfPages: book.pages }),
+      ...(book.genre && { genre: book.genre }),
+      ...(book.rating && { aggregateRating: { "@type": "AggregateRating", ratingValue: book.rating, bestRating: 5 } }),
+      ...(book.amazon_url && { offers: { "@type": "Offer", url: book.amazon_url, ...(book.price && { price: book.price.replace(/[^0-9.]/g, ""), priceCurrency: book.currency || "USD" }) } }),
+    } : undefined,
+  });
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -104,33 +131,6 @@ export default function DynamicBookMicrosite() {
 
   const badgeList = Array.isArray(book.badges) ? book.badges : [];
   const isAmazonLink = book.amazon_url?.includes("amazon.com") || book.amazon_url?.includes("a.co");
-
-  const metaDescription = book.description?.slice(0, 155) || `${book.title} by ${book.author_name}`;
-  const pageUrl = `${window.location.origin}/books/${slug}`;
-
-  useDocumentMeta({
-    title: `${book.title} by ${book.author_name || "Unknown Author"} | Authors Bureau`,
-    description: metaDescription,
-    ogTitle: book.title,
-    ogDescription: metaDescription,
-    ogImage: book.cover_image_url || undefined,
-    ogUrl: pageUrl,
-    twitterCard: "summary_large_image",
-    jsonLd: {
-      "@context": "https://schema.org",
-      "@type": "Book",
-      name: book.title,
-      ...(book.subtitle && { alternativeHeadline: book.subtitle }),
-      description: book.description,
-      image: book.cover_image_url,
-      url: pageUrl,
-      author: { "@type": "Person", name: book.author_name || "Unknown Author" },
-      ...(book.pages && { numberOfPages: book.pages }),
-      ...(book.genre && { genre: book.genre }),
-      ...(book.rating && { aggregateRating: { "@type": "AggregateRating", ratingValue: book.rating, bestRating: 5 } }),
-      ...(book.amazon_url && { offers: { "@type": "Offer", url: book.amazon_url, ...(book.price && { price: book.price.replace(/[^0-9.]/g, ""), priceCurrency: book.currency || "USD" }) } }),
-    },
-  });
 
   return (
     <div className="min-h-screen">
