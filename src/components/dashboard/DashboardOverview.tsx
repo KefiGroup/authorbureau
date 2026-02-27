@@ -40,80 +40,68 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
     return sessionStorage.getItem("profile_popup_dismissed") === "true";
   });
 
+  const fetchDashboardState = async (token: string) => {
+    const res = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dashboard-state`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || `dashboard-state ${res.status}`);
+    }
+    return await res.json() as { profile: any; bookCount: number };
+  };
+
+  const applyDashboardState = (state: { profile: any; bookCount: number }) => {
+    const { profile, bookCount: count } = state;
+
+    if (profile) {
+      const hasName = !!profile.pen_name?.trim();
+      const hasPhoto = !!profile.photo_url?.trim();
+      const hasBio = !!(profile.bio_long?.trim() || profile.bio_short?.trim());
+      const hasTagline = !!profile.tagline?.trim();
+      const hasGenres = Array.isArray(profile.genres) && profile.genres.length > 0;
+      const isComplete = hasName && hasPhoto && hasBio && hasTagline && hasGenres;
+
+      const missing: string[] = [];
+      if (!hasName) missing.push("Author Name");
+      if (!hasPhoto) missing.push("Profile Photo");
+      if (!hasBio) missing.push("Bio");
+      if (!hasTagline) missing.push("Tagline");
+      if (!hasGenres) missing.push("Genres");
+      setMissingFields(missing);
+
+      setProfileStatus(isComplete ? "done" : "in-progress");
+      if (!isComplete && !popupDismissed) setShowIncompleteDialog(true);
+
+      setDirectoryStatus(profile.directory_status === "listed" ? "done" : "in-progress");
+    } else {
+      setProfileStatus("pending");
+      setDirectoryStatus("pending");
+    }
+
+    setBookCount(count);
+    setBooksStatus(count > 0 ? "done" : "pending");
+  };
+
   useEffect(() => {
     if (!user) return;
     const fetchState = async () => {
       setStateLoading(true);
       try {
-        // Check author profile
-        console.log("[Dashboard] Checking profile for user:", user.id, user.email);
-        const { data: profile, error: profileErr } = await supabase
-          .from("author_profiles")
-          .select("directory_status, pen_name, bio_short, bio_long, photo_url, tagline, genres")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        console.log("[Dashboard] Profile result:", profile, "Error:", profileErr);
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+        if (!token) throw new Error("Not authenticated");
 
-        if (profile) {
-          // Profile exists — check if it has all fields needed for the author page
-          const hasName = !!profile.pen_name?.trim();
-          const hasPhoto = !!profile.photo_url?.trim();
-          const hasBio = !!(profile.bio_long?.trim() || profile.bio_short?.trim());
-          const hasTagline = !!profile.tagline?.trim();
-          const hasGenres = Array.isArray(profile.genres) && profile.genres.length > 0;
-
-          const isComplete = hasName && hasPhoto && hasBio && hasTagline && hasGenres;
-
-          // Track what's missing for the reminder dialog
-          const missing: string[] = [];
-          if (!hasName) missing.push("Author Name");
-          if (!hasPhoto) missing.push("Profile Photo");
-          if (!hasBio) missing.push("Bio");
-          if (!hasTagline) missing.push("Tagline");
-          if (!hasGenres) missing.push("Genres");
-          setMissingFields(missing);
-
-          if (isComplete) {
-            setProfileStatus("done");
-          } else {
-            setProfileStatus("in-progress");
-            if (!popupDismissed) {
-              setShowIncompleteDialog(true);
-            }
-          }
-          // Directory status
-          if (profile.directory_status === "listed") {
-            setDirectoryStatus("done");
-          } else {
-            setDirectoryStatus("in-progress"); // unlisted = awaiting approval
-          }
-        } else {
-          setProfileStatus("pending");
-          setDirectoryStatus("pending");
-        }
-
-        // Check books — dual ownership: author_id OR owner_email
-        const email = user.email || "";
-        const { data: booksByAuthor, error: booksErr } = await supabase
-          .from("books")
-          .select("id")
-          .eq("author_id", user.id);
-        console.log("[Dashboard] Books by author_id:", booksByAuthor, "Error:", booksErr);
-        const { data: booksByEmail } = email
-          ? await supabase
-              .from("books")
-              .select("id")
-              .eq("owner_email", email)
-              .neq("author_id", user.id)
-          : { data: [] };
-        const allBookIds = new Set([
-          ...(booksByAuthor || []).map((b: any) => b.id),
-          ...(booksByEmail || []).map((b: any) => b.id),
-        ]);
-        const count = allBookIds.size;
-        console.log("[Dashboard] Total book count:", count);
-        setBookCount(count);
-        setBooksStatus(count > 0 ? "done" : "pending");
+        const state = await fetchDashboardState(token);
+        console.log("[Dashboard] State from edge function:", state);
+        applyDashboardState(state);
       } catch (err) {
         console.error("Failed to fetch onboarding state:", err);
       }
@@ -158,26 +146,14 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
         description: parts.length > 0 ? parts.join(", ") : "Your profile is up to date.",
       });
 
-      // Re-fetch state after sync
+      // Re-fetch state after sync using the same edge function
       if (user) {
-        const { data: profile } = await supabase
-          .from("author_profiles")
-          .select("directory_status")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        if (profile) {
-          setProfileStatus("done");
-          setDirectoryStatus(profile.directory_status === "listed" ? "done" : "in-progress");
+        try {
+          const state = await fetchDashboardState(token);
+          applyDashboardState(state);
+        } catch (refreshErr) {
+          console.error("Failed to refresh state after sync:", refreshErr);
         }
-        const userEmail = user.email || "";
-        const { data: bA } = await supabase.from("books").select("id").eq("author_id", user.id);
-        const { data: bE } = userEmail
-          ? await supabase.from("books").select("id").eq("owner_email", userEmail).neq("author_id", user.id)
-          : { data: [] };
-        const ids = new Set([...(bA || []).map((b: any) => b.id), ...(bE || []).map((b: any) => b.id)]);
-        const count = ids.size;
-        setBookCount(count);
-        setBooksStatus(count > 0 ? "done" : "pending");
       }
     } catch (err: any) {
       toast({ title: "Sync failed", description: err.message, variant: "destructive" });
