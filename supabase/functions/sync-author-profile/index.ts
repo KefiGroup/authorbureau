@@ -403,6 +403,25 @@ Deno.serve(async (req) => {
       })
       .eq("author_id", userId);
 
+    // Permanently fix ID mismatches: reassign any books whose author_name
+    // matches this author's pen_name but have a different author_id
+    if (penName) {
+      const { data: mismatchedBooks } = await cloudAdmin
+        .from("books")
+        .select("id, author_id")
+        .eq("author_name", penName)
+        .neq("author_id", userId);
+
+      if (mismatchedBooks && mismatchedBooks.length > 0) {
+        console.log(`Reassigning ${mismatchedBooks.length} mismatched book(s) to user ${userId}`);
+        await cloudAdmin
+          .from("books")
+          .update({ author_id: userId })
+          .eq("author_name", penName)
+          .neq("author_id", userId);
+      }
+    }
+
     return new Response(
       JSON.stringify({
         synced: true,
