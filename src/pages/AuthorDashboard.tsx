@@ -1,6 +1,5 @@
 import { Navigate, useSearchParams, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { usePlatformAccess } from "@/hooks/usePlatformAccess";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
@@ -13,8 +12,7 @@ import DashboardOverview from "@/components/dashboard/DashboardOverview";
 import AIToolkit from "@/components/dashboard/AIToolkit";
 import MyBooks from "@/components/dashboard/MyBooks";
 import PremiumGate from "@/components/dashboard/PremiumGate";
-import { Button } from "@/components/ui/button";
-import { Loader2, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 export type DashboardSection = "overview" | "profile" | "courses" | "speaking" | "coaching" | "ai-toolkit" | "my-books";
 
@@ -27,10 +25,6 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
     initialSection || (location.pathname === "/my-books" ? "my-books" : "overview")
   );
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const { hasMarketing, loading: accessLoading, requestAccess, requesting, requested } = usePlatformAccess();
-
-  // Auto-sync disabled — authors sync manually via "Sync Profile" button
-  // useEffect(() => { ... }, [user]);
 
   useEffect(() => {
     const status = searchParams.get("checkout");
@@ -42,7 +36,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
     }
   }, [searchParams]);
 
-  if (loading || accessLoading) {
+  if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -50,41 +44,6 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
     );
   }
   if (!user) return <Navigate to="/auth" replace />;
-
-  if (!hasMarketing) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="max-w-md text-center space-y-5 p-8">
-          <div className="w-16 h-16 rounded-2xl bg-secondary/10 flex items-center justify-center mx-auto">
-            <ShieldCheck className="h-8 w-8 text-secondary" />
-          </div>
-          <h1 className="font-heading text-2xl font-bold">Marketing Studio Access Required</h1>
-          <p className="text-muted-foreground text-sm">
-            Your account doesn't have access to the Authors Bureau Marketing Studio yet.
-            Request access below and we'll get you set up.
-          </p>
-          {requested ? (
-            <div className="flex items-center justify-center gap-2 text-secondary">
-              <CheckCircle2 className="h-5 w-5" />
-              <span className="font-semibold text-sm">Access requested! We'll notify you soon.</span>
-            </div>
-          ) : (
-            <Button
-              onClick={requestAccess}
-              disabled={requesting}
-              className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
-            >
-              {requesting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-              Request Marketing Access
-            </Button>
-          )}
-          <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground">
-            Sign Out
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   const renderSection = () => {
     switch (activeSection) {

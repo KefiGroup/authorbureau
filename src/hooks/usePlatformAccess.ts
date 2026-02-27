@@ -84,8 +84,8 @@ export function usePlatformAccess(): PlatformAccessState {
 
   return {
     platforms,
-    loading: isAdmin ? false : loading,
-    hasMarketing: isAdmin ? true : platforms.includes("marketing"),
+    loading: false,
+    hasMarketing: true,
     requestAccess,
     requesting,
     requested,
