@@ -77,16 +77,43 @@ serve(async (req) => {
 
       // Resolve user via pull-shared-profile endpoint
       const resolved = await resolveUserViaSharedProfile(body.platform_secret, body.email);
+      console.log("[save-book] Cross-platform push for:", body.email, "resolved userId:", resolved?.userId ?? "NULL");
 
-      if (!resolved) {
-        return new Response(JSON.stringify({ error: "User not found for email: " + body.email }), {
-          status: 404,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      if (resolved?.userId) {
+        userId = resolved.userId;
+        sharedProfile = resolved.profile;
+      } else {
+        console.warn("[save-book] Shared profile returned no userId for:", body.email, "— trying email fallback");
+
+        // Fallback 1: reuse author_id from existing book with same owner_email
+        const { data: existingBook } = await cloudAdmin
+          .from("books")
+          .select("author_id")
+          .eq("owner_email", body.email)
+          .limit(1)
+          .maybeSingle();
+
+        if (existingBook?.author_id) {
+          userId = existingBook.author_id;
+          console.log("[save-book] Reused author_id from existing book:", userId);
+        } else {
+          // Fallback 2: create a local identity keyed by email
+          userId = crypto.randomUUID();
+          console.log("[save-book] Generated new local author_id:", userId);
+
+          const authorName = body.book?.author_name || body.author_name || body.email?.split("@")[0];
+          await cloudAdmin.from("author_profiles").upsert({
+            user_id: userId,
+            pen_name: authorName,
+            bio_short: body.book?.author_bio || body.author_bio || null,
+            photo_url: body.book?.author_photo_url || body.author_photo_url || null,
+            directory_status: "unlisted",
+          }, { onConflict: "user_id" });
+        }
+
+        if (resolved?.profile) sharedProfile = resolved.profile;
       }
 
-      userId = resolved.userId;
-      sharedProfile = resolved.profile;
       bookData = body.book || body;
     }
     // ─── Auth path: JWT (existing flow) ───
@@ -227,7 +254,17 @@ serve(async (req) => {
     const entryMode = bookData.entry_mode || (isPlatformPush ? "publishnow" : "manual");
     const autoPublish = bookData.auto_publish === true;
 
+    // ─── Final safety guard ───
+    if (!userId) {
+      console.error("[save-book] userId is still null/undefined after all resolution attempts");
+      return new Response(JSON.stringify({ error: "Could not resolve author identity" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ─── Insert book ───
+    console.log("[save-book] Inserting book:", { title, slug, userId, entryMode, isPlatformPush });
     const { data: newBook, error: insertError } = await cloudAdmin
       .from("books")
       .insert({
@@ -253,6 +290,7 @@ serve(async (req) => {
         entry_mode: entryMode,
         ai_enriched: false,
         published_at: autoPublish ? new Date().toISOString() : null,
+        owner_email: isPlatformPush ? body.email : null,
       })
       .select("id")
       .single();
