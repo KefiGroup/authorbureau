@@ -23,8 +23,8 @@ const navItems: { id: DashboardSection; label: string; icon: typeof LayoutDashbo
 ];
 
 const sisterLinks = [
-  { label: "AI Writing Studio", icon: PenLine, path: "/ai-writing-studio" },
-  { label: "AI Publishing Studio", icon: BookMarked, path: "/ai-publishing-studio" },
+  { label: "AI Writing Studio", icon: PenLine, path: "/writing" },
+  { label: "AI Publishing Studio", icon: BookMarked, path: "/publishing" },
 ];
 
 export default function DashboardSidebar({ activeSection, onSectionChange, collapsed, onToggleCollapse, isPremium }: Props) {
