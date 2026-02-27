@@ -46,27 +46,41 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Fetch profile
-    const { data: profile, error: profileErr } = await cloudAdmin
+    // Fetch profile for this user
+    const { data: profile } = await cloudAdmin
       .from("author_profiles")
       .select("directory_status, pen_name, bio_short, bio_long, photo_url, tagline, genres")
       .eq("user_id", userId)
       .maybeSingle();
-    console.log("dashboard-state: profile=", JSON.stringify(profile), "err=", profileErr);
 
-    // Count books (by author_id + owner_email, deduplicated)
-    const { data: booksByAuthor, error: booksErr } = await cloudAdmin
+    // Collect all user_ids that belong to this person (handles cross-platform ID mismatch)
+    // The same author may have profiles under different auth system IDs
+    const allUserIds: string[] = [userId];
+    if (profile?.pen_name) {
+      const { data: siblingProfiles } = await cloudAdmin
+        .from("author_profiles")
+        .select("user_id")
+        .eq("pen_name", profile.pen_name)
+        .neq("user_id", userId);
+      if (siblingProfiles) {
+        for (const sp of siblingProfiles) {
+          allUserIds.push(sp.user_id);
+        }
+      }
+    }
+    console.log("dashboard-state: allUserIds=", allUserIds);
+
+    // Count books across all user IDs + owner_email (deduplicated)
+    const { data: booksByAuthor } = await cloudAdmin
       .from("books")
       .select("id")
-      .eq("author_id", userId);
-    console.log("dashboard-state: booksByAuthor=", booksByAuthor?.length, "err=", booksErr);
+      .in("author_id", allUserIds);
 
     const { data: booksByEmail } = userEmail
       ? await cloudAdmin
           .from("books")
           .select("id")
           .eq("owner_email", userEmail)
-          .neq("author_id", userId)
       : { data: [] };
 
     const allIds = new Set([
