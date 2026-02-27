@@ -46,11 +46,13 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
       setStateLoading(true);
       try {
         // Check author profile
-        const { data: profile } = await cloudSupabase
+        console.log("[Dashboard] Checking profile for user:", user.id, user.email);
+        const { data: profile, error: profileErr } = await cloudSupabase
           .from("author_profiles")
           .select("directory_status, pen_name, bio_short, bio_long, photo_url, tagline, genres")
           .eq("user_id", user.id)
           .maybeSingle();
+        console.log("[Dashboard] Profile result:", profile, "Error:", profileErr);
 
         if (profile) {
           // Profile exists — check if it has all fields needed for the author page
@@ -92,10 +94,11 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
 
         // Check books — dual ownership: author_id OR owner_email
         const email = user.email || "";
-        const { data: booksByAuthor } = await cloudSupabase
+        const { data: booksByAuthor, error: booksErr } = await cloudSupabase
           .from("books")
           .select("id")
           .eq("author_id", user.id);
+        console.log("[Dashboard] Books by author_id:", booksByAuthor, "Error:", booksErr);
         const { data: booksByEmail } = email
           ? await cloudSupabase
               .from("books")
@@ -108,6 +111,7 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
           ...(booksByEmail || []).map((b: any) => b.id),
         ]);
         const count = allBookIds.size;
+        console.log("[Dashboard] Total book count:", count);
         setBookCount(count);
         setBooksStatus(count > 0 ? "done" : "pending");
       } catch (err) {
