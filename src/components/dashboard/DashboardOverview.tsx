@@ -90,13 +90,24 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
           setDirectoryStatus("pending");
         }
 
-        // Check books
-        const { data: books } = await cloudSupabase
+        // Check books — dual ownership: author_id OR owner_email
+        const email = user.email || "";
+        const { data: booksByAuthor } = await cloudSupabase
           .from("books")
           .select("id")
           .eq("author_id", user.id);
-
-        const count = books?.length || 0;
+        const { data: booksByEmail } = email
+          ? await cloudSupabase
+              .from("books")
+              .select("id")
+              .eq("owner_email", email)
+              .neq("author_id", user.id)
+          : { data: [] };
+        const allBookIds = new Set([
+          ...(booksByAuthor || []).map((b: any) => b.id),
+          ...(booksByEmail || []).map((b: any) => b.id),
+        ]);
+        const count = allBookIds.size;
         setBookCount(count);
         setBooksStatus(count > 0 ? "done" : "pending");
       } catch (err) {
@@ -154,11 +165,13 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
           setProfileStatus("done");
           setDirectoryStatus(profile.directory_status === "listed" ? "done" : "in-progress");
         }
-        const { data: books } = await cloudSupabase
-          .from("books")
-          .select("id")
-          .eq("author_id", user.id);
-        const count = books?.length || 0;
+        const userEmail = user.email || "";
+        const { data: bA } = await cloudSupabase.from("books").select("id").eq("author_id", user.id);
+        const { data: bE } = userEmail
+          ? await cloudSupabase.from("books").select("id").eq("owner_email", userEmail).neq("author_id", user.id)
+          : { data: [] };
+        const ids = new Set([...(bA || []).map((b: any) => b.id), ...(bE || []).map((b: any) => b.id)]);
+        const count = ids.size;
         setBookCount(count);
         setBooksStatus(count > 0 ? "done" : "pending");
       }
