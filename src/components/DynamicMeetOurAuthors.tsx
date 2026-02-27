@@ -24,6 +24,7 @@ interface AuthorWithBooks {
   name: string;
   bio_short?: string;
   photo_url?: string;
+  photo_crop_y?: string;
   genres?: string[];
   books: BookWithAuthor[];
 }
@@ -63,7 +64,7 @@ export default function DynamicMeetOurAuthors() {
         // Fetch author profiles from Cloud DB (already synced)
         const { data: authorsData, error: authError } = await cloudSupabase
           .from("author_profiles")
-          .select("user_id, pen_name, bio_short, genres, photo_url, author_slug, directory_status")
+          .select("user_id, pen_name, bio_short, genres, photo_url, author_slug, directory_status, photo_crop_y")
           .in("directory_status", ["listed", "verified", "featured"]);
 
         if (authError) throw authError;
@@ -104,6 +105,7 @@ export default function DynamicMeetOurAuthors() {
               name: author.pen_name || "Author",
               bio_short: author.bio_short,
               photo_url: author.photo_url,
+              photo_crop_y: author.photo_crop_y,
               genres: author.genres || [],
               books: merged,
             };
@@ -192,7 +194,8 @@ export default function DynamicMeetOurAuthors() {
                         <img
                           src={author.photo_url}
                           alt={author.name}
-                          className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          style={{ objectPosition: `50% ${author.photo_crop_y || '0%'}` }}
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-muted/50">

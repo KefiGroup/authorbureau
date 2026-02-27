@@ -70,6 +70,7 @@ export type Database = {
           location_city: string | null
           location_country: string | null
           pen_name: string | null
+          photo_crop_y: string | null
           photo_url: string | null
           speaker_fee_range: string | null
           tagline: string | null
@@ -98,6 +99,7 @@ export type Database = {
           location_city?: string | null
           location_country?: string | null
           pen_name?: string | null
+          photo_crop_y?: string | null
           photo_url?: string | null
           speaker_fee_range?: string | null
           tagline?: string | null
@@ -126,6 +128,7 @@ export type Database = {
           location_city?: string | null
           location_country?: string | null
           pen_name?: string | null
+          photo_crop_y?: string | null
           photo_url?: string | null
           speaker_fee_range?: string | null
           tagline?: string | null

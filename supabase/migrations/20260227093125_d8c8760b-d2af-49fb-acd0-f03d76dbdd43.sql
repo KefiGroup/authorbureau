@@ -1,0 +1,1 @@
+UPDATE public.author_profiles SET photo_crop_y = '15%' WHERE pen_name = 'Pauline Teo';
