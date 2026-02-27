@@ -80,7 +80,8 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
       setProfileStatus(isComplete ? "done" : "in-progress");
       if (!isComplete && !popupDismissed) setShowIncompleteDialog(true);
 
-      setDirectoryStatus(profile.directory_status === "listed" ? "done" : "in-progress");
+      const approvedStatuses = ["listed", "verified", "featured"];
+      setDirectoryStatus(approvedStatuses.includes(profile.directory_status) ? "done" : "in-progress");
     } else {
       setProfileStatus("pending");
       setDirectoryStatus("pending");
