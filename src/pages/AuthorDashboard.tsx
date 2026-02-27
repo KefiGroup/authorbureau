@@ -12,6 +12,7 @@ import CoachingCRM from "@/components/dashboard/CoachingCRM";
 import DashboardOverview from "@/components/dashboard/DashboardOverview";
 import AIToolkit from "@/components/dashboard/AIToolkit";
 import MyBooks from "@/components/dashboard/MyBooks";
+import PremiumGate from "@/components/dashboard/PremiumGate";
 import { Button } from "@/components/ui/button";
 import { Loader2, ShieldCheck, CheckCircle2 } from "lucide-react";
 
@@ -90,13 +91,13 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "profile":
         return <ProfileEditor onNavigate={(s) => setActiveSection(s as DashboardSection)} />;
       case "courses":
-        return <CourseBuilder />;
+        return <PremiumGate isPremium={isPremium} featureName="Course Builder"><CourseBuilder /></PremiumGate>;
       case "speaking":
-        return <SpeakingProfile />;
+        return <PremiumGate isPremium={isPremium} featureName="Speaking Profile"><SpeakingProfile /></PremiumGate>;
       case "coaching":
-        return <CoachingCRM />;
+        return <PremiumGate isPremium={isPremium} featureName="Coaching CRM"><CoachingCRM /></PremiumGate>;
       case "ai-toolkit":
-        return <AIToolkit />;
+        return <PremiumGate isPremium={isPremium} featureName="AI Toolkit"><AIToolkit /></PremiumGate>;
       case "my-books":
         return <MyBooks />;
       default:

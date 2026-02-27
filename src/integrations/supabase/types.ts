@@ -384,6 +384,35 @@ export type Database = {
         }
         Relationships: []
       }
+      newsletter_signups: {
+        Row: {
+          book_id: string
+          created_at: string
+          email: string
+          id: string
+        }
+        Insert: {
+          book_id: string
+          created_at?: string
+          email: string
+          id?: string
+        }
+        Update: {
+          book_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newsletter_signups_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
