@@ -144,6 +144,31 @@ export default function AuthorProfile() {
       }
     : dynamicAuthor;
 
+  const authorPageUrl = `${window.location.origin}/authors/${author?.slug || slug}`;
+  const metaDesc = author
+    ? (author.shortBio || author.bio?.slice(0, 155) || `${author.name} — ${author.title}`)
+    : "Author Profile | Authors Bureau";
+
+  useDocumentMeta({
+    title: author ? `${author.name} — ${author.title} | Authors Bureau` : "Author Profile | Authors Bureau",
+    description: metaDesc,
+    ogTitle: author?.name,
+    ogDescription: metaDesc,
+    ogImage: author?.photo || undefined,
+    ogUrl: authorPageUrl,
+    twitterCard: "summary_large_image",
+    jsonLd: author ? {
+      "@context": "https://schema.org",
+      "@type": "Person",
+      name: author.name,
+      description: author.bio,
+      image: author.photo,
+      url: authorPageUrl,
+      jobTitle: author.title,
+      ...(author.websiteUrl && { sameAs: [author.websiteUrl, author.linkedinUrl, author.amazonAuthorUrl].filter(Boolean) }),
+    } : undefined,
+  });
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -174,29 +199,6 @@ export default function AuthorProfile() {
   const credentialsList = Array.isArray(author.credentials)
     ? author.credentials.map((c: any) => (typeof c === "string" ? c : c.label || c.title || String(c)))
     : [];
-
-  const authorPageUrl = `${window.location.origin}/authors/${author.slug}`;
-  const metaDesc = author.shortBio || author.bio?.slice(0, 155) || `${author.name} — ${author.title}`;
-
-  useDocumentMeta({
-    title: `${author.name} — ${author.title} | Authors Bureau`,
-    description: metaDesc,
-    ogTitle: author.name,
-    ogDescription: metaDesc,
-    ogImage: author.photo || undefined,
-    ogUrl: authorPageUrl,
-    twitterCard: "summary_large_image",
-    jsonLd: {
-      "@context": "https://schema.org",
-      "@type": "Person",
-      name: author.name,
-      description: author.bio,
-      image: author.photo,
-      url: authorPageUrl,
-      jobTitle: author.title,
-      ...(author.websiteUrl && { sameAs: [author.websiteUrl, author.linkedinUrl, author.amazonAuthorUrl].filter(Boolean) }),
-    },
-  });
 
   return (
     <div className="min-h-screen">
