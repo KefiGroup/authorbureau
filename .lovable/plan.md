@@ -1,32 +1,24 @@
 
 
-## Plan: Fix Studio Link Flash by Using Published URLs Directly
+## Plan: Fix SSO redirect URL to use published domain
 
 ### Problem
-The sister links in the dashboard sidebar pass `/ai-writing-studio` and `/ai-publishing-studio` as `targetPath` to `redirectToPublishNow()`. The SSO redirect builds a URL using the published domain (`publishnowinterface.lovable.app/#/sso`) with a `redirect` param pointing to those legacy paths. On arrival, PublishNow then internally redirects from `/ai-writing-studio` to `/writing`, causing a visible flash.
+The SSO redirect in `src/lib/publishnow-redirect.ts` points to `publishnowinterface.lovable.app` (the Lovable preview domain) instead of the published `publishnow.io` domain. This causes a visible flash through the Lovable domain before landing on the final site.
 
-### Fix — 2 lines in `DashboardSidebar.tsx`
+### Change — 1 line in `publishnow-redirect.ts`
 
-**File:** `src/components/dashboard/DashboardSidebar.tsx` (lines 27-28)
-
-Update the `sisterLinks` paths from legacy routes to the current published routes:
+**File:** `src/lib/publishnow-redirect.ts`, line 3
 
 ```
 // Before
-{ label: "AI Writing Studio", icon: PenLine, path: "/ai-writing-studio" },
-{ label: "AI Publishing Studio", icon: BookMarked, path: "/ai-publishing-studio" },
+const PUBLISHNOW_SSO_URL = "https://publishnowinterface.lovable.app/#/sso";
 
 // After
-{ label: "AI Writing Studio", icon: PenLine, path: "/writing" },
-{ label: "AI Publishing Studio", icon: BookMarked, path: "/publishing" },
+const PUBLISHNOW_SSO_URL = "https://publishnow.io/#/sso";
 ```
 
 ### Why this is safe
-- The SSO flow itself is unchanged — `redirectToPublishNow()` still generates a token, builds the URL `publishnowinterface.lovable.app/#/sso?token=...&redirect=/writing`, and opens it in a new tab.
-- The only difference is the `redirect` query param value now points to the final route (`/writing`, `/publishing`) instead of the legacy alias (`/ai-writing-studio`, `/ai-publishing-studio`).
-- No other files reference these paths.
-
-### No other changes needed
-- `publishnow-redirect.ts` — untouched, it's a generic utility.
-- SSO handoff backend — untouched, it just passes the redirect param through.
+- `publishnow.io` is the published custom domain for the same app — it serves the same code and SSO endpoint.
+- The rest of the codebase already uses `publishnow.io` consistently (Footer, Join page, ProfileEditor fallback, etc.).
+- No other files reference the Lovable preview domain.
 
