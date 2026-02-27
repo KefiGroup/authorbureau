@@ -5,6 +5,8 @@ import { BookOpen, ExternalLink, Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import NewsletterSignup from "@/components/NewsletterSignup";
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 interface Book {
   id: string;
@@ -102,6 +104,34 @@ export default function DynamicBookMicrosite() {
 
   const badgeList = Array.isArray(book.badges) ? book.badges : [];
   const isAmazonLink = book.amazon_url?.includes("amazon.com") || book.amazon_url?.includes("a.co");
+
+  const metaDescription = book.description?.slice(0, 155) || `${book.title} by ${book.author_name}`;
+  const pageUrl = `${window.location.origin}/books/${slug}`;
+
+  useDocumentMeta({
+    title: `${book.title} by ${book.author_name || "Unknown Author"} | Authors Bureau`,
+    description: metaDescription,
+    ogTitle: book.title,
+    ogDescription: metaDescription,
+    ogImage: book.cover_image_url || undefined,
+    ogUrl: pageUrl,
+    twitterCard: "summary_large_image",
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@type": "Book",
+      name: book.title,
+      ...(book.subtitle && { alternativeHeadline: book.subtitle }),
+      description: book.description,
+      image: book.cover_image_url,
+      url: pageUrl,
+      author: { "@type": "Person", name: book.author_name || "Unknown Author" },
+      ...(book.pages && { numberOfPages: book.pages }),
+      ...(book.genre && { genre: book.genre }),
+      ...(book.rating && { aggregateRating: { "@type": "AggregateRating", ratingValue: book.rating, bestRating: 5 } }),
+      ...(book.amazon_url && { offers: { "@type": "Offer", url: book.amazon_url, ...(book.price && { price: book.price.replace(/[^0-9.]/g, ""), priceCurrency: book.currency || "USD" }) } }),
+    },
+  });
+
   return (
     <div className="min-h-screen">
       <Navbar />
@@ -295,6 +325,9 @@ export default function DynamicBookMicrosite() {
                   />
                 </div>
               )}
+
+              {/* Newsletter Signup */}
+              <NewsletterSignup bookId={book.id} authorName={book.author_name || "this author"} />
 
               {/* Call to Action */}
               <div className="rounded-lg bg-gradient-to-r from-secondary/10 to-secondary/5 border border-secondary/20 p-8 text-center">

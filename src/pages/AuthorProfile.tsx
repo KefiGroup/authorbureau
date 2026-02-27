@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ExternalLink, Mail, Linkedin, BookOpen, ArrowLeft, Mic, GraduationCap, Globe, Award, Loader2 } from "lucide-react";
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { getAuthorBySlug } from "@/data/authors";
 import type { Book as StaticBook } from "@/data/authors";
 import { supabase } from "@/integrations/supabase/client";
@@ -173,6 +174,29 @@ export default function AuthorProfile() {
   const credentialsList = Array.isArray(author.credentials)
     ? author.credentials.map((c: any) => (typeof c === "string" ? c : c.label || c.title || String(c)))
     : [];
+
+  const authorPageUrl = `${window.location.origin}/authors/${author.slug}`;
+  const metaDesc = author.shortBio || author.bio?.slice(0, 155) || `${author.name} — ${author.title}`;
+
+  useDocumentMeta({
+    title: `${author.name} — ${author.title} | Authors Bureau`,
+    description: metaDesc,
+    ogTitle: author.name,
+    ogDescription: metaDesc,
+    ogImage: author.photo || undefined,
+    ogUrl: authorPageUrl,
+    twitterCard: "summary_large_image",
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@type": "Person",
+      name: author.name,
+      description: author.bio,
+      image: author.photo,
+      url: authorPageUrl,
+      jobTitle: author.title,
+      ...(author.websiteUrl && { sameAs: [author.websiteUrl, author.linkedinUrl, author.amazonAuthorUrl].filter(Boolean) }),
+    },
+  });
 
   return (
     <div className="min-h-screen">

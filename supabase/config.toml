@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.list-directory-authors]
 verify_jwt = false
+
+[functions.generate-sitemap]
+verify_jwt = false
