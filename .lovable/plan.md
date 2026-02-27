@@ -1,35 +1,32 @@
 
 
-## Plan: Remove Marketing Access Gate from Authors Bureau Dashboard
+## Plan: Fix Studio Link Flash by Using Published URLs Directly
 
 ### Problem
-The `AuthorDashboard` page blocks authenticated users with a "Marketing Studio Access Required" wall when the shared backend's `platform-access` check doesn't return a `marketing` flag. Per project memory, marketing is intended as open Tier 1 for all authenticated users.
+The sister links in the dashboard sidebar pass `/ai-writing-studio` and `/ai-publishing-studio` as `targetPath` to `redirectToPublishNow()`. The SSO redirect builds a URL using the published domain (`publishnowinterface.lovable.app/#/sso`) with a `redirect` param pointing to those legacy paths. On arrival, PublishNow then internally redirects from `/ai-writing-studio` to `/writing`, causing a visible flash.
 
-### Changes
+### Fix — 2 lines in `DashboardSidebar.tsx`
 
-#### 1. Simplify `usePlatformAccess` hook — treat marketing as always-granted for authenticated users
-**File:** `src/hooks/usePlatformAccess.ts`
-- Set `hasMarketing` to `true` for any authenticated user (not just admins)
-- Remove the blocking `loading` state — set initial loading to `false` or resolve immediately
-- Keep the background platform-access fetch for non-marketing entitlements (write/publish) but don't gate on it
-- Keep `requestAccess` wiring in case it's needed for other platforms later
+**File:** `src/components/dashboard/DashboardSidebar.tsx` (lines 27-28)
 
-#### 2. Remove the "Marketing Studio Access Required" wall from `AuthorDashboard`
-**File:** `src/pages/AuthorDashboard.tsx`
-- Remove the `usePlatformAccess` import and hook call
-- Remove the `accessLoading` check from the loading spinner guard
-- Remove the entire `if (!hasMarketing) { ... }` block (lines 54-87) that renders the access-denied wall
-- Keep the `if (!user) return <Navigate to="/auth" replace />` redirect (this becomes the sole gate)
+Update the `sisterLinks` paths from legacy routes to the current published routes:
 
-#### 3. SSO error handling — already correct
-The `/sso` page already redirects failures to `/auth` (sign-in) via "Sign In with Email" links, never to an access-denied page. No changes needed.
+```
+// Before
+{ label: "AI Writing Studio", icon: PenLine, path: "/ai-writing-studio" },
+{ label: "AI Publishing Studio", icon: BookMarked, path: "/ai-publishing-studio" },
 
-#### 4. Source platform tagging — already correct
-All backend calls in `usePlatformAccess`, `SSO`, and `admin-api` already include `source_platform: "authorsbureau"`. No changes needed.
+// After
+{ label: "AI Writing Studio", icon: PenLine, path: "/writing" },
+{ label: "AI Publishing Studio", icon: BookMarked, path: "/publishing" },
+```
 
-### Result
-- Signed-out users landing on `/dashboard` → redirected to `/auth`
-- Signed-in users → dashboard loads immediately (no platform-access network call blocking render)
-- SSO handoff → works as before, lands on dashboard
-- Premium gates for courses/speaking/coaching/AI toolkit remain unchanged
+### Why this is safe
+- The SSO flow itself is unchanged — `redirectToPublishNow()` still generates a token, builds the URL `publishnowinterface.lovable.app/#/sso?token=...&redirect=/writing`, and opens it in a new tab.
+- The only difference is the `redirect` query param value now points to the final route (`/writing`, `/publishing`) instead of the legacy alias (`/ai-writing-studio`, `/ai-publishing-studio`).
+- No other files reference these paths.
+
+### No other changes needed
+- `publishnow-redirect.ts` — untouched, it's a generic utility.
+- SSO handoff backend — untouched, it just passes the redirect param through.
 
