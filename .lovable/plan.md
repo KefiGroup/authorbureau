@@ -1,44 +1,62 @@
 
 
-## Plan: Replace GoTrue admin lookup with `pull-shared-profile` endpoint
+# Revised Plan: Newsletter Signup + SEO + Subscription Gating
 
-### Problem
-The `lookupUserByEmail` helper uses the GoTrue admin API with `SHARED_BACKEND_SERVICE_ROLE_KEY`, which is returning 401 (invalid key). Instead of fixing the key, we can use the existing `pull-shared-profile` endpoint that both platforms already authenticate with `CROSS_PLATFORM_SECRET`.
+## 1. Database Migration
 
-### Changes to `supabase/functions/save-book/index.ts`
+**One new table: `newsletter_signups`**
 
-1. **Replace `lookupUserByEmail` helper** with a new `resolveUserViaSharedProfile` function that calls `pull-shared-profile` with `platform_secret` + `email`, returning the user ID and profile data (pen_name, bio, photo_url).
+```sql
+CREATE TABLE public.newsletter_signups (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  book_id uuid NOT NULL REFERENCES public.books(id) ON DELETE CASCADE,
+  email text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.newsletter_signups ENABLE ROW LEVEL SECURITY;
 
-2. **Update platform_secret path (lines 82-101)**: Replace the `SHARED_BACKEND_SERVICE_ROLE_KEY` check and `lookupUserByEmail` call with `resolveUserViaSharedProfile`. Extract `userId` from the response's `primary_profile`. Also use the returned profile data to pre-populate author metadata (name, bio, photo), reducing the need for the later metadata fallback section.
+-- Public insert (anyone can subscribe)
+CREATE POLICY "Anyone can sign up" ON public.newsletter_signups
+  FOR INSERT WITH CHECK (true);
 
-3. **Update JWT dual-ID resolution path (lines 134-151)**: Replace the `lookupUserByEmail` call with `resolveUserViaSharedProfile` using `cloudUser.email`. This path also used `SHARED_BACKEND_SERVICE_ROLE_KEY`.
-
-4. **Update author metadata fallback (lines 176-196)**: For platform pushes, use the profile data already returned by `pull-shared-profile` instead of calling `getUserById` with the service role key. This eliminates the last usage of `SHARED_BACKEND_SERVICE_ROLE_KEY` in the function.
-
-5. **Remove unused code**: Remove the old `lookupUserByEmail` function and the `SHARED_ANON_KEY` constant (if no longer referenced by any remaining path).
-
-### New helper function
-
-```typescript
-async function resolveUserViaSharedProfile(
-  platformSecret: string,
-  email: string
-): Promise<{ userId: string; profile: any } | null> {
-  const res = await fetch(
-    "https://wuftdpnekscrsghqtssd.supabase.co/functions/v1/pull-shared-profile",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ platform_secret: platformSecret, email }),
-    }
+-- Authors see signups for their own books
+CREATE POLICY "Authors can view their book signups" ON public.newsletter_signups
+  FOR SELECT USING (
+    EXISTS (SELECT 1 FROM public.books WHERE books.id = newsletter_signups.book_id AND books.author_id = auth.uid())
   );
-  if (!res.ok) return null;
-  const data = await res.json();
-  if (!data.primary_profile) return null;
-  return { userId: data.primary_profile.user_id, profile: data.primary_profile };
-}
+
+-- Admins see all
+CREATE POLICY "Admins can view all signups" ON public.newsletter_signups
+  FOR SELECT USING (has_role(auth.uid(), 'admin'::app_role));
 ```
 
-### Key benefit
-Eliminates all dependency on `SHARED_BACKEND_SERVICE_ROLE_KEY` in this function, using only the `CROSS_PLATFORM_SECRET` that both platforms already share and trust.
+No JSONB columns added to books. No other new tables.
+
+## 2. Book Microsite: Newsletter Signup Section Only
+
+Add one new section to `DynamicBookMicrosite.tsx` — an email capture form positioned before the "Ready to Read?" CTA block. Uses Supabase client to insert directly into `newsletter_signups` (public INSERT policy, no auth needed). Shows toast on success.
+
+No Chapter Framework, Testimonials, or FAQ sections.
+
+## 3. SEO Foundations
+
+- **`useDocumentMeta` hook** — sets `document.title`, meta description, og:title/description/image/url, twitter:card, and injects JSON-LD `<script>` tag. Cleans up on unmount.
+- **Apply to `DynamicBookMicrosite.tsx`** — Book schema (`@type: Book`)
+- **Apply to `AuthorProfile.tsx`** — Person schema (`@type: Person`)
+- **`generate-sitemap` edge function** — queries published books + listed author profiles, returns XML sitemap
+
+## 4. Subscription Gating (Free + Premium $29/mo)
+
+- **`PremiumGate` component** — wraps premium sections; shows upgrade card with CTA if `!isPremium`
+- **Gate in `AuthorDashboard.tsx`**: CourseBuilder, CoachingCRM, SpeakingProfile, AIToolkit wrapped in PremiumGate
+- **Lock icons in `DashboardSidebar`** for gated items when not premium
+- Uses existing Stripe price `price_1T0EiXL6NAuEbKmpWFRCxYaV` via `create-checkout`
+
+## 5. Implementation Order
+
+1. Database migration (newsletter_signups table)
+2. Newsletter signup section in DynamicBookMicrosite
+3. useDocumentMeta hook + apply to Book/Author pages
+4. generate-sitemap edge function
+5. PremiumGate component + dashboard gating + sidebar lock icons
 
