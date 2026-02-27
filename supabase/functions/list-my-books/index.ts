@@ -30,13 +30,15 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Resolve user ID — always prefer Cloud user ID since data is stored under it
+    // Resolve user ID and email
     let userId: string;
+    let userEmail: string | null = null;
 
     // Try Cloud auth first
     const { data: { user: cloudUser } } = await cloudAdmin.auth.getUser(token);
     if (cloudUser) {
       userId = cloudUser.id;
+      userEmail = cloudUser.email ?? null;
     } else {
       // Fallback: try shared backend (for SSO sessions)
       const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
@@ -47,8 +49,10 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      // For shared backend users, find their Cloud user ID by email
       userId = sharedUser.id;
+      userEmail = sharedUser.email ?? null;
+
+      // For shared backend users, find their Cloud user ID by email
       if (sharedUser.email) {
         const { data: { users } } = await cloudAdmin.auth.admin.listUsers();
         const localMatch = users?.find(
@@ -57,6 +61,13 @@ Deno.serve(async (req) => {
         if (localMatch) userId = localMatch.id;
       }
     }
+
+    console.log("[list-my-books] Resolved userId:", userId, "email:", userEmail);
+
+    // Build ownership filter: author_id matches OR owner_email matches
+    const ownershipFilter = userEmail
+      ? `author_id.eq.${userId},owner_email.eq.${userEmail}`
+      : `author_id.eq.${userId}`;
 
     // Parse request body for action
     let action = "list";
@@ -76,7 +87,7 @@ Deno.serve(async (req) => {
         .from("books")
         .select("*")
         .eq("id", bookId)
-        .eq("author_id", userId)
+        .or(ownershipFilter)
         .single();
 
       if (getError || !book) {
@@ -93,6 +104,21 @@ Deno.serve(async (req) => {
 
     // Handle update action
     if (action === "update" && bookId) {
+      // First verify ownership
+      const { data: owned } = await cloudAdmin
+        .from("books")
+        .select("id")
+        .eq("id", bookId)
+        .or(ownershipFilter)
+        .maybeSingle();
+
+      if (!owned) {
+        return new Response(JSON.stringify({ error: "Book not found or not owned" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       const updateData: Record<string, any> = {};
       const fieldMap: Record<string, string> = {
         title: "title", subtitle: "subtitle", description: "description",
@@ -119,8 +145,7 @@ Deno.serve(async (req) => {
       const { error: updateError } = await cloudAdmin
         .from("books")
         .update(updateData)
-        .eq("id", bookId)
-        .eq("author_id", userId);
+        .eq("id", bookId);
 
       if (updateError) {
         return new Response(JSON.stringify({ error: updateError.message }), {
@@ -143,11 +168,25 @@ Deno.serve(async (req) => {
         });
       }
 
+      // Verify ownership first
+      const { data: owned } = await cloudAdmin
+        .from("books")
+        .select("id")
+        .eq("id", bookId)
+        .or(ownershipFilter)
+        .maybeSingle();
+
+      if (!owned) {
+        return new Response(JSON.stringify({ error: "Book not found or not owned" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       const { error: unpublishError } = await cloudAdmin
         .from("books")
         .update({ published_at: null })
-        .eq("id", bookId)
-        .eq("author_id", userId);
+        .eq("id", bookId);
 
       if (unpublishError) {
         console.error("Unpublish error:", unpublishError);
@@ -166,8 +205,8 @@ Deno.serve(async (req) => {
     // Default: list books
     const { data: books, error: queryError } = await cloudAdmin
       .from("books")
-      .select("id, title, subtitle, slug, cover_image_url, published_at, entry_mode, genre, rating, badges, created_at")
-      .eq("author_id", userId)
+      .select("id, title, subtitle, slug, cover_image_url, published_at, entry_mode, genre, rating, badges, created_at, owner_email")
+      .or(ownershipFilter)
       .order("created_at", { ascending: false });
 
     if (queryError) {
@@ -178,8 +217,16 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Deduplicate (a book could match both author_id and owner_email)
+    const seen = new Set<string>();
+    const uniqueBooks = (books || []).filter(b => {
+      if (seen.has(b.id)) return false;
+      seen.add(b.id);
+      return true;
+    });
+
     return new Response(
-      JSON.stringify({ books: books || [] }),
+      JSON.stringify({ books: uniqueBooks }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
