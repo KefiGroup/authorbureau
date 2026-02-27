@@ -83,32 +83,54 @@ serve(async (req) => {
         userId = resolved.userId;
         sharedProfile = resolved.profile;
       } else {
-        console.warn("[save-book] Shared profile returned no userId for:", body.email, "— trying email fallback");
+        console.warn("[save-book] Shared profile returned no userId for:", body.email, "— trying fallbacks");
 
-        // Fallback 1: reuse author_id from existing book with same owner_email
-        const { data: existingBook } = await cloudAdmin
-          .from("books")
-          .select("author_id")
-          .eq("owner_email", body.email)
-          .limit(1)
-          .maybeSingle();
+        // Fallback 1: Look up the user directly in the shared backend auth by email
+        const sharedServiceKey = Deno.env.get("SHARED_BACKEND_SERVICE_ROLE_KEY");
+        let foundViaSharedAuth = false;
+        if (sharedServiceKey && body.email) {
+          try {
+            const sharedAdmin = createClient(SHARED_BACKEND_URL, sharedServiceKey);
+            const { data: { users: sharedUsers } } = await sharedAdmin.auth.admin.listUsers();
+            const matchedUser = sharedUsers?.find(
+              (u: any) => u.email?.toLowerCase() === body.email.toLowerCase()
+            );
+            if (matchedUser) {
+              userId = matchedUser.id;
+              foundViaSharedAuth = true;
+              console.log("[save-book] Found user in shared backend auth:", userId);
+            }
+          } catch (e) {
+            console.warn("[save-book] Shared backend auth lookup failed:", e.message);
+          }
+        }
 
-        if (existingBook?.author_id) {
-          userId = existingBook.author_id;
-          console.log("[save-book] Reused author_id from existing book:", userId);
-        } else {
-          // Fallback 2: create a local identity keyed by email
-          userId = crypto.randomUUID();
-          console.log("[save-book] Generated new local author_id:", userId);
+        if (!foundViaSharedAuth) {
+          // Fallback 2: reuse author_id from existing book with same owner_email
+          const { data: existingBook } = await cloudAdmin
+            .from("books")
+            .select("author_id")
+            .eq("owner_email", body.email)
+            .limit(1)
+            .maybeSingle();
 
-          const authorName = body.book?.author_name || body.author_name || body.email?.split("@")[0];
-          await cloudAdmin.from("author_profiles").upsert({
-            user_id: userId,
-            pen_name: authorName,
-            bio_short: body.book?.author_bio || body.author_bio || null,
-            photo_url: body.book?.author_photo_url || body.author_photo_url || null,
-            directory_status: "unlisted",
-          }, { onConflict: "user_id" });
+          if (existingBook?.author_id) {
+            userId = existingBook.author_id;
+            console.log("[save-book] Reused author_id from existing book:", userId);
+          } else {
+            // Fallback 3: create a local identity keyed by email
+            userId = crypto.randomUUID();
+            console.log("[save-book] Generated new local author_id:", userId);
+
+            const authorName = body.book?.author_name || body.author_name || body.email?.split("@")[0];
+            await cloudAdmin.from("author_profiles").upsert({
+              user_id: userId,
+              pen_name: authorName,
+              bio_short: body.book?.author_bio || body.author_bio || null,
+              photo_url: body.book?.author_photo_url || body.author_photo_url || null,
+              directory_status: "unlisted",
+            }, { onConflict: "user_id" });
+          }
         }
 
         if (resolved?.profile) sharedProfile = resolved.profile;
