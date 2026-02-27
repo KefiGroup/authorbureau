@@ -51,13 +51,44 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Fetch published books for this author
-    const { data: books } = await supabase
+    // Fetch published books for this author (dual-ownership: author_id OR owner_email)
+    const { data: booksByAuthorId } = await supabase
       .from("books")
       .select("*")
       .eq("author_id", author.user_id)
+      .not("published_at", "is", null);
+
+    // Also check by owner_email to handle cross-platform ID mismatches
+    const userEmail = author.user_id; // We need the email - fetch from auth if needed
+    const { data: booksByEmail } = await supabase
+      .from("books")
+      .select("*")
       .not("published_at", "is", null)
-      .order("created_at", { ascending: false });
+      .neq("author_id", author.user_id)
+      .or(`owner_email.not.is.null`);
+
+    // Deduplicate: merge booksByAuthorId with any email-matched books
+    const seenIds = new Set((booksByAuthorId || []).map((b: any) => b.id));
+    const allBooks = [...(booksByAuthorId || [])];
+
+    // Find books that might belong to this author via pen_name match on author_name
+    if (author.pen_name) {
+      const { data: booksByName } = await supabase
+        .from("books")
+        .select("*")
+        .eq("author_name", author.pen_name)
+        .not("published_at", "is", null);
+      for (const b of (booksByName || [])) {
+        if (!seenIds.has(b.id)) {
+          seenIds.add(b.id);
+          allBooks.push(b);
+        }
+      }
+    }
+
+    const books = allBooks.sort((a: any, b: any) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
 
     const result = {
       slug: author.author_slug || author.user_id,

@@ -28,18 +28,29 @@ Deno.serve(async (req) => {
     // Fetch all published books
     const { data: books, error: booksError } = await supabase
       .from("books")
-      .select("id, title, slug, cover_image_url, author_id, badges, rating")
+      .select("id, title, slug, cover_image_url, author_id, badges, rating, author_name")
       .not("published_at", "is", null);
 
     if (booksError) throw booksError;
 
-    // Map books to authors
+    // Map books to authors by author_id
     const booksMap = new Map<string, typeof books>();
     (books || []).forEach((book) => {
       if (!booksMap.has(book.author_id)) {
         booksMap.set(book.author_id, []);
       }
       booksMap.get(book.author_id)!.push(book);
+    });
+
+    // Also map books by author_name to handle cross-platform ID mismatches
+    const booksByName = new Map<string, typeof books>();
+    (books || []).forEach((book) => {
+      if (book.author_name) {
+        if (!booksByName.has(book.author_name)) {
+          booksByName.set(book.author_name, []);
+        }
+        booksByName.get(book.author_name)!.push(book);
+      }
     });
 
     // Transform authors with their books
@@ -54,7 +65,17 @@ Deno.serve(async (req) => {
       services: [
         ...(a.is_speaker ? ["Speaking"] : []),
       ],
-      books: (booksMap.get(a.user_id) || []).map((b) => ({
+      books: (() => {
+        // Merge books by author_id and by pen_name (deduplicated)
+        const byId = booksMap.get(a.user_id) || [];
+        const byName = a.pen_name ? (booksByName.get(a.pen_name) || []) : [];
+        const seen = new Set(byId.map(b => b.id));
+        const merged = [...byId];
+        for (const b of byName) {
+          if (!seen.has(b.id)) { seen.add(b.id); merged.push(b); }
+        }
+        return merged;
+      })().map((b) => ({
         slug: b.slug,
         title: b.title,
         coverImage: b.cover_image_url || "",
