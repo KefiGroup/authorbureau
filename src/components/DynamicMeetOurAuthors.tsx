@@ -71,31 +71,43 @@ export default function DynamicMeetOurAuthors() {
         // Fetch all published books (from Cloud project)
         const { data: booksData, error: booksError } = await cloudSupabase
           .from("books")
-          .select("id, title, subtitle, slug, cover_image_url, rating, pages, badges, amazon_url, author_id")
+          .select("id, title, subtitle, slug, cover_image_url, rating, pages, badges, amazon_url, author_id, author_name")
           .not("published_at", "is", null);
 
         if (booksError) throw booksError;
 
-        // Map books to authors
-        const booksMap = new Map<string, typeof booksData>();
+        // Map books to authors by author_id
+        const booksById = new Map<string, typeof booksData>();
+        const booksByName = new Map<string, typeof booksData>();
         (booksData || []).forEach((book) => {
-          if (!booksMap.has(book.author_id)) {
-            booksMap.set(book.author_id, []);
+          if (!booksById.has(book.author_id)) booksById.set(book.author_id, []);
+          booksById.get(book.author_id)!.push(book);
+          if (book.author_name) {
+            if (!booksByName.has(book.author_name)) booksByName.set(book.author_name, []);
+            booksByName.get(book.author_name)!.push(book);
           }
-          booksMap.get(book.author_id)!.push(book);
         });
 
-        // Transform and filter authors with books
+        // Transform and filter authors with books (merge by id + pen_name)
         const transformedAuthors = (authorsData || [])
-          .map((author: any) => ({
-            id: author.user_id,
-            slug: author.author_slug || author.user_id,
-            name: author.pen_name || "Author",
-            bio_short: author.bio_short,
-            photo_url: author.photo_url,
-            genres: author.genres || [],
-            books: booksMap.get(author.user_id) || [],
-          }))
+          .map((author: any) => {
+            const byId = booksById.get(author.user_id) || [];
+            const byName = author.pen_name ? (booksByName.get(author.pen_name) || []) : [];
+            const seen = new Set(byId.map((b: any) => b.id));
+            const merged = [...byId];
+            for (const b of byName) {
+              if (!seen.has(b.id)) { seen.add(b.id); merged.push(b); }
+            }
+            return {
+              id: author.user_id,
+              slug: author.author_slug || author.user_id,
+              name: author.pen_name || "Author",
+              bio_short: author.bio_short,
+              photo_url: author.photo_url,
+              genres: author.genres || [],
+              books: merged,
+            };
+          })
           .filter((author) => author.books.length > 0);
 
         setAuthors(transformedAuthors);
