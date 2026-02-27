@@ -1,6 +1,6 @@
 import { supabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
 
-const PUBLISHNOW_SSO_URL = "https://publishnowinterface.lovable.app/#/sso";
+const PUBLISHNOW_SSO_URL = "https://publishnow.io/#/sso";
 
 /**
  * Generate an SSO token via the shared backend and redirect to PublishNow
