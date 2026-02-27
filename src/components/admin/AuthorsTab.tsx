@@ -46,19 +46,32 @@ export default function AuthorsTab() {
 
       const { data: books } = await supabase
         .from("books")
-        .select("author_id")
+        .select("author_id, author_name")
         .not("published_at", "is", null);
 
+      // Count books by author_id
       const bookCounts = new Map<string, number>();
       (books || []).forEach((b: any) => {
         bookCounts.set(b.author_id, (bookCounts.get(b.author_id) || 0) + 1);
       });
 
+      // Also count books by author_name for pen_name fallback
+      const bookCountsByName = new Map<string, number>();
+      (books || []).forEach((b: any) => {
+        if (b.author_name) {
+          bookCountsByName.set(b.author_name, (bookCountsByName.get(b.author_name) || 0) + 1);
+        }
+      });
+
       setAuthors(
-        (profiles || []).map((p: any) => ({
-          ...p,
-          book_count: bookCounts.get(p.user_id) || 0,
-        }))
+        (profiles || []).map((p: any) => {
+          const byId = bookCounts.get(p.user_id) || 0;
+          const byName = p.pen_name ? (bookCountsByName.get(p.pen_name) || 0) : 0;
+          return {
+            ...p,
+            book_count: Math.max(byId, byName),
+          };
+        })
       );
     } catch (err: any) {
       toast({ title: "Failed to load authors", variant: "destructive" });
