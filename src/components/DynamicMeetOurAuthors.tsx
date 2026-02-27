@@ -1,10 +1,11 @@
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, BookOpen } from "lucide-react";
+import { ChevronLeft, ChevronRight, BookOpen, Settings2, ChevronUp, ChevronDown, Check, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import useEmblaCarousel from "embla-carousel-react";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface BookWithAuthor {
   id: string;
@@ -44,6 +45,10 @@ export default function DynamicMeetOurAuthors() {
   const [canScrollNext, setCanScrollNext] = useState(false);
   const [authors, setAuthors] = useState<AuthorWithBooks[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { isAdmin } = useAuth();
+  const [editingCrop, setEditingCrop] = useState<string | null>(null);
+  const [cropDraft, setCropDraft] = useState<number>(0);
+  const [savingCrop, setSavingCrop] = useState(false);
 
   const onSelect = useCallback(() => {
     if (!emblaApi) return;
@@ -123,6 +128,29 @@ export default function DynamicMeetOurAuthors() {
     fetchAuthorsWithBooks();
   }, []);
 
+  const startCropEdit = (authorId: string, currentCropY: string | undefined) => {
+    setEditingCrop(authorId);
+    setCropDraft(parseInt(currentCropY || "0", 10));
+  };
+
+  const saveCropEdit = async () => {
+    if (!editingCrop) return;
+    setSavingCrop(true);
+    try {
+      await cloudSupabase
+        .from("author_profiles")
+        .update({ photo_crop_y: `${cropDraft}%` } as any)
+        .eq("user_id", editingCrop);
+      setAuthors((prev) =>
+        prev.map((a) => (a.id === editingCrop ? { ...a, photo_crop_y: `${cropDraft}%` } : a))
+      );
+    } catch (err) {
+      console.error("Failed to save crop:", err);
+    }
+    setSavingCrop(false);
+    setEditingCrop(null);
+  };
+
   if (isLoading) {
     return (
       <section id="featured-authors" className="py-24" style={{ background: "var(--gradient-hero)" }}>
@@ -195,7 +223,7 @@ export default function DynamicMeetOurAuthors() {
                           src={author.photo_url}
                           alt={author.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          style={{ objectPosition: `50% ${author.photo_crop_y || '0%'}` }}
+                          style={{ objectPosition: `50% ${editingCrop === author.id ? `${cropDraft}%` : (author.photo_crop_y || '0%')}` }}
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-muted/50">
@@ -203,6 +231,39 @@ export default function DynamicMeetOurAuthors() {
                         </div>
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-card/40 to-transparent" />
+
+                      {/* Admin crop controls */}
+                      {isAdmin && author.photo_url && editingCrop !== author.id && (
+                        <button
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); startCropEdit(author.id, author.photo_crop_y); }}
+                          className="absolute top-2 right-2 z-10 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 transition-colors"
+                          title="Adjust photo position"
+                        >
+                          <Settings2 className="h-4 w-4" />
+                        </button>
+                      )}
+                      {isAdmin && editingCrop === author.id && (
+                        <div
+                          className="absolute top-2 right-2 z-10 bg-black/80 rounded-lg p-2 flex flex-col items-center gap-1"
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                        >
+                          <button onClick={() => setCropDraft((v) => Math.max(0, v - 2))} className="text-white hover:text-secondary">
+                            <ChevronUp className="h-5 w-5" />
+                          </button>
+                          <span className="text-white text-xs font-mono">{cropDraft}%</span>
+                          <button onClick={() => setCropDraft((v) => Math.min(50, v + 2))} className="text-white hover:text-secondary">
+                            <ChevronDown className="h-5 w-5" />
+                          </button>
+                          <div className="flex gap-1 mt-1">
+                            <button onClick={() => setEditingCrop(null)} className="text-red-400 hover:text-red-300">
+                              <X className="h-4 w-4" />
+                            </button>
+                            <button onClick={saveCropEdit} disabled={savingCrop} className="text-green-400 hover:text-green-300">
+                              <Check className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Content */}
