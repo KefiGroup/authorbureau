@@ -223,14 +223,15 @@ export default function DynamicMeetOurAuthors() {
                     {/* Photo */}
                     <div className="relative h-80 bg-muted/30 overflow-hidden">
                       {author.photo_url ? (
-                        <img
-                          src={author.photo_url}
-                          alt={author.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        <div
+                          role="img"
+                          aria-label={author.name}
+                          className="w-full h-full group-hover:scale-105 transition-transform duration-500 bg-muted/50"
                           style={{
-                            objectPosition: `50% ${editingCrop === author.id ? `${cropDraft}%` : (author.photo_crop_y || '0%')}`,
-                            transform: `scale(${editingCrop === author.id ? zoomDraft : (author.photo_zoom || 1)})`,
-                            transformOrigin: `50% ${editingCrop === author.id ? `${cropDraft}%` : (author.photo_crop_y || '0%')}`,
+                            backgroundImage: `url(${author.photo_url})`,
+                            backgroundRepeat: 'no-repeat',
+                            backgroundPosition: `50% ${editingCrop === author.id ? `${cropDraft}%` : (author.photo_crop_y || '30%')}`,
+                            backgroundSize: `${(editingCrop === author.id ? zoomDraft : (author.photo_zoom || 1)) * 100}%`,
                           }}
                         />
                       ) : (
@@ -265,11 +266,11 @@ export default function DynamicMeetOurAuthors() {
                           </button>
                           <div className="w-full h-px bg-white/20 my-1" />
                           <span className="text-secondary text-[10px] font-bold uppercase tracking-wider">Zoom</span>
-                          <button onClick={() => setZoomDraft((v) => Math.min(3, +(v + 0.05).toFixed(2)))} className="text-white hover:text-secondary">
+                          <button onClick={() => setZoomDraft((v) => Math.min(3, +(v + 0.1).toFixed(2)))} className="text-white hover:text-secondary">
                             <ZoomIn className="h-5 w-5" />
                           </button>
-                          <span className="text-white text-xs font-mono">{zoomDraft.toFixed(2)}x</span>
-                          <button onClick={() => setZoomDraft((v) => Math.max(1, +(v - 0.05).toFixed(2)))} className="text-white hover:text-secondary">
+                          <span className="text-white text-xs font-mono">{Math.round(zoomDraft * 100)}%</span>
+                          <button onClick={() => setZoomDraft((v) => Math.max(0.5, +(v - 0.1).toFixed(2)))} className="text-white hover:text-secondary">
                             <ZoomOut className="h-5 w-5" />
                           </button>
                           <div className="flex gap-1 mt-1">
