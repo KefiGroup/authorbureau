@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, BookOpen, Settings2, ChevronUp, ChevronDown, Check, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, BookOpen, Settings2, ChevronUp, ChevronDown, Check, X, ZoomIn, ZoomOut } from "lucide-react";
 import { Link } from "react-router-dom";
 import useEmblaCarousel from "embla-carousel-react";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
@@ -26,6 +26,7 @@ interface AuthorWithBooks {
   bio_short?: string;
   photo_url?: string;
   photo_crop_y?: string;
+  photo_zoom?: number;
   genres?: string[];
   books: BookWithAuthor[];
 }
@@ -48,6 +49,7 @@ export default function DynamicMeetOurAuthors() {
   const { isAdmin } = useAuth();
   const [editingCrop, setEditingCrop] = useState<string | null>(null);
   const [cropDraft, setCropDraft] = useState<number>(0);
+  const [zoomDraft, setZoomDraft] = useState<number>(1);
   const [savingCrop, setSavingCrop] = useState(false);
 
   const onSelect = useCallback(() => {
@@ -69,7 +71,7 @@ export default function DynamicMeetOurAuthors() {
         // Fetch author profiles from Cloud DB (already synced)
         const { data: authorsData, error: authError } = await cloudSupabase
           .from("author_profiles")
-          .select("user_id, pen_name, bio_short, genres, photo_url, author_slug, directory_status, photo_crop_y")
+          .select("user_id, pen_name, bio_short, genres, photo_url, author_slug, directory_status, photo_crop_y, photo_zoom")
           .in("directory_status", ["listed", "verified", "featured"]);
 
         if (authError) throw authError;
@@ -111,6 +113,7 @@ export default function DynamicMeetOurAuthors() {
               bio_short: author.bio_short,
               photo_url: author.photo_url,
               photo_crop_y: author.photo_crop_y,
+              photo_zoom: author.photo_zoom,
               genres: author.genres || [],
               books: merged,
             };
@@ -128,9 +131,10 @@ export default function DynamicMeetOurAuthors() {
     fetchAuthorsWithBooks();
   }, []);
 
-  const startCropEdit = (authorId: string, currentCropY: string | undefined) => {
+  const startCropEdit = (authorId: string, currentCropY: string | undefined, currentZoom: number | undefined) => {
     setEditingCrop(authorId);
     setCropDraft(parseInt(currentCropY || "0", 10));
+    setZoomDraft(currentZoom || 1);
   };
 
   const saveCropEdit = async () => {
@@ -139,10 +143,10 @@ export default function DynamicMeetOurAuthors() {
     try {
       await cloudSupabase
         .from("author_profiles")
-        .update({ photo_crop_y: `${cropDraft}%` } as any)
+        .update({ photo_crop_y: `${cropDraft}%`, photo_zoom: zoomDraft } as any)
         .eq("user_id", editingCrop);
       setAuthors((prev) =>
-        prev.map((a) => (a.id === editingCrop ? { ...a, photo_crop_y: `${cropDraft}%` } : a))
+        prev.map((a) => (a.id === editingCrop ? { ...a, photo_crop_y: `${cropDraft}%`, photo_zoom: zoomDraft } : a))
       );
     } catch (err) {
       console.error("Failed to save crop:", err);
@@ -201,7 +205,7 @@ export default function DynamicMeetOurAuthors() {
         <div className="relative px-6">
           {/* Carousel */}
           <div className="overflow-hidden" ref={emblaRef}>
-            <div className="flex gap-8">
+            <div className="flex gap-10">
               {authors.map((author, i) => (
                 <motion.div
                   key={author.id}
@@ -223,7 +227,11 @@ export default function DynamicMeetOurAuthors() {
                           src={author.photo_url}
                           alt={author.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          style={{ objectPosition: `50% ${editingCrop === author.id ? `${cropDraft}%` : (author.photo_crop_y || '0%')}` }}
+                          style={{
+                            objectPosition: `50% ${editingCrop === author.id ? `${cropDraft}%` : (author.photo_crop_y || '0%')}`,
+                            transform: `scale(${editingCrop === author.id ? zoomDraft : (author.photo_zoom || 1)})`,
+                            transformOrigin: `50% ${editingCrop === author.id ? `${cropDraft}%` : (author.photo_crop_y || '0%')}`,
+                          }}
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-muted/50">
@@ -235,7 +243,7 @@ export default function DynamicMeetOurAuthors() {
                       {/* Admin crop controls */}
                       {isAdmin && author.photo_url && editingCrop !== author.id && (
                         <button
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); startCropEdit(author.id, author.photo_crop_y); }}
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); startCropEdit(author.id, author.photo_crop_y, author.photo_zoom); }}
                           className="absolute top-2 right-2 z-10 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 transition-colors"
                           title="Adjust photo position"
                         >
@@ -247,12 +255,22 @@ export default function DynamicMeetOurAuthors() {
                           className="absolute top-2 right-2 z-10 bg-black/80 rounded-lg p-2 flex flex-col items-center gap-1"
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
                         >
+                          <span className="text-secondary text-[10px] font-bold uppercase tracking-wider">Pan</span>
                           <button onClick={() => setCropDraft((v) => Math.max(0, v - 2))} className="text-white hover:text-secondary">
                             <ChevronUp className="h-5 w-5" />
                           </button>
                           <span className="text-white text-xs font-mono">{cropDraft}%</span>
                           <button onClick={() => setCropDraft((v) => Math.min(50, v + 2))} className="text-white hover:text-secondary">
                             <ChevronDown className="h-5 w-5" />
+                          </button>
+                          <div className="w-full h-px bg-white/20 my-1" />
+                          <span className="text-secondary text-[10px] font-bold uppercase tracking-wider">Zoom</span>
+                          <button onClick={() => setZoomDraft((v) => Math.min(2, +(v + 0.05).toFixed(2)))} className="text-white hover:text-secondary">
+                            <ZoomIn className="h-5 w-5" />
+                          </button>
+                          <span className="text-white text-xs font-mono">{zoomDraft.toFixed(2)}x</span>
+                          <button onClick={() => setZoomDraft((v) => Math.max(0.5, +(v - 0.05).toFixed(2)))} className="text-white hover:text-secondary">
+                            <ZoomOut className="h-5 w-5" />
                           </button>
                           <div className="flex gap-1 mt-1">
                             <button onClick={() => setEditingCrop(null)} className="text-red-400 hover:text-red-300">

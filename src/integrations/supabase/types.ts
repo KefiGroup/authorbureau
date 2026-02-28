@@ -72,6 +72,7 @@ export type Database = {
           pen_name: string | null
           photo_crop_y: string | null
           photo_url: string | null
+          photo_zoom: number | null
           speaker_fee_range: string | null
           tagline: string | null
           twitter_url: string | null
@@ -101,6 +102,7 @@ export type Database = {
           pen_name?: string | null
           photo_crop_y?: string | null
           photo_url?: string | null
+          photo_zoom?: number | null
           speaker_fee_range?: string | null
           tagline?: string | null
           twitter_url?: string | null
@@ -130,6 +132,7 @@ export type Database = {
           pen_name?: string | null
           photo_crop_y?: string | null
           photo_url?: string | null
+          photo_zoom?: number | null
           speaker_fee_range?: string | null
           tagline?: string | null
           twitter_url?: string | null
