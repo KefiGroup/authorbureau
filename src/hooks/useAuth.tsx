@@ -5,9 +5,6 @@ import type { User, Session } from "@supabase/supabase-js";
 // Admin status key for sessionStorage (set by AdminAuth page on successful admin-auth login)
 const ADMIN_AUTH_KEY = "ab_admin_auth";
 
-// Known admin emails (fallback when admin-auth session flag isn't set)
-export const ADMIN_EMAILS = ["fasahath@gmail.com", "pauline@publishnow.io"];
-
 // Stripe tier config
 export const TIERS = {
   premium: {
@@ -87,10 +84,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Immediate fallback for known admins
-          const isAdminEmail = ADMIN_EMAILS.includes(session.user.email ?? "");
           const isAdminSession = sessionStorage.getItem(ADMIN_AUTH_KEY) === "true";
-          if (isAdminEmail || isAdminSession) setIsAdmin(true);
+          if (isAdminSession) setIsAdmin(true);
 
           // Dispatch RPC outside the listener to avoid Supabase client deadlock
           const userId = session.user.id;
@@ -99,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               _user_id: userId,
               _role: "admin",
             });
-            setIsAdmin(!!data || isAdminSession || isAdminEmail);
+            setIsAdmin(!!data || isAdminSession);
           }, 0);
         } else {
           setIsAdmin(false);
@@ -120,8 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           _role: "admin",
         });
         const isAdminSession = sessionStorage.getItem(ADMIN_AUTH_KEY) === "true";
-        const isAdminEmail = ADMIN_EMAILS.includes(session.user.email ?? "");
-        setIsAdmin(!!data || isAdminSession || isAdminEmail);
+        setIsAdmin(!!data || isAdminSession);
       }
 
       setLoading(false);
