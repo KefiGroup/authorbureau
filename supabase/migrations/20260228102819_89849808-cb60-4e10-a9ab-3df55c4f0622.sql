@@ -1,0 +1,1 @@
+ALTER TABLE public.author_profiles ADD COLUMN IF NOT EXISTS photo_zoom numeric DEFAULT 1;
