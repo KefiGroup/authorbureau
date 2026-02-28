@@ -205,7 +205,7 @@ export default function DynamicMeetOurAuthors() {
         <div className="relative px-6">
           {/* Carousel */}
           <div className="overflow-hidden" ref={emblaRef}>
-            <div className="flex gap-10">
+            <div className="flex -ml-5">
               {authors.map((author, i) => (
                 <motion.div
                   key={author.id}
@@ -214,7 +214,7 @@ export default function DynamicMeetOurAuthors() {
                   viewport={{ once: true }}
                   custom={i}
                   variants={fadeUp}
-                  className="min-w-0 flex-[0_0_100%] sm:flex-[0_0_50%] lg:flex-[0_0_33.333%]"
+                  className="min-w-0 flex-[0_0_100%] sm:flex-[0_0_50%] lg:flex-[0_0_33.333%] pl-5"
                 >
                   <Link
                     to={`/authors/${author.slug}`}
