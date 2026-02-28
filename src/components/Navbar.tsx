@@ -27,7 +27,20 @@ export default function Navbar() {
         if (location.pathname === link.to) {
           document.querySelector(link.hash)?.scrollIntoView({ behavior: "smooth" });
         } else {
-          window.location.href = link.to + link.hash;
+          navigate(link.to);
+          // Wait for page render then scroll to hash
+          const scrollToHash = () => {
+            const el = document.querySelector(link.hash);
+            if (el) {
+              el.scrollIntoView({ behavior: "smooth" });
+            } else {
+              // Section may still be loading data, retry
+              setTimeout(() => {
+                document.querySelector(link.hash)?.scrollIntoView({ behavior: "smooth" });
+              }, 1000);
+            }
+          };
+          setTimeout(scrollToHash, 100);
         }
       } else {
         navigate(link.to);
