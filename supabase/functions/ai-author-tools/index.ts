@@ -78,7 +78,7 @@ serve(async (req) => {
   }
 
   try {
-    const { toolType, bookTitle, bookDescription, authorName, additionalContext } = await req.json();
+    const { toolType, bookTitle, bookDescription, authorName, additionalContext, sourceMaterial } = await req.json();
 
     const systemPrompt = toolPrompts[toolType];
     if (!systemPrompt) {
@@ -91,11 +91,15 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    const sanitizedSourceMaterial = typeof sourceMaterial === "string" ? sourceMaterial.slice(0, 120000) : "";
+
     const userMessage = `Book Title: "${bookTitle}"
 Author: ${authorName}
 Book Description: ${bookDescription}
 ${additionalContext ? `Additional Context: ${additionalContext}` : ""}
+${sanitizedSourceMaterial ? `Source Material (author-provided text): ${sanitizedSourceMaterial}` : "Source Material: Not provided"}
 
+If source material is provided, prioritize it over assumptions.
 Please generate the content based on this book.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
