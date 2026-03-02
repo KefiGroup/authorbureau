@@ -129,9 +129,23 @@ export default function Auth() {
     setSubmitting(true);
     try {
       await supabase.auth.signOut({ scope: "local" }).catch(() => {});
-      await authFetch({ action: "request_code", email: email.trim() });
-      setFlow("otp");
-      setResendCooldown(60);
+      try {
+        await authFetch({ action: "request_code", email: email.trim() });
+        setFlow("otp");
+        setResendCooldown(60);
+      } catch (networkErr: any) {
+        if ((networkErr?.message || "").toLowerCase().includes("failed to fetch")) {
+          const { error } = await supabase.auth.signInWithOtp({
+            email: email.trim(),
+            options: { emailRedirectTo: `${window.location.origin}/auth` },
+          });
+          if (error) throw error;
+          toast({ title: "Code service is temporarily unavailable. We sent you a magic link instead." });
+          setResendCooldown(60);
+        } else {
+          throw networkErr;
+        }
+      }
     } catch (err: any) {
       toast({ title: err.message, variant: "destructive" });
     } finally {
@@ -182,18 +196,32 @@ export default function Auth() {
     if (!email.trim() || !password) return;
     setSubmitting(true);
     try {
-    const data = await authFetch({ action: "password_login", email: email.trim(), password });
-      console.log("[Auth] password_login response:", JSON.stringify(data));
-      if (data && data.success === false) {
-        throw new Error(data.error || "Sign-in failed. Please try again.");
-      }
-      if (data?.session_data?.access_token) {
-        await establishSession(data.session_data);
-      } else if (data?.authUrl) {
-        window.location.href = data.authUrl;
-        return;
-      } else {
-        throw new Error("Sign-in verified but no session was returned. Please try the magic link in your email instead.");
+      try {
+        const data = await authFetch({ action: "password_login", email: email.trim(), password });
+        console.log("[Auth] password_login response:", JSON.stringify(data));
+        if (data && data.success === false) {
+          throw new Error(data.error || "Sign-in failed. Please try again.");
+        }
+        if (data?.session_data?.access_token) {
+          await establishSession(data.session_data);
+        } else if (data?.authUrl) {
+          window.location.href = data.authUrl;
+          return;
+        } else {
+          throw new Error("Sign-in verified but no session was returned. Please try the magic link in your email instead.");
+        }
+      } catch (networkErr: any) {
+        if ((networkErr?.message || "").toLowerCase().includes("failed to fetch")) {
+          const { data: directAuth, error: directAuthError } = await supabase.auth.signInWithPassword({
+            email: email.trim(),
+            password,
+          });
+          if (directAuthError) throw directAuthError;
+          if (!directAuth?.session) throw new Error("Sign-in failed. Please try again.");
+          toast({ title: "Signed in via fallback auth." });
+        } else {
+          throw networkErr;
+        }
       }
     } catch (err: any) {
       toast({ title: err.message, variant: "destructive" });
