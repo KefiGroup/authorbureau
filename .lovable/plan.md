@@ -1,24 +1,25 @@
 
 
-## Plan: Fix SSO redirect URL to use published domain
+## Analysis: CORS Pattern in Authors Bureau Edge Functions
 
-### Problem
-The SSO redirect in `src/lib/publishnow-redirect.ts` points to `publishnowinterface.lovable.app` (the Lovable preview domain) instead of the published `publishnow.io` domain. This causes a visible flash through the Lovable domain before landing on the final site.
+After auditing all 19 edge functions in this project, **no fix is needed**. Every function already uses the safe pattern:
 
-### Change — 1 line in `publishnow-redirect.ts`
-
-**File:** `src/lib/publishnow-redirect.ts`, line 3
-
-```
-// Before
-const PUBLISHNOW_SSO_URL = "https://publishnowinterface.lovable.app/#/sso";
-
-// After
-const PUBLISHNOW_SSO_URL = "https://publishnow.io/#/sso";
+```typescript
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, ...",
+};
 ```
 
-### Why this is safe
-- `publishnow.io` is the published custom domain for the same app — it serves the same code and SSO endpoint.
-- The rest of the codebase already uses `publishnow.io` consistently (Footer, Join page, ProfileEditor fallback, etc.).
-- No other files reference the Lovable preview domain.
+This is a **module-level `const` with a static value (`*`)**, which is concurrency-safe. The dangerous pattern described in your message — a module-level `let` that gets **reassigned per-request** — does not exist in any of the 19 edge functions in this project.
+
+### Summary
+
+| Pattern | Status |
+|---------|--------|
+| Module-level `let corsHeaders` reassigned per request | Not present — no fix needed |
+| Module-level `const corsHeaders` with static `*` origin | Used everywhere — safe |
+| `getCorsHeaders(req)` dynamic origin function | Not present |
+
+**No code changes required.** The instructions you pasted apply to a different project (PublishNow's shared backend) that uses dynamic origin-based CORS headers with a mutable `let`. This project's static `"*"` wildcard approach avoids that issue entirely.
 
