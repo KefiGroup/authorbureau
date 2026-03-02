@@ -20,7 +20,6 @@ const navItems: { id: DashboardSection; label: string; icon: typeof LayoutDashbo
   { id: "courses", label: "Courses", icon: GraduationCap, premiumOnly: true },
   { id: "speaking", label: "Speaking", icon: Mic, premiumOnly: true },
   { id: "coaching", label: "Coaching", icon: BookOpen, premiumOnly: true },
-  { id: "crm", label: "CRM", icon: Users, premiumOnly: true },
 ];
 
 const sisterLinks = [
