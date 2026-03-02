@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
-import { SHARED_BACKEND_URL, SHARED_ANON_KEY } from "@/lib/shared-backend";
 
 interface Book {
   id: string;
@@ -34,7 +33,7 @@ const ASSET_TYPES = [
 type AssetId = (typeof ASSET_TYPES)[number]["id"];
 type AssetStatus = "pending" | "generating" | "done" | "error";
 
-const CHAT_URL = `${SHARED_BACKEND_URL}/functions/v1/ai-author-tools`;
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-author-tools`;
 
 async function getActiveToken(): Promise<string | null> {
   const { data: cloudSession } = await cloudSupabase.auth.getSession();
@@ -49,11 +48,12 @@ async function streamAsset(
   onDelta: (text: string) => void,
   signal: AbortSignal
 ): Promise<string> {
+  const token = await getActiveToken();
   const resp = await fetch(CHAT_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${SHARED_ANON_KEY}`,
+      Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
     },
     body: JSON.stringify({
       toolType,

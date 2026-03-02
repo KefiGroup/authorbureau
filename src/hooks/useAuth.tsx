@@ -146,7 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(interval);
   }, [user, checkSubscription]);
 
-  const isPremium = subscription.subscribed && subscription.productId === TIERS.premium.product_id;
+  const isPremium = isAdmin || (subscription.subscribed && subscription.productId === TIERS.premium.product_id);
 
   const signOut = async () => {
     await supabase.auth.signOut();
