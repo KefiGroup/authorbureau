@@ -1,14 +1,15 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, type ChangeEvent } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Rocket, BookOpen, Loader2, CheckCircle2, Circle, Play,
   Copy, Download, GraduationCap, FileText, Share2, Mail,
-  Mic, Lightbulb, AlertCircle, RotateCcw, Sparkles,
+  Mic, Lightbulb, AlertCircle, RotateCcw, Sparkles, Upload,
 } from "lucide-react";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
@@ -45,6 +46,7 @@ async function getActiveToken(): Promise<string | null> {
 async function streamAsset(
   toolType: string,
   book: Book,
+  sourceMaterial: string,
   onDelta: (text: string) => void,
   signal: AbortSignal
 ): Promise<string> {
@@ -60,6 +62,7 @@ async function streamAsset(
       bookTitle: book.title,
       bookDescription: book.description || "No description provided.",
       authorName: book.author_name || "Author",
+      sourceMaterial: sourceMaterial?.trim() || undefined,
       source_platform: "authorsbureau",
     }),
     signal,
@@ -125,7 +128,38 @@ export default function BuildMyBusiness() {
     return r;
   });
   const [activeTab, setActiveTab] = useState<AssetId>("workbook");
+  const [sourceMaterial, setSourceMaterial] = useState("");
+  const [sourceFileName, setSourceFileName] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  const handleSourceFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const isSupportedFile = /\.(txt|md)$/i.test(file.name);
+    if (!isSupportedFile) {
+      toast({
+        title: "Unsupported file type",
+        description: "Please upload a .txt or .md manuscript file.",
+        variant: "destructive",
+      });
+      event.target.value = "";
+      return;
+    }
+
+    const text = await file.text();
+    const cappedText = text.slice(0, 120000);
+
+    if (text.length > 120000) {
+      toast({
+        title: "Large file trimmed",
+        description: "We imported the first 120,000 characters for faster AI generation.",
+      });
+    }
+
+    setSourceMaterial(cappedText);
+    setSourceFileName(file.name);
+  };
 
   // Fetch user's books
   useEffect(() => {
@@ -181,6 +215,7 @@ export default function BuildMyBusiness() {
         const finalText = await streamAsset(
           asset.id,
           selectedBook,
+          sourceMaterial,
           (text) => setResults((prev) => ({ ...prev, [asset.id]: text })),
           abort.signal
         );
@@ -200,6 +235,7 @@ export default function BuildMyBusiness() {
             const finalText = await streamAsset(
               asset.id,
               selectedBook,
+              sourceMaterial,
               (text) => setResults((prev) => ({ ...prev, [asset.id]: text })),
               abort.signal
             );
@@ -213,7 +249,7 @@ export default function BuildMyBusiness() {
     }
 
     setIsRunning(false);
-  }, [selectedBook]);
+  }, [selectedBook, sourceMaterial]);
 
   const handleStop = () => {
     abortRef.current?.abort();
@@ -357,6 +393,8 @@ export default function BuildMyBusiness() {
             onClick={() => {
               handleStop();
               setSelectedBook(null);
+              setSourceMaterial("");
+              setSourceFileName(null);
               const fresh: any = {};
               ASSET_TYPES.forEach((a) => { fresh[a.id] = "pending"; });
               setStatuses(fresh);
@@ -369,6 +407,41 @@ export default function BuildMyBusiness() {
           </Button>
         </div>
       </div>
+
+      {/* Source material */}
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+              <h3 className="font-heading font-semibold text-sm">Book Content for AI</h3>
+              <p className="text-xs text-muted-foreground">
+                Upload your manuscript (.txt/.md) or paste an excerpt. If empty, AI uses the book description.
+              </p>
+            </div>
+            <label className="inline-flex items-center gap-2 text-xs cursor-pointer text-secondary font-medium">
+              <Upload className="h-3.5 w-3.5" />
+              Upload file
+              <input
+                type="file"
+                accept=".txt,.md,text/plain,text/markdown"
+                className="sr-only"
+                onChange={handleSourceFileUpload}
+              />
+            </label>
+          </div>
+
+          {sourceFileName && (
+            <p className="text-xs text-muted-foreground">Using file: {sourceFileName}</p>
+          )}
+
+          <Textarea
+            value={sourceMaterial}
+            onChange={(e) => setSourceMaterial(e.target.value)}
+            placeholder="Paste book manuscript or chapter excerpt here to guide generation quality..."
+            className="min-h-28"
+          />
+        </CardContent>
+      </Card>
 
       {/* Progress bar */}
       {(isRunning || completedCount > 0) && (
