@@ -1,8 +1,11 @@
-import { supabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
+import { supabase } from "@/lib/shared-backend";
 
 const PUBLISHNOW_SSO_URL = "https://publishnow.io/#/sso";
 const PUBLISHNOW_BASE = "https://publishnow.io";
 const RETRY_DELAY_MS = 2000;
+
+// Local project's edge function URL — same-origin, no CORS issues
+const SSO_PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sso-proxy`;
 
 interface RedirectResult {
   error?: string;
@@ -10,18 +13,22 @@ interface RedirectResult {
 }
 
 /**
- * Attempt a single SSO handoff fetch. Returns the token or throws.
+ * Call the local sso-proxy edge function (server-to-server to shared backend).
+ * Returns the SSO token or throws.
  */
-async function attemptHandoff(accessToken: string, refreshToken: string): Promise<string> {
-  const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/sso-handoff`, {
+async function attemptHandoff(
+  accessToken: string,
+  refreshToken: string,
+  targetPath: string
+): Promise<string> {
+  const res = await fetch(SSO_PROXY_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${accessToken}`,
     },
     body: JSON.stringify({
-      action: "generate",
-      source_platform: "authorsbureau",
+      target_path: targetPath,
       session_data: {
         access_token: accessToken,
         refresh_token: refreshToken,
@@ -48,9 +55,10 @@ function delay(ms: number): Promise<void> {
 }
 
 /**
- * Generate an SSO token via the shared backend and redirect to PublishNow
- * with an optional target path (e.g. /profile, /dashboard).
+ * Generate an SSO token via the local sso-proxy edge function and redirect
+ * to PublishNow with an optional target path (e.g. /profile, /dashboard).
  *
+ * The proxy calls the shared backend server-to-server, bypassing CORS entirely.
  * Includes a single retry on network failure and returns a fallbackUrl
  * so callers can offer a direct (non-SSO) link when handoff fails.
  */
@@ -66,13 +74,12 @@ export async function redirectToPublishNow(
       return { error: "Not authenticated — please sign in first." };
     }
 
-    // 2. First attempt
+    // 2. First attempt — goes to our own edge function (no CORS)
     let token: string | null = null;
     try {
-      token = await attemptHandoff(session.access_token, session.refresh_token!);
+      token = await attemptHandoff(session.access_token, session.refresh_token!, targetPath);
     } catch (firstErr) {
       if (!isNetworkError(firstErr)) {
-        // Server responded with an error — no point retrying
         return {
           error: `SSO token generation failed: ${(firstErr as Error).message}`,
           fallbackUrl,
@@ -82,7 +89,7 @@ export async function redirectToPublishNow(
       // Network error — retry once after delay
       await delay(RETRY_DELAY_MS);
       try {
-        token = await attemptHandoff(session.access_token, session.refresh_token!);
+        token = await attemptHandoff(session.access_token, session.refresh_token!, targetPath);
       } catch (retryErr) {
         return {
           error: isNetworkError(retryErr)
