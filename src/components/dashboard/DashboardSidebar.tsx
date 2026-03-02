@@ -1,4 +1,4 @@
-import { User, BookOpen, Mic, GraduationCap, LayoutDashboard, ChevronLeft, ChevronRight, Crown, Sparkles, ExternalLink, PenLine, BookMarked } from "lucide-react";
+import { User, BookOpen, Mic, GraduationCap, LayoutDashboard, ChevronLeft, ChevronRight, Crown, Sparkles, ExternalLink, PenLine, BookMarked, Users } from "lucide-react";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
 import logoIcon from "@/assets/logo-icon.png";
 import { redirectToPublishNow } from "@/lib/publishnow-redirect";
@@ -20,6 +20,7 @@ const navItems: { id: DashboardSection; label: string; icon: typeof LayoutDashbo
   { id: "courses", label: "Courses", icon: GraduationCap, premiumOnly: true },
   { id: "speaking", label: "Speaking", icon: Mic, premiumOnly: true },
   { id: "coaching", label: "Coaching", icon: BookOpen, premiumOnly: true },
+  { id: "crm", label: "CRM", icon: Users, premiumOnly: true },
 ];
 
 const sisterLinks = [

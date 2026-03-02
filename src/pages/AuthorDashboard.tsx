@@ -8,13 +8,14 @@ import ProfileEditor from "@/components/dashboard/ProfileEditor";
 import CourseBuilder from "@/components/dashboard/CourseBuilder";
 import SpeakingProfile from "@/components/dashboard/SpeakingProfile";
 import CoachingCRM from "@/components/dashboard/CoachingCRM";
+import CRMDashboard from "@/components/dashboard/CRMDashboard";
 import DashboardOverview from "@/components/dashboard/DashboardOverview";
 import AIToolkit from "@/components/dashboard/AIToolkit";
 import MyBooks from "@/components/dashboard/MyBooks";
 import PremiumGate from "@/components/dashboard/PremiumGate";
 import { Loader2 } from "lucide-react";
 
-export type DashboardSection = "overview" | "profile" | "courses" | "speaking" | "coaching" | "ai-toolkit" | "my-books";
+export type DashboardSection = "overview" | "profile" | "courses" | "speaking" | "coaching" | "crm" | "ai-toolkit" | "my-books";
 
 export default function AuthorDashboard({ initialSection }: { initialSection?: DashboardSection }) {
   const { user, loading, isAdmin, isPremium, subscription, checkSubscription, signOut } = useAuth();
@@ -55,6 +56,8 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         return <PremiumGate isPremium={isPremium} featureName="Speaking Profile"><SpeakingProfile /></PremiumGate>;
       case "coaching":
         return <PremiumGate isPremium={isPremium} featureName="Coaching CRM"><CoachingCRM /></PremiumGate>;
+      case "crm":
+        return <PremiumGate isPremium={isPremium} featureName="CRM"><CRMDashboard /></PremiumGate>;
       case "ai-toolkit":
         return <PremiumGate isPremium={isPremium} featureName="AI Toolkit"><AIToolkit /></PremiumGate>;
       case "my-books":

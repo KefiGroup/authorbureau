@@ -393,6 +393,112 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_activity_log: {
+        Row: {
+          author_id: string
+          contact_id: string
+          content: string | null
+          created_at: string
+          id: string
+          type: string
+        }
+        Insert: {
+          author_id: string
+          contact_id: string
+          content?: string | null
+          created_at?: string
+          id?: string
+          type?: string
+        }
+        Update: {
+          author_id?: string
+          contact_id?: string
+          content?: string | null
+          created_at?: string
+          id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_activity_log_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_contact_tags: {
+        Row: {
+          author_id: string
+          contact_id: string
+          created_at: string
+          id: string
+          tag: string
+        }
+        Insert: {
+          author_id: string
+          contact_id: string
+          created_at?: string
+          id?: string
+          tag: string
+        }
+        Update: {
+          author_id?: string
+          contact_id?: string
+          created_at?: string
+          id?: string
+          tag?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_contact_tags_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_contacts: {
+        Row: {
+          author_id: string
+          company: string | null
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          notes: string | null
+          phone: string | null
+          source: string | null
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          source?: string | null
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          source?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       newsletter_signups: {
         Row: {
           book_id: string
@@ -446,6 +552,114 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      reading_club_discussions: {
+        Row: {
+          book_id: string
+          content: string
+          created_at: string
+          id: string
+          member_id: string
+          parent_id: string | null
+        }
+        Insert: {
+          book_id: string
+          content: string
+          created_at?: string
+          id?: string
+          member_id: string
+          parent_id?: string | null
+        }
+        Update: {
+          book_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          member_id?: string
+          parent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reading_club_discussions_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reading_club_discussions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "reading_club_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reading_club_discussions_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "reading_club_discussions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reading_club_featured_books: {
+        Row: {
+          book_id: string
+          created_at: string
+          discussion_prompt: string | null
+          featured_month: string
+          id: string
+        }
+        Insert: {
+          book_id: string
+          created_at?: string
+          discussion_prompt?: string | null
+          featured_month: string
+          id?: string
+        }
+        Update: {
+          book_id?: string
+          created_at?: string
+          discussion_prompt?: string | null
+          featured_month?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reading_club_featured_books_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reading_club_members: {
+        Row: {
+          display_name: string | null
+          email: string
+          id: string
+          joined_at: string
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          display_name?: string | null
+          email: string
+          id?: string
+          joined_at?: string
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          display_name?: string | null
+          email?: string
+          id?: string
+          joined_at?: string
+          status?: string
+          user_id?: string | null
         }
         Relationships: []
       }
