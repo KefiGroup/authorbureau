@@ -49,7 +49,6 @@ const navGroups: NavGroup[] = [
     label: "AI Engine",
     items: [
       { id: "build-business", label: "Build My Business", icon: Rocket, premiumOnly: true },
-      { id: "ai-toolkit", label: "AI Toolkit", icon: Sparkles, premiumOnly: true },
     ],
   },
   {

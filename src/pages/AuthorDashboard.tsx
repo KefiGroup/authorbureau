@@ -9,7 +9,7 @@ import CourseBuilder from "@/components/dashboard/CourseBuilder";
 import SpeakingProfile from "@/components/dashboard/SpeakingProfile";
 import CoachingCRM from "@/components/dashboard/CoachingCRM";
 import DashboardOverview from "@/components/dashboard/DashboardOverview";
-import AIToolkit from "@/components/dashboard/AIToolkit";
+
 import MyBooks from "@/components/dashboard/MyBooks";
 import BuildMyBusiness from "@/components/dashboard/BuildMyBusiness";
 import PremiumGate from "@/components/dashboard/PremiumGate";
@@ -17,7 +17,7 @@ import { Loader2, Rocket, FileText, Video, Share2, CreditCard, Users, Trophy, Po
 
 export type DashboardSection =
   | "overview" | "profile" | "my-books"
-  | "build-business" | "ai-toolkit"
+  | "build-business"
   | "courses" | "workbooks" | "webinars" | "social-media" | "memberships"
   | "coaching" | "group-coaching" | "big-ticket"
   | "speaking" | "podcast" | "corporate-training"
@@ -153,8 +153,6 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         return gate("Speaking Profile", <SpeakingProfile />);
       case "coaching":
         return gate("Coaching CRM", <CoachingCRM />);
-      case "ai-toolkit":
-        return gate("AI Toolkit", <AIToolkit />);
       case "overview":
         return <DashboardOverview onNavigate={(s) => setActiveSection(s as DashboardSection)} />;
       default:

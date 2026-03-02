@@ -499,6 +499,44 @@ export type Database = {
         }
         Relationships: []
       }
+      generated_assets: {
+        Row: {
+          asset_type: string
+          author_id: string
+          book_id: string
+          content: string
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          asset_type: string
+          author_id: string
+          book_id: string
+          content?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          asset_type?: string
+          author_id?: string
+          book_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_assets_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       newsletter_signups: {
         Row: {
           book_id: string
