@@ -139,11 +139,11 @@ export default function BuildMyBusiness() {
     if (!file) return;
 
     const ext = file.name.split(".").pop()?.toLowerCase();
-    const supported = ["txt", "md", "pdf", "docx"];
+    const supported = ["pdf", "docx"];
     if (!ext || !supported.includes(ext)) {
       toast({
         title: "Unsupported file type",
-        description: "Please upload a .txt, .md, .pdf, or .docx manuscript file.",
+        description: "Please upload a .pdf or .docx manuscript file.",
         variant: "destructive",
       });
       event.target.value = "";
@@ -154,9 +154,7 @@ export default function BuildMyBusiness() {
     try {
       let text = "";
 
-      if (ext === "txt" || ext === "md") {
-        text = await file.text();
-      } else if (ext === "pdf") {
+      if (ext === "pdf") {
         const pdfjs = await import("pdfjs-dist");
         pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
         const arrayBuffer = await file.arrayBuffer();
@@ -451,17 +449,17 @@ export default function BuildMyBusiness() {
         <CardContent className="p-4 space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
-              <h3 className="font-heading font-semibold text-sm">Book Content for AI</h3>
+              <h3 className="font-heading font-semibold text-sm">Book Manuscript</h3>
               <p className="text-xs text-muted-foreground">
-                Upload your manuscript (.txt, .md, .pdf, .docx) or paste an excerpt. If empty, AI uses the book description.
+                Upload your book (.pdf or .docx) so AI can generate from your actual content.
               </p>
             </div>
             <label className={`inline-flex items-center gap-2 text-xs font-medium ${isParsingFile ? "text-muted-foreground cursor-wait" : "text-secondary cursor-pointer"}`}>
               {isParsingFile ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-              {isParsingFile ? "Parsing…" : "Upload file"}
+              {isParsingFile ? "Parsing…" : "Upload PDF / DOCX"}
               <input
                 type="file"
-                accept=".txt,.md,.pdf,.docx,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 className="sr-only"
                 onChange={handleSourceFileUpload}
                 disabled={isParsingFile}
@@ -470,15 +468,19 @@ export default function BuildMyBusiness() {
           </div>
 
           {sourceFileName && (
-            <p className="text-xs text-muted-foreground">Using file: {sourceFileName}</p>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
+              <FileText className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{sourceFileName}</span>
+              <span className="text-muted-foreground/60">({Math.round(sourceMaterial.length / 1000)}k chars)</span>
+              <button
+                type="button"
+                className="ml-auto text-destructive hover:underline"
+                onClick={() => { setSourceMaterial(""); setSourceFileName(null); }}
+              >
+                Remove
+              </button>
+            </div>
           )}
-
-          <Textarea
-            value={sourceMaterial}
-            onChange={(e) => setSourceMaterial(e.target.value)}
-            placeholder="Paste book manuscript or chapter excerpt here to guide generation quality..."
-            className="min-h-28"
-          />
         </CardContent>
       </Card>
 
