@@ -274,7 +274,6 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
       bgColor: "bg-primary/10",
       items: [
         { icon: Rocket, label: "Build My Business", section: "build-business", description: "One-click AI pipeline — generate all revenue assets from your manuscript." },
-        { icon: Sparkles, label: "AI Toolkit", section: "ai-toolkit", description: "6 powerful AI tools to transform your book into courses, content, and more." },
       ],
     },
     {
