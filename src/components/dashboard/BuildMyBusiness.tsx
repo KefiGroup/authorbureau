@@ -132,33 +132,71 @@ export default function BuildMyBusiness() {
   const [sourceFileName, setSourceFileName] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
+  const [isParsingFile, setIsParsingFile] = useState(false);
+
   const handleSourceFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const isSupportedFile = /\.(txt|md)$/i.test(file.name);
-    if (!isSupportedFile) {
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    const supported = ["txt", "md", "pdf", "docx"];
+    if (!ext || !supported.includes(ext)) {
       toast({
         title: "Unsupported file type",
-        description: "Please upload a .txt or .md manuscript file.",
+        description: "Please upload a .txt, .md, .pdf, or .docx manuscript file.",
         variant: "destructive",
       });
       event.target.value = "";
       return;
     }
 
-    const text = await file.text();
-    const cappedText = text.slice(0, 120000);
+    setIsParsingFile(true);
+    try {
+      let text = "";
 
-    if (text.length > 120000) {
+      if (ext === "txt" || ext === "md") {
+        text = await file.text();
+      } else if (ext === "pdf") {
+        const pdfjs = await import("pdfjs-dist");
+        pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+        const pages: string[] = [];
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          pages.push(content.items.map((item: any) => item.str).join(" "));
+        }
+        text = pages.join("\n\n");
+      } else if (ext === "docx") {
+        const mammoth = await import("mammoth");
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        text = result.value;
+      }
+
+      const cappedText = text.slice(0, 120000);
+
+      if (text.length > 120000) {
+        toast({
+          title: "Large file trimmed",
+          description: "We imported the first 120,000 characters for faster AI generation.",
+        });
+      }
+
+      setSourceMaterial(cappedText);
+      setSourceFileName(file.name);
+    } catch (err: any) {
+      console.error("File parsing error:", err);
       toast({
-        title: "Large file trimmed",
-        description: "We imported the first 120,000 characters for faster AI generation.",
+        title: "Failed to parse file",
+        description: err.message || "Could not extract text from the uploaded file.",
+        variant: "destructive",
       });
+    } finally {
+      setIsParsingFile(false);
+      event.target.value = "";
     }
-
-    setSourceMaterial(cappedText);
-    setSourceFileName(file.name);
   };
 
   // Fetch user's books
@@ -415,17 +453,18 @@ export default function BuildMyBusiness() {
             <div>
               <h3 className="font-heading font-semibold text-sm">Book Content for AI</h3>
               <p className="text-xs text-muted-foreground">
-                Upload your manuscript (.txt/.md) or paste an excerpt. If empty, AI uses the book description.
+                Upload your manuscript (.txt, .md, .pdf, .docx) or paste an excerpt. If empty, AI uses the book description.
               </p>
             </div>
-            <label className="inline-flex items-center gap-2 text-xs cursor-pointer text-secondary font-medium">
-              <Upload className="h-3.5 w-3.5" />
-              Upload file
+            <label className={`inline-flex items-center gap-2 text-xs font-medium ${isParsingFile ? "text-muted-foreground cursor-wait" : "text-secondary cursor-pointer"}`}>
+              {isParsingFile ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+              {isParsingFile ? "Parsing…" : "Upload file"}
               <input
                 type="file"
-                accept=".txt,.md,text/plain,text/markdown"
+                accept=".txt,.md,.pdf,.docx,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 className="sr-only"
                 onChange={handleSourceFileUpload}
+                disabled={isParsingFile}
               />
             </label>
           </div>
