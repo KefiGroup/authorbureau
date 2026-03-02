@@ -1,37 +1,34 @@
 
 
-## Issues Found
+## Root Cause
 
-### 1. Ghost "AI Toolkit" card on Dashboard Overview
-The `monetisationSteps` array in `DashboardOverview.tsx` (line 277) still contains an "AI Toolkit" card that navigates to `ai-toolkit` section. This section was removed from the sidebar and the router — clicking it navigates to a non-existent section, which falls through to the default case and just re-renders the Overview (confusing UX).
+The `redirectToPublishNow` function makes a **raw `fetch()` call directly from the browser** to `wuftdpnekscrsghqtssd.supabase.co/functions/v1/sso-handoff`. This is a cross-origin request from the Authors Bureau preview/production domain to the PublishNow shared backend. The "Failed to fetch" means the browser is blocking it — either the shared backend's `sso-handoff` function doesn't allow this origin in its CORS headers, or the function isn't deployed.
 
-**Fix:** Remove the "AI Toolkit" item from the `monetisationSteps[0].items` array so only "Build My Business" remains under the "AI Engine" group.
+The retry logic added previously is a band-aid — retrying a CORS-blocked request will always fail.
 
-### 2. "Failed to fetch" on Sister Platform Links (SSO Handoff)
-The sidebar's "AI Writing Studio" and "AI Publishing Studio" buttons call `redirectToPublishNow()` which hits the shared backend's `sso-handoff` edge function. The "Failed to fetch" error means the network request itself is failing — most likely because the shared backend at `wuftdpnekscrsghqtssd.supabase.co` is unreachable or returning a network error.
+Every other shared backend call in this project (e.g. `check-subscription`, `create-checkout`, `user-auth`) works because they're invoked via `supabase.functions.invoke()` which routes through the Supabase JS client's built-in request pipeline, or because those specific functions have permissive CORS. The SSO handoff uses raw `fetch()` and hits CORS.
 
-The current error handling in `redirectToPublishNow` catches the error but surfaces a generic `err.message` ("Failed to fetch") which is unhelpful. The sidebar handler then shows it in a destructive toast with title "Could not open".
+## Bulletproof Fix
 
-**Fix (resilient, not band-aid):**
-- Add retry logic (1 retry after 2s delay) to `redirectToPublishNow` before giving up
-- Improve the error message to distinguish between "not authenticated", "network error" (shared backend unreachable), and "SSO token generation failed" (backend returned an error)
-- Add a fallback: if SSO handoff fails after retry, offer a direct link to PublishNow (without SSO) so the user isn't completely blocked
+**Create a local proxy edge function** on this project's backend. The browser calls the local function (same-origin, CORS is `*` and always works). The local function then calls the shared backend's `sso-handoff` **server-to-server** — no CORS restrictions apply to server-side requests.
 
-### 3. Overview card click for "AI Toolkit" navigates to nothing
-When clicking the "AI Toolkit" card on the overview, `onNavigate?.("ai-toolkit")` is called but `AuthorDashboard.tsx`'s `renderSection()` switch has no case for `ai-toolkit` — it falls through to the default which renders `DashboardOverview` again, creating a confusing no-op.
+```text
+Browser ──(same-origin)──> Authors Bureau sso-proxy ──(server-to-server)──> Shared Backend sso-handoff
+                           (no CORS issue)                                  (no CORS issue)
+```
 
-**Fix:** Already covered by removing the card in issue #1.
+### File 1: Create `supabase/functions/sso-proxy/index.ts`
+- Receives the SSO request from the browser with the user's auth token
+- Validates the user via the shared backend's service role key
+- Calls the shared backend's `sso-handoff` function server-to-server using `SHARED_BACKEND_SERVICE_ROLE_KEY` (already configured as a secret)
+- Returns the SSO token to the browser
 
-## Changes
+### File 2: Update `src/lib/publishnow-redirect.ts`
+- Stop calling the shared backend directly from the browser
+- Call the local `sso-proxy` edge function instead, using the local project URL (`import.meta.env.VITE_SUPABASE_URL`)
+- Keep the retry logic (for genuine network blips) and fallback URL (for total outages)
+- Use proper auth headers from the shared backend session
 
-### File 1: `src/components/dashboard/DashboardOverview.tsx`
-- Remove the "AI Toolkit" item from `monetisationSteps[0].items` (line 277), keeping only "Build My Business"
-
-### File 2: `src/lib/publishnow-redirect.ts`
-- Add a single retry with 2s delay on network failure (`TypeError` / "Failed to fetch")
-- After retry fails, return a more descriptive error message and include a `fallbackUrl` property pointing to `https://publishnow.io` so callers can offer a direct link
-- Distinguish error types: auth error vs network error vs SSO error
-
-### File 3: `src/components/dashboard/DashboardSidebar.tsx`
-- Update the sister link click handler to use the `fallbackUrl` from `redirectToPublishNow` — if SSO fails, show a toast with a "Open directly" action that opens `publishnow.io` without SSO, so the user is never completely blocked
+### No coordination with PublishNow needed
+This fix is entirely self-contained. The server-to-server call bypasses CORS entirely, so it doesn't matter what origins the shared backend allows.
 
