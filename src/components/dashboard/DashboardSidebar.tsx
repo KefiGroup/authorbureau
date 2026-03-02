@@ -224,8 +224,22 @@ export default function DashboardSidebar({ activeSection, onSectionChange, colla
               <button
                 key={link.label}
                 onClick={() => {
-                  redirectToPublishNow(link.path).then(({ error }) => {
-                    if (error) toast({ title: "Could not open", description: error, variant: "destructive" });
+                  redirectToPublishNow(link.path).then(({ error, fallbackUrl }) => {
+                    if (error) {
+                      toast({
+                        title: "Could not open",
+                        description: error,
+                        variant: "destructive",
+                        action: fallbackUrl ? (
+                          <button
+                            className="shrink-0 rounded bg-destructive-foreground/10 px-3 py-1.5 text-xs font-medium text-destructive-foreground hover:bg-destructive-foreground/20 transition-colors"
+                            onClick={() => window.open(fallbackUrl, "_blank")}
+                          >
+                            Open directly
+                          </button>
+                        ) : undefined,
+                      });
+                    }
                   });
                 }}
                 className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground/70 hover:bg-muted hover:text-foreground transition-colors"
