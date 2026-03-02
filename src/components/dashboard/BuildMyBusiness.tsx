@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
+import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import {
   Rocket, BookOpen, Loader2, CheckCircle2, Circle, Play,
   Copy, Download, GraduationCap, FileText, Share2, Mail,
@@ -532,40 +532,42 @@ export default function BuildMyBusiness() {
 
           {ASSET_TYPES.map((asset) => (
             <TabsContent key={asset.id} value={asset.id}>
-              <Card>
-                <CardContent className="p-6 space-y-4">
+              <Card className="shadow-sm">
+                <CardContent className="p-0">
                   {results[asset.id] ? (
                     <>
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-heading font-semibold text-sm flex items-center gap-2">
-                          <asset.icon className={`h-4 w-4 ${asset.color}`} />
+                      <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30">
+                        <h3 className="font-heading font-semibold text-base flex items-center gap-2.5">
+                          <div className={`p-1.5 rounded-md bg-background border border-border`}>
+                            <asset.icon className={`h-4 w-4 ${asset.color}`} />
+                          </div>
                           {asset.label}
                           {statuses[asset.id] === "generating" && (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                           )}
                         </h3>
                         {statuses[asset.id] === "done" && (
                           <div className="flex gap-2">
                             <Button variant="outline" size="sm" onClick={() => handleCopy(asset.id)}>
-                              <Copy className="h-3.5 w-3.5 mr-1" /> Copy
+                              <Copy className="h-3.5 w-3.5 mr-1.5" /> Copy
                             </Button>
                             <Button variant="outline" size="sm" onClick={() => handleDownload(asset.id)}>
-                              <Download className="h-3.5 w-3.5 mr-1" /> .md
+                              <Download className="h-3.5 w-3.5 mr-1.5" /> Download
                             </Button>
                           </div>
                         )}
                       </div>
-                      <div className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-wrap text-sm text-foreground leading-relaxed border-t border-border pt-4 max-h-[60vh] overflow-y-auto">
-                        {results[asset.id]}
+                      <div className="px-6 py-6 sm:px-8 sm:py-8">
+                        <MarkdownRenderer content={results[asset.id]} />
                       </div>
                     </>
                   ) : statuses[asset.id] === "pending" ? (
-                    <div className="py-12 text-center text-muted-foreground text-sm">
+                    <div className="py-16 text-center text-muted-foreground text-sm">
                       <Circle className="h-8 w-8 mx-auto mb-3 text-muted-foreground/20" />
                       Waiting to generate…
                     </div>
                   ) : (
-                    <div className="py-12 text-center text-muted-foreground text-sm">
+                    <div className="py-16 text-center text-muted-foreground text-sm">
                       <Loader2 className="h-8 w-8 mx-auto mb-3 animate-spin text-secondary" />
                       Generating {asset.label}…
                     </div>
