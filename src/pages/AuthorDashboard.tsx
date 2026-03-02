@@ -11,6 +11,7 @@ import CoachingCRM from "@/components/dashboard/CoachingCRM";
 import DashboardOverview from "@/components/dashboard/DashboardOverview";
 import AIToolkit from "@/components/dashboard/AIToolkit";
 import MyBooks from "@/components/dashboard/MyBooks";
+import BuildMyBusiness from "@/components/dashboard/BuildMyBusiness";
 import PremiumGate from "@/components/dashboard/PremiumGate";
 import { Loader2, Rocket, FileText, Video, Share2, CreditCard, Users, Trophy, Podcast, Building2, Bookmark, Award } from "lucide-react";
 
@@ -23,11 +24,6 @@ export type DashboardSection =
   | "retreats" | "certification" | "masterminds";
 
 const comingSoonSections: Record<string, { title: string; description: string; icon: typeof Rocket }> = {
-  "build-business": {
-    title: "Build My Author Business",
-    description: "One-click AI pipeline that generates all 27 revenue assets from your book manuscript. Upload your manuscript and let AI build your complete author business — courses, coaching packages, speaking topics, webinar scripts, and more.",
-    icon: Rocket,
-  },
   workbooks: {
     title: "Workbooks",
     description: "AI-generated companion workbooks (PDF) with exercises, reflection questions, and action plans derived from your book chapters.",
@@ -149,6 +145,8 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         return <ProfileEditor onNavigate={(s) => setActiveSection(s as DashboardSection)} />;
       case "my-books":
         return <MyBooks />;
+      case "build-business":
+        return gate("Build My Business", <BuildMyBusiness />);
       case "courses":
         return gate("Course Builder", <CourseBuilder />);
       case "speaking":
