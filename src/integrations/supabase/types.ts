@@ -14,6 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
+      audiobooks: {
+        Row: {
+          audio_url: string | null
+          author_id: string
+          book_id: string
+          created_at: string
+          currency: string | null
+          description: string | null
+          duration_minutes: number | null
+          id: string
+          narrator_type: string | null
+          price: number | null
+          script_markdown: string
+          source_asset_id: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          audio_url?: string | null
+          author_id: string
+          book_id: string
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          narrator_type?: string | null
+          price?: number | null
+          script_markdown?: string
+          source_asset_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          audio_url?: string | null
+          author_id?: string
+          book_id?: string
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          narrator_type?: string | null
+          price?: number | null
+          script_markdown?: string
+          source_asset_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audiobooks_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audiobooks_source_asset_id_fkey"
+            columns: ["source_asset_id"]
+            isOneToOne: false
+            referencedRelation: "generated_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       author_applications: {
         Row: {
           amazon_book_url: string
@@ -356,6 +425,44 @@ export type Database = {
         }
         Relationships: []
       }
+      course_enrollments: {
+        Row: {
+          completed_at: string | null
+          course_id: string
+          enrolled_at: string
+          id: string
+          progress_percent: number | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          course_id: string
+          enrolled_at?: string
+          id?: string
+          progress_percent?: number | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          course_id?: string
+          enrolled_at?: string
+          id?: string
+          progress_percent?: number | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_enrollments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       course_lessons: {
         Row: {
           content: string | null
@@ -429,44 +536,106 @@ export type Database = {
           },
         ]
       }
+      course_quizzes: {
+        Row: {
+          correct_answer: number
+          created_at: string
+          explanation: string | null
+          id: string
+          lesson_id: string
+          options: Json
+          position: number
+          question: string
+        }
+        Insert: {
+          correct_answer?: number
+          created_at?: string
+          explanation?: string | null
+          id?: string
+          lesson_id: string
+          options?: Json
+          position?: number
+          question: string
+        }
+        Update: {
+          correct_answer?: number
+          created_at?: string
+          explanation?: string | null
+          id?: string
+          lesson_id?: string
+          options?: Json
+          position?: number
+          question?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_quizzes_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "course_lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       courses: {
         Row: {
           author_id: string
+          book_id: string | null
           cover_image_url: string | null
           created_at: string
           currency: string | null
           description: string | null
           id: string
           price: number | null
+          source_asset_id: string | null
           status: string
           title: string
           updated_at: string
         }
         Insert: {
           author_id: string
+          book_id?: string | null
           cover_image_url?: string | null
           created_at?: string
           currency?: string | null
           description?: string | null
           id?: string
           price?: number | null
+          source_asset_id?: string | null
           status?: string
           title: string
           updated_at?: string
         }
         Update: {
           author_id?: string
+          book_id?: string | null
           cover_image_url?: string | null
           created_at?: string
           currency?: string | null
           description?: string | null
           id?: string
           price?: number | null
+          source_asset_id?: string | null
           status?: string
           title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "courses_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courses_source_asset_id_fkey"
+            columns: ["source_asset_id"]
+            isOneToOne: false
+            referencedRelation: "generated_assets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       crm_activity_log: {
         Row: {
@@ -903,6 +1072,78 @@ export type Database = {
           },
         ]
       }
+      home_study_courses: {
+        Row: {
+          author_id: string
+          book_id: string
+          content_markdown: string
+          cover_image_url: string | null
+          created_at: string
+          currency: string | null
+          description: string | null
+          download_url: string | null
+          duration_days: number | null
+          id: string
+          price: number | null
+          source_asset_id: string | null
+          status: string
+          study_schedule_json: Json | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          book_id: string
+          content_markdown?: string
+          cover_image_url?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          download_url?: string | null
+          duration_days?: number | null
+          id?: string
+          price?: number | null
+          source_asset_id?: string | null
+          status?: string
+          study_schedule_json?: Json | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          book_id?: string
+          content_markdown?: string
+          cover_image_url?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          download_url?: string | null
+          duration_days?: number | null
+          id?: string
+          price?: number | null
+          source_asset_id?: string | null
+          status?: string
+          study_schedule_json?: Json | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "home_study_courses_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "home_study_courses_source_asset_id_fkey"
+            columns: ["source_asset_id"]
+            isOneToOne: false
+            referencedRelation: "generated_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       newsletter_signups: {
         Row: {
           book_id: string
@@ -1247,6 +1488,66 @@ export type Database = {
         }
         Relationships: []
       }
+      social_media_content: {
+        Row: {
+          author_id: string
+          book_id: string
+          content_text: string
+          content_type: string
+          created_at: string
+          day_number: number | null
+          id: string
+          image_prompt: string | null
+          platform: string
+          scheduled_date: string | null
+          source_asset_id: string | null
+          status: string
+        }
+        Insert: {
+          author_id: string
+          book_id: string
+          content_text?: string
+          content_type?: string
+          created_at?: string
+          day_number?: number | null
+          id?: string
+          image_prompt?: string | null
+          platform?: string
+          scheduled_date?: string | null
+          source_asset_id?: string | null
+          status?: string
+        }
+        Update: {
+          author_id?: string
+          book_id?: string
+          content_text?: string
+          content_type?: string
+          created_at?: string
+          day_number?: number | null
+          id?: string
+          image_prompt?: string | null
+          platform?: string
+          scheduled_date?: string | null
+          source_asset_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_media_content_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_media_content_source_asset_id_fkey"
+            columns: ["source_asset_id"]
+            isOneToOne: false
+            referencedRelation: "generated_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       speaking_topics: {
         Row: {
           author_id: string
@@ -1300,6 +1601,188 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      webinar_registrations: {
+        Row: {
+          attended: boolean | null
+          email: string
+          id: string
+          name: string | null
+          registered_at: string
+          webinar_id: string
+        }
+        Insert: {
+          attended?: boolean | null
+          email: string
+          id?: string
+          name?: string | null
+          registered_at?: string
+          webinar_id: string
+        }
+        Update: {
+          attended?: boolean | null
+          email?: string
+          id?: string
+          name?: string | null
+          registered_at?: string
+          webinar_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webinar_registrations_webinar_id_fkey"
+            columns: ["webinar_id"]
+            isOneToOne: false
+            referencedRelation: "webinars"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      webinars: {
+        Row: {
+          author_id: string
+          book_id: string
+          created_at: string
+          currency: string | null
+          description: string | null
+          duration_minutes: number | null
+          id: string
+          is_free: boolean | null
+          price: number | null
+          registration_page_copy: string | null
+          replay_url: string | null
+          scheduled_at: string | null
+          script_markdown: string
+          slide_deck_url: string | null
+          source_asset_id: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          book_id: string
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          is_free?: boolean | null
+          price?: number | null
+          registration_page_copy?: string | null
+          replay_url?: string | null
+          scheduled_at?: string | null
+          script_markdown?: string
+          slide_deck_url?: string | null
+          source_asset_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          book_id?: string
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          is_free?: boolean | null
+          price?: number | null
+          registration_page_copy?: string | null
+          replay_url?: string | null
+          scheduled_at?: string | null
+          script_markdown?: string
+          slide_deck_url?: string | null
+          source_asset_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webinars_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "webinars_source_asset_id_fkey"
+            columns: ["source_asset_id"]
+            isOneToOne: false
+            referencedRelation: "generated_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workbooks: {
+        Row: {
+          author_id: string
+          book_id: string
+          content_markdown: string
+          cover_image_url: string | null
+          created_at: string
+          currency: string | null
+          description: string | null
+          download_url: string | null
+          id: string
+          page_count: number | null
+          price: number | null
+          source_asset_id: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          book_id: string
+          content_markdown?: string
+          cover_image_url?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          download_url?: string | null
+          id?: string
+          page_count?: number | null
+          price?: number | null
+          source_asset_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          book_id?: string
+          content_markdown?: string
+          cover_image_url?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          download_url?: string | null
+          id?: string
+          page_count?: number | null
+          price?: number | null
+          source_asset_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workbooks_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workbooks_source_asset_id_fkey"
+            columns: ["source_asset_id"]
+            isOneToOne: false
+            referencedRelation: "generated_assets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

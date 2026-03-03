@@ -6,7 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// After AI generates raw content, this function parses structured data and populates domain tables
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -25,7 +24,6 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Verify user
     const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!);
     const { data: { user }, error: authError } = await anonClient.auth.getUser(authHeader.replace("Bearer ", ""));
     if (authError || !user) {
@@ -44,7 +42,6 @@ serve(async (req) => {
       });
     }
 
-    // Get book info
     const { data: book } = await supabase
       .from("books")
       .select("id, title, author_id, author_name, description")
@@ -58,21 +55,43 @@ serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    // Get the generated_asset id for linking
+    const { data: genAsset } = await supabase
+      .from("generated_assets")
+      .select("id")
+      .eq("book_id", bookId)
+      .eq("author_id", user.id)
+      .eq("asset_type", assetType)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    const sourceAssetId = genAsset?.id || null;
 
     let result: any = { saved: true };
 
-    // Use AI to extract structured data from the raw generated content
-    if (assetType === "course") {
-      result = await populateCourse(supabase, LOVABLE_API_KEY, user.id, bookId, rawContent, book.title);
-    } else if (assetType === "email") {
-      result = await populateEmailFlow(supabase, LOVABLE_API_KEY, user.id, bookId, rawContent, book.title);
-    } else if (assetType === "speaker") {
-      result = await populateSpeakingTopics(supabase, LOVABLE_API_KEY, user.id, bookId, rawContent);
-    } else if (assetType === "workbook" || assetType === "social" || assetType === "products") {
-      // These are content-only assets — just save to generated_assets (already done by frontend)
-      result = { saved: true, type: "content_only" };
+    switch (assetType) {
+      case "course":
+        result = await populateCourse(supabase, user.id, bookId, rawContent, book.title, sourceAssetId);
+        break;
+      case "email":
+        result = await populateEmailFlow(supabase, user.id, bookId, rawContent, book.title);
+        break;
+      case "speaker":
+        result = await populateSpeakingTopics(supabase, user.id, bookId, rawContent);
+        break;
+      case "workbook":
+        result = await populateWorkbook(supabase, user.id, bookId, rawContent, book.title, sourceAssetId);
+        break;
+      case "social":
+        result = await populateSocialMedia(supabase, user.id, bookId, rawContent, sourceAssetId);
+        break;
+      case "products":
+        // Digital product ideator — generates home study, webinar, audiobook stubs
+        result = await populateProductIdeas(supabase, user.id, bookId, rawContent, book.title, sourceAssetId);
+        break;
+      default:
+        result = { saved: true, type: "content_only" };
     }
 
     return new Response(JSON.stringify(result), {
@@ -87,49 +106,109 @@ serve(async (req) => {
   }
 });
 
-async function extractStructuredData(apiKey: string, systemPrompt: string, content: string) {
-  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content },
-      ],
-      tools: [{
-        type: "function",
-        function: {
-          name: "extract_data",
-          description: "Extract structured data from the content",
-          parameters: {
-            type: "object",
-            properties: { data: { type: "object" } },
-            required: ["data"],
-          },
-        },
-      }],
-      tool_choice: { type: "function", function: { name: "extract_data" } },
-    }),
-  });
+// ── Workbook ─────────────────────────────────────────
+async function populateWorkbook(supabase: any, authorId: string, bookId: string, rawContent: string, bookTitle: string, sourceAssetId: string | null) {
+  // Delete existing AI-generated workbook for this book
+  await supabase.from("workbooks").delete().eq("author_id", authorId).eq("book_id", bookId);
 
-  if (!resp.ok) {
-    const t = await resp.text();
-    console.error("AI extraction error:", resp.status, t);
-    throw new Error("AI extraction failed");
-  }
+  const { data: wb, error } = await supabase
+    .from("workbooks")
+    .insert({
+      author_id: authorId,
+      book_id: bookId,
+      source_asset_id: sourceAssetId,
+      title: `Workbook: ${bookTitle}`,
+      description: `AI-generated companion workbook for "${bookTitle}"`,
+      content_markdown: rawContent,
+      status: "draft",
+    })
+    .select("id")
+    .single();
 
-  const json = await resp.json();
-  const toolCall = json.choices?.[0]?.message?.tool_calls?.[0];
-  if (!toolCall) throw new Error("No tool call in response");
-  return JSON.parse(toolCall.function.arguments).data;
+  if (error) throw new Error(`Workbook insert failed: ${error.message}`);
+  return { saved: true, type: "workbook", workbookId: wb.id };
 }
 
-async function populateCourse(supabase: any, apiKey: string, authorId: string, bookId: string, rawContent: string, bookTitle: string) {
-  const data = await extractStructuredData(apiKey,
+// ── Social Media Content ─────────────────────────────
+async function populateSocialMedia(supabase: any, authorId: string, bookId: string, rawContent: string, sourceAssetId: string | null) {
+  // Delete existing social content for this book
+  await supabase.from("social_media_content").delete().eq("author_id", authorId).eq("book_id", bookId);
+
+  // Save the full raw content as a single entry — individual posts can be parsed later
+  const { error } = await supabase
+    .from("social_media_content")
+    .insert({
+      author_id: authorId,
+      book_id: bookId,
+      source_asset_id: sourceAssetId,
+      platform: "all",
+      content_type: "calendar",
+      content_text: rawContent,
+      status: "draft",
+    });
+
+  if (error) throw new Error(`Social media insert failed: ${error.message}`);
+  return { saved: true, type: "social_media", postsCreated: 1 };
+}
+
+// ── Product Ideas → Home Study, Webinar, Audiobook stubs ──
+async function populateProductIdeas(supabase: any, authorId: string, bookId: string, rawContent: string, bookTitle: string, sourceAssetId: string | null) {
+  const results: string[] = [];
+
+  // Create Home Study Course stub
+  const { data: existing1 } = await supabase.from("home_study_courses").select("id").eq("author_id", authorId).eq("book_id", bookId);
+  if (!existing1?.length) {
+    const { error } = await supabase.from("home_study_courses").insert({
+      author_id: authorId,
+      book_id: bookId,
+      source_asset_id: sourceAssetId,
+      title: `Home Study: ${bookTitle}`,
+      description: `30-day self-paced study program for "${bookTitle}"`,
+      content_markdown: rawContent,
+      status: "draft",
+    });
+    if (!error) results.push("home_study");
+  }
+
+  // Create Webinar stub
+  const { data: existing2 } = await supabase.from("webinars").select("id").eq("author_id", authorId).eq("book_id", bookId);
+  if (!existing2?.length) {
+    const { error } = await supabase.from("webinars").insert({
+      author_id: authorId,
+      book_id: bookId,
+      source_asset_id: sourceAssetId,
+      title: `Webinar: ${bookTitle}`,
+      description: `60-minute webinar presentation from "${bookTitle}"`,
+      script_markdown: "",
+      status: "draft",
+    });
+    if (!error) results.push("webinar");
+  }
+
+  // Create Audiobook stub
+  const { data: existing3 } = await supabase.from("audiobooks").select("id").eq("author_id", authorId).eq("book_id", bookId);
+  if (!existing3?.length) {
+    const { error } = await supabase.from("audiobooks").insert({
+      author_id: authorId,
+      book_id: bookId,
+      source_asset_id: sourceAssetId,
+      title: `Audiobook: ${bookTitle}`,
+      description: `Audiobook script for "${bookTitle}"`,
+      script_markdown: "",
+      status: "draft",
+    });
+    if (!error) results.push("audiobook");
+  }
+
+  return { saved: true, type: "product_ideas", created: results };
+}
+
+// ── Course (existing, with book_id linkage) ──────────
+async function populateCourse(supabase: any, authorId: string, bookId: string, rawContent: string, bookTitle: string, sourceAssetId: string | null) {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+  const data = await extractStructuredData(LOVABLE_API_KEY,
     `Extract course structure from this AI-generated course outline. Return JSON with:
     { "title": string, "description": string, "modules": [{ "title": string, "description": string, "lessons": [{ "title": string, "content": string }] }] }
     Keep it faithful to the generated content. Max 12 modules, max 5 lessons per module.`,
@@ -141,7 +220,7 @@ async function populateCourse(supabase: any, apiKey: string, authorId: string, b
     .from("courses")
     .select("id")
     .eq("author_id", authorId)
-    .eq("title", data.title || `Course: ${bookTitle}`);
+    .eq("book_id", bookId);
 
   if (existingCourses?.length) {
     for (const c of existingCourses) {
@@ -156,11 +235,12 @@ async function populateCourse(supabase: any, apiKey: string, authorId: string, b
     }
   }
 
-  // Create course
   const { data: course, error: courseErr } = await supabase
     .from("courses")
     .insert({
       author_id: authorId,
+      book_id: bookId,
+      source_asset_id: sourceAssetId,
       title: data.title || `Course: ${bookTitle}`,
       description: data.description || "",
       status: "draft",
@@ -204,15 +284,18 @@ async function populateCourse(supabase: any, apiKey: string, authorId: string, b
   return { saved: true, type: "course", courseId: course.id, modulesCreated, lessonsCreated };
 }
 
-async function populateEmailFlow(supabase: any, apiKey: string, authorId: string, bookId: string, rawContent: string, bookTitle: string) {
-  const data = await extractStructuredData(apiKey,
+// ── Email Flow (existing) ────────────────────────────
+async function populateEmailFlow(supabase: any, authorId: string, bookId: string, rawContent: string, bookTitle: string) {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+  const data = await extractStructuredData(LOVABLE_API_KEY,
     `Extract email sequence from this AI-generated email nurture sequence. Return JSON with:
     { "title": string, "description": string, "emails": [{ "subject": string, "preview_text": string, "body": string, "delay_days": number }] }
     body should be the full email text in markdown. delay_days is days after the previous email (first email = 0).`,
     rawContent
   );
 
-  // Delete existing AI-generated flow for this book
   const { data: existingFlows } = await supabase
     .from("email_flows")
     .select("id")
@@ -229,7 +312,6 @@ async function populateEmailFlow(supabase: any, apiKey: string, authorId: string
     }
   }
 
-  // Create flow
   const { data: flow, error: flowErr } = await supabase
     .from("email_flows")
     .insert({
@@ -264,26 +346,27 @@ async function populateEmailFlow(supabase: any, apiKey: string, authorId: string
   return { saved: true, type: "email_flow", flowId: flow.id, stepsCreated };
 }
 
-async function populateSpeakingTopics(supabase: any, apiKey: string, authorId: string, bookId: string, rawContent: string) {
-  const data = await extractStructuredData(apiKey,
+// ── Speaking Topics (existing) ───────────────────────
+async function populateSpeakingTopics(supabase: any, authorId: string, bookId: string, rawContent: string) {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+  const data = await extractStructuredData(LOVABLE_API_KEY,
     `Extract speaking topics from this AI-generated speaker kit. Return JSON with:
     { "topics": [{ "title": string, "description": string, "duration_minutes": number, "fee": number }] }
     Extract 3-5 distinct talk titles with descriptions. Default duration 60 minutes, default fee 2500.`,
     rawContent
   );
 
-  // Delete existing AI-generated topics
-  // We add topics, not replace all — but mark as draft
   let topicsCreated = 0;
   for (const topic of (data.topics || [])) {
-    // Check if a topic with same title already exists
     const { data: existing } = await supabase
       .from("speaking_topics")
       .select("id")
       .eq("author_id", authorId)
       .eq("title", topic.title);
 
-    if (existing?.length) continue; // Skip duplicates
+    if (existing?.length) continue;
 
     const { error } = await supabase.from("speaking_topics").insert({
       author_id: authorId,
@@ -298,4 +381,46 @@ async function populateSpeakingTopics(supabase: any, apiKey: string, authorId: s
   }
 
   return { saved: true, type: "speaking_topics", topicsCreated };
+}
+
+// ── Shared AI extraction helper ──────────────────────
+async function extractStructuredData(apiKey: string, systemPrompt: string, content: string) {
+  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content },
+      ],
+      tools: [{
+        type: "function",
+        function: {
+          name: "extract_data",
+          description: "Extract structured data from the content",
+          parameters: {
+            type: "object",
+            properties: { data: { type: "object" } },
+            required: ["data"],
+          },
+        },
+      }],
+      tool_choice: { type: "function", function: { name: "extract_data" } },
+    }),
+  });
+
+  if (!resp.ok) {
+    const t = await resp.text();
+    console.error("AI extraction error:", resp.status, t);
+    throw new Error("AI extraction failed");
+  }
+
+  const json = await resp.json();
+  const toolCall = json.choices?.[0]?.message?.tool_calls?.[0];
+  if (!toolCall) throw new Error("No tool call in response");
+  return JSON.parse(toolCall.function.arguments).data;
 }

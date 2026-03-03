@@ -24,12 +24,12 @@ interface Book {
 }
 
 const ASSET_TYPES = [
-  { id: "workbook", label: "Workbook", icon: FileText, color: "text-blue-600", bgColor: "bg-blue-50", populateLabel: null },
+  { id: "workbook", label: "Workbook", icon: FileText, color: "text-blue-600", bgColor: "bg-blue-50", populateLabel: "→ Auto-creates workbook in your library" },
   { id: "course", label: "Course Outline", icon: GraduationCap, color: "text-purple-600", bgColor: "bg-purple-50", populateLabel: "→ Auto-creates course modules & lessons" },
-  { id: "social", label: "Social Media Pack", icon: Share2, color: "text-pink-600", bgColor: "bg-pink-50", populateLabel: null },
+  { id: "social", label: "Social Media Pack", icon: Share2, color: "text-pink-600", bgColor: "bg-pink-50", populateLabel: "→ Auto-creates social media calendar" },
   { id: "email", label: "Email Sequence", icon: Mail, color: "text-emerald-600", bgColor: "bg-emerald-50", populateLabel: "→ Auto-creates email nurture flow" },
   { id: "speaker", label: "Speaker Kit", icon: Mic, color: "text-orange-600", bgColor: "bg-orange-50", populateLabel: "→ Auto-creates speaking topics" },
-  { id: "products", label: "Digital Products", icon: Lightbulb, color: "text-amber-600", bgColor: "bg-amber-50", populateLabel: null },
+  { id: "products", label: "Digital Products", icon: Lightbulb, color: "text-amber-600", bgColor: "bg-amber-50", populateLabel: "→ Auto-creates webinar, audiobook & home study stubs" },
 ] as const;
 
 type AssetId = (typeof ASSET_TYPES)[number]["id"];
@@ -120,9 +120,7 @@ async function saveAssetToDB(bookId: string, authorId: string, assetType: string
 
 // After saving raw content, populate domain tables (courses, email_flows, speaking_topics)
 async function populateDomainTables(bookId: string, assetType: string, rawContent: string): Promise<any> {
-  const populateTypes = ["course", "email", "speaker"];
-  if (!populateTypes.includes(assetType)) return null;
-
+  // ALL asset types now populate domain tables
   try {
     const token = await getActiveToken();
     const resp = await fetch(POPULATE_URL, {

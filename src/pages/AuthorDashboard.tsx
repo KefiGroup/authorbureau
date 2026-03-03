@@ -9,6 +9,9 @@ import CourseBuilder from "@/components/dashboard/CourseBuilder";
 import SpeakingProfile from "@/components/dashboard/SpeakingProfile";
 import CoachingCRM from "@/components/dashboard/CoachingCRM";
 import DashboardOverview from "@/components/dashboard/DashboardOverview";
+import WorkbooksManager from "@/components/dashboard/WorkbooksManager";
+import WebinarsManager from "@/components/dashboard/WebinarsManager";
+import SocialMediaManager from "@/components/dashboard/SocialMediaManager";
 
 import MyBooks from "@/components/dashboard/MyBooks";
 import BuildMyBusiness from "@/components/dashboard/BuildMyBusiness";
@@ -26,21 +29,6 @@ export type DashboardSection =
   | "email-marketing" | "subscribers" | "email-templates";
 
 const comingSoonSections: Record<string, { title: string; description: string; icon: typeof Rocket }> = {
-  workbooks: {
-    title: "Workbooks",
-    description: "AI-generated companion workbooks (PDF) with exercises, reflection questions, and action plans derived from your book chapters.",
-    icon: FileText,
-  },
-  webinars: {
-    title: "Webinars",
-    description: "AI-generated webinar scripts, slide decks, registration pages, and follow-up email sequences — all from your book's most compelling chapters.",
-    icon: Video,
-  },
-  "social-media": {
-    title: "Social Media Content",
-    description: "90-day social media content calendar with platform-specific posts for Facebook, Instagram, LinkedIn, and Twitter/X — all derived from your book.",
-    icon: Share2,
-  },
   memberships: {
     title: "Monthly Memberships",
     description: "Tiered membership programs with content drip schedules, member-only resources, and recurring billing via Stripe.",
@@ -151,6 +139,12 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         return gate("Build My Business", <BuildMyBusiness />);
       case "courses":
         return gate("Course Builder", <CourseBuilder />);
+      case "workbooks":
+        return gate("Workbooks", <WorkbooksManager />);
+      case "webinars":
+        return gate("Webinars", <WebinarsManager />);
+      case "social-media":
+        return gate("Social Media", <SocialMediaManager />);
       case "speaking":
         return gate("Speaking Profile", <SpeakingProfile />);
       case "coaching":
