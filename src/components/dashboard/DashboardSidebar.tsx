@@ -64,9 +64,9 @@ const navGroups: NavGroup[] = [
     step: "1",
     items: [
       { id: "courses", label: "Online Courses", icon: GraduationCap, premiumOnly: true },
-      { id: "workbooks", label: "Workbooks", icon: FileText, premiumOnly: true, comingSoon: true },
-      { id: "webinars", label: "Webinars", icon: Video, premiumOnly: true, comingSoon: true },
-      { id: "social-media", label: "Social Media", icon: Share2, premiumOnly: true, comingSoon: true },
+      { id: "workbooks", label: "Workbooks", icon: FileText, premiumOnly: true },
+      { id: "webinars", label: "Webinars", icon: Video, premiumOnly: true },
+      { id: "social-media", label: "Social Media", icon: Share2, premiumOnly: true },
       { id: "memberships", label: "Memberships", icon: CreditCard, premiumOnly: true, comingSoon: true },
     ],
   },
