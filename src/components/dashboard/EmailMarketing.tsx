@@ -208,48 +208,62 @@ function CampaignsTab() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {campaigns.map((c) => (
-            <Card key={c.id} className="hover:shadow-[var(--shadow-card-hover)] transition-shadow">
-              <CardContent className="flex items-center gap-4 p-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h4 className="font-heading font-semibold text-sm truncate">
-                      {c.subject || "Untitled Campaign"}
-                    </h4>
-                    <Badge variant="outline" className={`text-[10px] shrink-0 ${statusColors[c.status] || ""}`}>
-                      {c.status}
-                    </Badge>
+          {campaigns.map((c) => {
+            const canEdit = c.status === "draft";
+
+            return (
+              <Card
+                key={c.id}
+                className="hover:shadow-[var(--shadow-card-hover)] transition-shadow cursor-pointer"
+                onClick={() => {
+                  if (canEdit) {
+                    setEditingCampaign(c);
+                  } else {
+                    toast({ title: "This campaign is already sent", description: "Only draft campaigns can be opened for editing." });
+                  }
+                }}
+              >
+                <CardContent className="flex items-center gap-4 p-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h4 className="font-heading font-semibold text-sm truncate">
+                        {c.subject || "Untitled Campaign"}
+                      </h4>
+                      <Badge variant="outline" className={`text-[10px] shrink-0 ${statusColors[c.status] || ""}`}>
+                        {c.status}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {new Date(c.created_at).toLocaleDateString()}
+                      </span>
+                      {c.status === "sent" && (
+                        <>
+                          <span className="flex items-center gap-1">
+                            <Users className="h-3 w-3" /> {c.recipient_count} sent
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Eye className="h-3 w-3" /> {c.open_count} opens
+                          </span>
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {new Date(c.created_at).toLocaleDateString()}
-                    </span>
-                    {c.status === "sent" && (
-                      <>
-                        <span className="flex items-center gap-1">
-                          <Users className="h-3 w-3" /> {c.recipient_count} sent
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Eye className="h-3 w-3" /> {c.open_count} opens
-                        </span>
-                      </>
+                  <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                    {canEdit && (
+                      <Button variant="ghost" size="icon" onClick={() => setEditingCampaign(c)}>
+                        <Edit3 className="h-4 w-4" />
+                      </Button>
                     )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  {c.status === "draft" && (
-                    <Button variant="ghost" size="icon" onClick={() => setEditingCampaign(c)}>
-                      <Edit3 className="h-4 w-4" />
+                    <Button variant="ghost" size="icon" onClick={() => handleDelete(c.id)} className="text-destructive hover:text-destructive">
+                      <Trash2 className="h-4 w-4" />
                     </Button>
-                  )}
-                  <Button variant="ghost" size="icon" onClick={() => handleDelete(c.id)} className="text-destructive hover:text-destructive">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
