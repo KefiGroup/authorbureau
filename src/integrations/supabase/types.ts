@@ -940,6 +940,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_reading_leaderboard: {
+        Args: { limit_count?: number }
+        Returns: {
+          author_name: string
+          book_title: string
+          days_logged: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

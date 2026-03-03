@@ -14,40 +14,13 @@ export default function ReadingLeaderboard() {
 
   useEffect(() => {
     (async () => {
-      // Get all entries with their log counts and book info
-      const { data: entries } = await supabase
-        .from("reading_challenge_entries")
-        .select("id, book:books(title, author_name), status")
-        .eq("status", "active");
-
-      if (!entries || entries.length === 0) {
-        setLoading(false);
-        return;
-      }
-
-      const entryIds = entries.map((e: any) => e.id);
-      const { data: logs } = await supabase
-        .from("reading_challenge_daily_logs")
-        .select("entry_id")
-        .in("entry_id", entryIds);
-
-      // Count logs per entry
-      const countMap: Record<string, number> = {};
-      (logs || []).forEach((l: any) => {
-        countMap[l.entry_id] = (countMap[l.entry_id] || 0) + 1;
+      const { data, error } = await supabase.rpc("get_reading_leaderboard", {
+        limit_count: 10,
       });
 
-      const leaderData: LeaderEntry[] = entries
-        .map((e: any) => ({
-          book_title: e.book?.title || "Unknown",
-          author_name: e.book?.author_name,
-          days_logged: countMap[e.id] || 0,
-        }))
-        .filter((l) => l.days_logged > 0)
-        .sort((a, b) => b.days_logged - a.days_logged)
-        .slice(0, 10);
-
-      setLeaders(leaderData);
+      if (!error && data && data.length > 0) {
+        setLeaders(data as LeaderEntry[]);
+      }
       setLoading(false);
     })();
   }, []);
@@ -82,7 +55,7 @@ export default function ReadingLeaderboard() {
           ))}
         </div>
         <p className="text-xs text-muted-foreground mt-3 text-center">
-          Top readers by consecutive days logged. Keep your streak going!
+          Top readers by days logged. Keep your streak going!
         </p>
       </div>
     </section>
