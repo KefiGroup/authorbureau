@@ -1,20 +1,29 @@
 
 
-## Root Cause
+## Store Authors Bureau Platform Scope
 
-The `sso-handoff` function validates the caller's identity by inspecting the `Authorization` header as a user JWT. Our proxy sends `Authorization: Bearer ${serviceRoleKey}` — a raw key, not a JWT — so the function's internal auth check rejects it as "Unauthorized".
+I'll save a comprehensive reference document covering the full platform scope, feature statuses, architecture, and integration details as a persistent memory file. This will be available for all future conversations.
 
-The `apikey` header satisfies the **gateway**. The `Authorization` header must carry the **user's access token** to satisfy the **function**.
+### What will be stored
 
-## Fix: `supabase/functions/sso-proxy/index.ts`
+**Platform Identity**: Authors Bureau — a platform for published authors to showcase their work, build their brand, and monetize their expertise through AI-powered business tools.
 
-Pass the user's access token (already available in `session_data.access_token`) as the `Authorization` header instead of the service role key:
+**Architecture**:
+- Shared Supabase auth backend with PublishNow (`wuftdpnekscrsghqtssd.supabase.co`)
+- Local database for platform-specific data (`tubpbslfrxyfhldkcyyq`)
+- SSO proxy for cross-platform navigation
+- All shared backend calls tagged with `"source_platform": "authorsbureau"`
+- PublishNow is the single source of truth for author profiles and books
 
-```typescript
-Authorization: `Bearer ${session_data.access_token}`,
-```
+**Live Features**: Author profiles & sync, book management & Amazon scraping, public directory with 4-tier badge system, AI Build My Business (6-asset pipeline), Stripe premium gating, Reading Club, Admin Dashboard, SEO sitemap, service inquiry forms
 
-The `apikey` header (anon key) stays — it's needed for the gateway. The service role key check can be removed since it's no longer used in the request (or kept as a config gate if desired).
+**UI Built / Partially Functional**: Course Builder (schema ready, no enrollment/payment), Coaching CRM (UI only), Speaking Profile (UI only)
 
-This is a one-line change. No other files need modification.
+**Coming Soon (Placeholder Only)**: Workbooks, Webinars, Social Media Content, Memberships, Group Coaching, Big Ticket Packages, Podcast, Corporate Training, Retreats, Certification, Masterminds
+
+**Database Tables**: `author_profiles`, `books`, `generated_assets`, `courses`, `course_modules`, `course_lessons`, `coaching_packages`, `speaking_topics`, `crm_contacts`, `crm_contact_tags`, `crm_activity_log`, `reading_club_members`, `reading_club_featured_books`, `reading_club_discussions`, `newsletter_signups`, `service_inquiries`, `author_applications`, `profiles`, `user_roles`
+
+**Edge Functions**: `sync-author-profile`, `save-book`, `publish-book`, `get-book`, `list-my-books`, `upload-book-cover`, `update-book-cover`, `enrich-book-data`, `scrape-amazon-book`, `ai-author-tools`, `generate-author-bio`, `check-subscription`, `create-checkout`, `customer-portal`, `sso-proxy`, `dashboard-state`, `admin-books`, `list-directory-authors`, `generate-sitemap`, `send-service-inquiry-email`
+
+**Key Integration Details**: Profile sync is manual (author-triggered), field mapping includes pen_name/bio_short/bio_long/tagline/photo_url/cover_photo_url, premium product ID is `prod_TyB48pNvpfAnf4`
 
