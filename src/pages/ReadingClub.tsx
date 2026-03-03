@@ -82,14 +82,13 @@ export default function ReadingClub() {
     );
   }, [user]);
 
+  // Fetch books immediately (public), entries when auth resolves
   useEffect(() => {
-    const init = async () => {
-      setLoading(true);
-      await fetchBooks();
-      await fetchEntries();
-      setLoading(false);
-    };
-    if (!authLoading) init();
+    fetchBooks().then(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (!authLoading) fetchEntries();
   }, [authLoading, user]);
 
   const startChallenge = async (bookId: string) => {
@@ -113,7 +112,7 @@ export default function ReadingClub() {
     return null;
   };
 
-  if (authLoading || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
