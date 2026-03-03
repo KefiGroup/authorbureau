@@ -593,6 +593,73 @@ export type Database = {
         }
         Relationships: []
       }
+      reading_challenge_daily_logs: {
+        Row: {
+          created_at: string
+          entry_id: string
+          id: string
+          log_date: string
+          minutes_read: number
+        }
+        Insert: {
+          created_at?: string
+          entry_id: string
+          id?: string
+          log_date?: string
+          minutes_read?: number
+        }
+        Update: {
+          created_at?: string
+          entry_id?: string
+          id?: string
+          log_date?: string
+          minutes_read?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reading_challenge_daily_logs_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "reading_challenge_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reading_challenge_entries: {
+        Row: {
+          book_id: string
+          created_at: string
+          id: string
+          started_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          book_id: string
+          created_at?: string
+          id?: string
+          started_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          book_id?: string
+          created_at?: string
+          id?: string
+          started_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reading_challenge_entries_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reading_club_challenge_participants: {
         Row: {
           challenge_id: string

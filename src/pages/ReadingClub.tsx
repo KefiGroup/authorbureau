@@ -1,183 +1,119 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
-import { Loader2, BookOpen, Users, MessageCircle, Send, Star, Trophy, Filter } from "lucide-react";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
+import ReadingClubHero from "@/components/reading-club/ReadingClubHero";
+import BookCatalog from "@/components/reading-club/BookCatalog";
+import MyChallenges from "@/components/reading-club/MyChallenges";
+import { Loader2 } from "lucide-react";
 
-interface FeaturedBook {
+export interface CatalogBook {
   id: string;
-  book_id: string;
-  featured_month: string;
-  discussion_prompt: string | null;
-  book: {
-    id: string;
-    title: string;
-    author_name: string | null;
-    cover_image_url: string | null;
-    description: string | null;
-    genre: string | null;
-    slug: string;
-    rating: number | null;
-  };
+  title: string;
+  author_name: string | null;
+  cover_image_url: string | null;
+  description: string | null;
+  genre: string | null;
+  slug: string;
+  rating: number | null;
 }
 
-interface Discussion {
+export interface ChallengeEntry {
   id: string;
-  content: string;
-  created_at: string;
-  member: {
-    display_name: string | null;
-    email: string;
-  };
+  book_id: string;
+  started_at: string;
+  status: string;
+  book: CatalogBook;
+  logs: { log_date: string; minutes_read: number }[];
 }
 
 export default function ReadingClub() {
   useDocumentMeta({
-    title: "Reading Club — Authors Bureau",
-    description: "Join the Authors Bureau Reading Club. Discover curated books, join discussions, and connect with fellow readers.",
+    title: "100-Day Reading Challenge — Authors Bureau",
+    description: "Pick any book, commit to 2 minutes of reading a day for 100 days. We'll be your accountability partner.",
   });
 
-  const { toast } = useToast();
-  const [featured, setFeatured] = useState<FeaturedBook[]>([]);
-  const [allBooks, setAllBooks] = useState<any[]>([]);
-  const [challenges, setChallenges] = useState<any[]>([]);
+  const { user, loading: authLoading } = useAuth();
+  const [books, setBooks] = useState<CatalogBook[]>([]);
+  const [entries, setEntries] = useState<ChallengeEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [joinEmail, setJoinEmail] = useState("");
-  const [joinName, setJoinName] = useState("");
-  const [joining, setJoining] = useState(false);
-  const [joined, setJoined] = useState(false);
-  const [selectedBookId, setSelectedBookId] = useState<string | null>(null);
-  const [discussions, setDiscussions] = useState<Discussion[]>([]);
-  const [newComment, setNewComment] = useState("");
-  const [posting, setPosting] = useState(false);
-  const [genreFilter, setGenreFilter] = useState<string>("all");
-  const [catalogSearch, setCatalogSearch] = useState("");
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    // Fetch featured books with book data
-    const { data: featuredData } = await supabase
-      .from("reading_club_featured_books")
-      .select("*, book:books(id, title, author_name, cover_image_url, description, genre, slug, rating)")
-      .order("created_at", { ascending: false });
-
-    setFeatured((featuredData as any[]) || []);
-
-    // Fetch published books for catalog
-    const { data: booksData } = await supabase
+  const fetchBooks = useCallback(async () => {
+    const { data } = await supabase
       .from("books")
       .select("id, title, author_name, cover_image_url, description, genre, slug, rating")
       .not("published_at", "is", null)
-      .order("created_at", { ascending: false })
-      .limit(50);
+      .order("title")
+      .limit(100);
+    setBooks(data || []);
+  }, []);
 
-    setAllBooks(booksData || []);
-
-    // Fetch active challenges
-    const { data: challengeData } = await supabase
-      .from("reading_club_challenges" as any)
-      .select("*, book:books(id, title, author_name, cover_image_url)")
-      .eq("status", "active")
+  const fetchEntries = useCallback(async () => {
+    if (!user) { setEntries([]); return; }
+    const { data } = await supabase
+      .from("reading_challenge_entries")
+      .select("id, book_id, started_at, status, book:books(id, title, author_name, cover_image_url, description, genre, slug, rating)")
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
-    setChallenges((challengeData as any[]) || []);
-    setLoading(false);
-  };
+    if (!data) { setEntries([]); return; }
 
-  const handleJoin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!joinEmail.trim()) return;
-    setJoining(true);
+    // Fetch logs for all entries
+    const entryIds = data.map((e: any) => e.id);
+    const { data: logs } = await supabase
+      .from("reading_challenge_daily_logs")
+      .select("entry_id, log_date, minutes_read")
+      .in("entry_id", entryIds.length > 0 ? entryIds : ["__none__"])
+      .order("log_date", { ascending: true });
 
-    const { error } = await supabase.from("reading_club_members").insert({
-      email: joinEmail.trim(),
-      display_name: joinName.trim() || null,
+    const logsByEntry = (logs || []).reduce((acc: Record<string, any[]>, l: any) => {
+      (acc[l.entry_id] = acc[l.entry_id] || []).push(l);
+      return acc;
+    }, {});
+
+    setEntries(
+      data.map((e: any) => ({
+        ...e,
+        book: e.book,
+        logs: logsByEntry[e.id] || [],
+      }))
+    );
+  }, [user]);
+
+  useEffect(() => {
+    const init = async () => {
+      setLoading(true);
+      await fetchBooks();
+      await fetchEntries();
+      setLoading(false);
+    };
+    if (!authLoading) init();
+  }, [authLoading, user]);
+
+  const startChallenge = async (bookId: string) => {
+    if (!user) return;
+    const { error } = await supabase.from("reading_challenge_entries").insert({
+      user_id: user.id,
+      book_id: bookId,
     });
-
-    if (error?.code === "23505") {
-      toast({ title: "You're already a member!", description: "Welcome back to the Reading Club." });
-      setJoined(true);
-    } else if (error) {
-      toast({ title: "Error joining", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Welcome to the Reading Club! 🎉" });
-      setJoined(true);
-
-      // Auto-capture to CRM
-      try {
-        await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/crm-auto-capture`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email: joinEmail.trim(),
-              name: joinName.trim() || joinEmail.trim(),
-              source: "reading_club",
-            }),
-          }
-        );
-      } catch {}
-    }
-    setJoining(false);
+    if (error) return error.message;
+    await fetchEntries();
+    return null;
   };
 
-  const fetchDiscussions = async (bookId: string) => {
-    setSelectedBookId(bookId);
-    const { data } = await supabase
-      .from("reading_club_discussions")
-      .select("id, content, created_at, member:reading_club_members(display_name, email)")
-      .eq("book_id", bookId)
-      .order("created_at", { ascending: true });
-    setDiscussions((data as any[]) || []);
-  };
-
-  const handlePost = async () => {
-    if (!newComment.trim() || !selectedBookId) return;
-    setPosting(true);
-
-    // For simplicity, get or create member by email
-    let memberId: string | null = null;
-    if (joinEmail) {
-      const { data: existing } = await supabase
-        .from("reading_club_members")
-        .select("id")
-        .eq("email", joinEmail)
-        .maybeSingle();
-      memberId = existing?.id || null;
-    }
-
-    if (!memberId) {
-      toast({ title: "Please join the club first to post", variant: "destructive" });
-      setPosting(false);
-      return;
-    }
-
-    const { error } = await supabase.from("reading_club_discussions").insert({
-      book_id: selectedBookId,
-      member_id: memberId,
-      content: newComment.trim(),
+  const logToday = async (entryId: string, minutes: number) => {
+    const { error } = await supabase.from("reading_challenge_daily_logs").insert({
+      entry_id: entryId,
+      minutes_read: minutes,
     });
-
-    if (error) {
-      toast({ title: "Error posting", description: error.message, variant: "destructive" });
-    } else {
-      setNewComment("");
-      fetchDiscussions(selectedBookId);
-    }
-    setPosting(false);
+    if (error) return error.message;
+    await fetchEntries();
+    return null;
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
@@ -188,262 +124,23 @@ export default function ReadingClub() {
     );
   }
 
+  const activeEntryBookIds = new Set(entries.filter(e => e.status === "active").map(e => e.book_id));
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
+      <ReadingClubHero user={user} activeCount={entries.filter(e => e.status === "active").length} />
 
-      {/* Hero */}
-      <section className="relative py-20 lg:py-28">
-        <div className="mx-auto max-w-5xl px-6 text-center">
-          <div className="mb-6 flex justify-center">
-            <div className="rounded-full bg-secondary/10 p-4">
-              <BookOpen className="h-10 w-10 text-secondary" />
-            </div>
-          </div>
-          <h1 className="font-heading text-4xl font-bold tracking-tight lg:text-5xl mb-4">
-            Authors Bureau <span className="text-gradient-gold">Reading Club</span>
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
-            Discover curated books from our author community. Join discussions, share insights, and connect with fellow readers.
-          </p>
-
-          {!joined ? (
-            <form onSubmit={handleJoin} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-              <Input
-                value={joinName}
-                onChange={(e) => setJoinName(e.target.value)}
-                placeholder="Your name"
-                className="flex-1"
-              />
-              <Input
-                type="email"
-                required
-                value={joinEmail}
-                onChange={(e) => setJoinEmail(e.target.value)}
-                placeholder="Your email"
-                className="flex-1"
-              />
-              <Button type="submit" disabled={joining}>
-                {joining ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Users className="mr-2 h-4 w-4" />}
-                Join Free
-              </Button>
-            </form>
-          ) : (
-            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-primary text-sm font-medium">
-              <Users className="h-4 w-4" /> You're a member!
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Featured Books */}
-      {featured.length > 0 && (
-        <section className="py-12 border-t border-border">
-          <div className="mx-auto max-w-6xl px-6">
-            <h2 className="font-heading text-2xl font-bold mb-6">📚 Featured This Month</h2>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {featured.map((f) => (
-                <div
-                  key={f.id}
-                  className="rounded-xl border border-border bg-card overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => fetchDiscussions(f.book_id)}
-                >
-                  {f.book.cover_image_url && (
-                    <img
-                      src={f.book.cover_image_url}
-                      alt={f.book.title}
-                      className="w-full h-48 object-cover"
-                      loading="lazy"
-                    />
-                  )}
-                  <div className="p-4">
-                    <Badge variant="secondary" className="mb-2 text-xs">{f.featured_month}</Badge>
-                    <h3 className="font-heading font-semibold line-clamp-1">{f.book.title}</h3>
-                    <p className="text-sm text-muted-foreground">{f.book.author_name}</p>
-                    {f.discussion_prompt && (
-                      <p className="text-xs text-muted-foreground/70 mt-2 italic line-clamp-2">
-                        "{f.discussion_prompt}"
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+      {user && entries.filter(e => e.status === "active").length > 0 && (
+        <MyChallenges entries={entries.filter(e => e.status === "active")} onLog={logToday} />
       )}
 
-      {/* Reading Challenges */}
-      {challenges.length > 0 && (
-        <section className="py-12 border-t border-border">
-          <div className="mx-auto max-w-6xl px-6">
-            <h2 className="font-heading text-2xl font-bold mb-6 flex items-center gap-2">
-              <Trophy className="h-6 w-6 text-secondary" /> Reading Challenges
-            </h2>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {challenges.map((ch: any) => (
-                <div key={ch.id} className="rounded-xl border border-secondary/20 bg-secondary/5 p-5">
-                  <div className="flex items-center gap-3 mb-3">
-                    {ch.book?.cover_image_url && (
-                      <img src={ch.book.cover_image_url} alt={ch.book.title} className="w-12 h-16 object-cover rounded" />
-                    )}
-                    <div className="min-w-0">
-                      <h3 className="font-heading font-semibold text-sm line-clamp-1">{ch.title}</h3>
-                      <p className="text-xs text-muted-foreground">{ch.book?.author_name}</p>
-                    </div>
-                  </div>
-                  {ch.description && <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{ch.description}</p>}
-                  <Badge variant="secondary" className="text-xs">{ch.duration_days}-day challenge</Badge>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Book Catalog */}
-      <section className="py-12 border-t border-border">
-        <div className="mx-auto max-w-6xl px-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-            <h2 className="font-heading text-2xl font-bold">📖 Book Catalog</h2>
-            {allBooks.length > 5 && (
-              <div className="relative w-full sm:w-64">
-                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  value={catalogSearch}
-                  onChange={(e) => setCatalogSearch(e.target.value)}
-                  placeholder="Search books..."
-                  className="pl-9"
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Genre filters */}
-          {(() => {
-            const genres = Array.from(new Set(allBooks.map((b) => b.genre).filter(Boolean))).sort();
-            if (genres.length <= 1) return null;
-            return (
-              <div className="flex flex-wrap gap-2 mb-6">
-                <button
-                  onClick={() => setGenreFilter("all")}
-                  className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
-                    genreFilter === "all"
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-card text-muted-foreground border-border hover:bg-muted"
-                  }`}
-                >
-                  All Genres
-                </button>
-                {genres.map((g) => (
-                  <button
-                    key={g}
-                    onClick={() => setGenreFilter(g === genreFilter ? "all" : g)}
-                    className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
-                      genreFilter === g
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "bg-card text-muted-foreground border-border hover:bg-muted"
-                    }`}
-                  >
-                    {g}
-                  </button>
-                ))}
-              </div>
-            );
-          })()}
-
-          {(() => {
-            let books = allBooks;
-            if (genreFilter !== "all") books = books.filter((b) => b.genre === genreFilter);
-            if (catalogSearch) {
-              const q = catalogSearch.toLowerCase();
-              books = books.filter((b) =>
-                b.title.toLowerCase().includes(q) ||
-                (b.author_name?.toLowerCase().includes(q) ?? false)
-              );
-            }
-            if (books.length === 0) {
-              return <p className="text-muted-foreground text-center py-8">No books match your criteria.</p>;
-            }
-            return (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {books.map((book: any) => (
-                  <div
-                    key={book.id}
-                    className={`rounded-xl border bg-card p-4 cursor-pointer transition-all hover:shadow-md ${
-                      selectedBookId === book.id ? "border-primary ring-1 ring-primary" : "border-border"
-                    }`}
-                    onClick={() => fetchDiscussions(book.id)}
-                  >
-                    {book.cover_image_url && (
-                      <img
-                        src={book.cover_image_url}
-                        alt={book.title}
-                        className="w-full h-36 object-cover rounded-lg mb-3"
-                        loading="lazy"
-                      />
-                    )}
-                    <h4 className="font-heading font-semibold text-sm line-clamp-2">{book.title}</h4>
-                    <p className="text-xs text-muted-foreground mt-1">{book.author_name}</p>
-                    {book.rating && (
-                      <div className="flex items-center gap-1 mt-1">
-                        <Star className="h-3 w-3 fill-secondary text-secondary" />
-                        <span className="text-xs">{book.rating}</span>
-                      </div>
-                    )}
-                    {book.genre && (
-                      <Badge variant="outline" className="mt-2 text-xs">{book.genre}</Badge>
-                    )}
-                  </div>
-                ))}
-              </div>
-            );
-          })()}
-        </div>
-      </section>
-
-      {/* Discussion Thread */}
-      {selectedBookId && (
-        <section className="py-12 border-t border-border">
-          <div className="mx-auto max-w-3xl px-6">
-            <h2 className="font-heading text-2xl font-bold mb-4 flex items-center gap-2">
-              <MessageCircle className="h-6 w-6" /> Discussion
-            </h2>
-
-            {discussions.length === 0 ? (
-              <p className="text-sm text-muted-foreground mb-4">No comments yet — be the first!</p>
-            ) : (
-              <div className="space-y-4 mb-6">
-                {discussions.map((d) => (
-                  <div key={d.id} className="rounded-lg border border-border bg-card p-4">
-                    <p className="text-sm">{d.content}</p>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {d.member?.display_name || "Reader"} · {new Date(d.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {joined ? (
-              <div className="flex gap-2">
-                <Textarea
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Share your thoughts..."
-                  rows={2}
-                  className="flex-1"
-                />
-                <Button onClick={handlePost} disabled={posting || !newComment.trim()}>
-                  {posting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                </Button>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">Join the club above to participate in discussions.</p>
-            )}
-          </div>
-        </section>
-      )}
+      <BookCatalog
+        books={books}
+        user={user}
+        activeEntryBookIds={activeEntryBookIds}
+        onStartChallenge={startChallenge}
+      />
 
       <Footer />
     </div>
