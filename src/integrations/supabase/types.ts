@@ -636,6 +636,145 @@ export type Database = {
           },
         ]
       }
+      email_flow_enrollments: {
+        Row: {
+          completed_at: string | null
+          current_step: number
+          enrolled_at: string
+          flow_id: string
+          id: string
+          status: string
+          subscriber_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          current_step?: number
+          enrolled_at?: string
+          flow_id: string
+          id?: string
+          status?: string
+          subscriber_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          current_step?: number
+          enrolled_at?: string
+          flow_id?: string
+          id?: string
+          status?: string
+          subscriber_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_flow_enrollments_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "email_flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_flow_enrollments_subscriber_id_fkey"
+            columns: ["subscriber_id"]
+            isOneToOne: false
+            referencedRelation: "author_subscribers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_flow_steps: {
+        Row: {
+          body_markdown: string
+          created_at: string
+          flow_id: string
+          id: string
+          preview_text: string | null
+          status: string
+          step_number: number
+          subject: string
+          trigger_delay_days: number
+          updated_at: string
+        }
+        Insert: {
+          body_markdown?: string
+          created_at?: string
+          flow_id: string
+          id?: string
+          preview_text?: string | null
+          status?: string
+          step_number?: number
+          subject?: string
+          trigger_delay_days?: number
+          updated_at?: string
+        }
+        Update: {
+          body_markdown?: string
+          created_at?: string
+          flow_id?: string
+          id?: string
+          preview_text?: string | null
+          status?: string
+          step_number?: number
+          subject?: string
+          trigger_delay_days?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_flow_steps_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "email_flows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_flows: {
+        Row: {
+          ai_generated: boolean
+          author_id: string
+          book_id: string | null
+          created_at: string
+          description: string | null
+          flow_type: string
+          id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          ai_generated?: boolean
+          author_id: string
+          book_id?: string | null
+          created_at?: string
+          description?: string | null
+          flow_type: string
+          id?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          ai_generated?: boolean
+          author_id?: string
+          book_id?: string | null
+          created_at?: string
+          description?: string | null
+          flow_type?: string
+          id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_flows_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_send_logs: {
         Row: {
           bounced_at: string | null
