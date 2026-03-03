@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { LogOut, BookOpen, BarChart3, ShieldCheck, Globe, UserCheck, Users } from "lucide-react";
+import { LogOut, BookOpen, BarChart3, ShieldCheck, Globe, UserCheck, Users, BookMarked } from "lucide-react";
 
 import OverviewTab from "@/components/admin/OverviewTab";
 import BooksTab from "@/components/admin/BooksTab";
@@ -15,10 +15,11 @@ import AdminsTab from "@/components/admin/AdminsTab";
 import PlatformAccessTab from "@/components/admin/PlatformAccessTab";
 import AuthorsTab from "@/components/admin/AuthorsTab";
 import CRMDashboard from "@/components/dashboard/CRMDashboard";
+import ReadingClubTab from "@/components/admin/ReadingClubTab";
 
 import type { AdminStats, Submission, AdminUser, AdminBook, AdminInfo } from "@/types/admin";
 
-type Tab = "overview" | "books" | "authors" | "admins" | "platforms" | "crm";
+type Tab = "overview" | "books" | "authors" | "admins" | "platforms" | "crm" | "reading-club";
 
 export default function AdminDashboard() {
   const { user, loading, isAdmin, signOut } = useAuth();
@@ -251,6 +252,7 @@ export default function AdminDashboard() {
     { key: "authors", label: "Authors", icon: UserCheck },
     { key: "books", label: "Books", icon: BookOpen },
     { key: "crm", label: "CRM", icon: Users },
+    { key: "reading-club", label: "Reading Club", icon: BookMarked },
     { key: "admins", label: "Admins", icon: ShieldCheck, superOnly: true },
     { key: "platforms", label: "Platforms", icon: Globe, pnAdminOnly: true },
   ];
@@ -327,6 +329,7 @@ export default function AdminDashboard() {
             />
           )}
           {tab === "crm" && <CRMDashboard />}
+          {tab === "reading-club" && <ReadingClubTab />}
           {tab === "platforms" && <PlatformAccessTab />}
           {tab === "admins" && (
             <AdminsTab
