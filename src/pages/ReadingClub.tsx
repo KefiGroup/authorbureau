@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, BookOpen, Users, MessageCircle, Send, Star } from "lucide-react";
+import { Loader2, BookOpen, Users, MessageCircle, Send, Star, Trophy, Filter } from "lucide-react";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 interface FeaturedBook {
@@ -46,6 +46,7 @@ export default function ReadingClub() {
   const { toast } = useToast();
   const [featured, setFeatured] = useState<FeaturedBook[]>([]);
   const [allBooks, setAllBooks] = useState<any[]>([]);
+  const [challenges, setChallenges] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [joinEmail, setJoinEmail] = useState("");
   const [joinName, setJoinName] = useState("");
@@ -55,6 +56,8 @@ export default function ReadingClub() {
   const [discussions, setDiscussions] = useState<Discussion[]>([]);
   const [newComment, setNewComment] = useState("");
   const [posting, setPosting] = useState(false);
+  const [genreFilter, setGenreFilter] = useState<string>("all");
+  const [catalogSearch, setCatalogSearch] = useState("");
 
   useEffect(() => {
     fetchData();
@@ -75,9 +78,18 @@ export default function ReadingClub() {
       .select("id, title, author_name, cover_image_url, description, genre, slug, rating")
       .not("published_at", "is", null)
       .order("created_at", { ascending: false })
-      .limit(20);
+      .limit(50);
 
     setAllBooks(booksData || []);
+
+    // Fetch active challenges
+    const { data: challengeData } = await supabase
+      .from("reading_club_challenges" as any)
+      .select("*, book:books(id, title, author_name, cover_image_url)")
+      .eq("status", "active")
+      .order("created_at", { ascending: false });
+
+    setChallenges((challengeData as any[]) || []);
     setLoading(false);
   };
 
@@ -99,6 +111,22 @@ export default function ReadingClub() {
     } else {
       toast({ title: "Welcome to the Reading Club! 🎉" });
       setJoined(true);
+
+      // Auto-capture to CRM
+      try {
+        await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/crm-auto-capture`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: joinEmail.trim(),
+              name: joinName.trim() || joinEmail.trim(),
+              source: "reading_club",
+            }),
+          }
+        );
+      } catch {}
     }
     setJoining(false);
   };
@@ -245,45 +273,132 @@ export default function ReadingClub() {
         </section>
       )}
 
-      {/* Book Catalog */}
-      <section className="py-12 border-t border-border">
-        <div className="mx-auto max-w-6xl px-6">
-          <h2 className="font-heading text-2xl font-bold mb-6">📖 Book Catalog</h2>
-          {allBooks.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">No books available yet.</p>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {allBooks.map((book) => (
-                <div
-                  key={book.id}
-                  className={`rounded-xl border bg-card p-4 cursor-pointer transition-all hover:shadow-md ${
-                    selectedBookId === book.id ? "border-primary ring-1 ring-primary" : "border-border"
-                  }`}
-                  onClick={() => fetchDiscussions(book.id)}
-                >
-                  {book.cover_image_url && (
-                    <img
-                      src={book.cover_image_url}
-                      alt={book.title}
-                      className="w-full h-36 object-cover rounded-lg mb-3"
-                      loading="lazy"
-                    />
-                  )}
-                  <h4 className="font-heading font-semibold text-sm line-clamp-2">{book.title}</h4>
-                  <p className="text-xs text-muted-foreground mt-1">{book.author_name}</p>
-                  {book.rating && (
-                    <div className="flex items-center gap-1 mt-1">
-                      <Star className="h-3 w-3 fill-secondary text-secondary" />
-                      <span className="text-xs">{book.rating}</span>
+      {/* Reading Challenges */}
+      {challenges.length > 0 && (
+        <section className="py-12 border-t border-border">
+          <div className="mx-auto max-w-6xl px-6">
+            <h2 className="font-heading text-2xl font-bold mb-6 flex items-center gap-2">
+              <Trophy className="h-6 w-6 text-secondary" /> Reading Challenges
+            </h2>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {challenges.map((ch: any) => (
+                <div key={ch.id} className="rounded-xl border border-secondary/20 bg-secondary/5 p-5">
+                  <div className="flex items-center gap-3 mb-3">
+                    {ch.book?.cover_image_url && (
+                      <img src={ch.book.cover_image_url} alt={ch.book.title} className="w-12 h-16 object-cover rounded" />
+                    )}
+                    <div className="min-w-0">
+                      <h3 className="font-heading font-semibold text-sm line-clamp-1">{ch.title}</h3>
+                      <p className="text-xs text-muted-foreground">{ch.book?.author_name}</p>
                     </div>
-                  )}
-                  {book.genre && (
-                    <Badge variant="outline" className="mt-2 text-xs">{book.genre}</Badge>
-                  )}
+                  </div>
+                  {ch.description && <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{ch.description}</p>}
+                  <Badge variant="secondary" className="text-xs">{ch.duration_days}-day challenge</Badge>
                 </div>
               ))}
             </div>
-          )}
+          </div>
+        </section>
+      )}
+
+      {/* Book Catalog */}
+      <section className="py-12 border-t border-border">
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <h2 className="font-heading text-2xl font-bold">📖 Book Catalog</h2>
+            {allBooks.length > 5 && (
+              <div className="relative w-full sm:w-64">
+                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={catalogSearch}
+                  onChange={(e) => setCatalogSearch(e.target.value)}
+                  placeholder="Search books..."
+                  className="pl-9"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Genre filters */}
+          {(() => {
+            const genres = Array.from(new Set(allBooks.map((b) => b.genre).filter(Boolean))).sort();
+            if (genres.length <= 1) return null;
+            return (
+              <div className="flex flex-wrap gap-2 mb-6">
+                <button
+                  onClick={() => setGenreFilter("all")}
+                  className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
+                    genreFilter === "all"
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-card text-muted-foreground border-border hover:bg-muted"
+                  }`}
+                >
+                  All Genres
+                </button>
+                {genres.map((g) => (
+                  <button
+                    key={g}
+                    onClick={() => setGenreFilter(g === genreFilter ? "all" : g)}
+                    className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
+                      genreFilter === g
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-card text-muted-foreground border-border hover:bg-muted"
+                    }`}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
+            );
+          })()}
+
+          {(() => {
+            let books = allBooks;
+            if (genreFilter !== "all") books = books.filter((b) => b.genre === genreFilter);
+            if (catalogSearch) {
+              const q = catalogSearch.toLowerCase();
+              books = books.filter((b) =>
+                b.title.toLowerCase().includes(q) ||
+                (b.author_name?.toLowerCase().includes(q) ?? false)
+              );
+            }
+            if (books.length === 0) {
+              return <p className="text-muted-foreground text-center py-8">No books match your criteria.</p>;
+            }
+            return (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {books.map((book: any) => (
+                  <div
+                    key={book.id}
+                    className={`rounded-xl border bg-card p-4 cursor-pointer transition-all hover:shadow-md ${
+                      selectedBookId === book.id ? "border-primary ring-1 ring-primary" : "border-border"
+                    }`}
+                    onClick={() => fetchDiscussions(book.id)}
+                  >
+                    {book.cover_image_url && (
+                      <img
+                        src={book.cover_image_url}
+                        alt={book.title}
+                        className="w-full h-36 object-cover rounded-lg mb-3"
+                        loading="lazy"
+                      />
+                    )}
+                    <h4 className="font-heading font-semibold text-sm line-clamp-2">{book.title}</h4>
+                    <p className="text-xs text-muted-foreground mt-1">{book.author_name}</p>
+                    {book.rating && (
+                      <div className="flex items-center gap-1 mt-1">
+                        <Star className="h-3 w-3 fill-secondary text-secondary" />
+                        <span className="text-xs">{book.rating}</span>
+                      </div>
+                    )}
+                    {book.genre && (
+                      <Badge variant="outline" className="mt-2 text-xs">{book.genre}</Badge>
+                    )}
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
         </div>
       </section>
 

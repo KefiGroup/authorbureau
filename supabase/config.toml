@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.dashboard-state]
 verify_jwt = false
+
+[functions.crm-auto-capture]
+verify_jwt = false

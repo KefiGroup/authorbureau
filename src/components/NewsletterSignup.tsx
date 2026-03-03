@@ -33,6 +33,23 @@ export default function NewsletterSignup({ bookId, authorName }: NewsletterSignu
       if (error) throw error;
       setSuccess(true);
       toast({ title: "You're subscribed! 📬", description: `You'll get updates from ${authorName}.` });
+
+      // Auto-capture to CRM
+      try {
+        await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/crm-auto-capture`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: result.data,
+              name: result.data,
+              source: "newsletter",
+              source_detail: authorName,
+            }),
+          }
+        );
+      } catch {}
     } catch (err: any) {
       toast({ title: "Something went wrong", description: err.message || "Please try again.", variant: "destructive" });
     } finally {

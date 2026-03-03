@@ -593,6 +593,83 @@ export type Database = {
         }
         Relationships: []
       }
+      reading_club_challenge_participants: {
+        Row: {
+          challenge_id: string
+          id: string
+          joined_at: string
+          member_id: string
+          progress: number
+        }
+        Insert: {
+          challenge_id: string
+          id?: string
+          joined_at?: string
+          member_id: string
+          progress?: number
+        }
+        Update: {
+          challenge_id?: string
+          id?: string
+          joined_at?: string
+          member_id?: string
+          progress?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reading_club_challenge_participants_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "reading_club_challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reading_club_challenge_participants_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "reading_club_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reading_club_challenges: {
+        Row: {
+          book_id: string
+          created_at: string
+          description: string | null
+          duration_days: number
+          id: string
+          status: string
+          title: string
+        }
+        Insert: {
+          book_id: string
+          created_at?: string
+          description?: string | null
+          duration_days?: number
+          id?: string
+          status?: string
+          title: string
+        }
+        Update: {
+          book_id?: string
+          created_at?: string
+          description?: string | null
+          duration_days?: number
+          id?: string
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reading_club_challenges_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reading_club_discussions: {
         Row: {
           book_id: string

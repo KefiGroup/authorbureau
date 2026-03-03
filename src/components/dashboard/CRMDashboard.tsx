@@ -3,98 +3,83 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Search, Users, Mail, BookOpen, UserPlus } from "lucide-react";
+import {
+  Loader2, Search, Users, UserPlus, X, ChevronRight,
+} from "lucide-react";
+import ContactForm from "./crm/ContactForm";
+import ContactList from "./crm/ContactList";
+import ActivityPanel from "./crm/ActivityPanel";
 
-interface UnifiedContact {
+interface CRMContact {
   id: string;
-  name: string;
-  email: string;
-  source: "member" | "reading_club" | "newsletter";
-  sourceDetail?: string; // e.g. book title for newsletter
-  joinedAt: string;
+  full_name: string;
+  email: string | null;
+  phone: string | null;
+  company: string | null;
+  notes: string | null;
+  source: string;
+  created_at: string;
+  tags: string[];
 }
 
-const sourceConfig: Record<string, { label: string; icon: typeof Users; color: string }> = {
-  member: { label: "Member", icon: UserPlus, color: "bg-primary/10 text-primary border-primary/20" },
-  reading_club: { label: "Reading Club", icon: BookOpen, color: "bg-green-500/10 text-green-700 border-green-500/20" },
-  newsletter: { label: "Newsletter", icon: Mail, color: "bg-blue-500/10 text-blue-700 border-blue-500/20" },
-};
+interface Activity {
+  id: string;
+  type: string;
+  content: string | null;
+  created_at: string;
+}
 
 export default function CRMDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [contacts, setContacts] = useState<UnifiedContact[]>([]);
+
+  const [contacts, setContacts] = useState<CRMContact[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [tagFilter, setTagFilter] = useState<string>("all");
+  const [showForm, setShowForm] = useState(false);
+  const [formLoading, setFormLoading] = useState(false);
 
-  const fetchAll = useCallback(async () => {
+  // Selected contact
+  const [selected, setSelected] = useState<CRMContact | null>(null);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(false);
+
+  const fetchContacts = useCallback(async () => {
     setLoading(true);
     try {
-      const [profilesRes, readingRes, newsletterRes] = await Promise.all([
-        supabase.from("profiles").select("user_id, display_name, created_at"),
-        supabase.from("reading_club_members").select("id, email, display_name, joined_at, status"),
-        supabase.from("newsletter_signups").select("id, email, created_at, book_id, books(title)"),
-      ]);
+      // Fetch contacts — admin can see all via RLS
+      const { data: contactRows, error } = await supabase
+        .from("crm_contacts")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(500);
 
-      const unified: UnifiedContact[] = [];
+      if (error) throw error;
 
-      // 1. Registered members (profiles) — we don't have email in profiles,
-      //    but display_name is available
-      (profilesRes.data || []).forEach((p: any) => {
-        unified.push({
-          id: `member-${p.user_id}`,
-          name: p.display_name || "Unknown",
-          email: p.display_name?.includes("@") ? p.display_name : "",
-          source: "member",
-          joinedAt: p.created_at,
+      // Fetch all tags for these contacts
+      const contactIds = (contactRows || []).map((c) => c.id);
+      let tagsMap: Record<string, string[]> = {};
+
+      if (contactIds.length > 0) {
+        const { data: tagRows } = await supabase
+          .from("crm_contact_tags")
+          .select("contact_id, tag")
+          .in("contact_id", contactIds);
+
+        (tagRows || []).forEach((t) => {
+          if (!tagsMap[t.contact_id]) tagsMap[t.contact_id] = [];
+          tagsMap[t.contact_id].push(t.tag);
         });
-      });
-
-      // 2. Reading club members
-      (readingRes.data || []).forEach((r: any) => {
-        unified.push({
-          id: `rc-${r.id}`,
-          name: r.display_name || r.email,
-          email: r.email,
-          source: "reading_club",
-          joinedAt: r.joined_at,
-        });
-      });
-
-      // 3. Newsletter subscribers
-      (newsletterRes.data || []).forEach((n: any) => {
-        unified.push({
-          id: `nl-${n.id}`,
-          name: n.email,
-          email: n.email,
-          source: "newsletter",
-          sourceDetail: n.books?.title || undefined,
-          joinedAt: n.created_at,
-        });
-      });
-
-      // Deduplicate by email (keep earliest, merge sources)
-      const emailMap = new Map<string, UnifiedContact & { sources: Set<string> }>();
-      unified.forEach((c) => {
-        const key = c.email?.toLowerCase() || c.id;
-        if (emailMap.has(key)) {
-          const existing = emailMap.get(key)!;
-          existing.sources.add(c.source);
-          if (c.sourceDetail) existing.sourceDetail = c.sourceDetail;
-          if (c.name && c.name !== c.email && (!existing.name || existing.name === existing.email)) {
-            existing.name = c.name;
-          }
-        } else {
-          emailMap.set(key, { ...c, sources: new Set([c.source]) });
-        }
-      });
+      }
 
       setContacts(
-        Array.from(emailMap.values())
-          .sort((a, b) => new Date(b.joinedAt).getTime() - new Date(a.joinedAt).getTime())
-          .map((c) => ({ ...c, source: c.source })) // keep primary source
+        (contactRows || []).map((c) => ({
+          ...c,
+          tags: tagsMap[c.id] || [],
+        }))
       );
     } catch (err: any) {
       toast({ title: "Failed to load contacts", variant: "destructive" });
@@ -103,33 +88,123 @@ export default function CRMDashboard() {
   }, [toast]);
 
   useEffect(() => {
-    fetchAll();
-  }, [fetchAll]);
+    fetchContacts();
+  }, [fetchContacts]);
 
-  const sourceCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: contacts.length, member: 0, reading_club: 0, newsletter: 0 };
-    contacts.forEach((c) => {
-      counts[c.source] = (counts[c.source] || 0) + 1;
-    });
-    return counts;
+  // All unique tags for filter pills
+  const allTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    contacts.forEach((c) => c.tags.forEach((t) => tagSet.add(t)));
+    return Array.from(tagSet).sort();
   }, [contacts]);
 
+  // Filtered contacts
   const filtered = useMemo(() => {
     let list = contacts;
-    if (sourceFilter !== "all") {
-      list = list.filter((c) => c.source === sourceFilter);
+    if (tagFilter !== "all") {
+      list = list.filter((c) => c.tags.includes(tagFilter));
     }
     if (search) {
       const q = search.toLowerCase();
       list = list.filter(
         (c) =>
-          c.name.toLowerCase().includes(q) ||
-          c.email.toLowerCase().includes(q) ||
-          (c.sourceDetail?.toLowerCase().includes(q) ?? false)
+          c.full_name.toLowerCase().includes(q) ||
+          (c.email?.toLowerCase().includes(q) ?? false) ||
+          (c.company?.toLowerCase().includes(q) ?? false) ||
+          (c.notes?.toLowerCase().includes(q) ?? false)
       );
     }
     return list;
-  }, [contacts, sourceFilter, search]);
+  }, [contacts, tagFilter, search]);
+
+  // Add contact
+  const handleAddContact = async (data: any) => {
+    if (!user) return;
+    setFormLoading(true);
+    try {
+      const { data: newContact, error } = await supabase
+        .from("crm_contacts")
+        .insert({
+          author_id: user.id,
+          full_name: data.full_name,
+          email: data.email || null,
+          phone: data.phone || null,
+          company: data.company || null,
+          notes: data.notes || null,
+          source: "manual",
+        })
+        .select("id")
+        .single();
+
+      if (error) throw error;
+
+      // Add tags
+      const tags = data.tags
+        ?.split(",")
+        .map((t: string) => t.trim())
+        .filter(Boolean);
+
+      if (tags?.length && newContact) {
+        await supabase.from("crm_contact_tags").insert(
+          tags.map((tag: string) => ({
+            author_id: user.id,
+            contact_id: newContact.id,
+            tag,
+          }))
+        );
+      }
+
+      toast({ title: "Contact added" });
+      setShowForm(false);
+      fetchContacts();
+    } catch (err: any) {
+      toast({ title: "Error adding contact", description: err.message, variant: "destructive" });
+    }
+    setFormLoading(false);
+  };
+
+  // Delete contact
+  const handleDelete = async (id: string) => {
+    try {
+      // Delete tags and activity first
+      await supabase.from("crm_contact_tags").delete().eq("contact_id", id);
+      await supabase.from("crm_activity_log").delete().eq("contact_id", id);
+      const { error } = await supabase.from("crm_contacts").delete().eq("id", id);
+      if (error) throw error;
+      setContacts((prev) => prev.filter((c) => c.id !== id));
+      if (selected?.id === id) setSelected(null);
+      toast({ title: "Contact deleted" });
+    } catch (err: any) {
+      toast({ title: "Delete failed", description: err.message, variant: "destructive" });
+    }
+  };
+
+  // Select contact & load activities
+  const handleSelect = async (contact: CRMContact) => {
+    setSelected(contact);
+    setActivitiesLoading(true);
+    const { data } = await supabase
+      .from("crm_activity_log")
+      .select("*")
+      .eq("contact_id", contact.id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    setActivities((data as Activity[]) || []);
+    setActivitiesLoading(false);
+  };
+
+  // Add activity
+  const handleAddActivity = async (type: string, content: string) => {
+    if (!user || !selected) return;
+    await supabase.from("crm_activity_log").insert({
+      author_id: user.id,
+      contact_id: selected.id,
+      type,
+      content,
+    });
+    // Refresh
+    handleSelect(selected);
+  };
 
   if (loading) {
     return (
@@ -140,36 +215,58 @@ export default function CRMDashboard() {
   }
 
   return (
-    <div className="max-w-6xl space-y-6">
-      <div>
-        <h2 className="font-heading text-2xl font-bold">Contacts & CRM</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Everyone who signed up — members, reading club, and newsletter subscribers.
-        </p>
+    <div className="max-w-7xl space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="font-heading text-2xl font-bold">Contacts & CRM</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            {contacts.length} contact{contacts.length !== 1 ? "s" : ""} total
+          </p>
+        </div>
+        <Button onClick={() => setShowForm(!showForm)} size="sm">
+          {showForm ? <X className="mr-1.5 h-4 w-4" /> : <UserPlus className="mr-1.5 h-4 w-4" />}
+          {showForm ? "Cancel" : "Add Contact"}
+        </Button>
       </div>
 
-      {/* Source filter pills */}
-      <div className="flex flex-wrap gap-2">
-        {[
-          { key: "all", label: "All Contacts" },
-          { key: "member", label: "Members" },
-          { key: "reading_club", label: "Reading Club" },
-          { key: "newsletter", label: "Newsletter" },
-        ].map((f) => (
+      {/* Add form */}
+      {showForm && (
+        <ContactForm
+          onSubmit={handleAddContact}
+          onCancel={() => setShowForm(false)}
+          loading={formLoading}
+        />
+      )}
+
+      {/* Tag filter pills */}
+      {allTags.length > 0 && (
+        <div className="flex flex-wrap gap-2">
           <button
-            key={f.key}
-            onClick={() => setSourceFilter(f.key)}
-            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium border transition-colors ${
-              sourceFilter === f.key
+            onClick={() => setTagFilter("all")}
+            className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
+              tagFilter === "all"
                 ? "bg-primary text-primary-foreground border-primary"
                 : "bg-card text-muted-foreground border-border hover:bg-muted"
             }`}
           >
-            {f.label}
-            <span className="text-xs opacity-70">({sourceCounts[f.key] || 0})</span>
+            All
           </button>
-        ))}
-      </div>
+          {allTags.map((tag) => (
+            <button
+              key={tag}
+              onClick={() => setTagFilter(tag === tagFilter ? "all" : tag)}
+              className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
+                tagFilter === tag
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card text-muted-foreground border-border hover:bg-muted"
+              }`}
+            >
+              {tag}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Search */}
       {contacts.length > 5 && (
@@ -178,71 +275,54 @@ export default function CRMDashboard() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, email, or book..."
+            placeholder="Search by name, email, company, or notes..."
             className="pl-9"
           />
         </div>
       )}
 
-      {/* Contact list */}
-      {filtered.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-muted/30 p-12 text-center">
-          <Users className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
-          <h3 className="font-heading text-lg font-semibold mb-2">
-            {search ? "No matches" : "No contacts yet"}
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            {search
-              ? `No contacts match "${search}"`
-              : "Contacts will appear here as people sign up, join the reading club, or subscribe to newsletters."}
-          </p>
+      {/* Main layout: contact list + activity panel */}
+      <div className="grid gap-6 lg:grid-cols-5">
+        <div className="lg:col-span-3">
+          {filtered.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border bg-muted/30 p-12 text-center">
+              <Users className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
+              <h3 className="font-heading text-lg font-semibold mb-2">
+                {search || tagFilter !== "all" ? "No matches" : "No contacts yet"}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {search
+                  ? `No contacts match "${search}"`
+                  : "Contacts will appear here as people sign up or you add them manually."}
+              </p>
+            </div>
+          ) : (
+            <ContactList
+              contacts={filtered}
+              onDelete={handleDelete}
+              onSelect={handleSelect}
+              selectedId={selected?.id}
+            />
+          )}
         </div>
-      ) : (
-        <div className="rounded-xl border border-border overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/50">
-                  <th className="text-left font-medium text-muted-foreground px-4 py-3">Name / Email</th>
-                  <th className="text-left font-medium text-muted-foreground px-4 py-3">Source</th>
-                  <th className="text-left font-medium text-muted-foreground px-4 py-3">Detail</th>
-                  <th className="text-left font-medium text-muted-foreground px-4 py-3">Joined</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((c) => {
-                  const cfg = sourceConfig[c.source];
-                  const Icon = cfg.icon;
-                  return (
-                    <tr key={c.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3">
-                        <div className="font-medium truncate max-w-[220px]">
-                          {c.name !== c.email ? c.name : "—"}
-                        </div>
-                        {c.email && (
-                          <div className="text-xs text-muted-foreground truncate max-w-[220px]">{c.email}</div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge variant="outline" className={`text-xs ${cfg.color}`}>
-                          <Icon className="h-3 w-3 mr-1" />
-                          {cfg.label}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground text-xs truncate max-w-[180px]">
-                        {c.sourceDetail || "—"}
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground text-xs whitespace-nowrap">
-                        {new Date(c.joinedAt).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+
+        {/* Activity panel */}
+        <div className="lg:col-span-2">
+          {selected ? (
+            <ActivityPanel
+              contactName={selected.full_name}
+              activities={activities}
+              onAddActivity={handleAddActivity}
+              loading={activitiesLoading}
+            />
+          ) : (
+            <div className="rounded-xl border border-dashed border-border bg-muted/30 p-8 text-center">
+              <ChevronRight className="mx-auto h-8 w-8 text-muted-foreground/40 mb-2" />
+              <p className="text-sm text-muted-foreground">Select a contact to view activity</p>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
