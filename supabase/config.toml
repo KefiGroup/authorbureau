@@ -35,9 +35,15 @@ project_id = "tubpbslfrxyfhldkcyyq"
     verify_jwt = false
   [functions.scrape-amazon-book]
     verify_jwt = false
+  [functions.send-campaign]
+    verify_jwt = false
   [functions.send-service-inquiry-email]
     verify_jwt = false
+  [functions.sso-proxy]
+    verify_jwt = false
   [functions.sync-author-profile]
+    verify_jwt = false
+  [functions.sync-subscribers]
     verify_jwt = false
   [functions.update-book-cover]
     verify_jwt = false

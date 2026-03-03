@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Mail, Plus, Send, Eye, Loader2, Trash2, Edit3, Users,
   FileText, Clock, CheckCircle2, AlertCircle, Search, BarChart3,
-  Settings, Copy,
+  Settings, Copy, RefreshCw,
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
@@ -281,22 +281,55 @@ function CampaignComposer({
       subject,
       preview_text: previewText || null,
       content_json: { body },
-      status,
+      status: status === "send" ? "draft" : status,
     };
 
+    let campaignId = campaign?.id;
     let error;
     if (campaign) {
       ({ error } = await supabase.from("email_campaigns" as any).update(payload).eq("id", campaign.id));
     } else {
-      ({ error } = await supabase.from("email_campaigns" as any).insert(payload));
+      const { data, error: insertErr } = await supabase.from("email_campaigns" as any).insert(payload).select("id").single();
+      error = insertErr;
+      if (data) campaignId = (data as any).id;
     }
 
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: status === "draft" ? "Draft saved" : "Campaign scheduled" });
-      onSaved();
+      setSaving(false);
+      return;
     }
+
+    if (status === "send" && campaignId) {
+      // Call the send-campaign edge function
+      try {
+        const { data: session } = await supabase.auth.getSession();
+        const token = session?.session?.access_token;
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-campaign`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+            body: JSON.stringify({ campaignId }),
+          }
+        );
+        const result = await res.json();
+        if (res.ok && result.success) {
+          toast({ title: "Campaign sent! 🎉", description: `${result.sent} emails delivered.` });
+        } else {
+          toast({ title: "Send failed", description: result.error || "Something went wrong", variant: "destructive" });
+        }
+      } catch (err: any) {
+        toast({ title: "Send failed", description: err.message, variant: "destructive" });
+      }
+    } else {
+      toast({ title: "Draft saved" });
+    }
+
+    onSaved();
     setSaving(false);
   };
 
@@ -347,12 +380,12 @@ function CampaignComposer({
           Save Draft
         </Button>
         <Button
-          onClick={() => handleSave("scheduled")}
+          onClick={() => handleSave("send")}
           disabled={saving || !subject.trim() || !body.trim()}
           className="gap-1.5"
         >
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          Send Campaign
+          Send Now
         </Button>
       </div>
     </div>
@@ -370,6 +403,7 @@ function SubscribersTab() {
   const [newEmail, setNewEmail] = useState("");
   const [newName, setNewName] = useState("");
   const [adding, setAdding] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const fetchSubscribers = async () => {
     if (!user) return;
@@ -424,6 +458,35 @@ function SubscribersTab() {
 
   const activeCount = subscribers.filter((s) => s.status === "active").length;
 
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const token = session?.session?.access_token;
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-subscribers`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({}),
+        }
+      );
+      const result = await res.json();
+      if (res.ok) {
+        toast({ title: "Sync complete", description: `${result.synced} subscribers imported.` });
+        fetchSubscribers();
+      } else {
+        toast({ title: "Sync failed", description: result.error, variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "Sync failed", description: err.message, variant: "destructive" });
+    }
+    setSyncing(false);
+  };
+
   return (
     <div className="space-y-4 mt-4">
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
@@ -442,12 +505,17 @@ function SubscribersTab() {
           </Badge>
         </div>
 
-        <Dialog open={addOpen} onOpenChange={setAddOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-1.5">
-              <Plus className="h-4 w-4" /> Add Subscriber
-            </Button>
-          </DialogTrigger>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleSync} disabled={syncing} className="gap-1.5">
+            {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Sync Newsletter Signups
+          </Button>
+          <Dialog open={addOpen} onOpenChange={setAddOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-1.5">
+                <Plus className="h-4 w-4" /> Add Subscriber
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Add Subscriber</DialogTitle>
@@ -476,6 +544,7 @@ function SubscribersTab() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {loading ? (
