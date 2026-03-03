@@ -3,38 +3,44 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import {
-  Mail, Plus, Send, Eye, Loader2, Trash2, Edit3, Users,
-  FileText, Clock, CheckCircle2, AlertCircle, Search, BarChart3,
-  Settings, Copy, RefreshCw,
+  Mail, Send, Eye, Loader2, Trash2, Edit3, Users,
+  FileText, Clock, CheckCircle2, Search, Zap,
+  Settings, Copy, RefreshCw, BookOpen, Sparkles,
+  ChevronDown, ChevronUp, ArrowRight,
 } from "lucide-react";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
-  DialogFooter, DialogClose,
-} from "@/components/ui/dialog";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 
-interface Campaign {
+interface EmailFlow {
   id: string;
+  title: string;
+  description: string | null;
+  flow_type: string;
+  book_id: string | null;
+  ai_generated: boolean;
+  status: string;
+  created_at: string;
+  steps?: EmailFlowStep[];
+}
+
+interface EmailFlowStep {
+  id: string;
+  flow_id: string;
+  step_number: number;
   subject: string;
   preview_text: string | null;
-  content_json: any;
-  content_html: string | null;
+  body_markdown: string;
+  trigger_delay_days: number;
   status: string;
-  scheduled_at: string | null;
-  sent_at: string | null;
-  recipient_count: number;
-  open_count: number;
-  click_count: number;
-  created_at: string;
-  updated_at: string;
 }
 
 interface Subscriber {
@@ -47,34 +53,10 @@ interface Subscriber {
   subscribed_at: string;
 }
 
-interface EmailTemplate {
-  id: string;
-  name: string;
-  subject: string;
-  content_json: any;
-  created_at: string;
-}
-
-interface EmailSettings {
-  id: string;
-  sender_name: string;
-  reply_to_email: string | null;
-  subdomain: string | null;
-  domain_verified: boolean;
-}
-
 interface Props {
   activeTab: string;
   onTabChange: (tab: string) => void;
 }
-
-const statusColors: Record<string, string> = {
-  draft: "bg-muted text-muted-foreground",
-  scheduled: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  sending: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-  sent: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-  failed: "bg-destructive/10 text-destructive",
-};
 
 const sourceLabels: Record<string, string> = {
   newsletter: "Newsletter",
@@ -85,12 +67,7 @@ const sourceLabels: Record<string, string> = {
 };
 
 export default function EmailMarketing({ activeTab, onTabChange }: Props) {
-  const { user } = useAuth();
-  const { toast } = useToast();
-
-  const currentTab = activeTab === "subscribers" ? "subscribers"
-    : activeTab === "email-templates" ? "templates"
-    : "campaigns";
+  const currentTab = activeTab === "subscribers" ? "subscribers" : "flows";
 
   return (
     <div className="max-w-6xl space-y-6">
@@ -99,308 +76,312 @@ export default function EmailMarketing({ activeTab, onTabChange }: Props) {
           <Mail className="h-6 w-6 text-secondary" />
         </div>
         <div>
-          <h2 className="font-heading text-2xl font-bold">Email Marketing</h2>
+          <h2 className="font-heading text-2xl font-bold">Email Automation</h2>
           <p className="text-sm text-muted-foreground">
-            Create campaigns, manage subscribers, and grow your audience
+            AI-generated nurture flows from your books — review, toggle, and let automation do the work
           </p>
         </div>
       </div>
 
       <Tabs value={currentTab} onValueChange={(v) => {
-        if (v === "campaigns") onTabChange("email-marketing");
+        if (v === "flows") onTabChange("email-marketing");
         else if (v === "subscribers") onTabChange("subscribers");
-        else if (v === "templates") onTabChange("email-templates");
       }}>
         <TabsList>
-          <TabsTrigger value="campaigns" className="gap-1.5">
-            <Send className="h-3.5 w-3.5" /> Campaigns
+          <TabsTrigger value="flows" className="gap-1.5">
+            <Zap className="h-3.5 w-3.5" /> Nurture Flows
           </TabsTrigger>
           <TabsTrigger value="subscribers" className="gap-1.5">
             <Users className="h-3.5 w-3.5" /> Subscribers
           </TabsTrigger>
-          <TabsTrigger value="templates" className="gap-1.5">
-            <FileText className="h-3.5 w-3.5" /> Templates
-          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="campaigns">
-          <CampaignsTab />
+        <TabsContent value="flows">
+          <FlowsTab />
         </TabsContent>
         <TabsContent value="subscribers">
           <SubscribersTab />
-        </TabsContent>
-        <TabsContent value="templates">
-          <TemplatesTab />
         </TabsContent>
       </Tabs>
     </div>
   );
 }
 
-/* ─── Campaigns Tab ──────────────────────────────── */
-function CampaignsTab() {
+/* ─── Flows Tab ──────────────────────────────── */
+function FlowsTab() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [flows, setFlows] = useState<EmailFlow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [composing, setComposing] = useState(false);
-  const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
+  const [expandedFlow, setExpandedFlow] = useState<string | null>(null);
+  const [editingStep, setEditingStep] = useState<EmailFlowStep | null>(null);
 
-  const fetchCampaigns = async () => {
+  const fetchFlows = async () => {
     if (!user) return;
     setLoading(true);
     const { data, error } = await supabase
-      .from("email_campaigns" as any)
+      .from("email_flows")
       .select("*")
       .eq("author_id", user.id)
       .order("created_at", { ascending: false });
-    if (!error && data) setCampaigns(data as any);
+    if (!error && data) {
+      // Fetch steps for each flow
+      const flowsWithSteps: EmailFlow[] = [];
+      for (const flow of data as any[]) {
+        const { data: steps } = await supabase
+          .from("email_flow_steps")
+          .select("*")
+          .eq("flow_id", flow.id)
+          .order("step_number", { ascending: true });
+        flowsWithSteps.push({ ...flow, steps: (steps as any[]) || [] });
+      }
+      setFlows(flowsWithSteps);
+    }
     setLoading(false);
   };
 
-  useEffect(() => { fetchCampaigns(); }, [user]);
+  useEffect(() => { fetchFlows(); }, [user]);
 
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("email_campaigns" as any).delete().eq("id", id);
+  const toggleFlowStatus = async (flowId: string, currentStatus: string) => {
+    const newStatus = currentStatus === "active" ? "paused" : "active";
+    const { error } = await supabase
+      .from("email_flows")
+      .update({ status: newStatus } as any)
+      .eq("id", flowId);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      setCampaigns((prev) => prev.filter((c) => c.id !== id));
-      toast({ title: "Campaign deleted" });
+      setFlows(prev => prev.map(f => f.id === flowId ? { ...f, status: newStatus } : f));
+      toast({ title: newStatus === "active" ? "Flow activated ✓" : "Flow paused" });
     }
   };
 
-  if (composing || editingCampaign) {
+  const deleteFlow = async (flowId: string) => {
+    // Delete steps first, then flow
+    await supabase.from("email_flow_steps").delete().eq("flow_id", flowId);
+    await supabase.from("email_flow_enrollments").delete().eq("flow_id", flowId);
+    const { error } = await supabase.from("email_flows").delete().eq("id", flowId);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      setFlows(prev => prev.filter(f => f.id !== flowId));
+      toast({ title: "Flow deleted" });
+    }
+  };
+
+  const updateStep = async (step: EmailFlowStep) => {
+    const { error } = await supabase
+      .from("email_flow_steps")
+      .update({
+        subject: step.subject,
+        preview_text: step.preview_text,
+        body_markdown: step.body_markdown,
+        trigger_delay_days: step.trigger_delay_days,
+      } as any)
+      .eq("id", step.id);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Email updated ✓" });
+      setEditingStep(null);
+      fetchFlows();
+    }
+  };
+
+  if (loading) {
     return (
-      <CampaignComposer
-        campaign={editingCampaign}
-        onClose={() => { setComposing(false); setEditingCampaign(null); }}
-        onSaved={() => { setComposing(false); setEditingCampaign(null); fetchCampaigns(); }}
-      />
+      <div className="flex items-center justify-center py-16 text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading flows…
+      </div>
+    );
+  }
+
+  if (flows.length === 0) {
+    return (
+      <Card className="flex flex-col items-center justify-center py-16 px-8 text-center border-dashed mt-4">
+        <Sparkles className="h-10 w-10 text-muted-foreground/30 mb-4" />
+        <h3 className="font-heading font-semibold mb-2">No email flows yet</h3>
+        <p className="text-sm text-muted-foreground mb-4 max-w-md">
+          Email nurture flows are <strong>automatically generated</strong> when you run "Build My Author Business" on a book. 
+          The AI creates a complete email sequence from your book content.
+        </p>
+        <div className="flex items-center gap-2 text-sm text-secondary font-medium">
+          <ArrowRight className="h-4 w-4" />
+          Go to Build My Author Business → Select a book → Generate
+        </div>
+      </Card>
     );
   }
 
   return (
     <div className="space-y-4 mt-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          {campaigns.length} campaign{campaigns.length !== 1 ? "s" : ""}
-        </p>
-        <Button onClick={() => setComposing(true)} className="gap-1.5">
-          <Plus className="h-4 w-4" /> New Campaign
-        </Button>
-      </div>
+      <p className="text-sm text-muted-foreground">
+        {flows.length} nurture flow{flows.length !== 1 ? "s" : ""} — AI-generated from your books
+      </p>
 
-      {loading ? (
-        <div className="flex items-center justify-center py-16 text-muted-foreground">
-          <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading campaigns…
-        </div>
-      ) : campaigns.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center py-16 px-8 text-center border-dashed">
-          <Mail className="h-10 w-10 text-muted-foreground/30 mb-4" />
-          <h3 className="font-heading font-semibold mb-2">No campaigns yet</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Create your first email campaign to reach your subscribers.
-          </p>
-          <Button onClick={() => setComposing(true)} className="gap-1.5">
-            <Plus className="h-4 w-4" /> Create Campaign
-          </Button>
-        </Card>
-      ) : (
-        <div className="space-y-3">
-          {campaigns.map((c) => {
-            const canEdit = c.status === "draft";
+      {flows.map((flow) => {
+        const isExpanded = expandedFlow === flow.id;
+        const isActive = flow.status === "active";
+        const stepCount = flow.steps?.length || 0;
 
-            return (
-              <Card
-                key={c.id}
-                className="hover:shadow-[var(--shadow-card-hover)] transition-shadow cursor-pointer"
-                onClick={() => {
-                  if (canEdit) {
-                    setEditingCampaign(c);
-                  } else {
-                    toast({ title: "This campaign is already sent", description: "Only draft campaigns can be opened for editing." });
-                  }
-                }}
-              >
-                <CardContent className="flex items-center gap-4 p-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-heading font-semibold text-sm truncate">
-                        {c.subject || "Untitled Campaign"}
-                      </h4>
-                      <Badge variant="outline" className={`text-[10px] shrink-0 ${statusColors[c.status] || ""}`}>
-                        {c.status}
+        return (
+          <Card key={flow.id} className="overflow-hidden">
+            <div
+              className="flex items-center gap-4 p-4 cursor-pointer hover:bg-muted/30 transition-colors"
+              onClick={() => setExpandedFlow(isExpanded ? null : flow.id)}
+            >
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isActive ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-muted"}`}>
+                  <Zap className={`h-5 w-5 ${isActive ? "text-emerald-600" : "text-muted-foreground"}`} />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-heading font-semibold text-sm truncate">{flow.title}</h4>
+                    {flow.ai_generated && (
+                      <Badge variant="outline" className="text-[10px] shrink-0 bg-secondary/10 text-secondary border-secondary/30">
+                        AI Generated
                       </Badge>
-                    </div>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {new Date(c.created_at).toLocaleDateString()}
-                      </span>
-                      {c.status === "sent" && (
-                        <>
-                          <span className="flex items-center gap-1">
-                            <Users className="h-3 w-3" /> {c.recipient_count} sent
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Eye className="h-3 w-3" /> {c.open_count} opens
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                    {canEdit && (
-                      <Button variant="ghost" size="icon" onClick={() => setEditingCampaign(c)}>
-                        <Edit3 className="h-4 w-4" />
-                      </Button>
                     )}
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(c.id)} className="text-destructive hover:text-destructive">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <Badge variant="outline" className={`text-[10px] shrink-0 ${isActive ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-muted text-muted-foreground"}`}>
+                      {flow.status}
+                    </Badge>
                   </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {stepCount} email{stepCount !== 1 ? "s" : ""} in sequence • {flow.flow_type}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">{isActive ? "Active" : "Paused"}</span>
+                  <Switch
+                    checked={isActive}
+                    onCheckedChange={() => toggleFlowStatus(flow.id, flow.status)}
+                  />
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => deleteFlow(flow.id)}
+                  className="text-destructive hover:text-destructive h-8 w-8"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+
+              {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            </div>
+
+            {isExpanded && flow.steps && flow.steps.length > 0 && (
+              <div className="border-t border-border">
+                {flow.steps.map((step, idx) => (
+                  <div key={step.id} className="border-b border-border last:border-b-0">
+                    {editingStep?.id === step.id ? (
+                      <StepEditor
+                        step={editingStep}
+                        onChange={setEditingStep}
+                        onSave={() => updateStep(editingStep)}
+                        onCancel={() => setEditingStep(null)}
+                      />
+                    ) : (
+                      <div className="px-6 py-4 hover:bg-muted/20 transition-colors">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-secondary/10 text-secondary text-xs font-bold shrink-0">
+                                {step.step_number}
+                              </span>
+                              <h5 className="font-medium text-sm truncate">{step.subject}</h5>
+                              <span className="text-xs text-muted-foreground shrink-0">
+                                {step.trigger_delay_days === 0 ? "Immediate" : `Day ${step.trigger_delay_days}`}
+                              </span>
+                            </div>
+                            {step.preview_text && (
+                              <p className="text-xs text-muted-foreground ml-8 line-clamp-1">{step.preview_text}</p>
+                            )}
+                            <div className="ml-8 mt-2 text-xs text-muted-foreground/80 line-clamp-2">
+                              {step.body_markdown.slice(0, 150)}…
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setEditingStep({ ...step })}
+                            className="shrink-0"
+                          >
+                            <Edit3 className="h-3.5 w-3.5 mr-1" /> Edit
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        );
+      })}
     </div>
   );
 }
 
-/* ─── Campaign Composer ──────────────────────────── */
-function CampaignComposer({
-  campaign,
-  onClose,
-  onSaved,
+/* ─── Step Editor ────────────────────────────── */
+function StepEditor({
+  step,
+  onChange,
+  onSave,
+  onCancel,
 }: {
-  campaign: Campaign | null;
-  onClose: () => void;
-  onSaved: () => void;
+  step: EmailFlowStep;
+  onChange: (s: EmailFlowStep) => void;
+  onSave: () => void;
+  onCancel: () => void;
 }) {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const [subject, setSubject] = useState(campaign?.subject || "");
-  const [previewText, setPreviewText] = useState(campaign?.preview_text || "");
-  const [body, setBody] = useState(campaign?.content_json?.body || "");
-  const [saving, setSaving] = useState(false);
-
-  const handleSave = async (status: string = "draft") => {
-    if (!user) return;
-    setSaving(true);
-    const payload: any = {
-      author_id: user.id,
-      subject,
-      preview_text: previewText || null,
-      content_json: { body },
-      status: status === "send" ? "draft" : status,
-    };
-
-    let campaignId = campaign?.id;
-    let error;
-    if (campaign) {
-      ({ error } = await supabase.from("email_campaigns" as any).update(payload).eq("id", campaign.id));
-    } else {
-      const { data, error: insertErr } = await supabase.from("email_campaigns" as any).insert(payload).select("id").single();
-      error = insertErr;
-      if (data) campaignId = (data as any).id;
-    }
-
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-      setSaving(false);
-      return;
-    }
-
-    if (status === "send" && campaignId) {
-      // Call the send-campaign edge function
-      try {
-        const { data: session } = await supabase.auth.getSession();
-        const token = session?.session?.access_token;
-        const res = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-campaign`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            },
-            body: JSON.stringify({ campaignId }),
-          }
-        );
-        const result = await res.json();
-        if (res.ok && result.success) {
-          toast({ title: "Campaign sent! 🎉", description: `${result.sent} emails delivered.` });
-        } else {
-          toast({ title: "Send failed", description: result.error || "Something went wrong", variant: "destructive" });
-        }
-      } catch (err: any) {
-        toast({ title: "Send failed", description: err.message, variant: "destructive" });
-      }
-    } else {
-      toast({ title: "Draft saved" });
-    }
-
-    onSaved();
-    setSaving(false);
-  };
-
   return (
-    <div className="space-y-6 mt-4">
-      <div className="flex items-center justify-between">
-        <h3 className="font-heading text-lg font-bold">
-          {campaign ? "Edit Campaign" : "New Campaign"}
-        </h3>
-        <Button variant="ghost" onClick={onClose}>Cancel</Button>
-      </div>
-
-      <div className="space-y-4">
+    <div className="px-6 py-4 bg-muted/20 space-y-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <label className="text-sm font-medium mb-1.5 block">Subject Line</label>
+          <label className="text-xs font-medium mb-1 block">Subject Line</label>
           <Input
-            placeholder="Your email subject…"
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            className="text-base"
+            value={step.subject}
+            onChange={(e) => onChange({ ...step, subject: e.target.value })}
+            className="text-sm"
           />
         </div>
-        <div>
-          <label className="text-sm font-medium mb-1.5 block">Preview Text</label>
-          <Input
-            placeholder="Short preview shown in inbox…"
-            value={previewText}
-            onChange={(e) => setPreviewText(e.target.value)}
-          />
-        </div>
-        <div>
-          <label className="text-sm font-medium mb-1.5 block">Email Body</label>
-          <Textarea
-            placeholder="Write your email content here… (Markdown supported)"
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            className="min-h-[300px] font-mono text-sm"
-          />
-          <p className="text-xs text-muted-foreground mt-1.5">
-            Supports Markdown formatting — bold, links, lists, headings, etc.
-          </p>
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <label className="text-xs font-medium mb-1 block">Preview Text</label>
+            <Input
+              value={step.preview_text || ""}
+              onChange={(e) => onChange({ ...step, preview_text: e.target.value })}
+              className="text-sm"
+            />
+          </div>
+          <div className="w-24">
+            <label className="text-xs font-medium mb-1 block">Delay (days)</label>
+            <Input
+              type="number"
+              min={0}
+              value={step.trigger_delay_days}
+              onChange={(e) => onChange({ ...step, trigger_delay_days: parseInt(e.target.value) || 0 })}
+              className="text-sm"
+            />
+          </div>
         </div>
       </div>
-
-      <div className="flex items-center gap-3 pt-2">
-        <Button onClick={() => handleSave("draft")} disabled={saving} variant="outline" className="gap-1.5">
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-          Save Draft
-        </Button>
-        <Button
-          onClick={() => handleSave("send")}
-          disabled={saving || !subject.trim() || !body.trim()}
-          className="gap-1.5"
-        >
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          Send Now
-        </Button>
+      <div>
+        <label className="text-xs font-medium mb-1 block">Email Body (Markdown)</label>
+        <Textarea
+          value={step.body_markdown}
+          onChange={(e) => onChange({ ...step, body_markdown: e.target.value })}
+          rows={8}
+          className="font-mono text-xs"
+        />
+      </div>
+      <div className="flex gap-2">
+        <Button size="sm" onClick={onSave}>Save Changes</Button>
+        <Button variant="ghost" size="sm" onClick={onCancel}>Cancel</Button>
       </div>
     </div>
   );
@@ -413,17 +394,13 @@ function SubscribersTab() {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [addOpen, setAddOpen] = useState(false);
-  const [newEmail, setNewEmail] = useState("");
-  const [newName, setNewName] = useState("");
-  const [adding, setAdding] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
   const fetchSubscribers = async () => {
     if (!user) return;
     setLoading(true);
     const { data, error } = await supabase
-      .from("author_subscribers" as any)
+      .from("author_subscribers")
       .select("*")
       .eq("author_id", user.id)
       .order("subscribed_at", { ascending: false });
@@ -433,30 +410,9 @@ function SubscribersTab() {
 
   useEffect(() => { fetchSubscribers(); }, [user]);
 
-  const handleAdd = async () => {
-    if (!user || !newEmail.trim()) return;
-    setAdding(true);
-    const { error } = await supabase.from("author_subscribers" as any).insert({
-      author_id: user.id,
-      email: newEmail.trim().toLowerCase(),
-      name: newName.trim() || null,
-      source: "manual",
-    } as any);
-    if (error) {
-      toast({ title: "Error", description: error.message.includes("duplicate") ? "This email is already subscribed." : error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Subscriber added" });
-      setAddOpen(false);
-      setNewEmail("");
-      setNewName("");
-      fetchSubscribers();
-    }
-    setAdding(false);
-  };
-
   const handleRemove = async (id: string) => {
     const { error } = await supabase
-      .from("author_subscribers" as any)
+      .from("author_subscribers")
       .update({ status: "unsubscribed", unsubscribed_at: new Date().toISOString() } as any)
       .eq("id", id);
     if (!error) {
@@ -464,13 +420,6 @@ function SubscribersTab() {
       toast({ title: "Subscriber unsubscribed" });
     }
   };
-
-  const filtered = subscribers.filter((s) =>
-    s.email.toLowerCase().includes(search.toLowerCase()) ||
-    (s.name?.toLowerCase().includes(search.toLowerCase()))
-  );
-
-  const activeCount = subscribers.filter((s) => s.status === "active").length;
 
   const handleSync = async () => {
     setSyncing(true);
@@ -490,290 +439,99 @@ function SubscribersTab() {
       );
       const result = await res.json();
       if (res.ok) {
-        toast({ title: "Sync complete", description: `${result.synced} subscribers imported.` });
+        toast({ title: "Subscribers synced", description: `${result.imported || 0} new subscribers imported.` });
         fetchSubscribers();
       } else {
         toast({ title: "Sync failed", description: result.error, variant: "destructive" });
       }
     } catch (err: any) {
-      toast({ title: "Sync failed", description: err.message, variant: "destructive" });
+      toast({ title: "Sync error", description: err.message, variant: "destructive" });
     }
     setSyncing(false);
   };
 
+  const filtered = subscribers.filter((s) =>
+    s.email.toLowerCase().includes(search.toLowerCase()) ||
+    (s.name?.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  const activeCount = subscribers.filter((s) => s.status === "active").length;
+
   return (
     <div className="space-y-4 mt-4">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="relative">
-            <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <div className="relative flex-1 sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search subscribers…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 w-64"
+              className="pl-9"
             />
           </div>
-          <Badge variant="secondary" className="shrink-0">
+          <Badge variant="outline" className="shrink-0">
             {activeCount} active
           </Badge>
         </div>
-
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleSync} disabled={syncing} className="gap-1.5">
-            {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            Sync Newsletter Signups
-          </Button>
-          <Dialog open={addOpen} onOpenChange={setAddOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-1.5">
-                <Plus className="h-4 w-4" /> Add Subscriber
-              </Button>
-            </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add Subscriber</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-3 py-2">
-              <Input
-                placeholder="email@example.com"
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                type="email"
-              />
-              <Input
-                placeholder="Name (optional)"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-              />
-            </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button variant="outline">Cancel</Button>
-              </DialogClose>
-              <Button onClick={handleAdd} disabled={adding || !newEmail.trim()} className="gap-1.5">
-                {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                Add
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-        </div>
+        <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing} className="gap-1.5">
+          {syncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+          Sync
+        </Button>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-16 text-muted-foreground">
-          <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading subscribers…
+        <div className="flex items-center justify-center py-12 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading…
         </div>
       ) : filtered.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center py-16 px-8 text-center border-dashed">
+        <Card className="flex flex-col items-center justify-center py-12 text-center border-dashed">
           <Users className="h-10 w-10 text-muted-foreground/30 mb-4" />
-          <h3 className="font-heading font-semibold mb-2">
-            {search ? "No matching subscribers" : "No subscribers yet"}
-          </h3>
+          <h3 className="font-heading font-semibold mb-2">No subscribers yet</h3>
           <p className="text-sm text-muted-foreground">
-            {search ? "Try a different search term." : "Subscribers from your book pages and manual adds will appear here."}
+            Subscribers are captured from book microsites, Reading Club signups, and service inquiries.
           </p>
         </Card>
       ) : (
-        <Card>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Email</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Name</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Source</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Joined</th>
-                  <th className="py-3 px-4"></th>
+        <div className="rounded-lg border border-border overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-muted/30 text-left">
+                <th className="px-4 py-2.5 font-medium">Email</th>
+                <th className="px-4 py-2.5 font-medium hidden sm:table-cell">Name</th>
+                <th className="px-4 py-2.5 font-medium hidden md:table-cell">Source</th>
+                <th className="px-4 py-2.5 font-medium hidden lg:table-cell">Joined</th>
+                <th className="px-4 py-2.5 font-medium text-right">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.slice(0, 100).map((sub) => (
+                <tr key={sub.id} className="border-t border-border hover:bg-muted/10">
+                  <td className="px-4 py-2.5 font-mono text-xs">{sub.email}</td>
+                  <td className="px-4 py-2.5 hidden sm:table-cell">{sub.name || "—"}</td>
+                  <td className="px-4 py-2.5 hidden md:table-cell">
+                    <Badge variant="outline" className="text-[10px]">
+                      {sourceLabels[sub.source] || sub.source}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-2.5 hidden lg:table-cell text-muted-foreground">
+                    {new Date(sub.subscribed_at).toLocaleDateString()}
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    {sub.status === "active" ? (
+                      <Button variant="ghost" size="sm" onClick={() => handleRemove(sub.id)} className="text-xs">
+                        Unsubscribe
+                      </Button>
+                    ) : (
+                      <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                        {sub.status}
+                      </Badge>
+                    )}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {filtered.map((s) => (
-                  <tr key={s.id} className="border-b border-border last:border-0 hover:bg-muted/30">
-                    <td className="py-3 px-4 font-medium">{s.email}</td>
-                    <td className="py-3 px-4 text-muted-foreground">{s.name || "—"}</td>
-                    <td className="py-3 px-4">
-                      <Badge variant="outline" className="text-[10px]">
-                        {sourceLabels[s.source] || s.source}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-4">
-                      <Badge variant={s.status === "active" ? "default" : "secondary"} className="text-[10px]">
-                        {s.status}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-4 text-muted-foreground">
-                      {new Date(s.subscribed_at).toLocaleDateString()}
-                    </td>
-                    <td className="py-3 px-4">
-                      {s.status === "active" && (
-                        <Button variant="ghost" size="sm" onClick={() => handleRemove(s.id)} className="text-destructive hover:text-destructive text-xs">
-                          Unsubscribe
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
-    </div>
-  );
-}
-
-/* ─── Templates Tab ──────────────────────────────── */
-function TemplatesTab() {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const [templates, setTemplates] = useState<EmailTemplate[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [createOpen, setCreateOpen] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newSubject, setNewSubject] = useState("");
-  const [newBody, setNewBody] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  const fetchTemplates = async () => {
-    if (!user) return;
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("email_templates" as any)
-      .select("*")
-      .eq("author_id", user.id)
-      .order("created_at", { ascending: false });
-    if (!error && data) setTemplates(data as any);
-    setLoading(false);
-  };
-
-  useEffect(() => { fetchTemplates(); }, [user]);
-
-  const handleCreate = async () => {
-    if (!user || !newName.trim()) return;
-    setSaving(true);
-    const { error } = await supabase.from("email_templates" as any).insert({
-      author_id: user.id,
-      name: newName.trim(),
-      subject: newSubject.trim(),
-      content_json: { body: newBody },
-    } as any);
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Template created" });
-      setCreateOpen(false);
-      setNewName("");
-      setNewSubject("");
-      setNewBody("");
-      fetchTemplates();
-    }
-    setSaving(false);
-  };
-
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("email_templates" as any).delete().eq("id", id);
-    if (!error) {
-      setTemplates((prev) => prev.filter((t) => t.id !== id));
-      toast({ title: "Template deleted" });
-    }
-  };
-
-  return (
-    <div className="space-y-4 mt-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          {templates.length} template{templates.length !== 1 ? "s" : ""}
-        </p>
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-1.5">
-              <Plus className="h-4 w-4" /> New Template
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Create Email Template</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-3 py-2">
-              <div>
-                <label className="text-sm font-medium mb-1 block">Template Name</label>
-                <Input
-                  placeholder="e.g. Monthly Newsletter"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-1 block">Default Subject</label>
-                <Input
-                  placeholder="e.g. {{month}} Update from {{author_name}}"
-                  value={newSubject}
-                  onChange={(e) => setNewSubject(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-1 block">Body Template</label>
-                <Textarea
-                  placeholder="Write your template body… (Markdown supported)"
-                  value={newBody}
-                  onChange={(e) => setNewBody(e.target.value)}
-                  className="min-h-[200px] font-mono text-sm"
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button variant="outline">Cancel</Button>
-              </DialogClose>
-              <Button onClick={handleCreate} disabled={saving || !newName.trim()} className="gap-1.5">
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                Create
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {loading ? (
-        <div className="flex items-center justify-center py-16 text-muted-foreground">
-          <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading templates…
-        </div>
-      ) : templates.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center py-16 px-8 text-center border-dashed">
-          <FileText className="h-10 w-10 text-muted-foreground/30 mb-4" />
-          <h3 className="font-heading font-semibold mb-2">No templates yet</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Create reusable email templates to speed up your campaigns.
-          </p>
-          <Button onClick={() => setCreateOpen(true)} className="gap-1.5">
-            <Plus className="h-4 w-4" /> Create Template
-          </Button>
-        </Card>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {templates.map((t) => (
-            <Card key={t.id} className="hover:shadow-[var(--shadow-card-hover)] transition-shadow">
-              <CardContent className="p-4 space-y-3">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h4 className="font-heading font-semibold text-sm">{t.name}</h4>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {t.subject || "No subject"}
-                    </p>
-                  </div>
-                  <Button variant="ghost" size="icon" onClick={() => handleDelete(t.id)} className="text-destructive hover:text-destructive shrink-0">
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Created {new Date(t.created_at).toLocaleDateString()}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

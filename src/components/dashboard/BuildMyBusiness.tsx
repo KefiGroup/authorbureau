@@ -24,12 +24,12 @@ interface Book {
 }
 
 const ASSET_TYPES = [
-  { id: "workbook", label: "Workbook", icon: FileText, color: "text-blue-600", bgColor: "bg-blue-50" },
-  { id: "course", label: "Course Outline", icon: GraduationCap, color: "text-purple-600", bgColor: "bg-purple-50" },
-  { id: "social", label: "Social Media Pack", icon: Share2, color: "text-pink-600", bgColor: "bg-pink-50" },
-  { id: "email", label: "Email Sequence", icon: Mail, color: "text-emerald-600", bgColor: "bg-emerald-50" },
-  { id: "speaker", label: "Speaker Kit", icon: Mic, color: "text-orange-600", bgColor: "bg-orange-50" },
-  { id: "products", label: "Digital Products", icon: Lightbulb, color: "text-amber-600", bgColor: "bg-amber-50" },
+  { id: "workbook", label: "Workbook", icon: FileText, color: "text-blue-600", bgColor: "bg-blue-50", populateLabel: null },
+  { id: "course", label: "Course Outline", icon: GraduationCap, color: "text-purple-600", bgColor: "bg-purple-50", populateLabel: "→ Auto-creates course modules & lessons" },
+  { id: "social", label: "Social Media Pack", icon: Share2, color: "text-pink-600", bgColor: "bg-pink-50", populateLabel: null },
+  { id: "email", label: "Email Sequence", icon: Mail, color: "text-emerald-600", bgColor: "bg-emerald-50", populateLabel: "→ Auto-creates email nurture flow" },
+  { id: "speaker", label: "Speaker Kit", icon: Mic, color: "text-orange-600", bgColor: "bg-orange-50", populateLabel: "→ Auto-creates speaking topics" },
+  { id: "products", label: "Digital Products", icon: Lightbulb, color: "text-amber-600", bgColor: "bg-amber-50", populateLabel: null },
 ] as const;
 
 type AssetId = (typeof ASSET_TYPES)[number]["id"];
@@ -109,11 +109,36 @@ async function streamAsset(
   return accumulated;
 }
 
+const POPULATE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/populate-assets`;
+
 async function saveAssetToDB(bookId: string, authorId: string, assetType: string, content: string) {
   await cloudSupabase.from("generated_assets" as any).upsert(
     { book_id: bookId, author_id: authorId, asset_type: assetType, content, updated_at: new Date().toISOString() },
     { onConflict: "book_id,asset_type" }
   );
+}
+
+// After saving raw content, populate domain tables (courses, email_flows, speaking_topics)
+async function populateDomainTables(bookId: string, assetType: string, rawContent: string): Promise<any> {
+  const populateTypes = ["course", "email", "speaker"];
+  if (!populateTypes.includes(assetType)) return null;
+
+  try {
+    const token = await getActiveToken();
+    const resp = await fetch(POPULATE_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: JSON.stringify({ assetType, bookId, rawContent }),
+    });
+    if (resp.ok) return await resp.json();
+    console.error("Populate failed:", await resp.text());
+  } catch (err) {
+    console.error("Populate error:", err);
+  }
+  return null;
 }
 
 async function loadAssetsFromDB(bookId: string): Promise<Record<string, string>> {
@@ -290,8 +315,13 @@ export default function BuildMyBusiness() {
         );
         setResults((prev) => ({ ...prev, [asset.id]: finalText }));
         setStatuses((prev) => ({ ...prev, [asset.id]: "done" }));
-        // Save to DB
+        // Save raw content to generated_assets
         await saveAssetToDB(selectedBook.id, user.id, asset.id, finalText);
+        // Populate domain tables (courses, email flows, speaking topics)
+        const populateResult = await populateDomainTables(selectedBook.id, asset.id, finalText);
+        if (populateResult?.saved) {
+          console.log(`✅ ${asset.id} populated:`, populateResult);
+        }
       } catch (err: any) {
         if (abort.signal.aborted) break;
         setStatuses((prev) => ({ ...prev, [asset.id]: "error" }));
@@ -310,6 +340,7 @@ export default function BuildMyBusiness() {
             setResults((prev) => ({ ...prev, [asset.id]: finalText }));
             setStatuses((prev) => ({ ...prev, [asset.id]: "done" }));
             await saveAssetToDB(selectedBook.id, user.id, asset.id, finalText);
+            await populateDomainTables(selectedBook.id, asset.id, finalText);
           } catch {
             setStatuses((prev) => ({ ...prev, [asset.id]: "error" }));
           }
@@ -364,7 +395,7 @@ export default function BuildMyBusiness() {
           </div>
           <h2 className="font-heading text-2xl font-bold mb-2">Build My Author Business</h2>
           <p className="text-muted-foreground text-sm leading-relaxed">
-            Select a book to generate <strong>6 complete business assets</strong> — workbook, course outline, social media pack, email sequence, speaker kit, and digital product ideas.
+            Select a book and AI will generate <strong>6 complete business assets</strong> — and automatically create your course, email nurture flow, and speaking topics in the system. One click builds your entire author business.
           </p>
         </div>
 
@@ -504,7 +535,7 @@ export default function BuildMyBusiness() {
               className="bg-secondary text-secondary-foreground hover:bg-secondary/90 w-full sm:w-auto"
             >
               <Play className="h-4 w-4 mr-2" />
-              Generate All 6 Assets
+              Build My Author Business
             </Button>
 
             <p className="text-xs text-muted-foreground">
@@ -565,28 +596,35 @@ export default function BuildMyBusiness() {
                 <CardContent className="p-0">
                   {results[asset.id] && !results[asset.id].startsWith("Error:") ? (
                     <>
-                      <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30">
-                        <h3 className="font-heading font-semibold text-base flex items-center gap-2.5">
-                          <div className={`p-1.5 rounded-md ${asset.bgColor} border border-border`}>
-                            <asset.icon className={`h-4 w-4 ${asset.color}`} />
-                          </div>
-                          {asset.label}
-                          {statuses[asset.id] === "generating" && (
-                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      <div className="flex flex-col gap-1 px-6 py-4 border-b border-border bg-muted/30">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-heading font-semibold text-base flex items-center gap-2.5">
+                            <div className={`p-1.5 rounded-md ${asset.bgColor} border border-border`}>
+                              <asset.icon className={`h-4 w-4 ${asset.color}`} />
+                            </div>
+                            {asset.label}
+                            {statuses[asset.id] === "generating" && (
+                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                            )}
+                          </h3>
+                          {statuses[asset.id] === "done" && (
+                            <div className="flex gap-2">
+                              <Button variant="outline" size="sm" onClick={() => handleCopy(asset.id)}>
+                                <Copy className="h-3.5 w-3.5 mr-1.5" /> Copy
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => handleDownload(asset.id)}>
+                                <Download className="h-3.5 w-3.5 mr-1.5" /> Download
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => runPipeline([asset.id])} disabled={isRunning}>
+                                <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Regenerate
+                              </Button>
+                            </div>
                           )}
-                        </h3>
-                        {statuses[asset.id] === "done" && (
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="sm" onClick={() => handleCopy(asset.id)}>
-                              <Copy className="h-3.5 w-3.5 mr-1.5" /> Copy
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={() => handleDownload(asset.id)}>
-                              <Download className="h-3.5 w-3.5 mr-1.5" /> Download
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={() => runPipeline([asset.id])} disabled={isRunning}>
-                              <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Regenerate
-                            </Button>
-                          </div>
+                        </div>
+                        {asset.populateLabel && statuses[asset.id] === "done" && (
+                          <p className="text-xs text-secondary font-medium flex items-center gap-1.5">
+                            <CheckCircle2 className="h-3.5 w-3.5" /> {asset.populateLabel}
+                          </p>
                         )}
                       </div>
                       <div className="px-6 py-6 sm:px-8 sm:py-8">
