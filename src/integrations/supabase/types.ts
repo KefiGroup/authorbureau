@@ -50,6 +50,42 @@ export type Database = {
         }
         Relationships: []
       }
+      author_email_settings: {
+        Row: {
+          author_id: string
+          created_at: string
+          domain_verified: boolean
+          id: string
+          reply_to_email: string | null
+          resend_domain_id: string | null
+          sender_name: string
+          subdomain: string | null
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          created_at?: string
+          domain_verified?: boolean
+          id?: string
+          reply_to_email?: string | null
+          resend_domain_id?: string | null
+          sender_name?: string
+          subdomain?: string | null
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          created_at?: string
+          domain_verified?: boolean
+          id?: string
+          reply_to_email?: string | null
+          resend_domain_id?: string | null
+          sender_name?: string
+          subdomain?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       author_profiles: {
         Row: {
           amazon_author_profile_url: string | null
@@ -140,6 +176,45 @@ export type Database = {
           user_id?: string
           website_url?: string | null
           youtube_url?: string | null
+        }
+        Relationships: []
+      }
+      author_subscribers: {
+        Row: {
+          author_id: string
+          created_at: string
+          email: string
+          id: string
+          name: string | null
+          source: string
+          source_detail: string | null
+          status: string
+          subscribed_at: string
+          unsubscribed_at: string | null
+        }
+        Insert: {
+          author_id: string
+          created_at?: string
+          email: string
+          id?: string
+          name?: string | null
+          source?: string
+          source_detail?: string | null
+          status?: string
+          subscribed_at?: string
+          unsubscribed_at?: string | null
+        }
+        Update: {
+          author_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string | null
+          source?: string
+          source_detail?: string | null
+          status?: string
+          subscribed_at?: string
+          unsubscribed_at?: string | null
         }
         Relationships: []
       }
@@ -495,6 +570,158 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           source?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      email_campaigns: {
+        Row: {
+          author_id: string
+          click_count: number | null
+          content_html: string | null
+          content_json: Json
+          created_at: string
+          id: string
+          open_count: number | null
+          preview_text: string | null
+          recipient_count: number | null
+          scheduled_at: string | null
+          sent_at: string | null
+          status: string
+          subject: string
+          template_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          click_count?: number | null
+          content_html?: string | null
+          content_json?: Json
+          created_at?: string
+          id?: string
+          open_count?: number | null
+          preview_text?: string | null
+          recipient_count?: number | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          click_count?: number | null
+          content_html?: string | null
+          content_json?: Json
+          created_at?: string
+          id?: string
+          open_count?: number | null
+          preview_text?: string | null
+          recipient_count?: number | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_campaigns_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_send_logs: {
+        Row: {
+          bounced_at: string | null
+          campaign_id: string
+          clicked_at: string | null
+          created_at: string
+          email: string
+          id: string
+          opened_at: string | null
+          resend_message_id: string | null
+          sent_at: string | null
+          status: string
+          subscriber_id: string | null
+        }
+        Insert: {
+          bounced_at?: string | null
+          campaign_id: string
+          clicked_at?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          opened_at?: string | null
+          resend_message_id?: string | null
+          sent_at?: string | null
+          status?: string
+          subscriber_id?: string | null
+        }
+        Update: {
+          bounced_at?: string | null
+          campaign_id?: string
+          clicked_at?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          opened_at?: string | null
+          resend_message_id?: string | null
+          sent_at?: string | null
+          status?: string
+          subscriber_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_send_logs_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "email_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_send_logs_subscriber_id_fkey"
+            columns: ["subscriber_id"]
+            isOneToOne: false
+            referencedRelation: "author_subscribers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_templates: {
+        Row: {
+          author_id: string
+          content_json: Json
+          created_at: string
+          id: string
+          name: string
+          subject: string
+          thumbnail_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          content_json?: Json
+          created_at?: string
+          id?: string
+          name: string
+          subject?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          content_json?: Json
+          created_at?: string
+          id?: string
+          name?: string
+          subject?: string
+          thumbnail_url?: string | null
           updated_at?: string
         }
         Relationships: []

@@ -13,6 +13,7 @@ import DashboardOverview from "@/components/dashboard/DashboardOverview";
 import MyBooks from "@/components/dashboard/MyBooks";
 import BuildMyBusiness from "@/components/dashboard/BuildMyBusiness";
 import PremiumGate from "@/components/dashboard/PremiumGate";
+import EmailMarketing from "@/components/dashboard/EmailMarketing";
 import { Loader2, Rocket, FileText, Video, Share2, CreditCard, Users, Trophy, Podcast, Building2, Bookmark, Award } from "lucide-react";
 
 export type DashboardSection =
@@ -21,7 +22,8 @@ export type DashboardSection =
   | "courses" | "workbooks" | "webinars" | "social-media" | "memberships"
   | "coaching" | "group-coaching" | "big-ticket"
   | "speaking" | "podcast" | "corporate-training"
-  | "retreats" | "certification" | "masterminds";
+  | "retreats" | "certification" | "masterminds"
+  | "email-marketing" | "subscribers" | "email-templates";
 
 const comingSoonSections: Record<string, { title: string; description: string; icon: typeof Rocket }> = {
   workbooks: {
@@ -153,6 +155,10 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         return gate("Speaking Profile", <SpeakingProfile />);
       case "coaching":
         return gate("Coaching CRM", <CoachingCRM />);
+      case "email-marketing":
+      case "subscribers":
+      case "email-templates":
+        return gate("Email Marketing", <EmailMarketing activeTab={activeSection} onTabChange={(s) => setActiveSection(s as DashboardSection)} />);
       case "overview":
         return <DashboardOverview onNavigate={(s) => setActiveSection(s as DashboardSection)} />;
       default:
