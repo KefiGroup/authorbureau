@@ -25,12 +25,9 @@ _Last updated: 2026-03-03_
 - [x] Coaching Packages — 1:1 and group, pricing, status management
 - [x] Course Builder — modules, lessons, draft/publish workflow
 - [x] Newsletter Signups — per-book, with CRM auto-capture
-
----
-
-## 🔨 In Progress
-
-- [ ] Reading Club — add navbar link for discoverability
+- [x] Reading Club — navbar link for discoverability
+- [x] Admin — Reading Club stats (participants, daily logs, members)
+- [x] Reading Club — community leaderboard (top readers by days logged)
 
 ---
 
@@ -66,9 +63,9 @@ _Last updated: 2026-03-03_
 ---
 
 ## 🐛 Known Issues / Improvements
-- [ ] Reading Club — add community leaderboard (top readers by streak)
+- [x] ~~Reading Club — add community leaderboard (top readers by streak)~~
 - [ ] Reading Club — daily reminder emails for accountability
-- [ ] Admin — Reading Club stats (total participants, active challenges, completion rate)
+- [x] ~~Admin — Reading Club stats (total participants, active challenges, completion rate)~~
 - [ ] Mobile responsiveness audit across all pages
 - [ ] SEO — structured data (JSON-LD) for book microsites and author profiles
 

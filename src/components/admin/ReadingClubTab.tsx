@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Plus, Trash2, Trophy, BookOpen, RefreshCw } from "lucide-react";
+import { Loader2, Plus, Trash2, Trophy, BookOpen, RefreshCw, Users, Calendar, TrendingUp } from "lucide-react";
 
 interface PublishedBook {
   id: string;
@@ -27,6 +27,7 @@ export default function ReadingClubTab() {
   const [featured, setFeatured] = useState<any[]>([]);
   const [challenges, setChallenges] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ participants: 0, totalLogs: 0, members: 0 });
 
   // Feature book form
   const [selectedBookId, setSelectedBookId] = useState("");
@@ -47,24 +48,22 @@ export default function ReadingClubTab() {
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
-    const [booksRes, featuredRes, challengesRes] = await Promise.all([
-      supabase
-        .from("books")
-        .select("id, title, author_name, cover_image_url")
-        .not("published_at", "is", null)
-        .order("title"),
-      supabase
-        .from("reading_club_featured_books")
-        .select("*, book:books(id, title, author_name)")
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("reading_club_challenges")
-        .select("*, book:books(id, title, author_name)")
-        .order("created_at", { ascending: false }),
+    const [booksRes, featuredRes, challengesRes, participantsRes, logsRes, membersRes] = await Promise.all([
+      supabase.from("books").select("id, title, author_name, cover_image_url").not("published_at", "is", null).order("title"),
+      supabase.from("reading_club_featured_books").select("*, book:books(id, title, author_name)").order("created_at", { ascending: false }),
+      supabase.from("reading_club_challenges").select("*, book:books(id, title, author_name)").order("created_at", { ascending: false }),
+      supabase.from("reading_challenge_entries").select("id", { count: "exact", head: true }),
+      supabase.from("reading_challenge_daily_logs").select("id", { count: "exact", head: true }),
+      supabase.from("reading_club_members").select("id", { count: "exact", head: true }),
     ]);
     setBooks(booksRes.data || []);
     setFeatured(featuredRes.data || []);
     setChallenges((challengesRes.data as any[]) || []);
+    setStats({
+      participants: participantsRes.count ?? 0,
+      totalLogs: logsRes.count ?? 0,
+      members: membersRes.count ?? 0,
+    });
     setLoading(false);
   }, []);
 
@@ -139,6 +138,26 @@ export default function ReadingClubTab() {
         <Button variant="outline" size="sm" onClick={fetchAll}>
           <RefreshCw className="h-4 w-4 mr-1" /> Refresh
         </Button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {[
+          { label: "Active Challengers", value: stats.participants, icon: TrendingUp },
+          { label: "Total Daily Logs", value: stats.totalLogs, icon: Calendar },
+          { label: "Club Members (legacy)", value: stats.members, icon: Users },
+        ].map(s => {
+          const Icon = s.icon;
+          return (
+            <div key={s.label} className="rounded-xl border border-border bg-card p-5">
+              <div className="flex items-center gap-2 mb-1">
+                <Icon className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">{s.label}</span>
+              </div>
+              <p className="text-2xl font-bold font-heading">{s.value}</p>
+            </div>
+          );
+        })}
       </div>
 
       {/* Feature a Book */}
