@@ -67,7 +67,8 @@ _Last updated: 2026-03-03_
 - [ ] Reading Club — daily reminder emails for accountability
 - [x] ~~Admin — Reading Club stats (total participants, active challenges, completion rate)~~
 - [ ] Mobile responsiveness audit across all pages
-- [ ] SEO — structured data (JSON-LD) for book microsites and author profiles
+- [x] ~~SEO — structured data (JSON-LD) for book microsites and author profiles~~
+- [x] ~~Leaderboard — fixed RLS with SECURITY DEFINER function for public access~~
 
 ---
 
