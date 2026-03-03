@@ -1,61 +1,45 @@
 project_id = "tubpbslfrxyfhldkcyyq"
 
-[functions.check-subscription]
-verify_jwt = false
-
-[functions.create-checkout]
-verify_jwt = false
-
-[functions.customer-portal]
-verify_jwt = false
-
-[functions.sync-author-profile]
-verify_jwt = false
-
-[functions.save-book]
-verify_jwt = false
-
-[functions.upload-book-cover]
-verify_jwt = false
-
-[functions.update-book-cover]
-verify_jwt = false
-
-[functions.publish-book]
-verify_jwt = false
-
-[functions.get-book]
-verify_jwt = false
-
-[functions.admin-books]
-verify_jwt = false
-
-[functions.enrich-book-data]
-verify_jwt = false
-
-[functions.generate-author-bio]
-verify_jwt = false
-
-[functions.ai-author-tools]
-verify_jwt = false
-
-[functions.scrape-amazon-book]
-verify_jwt = false
-
-[functions.send-service-inquiry-email]
-verify_jwt = false
-
-[functions.list-my-books]
-verify_jwt = false
-
-[functions.list-directory-authors]
-verify_jwt = false
-
-[functions.generate-sitemap]
-verify_jwt = false
-
-[functions.dashboard-state]
-verify_jwt = false
-
-[functions.crm-auto-capture]
-verify_jwt = false
+[functions]
+  [functions.admin-books]
+    verify_jwt = false
+  [functions.ai-author-tools]
+    verify_jwt = false
+  [functions.auth-email-hook]
+    verify_jwt = false
+  [functions.check-subscription]
+    verify_jwt = false
+  [functions.create-checkout]
+    verify_jwt = false
+  [functions.crm-auto-capture]
+    verify_jwt = false
+  [functions.customer-portal]
+    verify_jwt = false
+  [functions.dashboard-state]
+    verify_jwt = false
+  [functions.enrich-book-data]
+    verify_jwt = false
+  [functions.generate-author-bio]
+    verify_jwt = false
+  [functions.generate-sitemap]
+    verify_jwt = false
+  [functions.get-book]
+    verify_jwt = false
+  [functions.list-directory-authors]
+    verify_jwt = false
+  [functions.list-my-books]
+    verify_jwt = false
+  [functions.publish-book]
+    verify_jwt = false
+  [functions.save-book]
+    verify_jwt = false
+  [functions.scrape-amazon-book]
+    verify_jwt = false
+  [functions.send-service-inquiry-email]
+    verify_jwt = false
+  [functions.sync-author-profile]
+    verify_jwt = false
+  [functions.update-book-cover]
+    verify_jwt = false
+  [functions.upload-book-cover]
+    verify_jwt = false
