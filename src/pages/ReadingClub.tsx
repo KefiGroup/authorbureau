@@ -7,6 +7,7 @@ import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import ReadingClubHero from "@/components/reading-club/ReadingClubHero";
 import BookCatalog from "@/components/reading-club/BookCatalog";
 import MyChallenges from "@/components/reading-club/MyChallenges";
+import ReadingLeaderboard from "@/components/reading-club/ReadingLeaderboard";
 import { Loader2 } from "lucide-react";
 
 export interface CatalogBook {
@@ -140,6 +141,8 @@ export default function ReadingClub() {
         activeEntryBookIds={activeEntryBookIds}
         onStartChallenge={startChallenge}
       />
+
+      <ReadingLeaderboard />
 
       <Footer />
     </div>
