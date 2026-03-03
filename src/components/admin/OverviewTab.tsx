@@ -1,4 +1,6 @@
-import { Loader2, Users, Clock, BookOpen, ShieldCheck, ArrowRight, RefreshCw, AlertCircle, UserCheck } from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Loader2, Users, Clock, BookOpen, ShieldCheck, ArrowRight, RefreshCw, AlertCircle, UserCheck, Contact } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { AdminStats, Submission } from "@/types/admin";
@@ -19,6 +21,22 @@ const statusColors: Record<string, string> = {
 };
 
 export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pendingBookCount = 0, pendingAuthorCount = 0 }: OverviewTabProps) {
+  const [crmCount, setCrmCount] = useState(0);
+  const [crmWeekCount, setCrmWeekCount] = useState(0);
+
+  useEffect(() => {
+    (async () => {
+      const { count } = await supabase.from("crm_contacts").select("id", { count: "exact", head: true });
+      setCrmCount(count ?? 0);
+      const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+      const { count: weekCount } = await supabase
+        .from("crm_contacts")
+        .select("id", { count: "exact", head: true })
+        .gte("created_at", weekAgo);
+      setCrmWeekCount(weekCount ?? 0);
+    })();
+  }, [stats]);
+
   if (loading || !stats) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -53,6 +71,13 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
       badge: pendingAuthorCount > 0 ? `${pendingAuthorCount} unlisted` : undefined,
     },
     { label: "Admins", value: stats.total_admins ?? stats.admins ?? 0, icon: ShieldCheck, action: () => onNavigate("admins") },
+    {
+      label: "CRM Contacts",
+      value: crmCount,
+      icon: Contact,
+      action: () => onNavigate("crm"),
+      badge: crmWeekCount > 0 ? `${crmWeekCount} this week` : undefined,
+    },
   ];
 
   const recentSubmissions: Submission[] = stats.recent_submissions ?? [];
