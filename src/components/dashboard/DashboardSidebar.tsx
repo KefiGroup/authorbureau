@@ -4,7 +4,7 @@ import {
   Mic, Podcast, Building2, Award,
   Users as UsersIcon, Trophy, Bookmark,
   ChevronLeft, ChevronRight, Crown, ExternalLink, PenLine, BookMarked,
-  ChevronDown,
+  ChevronDown, Mail, Contact, Palette,
 } from "lucide-react";
 import { useState } from "react";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
@@ -43,6 +43,14 @@ const navGroups: NavGroup[] = [
       { id: "overview", label: "Overview", icon: LayoutDashboard },
       { id: "profile", label: "Author Profile", icon: User },
       { id: "my-books", label: "My Books", icon: BookOpen },
+    ],
+  },
+  {
+    label: "Email Marketing",
+    items: [
+      { id: "email-marketing", label: "Campaigns", icon: Mail, premiumOnly: true },
+      { id: "subscribers", label: "Subscribers", icon: Contact, premiumOnly: true },
+      { id: "email-templates", label: "Templates", icon: Palette, premiumOnly: true },
     ],
   },
   {
