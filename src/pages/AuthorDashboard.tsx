@@ -177,6 +177,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           <BusinessFramework
             onNavigate={(s) => setActiveSection(s as DashboardSection)}
             isPremium={isPremium || isAdmin}
+            focusStep={activeSection.startsWith("step-") ? activeSection : undefined}
           />
         );
 

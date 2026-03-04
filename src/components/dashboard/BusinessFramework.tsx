@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BookOpen, Mic, Podcast, GraduationCap, FileText, Video,
@@ -13,6 +13,7 @@ import type { DashboardSection } from "@/pages/AuthorDashboard";
 interface Props {
   onNavigate: (section: DashboardSection | string) => void;
   isPremium: boolean;
+  focusStep?: string;
 }
 
 interface Node {
@@ -124,8 +125,9 @@ const statusStyles = {
   planned: { badge: "Planned", className: "bg-muted text-muted-foreground" },
 };
 
-export default function BusinessFramework({ onNavigate, isPremium }: Props) {
-  const [activeStep, setActiveStep] = useState<string | null>(null);
+export default function BusinessFramework({ onNavigate, isPremium, focusStep }: Props) {
+  const [activeStep, setActiveStep] = useState<string | null>(focusStep || null);
+  useEffect(() => { if (focusStep) setActiveStep(focusStep); }, [focusStep]);
   const activeStepData = steps.find((s) => s.id === activeStep);
 
   return (
