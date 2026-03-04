@@ -202,7 +202,7 @@ export default function PortfolioStepView({ stepId }: Props) {
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-heading text-lg font-bold">By Book</h3>
           <p className="text-xs text-muted-foreground">
-            Click a book to manage its {step.subtitle.toLowerCase()} in the Book Hub
+            Click a book to manage its {step.subtitle.toLowerCase()}
           </p>
         </div>
 
@@ -253,7 +253,7 @@ export default function PortfolioStepView({ stepId }: Props) {
                   {/* CTA */}
                   <div className="flex items-center gap-2 shrink-0">
                     <Button size="sm" variant="outline" className="gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
-                      Open in Book Hub
+                      Manage
                       <ArrowRight className="h-3.5 w-3.5" />
                     </Button>
                   </div>
@@ -267,8 +267,8 @@ export default function PortfolioStepView({ stepId }: Props) {
       {/* Help Text */}
       <div className="rounded-xl bg-muted/50 border border-border p-4 text-center">
         <p className="text-xs text-muted-foreground leading-relaxed max-w-lg mx-auto">
-          <strong>Portfolio vs. Project View:</strong> This page shows {step.subtitle.toLowerCase()} across all your books.
-          To build or manage products for a specific book, click into that book's Hub.
+          <strong>All Books View:</strong> This page shows {step.subtitle.toLowerCase()} across all your books.
+          To build or manage products for a specific book, go to <strong>My Books</strong> and click into it.
         </p>
       </div>
     </div>
