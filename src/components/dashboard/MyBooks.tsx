@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { BookOpen, Plus, ExternalLink, Loader2, ImagePlus, EyeOff, Clock, Pencil } from "lucide-react";
+import { BookOpen, Plus, ExternalLink, Loader2, ImagePlus, EyeOff, Clock, Pencil, Sparkles, Crown } from "lucide-react";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import DualModeBookForm from "@/components/DualModeBookForm";
@@ -41,7 +41,12 @@ async function getActiveToken(): Promise<string | null> {
   return sharedSession?.session?.access_token || null;
 }
 
-export default function MyBooks() {
+interface MyBooksProps {
+  isPremium?: boolean;
+  onNavigate?: (section: string) => void;
+}
+
+export default function MyBooks({ isPremium = false, onNavigate }: MyBooksProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [books, setBooks] = useState<Book[]>([]);
@@ -231,6 +236,7 @@ export default function MyBooks() {
           </Button>
         </Card>
       ) : (
+        <>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {books.map((book) => (
             <Card key={book.id} className="overflow-hidden hover:shadow-[var(--shadow-card-hover)] transition-shadow group">
@@ -292,7 +298,7 @@ export default function MyBooks() {
                 )}
 
                 <div className="flex items-center justify-between gap-2 pt-1">
-                  <div>
+                  <div className="flex items-center gap-2">
                     {book.published_at ? (
                       <a
                         href={`/books/${book.slug}`}
@@ -358,6 +364,37 @@ export default function MyBooks() {
             </Card>
           ))}
         </div>
+
+        {/* Upsell CTA after books are listed */}
+        {books.length > 0 && (
+          <Card className="border-secondary/20 bg-gradient-to-r from-secondary/5 to-secondary/10 p-5 mt-2">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="w-10 h-10 rounded-full bg-secondary/15 flex items-center justify-center flex-shrink-0 text-lg">
+                👩‍💼
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-heading font-semibold text-sm">
+                  {isPremium ? "Ready to monetize your book?" : "Unlock your book's earning potential"}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {isPremium
+                    ? "Consult Abby to build courses, workbooks, webinars & more from your book content."
+                    : "Consult Abby (free!) to discover how your book can generate multiple revenue streams."
+                  }
+                </p>
+              </div>
+              <Button
+                size="sm"
+                className="bg-secondary text-secondary-foreground hover:bg-secondary/90 whitespace-nowrap"
+                onClick={() => onNavigate?.("build-business")}
+              >
+                <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                Consult Abby
+              </Button>
+            </div>
+          </Card>
+        )}
+        </>
       )}
     </div>
   );
