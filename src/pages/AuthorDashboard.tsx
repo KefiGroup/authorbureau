@@ -9,6 +9,7 @@ import CourseBuilder from "@/components/dashboard/CourseBuilder";
 import SpeakingProfile from "@/components/dashboard/SpeakingProfile";
 import CoachingCRM from "@/components/dashboard/CoachingCRM";
 import DashboardOverview from "@/components/dashboard/DashboardOverview";
+import BusinessFramework from "@/components/dashboard/BusinessFramework";
 import WorkbooksManager from "@/components/dashboard/WorkbooksManager";
 import WebinarsManager from "@/components/dashboard/WebinarsManager";
 import SocialMediaManager from "@/components/dashboard/SocialMediaManager";
@@ -26,7 +27,9 @@ export type DashboardSection =
   | "coaching" | "group-coaching" | "big-ticket"
   | "speaking" | "podcast" | "corporate-training"
   | "retreats" | "certification" | "masterminds"
-  | "email-marketing" | "subscribers" | "email-templates";
+  | "email-marketing" | "subscribers" | "email-templates"
+  | "step-1" | "step-2" | "step-3" | "step-4"
+  | "marketing" | "crm";
 
 const comingSoonSections: Record<string, { title: string; description: string; icon: typeof Rocket }> = {
   memberships: {
@@ -68,6 +71,16 @@ const comingSoonSections: Record<string, { title: string; description: string; i
     title: "Masterminds",
     description: "Structured mastermind group programs with quarterly agendas, hot-seat formats, accountability frameworks, and member applications.",
     icon: Trophy,
+  },
+  crm: {
+    title: "CRM & Contacts",
+    description: "Your unified customer relationship management hub — track every lead, client, and attendee across all 4 steps.",
+    icon: Users,
+  },
+  marketing: {
+    title: "Marketing Package",
+    description: "AI-driven marketing suite — email flows, social media calendars, affiliate dashboard, and upsell/downsell automation.",
+    icon: Rocket,
   },
 };
 
@@ -153,14 +166,31 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "subscribers":
       case "email-templates":
         return gate("Email Marketing", <EmailMarketing activeTab={activeSection} onTabChange={(s) => setActiveSection(s as DashboardSection)} />);
+      
+      // Step categories → show the Business Framework (it handles step focusing internally)
+      case "step-1":
+      case "step-2":
+      case "step-3":
+      case "step-4":
       case "overview":
-        return <DashboardOverview onNavigate={(s) => setActiveSection(s as DashboardSection)} />;
+        return (
+          <BusinessFramework
+            onNavigate={(s) => setActiveSection(s as DashboardSection)}
+            isPremium={isPremium || isAdmin}
+          />
+        );
+
       default:
         // All coming-soon sections
         if (comingSoonSections[activeSection]) {
           return gate(comingSoonSections[activeSection].title, <ComingSoonPlaceholder sectionId={activeSection} />);
         }
-        return <DashboardOverview onNavigate={(s) => setActiveSection(s as DashboardSection)} />;
+        return (
+          <BusinessFramework
+            onNavigate={(s) => setActiveSection(s as DashboardSection)}
+            isPremium={isPremium || isAdmin}
+          />
+        );
     }
   };
 
