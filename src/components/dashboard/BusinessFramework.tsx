@@ -129,35 +129,74 @@ export default function BusinessFramework({ onNavigate, isPremium }: Props) {
   const activeStepData = steps.find((s) => s.id === activeStep);
 
   return (
-    <div className="max-w-6xl space-y-8">
-      {/* Header */}
-      <div className="text-center space-y-2">
-        <h1 className="font-heading text-3xl md:text-4xl font-bold">
-          Your <span className="text-gradient-gold">4-Step</span> Business Framework
-        </h1>
-        <p className="text-muted-foreground max-w-2xl mx-auto">
-          One book becomes <strong>27 revenue streams</strong>. Click each step to explore the products & services AI can generate from your manuscript.
+    <div className="max-w-6xl space-y-10">
+      {/* Hero — Abby as the Framework */}
+      <div className="text-center space-y-4">
+        <motion.div
+          className="w-20 h-20 rounded-full bg-secondary/10 flex items-center justify-center mx-auto text-3xl"
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          👩‍💼
+        </motion.div>
+        <div>
+          <h1 className="font-heading text-3xl md:text-4xl font-bold">
+            Abby's <span className="text-gradient-gold">Business Framework</span>
+          </h1>
+          <p className="text-xs text-secondary font-semibold uppercase tracking-wider mt-1">
+            Authors Bureau Business Advisor
+          </p>
+        </div>
+        <p className="text-muted-foreground max-w-xl mx-auto text-sm leading-relaxed">
+          Your book is the <strong>hook</strong>. Abby transforms it into a complete business
+          through a proven monetization framework — from digital products to premium experiences.
         </p>
+        <motion.button
+          onClick={() => onNavigate("build-business")}
+          className="inline-flex items-center gap-2 rounded-xl bg-secondary text-secondary-foreground px-6 py-3 font-semibold text-sm hover:bg-secondary/90 transition-colors shadow-[var(--shadow-gold)]"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <Sparkles className="h-4 w-4" /> Start Consultation with Abby
+        </motion.button>
       </div>
 
-      {/* Central Visual Framework */}
+      {/* The Framework Visual */}
       <div className="relative">
-        {/* The Book — Center */}
-        <div className="flex justify-center mb-8">
-          <motion.div
-            className="relative z-10 flex flex-col items-center"
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.5 }}
-          >
-            <div className="w-24 h-24 md:w-28 md:h-28 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
-              <BookOpen className="h-10 w-10 md:h-12 md:w-12 text-primary-foreground" />
+        {/* Connector line from Abby to Book */}
+        <div className="hidden md:flex justify-center mb-2">
+          <div className="w-px h-8 bg-gradient-to-b from-secondary/40 to-border" />
+        </div>
+
+        {/* The Book — Foundation */}
+        <motion.div
+          className="flex justify-center mb-6"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-6 py-4 shadow-sm">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-sm">
+              <BookOpen className="h-6 w-6 text-primary-foreground" />
             </div>
-            <div className="mt-3 text-center">
-              <p className="font-heading text-lg font-bold">Your Book</p>
-              <p className="text-xs text-muted-foreground">The foundation of everything</p>
+            <div className="text-left">
+              <p className="font-heading font-bold text-sm">Your Book</p>
+              <p className="text-xs text-muted-foreground">The foundation of your business</p>
             </div>
-          </motion.div>
+          </div>
+        </motion.div>
+
+        {/* Connector lines down */}
+        <div className="hidden md:flex justify-center mb-2">
+          <div className="w-px h-6 bg-gradient-to-b from-border to-transparent" />
+        </div>
+
+        {/* Framework Label */}
+        <div className="text-center mb-6">
+          <span className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-widest bg-muted/50 rounded-full px-4 py-1.5">
+            <ArrowRight className="h-3 w-3" /> 4-Step Monetization Framework <ArrowRight className="h-3 w-3 rotate-180" />
+          </span>
         </div>
 
         {/* 4 Steps Grid */}
@@ -166,8 +205,6 @@ export default function BusinessFramework({ onNavigate, isPremium }: Props) {
             const isActive = activeStep === step.id;
             const liveCount = step.nodes.filter((n) => n.status === "live").length;
             const totalCount = step.nodes.length;
-
-
 
             return (
               <motion.button
@@ -180,10 +217,9 @@ export default function BusinessFramework({ onNavigate, isPremium }: Props) {
                 }`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.1 }}
+                transition={{ delay: 0.3 + idx * 0.1 }}
                 whileHover={{ y: -2 }}
               >
-                {/* Step Header */}
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${step.gradientFrom} ${step.gradientTo} flex items-center justify-center text-white font-bold text-sm shadow-sm`}>
@@ -201,19 +237,15 @@ export default function BusinessFramework({ onNavigate, isPremium }: Props) {
                   <ChevronRight className={`h-5 w-5 text-muted-foreground/40 transition-transform ${isActive ? "rotate-90" : "group-hover:translate-x-0.5"}`} />
                 </div>
 
-                {/* Stats Row */}
                 <div className="flex items-center gap-3 text-xs">
                   <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium ${step.bgColor} ${step.color}`}>
                     {totalCount} products
                   </span>
-
-
                   {liveCount > 0 && (
                     <span className="text-green-600 font-medium">{liveCount} live</span>
                   )}
                 </div>
 
-                {/* Node preview dots */}
                 <div className="flex flex-wrap gap-1.5 mt-3">
                   {step.nodes.map((node) => (
                     <div
@@ -225,9 +257,6 @@ export default function BusinessFramework({ onNavigate, isPremium }: Props) {
                     />
                   ))}
                 </div>
-
-                {/* Connecting line to center */}
-                <div className="hidden md:block absolute -top-4 left-1/2 -translate-x-1/2 w-px h-4 bg-gradient-to-b from-transparent to-border" />
               </motion.button>
             );
           })}
@@ -246,7 +275,6 @@ export default function BusinessFramework({ onNavigate, isPremium }: Props) {
             className="overflow-hidden"
           >
             <div className={`rounded-2xl border-2 ${activeStepData.ringColor} border-transparent ring-1 p-6 md:p-8 bg-card shadow-lg`}>
-              {/* Panel Header */}
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${activeStepData.gradientFrom} ${activeStepData.gradientTo} flex items-center justify-center text-white font-bold`}>
@@ -263,8 +291,6 @@ export default function BusinessFramework({ onNavigate, isPremium }: Props) {
                   <X className="h-4 w-4 text-muted-foreground" />
                 </button>
               </div>
-
-              {/* All Products */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {activeStepData.nodes.map((node) => (
                   <NodeCard key={node.id} node={node} step={activeStepData} onNavigate={onNavigate} isPremium={isPremium} />
@@ -275,23 +301,21 @@ export default function BusinessFramework({ onNavigate, isPremium }: Props) {
         )}
       </AnimatePresence>
 
-      {/* AI Engine CTA */}
+      {/* Bottom CTA — Ask Abby */}
       <motion.div
-        className="rounded-2xl border border-secondary/30 bg-gradient-to-r from-secondary/5 via-secondary/10 to-secondary/5 p-6 md:p-8 text-center"
+        className="rounded-2xl border border-secondary/20 bg-muted/30 p-6 text-center"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
+        transition={{ delay: 0.6 }}
       >
-        <Sparkles className="h-8 w-8 text-secondary mx-auto mb-3" />
-        <h3 className="font-heading text-xl font-bold mb-2">Build My Author Business</h3>
-        <p className="text-muted-foreground text-sm max-w-lg mx-auto mb-4">
-          Upload your manuscript and let AI generate <strong>all 27 revenue assets</strong> — workbooks, courses, coaching programs, keynote talks, and more — in under 30 minutes.
+        <p className="text-sm text-muted-foreground mb-3">
+          Not sure where to start? <strong>Abby will analyze your book</strong> and recommend the best path through the framework — personalized to your goals, audience, and time.
         </p>
         <button
           onClick={() => onNavigate("build-business")}
-          className="inline-flex items-center gap-2 rounded-xl bg-secondary text-secondary-foreground px-6 py-3 font-semibold text-sm hover:bg-secondary/90 transition-colors shadow-[var(--shadow-gold)]"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-secondary hover:text-secondary/80 transition-colors"
         >
-          Launch AI Engine <ArrowRight className="h-4 w-4" />
+          Ask Abby <ArrowRight className="h-4 w-4" />
         </button>
       </motion.div>
     </div>
