@@ -42,7 +42,6 @@ const steps: Step[] = [
     gradientTo: "to-blue-600",
     nodes: [
       { id: "social-media", label: "Social Media", icon: Share2, section: "social-media", description: "90-day AI content calendar from your book chapters — drive traffic & build authority.", status: "live" },
-      { id: "website", label: "Website / Microsite", icon: Globe, description: "Your author microsite — already built automatically from your book data.", status: "live" },
       { id: "affiliates", label: "Affiliates", icon: Link2, description: "Affiliate tracking links with commission structures — grow through partnerships.", status: "planned" },
       { id: "upsells", label: "Upsells / Downsells", icon: TrendingUp, description: "AI-generated conversion sequences in your checkout flow — maximize every sale.", status: "planned" },
       { id: "podcast-script", label: "Podcast Scripts", icon: Podcast, description: "AI-generated podcast episode scripts from your book chapters — content marketing.", status: "planned" },
