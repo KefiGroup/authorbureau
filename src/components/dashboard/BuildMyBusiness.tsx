@@ -192,10 +192,23 @@ export default function BuildMyBusiness() {
   const executeBuild = async (buildReq: Record<string, string>) => {
     if (!selectedBook || !user) return;
 
-    const toolType = buildReq.product_type;
-    const validTypes = ["workbook", "course", "social", "email", "speaker", "products"];
-    if (!validTypes.includes(toolType)) {
-      toast({ title: "Unknown product type", description: `"${toolType}" is not a recognized build type.`, variant: "destructive" });
+    // Normalize plural/variant product types to their canonical form
+    const typeMap: Record<string, string> = {
+      workbook: "workbook", workbooks: "workbook",
+      course: "course", courses: "course", "online-course": "course", "online course": "course",
+      social: "social", "social-media": "social", "social media": "social",
+      email: "email", "email-marketing": "email",
+      speaker: "speaker", speaking: "speaker", keynote: "speaker", keynotes: "speaker",
+      products: "products",
+      webinar: "workbook", webinars: "workbook",
+      coaching: "course", "1-on-1-coaching": "course",
+      audiobook: "workbook", "home-study": "workbook",
+    };
+
+    const rawType = buildReq.product_type.toLowerCase().trim();
+    const toolType = typeMap[rawType];
+    if (!toolType) {
+      toast({ title: "Unknown product type", description: `"${buildReq.product_type}" is not a recognized build type.`, variant: "destructive" });
       return;
     }
 
