@@ -21,7 +21,7 @@ interface Node {
   icon: typeof BookOpen;
   section?: DashboardSection;
   description: string;
-  revenue: "free" | "paid";
+  
   status: "live" | "coming-soon" | "planned";
 }
 
@@ -49,18 +49,17 @@ const steps: Step[] = [
     gradientTo: "to-blue-600",
     nodes: [
       // FREE / Marketing
-      { id: "social-media", label: "Social Media", icon: Share2, section: "social-media", description: "90-day AI content calendar from your book chapters — drive traffic & build authority.", revenue: "free", status: "live" },
-      { id: "website", label: "Website / Microsite", icon: Globe, description: "Your author microsite — already built automatically from your book data.", revenue: "free", status: "live" },
-      { id: "affiliates", label: "Affiliates", icon: Link2, description: "Affiliate tracking links with commission structures — grow through partnerships.", revenue: "free", status: "planned" },
-      { id: "upsells", label: "Upsells / Downsells", icon: TrendingUp, description: "AI-generated conversion sequences in your checkout flow — maximize every sale.", revenue: "free", status: "planned" },
-      { id: "podcast-script", label: "Podcast Scripts", icon: Podcast, description: "AI-generated podcast episode scripts from your book chapters — content marketing.", revenue: "free", status: "planned" },
-      // PAID / Sellable
-      { id: "workbooks", label: "Workbooks", icon: FileText, section: "workbooks", description: "Companion workbook PDFs (40-80 pages) with exercises, templates & action plans.", revenue: "paid", status: "live" },
-      { id: "webinars", label: "Webinars", icon: Video, section: "webinars", description: "Complete webinar scripts + slide decks + registration pages — sell live or recorded.", revenue: "paid", status: "live" },
-      { id: "home-study", label: "Home Study Course", icon: BookMarked, description: "Self-paced study guide with daily schedules — a structured learning experience.", revenue: "paid", status: "coming-soon" },
-      { id: "audiobook", label: "Audiobook", icon: Headphones, description: "AI-generated audiobook scripts — author records or uses AI narration.", revenue: "paid", status: "coming-soon" },
-      { id: "memberships", label: "Monthly Memberships", icon: CreditCard, section: "memberships", description: "3-tier membership system — Reader Circle, Pro, VIP — with gated content drip.", revenue: "paid", status: "planned" },
-      { id: "courses", label: "Online Courses", icon: GraduationCap, section: "courses", description: "8-12 module structured courses — the biggest digital product to build later.", revenue: "paid", status: "coming-soon" },
+      { id: "social-media", label: "Social Media", icon: Share2, section: "social-media", description: "90-day AI content calendar from your book chapters — drive traffic & build authority.", status: "live" },
+      { id: "website", label: "Website / Microsite", icon: Globe, description: "Your author microsite — already built automatically from your book data.", status: "live" },
+      { id: "affiliates", label: "Affiliates", icon: Link2, description: "Affiliate tracking links with commission structures — grow through partnerships.", status: "planned" },
+      { id: "upsells", label: "Upsells / Downsells", icon: TrendingUp, description: "AI-generated conversion sequences in your checkout flow — maximize every sale.", status: "planned" },
+      { id: "podcast-script", label: "Podcast Scripts", icon: Podcast, description: "AI-generated podcast episode scripts from your book chapters — content marketing.", status: "planned" },
+      { id: "workbooks", label: "Workbooks", icon: FileText, section: "workbooks", description: "Companion workbook PDFs (40-80 pages) with exercises, templates & action plans.", status: "live" },
+      { id: "webinars", label: "Webinars", icon: Video, section: "webinars", description: "Complete webinar scripts + slide decks + registration pages — sell live or recorded.", status: "live" },
+      { id: "home-study", label: "Home Study Course", icon: BookMarked, description: "Self-paced study guide with daily schedules — a structured learning experience.", status: "coming-soon" },
+      { id: "audiobook", label: "Audiobook", icon: Headphones, description: "AI-generated audiobook scripts — author records or uses AI narration.", status: "coming-soon" },
+      { id: "memberships", label: "Monthly Memberships", icon: CreditCard, section: "memberships", description: "3-tier membership system — Reader Circle, Pro, VIP — with gated content drip.", status: "planned" },
+      { id: "courses", label: "Online Courses", icon: GraduationCap, section: "courses", description: "8-12 module structured courses — the biggest digital product to build later.", status: "coming-soon" },
     ],
   },
   {
@@ -73,11 +72,11 @@ const steps: Step[] = [
     gradientFrom: "from-amber-500",
     gradientTo: "to-amber-600",
     nodes: [
-      { id: "coaching-1on1", label: "1-on-1 Coaching", icon: UserCheck, section: "coaching", description: "AI generates 6/12-session coaching programs with session outlines & client materials.", revenue: "paid", status: "live" },
-      { id: "group-coaching", label: "Group Coaching", icon: Users, section: "group-coaching", description: "8-week group coaching curriculum with session agendas & participant workbooks.", revenue: "paid", status: "coming-soon" },
-      { id: "big-ticket", label: "Big Ticket", icon: Trophy, section: "big-ticket", description: "Premium consulting packages ($5K–$25K) with application forms & VIP delivery.", revenue: "paid", status: "planned" },
-      { id: "revenue-sharing", label: "Revenue Sharing / JV", icon: Handshake, description: "Partnership matching + contract templates — grow through collaboration.", revenue: "paid", status: "planned" },
-      { id: "coaching-membership", label: "Coaching Membership", icon: CreditCard, description: "Monthly coaching tier — recurring revenue from ongoing client relationships.", revenue: "paid", status: "planned" },
+      { id: "coaching-1on1", label: "1-on-1 Coaching", icon: UserCheck, section: "coaching", description: "AI generates 6/12-session coaching programs with session outlines & client materials.", status: "live" },
+      { id: "group-coaching", label: "Group Coaching", icon: Users, section: "group-coaching", description: "8-week group coaching curriculum with session agendas & participant workbooks.", status: "coming-soon" },
+      { id: "big-ticket", label: "Big Ticket", icon: Trophy, section: "big-ticket", description: "Premium consulting packages ($5K–$25K) with application forms & VIP delivery.", status: "planned" },
+      { id: "revenue-sharing", label: "Revenue Sharing / JV", icon: Handshake, description: "Partnership matching + contract templates — grow through collaboration.", status: "planned" },
+      { id: "coaching-membership", label: "Coaching Membership", icon: CreditCard, description: "Monthly coaching tier — recurring revenue from ongoing client relationships.", status: "planned" },
     ],
   },
   {
@@ -90,15 +89,15 @@ const steps: Step[] = [
     gradientFrom: "from-rose-500",
     gradientTo: "to-rose-600",
     nodes: [
-      { id: "keynotes", label: "Keynotes", icon: Mic, section: "speaking", description: "AI generates 3-5 keynote topics with slide decks — your signature talks.", revenue: "paid", status: "live" },
-      { id: "podcast-guest", label: "Podcast Pitches", icon: Podcast, section: "podcast", description: "AI-generated podcast pitch kit — get booked as a guest expert.", revenue: "free", status: "planned" },
-      { id: "corporate-training", label: "Corporate Training", icon: Building2, section: "corporate-training", description: "Half/full-day corporate training programs with facilitator guides.", revenue: "paid", status: "planned" },
-      { id: "jvs-speaking", label: "Joint Ventures", icon: Handshake, description: "JV proposals for co-hosting speaking events — leverage each other's audiences.", revenue: "paid", status: "planned" },
-      { id: "book-sales-events", label: "Book Sales at Events", icon: BookOpen, description: "QR code order pages for book sales at live events — capture impulse buyers.", revenue: "paid", status: "planned" },
-      { id: "special-editions", label: "Special Editions", icon: Sparkles, description: "AI generates special edition proposals — signed copies, bundles, collector's.", revenue: "paid", status: "planned" },
-      { id: "in-house-speaker", label: "In-House Speaker", icon: Presentation, description: "Corporate speaker profile + booking system — get hired for internal events.", revenue: "paid", status: "planned" },
-      { id: "fundraising", label: "Fund Raising", icon: HandCoins, description: "Fundraising event templates — use your author authority for causes.", revenue: "paid", status: "planned" },
-      { id: "conventions", label: "Conventions", icon: Calendar, description: "Conference submission generator — get accepted to speak at industry events.", revenue: "paid", status: "planned" },
+      { id: "keynotes", label: "Keynotes", icon: Mic, section: "speaking", description: "AI generates 3-5 keynote topics with slide decks — your signature talks.", status: "live" },
+      { id: "podcast-guest", label: "Podcast Pitches", icon: Podcast, section: "podcast", description: "AI-generated podcast pitch kit — get booked as a guest expert.", status: "planned" },
+      { id: "corporate-training", label: "Corporate Training", icon: Building2, section: "corporate-training", description: "Half/full-day corporate training programs with facilitator guides.", status: "planned" },
+      { id: "jvs-speaking", label: "Joint Ventures", icon: Handshake, description: "JV proposals for co-hosting speaking events — leverage each other's audiences.", status: "planned" },
+      { id: "book-sales-events", label: "Book Sales at Events", icon: BookOpen, description: "QR code order pages for book sales at live events — capture impulse buyers.", status: "planned" },
+      { id: "special-editions", label: "Special Editions", icon: Sparkles, description: "AI generates special edition proposals — signed copies, bundles, collector's.", status: "planned" },
+      { id: "in-house-speaker", label: "In-House Speaker", icon: Presentation, description: "Corporate speaker profile + booking system — get hired for internal events.", status: "planned" },
+      { id: "fundraising", label: "Fund Raising", icon: HandCoins, description: "Fundraising event templates — use your author authority for causes.", status: "planned" },
+      { id: "conventions", label: "Conventions", icon: Calendar, description: "Conference submission generator — get accepted to speak at industry events.", status: "planned" },
     ],
   },
   {
@@ -111,10 +110,10 @@ const steps: Step[] = [
     gradientFrom: "from-emerald-500",
     gradientTo: "to-emerald-600",
     nodes: [
-      { id: "retreats", label: "Retreats & Bootcamps", icon: Bookmark, section: "retreats", description: "2-3 day retreat programs with agendas, materials & registration.", revenue: "paid", status: "planned" },
-      { id: "certification", label: "Certification Programs", icon: ShieldCheck, section: "certification", description: "Multi-module curriculum + exam + digital certificates — build an academy.", revenue: "paid", status: "planned" },
-      { id: "masterminds", label: "Masterminds", icon: BarChart3, section: "masterminds", description: "Quarterly mastermind group programs with hot-seat format & accountability.", revenue: "paid", status: "planned" },
-      { id: "exhibitors", label: "Exhibitors / JV", icon: Megaphone, description: "Exhibitor prospectus + partnership matching for your events.", revenue: "paid", status: "planned" },
+      { id: "retreats", label: "Retreats & Bootcamps", icon: Bookmark, section: "retreats", description: "2-3 day retreat programs with agendas, materials & registration.", status: "planned" },
+      { id: "certification", label: "Certification Programs", icon: ShieldCheck, section: "certification", description: "Multi-module curriculum + exam + digital certificates — build an academy.", status: "planned" },
+      { id: "masterminds", label: "Masterminds", icon: BarChart3, section: "masterminds", description: "Quarterly mastermind group programs with hot-seat format & accountability.", status: "planned" },
+      { id: "exhibitors", label: "Exhibitors / JV", icon: Megaphone, description: "Exhibitor prospectus + partnership matching for your events.", status: "planned" },
     ],
   },
 ];
@@ -167,8 +166,8 @@ export default function BusinessFramework({ onNavigate, isPremium }: Props) {
             const isActive = activeStep === step.id;
             const liveCount = step.nodes.filter((n) => n.status === "live").length;
             const totalCount = step.nodes.length;
-            const freeCount = step.nodes.filter((n) => n.revenue === "free").length;
-            const paidCount = step.nodes.filter((n) => n.revenue === "paid").length;
+
+
 
             return (
               <motion.button
@@ -207,9 +206,8 @@ export default function BusinessFramework({ onNavigate, isPremium }: Props) {
                   <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium ${step.bgColor} ${step.color}`}>
                     {totalCount} products
                   </span>
-                  <span className="text-muted-foreground">
-                    {paidCount} paid · {freeCount} free
-                  </span>
+
+
                   {liveCount > 0 && (
                     <span className="text-green-600 font-medium">{liveCount} live</span>
                   )}
@@ -266,40 +264,12 @@ export default function BusinessFramework({ onNavigate, isPremium }: Props) {
                 </button>
               </div>
 
-              {/* Split: Free Marketing vs Paid Products */}
-              {(() => {
-                const freeNodes = activeStepData.nodes.filter((n) => n.revenue === "free");
-                const paidNodes = activeStepData.nodes.filter((n) => n.revenue === "paid");
-
-                return (
-                  <div className="space-y-6">
-                    {freeNodes.length > 0 && (
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                          🆓 Marketing & Growth Tools
-                        </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                          {freeNodes.map((node) => (
-                            <NodeCard key={node.id} node={node} step={activeStepData} onNavigate={onNavigate} isPremium={isPremium} />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {paidNodes.length > 0 && (
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                          💰 Sellable Products & Services
-                        </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                          {paidNodes.map((node) => (
-                            <NodeCard key={node.id} node={node} step={activeStepData} onNavigate={onNavigate} isPremium={isPremium} />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
+              {/* All Products */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {activeStepData.nodes.map((node) => (
+                  <NodeCard key={node.id} node={node} step={activeStepData} onNavigate={onNavigate} isPremium={isPremium} />
+                ))}
+              </div>
             </div>
           </motion.div>
         )}
@@ -360,9 +330,6 @@ function NodeCard({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 mb-1">
             <h4 className="font-semibold text-sm truncate">{node.label}</h4>
-            {node.revenue === "free" && (
-              <span className="text-[9px] font-bold uppercase tracking-wide text-green-600 bg-green-500/10 rounded px-1.5 py-0.5">Free</span>
-            )}
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{node.description}</p>
           <div className="flex items-center gap-2 mt-2">
