@@ -221,7 +221,7 @@ serve(async (req) => {
     const contextBlock = `
 CURRENT CONTEXT:
 author_profile: ${JSON.stringify({
-      name: profile?.pen_name || user.email?.split("@")[0],
+      name: profile?.pen_name || selectedBook?.author_name || books[0]?.author_name || user.user_metadata?.full_name || user.email?.split("@")[0],
       bio: profile?.bio_short || null,
       genres: profile?.genres || [],
       credentials: profile?.credentials || [],
