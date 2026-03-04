@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import {
   Rocket, BookOpen, Loader2, Send, ArrowLeft, Sparkles, User, RotateCcw,
-  Wrench, MessageCircleHeart, Crown,
+  Wrench, MessageCircleHeart, Crown, ExternalLink,
 } from "lucide-react";
 import { TIERS } from "@/hooks/useAuth";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
@@ -38,11 +39,13 @@ async function getActiveToken(): Promise<string | null> {
 }
 
 export default function BuildMyBusiness() {
+  const navigate = useNavigate();
   const { user, isPremium, isAdmin } = useAuth();
   const { toast } = useToast();
   const [books, setBooks] = useState<Book[]>([]);
   const [loadingBooks, setLoadingBooks] = useState(true);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
 
   // Chat state
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -79,11 +82,69 @@ export default function BuildMyBusiness() {
     })();
   }, [user]);
 
-  // When book is selected, auto-start the first consultation message
-  useEffect(() => {
-    if (selectedBook && messages.length === 0) {
-      sendMessage("I'd like to build a business around my book. Please analyze my book and advise me on the best strategy.", true);
+  // ─── Chat Persistence ────────────────────────────────
+  const saveSession = useCallback(async (msgs: ChatMessage[]) => {
+    if (!user || !selectedBook || msgs.length === 0) return;
+    try {
+      if (sessionId) {
+        await cloudSupabase.from("consultation_sessions" as any).update({
+          messages: msgs,
+        } as any).eq("id", sessionId);
+      } else {
+        const { data } = await cloudSupabase.from("consultation_sessions" as any).insert({
+          user_id: user.id,
+          book_id: selectedBook.id,
+          messages: msgs,
+          is_active: true,
+        } as any).select("id").single();
+        if (data) setSessionId((data as any).id);
+      }
+    } catch (err) {
+      console.error("Failed to save session:", err);
     }
+  }, [user, selectedBook, sessionId]);
+
+  const loadExistingSession = useCallback(async (bookId: string): Promise<ChatMessage[] | null> => {
+    if (!user) return null;
+    try {
+      const { data } = await cloudSupabase
+        .from("consultation_sessions" as any)
+        .select("id, messages")
+        .eq("user_id", user.id)
+        .eq("book_id", bookId)
+        .eq("is_active", true)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data) {
+        setSessionId((data as any).id);
+        return (data as any).messages as ChatMessage[];
+      }
+    } catch (err) {
+      console.error("Failed to load session:", err);
+    }
+    return null;
+  }, [user]);
+
+  // Save messages whenever they change (debounced via streaming end)
+  useEffect(() => {
+    if (!isStreaming && messages.length > 0 && selectedBook) {
+      saveSession(messages);
+    }
+  }, [isStreaming, messages.length]);
+
+  // When book is selected, load existing session or auto-start
+  useEffect(() => {
+    if (!selectedBook) return;
+    (async () => {
+      const existing = await loadExistingSession(selectedBook.id);
+      if (existing && existing.length > 0) {
+        setMessages(existing);
+        toast({ title: "Session restored", description: "Your previous conversation with Abby has been loaded." });
+      } else if (messages.length === 0) {
+        sendMessage("I'd like to build a business around my book. Please analyze my book and advise me on the best strategy.", true);
+      }
+    })();
   }, [selectedBook]);
 
   const sendMessage = useCallback(async (content: string, isAutoStart = false) => {
@@ -161,7 +222,6 @@ export default function BuildMyBusiness() {
     } catch (err: any) {
       if (!abort.signal.aborted) {
         toast({ title: "Error", description: err.message, variant: "destructive" });
-        // Remove the empty assistant message if it was added
         setMessages(prev => prev.filter((m, i) => !(i === prev.length - 1 && m.role === "assistant" && !m.content)));
       }
     } finally {
@@ -190,9 +250,36 @@ export default function BuildMyBusiness() {
     return requests;
   };
 
-  // Execute a build request
+  // Map product type to dashboard navigation
+  const getProductLink = (productType: string): { label: string; path: string } | null => {
+    if (!selectedBook) return null;
+    const base = `/dashboard/book/${selectedBook.id}`;
+    const map: Record<string, { label: string; tab: string }> = {
+      workbook: { label: "View Workbook", tab: "automate" },
+      course: { label: "View Course", tab: "automate" },
+      social: { label: "View Social Content", tab: "automate" },
+      webinar: { label: "View Webinar", tab: "automate" },
+      speaker: { label: "View Speaking Profile", tab: "broadcast" },
+      email: { label: "View Email Flows", tab: "automate" },
+    };
+    const entry = map[productType];
+    if (!entry) return null;
+    return { label: entry.label, path: `${base}?tab=${entry.tab}` };
+  };
+
+  // Execute a build request — with premium gating
   const executeBuild = async (buildReq: Record<string, string>) => {
     if (!selectedBook || !user) return;
+
+    // ─── Premium Gate ────────────────────────────────
+    if (!isPremium && !isAdmin) {
+      toast({
+        title: "Premium Required",
+        description: "You need an ABBY Premium subscription to build products. Subscribe to unlock all AI-powered builders.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     // Normalize plural/variant product types to their canonical form
     const typeMap: Record<string, string> = {
@@ -282,12 +369,18 @@ export default function BuildMyBusiness() {
         console.error("Populate error:", err);
       }
 
+      // Get navigation link for the built product
+      const productLink = getProductLink(toolType);
+      const linkText = productLink
+        ? `\n\n👉 [${productLink.label} →](${productLink.path})`
+        : "";
+
       toast({ title: "Build complete! ✅", description: `${toolType} has been generated and saved.` });
 
-      // Add confirmation to chat
+      // Add confirmation to chat with navigation link
       setMessages(prev => [...prev, {
         role: "assistant",
-        content: `✅ **${toolType.charAt(0).toUpperCase() + toolType.slice(1)} has been built successfully!**\n\nThe content has been generated and saved to your library. You can view and edit it in the corresponding section of your dashboard.\n\nWould you like me to build the next recommended product, or would you like to discuss your strategy further?`,
+        content: `✅ **${toolType.charAt(0).toUpperCase() + toolType.slice(1)} has been built successfully!**\n\nThe content has been generated and saved to your book's project.${linkText}\n\nWould you like me to build the next recommended product, or would you like to discuss your strategy further?`,
       }]);
     } catch (err: any) {
       toast({ title: "Build failed", description: err.message, variant: "destructive" });
@@ -330,9 +423,16 @@ export default function BuildMyBusiness() {
     }
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
+    // Mark current session as inactive
+    if (sessionId) {
+      await cloudSupabase.from("consultation_sessions" as any)
+        .update({ is_active: false } as any)
+        .eq("id", sessionId);
+    }
     setMessages([]);
     setSelectedBook(null);
+    setSessionId(null);
     setInput("");
   };
 
@@ -381,7 +481,7 @@ export default function BuildMyBusiness() {
             <BookOpen className="h-10 w-10 text-muted-foreground/30 mb-4" />
             <h3 className="font-heading font-semibold mb-2">No books found</h3>
             <p className="text-sm text-muted-foreground">
-              Add a book in "My Books" first, then return here to start your business strategy.
+              Add a book in "My Books Hub" first, then return here to start your business strategy.
             </p>
           </Card>
         ) : (
@@ -477,42 +577,66 @@ export default function BuildMyBusiness() {
                 {/* Build Request Cards */}
                 {buildRequests.length > 0 && (
                   <div className="mt-4 space-y-3">
-                    {buildRequests.map((req, i) => (
-                      <Card key={i} className="border-secondary/30 bg-background">
-                        <CardContent className="p-4">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Wrench className="h-4 w-4 text-secondary" />
-                            <span className="font-heading font-semibold text-sm">
-                              Ready to Build: {req.product_type?.charAt(0).toUpperCase() + req.product_type?.slice(1)}
-                            </span>
-                          </div>
-                          {req.target_audience && (
-                            <p className="text-xs text-muted-foreground mb-1">Audience: {req.target_audience}</p>
-                          )}
-                          {req.pricing_strategy && (
-                            <p className="text-xs text-muted-foreground mb-3">Pricing: {req.pricing_strategy}</p>
-                          )}
-                          <Button
-                            size="sm"
-                            className="w-full gap-2"
-                            onClick={() => executeBuild(req)}
-                            disabled={!!isBuilding}
-                          >
-                            {isBuilding === req.product_type ? (
-                              <>
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                Building…
-                              </>
-                            ) : (
-                              <>
-                                <Rocket className="h-3.5 w-3.5" />
-                                Approve & Build
-                              </>
+                    {buildRequests.map((req, i) => {
+                      const canBuild = isPremium || isAdmin;
+                      return (
+                        <Card key={i} className="border-secondary/30 bg-background">
+                          <CardContent className="p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Wrench className="h-4 w-4 text-secondary" />
+                              <span className="font-heading font-semibold text-sm">
+                                Ready to Build: {req.product_type?.charAt(0).toUpperCase() + req.product_type?.slice(1)}
+                              </span>
+                            </div>
+                            {req.target_audience && (
+                              <p className="text-xs text-muted-foreground mb-1">Audience: {req.target_audience}</p>
                             )}
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    ))}
+                            {req.pricing_strategy && (
+                              <p className="text-xs text-muted-foreground mb-3">Pricing: {req.pricing_strategy}</p>
+                            )}
+                            {canBuild ? (
+                              <Button
+                                size="sm"
+                                className="w-full gap-2"
+                                onClick={() => executeBuild(req)}
+                                disabled={!!isBuilding}
+                              >
+                                {isBuilding === req.product_type ? (
+                                  <>
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    Building…
+                                  </>
+                                ) : (
+                                  <>
+                                    <Rocket className="h-3.5 w-3.5" />
+                                    Approve & Build
+                                  </>
+                                )}
+                              </Button>
+                            ) : (
+                              <div className="space-y-2">
+                                <p className="text-xs text-amber-600 font-medium flex items-center gap-1.5">
+                                  <Crown className="h-3.5 w-3.5" />
+                                  ABBY Premium required to build
+                                </p>
+                                <Button
+                                  size="sm"
+                                  className="w-full gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                                  onClick={handleSubscribe}
+                                  disabled={checkoutLoading}
+                                >
+                                  {checkoutLoading ? (
+                                    <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Opening checkout…</>
+                                  ) : (
+                                    <><Crown className="h-3.5 w-3.5" /> Subscribe to Build</>
+                                  )}
+                                </Button>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 )}
 
