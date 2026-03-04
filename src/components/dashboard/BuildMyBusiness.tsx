@@ -305,9 +305,30 @@ export default function BuildMyBusiness() {
           <h2 className="font-heading text-2xl font-bold mb-1">Meet Abby</h2>
           <p className="text-sm text-secondary font-medium mb-2">Your AI Business Consultant</p>
           <p className="text-muted-foreground text-sm leading-relaxed">
-            Hi! I'm Abby, your personal business strategist. Pick a book and I'll walk you through a tailored plan to turn it into a thriving business — one step at a time.
+            Hi! I'm Abby. I'll help you turn your book into a complete business using our proven 4-Step Monetization Framework.
           </p>
         </div>
+
+        {/* 4-Step Framework Overview */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto">
+          {[
+            { step: "1", label: "Digital Products", desc: "Courses, workbooks, webinars & more", icon: "📦" },
+            { step: "2", label: "Coaching", desc: "1-on-1, group coaching & consulting", icon: "🎯" },
+            { step: "3", label: "Speaking", desc: "Keynotes, podcasts & corporate gigs", icon: "🎤" },
+            { step: "4", label: "Seminars", desc: "Retreats, certifications & masterminds", icon: "🏛️" },
+          ].map((s) => (
+            <div key={s.step} className="bg-muted/50 rounded-xl p-3 text-center border border-border">
+              <div className="text-2xl mb-1">{s.icon}</div>
+              <p className="text-[10px] font-semibold text-secondary uppercase tracking-wider">Step {s.step}</p>
+              <p className="font-heading text-sm font-bold mt-0.5">{s.label}</p>
+              <p className="text-[11px] text-muted-foreground mt-1 leading-tight">{s.desc}</p>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-center text-xs text-muted-foreground max-w-md mx-auto">
+          Your book is the hook. Abby will guide you through each step — select a book below to begin your consultation.
+        </p>
 
         {loadingBooks ? (
           <div className="flex items-center justify-center py-12 text-muted-foreground">
