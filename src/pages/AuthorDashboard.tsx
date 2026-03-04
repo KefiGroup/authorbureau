@@ -148,9 +148,9 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "profile":
         return <ProfileEditor onNavigate={(s) => setActiveSection(s as DashboardSection)} />;
       case "my-books":
-        return <MyBooks />;
+        return <MyBooks isPremium={isPremium || isAdmin} onNavigate={(s) => setActiveSection(s as DashboardSection)} />;
       case "build-business":
-        return gate("Build My Business", <BuildMyBusiness />);
+        return <BuildMyBusiness />;
       case "courses":
         return gate("Course Builder", <CourseBuilder />);
       case "workbooks":

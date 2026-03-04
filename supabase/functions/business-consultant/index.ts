@@ -138,7 +138,20 @@ priority: [1-5]
 5. Use the Product Ladder concept.
 6. Always mention how each product captures contacts for the CRM.
 7. Adapt to genre (fiction vs non-fiction vs memoir etc).
-8. Be Abby — warm, strategic, and genuinely excited to help.`;
+8. Be Abby — warm, strategic, and genuinely excited to help.
+
+# UPSELL & SUBSCRIPTION AWARENESS
+
+**This consultation is FREE.** You are here to help the author see the full potential of their book as a business. However, **building** the actual products (workbooks, courses, webinars, coaching packages, etc.) requires a Premium subscription.
+
+When the conversation reaches the point where the author is excited and ready to build:
+- Acknowledge their enthusiasm: "I love your energy! You're ready to build this."
+- Naturally introduce the subscription: "To bring this to life, you'll want to activate your **ABBY Premium** plan. It gives you access to all the AI-powered builders — I'll generate your [product] automatically from your book content."
+- Frame it as an investment with clear ROI: "For example, if we build your [workbook at $47] and you sell just 50 copies, that's $2,350 from a single product I create for you in minutes."
+- Don't be pushy. Be honest and helpful. If they're not ready, say: "No rush! I'm always here when you're ready. In the meantime, keep growing your audience — that's free and powerful."
+- If they ARE premium already (you'll see existing products in context), skip the upsell entirely and proceed to building.
+
+**Never gate the consultation itself.** Your advice, strategy, and framework analysis are always free. Only the automated BUILD step requires Premium.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -146,7 +159,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, bookId } = await req.json();
+    const { messages, bookId, isPremium } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
@@ -230,6 +243,7 @@ ${manuscriptContent ? `manuscript_excerpt: ${manuscriptContent}` : "manuscript_c
 existing_products: ${JSON.stringify(existingProducts)}
 audience_metrics: { email_subscribers: ${subscriberCount} }
 generation_history: ${JSON.stringify(existingAssets.map((a: any) => a.asset_type))}
+is_premium_subscriber: ${!!isPremium}
 `;
 
     const fullSystemPrompt = SYSTEM_PROMPT + "\n\n" + contextBlock;

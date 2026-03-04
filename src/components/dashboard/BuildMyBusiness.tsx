@@ -37,7 +37,7 @@ async function getActiveToken(): Promise<string | null> {
 }
 
 export default function BuildMyBusiness() {
-  const { user } = useAuth();
+  const { user, isPremium, isAdmin } = useAuth();
   const { toast } = useToast();
   const [books, setBooks] = useState<Book[]>([]);
   const [loadingBooks, setLoadingBooks] = useState(true);
@@ -108,6 +108,7 @@ export default function BuildMyBusiness() {
         body: JSON.stringify({
           messages: updatedMessages,
           bookId: selectedBook.id,
+          isPremium: isPremium || isAdmin,
         }),
         signal: abort.signal,
       });
