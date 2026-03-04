@@ -165,15 +165,21 @@ export default function WorkbooksManager() {
                 }}>
                   <Edit3 className="h-3.5 w-3.5 mr-1.5" /> Edit
                 </Button>
+                <Button variant="outline" size="sm" onClick={() => {
+                  navigator.clipboard.writeText(selected.content_markdown);
+                  toast.success("Workbook content copied to clipboard!");
+                }}>
+                  <FileText className="h-3.5 w-3.5 mr-1.5" /> Copy Content
+                </Button>
                 <Button variant="outline" size="sm" onClick={() => handleDownload(selected)}>
-                  <Download className="h-3.5 w-3.5 mr-1.5" /> Download
+                  <Download className="h-3.5 w-3.5 mr-1.5" /> Download .md
                 </Button>
                 <Button size="sm" onClick={handlePublishViaPublishNow} disabled={publishingSSO}>
                   {publishingSSO
                     ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
                     : <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
                   }
-                  Publish via AI Publishing Studio
+                  Open AI Publishing Studio
                 </Button>
               </>
             )}
@@ -217,6 +223,10 @@ export default function WorkbooksManager() {
                 <Badge variant={selected.status === "published" ? "default" : "secondary"}>
                   {selected.status}
                 </Badge>
+              </div>
+              <div className="px-6 py-3 border-b border-border bg-amber-50/60 text-xs text-amber-800 flex items-center gap-2">
+                <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                <span>To publish as a book: <strong>Copy Content</strong> or <strong>Download .md</strong>, then paste into the "Add Creations" dialog in AI Publishing Studio.</span>
               </div>
               <div className="px-6 py-6">
                 <MarkdownRenderer content={selected.content_markdown} />
