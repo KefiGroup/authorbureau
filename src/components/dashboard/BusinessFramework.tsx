@@ -133,7 +133,7 @@ export default function BusinessFramework({ onNavigate, isPremium }: Props) {
       {/* Title */}
       <div className="text-center space-y-1">
       <h1 className="font-heading text-3xl md:text-4xl font-bold">
-          The <span className="text-gradient-gold">ABBY Framework</span>
+          Build Your <span className="text-gradient-gold">ABBY Monetization Framework</span>
         </h1>
         <p className="text-muted-foreground text-sm max-w-lg mx-auto">
           <strong>A</strong>utomate · <strong>B</strong>uild · <strong>B</strong>roadcast · <strong>Y</strong>ield — your complete journey from published author to thriving business owner.
