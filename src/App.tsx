@@ -55,7 +55,7 @@ const AppRoutes = () => (
       <Route path="/directory" element={<Directory />} />
       <Route path="/authors/:slug" element={<AuthorProfile />} />
       <Route path="/books/:slug" element={<DynamicBookMicrosite />} />
-      <Route path="/create-microsite" element={<ProtectedRoute><CreateMicrosite /></ProtectedRoute>} />
+      <Route path="/create-microsite" element={<CreateMicrosite />} />
       <Route path="/join" element={<Join />} />
       <Route path="/auth" element={<Auth />} />
       <Route path="/admin-login" element={<AdminAuth />} />
