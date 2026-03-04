@@ -144,7 +144,6 @@ export default function StepDetailView({ stepId, onNavigate, isPremium }: Props)
           {stepData.id === "step-1" && (
             <p className="text-xs text-muted-foreground mt-0.5">Products numbered in recommended build sequence</p>
           )}
-          <h1 className="font-heading text-2xl md:text-3xl font-bold">{stepData.subtitle}</h1>
         </div>
         <div className="ml-auto flex items-center gap-2">
           <span className={`text-xs font-medium rounded-full px-3 py-1 ${stepData.bgColor} ${stepData.color}`}>

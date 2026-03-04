@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
-import { Share2, Loader2, Eye } from "lucide-react";
+import { Share2, Loader2, Eye, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import SocialMediaStudio from "./social-media/SocialMediaStudio";
 
 interface SocialContent {
   id: string;
@@ -22,20 +23,25 @@ export default function SocialMediaManager() {
   const [content, setContent] = useState<SocialContent[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showStudio, setShowStudio] = useState(false);
 
-  useEffect(() => {
+  const loadContent = async () => {
     if (!user) return;
-    (async () => {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("social_media_content" as any)
-        .select("*")
-        .eq("author_id", user.id)
-        .order("created_at", { ascending: false });
-      if (!error && data) setContent(data as any);
-      setLoading(false);
-    })();
-  }, [user]);
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("social_media_content" as any)
+      .select("*")
+      .eq("author_id", user.id)
+      .order("created_at", { ascending: false });
+    if (!error && data) setContent(data as any);
+    setLoading(false);
+  };
+
+  useEffect(() => { loadContent(); }, [user]);
+
+  if (showStudio) {
+    return <SocialMediaStudio onExit={() => { setShowStudio(false); loadContent(); }} />;
+  }
 
   const selected = content.find(c => c.id === selectedId);
 
@@ -46,14 +52,16 @@ export default function SocialMediaManager() {
   if (content.length === 0) {
     return (
       <div className="max-w-2xl mx-auto py-16 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-pink-50 flex items-center justify-center mx-auto mb-6">
-          <Share2 className="h-8 w-8 text-pink-600" />
+        <div className="w-16 h-16 rounded-2xl bg-secondary/10 flex items-center justify-center mx-auto mb-6">
+          <Share2 className="h-8 w-8 text-secondary" />
         </div>
-        <h2 className="font-heading text-2xl font-bold mb-3">Social Media Content</h2>
+        <h2 className="font-heading text-2xl font-bold mb-3">Social Media Content Calendar</h2>
         <p className="text-muted-foreground text-sm leading-relaxed max-w-lg mx-auto mb-6">
-          A 90-day social media content calendar will appear here after running "Build My Author Business." Posts are platform-specific for Facebook, Instagram, LinkedIn, and X.
+          Generate a 90-day AI-powered content calendar from your book. The AI reads your manuscript and creates platform-specific posts for LinkedIn, Instagram, X, and Facebook.
         </p>
-        <Badge variant="secondary">Generate from AI Engine → Build My Business</Badge>
+        <Button onClick={() => setShowStudio(true)} className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
+          <Plus className="h-4 w-4 mr-2" /> Create Content Calendar
+        </Button>
       </div>
     );
   }
@@ -75,13 +83,21 @@ export default function SocialMediaManager() {
 
   return (
     <div className="max-w-4xl space-y-6">
-      <div><h2 className="font-heading text-2xl font-bold">Social Media Content</h2><p className="text-sm text-muted-foreground mt-1">{content.length} calendar{content.length !== 1 ? "s" : ""}</p></div>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="font-heading text-2xl font-bold">Social Media Content</h2>
+          <p className="text-sm text-muted-foreground mt-1">{content.length} post{content.length !== 1 ? "s" : ""}</p>
+        </div>
+        <Button onClick={() => setShowStudio(true)} className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
+          <Plus className="h-4 w-4 mr-2" /> New Calendar
+        </Button>
+      </div>
       <div className="grid gap-4">
         {content.map(c => (
           <Card key={c.id} className="cursor-pointer hover:shadow-md hover:border-primary/20 transition-all" onClick={() => setSelectedId(c.id)}>
             <CardContent className="p-4 flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-lg bg-pink-50 flex items-center justify-center shrink-0"><Share2 className="h-5 w-5 text-pink-600" /></div>
+                <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center shrink-0"><Share2 className="h-5 w-5 text-secondary" /></div>
                 <div>
                   <h3 className="font-medium text-sm">Social Media Calendar</h3>
                   <p className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</p>

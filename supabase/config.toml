@@ -49,3 +49,5 @@ project_id = "tubpbslfrxyfhldkcyyq"
     verify_jwt = false
   [functions.upload-book-cover]
     verify_jwt = false
+  [functions.generate-social-content]
+    verify_jwt = false
