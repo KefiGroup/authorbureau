@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
-import { FileText, Loader2, Edit3, Eye, Download, CheckCircle2, Save, X } from "lucide-react";
+import { FileText, Loader2, Edit3, Eye, Download, Save, X, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
+import { redirectToPublishNow } from "@/lib/publishnow-redirect";
 
 interface Workbook {
   id: string;
@@ -97,16 +98,19 @@ export default function WorkbooksManager() {
     setSaving(false);
   };
 
-  const handlePublish = async (id: string) => {
-    const { error } = await supabase
-      .from("workbooks" as any)
-      .update({ status: "published" } as any)
-      .eq("id", id);
-    if (error) toast.error("Failed to publish");
-    else {
-      toast.success("Workbook published!");
-      fetchWorkbooks();
+  const [publishingSSO, setPublishingSSO] = useState(false);
+
+  const handlePublishViaPublishNow = async () => {
+    setPublishingSSO(true);
+    toast.info("Redirecting to AI Publishing Studio…");
+    const result = await redirectToPublishNow("/publishing");
+    if (result.error) {
+      toast.error(result.error);
+      if (result.fallbackUrl) {
+        window.open(result.fallbackUrl, "_blank");
+      }
     }
+    setPublishingSSO(false);
   };
 
   const handleDownload = (wb: Workbook) => {
@@ -164,11 +168,13 @@ export default function WorkbooksManager() {
                 <Button variant="outline" size="sm" onClick={() => handleDownload(selected)}>
                   <Download className="h-3.5 w-3.5 mr-1.5" /> Download
                 </Button>
-                {selected.status === "draft" && (
-                  <Button size="sm" onClick={() => handlePublish(selected.id)}>
-                    <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" /> Publish
-                  </Button>
-                )}
+                <Button size="sm" onClick={handlePublishViaPublishNow} disabled={publishingSSO}>
+                  {publishingSSO
+                    ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                    : <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                  }
+                  Publish via AI Publishing Studio
+                </Button>
               </>
             )}
           </div>
