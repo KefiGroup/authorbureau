@@ -16,6 +16,8 @@ interface Node {
   section?: DashboardSection;
   description: string;
   status: "live" | "coming-soon" | "planned";
+  buildOrder?: number;
+  buildReason?: string;
 }
 
 interface Step {
@@ -41,16 +43,16 @@ const steps: Step[] = [
     gradientFrom: "from-blue-500",
     gradientTo: "to-blue-600",
     nodes: [
-      { id: "social-media", label: "Social Media", icon: Share2, section: "social-media", description: "90-day AI content calendar from your book chapters — drive traffic & build authority.", status: "live" },
-      { id: "affiliates", label: "Affiliates", icon: Link2, description: "Affiliate tracking links with commission structures — grow through partnerships.", status: "planned" },
-      { id: "upsells", label: "Upsells / Downsells", icon: TrendingUp, description: "AI-generated conversion sequences in your checkout flow — maximize every sale.", status: "planned" },
-      { id: "podcast-script", label: "Podcast Scripts", icon: Podcast, description: "AI-generated podcast episode scripts from your book chapters — content marketing.", status: "planned" },
-      { id: "workbooks", label: "Workbooks", icon: FileText, section: "workbooks", description: "Companion workbook PDFs (40-80 pages) with exercises, templates & action plans.", status: "live" },
-      { id: "webinars", label: "Webinars", icon: Video, section: "webinars", description: "Complete webinar scripts + slide decks + registration pages — sell live or recorded.", status: "live" },
-      { id: "home-study", label: "Home Study Course", icon: BookMarked, description: "Self-paced study guide with daily schedules — a structured learning experience.", status: "coming-soon" },
-      { id: "audiobook", label: "Audiobook", icon: Headphones, description: "AI-generated audiobook scripts — author records or uses AI narration.", status: "coming-soon" },
-      { id: "memberships", label: "Monthly Memberships", icon: CreditCard, section: "memberships", description: "3-tier membership system — Reader Circle, Pro, VIP — with gated content drip.", status: "planned" },
-      { id: "courses", label: "Online Courses", icon: GraduationCap, section: "courses", description: "8-12 module structured courses — the biggest digital product to build later.", status: "coming-soon" },
+      { id: "social-media", label: "Social Media", icon: Share2, section: "social-media", description: "90-day AI content calendar from your book chapters — drive traffic & build authority.", status: "live", buildOrder: 1, buildReason: "Quick win — immediate value, drives audience growth that feeds all other products." },
+      { id: "workbooks", label: "Workbooks", icon: FileText, section: "workbooks", description: "Companion workbook PDFs (40-80 pages) with exercises, templates & action plans.", status: "live", buildOrder: 2, buildReason: "Quick win — simple product with high perceived value." },
+      { id: "webinars", label: "Webinars", icon: Video, section: "webinars", description: "Complete webinar scripts + slide decks + registration pages — sell live or recorded.", status: "live", buildOrder: 3, buildReason: "Lead generation engine — feeds course and coaching sales." },
+      { id: "podcast-script", label: "Podcast Scripts", icon: Podcast, description: "AI-generated podcast episode scripts from your book chapters — content marketing.", status: "planned", buildOrder: 4, buildReason: "Center asset in ABBY Framework — builds audience for everything else." },
+      { id: "courses", label: "Online Courses", icon: GraduationCap, section: "courses", description: "8-12 module structured courses — the biggest digital product revenue potential.", status: "coming-soon", buildOrder: 5, buildReason: "Highest revenue digital product." },
+      { id: "audiobook", label: "Audiobook", icon: Headphones, description: "AI-generated audiobook scripts — author records or uses AI narration.", status: "coming-soon", buildOrder: 6, buildReason: "Passive income stream for all authors." },
+      { id: "home-study", label: "Home Study Course", icon: BookMarked, description: "Self-paced study guide with daily schedules — a structured learning experience.", status: "coming-soon", buildOrder: 7, buildReason: "Complements the online course with an offline format." },
+      { id: "memberships", label: "Monthly Memberships", icon: CreditCard, section: "memberships", description: "3-tier membership system — Reader Circle, Pro, VIP — with gated content drip.", status: "planned", buildOrder: 8, buildReason: "Recurring revenue — requires existing content library to gate." },
+      { id: "affiliates", label: "Affiliates", icon: Link2, description: "Affiliate tracking links with commission structures — grow through partnerships.", status: "planned", buildOrder: 9, buildReason: "Requires existing products for affiliates to promote." },
+      { id: "upsells", label: "Upsells / Downsells", icon: TrendingUp, description: "AI-generated conversion sequences in your checkout flow — maximize every sale.", status: "planned", buildOrder: 10, buildReason: "Requires multiple products in the catalog to create sequences." },
     ],
   },
   {
@@ -139,6 +141,10 @@ export default function StepDetailView({ stepId, onNavigate, isPremium }: Props)
             {stepData.label}
           </p>
           <h1 className="font-heading text-2xl md:text-3xl font-bold">{stepData.subtitle}</h1>
+          {stepData.id === "step-1" && (
+            <p className="text-xs text-muted-foreground mt-0.5">Products numbered in recommended build sequence</p>
+          )}
+          <h1 className="font-heading text-2xl md:text-3xl font-bold">{stepData.subtitle}</h1>
         </div>
         <div className="ml-auto flex items-center gap-2">
           <span className={`text-xs font-medium rounded-full px-3 py-1 ${stepData.bgColor} ${stepData.color}`}>
@@ -174,6 +180,11 @@ export default function StepDetailView({ stepId, onNavigate, isPremium }: Props)
               animate={{ opacity: 1, y: 0 }}
               whileHover={canNavigate ? { y: -2 } : {}}
             >
+              {node.buildOrder && (
+                <div className={`absolute -top-2.5 -left-2.5 w-6 h-6 rounded-full bg-gradient-to-br ${stepData.gradientFrom} ${stepData.gradientTo} flex items-center justify-center text-white text-[10px] font-bold shadow-sm ring-2 ring-background`}>
+                  {node.buildOrder}
+                </div>
+              )}
               <div className="flex items-start gap-3">
                 <div className={`w-9 h-9 rounded-lg ${stepData.bgColor} flex items-center justify-center shrink-0`}>
                   <Icon className={`h-4 w-4 ${stepData.color}`} />
@@ -181,6 +192,9 @@ export default function StepDetailView({ stepId, onNavigate, isPremium }: Props)
                 <div className="min-w-0 flex-1">
                   <h4 className="font-semibold text-sm truncate">{node.label}</h4>
                   <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 mt-1">{node.description}</p>
+                  {node.buildReason && (
+                    <p className="text-[10px] text-muted-foreground/70 italic leading-snug mt-1 line-clamp-1">{node.buildReason}</p>
+                  )}
                   <div className="flex items-center gap-2 mt-2">
                     <span className={`text-[10px] font-medium rounded-full px-2 py-0.5 ${status.className}`}>
                       {status.badge}
