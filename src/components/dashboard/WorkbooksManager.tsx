@@ -8,9 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
-import { FileText, Loader2, Edit3, Eye, Download, Save, X, ExternalLink } from "lucide-react";
+import { FileText, Loader2, Edit3, Eye, Download, Save, X, ExternalLink, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { redirectToPublishNow } from "@/lib/publishnow-redirect";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface Workbook {
   id: string;
@@ -113,14 +116,64 @@ export default function WorkbooksManager() {
     setPublishingSSO(false);
   };
 
-  const handleDownload = (wb: Workbook) => {
+  const fileSlug = (title: string) => title.toLowerCase().replace(/\s+/g, "-");
+
+  const handleDownloadMd = (wb: Workbook) => {
     const blob = new Blob([wb.content_markdown], { type: "text/markdown" });
+    downloadBlob(blob, `${fileSlug(wb.title)}.md`);
+  };
+
+  const handleDownloadPdf = async (wb: Workbook) => {
+    toast.info("Generating PDF…");
+    const html2pdf = (await import("html2pdf.js")).default;
+    const container = document.createElement("div");
+    container.style.padding = "40px";
+    container.style.fontFamily = "Georgia, serif";
+    container.style.fontSize = "12pt";
+    container.style.lineHeight = "1.6";
+    container.innerHTML = markdownToHtml(wb.content_markdown);
+    document.body.appendChild(container);
+    await html2pdf().set({
+      margin: [15, 15],
+      filename: `${fileSlug(wb.title)}.pdf`,
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+    }).from(container).save();
+    document.body.removeChild(container);
+    toast.success("PDF downloaded!");
+  };
+
+  const handleDownloadDocx = async (wb: Workbook) => {
+    toast.info("Generating DOCX…");
+    const { asBlob } = await import("html-docx-js-typescript");
+    const htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:Georgia,serif;font-size:12pt;line-height:1.6;}</style></head><body>${markdownToHtml(wb.content_markdown)}</body></html>`;
+    const blob = await asBlob(htmlContent) as Blob;
+    downloadBlob(blob, `${fileSlug(wb.title)}.docx`);
+    toast.success("DOCX downloaded!");
+  };
+
+  const downloadBlob = (blob: Blob, filename: string) => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${wb.title.toLowerCase().replace(/\s+/g, "-")}.md`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const markdownToHtml = (md: string): string => {
+    // Simple markdown-to-HTML conversion for export
+    return md
+      .replace(/^### (.+)$/gm, "<h3>$1</h3>")
+      .replace(/^## (.+)$/gm, "<h2>$1</h2>")
+      .replace(/^# (.+)$/gm, "<h1>$1</h1>")
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*(.+?)\*/g, "<em>$1</em>")
+      .replace(/^- (.+)$/gm, "<li>$1</li>")
+      .replace(/(<li>.*<\/li>\n?)+/g, (m) => `<ul>${m}</ul>`)
+      .replace(/^\d+\. (.+)$/gm, "<li>$1</li>")
+      .replace(/\n\n/g, "<br/><br/>")
+      .replace(/\n/g, "<br/>");
   };
 
   if (loading) {
@@ -171,9 +224,18 @@ export default function WorkbooksManager() {
                 }}>
                   <FileText className="h-3.5 w-3.5 mr-1.5" /> Copy Content
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => handleDownload(selected)}>
-                  <Download className="h-3.5 w-3.5 mr-1.5" /> Download .md
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Download className="h-3.5 w-3.5 mr-1.5" /> Download <ChevronDown className="h-3 w-3 ml-1" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleDownloadMd(selected)}>Download .md</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleDownloadPdf(selected)}>Download .pdf</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleDownloadDocx(selected)}>Download .docx</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Button size="sm" onClick={handlePublishViaPublishNow} disabled={publishingSSO}>
                   {publishingSSO
                     ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
@@ -226,7 +288,7 @@ export default function WorkbooksManager() {
               </div>
               <div className="px-6 py-3 border-b border-border bg-amber-50/60 text-xs text-amber-800 flex items-center gap-2">
                 <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-                <span>To publish as a book: <strong>Copy Content</strong> or <strong>Download .md</strong>, then paste into the "Add Creations" dialog in AI Publishing Studio.</span>
+                <span>To publish as a book: <strong>Copy Content</strong> or <strong>Download</strong> (.md / .pdf / .docx), then paste into the "Add Creations" dialog in AI Publishing Studio.</span>
               </div>
               <div className="px-6 py-6">
                 <MarkdownRenderer content={selected.content_markdown} />
