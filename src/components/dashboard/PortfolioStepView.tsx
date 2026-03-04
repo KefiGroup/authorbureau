@@ -268,7 +268,7 @@ export default function PortfolioStepView({ stepId }: Props) {
       <div className="rounded-xl bg-muted/50 border border-border p-4 text-center">
         <p className="text-xs text-muted-foreground leading-relaxed max-w-lg mx-auto">
           <strong>All Books View:</strong> This page shows {step.subtitle.toLowerCase()} across all your books.
-          To build or manage products for a specific book, go to <strong>My Books</strong> and click into it.
+          To build or manage products for a specific book, go to <strong>My Books Hub</strong> and click into it.
         </p>
       </div>
     </div>

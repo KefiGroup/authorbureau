@@ -29,7 +29,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { id: "overview", label: "ABBY Framework", icon: LayoutDashboard },
   { id: "profile", label: "Author Profile", icon: User },
-  { id: "my-books", label: "My Books", icon: BookOpen },
+  { id: "my-books", label: "My Books Hub", icon: BookOpen },
   { id: "build-business", label: "Consult Abby", icon: Sparkles, premiumOnly: true },
   { id: "step-1" as DashboardSection, label: "A · Automate", icon: Package, premiumOnly: true, stepColor: "text-blue-500" },
   { id: "step-2" as DashboardSection, label: "B · Build", icon: UsersIcon, premiumOnly: true, stepColor: "text-amber-600" },
