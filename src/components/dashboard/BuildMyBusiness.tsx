@@ -305,21 +305,21 @@ export default function BuildMyBusiness() {
           <h2 className="font-heading text-2xl font-bold mb-1">Meet Abby</h2>
           <p className="text-sm text-secondary font-medium mb-2">Your AI Business Consultant</p>
           <p className="text-muted-foreground text-sm leading-relaxed">
-            Hi! I'm Abby. I'll help you turn your book into a complete business using our proven 4-Step Monetization Framework.
+            Hi! I'm Abby. I'll help you turn your book into a complete business using The ABBY Framework — <strong>A</strong>utomate, <strong>B</strong>uild, <strong>B</strong>roadcast, <strong>Y</strong>ield.
           </p>
         </div>
 
         {/* 4-Step Framework Overview */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto">
           {[
-            { step: "1", label: "Digital Products", desc: "Courses, workbooks, webinars & more", icon: "📦" },
-            { step: "2", label: "Coaching", desc: "1-on-1, group coaching & consulting", icon: "🎯" },
-            { step: "3", label: "Speaking", desc: "Keynotes, podcasts & corporate gigs", icon: "🎤" },
-            { step: "4", label: "Seminars", desc: "Retreats, certifications & masterminds", icon: "🏛️" },
-          ].map((s) => (
-            <div key={s.step} className="bg-muted/50 rounded-xl p-3 text-center border border-border">
+            { step: "A", label: "Automate", desc: "Courses, workbooks, webinars & more", icon: "📦", color: "text-blue-500" },
+            { step: "B", label: "Build", desc: "1-on-1, group coaching & consulting", icon: "🎯", color: "text-amber-600" },
+            { step: "B", label: "Broadcast", desc: "Keynotes, podcasts & corporate gigs", icon: "🎤", color: "text-rose-500" },
+            { step: "Y", label: "Yield", desc: "Retreats, certifications & masterminds", icon: "🏛️", color: "text-emerald-500" },
+          ].map((s, i) => (
+            <div key={i} className="bg-muted/50 rounded-xl p-3 text-center border border-border">
               <div className="text-2xl mb-1">{s.icon}</div>
-              <p className="text-[10px] font-semibold text-secondary uppercase tracking-wider">Step {s.step}</p>
+              <p className={`text-[10px] font-semibold uppercase tracking-wider ${s.color}`}>{s.step}</p>
               <p className="font-heading text-sm font-bold mt-0.5">{s.label}</p>
               <p className="text-[11px] text-muted-foreground mt-1 leading-tight">{s.desc}</p>
             </div>
@@ -327,7 +327,7 @@ export default function BuildMyBusiness() {
         </div>
 
         <p className="text-center text-xs text-muted-foreground max-w-md mx-auto">
-          Your book is the hook. Abby will guide you through each step — select a book below to begin your consultation.
+          Your book is the hook. Abby will walk you through The ABBY Framework — select a book below to begin your consultation.
         </p>
 
         {loadingBooks ? (
