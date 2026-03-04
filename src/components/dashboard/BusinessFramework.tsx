@@ -40,7 +40,7 @@ interface Step {
 const steps: Step[] = [
   {
     id: "step-1",
-    label: "Step 1",
+    label: "A · Automate",
     subtitle: "Digital Products",
     color: "text-blue-600",
     bgColor: "bg-blue-500/10",
@@ -64,7 +64,7 @@ const steps: Step[] = [
   },
   {
     id: "step-2",
-    label: "Step 2",
+    label: "B · Build",
     subtitle: "Coaching & Consulting",
     color: "text-amber-600",
     bgColor: "bg-amber-500/10",
@@ -81,7 +81,7 @@ const steps: Step[] = [
   },
   {
     id: "step-3",
-    label: "Step 3",
+    label: "B · Broadcast",
     subtitle: "Speaking",
     color: "text-rose-500",
     bgColor: "bg-rose-500/10",
@@ -102,7 +102,7 @@ const steps: Step[] = [
   },
   {
     id: "step-4",
-    label: "Step 4",
+    label: "Y · Yield",
     subtitle: "Seminars & Events",
     color: "text-emerald-500",
     bgColor: "bg-emerald-500/10",
@@ -132,11 +132,11 @@ export default function BusinessFramework({ onNavigate, isPremium }: Props) {
     <div className="max-w-6xl space-y-6">
       {/* Title */}
       <div className="text-center space-y-1">
-        <h1 className="font-heading text-3xl md:text-4xl font-bold">
-          Your Author <span className="text-gradient-gold">Business Framework</span>
+      <h1 className="font-heading text-3xl md:text-4xl font-bold">
+          The <span className="text-gradient-gold">ABBY Framework</span>
         </h1>
         <p className="text-muted-foreground text-sm max-w-lg mx-auto">
-          A complete journey from published author to thriving business owner.
+          <strong>A</strong>utomate · <strong>B</strong>uild · <strong>B</strong>roadcast · <strong>Y</strong>ield — your complete journey from published author to thriving business owner.
         </p>
       </div>
 
@@ -246,7 +246,7 @@ export default function BusinessFramework({ onNavigate, isPremium }: Props) {
       >
         <div className="flex items-center justify-center gap-2 mb-5">
           <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground bg-muted/50 rounded-full px-3 py-1">
-            4-Step Monetization Framework
+            The ABBY Framework
           </span>
         </div>
 
@@ -357,10 +357,12 @@ export default function BusinessFramework({ onNavigate, isPremium }: Props) {
         transition={{ delay: 0.5 }}
       >
         <p className="text-xs text-muted-foreground leading-relaxed max-w-lg mx-auto">
-          <strong>The journey:</strong> Reader buys your book → visits your microsite → downloads a free workbook →
-          enrolls in your course → joins coaching → attends your retreat → enters your mastermind.
+          <strong>The ABBY journey:</strong> <strong>A</strong>utomate your book into digital products →
+          <strong>B</strong>uild high-touch coaching relationships →
+          <strong>B</strong>roadcast your expertise through speaking →
+          <strong>Y</strong>ield premium returns through events.
           <br />
-          <span className="text-secondary font-medium">Abby maps out exactly which step to build first.</span>
+          <span className="text-secondary font-medium">Abby will walk you through the ABBY Framework — turning your book into a business with 27 revenue streams.</span>
         </p>
       </motion.div>
     </div>
