@@ -7,8 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import {
   Rocket, BookOpen, Loader2, Send, ArrowLeft, Sparkles, User, RotateCcw,
-  Wrench, MessageCircleHeart,
+  Wrench, MessageCircleHeart, Crown,
 } from "lucide-react";
+import { TIERS } from "@/hooks/useAuth";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 
@@ -295,6 +296,33 @@ export default function BuildMyBusiness() {
     }
   };
 
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+
+  const handleSubscribe = async () => {
+    setCheckoutLoading(true);
+    try {
+      const token = await getActiveToken();
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ priceId: TIERS.premium.price_id }),
+        }
+      );
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result.error);
+      if (result.url) window.open(result.url, "_blank");
+    } catch (err: any) {
+      toast({ title: "Checkout failed", description: err.message, variant: "destructive" });
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -420,8 +448,12 @@ export default function BuildMyBusiness() {
           if (idx === 0 && msg.role === "user" && msg.content.includes("I'd like to build a business")) return null;
 
           const buildRequests = msg.role === "assistant" ? parseBuildRequests(msg.content) : [];
-          // Clean BUILD_REQUEST blocks from displayed content
-          const displayContent = msg.content.replace(/===BUILD_REQUEST===[\s\S]*?===END_BUILD_REQUEST===/g, "").trim();
+          const hasSubscribeCta = msg.role === "assistant" && msg.content.includes("===SUBSCRIBE_CTA===");
+          // Clean BUILD_REQUEST and SUBSCRIBE_CTA blocks from displayed content
+          const displayContent = msg.content
+            .replace(/===BUILD_REQUEST===[\s\S]*?===END_BUILD_REQUEST===/g, "")
+            .replace(/===SUBSCRIBE_CTA===/g, "")
+            .trim();
 
           return (
             <div key={idx} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : ""}`}>
@@ -481,6 +513,37 @@ export default function BuildMyBusiness() {
                         </CardContent>
                       </Card>
                     ))}
+                  </div>
+                )}
+
+                {/* Subscribe CTA */}
+                {hasSubscribeCta && !(isPremium || isAdmin) && (
+                  <div className="mt-4">
+                    <Card className="border-secondary/30 bg-gradient-to-r from-secondary/5 to-secondary/10">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Crown className="h-4 w-4 text-secondary" />
+                          <span className="font-heading font-semibold text-sm">
+                            Activate ABBY Premium
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mb-3">
+                          Unlock all AI-powered builders to turn Abby's strategy into real products — courses, workbooks, webinars, and more, generated automatically from your book.
+                        </p>
+                        <Button
+                          size="sm"
+                          className="w-full gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                          onClick={handleSubscribe}
+                          disabled={checkoutLoading}
+                        >
+                          {checkoutLoading ? (
+                            <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Opening checkout…</>
+                          ) : (
+                            <><Crown className="h-3.5 w-3.5" /> Subscribe & Start Building</>
+                          )}
+                        </Button>
+                      </CardContent>
+                    </Card>
                   </div>
                 )}
               </div>
