@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import {
   BookOpen, Mic, Podcast, GraduationCap, FileText, Video,
   Share2, CreditCard, Users, Trophy, Building2,
@@ -108,9 +109,19 @@ interface Props {
 }
 
 export default function BookHubStepTab({ stepId, bookId, isPremium }: Props) {
+  const navigate = useNavigate();
   const stepData = stepConfigs.find((s) => s.id === stepId);
   if (!stepData) return null;
 
+  const getStudioPath = (nodeId: string): string | null => {
+    const map: Record<string, string> = {
+      "social-media": "/dashboard?section=social-media",
+      workbooks: `/dashboard?section=workbooks&bookId=${bookId}`,
+      webinars: "/dashboard?section=webinars",
+    };
+
+    return map[nodeId] || null;
+  };
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -145,18 +156,32 @@ export default function BookHubStepTab({ stepId, bookId, isPremium }: Props) {
           const status = statusStyles[node.status];
           const Icon = iconMap[node.iconName] || BookOpen;
           const canOpen = node.status === "live";
+          const studioPath = getStudioPath(node.id);
+          const isClickable = canOpen && Boolean(studioPath);
 
           return (
             <motion.div
               key={node.id}
               className={`group relative rounded-xl border p-4 transition-all ${
-                canOpen
+                isClickable
                   ? "border-border hover:border-muted-foreground/30 hover:shadow-md cursor-pointer"
                   : "border-border/50 opacity-75"
               }`}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              whileHover={canOpen ? { y: -2 } : {}}
+              whileHover={isClickable ? { y: -2 } : {}}
+              onClick={() => {
+                if (studioPath) navigate(studioPath);
+              }}
+              role={isClickable ? "button" : undefined}
+              tabIndex={isClickable ? 0 : -1}
+              onKeyDown={(e) => {
+                if (!studioPath) return;
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  navigate(studioPath);
+                }
+              }}
             >
               {node.buildOrder && (
                 <div className={`absolute -top-2.5 -left-2.5 w-6 h-6 rounded-full bg-gradient-to-br ${stepData.gradientFrom} ${stepData.gradientTo} flex items-center justify-center text-white text-[10px] font-bold shadow-sm ring-2 ring-background`}>
@@ -177,7 +202,7 @@ export default function BookHubStepTab({ stepId, bookId, isPremium }: Props) {
                     <span className={`text-[10px] font-medium rounded-full px-2 py-0.5 ${status.className}`}>
                       {status.badge}
                     </span>
-                    {canOpen && (
+                    {isClickable && (
                       <span className="text-[10px] font-medium text-primary flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         Open Studio <ArrowRight className="h-3 w-3" />
                       </span>
