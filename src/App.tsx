@@ -19,6 +19,7 @@ import Contact from "./pages/Contact";
 import ReadingClub from "./pages/ReadingClub";
 import SSO from "./pages/SSO";
 import NotFound from "./pages/NotFound";
+import BookHub from "./pages/BookHub";
 import ScrollToTop from "./components/ScrollToTop";
 
 const queryClient = new QueryClient();
@@ -61,6 +62,7 @@ const AppRoutes = () => (
       <Route path="/admin-login" element={<AdminAuth />} />
       <Route path="/admin" element={<AdminDashboard />} />
       <Route path="/dashboard" element={<AuthorDashboard />} />
+      <Route path="/dashboard/book/:bookId" element={<BookHub />} />
       <Route path="/my-books" element={<AuthorDashboard initialSection="my-books" />} />
       <Route path="/contact" element={<Contact />} />
       <Route path="/reading-club" element={<ReadingClub />} />

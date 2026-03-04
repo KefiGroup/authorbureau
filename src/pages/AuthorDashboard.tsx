@@ -115,10 +115,18 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const location = useLocation();
+  const sectionParam = searchParams.get("section") as DashboardSection | null;
   const [activeSection, setActiveSection] = useState<DashboardSection>(
-    initialSection || (location.pathname === "/my-books" ? "my-books" : "overview")
+    sectionParam || initialSection || (location.pathname === "/my-books" ? "my-books" : "overview")
   );
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Sync section from query param
+  useEffect(() => {
+    if (sectionParam && sectionParam !== activeSection) {
+      setActiveSection(sectionParam);
+    }
+  }, [sectionParam]);
 
   useEffect(() => {
     const status = searchParams.get("checkout");
