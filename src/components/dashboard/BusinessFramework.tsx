@@ -129,28 +129,98 @@ export default function BusinessFramework({ onNavigate, isPremium }: Props) {
   const activeStepData = steps.find((s) => s.id === activeStep);
 
   return (
-    <div className="max-w-6xl space-y-10">
-      {/* Hero — Abby as the Framework */}
-      <div className="text-center space-y-4">
-        <motion.div
-          className="w-20 h-20 rounded-full bg-secondary/10 flex items-center justify-center mx-auto text-3xl"
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.5 }}
-        >
-          👩‍💼
-        </motion.div>
-        <div>
-          <h1 className="font-heading text-3xl md:text-4xl font-bold">
-            Abby's <span className="text-gradient-gold">Business Framework</span>
-          </h1>
-          <p className="text-xs text-secondary font-semibold uppercase tracking-wider mt-1">
-            Authors Bureau Business Advisor
-          </p>
+    <div className="max-w-6xl space-y-6">
+      {/* Title */}
+      <div className="text-center space-y-1">
+        <h1 className="font-heading text-3xl md:text-4xl font-bold">
+          Your Author <span className="text-gradient-gold">Business Framework</span>
+        </h1>
+        <p className="text-muted-foreground text-sm max-w-lg mx-auto">
+          A complete journey from published author to thriving business owner.
+        </p>
+      </div>
+
+      {/* ═══ PHASE 1: FOUNDATION (FREE) ═══ */}
+      <motion.div
+        className="rounded-2xl border border-border bg-card p-6"
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-green-600 bg-green-500/10 rounded-full px-3 py-1">
+            Foundation · Free
+          </span>
         </div>
-        <p className="text-muted-foreground max-w-xl mx-auto text-sm leading-relaxed">
-          Your book is the <strong>hook</strong>. Abby transforms it into a complete business
-          through a proven monetization framework — from digital products to premium experiences.
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Book */}
+          <div className="flex items-center gap-3 rounded-xl border border-border p-4 bg-muted/30">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-sm flex-shrink-0">
+              <BookOpen className="h-5 w-5 text-primary-foreground" />
+            </div>
+            <div>
+              <p className="font-heading font-bold text-sm">Your Published Book</p>
+              <p className="text-[11px] text-muted-foreground">The hook that starts everything</p>
+            </div>
+          </div>
+          {/* Microsite */}
+          <div
+            className="flex items-center gap-3 rounded-xl border border-border p-4 bg-muted/30 cursor-pointer hover:border-muted-foreground/30 hover:shadow-sm transition-all"
+            onClick={() => onNavigate("my-books")}
+          >
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-sm flex-shrink-0">
+              <Globe className="h-5 w-5 text-primary-foreground" />
+            </div>
+            <div>
+              <p className="font-heading font-bold text-sm">Book Microsite</p>
+              <p className="text-[11px] text-muted-foreground">Your live landing page & sales hub</p>
+            </div>
+          </div>
+          {/* Author Profile */}
+          <div
+            className="flex items-center gap-3 rounded-xl border border-border p-4 bg-muted/30 cursor-pointer hover:border-muted-foreground/30 hover:shadow-sm transition-all"
+            onClick={() => onNavigate("profile")}
+          >
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-sm flex-shrink-0">
+              <UserCheck className="h-5 w-5 text-primary-foreground" />
+            </div>
+            <div>
+              <p className="font-heading font-bold text-sm">Author Profile</p>
+              <p className="text-[11px] text-muted-foreground">Your public credibility page</p>
+            </div>
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground mt-4 text-center">
+          ✓ Already included — your book, microsite, and author profile are live and working for you.
+        </p>
+      </motion.div>
+
+      {/* Connector */}
+      <div className="flex flex-col items-center gap-1">
+        <div className="w-px h-6 bg-gradient-to-b from-border to-secondary/40" />
+        <ArrowRight className="h-4 w-4 text-secondary rotate-90" />
+      </div>
+
+      {/* ═══ PHASE 2: ABBY'S CONSULTATION (THE BRIDGE) ═══ */}
+      <motion.div
+        className="rounded-2xl border-2 border-secondary/30 bg-gradient-to-r from-secondary/5 via-secondary/10 to-secondary/5 p-6 text-center"
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+      >
+        <div className="flex items-center justify-center gap-2 mb-3">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-secondary bg-secondary/10 rounded-full px-3 py-1">
+            Strategic Planning
+          </span>
+        </div>
+        <div className="w-16 h-16 rounded-full bg-secondary/10 flex items-center justify-center mx-auto mb-3 text-2xl">
+          👩‍💼
+        </div>
+        <h2 className="font-heading text-xl font-bold mb-1">Consult with Abby</h2>
+        <p className="text-xs text-secondary font-semibold uppercase tracking-wider mb-2">
+          Authors Bureau Business Advisor
+        </p>
+        <p className="text-muted-foreground text-sm max-w-md mx-auto mb-4 leading-relaxed">
+          Abby analyzes your book, understands your goals, and builds a personalized monetization strategy — recommending exactly which products to create first and why.
         </p>
         <motion.button
           onClick={() => onNavigate("build-business")}
@@ -158,49 +228,29 @@ export default function BusinessFramework({ onNavigate, isPremium }: Props) {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          <Sparkles className="h-4 w-4" /> Start Consultation with Abby
+          <Sparkles className="h-4 w-4" /> Start Consultation
         </motion.button>
+      </motion.div>
+
+      {/* Connector */}
+      <div className="flex flex-col items-center gap-1">
+        <div className="w-px h-6 bg-gradient-to-b from-secondary/40 to-border" />
+        <ArrowRight className="h-4 w-4 text-muted-foreground/40 rotate-90" />
       </div>
 
-      {/* The Framework Visual */}
-      <div className="relative">
-        {/* Connector line from Abby to Book */}
-        <div className="hidden md:flex justify-center mb-2">
-          <div className="w-px h-8 bg-gradient-to-b from-secondary/40 to-border" />
-        </div>
-
-        {/* The Book — Foundation */}
-        <motion.div
-          className="flex justify-center mb-6"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-6 py-4 shadow-sm">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-sm">
-              <BookOpen className="h-6 w-6 text-primary-foreground" />
-            </div>
-            <div className="text-left">
-              <p className="font-heading font-bold text-sm">Your Book</p>
-              <p className="text-xs text-muted-foreground">The foundation of your business</p>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Connector lines down */}
-        <div className="hidden md:flex justify-center mb-2">
-          <div className="w-px h-6 bg-gradient-to-b from-border to-transparent" />
-        </div>
-
-        {/* Framework Label */}
-        <div className="text-center mb-6">
-          <span className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-widest bg-muted/50 rounded-full px-4 py-1.5">
-            <ArrowRight className="h-3 w-3" /> 4-Step Monetization Framework <ArrowRight className="h-3 w-3 rotate-180" />
+      {/* ═══ PHASE 3: 4-STEP MONETIZATION FRAMEWORK ═══ */}
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+      >
+        <div className="flex items-center justify-center gap-2 mb-5">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground bg-muted/50 rounded-full px-3 py-1">
+            4-Step Monetization Framework
           </span>
         </div>
 
-        {/* 4 Steps Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
           {steps.map((step, idx) => {
             const isActive = activeStep === step.id;
             const liveCount = step.nodes.filter((n) => n.status === "live").length;
@@ -210,14 +260,14 @@ export default function BusinessFramework({ onNavigate, isPremium }: Props) {
               <motion.button
                 key={step.id}
                 onClick={() => setActiveStep(isActive ? null : step.id)}
-                className={`relative group rounded-2xl border-2 p-5 md:p-6 text-left transition-all duration-300 ${
+                className={`relative group rounded-2xl border-2 p-5 text-left transition-all duration-300 ${
                   isActive
                     ? `${step.ringColor} ring-2 border-transparent shadow-lg`
                     : "border-border hover:border-muted-foreground/20 hover:shadow-md"
                 }`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 + idx * 0.1 }}
+                transition={{ delay: 0.35 + idx * 0.08 }}
                 whileHover={{ y: -2 }}
               >
                 <div className="flex items-center justify-between mb-3">
@@ -236,7 +286,6 @@ export default function BusinessFramework({ onNavigate, isPremium }: Props) {
                   </div>
                   <ChevronRight className={`h-5 w-5 text-muted-foreground/40 transition-transform ${isActive ? "rotate-90" : "group-hover:translate-x-0.5"}`} />
                 </div>
-
                 <div className="flex items-center gap-3 text-xs">
                   <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium ${step.bgColor} ${step.color}`}>
                     {totalCount} products
@@ -245,7 +294,6 @@ export default function BusinessFramework({ onNavigate, isPremium }: Props) {
                     <span className="text-green-600 font-medium">{liveCount} live</span>
                   )}
                 </div>
-
                 <div className="flex flex-wrap gap-1.5 mt-3">
                   {step.nodes.map((node) => (
                     <div
@@ -261,7 +309,7 @@ export default function BusinessFramework({ onNavigate, isPremium }: Props) {
             );
           })}
         </div>
-      </div>
+      </motion.div>
 
       {/* Expanded Step Detail Panel */}
       <AnimatePresence mode="wait">
@@ -301,22 +349,19 @@ export default function BusinessFramework({ onNavigate, isPremium }: Props) {
         )}
       </AnimatePresence>
 
-      {/* Bottom CTA — Ask Abby */}
+      {/* Journey Summary */}
       <motion.div
-        className="rounded-2xl border border-secondary/20 bg-muted/30 p-6 text-center"
+        className="rounded-xl bg-muted/30 border border-border p-5 text-center"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.6 }}
+        transition={{ delay: 0.5 }}
       >
-        <p className="text-sm text-muted-foreground mb-3">
-          Not sure where to start? <strong>Abby will analyze your book</strong> and recommend the best path through the framework — personalized to your goals, audience, and time.
+        <p className="text-xs text-muted-foreground leading-relaxed max-w-lg mx-auto">
+          <strong>The journey:</strong> Reader buys your book → visits your microsite → downloads a free workbook →
+          enrolls in your course → joins coaching → attends your retreat → enters your mastermind.
+          <br />
+          <span className="text-secondary font-medium">Abby maps out exactly which step to build first.</span>
         </p>
-        <button
-          onClick={() => onNavigate("build-business")}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-secondary hover:text-secondary/80 transition-colors"
-        >
-          Ask Abby <ArrowRight className="h-4 w-4" />
-        </button>
       </motion.div>
     </div>
   );
