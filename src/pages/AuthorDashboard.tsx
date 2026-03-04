@@ -10,6 +10,7 @@ import SpeakingProfile from "@/components/dashboard/SpeakingProfile";
 import CoachingCRM from "@/components/dashboard/CoachingCRM";
 import DashboardOverview from "@/components/dashboard/DashboardOverview";
 import BusinessFramework from "@/components/dashboard/BusinessFramework";
+import StepDetailView from "@/components/dashboard/StepDetailView";
 import WorkbooksManager from "@/components/dashboard/WorkbooksManager";
 import WebinarsManager from "@/components/dashboard/WebinarsManager";
 import SocialMediaManager from "@/components/dashboard/SocialMediaManager";
@@ -172,12 +173,18 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "step-2":
       case "step-3":
       case "step-4":
+        return (
+          <StepDetailView
+            stepId={activeSection}
+            onNavigate={(s) => setActiveSection(s as DashboardSection)}
+            isPremium={isPremium || isAdmin}
+          />
+        );
       case "overview":
         return (
           <BusinessFramework
             onNavigate={(s) => setActiveSection(s as DashboardSection)}
             isPremium={isPremium || isAdmin}
-            focusStep={activeSection.startsWith("step-") ? activeSection : undefined}
           />
         );
 
