@@ -27,14 +27,14 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { id: "overview", label: "Business Framework", icon: LayoutDashboard },
+  { id: "overview", label: "ABBY Framework", icon: LayoutDashboard },
   { id: "profile", label: "Author Profile", icon: User },
   { id: "my-books", label: "My Books", icon: BookOpen },
   { id: "build-business", label: "AI Engine", icon: Rocket, premiumOnly: true },
-  { id: "step-1" as DashboardSection, label: "Digital Products", icon: Package, premiumOnly: true, stepColor: "text-blue-500" },
-  { id: "step-2" as DashboardSection, label: "Coaching", icon: UsersIcon, premiumOnly: true, stepColor: "text-amber-600" },
-  { id: "step-3" as DashboardSection, label: "Speaking", icon: Mic, premiumOnly: true, stepColor: "text-rose-500" },
-  { id: "step-4" as DashboardSection, label: "Seminars", icon: Building2, premiumOnly: true, stepColor: "text-emerald-500" },
+  { id: "step-1" as DashboardSection, label: "A · Automate", icon: Package, premiumOnly: true, stepColor: "text-blue-500" },
+  { id: "step-2" as DashboardSection, label: "B · Build", icon: UsersIcon, premiumOnly: true, stepColor: "text-amber-600" },
+  { id: "step-3" as DashboardSection, label: "B · Broadcast", icon: Mic, premiumOnly: true, stepColor: "text-rose-500" },
+  { id: "step-4" as DashboardSection, label: "Y · Yield", icon: Building2, premiumOnly: true, stepColor: "text-emerald-500" },
   { id: "marketing" as DashboardSection, label: "Marketing", icon: Megaphone, premiumOnly: true },
   { id: "crm" as DashboardSection, label: "CRM", icon: Contact, premiumOnly: true },
 ];
