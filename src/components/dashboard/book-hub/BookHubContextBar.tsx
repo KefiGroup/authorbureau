@@ -28,7 +28,7 @@ export default function BookHubContextBar({ book, onBack }: Props) {
         className="text-muted-foreground hover:text-foreground shrink-0"
       >
         <ArrowLeft className="h-4 w-4 mr-1" />
-        My Books
+        My Books Hub
       </Button>
 
       <div className="w-px h-8 bg-border" />
