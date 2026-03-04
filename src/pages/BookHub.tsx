@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
@@ -52,9 +52,11 @@ export default function BookHub() {
   const { bookId } = useParams<{ bookId: string }>();
   const navigate = useNavigate();
   const { user, loading: authLoading, isAdmin, isPremium, subscription, signOut } = useAuth();
+  const [searchParams] = useSearchParams();
+  const initialTab = (searchParams.get("tab") as BookHubTab) || "overview";
   const [book, setBook] = useState<BookData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<BookHubTab>("overview");
+  const [activeTab, setActiveTab] = useState<BookHubTab>(initialTab);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
