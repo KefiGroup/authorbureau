@@ -6,8 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import {
-  Rocket, BookOpen, Loader2, Send, ArrowLeft, Sparkles, Bot, User, RotateCcw,
-  Wrench, ChevronDown,
+  Rocket, BookOpen, Loader2, Send, ArrowLeft, Sparkles, User, RotateCcw,
+  Wrench, MessageCircleHeart,
 } from "lucide-react";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
@@ -299,12 +299,13 @@ export default function BuildMyBusiness() {
     return (
       <div className="max-w-4xl space-y-8">
         <div className="text-center max-w-xl mx-auto">
-          <div className="w-16 h-16 rounded-2xl bg-secondary/10 flex items-center justify-center mx-auto mb-4">
-            <Sparkles className="h-8 w-8 text-secondary" />
+          <div className="w-16 h-16 rounded-full bg-secondary/10 flex items-center justify-center mx-auto mb-4 text-2xl">
+            👩‍💼
           </div>
-          <h2 className="font-heading text-2xl font-bold mb-2">AI Business Consultant</h2>
+          <h2 className="font-heading text-2xl font-bold mb-1">Meet Abby</h2>
+          <p className="text-sm text-secondary font-medium mb-2">Your AI Business Consultant</p>
           <p className="text-muted-foreground text-sm leading-relaxed">
-            Your personal business strategist. Select a book and the AI will analyze your manuscript, recommend the best revenue streams, and help you build your author business step by step.
+            Hi! I'm Abby, your personal business strategist. Pick a book and I'll walk you through a tailored plan to turn it into a thriving business — one step at a time.
           </p>
         </div>
 
@@ -358,11 +359,11 @@ export default function BuildMyBusiness() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex items-center gap-3 flex-1 min-w-0">
-          {selectedBook.cover_image_url && (
-            <img src={selectedBook.cover_image_url} alt="" className="h-10 w-10 rounded object-cover flex-shrink-0" />
-          )}
+          <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center flex-shrink-0 text-lg">
+            👩‍💼
+          </div>
           <div className="min-w-0">
-            <h2 className="font-heading font-bold text-sm truncate">AI Business Consultant</h2>
+            <h2 className="font-heading font-bold text-sm truncate">Abby</h2>
             <p className="text-xs text-muted-foreground truncate">Strategy for: {selectedBook.title}</p>
           </div>
         </div>
@@ -390,8 +391,8 @@ export default function BuildMyBusiness() {
           return (
             <div key={idx} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : ""}`}>
               {msg.role === "assistant" && (
-                <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center flex-shrink-0 mt-1">
-                  <Bot className="h-4 w-4 text-secondary" />
+                <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center flex-shrink-0 mt-1 text-sm">
+                  👩‍💼
                 </div>
               )}
               <div className={`max-w-[85%] ${msg.role === "user"
@@ -459,13 +460,13 @@ export default function BuildMyBusiness() {
 
         {isStreaming && messages[messages.length - 1]?.role === "assistant" && !messages[messages.length - 1]?.content && (
           <div className="flex gap-3">
-            <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center flex-shrink-0">
-              <Bot className="h-4 w-4 text-secondary" />
+            <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center flex-shrink-0 text-sm">
+              👩‍💼
             </div>
             <div className="bg-muted/50 rounded-2xl rounded-bl-md px-4 py-3">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Analyzing your book and business context…
+                Abby is thinking…
               </div>
             </div>
           </div>
@@ -497,7 +498,7 @@ export default function BuildMyBusiness() {
           </Button>
         </div>
         <p className="text-[10px] text-muted-foreground mt-2 text-center">
-          AI Business Consultant • Powered by AuthorsBureau
+          Abby • AI Business Consultant by AuthorsBureau
         </p>
       </div>
     </div>
