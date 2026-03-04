@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,7 @@ interface MyBooksProps {
 export default function MyBooks({ isPremium = false, onNavigate }: MyBooksProps) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -239,7 +241,11 @@ export default function MyBooks({ isPremium = false, onNavigate }: MyBooksProps)
         <>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {books.map((book) => (
-            <Card key={book.id} className="overflow-hidden hover:shadow-[var(--shadow-card-hover)] transition-shadow group">
+            <Card
+              key={book.id}
+              className="overflow-hidden hover:shadow-[var(--shadow-card-hover)] transition-shadow group cursor-pointer"
+              onClick={() => navigate(`/dashboard/book/${book.id}`)}
+            >
               <div className="aspect-[3/2] bg-muted flex items-center justify-center overflow-hidden relative">
                 {book.cover_image_url ? (
                   <img src={book.cover_image_url} alt={book.title} className="h-full w-full object-cover" />
@@ -249,6 +255,7 @@ export default function MyBooks({ isPremium = false, onNavigate }: MyBooksProps)
                 <label
                   className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-colors cursor-pointer"
                   htmlFor={`cover-upload-${book.id}`}
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <span className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 text-white text-xs font-medium bg-black/60 rounded-full px-3 py-1.5">
                     {uploadingCover === book.id ? (
@@ -297,7 +304,7 @@ export default function MyBooks({ isPremium = false, onNavigate }: MyBooksProps)
                   <p className="text-[11px] text-muted-foreground truncate">{book.genre}</p>
                 )}
 
-                <div className="flex items-center justify-between gap-2 pt-1">
+                <div className="flex items-center justify-between gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center gap-2">
                     {book.published_at ? (
                       <a
