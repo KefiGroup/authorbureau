@@ -253,9 +253,16 @@ export default function BuildMyBusiness() {
   // Map product type to dashboard navigation
   const getProductLink = (productType: string): { label: string; path: string } | null => {
     if (!selectedBook) return null;
+
+    if (productType === "workbook") {
+      return {
+        label: "Open Workbook Studio",
+        path: `/dashboard?section=workbooks&bookId=${selectedBook.id}`,
+      };
+    }
+
     const base = `/dashboard/book/${selectedBook.id}`;
     const map: Record<string, { label: string; tab: string }> = {
-      workbook: { label: "View Workbook", tab: "automate" },
       course: { label: "View Course", tab: "automate" },
       social: { label: "View Social Content", tab: "automate" },
       webinar: { label: "View Webinar", tab: "automate" },

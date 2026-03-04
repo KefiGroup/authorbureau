@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
-import { FileText, Loader2, BookOpen, Edit3, Eye, Download, CheckCircle2, Save, X } from "lucide-react";
+import { FileText, Loader2, Edit3, Eye, Download, CheckCircle2, Save, X } from "lucide-react";
 import { toast } from "sonner";
 
 interface Workbook {
@@ -24,6 +25,8 @@ interface Workbook {
 
 export default function WorkbooksManager() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const bookFilterId = searchParams.get("bookId");
   const [workbooks, setWorkbooks] = useState<Workbook[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -36,16 +39,32 @@ export default function WorkbooksManager() {
   useEffect(() => {
     if (!user) return;
     fetchWorkbooks();
-  }, [user]);
+  }, [user, bookFilterId]);
 
   const fetchWorkbooks = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+
+    let query = supabase
       .from("workbooks" as any)
       .select("*")
-      .eq("author_id", user!.id)
-      .order("created_at", { ascending: false });
-    if (!error && data) setWorkbooks(data as any);
+      .eq("author_id", user!.id);
+
+    if (bookFilterId) {
+      query = query.eq("book_id", bookFilterId);
+    }
+
+    const { data, error } = await query.order("created_at", { ascending: false });
+
+    if (!error && data) {
+      const rows = (data ?? []) as unknown as Workbook[];
+      setWorkbooks(rows);
+      if (bookFilterId && rows.length > 0) {
+        setSelectedId(rows[0].id);
+      }
+    } else {
+      setWorkbooks([]);
+    }
+
     setLoading(false);
   };
 
