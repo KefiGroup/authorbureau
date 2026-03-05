@@ -26,6 +26,7 @@ export type DashboardSection =
   | "overview" | "profile" | "my-books"
   | "build-business"
   | "courses" | "workbooks" | "webinars" | "social-media" | "memberships"
+  | "audiobook-studio"
   | "coaching" | "group-coaching" | "big-ticket"
   | "speaking" | "podcast" | "corporate-training"
   | "retreats" | "certification" | "masterminds"
