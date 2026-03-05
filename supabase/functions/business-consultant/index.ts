@@ -212,6 +212,18 @@ special_instructions: [any customizations]
 priority: [1-5]
 ===END_BUILD_REQUEST===
 
+# EXISTING PRODUCTS AWARENESS — CRITICAL
+
+**Before making ANY recommendation, CHECK the existing_products and generation_history in the context below.**
+
+- If a workbook ALREADY EXISTS for this book, DO NOT recommend building another workbook. Instead, acknowledge it: "You've already built your workbook — great first step!" and move to the NEXT product type.
+- If a course EXISTS, skip course recommendations.
+- If social media content EXISTS, skip social content recommendations.
+- Same for webinars, audiobooks, coaching packages, speaking topics, email flows.
+- Your job is to recommend what's MISSING from the author's ABBY Framework, not repeat what's done.
+- Reference existing products positively: "I can see you've already built [X] — that's excellent progress on your Automate pillar!"
+- When the author has existing products, focus your first message on what's NEXT in the customer journey ladder, not what's already built.
+
 # IMPORTANT RULES
 
 1. ONE question OR ONE recommendation per message. Never more.
@@ -225,6 +237,7 @@ priority: [1-5]
 9. Always mention how each product captures contacts for the CRM.
 10. Be Abby — warm, strategic, honest, and genuinely excited to help.
 11. If the author has defined frameworks/theories in their profile, ALWAYS incorporate those into your recommendations and BUILD_REQUEST content_focus. Reference the framework by name, suggest how products should be structured around it, and note in special_instructions that the framework must be central to the generated content.
+12. NEVER recommend a product that already exists in existing_products. Always check first.
 
 # FRAMEWORK DISCOVERY
 
@@ -289,18 +302,28 @@ serve(async (req) => {
     // Fetch context data in parallel
     const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const [profileRes, booksRes, assetsRes, subscribersRes, coursesRes, workbooksRes, webinarsRes, coachingRes, speakingRes] = await Promise.all([
+    const [profileRes, booksRes, assetsRes, subscribersRes, coursesRes, workbooksRes, webinarsRes, coachingRes, speakingRes, socialRes, emailFlowsRes, audiobooksRes, homeStudyRes] = await Promise.all([
       adminClient.from("author_profiles").select("*").eq("user_id", user.id).maybeSingle(),
       adminClient.from("books").select("*").eq("author_id", user.id),
       bookId
         ? adminClient.from("generated_assets").select("asset_type, content").eq("book_id", bookId).eq("author_id", user.id)
         : Promise.resolve({ data: [] }),
       adminClient.from("author_subscribers").select("id").eq("author_id", user.id).eq("status", "active"),
-      adminClient.from("courses").select("id, title, status").eq("author_id", user.id),
-      adminClient.from("workbooks").select("id, title, status").eq("author_id", user.id),
-      adminClient.from("webinars").select("id, title, status").eq("author_id", user.id),
-      adminClient.from("coaching_packages").select("id, title, status").eq("author_id", user.id),
-      adminClient.from("speaking_topics").select("id, title, status").eq("author_id", user.id),
+      adminClient.from("courses").select("id, title, status, description, price, currency").eq("author_id", user.id),
+      adminClient.from("workbooks").select("id, title, status, description, price, currency").eq("author_id", user.id),
+      adminClient.from("webinars").select("id, title, status, description, price, is_free").eq("author_id", user.id),
+      adminClient.from("coaching_packages").select("id, title, status, description, price, type, sessions_count").eq("author_id", user.id),
+      adminClient.from("speaking_topics").select("id, title, status, description, fee").eq("author_id", user.id),
+      bookId
+        ? adminClient.from("social_media_content").select("id, platform, status").eq("book_id", bookId).eq("author_id", user.id)
+        : Promise.resolve({ data: [] }),
+      adminClient.from("email_flows").select("id, title, status, flow_type").eq("author_id", user.id),
+      bookId
+        ? adminClient.from("audiobooks").select("id, title, status").eq("book_id", bookId).eq("author_id", user.id)
+        : Promise.resolve({ data: [] }),
+      bookId
+        ? adminClient.from("home_study_courses").select("id, title, status").eq("book_id", bookId).eq("author_id", user.id)
+        : Promise.resolve({ data: [] }),
     ]);
 
     // Build context injection
@@ -315,7 +338,23 @@ serve(async (req) => {
       webinars: (webinarsRes.data || []) as any[],
       coaching_packages: (coachingRes.data || []) as any[],
       speaking_topics: (speakingRes.data || []) as any[],
+      social_media_posts: (socialRes.data || []) as any[],
+      email_flows: (emailFlowsRes.data || []) as any[],
+      audiobooks: (audiobooksRes.data || []) as any[],
+      home_study_courses: (homeStudyRes.data || []) as any[],
     };
+
+    // Build a human-readable summary of what's already built
+    const builtSummary: string[] = [];
+    if (existingProducts.workbooks.length > 0) builtSummary.push(`${existingProducts.workbooks.length} workbook(s): ${existingProducts.workbooks.map((w: any) => w.title).join(", ")}`);
+    if (existingProducts.courses.length > 0) builtSummary.push(`${existingProducts.courses.length} course(s): ${existingProducts.courses.map((c: any) => c.title).join(", ")}`);
+    if (existingProducts.webinars.length > 0) builtSummary.push(`${existingProducts.webinars.length} webinar(s): ${existingProducts.webinars.map((w: any) => w.title).join(", ")}`);
+    if (existingProducts.audiobooks.length > 0) builtSummary.push(`${existingProducts.audiobooks.length} audiobook(s)`);
+    if (existingProducts.home_study_courses.length > 0) builtSummary.push(`${existingProducts.home_study_courses.length} home study course(s)`);
+    if (existingProducts.coaching_packages.length > 0) builtSummary.push(`${existingProducts.coaching_packages.length} coaching package(s)`);
+    if (existingProducts.speaking_topics.length > 0) builtSummary.push(`${existingProducts.speaking_topics.length} speaking topic(s)`);
+    if (existingProducts.social_media_posts.length > 0) builtSummary.push(`${existingProducts.social_media_posts.length} social media posts`);
+    if (existingProducts.email_flows.length > 0) builtSummary.push(`${existingProducts.email_flows.length} email flow(s)`);
 
     const selectedBook = bookId ? books.find((b: any) => b.id === bookId) : null;
 
@@ -358,6 +397,9 @@ CRITICAL FRAMEWORK EXTRACTION INSTRUCTIONS:
 ${manuscriptContent}
 === END MANUSCRIPT ===` : "manuscript_content: not available — USE the book description, genre, subtitle, and author profile frameworks to provide strategic recommendations. Do NOT ask the author to upload their manuscript. Work confidently with what you have."}
 existing_products: ${JSON.stringify(existingProducts)}
+=== ALREADY BUILT (DO NOT RECOMMEND THESE AGAIN) ===
+${builtSummary.length > 0 ? builtSummary.join("\n") : "Nothing built yet — this is a fresh start."}
+=== END ALREADY BUILT ===
 audience_metrics: { email_subscribers: ${subscriberCount} }
 generation_history: ${JSON.stringify(existingAssets.map((a: any) => a.asset_type))}
 is_premium_subscriber: ${!!isPremium}
