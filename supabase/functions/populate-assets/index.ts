@@ -33,7 +33,7 @@ serve(async (req) => {
       });
     }
 
-    const { assetType, bookId, rawContent } = await req.json();
+    const { assetType, bookId, rawContent, appendMode, frameworkName } = await req.json();
 
     if (!assetType || !bookId || !rawContent) {
       return new Response(JSON.stringify({ error: "Missing assetType, bookId, or rawContent" }), {
@@ -81,7 +81,7 @@ serve(async (req) => {
         result = await populateSpeakingTopics(supabase, user.id, bookId, rawContent);
         break;
       case "workbook":
-        result = await populateWorkbook(supabase, user.id, bookId, rawContent, book.title, sourceAssetId);
+        result = await populateWorkbook(supabase, user.id, bookId, rawContent, book.title, sourceAssetId, appendMode, frameworkName);
         break;
       case "social":
         result = await populateSocialMedia(supabase, user.id, bookId, rawContent, sourceAssetId);
@@ -107,9 +107,19 @@ serve(async (req) => {
 });
 
 // ── Workbook ─────────────────────────────────────────
-async function populateWorkbook(supabase: any, authorId: string, bookId: string, rawContent: string, bookTitle: string, sourceAssetId: string | null) {
-  // Delete existing AI-generated workbook for this book
-  await supabase.from("workbooks").delete().eq("author_id", authorId).eq("book_id", bookId);
+async function populateWorkbook(supabase: any, authorId: string, bookId: string, rawContent: string, bookTitle: string, sourceAssetId: string | null, appendMode?: boolean, frameworkName?: string) {
+  // In append mode (one-per-framework), don't delete existing workbooks
+  if (!appendMode) {
+    await supabase.from("workbooks").delete().eq("author_id", authorId).eq("book_id", bookId);
+  }
+
+  const title = frameworkName
+    ? `Workbook: ${frameworkName}`
+    : `Workbook: ${bookTitle}`;
+
+  const description = frameworkName
+    ? `AI-generated workbook for the "${frameworkName}" framework from "${bookTitle}"`
+    : `AI-generated companion workbook for "${bookTitle}"`;
 
   const { data: wb, error } = await supabase
     .from("workbooks")
@@ -117,8 +127,8 @@ async function populateWorkbook(supabase: any, authorId: string, bookId: string,
       author_id: authorId,
       book_id: bookId,
       source_asset_id: sourceAssetId,
-      title: `Workbook: ${bookTitle}`,
-      description: `AI-generated companion workbook for "${bookTitle}"`,
+      title,
+      description,
       content_markdown: rawContent,
       status: "draft",
     })

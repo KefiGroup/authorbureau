@@ -311,12 +311,27 @@ export default function BuildMyBusiness() {
     setShowFrameworkModal(true);
   };
 
-  const handleFrameworkConfirm = (frameworks: AuthorFramework[], buildMode: BuildMode) => {
+  const handleFrameworkConfirm = async (frameworks: AuthorFramework[], buildMode: BuildMode) => {
     setShowFrameworkModal(false);
-    if (pendingBuildReq) {
-      // Pass build mode info so the builder knows if it's one-per-framework or combined
+    if (!pendingBuildReq) return;
+
+    const validFrameworks = frameworks.filter(fw => fw.name.trim());
+
+    if (buildMode === "one-each" && validFrameworks.length > 1) {
+      // Build one product per framework sequentially
+      setPendingBuildReq(null);
+      for (const fw of validFrameworks) {
+        const enrichedReq = {
+          ...pendingBuildReq,
+          build_mode: buildMode,
+          content_focus: `Focus exclusively on the "${fw.name}" framework: ${fw.description || ""}. Build a standalone product deeply exploring this single framework.`,
+        };
+        await executeBuild(enrichedReq, [fw]);
+      }
+    } else {
+      // Combined: one product using all frameworks
       const enrichedReq = { ...pendingBuildReq, build_mode: buildMode };
-      executeBuild(enrichedReq, frameworks);
+      executeBuild(enrichedReq, validFrameworks);
       setPendingBuildReq(null);
     }
   };
@@ -363,6 +378,7 @@ export default function BuildMyBusiness() {
           authorName: selectedBook.author_name || "Author",
           additionalContext: buildReq.content_focus || buildReq.special_instructions || "",
           frameworks: frameworks.length > 0 ? frameworks : undefined,
+          frameworkName: frameworks.length === 1 ? frameworks[0].name : undefined,
         }),
       });
 
@@ -394,11 +410,20 @@ export default function BuildMyBusiness() {
         }
       }
 
-      // Save to DB
-      await cloudSupabase.from("generated_assets" as any).upsert(
-        { book_id: selectedBook.id, author_id: user.id, asset_type: toolType, content: accumulated, updated_at: new Date().toISOString() },
-        { onConflict: "book_id,asset_type" }
-      );
+      // Save to DB — use insert for one-each mode (multiple assets), upsert for combined
+      const isOneEach = buildReq.build_mode === "one-each";
+      const frameworkLabel = frameworks.length === 1 ? frameworks[0].name : undefined;
+
+      if (isOneEach) {
+        await cloudSupabase.from("generated_assets" as any).insert({
+          book_id: selectedBook.id, author_id: user.id, asset_type: toolType, content: accumulated, updated_at: new Date().toISOString(),
+        });
+      } else {
+        await cloudSupabase.from("generated_assets" as any).upsert(
+          { book_id: selectedBook.id, author_id: user.id, asset_type: toolType, content: accumulated, updated_at: new Date().toISOString() },
+          { onConflict: "book_id,asset_type" }
+        );
+      }
 
       // Populate domain tables
       try {
@@ -408,7 +433,13 @@ export default function BuildMyBusiness() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
-          body: JSON.stringify({ assetType: toolType, bookId: selectedBook.id, rawContent: accumulated }),
+          body: JSON.stringify({
+            assetType: toolType,
+            bookId: selectedBook.id,
+            rawContent: accumulated,
+            appendMode: isOneEach,
+            frameworkName: frameworkLabel,
+          }),
         });
       } catch (err) {
         console.error("Populate error:", err);
@@ -420,12 +451,16 @@ export default function BuildMyBusiness() {
         ? `\n\n👉 [${productLink.label} →](${productLink.path})`
         : "";
 
-      toast({ title: "Build complete! ✅", description: `${toolType} has been generated and saved.` });
+      const builtLabel = frameworkLabel
+        ? `${toolType.charAt(0).toUpperCase() + toolType.slice(1)} for "${frameworkLabel}"`
+        : `${toolType.charAt(0).toUpperCase() + toolType.slice(1)}`;
+
+      toast({ title: "Build complete! ✅", description: `${builtLabel} has been generated and saved.` });
 
       // Add confirmation to chat with navigation link
       setMessages(prev => [...prev, {
         role: "assistant",
-        content: `✅ **${toolType.charAt(0).toUpperCase() + toolType.slice(1)} has been built successfully!**\n\nThe content has been generated and saved to your book's project.${linkText}\n\nWould you like me to build the next recommended product, or would you like to discuss your strategy further?`,
+        content: `✅ **${builtLabel} has been built successfully!**\n\nThe content has been generated and saved to your book's project.${linkText}\n\nWould you like me to build the next recommended product, or would you like to discuss your strategy further?`,
       }]);
     } catch (err: any) {
       toast({ title: "Build failed", description: err.message, variant: "destructive" });
