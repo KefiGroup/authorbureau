@@ -1,7 +1,10 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, ArrowRight, Zap, BarChart3 } from "lucide-react";
+import { Sparkles, Zap, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ManuscriptUpload from "@/components/dashboard/ManuscriptUpload";
+import ABBYFrameworkVisual from "./ABBYFrameworkVisual";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Book {
   id: string;
@@ -14,7 +17,6 @@ interface Props {
   onNavigateTab: (tab: string) => void;
 }
 
-// Count products by status — this will later be dynamic from DB
 const TOTAL_REVENUE_STREAMS = 27;
 
 function RevenuePotentialMeter({ activeStreams }: { activeStreams: number }) {
@@ -64,7 +66,6 @@ function ABBYProgressRing() {
 
           return (
             <svg key={i} className="absolute inset-0" width={size} height={size}>
-              {/* Background ring */}
               <circle
                 cx={center}
                 cy={center}
@@ -73,7 +74,6 @@ function ABBYProgressRing() {
                 stroke="hsl(var(--muted))"
                 strokeWidth="8"
               />
-              {/* Progress ring */}
               {ring.percent > 0 && (
                 <motion.circle
                   cx={center}
@@ -93,7 +93,6 @@ function ABBYProgressRing() {
             </svg>
           );
         })}
-        {/* Center label */}
         <div className="absolute inset-0 flex items-center justify-center">
           <span className="text-xs font-bold text-muted-foreground">0%</span>
         </div>
@@ -111,6 +110,22 @@ function ABBYProgressRing() {
 }
 
 export default function BookHubOverview({ book, onConsultAbby, onNavigateTab }: Props) {
+  const [hasConsultation, setHasConsultation] = useState(false);
+
+  useEffect(() => {
+    async function checkConsultation() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { count } = await supabase
+        .from("consultation_sessions")
+        .select("id", { count: "exact", head: true })
+        .eq("book_id", book.id)
+        .eq("user_id", user.id);
+      setHasConsultation((count ?? 0) > 0);
+    }
+    checkConsultation();
+  }, [book.id]);
+
   return (
     <div className="space-y-6">
       {/* Abby's Business Snapshot */}
@@ -131,10 +146,20 @@ export default function BookHubOverview({ book, onConsultAbby, onNavigateTab }: 
               </span>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              I'll start by conducting a <strong>Needs Analysis</strong> on your book <strong>"{book.title}"</strong> — understanding your goals, audience size, and revenue ambitions. 
-              From there, I'll design a <strong>customised ABBY Framework</strong> mapping the exact products and revenue streams that fit your expertise. 
-              You'll see transparent, itemised à-la-carte pricing for each product — plus a bundled subscription option that saves you more. 
-              Think of me as your strategist <em>and</em> your sales partner: I don't just advise, I help you build and sell.
+              {hasConsultation ? (
+                <>
+                  I've completed your <strong>Needs Analysis</strong> for <strong>"{book.title}"</strong> and designed your customised ABBY Framework below. 
+                  Each category shows the products I recommend — with transparent, itemised pricing available when you're ready to build. 
+                  Let's turn your expertise into revenue.
+                </>
+              ) : (
+                <>
+                  I'll start by conducting a <strong>Needs Analysis</strong> on your book <strong>"{book.title}"</strong> — understanding your goals, audience size, and revenue ambitions. 
+                  From there, I'll design a <strong>customised ABBY Framework</strong> mapping the exact products and revenue streams that fit your expertise. 
+                  You'll see transparent, itemised à-la-carte pricing for each product — plus a bundled subscription option that saves you more. 
+                  Think of me as your strategist <em>and</em> your sales partner: I don't just advise, I help you build and sell.
+                </>
+              )}
             </p>
             <div className="flex flex-wrap gap-2 mt-4">
               <Button
@@ -143,70 +168,40 @@ export default function BookHubOverview({ book, onConsultAbby, onNavigateTab }: 
                 onClick={onConsultAbby}
               >
                 <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-                Consult Abby About This Book
+                {hasConsultation ? "Continue Consultation" : "Consult Abby About This Book"}
               </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => onNavigateTab("automate")}
-              >
-                <Zap className="h-3.5 w-3.5 mr-1.5" />
-                Build Next Product
-              </Button>
+              {hasConsultation && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onNavigateTab("automate")}
+                >
+                  <Zap className="h-3.5 w-3.5 mr-1.5" />
+                  Build Next Product
+                </Button>
+              )}
             </div>
           </div>
         </div>
       </motion.div>
 
-      {/* Manuscript Upload */}
-      <ManuscriptUpload bookId={book.id} bookTitle={book.title} />
+      {/* Customised ABBY Framework — appears after consultation */}
+      <ABBYFrameworkVisual
+        hasConsultation={hasConsultation}
+        onConsultAbby={onConsultAbby}
+        onNavigateTab={onNavigateTab}
+      />
+
+      {/* Manuscript Upload — show prominently if no consultation yet */}
+      {!hasConsultation && (
+        <ManuscriptUpload bookId={book.id} bookTitle={book.title} />
+      )}
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <RevenuePotentialMeter activeStreams={0} />
         <ABBYProgressRing />
       </div>
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {[
-          { label: "A · Automate", desc: "10 digital products", color: "from-blue-500 to-blue-600", tab: "automate" },
-          { label: "B · Build", desc: "5 coaching products", color: "from-amber-500 to-amber-600", tab: "build" },
-          { label: "B · Broadcast", desc: "9 speaking products", color: "from-rose-500 to-rose-600", tab: "broadcast" },
-        ].map((item) => (
-          <motion.button
-            key={item.tab}
-            onClick={() => onNavigateTab(item.tab)}
-            className="group flex items-center gap-3 rounded-xl border border-border p-4 text-left hover:border-muted-foreground/30 hover:shadow-md transition-all"
-            whileHover={{ y: -2 }}
-          >
-            <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${item.color} flex items-center justify-center text-white text-xs font-bold shadow-sm`}>
-              {item.label.charAt(0)}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-heading font-bold text-sm">{item.label}</p>
-              <p className="text-[11px] text-muted-foreground">{item.desc}</p>
-            </div>
-            <ArrowRight className="h-4 w-4 text-muted-foreground/30 group-hover:text-foreground transition-colors" />
-          </motion.button>
-        ))}
-      </div>
-
-      {/* Y · Yield card */}
-      <motion.button
-        onClick={() => onNavigateTab("yield")}
-        className="group flex items-center gap-3 rounded-xl border border-border p-4 text-left hover:border-muted-foreground/30 hover:shadow-md transition-all w-full sm:w-1/3"
-        whileHover={{ y: -2 }}
-      >
-        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
-          Y
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-heading font-bold text-sm">Y · Yield</p>
-          <p className="text-[11px] text-muted-foreground">4 seminar products</p>
-        </div>
-        <ArrowRight className="h-4 w-4 text-muted-foreground/30 group-hover:text-foreground transition-colors" />
-      </motion.button>
 
       {/* Recent Activity */}
       <div className="rounded-xl border border-border bg-card p-5">
