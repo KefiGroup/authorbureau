@@ -3,6 +3,14 @@ import { Button } from "@/components/ui/button";
 import { FileText, Upload, Loader2, CheckCircle2, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Progress } from "@/components/ui/progress";
+
+const UPLOAD_STAGES = [
+  { label: "Uploading file…", threshold: 0 },
+  { label: "Abby is reading your manuscript — this may take 2–3 minutes for longer books…", threshold: 5 },
+  { label: "Extracting chapters and key frameworks…", threshold: 45 },
+  { label: "Almost there — processing final pages…", threshold: 120 },
+];
 
 interface ManuscriptUploadProps {
   bookId: string;
@@ -14,9 +22,28 @@ interface ManuscriptUploadProps {
 export default function ManuscriptUpload({ bookId, bookTitle, compact = false, onUploadComplete }: ManuscriptUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [hasManuscript, setHasManuscript] = useState(false);
   const [charCount, setCharCount] = useState<number | null>(null);
   const [checking, setChecking] = useState(true);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Elapsed timer during upload
+  useEffect(() => {
+    if (uploading) {
+      setElapsedSeconds(0);
+      timerRef.current = setInterval(() => {
+        setElapsedSeconds(prev => prev + 1);
+      }, 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [uploading]);
+
+  const currentStage = UPLOAD_STAGES.filter(s => elapsedSeconds >= s.threshold).pop() || UPLOAD_STAGES[0];
+  // Fake progress: asymptotically approaches 95% over ~180s
+  const fakeProgress = uploading ? Math.min(95, (elapsedSeconds / (elapsedSeconds + 30)) * 100) : 0;
 
   const getAuthenticatedUserId = async () => {
     const { data, error } = await supabase.auth.getUser();
@@ -150,6 +177,23 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
     }
   };
 
+  // Upload progress overlay (shown in both compact and full modes)
+  const UploadProgressIndicator = () => (
+    <div className="space-y-2 w-full">
+      <div className="flex items-center gap-2">
+        <Loader2 className="h-4 w-4 animate-spin text-secondary flex-shrink-0" />
+        <p className="text-xs text-foreground font-medium">{currentStage.label}</p>
+      </div>
+      <Progress value={fakeProgress} className="h-1.5" />
+      <p className="text-[10px] text-muted-foreground">
+        {elapsedSeconds < 60
+          ? `${elapsedSeconds}s elapsed`
+          : `${Math.floor(elapsedSeconds / 60)}m ${elapsedSeconds % 60}s elapsed`}
+        {" · "}Please don't close this page
+      </p>
+    </div>
+  );
+
   if (checking) {
     return compact ? null : (
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -159,6 +203,13 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
   }
 
   if (compact) {
+    if (uploading) {
+      return (
+        <div className="w-full px-1 py-2" onClick={(e) => e.stopPropagation()}>
+          <UploadProgressIndicator />
+        </div>
+      );
+    }
     return (
       <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
         {hasManuscript ? (
@@ -174,11 +225,7 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
             >
-              {uploading ? (
-                <><Loader2 className="h-3 w-3 animate-spin" /> Parsing...</>
-              ) : (
-                <><Upload className="h-3 w-3" /> Upload Manuscript</>
-              )}
+              <Upload className="h-3 w-3" /> Upload Manuscript
             </Button>
             <input
               ref={fileInputRef}
@@ -209,44 +256,44 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        {hasManuscript ? (
-          <>
+      {uploading ? (
+        <UploadProgressIndicator />
+      ) : (
+        <div className="flex items-center gap-2">
+          {hasManuscript ? (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+              >
+                <Upload className="h-3 w-3 mr-1" />
+                Replace
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-xs text-destructive hover:text-destructive"
+                onClick={handleRemove}
+                disabled={uploading}
+              >
+                <Trash2 className="h-3 w-3 mr-1" /> Remove
+              </Button>
+            </>
+          ) : (
             <Button
               size="sm"
-              variant="outline"
-              className="text-xs"
+              className="bg-secondary text-secondary-foreground hover:bg-secondary/90 text-xs"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
             >
-              {uploading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Upload className="h-3 w-3 mr-1" />}
-              Replace
+              <Upload className="h-3 w-3 mr-1" /> Upload Manuscript
             </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="text-xs text-destructive hover:text-destructive"
-              onClick={handleRemove}
-              disabled={uploading}
-            >
-              <Trash2 className="h-3 w-3 mr-1" /> Remove
-            </Button>
-          </>
-        ) : (
-          <Button
-            size="sm"
-            className="bg-secondary text-secondary-foreground hover:bg-secondary/90 text-xs"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-          >
-            {uploading ? (
-              <><Loader2 className="h-3 w-3 animate-spin mr-1" /> Parsing manuscript...</>
-            ) : (
-              <><Upload className="h-3 w-3 mr-1" /> Upload Manuscript</>
-            )}
-          </Button>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       <p className="text-[10px] text-muted-foreground">Supports PDF, DOCX, TXT, EPUB (max 20MB)</p>
 
