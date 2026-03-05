@@ -301,11 +301,7 @@ export default function WorkbooksManager() {
   // List view
   return (
     <div className="max-w-4xl space-y-6">
-      {bookFilterId && (
-        <Button variant="ghost" size="sm" className="-ml-2 text-muted-foreground" onClick={() => navigate(`/dashboard/book/${bookFilterId}?tab=automate`)}>
-          <ArrowLeft className="h-4 w-4 mr-1" /> Back to {bookTitle ? decodeURIComponent(bookTitle) : "Book Hub"}
-        </Button>
-      )}
+      <BookBuilderContextBar backTab="automate" />
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-heading text-2xl font-bold">Workbooks</h2>
