@@ -149,6 +149,7 @@ export default function WebinarsManager() {
 
   return (
     <div className="max-w-4xl space-y-6">
+      <BookBuilderContextBar backTab="automate" />
       <div><h2 className="font-heading text-2xl font-bold">Webinars</h2><p className="text-sm text-muted-foreground mt-1">{webinars.length} webinar{webinars.length !== 1 ? "s" : ""}</p></div>
       <div className="grid gap-4">
         {webinars.map(w => (
