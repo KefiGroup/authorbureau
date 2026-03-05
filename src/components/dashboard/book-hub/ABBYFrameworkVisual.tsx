@@ -83,17 +83,17 @@ const CLUSTERS: StepCluster[] = [
 ];
 
 /* ── SVG viewBox ── */
-const VW = 1200;
-const VH = 800;
+const VW = 1400;
+const VH = 900;
 const CX = VW / 2;
 const CY = VH / 2;
 
-/* Hub positions + arc config (SVG coords) */
+/* Hub positions + arc config (SVG coords) — pushed outward with larger radii */
 const HUB_CFG: Record<string, { x: number; y: number; startDeg: number; sweepDeg: number; r: number }> = {
-  automate:  { x: 240, y: 220, startDeg: 120, sweepDeg: 240, r: 170 },
-  build:     { x: 240, y: 600, startDeg: 150, sweepDeg: 180, r: 150 },
-  broadcast: { x: 960, y: 600, startDeg: -30, sweepDeg: 180, r: 150 },
-  yield:     { x: 960, y: 220, startDeg: -60, sweepDeg: 240, r: 170 },
+  automate:  { x: 210, y: 200, startDeg: 110, sweepDeg: 220, r: 180 },
+  build:     { x: 210, y: 700, startDeg: 160, sweepDeg: 160, r: 165 },
+  broadcast: { x: 1190, y: 700, startDeg: -20, sweepDeg: 160, r: 165 },
+  yield:     { x: 1190, y: 200, startDeg: -50, sweepDeg: 220, r: 180 },
 };
 
 function arcPositions(count: number, cx: number, cy: number, r: number, startDeg: number, sweepDeg: number) {
