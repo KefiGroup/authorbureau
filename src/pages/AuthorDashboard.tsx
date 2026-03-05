@@ -169,6 +169,10 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         return gate("Webinars", <WebinarsManager />);
       case "social-media":
         return gate("Social Media", <SocialMediaManager />);
+      case "audiobook-studio": {
+        const bookIdParam = searchParams.get("bookId") || "";
+        return gate("Audiobook Studio", <AudiobookStudio bookId={bookIdParam} bookTitle="" userId={user.id} />);
+      }
       case "speaking":
         return gate("Speaking Profile", <SpeakingProfile />);
       case "coaching":
