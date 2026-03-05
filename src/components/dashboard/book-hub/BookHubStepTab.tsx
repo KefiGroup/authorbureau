@@ -122,6 +122,9 @@ export default function BookHubStepTab({ stepId, bookId, bookTitle, isPremium }:
       workbooks: `/dashboard?section=workbooks&bookId=${bookId}${titleParam}`,
       webinars: `/dashboard?section=webinars&bookId=${bookId}${titleParam}`,
       audiobook: `/dashboard?section=audiobook-studio&bookId=${bookId}${titleParam}`,
+      "coaching-1on1": `/dashboard?section=coaching&bookId=${bookId}${titleParam}`,
+      keynotes: `/dashboard?section=speaking&bookId=${bookId}${titleParam}`,
+      courses: `/dashboard?section=courses&bookId=${bookId}${titleParam}`,
     };
 
     return map[nodeId] || null;
