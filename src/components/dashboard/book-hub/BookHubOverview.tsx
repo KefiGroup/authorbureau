@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Sparkles, ArrowRight, Zap, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import ManuscriptUpload from "@/components/dashboard/ManuscriptUpload";
 
 interface Book {
   id: string;
@@ -154,6 +155,9 @@ export default function BookHubOverview({ book, onConsultAbby, onNavigateTab }: 
           </div>
         </div>
       </motion.div>
+
+      {/* Manuscript Upload */}
+      <ManuscriptUpload bookId={book.id} bookTitle={book.title} />
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
