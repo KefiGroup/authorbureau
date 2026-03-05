@@ -1,86 +1,89 @@
-import { ChevronRight } from "lucide-react";
+import { motion } from "framer-motion";
+import { BookOpen } from "lucide-react";
 
 interface FrameworkProduct {
   label: string;
-  section: string;
   active: boolean;
-  comingSoon?: boolean;
 }
 
-interface FrameworkCategory {
+interface Category {
   step: number;
   letter: string;
   subtitle: string;
-  title: string;
-  badgeColor: string;
+  color: string;       // hub bg
+  textColor: string;   // label color
+  dotActive: string;   // active dot
   products: FrameworkProduct[];
 }
 
-const FRAMEWORK: FrameworkCategory[] = [
+const FRAMEWORK: Category[] = [
   {
-    step: 1,
-    letter: "A",
-    subtitle: "AUTOMATE",
-    title: "Digital Products",
-    badgeColor: "bg-blue-500",
+    step: 1, letter: "A", subtitle: "AUTOMATE", color: "bg-blue-500", textColor: "text-blue-600", dotActive: "bg-blue-500",
     products: [
-      { label: "Online Courses", section: "courses", active: false },
-      { label: "Workbooks", section: "workbooks", active: false, comingSoon: true },
-      { label: "Webinars", section: "webinars", active: false, comingSoon: true },
-      { label: "Social Media", section: "social-media", active: false, comingSoon: true },
-      { label: "Audio Book", section: "audiobook", active: false, comingSoon: true },
-      { label: "Home Study Courses", section: "home-study", active: false, comingSoon: true },
-      { label: "Monthly Memberships", section: "memberships", active: false, comingSoon: true },
-      { label: "Upsells / Downsells", section: "upsells", active: false, comingSoon: true },
-      { label: "Affiliates", section: "affiliates", active: false, comingSoon: true },
-      { label: "Website", section: "website", active: false, comingSoon: true },
+      { label: "Website / Microsite", active: false },
+      { label: "Workbooks", active: false },
+      { label: "Audio Book", active: false },
+      { label: "Social Media", active: false },
+      { label: "Podcast Scripts", active: false },
+      { label: "Webinars", active: false },
+      { label: "Home Study Course", active: false },
+      { label: "Online Courses", active: false },
+      { label: "Monthly Memberships", active: false },
+      { label: "Upsells / Downsells", active: false },
+      { label: "Affiliates", active: false },
     ],
   },
   {
-    step: 2,
-    letter: "B",
-    subtitle: "BUILD",
-    title: "Coaching & Consulting",
-    badgeColor: "bg-amber-500",
+    step: 2, letter: "B", subtitle: "BUILD", color: "bg-amber-500", textColor: "text-amber-600", dotActive: "bg-amber-500",
     products: [
-      { label: "1-on-1 Coaching", section: "coaching", active: false },
-      { label: "Group Coaching", section: "group-coaching", active: false, comingSoon: true },
-      { label: "Big Ticket", section: "big-ticket", active: false, comingSoon: true },
-      { label: "Revenue Sharing", section: "revenue-sharing", active: false, comingSoon: true },
+      { label: "1-on-1 Coaching", active: false },
+      { label: "Group Coaching", active: false },
+      { label: "Big Ticket", active: false },
+      { label: "Revenue Sharing", active: false },
     ],
   },
   {
-    step: 3,
-    letter: "B",
-    subtitle: "BROADCAST",
-    title: "Speaking",
-    badgeColor: "bg-rose-400",
+    step: 3, letter: "B", subtitle: "BROADCAST", color: "bg-rose-400", textColor: "text-rose-500", dotActive: "bg-rose-400",
     products: [
-      { label: "Speaking Topics", section: "speaking", active: false },
-      { label: "Podcasts", section: "podcast", active: false, comingSoon: true },
-      { label: "Book Sales", section: "book-sales", active: false, comingSoon: true },
-      { label: "JVs", section: "jvs", active: false, comingSoon: true },
-      { label: "Fund Raising", section: "fundraising", active: false, comingSoon: true },
-      { label: "In-House Speaker", section: "in-house", active: false, comingSoon: true },
+      { label: "Speaking Topics", active: false },
+      { label: "Podcasts", active: false },
+      { label: "Book Sales", active: false },
+      { label: "JVs", active: false },
+      { label: "Fund Raising", active: false },
+      { label: "In-House Speaker", active: false },
+      { label: "Special Editions", active: false },
     ],
   },
   {
-    step: 4,
-    letter: "Y",
-    subtitle: "YIELD",
-    title: "Seminars & Events",
-    badgeColor: "bg-emerald-500",
+    step: 4, letter: "Y", subtitle: "YIELD", color: "bg-emerald-500", textColor: "text-emerald-600", dotActive: "bg-emerald-500",
     products: [
-      { label: "Retreats & Bootcamps", section: "retreats", active: false, comingSoon: true },
-      { label: "Certification", section: "certification", active: false, comingSoon: true },
-      { label: "Masterminds", section: "masterminds", active: false, comingSoon: true },
-      { label: "Conventions", section: "conventions", active: false, comingSoon: true },
-      { label: "Training Programs", section: "training", active: false, comingSoon: true },
-      { label: "Conferences", section: "conferences", active: false, comingSoon: true },
-      { label: "Exhibitors / JV", section: "exhibitors", active: false, comingSoon: true },
+      { label: "Retreats & Bootcamps", active: false },
+      { label: "Certification", active: false },
+      { label: "Masterminds", active: false },
+      { label: "Conventions", active: false },
+      { label: "Training Programs", active: false },
     ],
   },
 ];
+
+/* Position each product node in an arc around its hub */
+function arcPositions(count: number, cx: number, cy: number, radius: number, startDeg: number, sweepDeg: number) {
+  const out: { x: number; y: number }[] = [];
+  for (let i = 0; i < count; i++) {
+    const angle = startDeg + (sweepDeg / Math.max(count - 1, 1)) * i;
+    const rad = (angle * Math.PI) / 180;
+    out.push({ x: cx + Math.cos(rad) * radius, y: cy + Math.sin(rad) * radius });
+  }
+  return out;
+}
+
+/* Hub positions (percentage-based) and arc config */
+const HUB_CONFIG: Record<number, { cx: number; cy: number; startDeg: number; sweepDeg: number; radius: number }> = {
+  1: { cx: 18, cy: 22, startDeg: 160, sweepDeg: 200, radius: 32 },
+  2: { cx: 18, cy: 78, startDeg: 160, sweepDeg: 160, radius: 28 },
+  3: { cx: 82, cy: 78, startDeg: -20, sweepDeg: 160, radius: 28 },
+  4: { cx: 82, cy: 22, startDeg: -20, sweepDeg: 200, radius: 30 },
+};
 
 interface Props {
   isPremium: boolean;
@@ -89,77 +92,149 @@ interface Props {
 }
 
 export default function ABBYFrameworkGrid({ isPremium, onNavigate, onUpgrade }: Props) {
+  const totalProducts = FRAMEWORK.reduce((s, c) => s + c.products.length, 0);
+  const activeProducts = FRAMEWORK.reduce((s, c) => s + c.products.filter(p => p.active).length, 0);
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      {FRAMEWORK.map((cat) => {
-        const liveCount = cat.products.filter((p) => p.active).length;
-        return (
-          <button
-            key={cat.step}
-            type="button"
-            onClick={() => {
-              if (!isPremium) {
-                onUpgrade();
-              } else {
-                onNavigate?.(cat.products[0].section);
-              }
-            }}
-            className="rounded-2xl border border-border bg-card p-6 text-left transition-all hover:shadow-[var(--shadow-card-hover)] hover:border-secondary/40 cursor-pointer group relative"
+    <div className="space-y-3">
+      {/* Header */}
+      <div className="text-center">
+        <p className="text-xs text-muted-foreground">
+          {activeProducts} of {totalProducts} revenue streams activated
+        </p>
+      </div>
+
+      {/* Mind Map Container */}
+      <div className="relative w-full rounded-2xl border border-border bg-card overflow-hidden" style={{ paddingBottom: "65%" }}>
+        <div className="absolute inset-0">
+
+          {/* Center Book Node */}
+          <motion.div
+            className="absolute z-20 flex flex-col items-center gap-1"
+            style={{ left: "50%", top: "50%", transform: "translate(-50%, -50%)" }}
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
           >
-            {/* Step badge + header */}
-            <div className="flex items-start gap-4">
-              <div className={`flex h-12 w-12 items-center justify-center rounded-xl text-white font-bold text-lg shrink-0 ${cat.badgeColor}`}>
-                {cat.step}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className={`text-xs font-bold uppercase tracking-wider ${
-                  cat.step === 1 ? "text-blue-600" :
-                  cat.step === 2 ? "text-amber-600" :
-                  cat.step === 3 ? "text-rose-500" :
-                  "text-emerald-600"
-                }`}>
-                  {cat.letter} · {cat.subtitle}
-                </p>
-                <h3 className="font-heading text-lg font-bold mt-0.5">{cat.title}</h3>
-              </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground/40 group-hover:text-secondary transition-colors shrink-0 mt-1" />
+            <div className="w-16 h-20 sm:w-20 sm:h-24 rounded-xl bg-gradient-to-br from-secondary/80 to-secondary shadow-xl flex items-center justify-center border-2 border-secondary-foreground/20">
+              <BookOpen className="h-7 w-7 sm:h-9 sm:w-9 text-secondary-foreground" />
             </div>
+            <span className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-wider mt-1">
+              Your Book
+            </span>
+          </motion.div>
 
-            {/* Product count + live */}
-            <div className="flex items-center gap-3 mt-4">
-              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                cat.step === 1 ? "bg-blue-100 text-blue-700" :
-                cat.step === 2 ? "bg-amber-100 text-amber-700" :
-                cat.step === 3 ? "bg-rose-100 text-rose-600" :
-                "bg-emerald-100 text-emerald-700"
-              }`}>
-                {cat.products.length} products
-              </span>
-              {liveCount > 0 && (
-                <span className="text-xs font-medium text-emerald-600">{liveCount} live</span>
-              )}
-            </div>
-
-            {/* Status dots */}
-            <div className="flex items-center gap-1.5 mt-3">
-              {cat.products.map((product, i) => (
-                <div
-                  key={i}
-                  className={`w-3 h-3 rounded-full ${
-                    product.active
-                      ? cat.step === 1 ? "bg-blue-500" :
-                        cat.step === 2 ? "bg-amber-500" :
-                        cat.step === 3 ? "bg-rose-400" :
-                        "bg-emerald-500"
-                      : "bg-muted-foreground/20"
-                  }`}
-                  title={product.label}
+          {/* SVG lines: center→hubs and hubs→nodes */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
+            {FRAMEWORK.map((cat) => {
+              const cfg = HUB_CONFIG[cat.step];
+              return (
+                <motion.line
+                  key={`center-${cat.step}`}
+                  x1="50%" y1="50%"
+                  x2={`${cfg.cx}%`} y2={`${cfg.cy}%`}
+                  stroke="hsl(var(--border))"
+                  strokeWidth="1.5"
+                  strokeDasharray="6 4"
+                  opacity={0.5}
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 0.6, delay: cat.step * 0.1 }}
                 />
-              ))}
-            </div>
-          </button>
-        );
-      })}
+              );
+            })}
+            {FRAMEWORK.map((cat) => {
+              const cfg = HUB_CONFIG[cat.step];
+              const positions = arcPositions(cat.products.length, cfg.cx, cfg.cy, cfg.radius, cfg.startDeg, cfg.sweepDeg);
+              return positions.map((pos, i) => (
+                <line
+                  key={`spoke-${cat.step}-${i}`}
+                  x1={`${cfg.cx}%`} y1={`${cfg.cy}%`}
+                  x2={`${pos.x}%`} y2={`${pos.y}%`}
+                  stroke="hsl(var(--border))"
+                  strokeWidth="1"
+                  strokeDasharray="3 3"
+                  opacity={0.35}
+                />
+              ));
+            })}
+          </svg>
+
+          {/* Category Hubs */}
+          {FRAMEWORK.map((cat, ci) => {
+            const cfg = HUB_CONFIG[cat.step];
+            const positions = arcPositions(cat.products.length, cfg.cx, cfg.cy, cfg.radius, cfg.startDeg, cfg.sweepDeg);
+
+            return (
+              <div key={cat.step}>
+                {/* Hub */}
+                <motion.div
+                  className={`absolute z-10 flex flex-col items-center justify-center rounded-full shadow-lg
+                    w-16 h-16 sm:w-20 sm:h-20 ${cat.color} text-white cursor-pointer`}
+                  style={{ left: `${cfg.cx}%`, top: `${cfg.cy}%`, transform: "translate(-50%, -50%)" }}
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.4, delay: 0.15 * ci }}
+                  whileHover={{ scale: 1.08 }}
+                >
+                  <span className="text-[8px] sm:text-[9px] font-bold opacity-80">STEP {cat.step}</span>
+                  <span className="text-[9px] sm:text-[10px] font-extrabold leading-tight text-center">
+                    {cat.letter} · {cat.subtitle}
+                  </span>
+                  <span className="text-[7px] sm:text-[8px] opacity-70 mt-0.5">
+                    {cat.products.filter(p => p.active).length}/{cat.products.length}
+                  </span>
+                </motion.div>
+
+                {/* Product Nodes */}
+                {cat.products.map((product, pi) => {
+                  const pos = positions[pi];
+                  return (
+                    <motion.div
+                      key={`${cat.step}-${pi}`}
+                      className="absolute flex flex-col items-center gap-0.5 pointer-events-auto z-[5]"
+                      style={{ left: `${pos.x}%`, top: `${pos.y}%`, transform: "translate(-50%, -50%)" }}
+                      initial={{ opacity: 0, scale: 0 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3, delay: 0.2 + ci * 0.08 + pi * 0.03 }}
+                    >
+                      <div
+                        className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-[8px] sm:text-[9px] font-bold shadow-sm border-2
+                          ${product.active
+                            ? `${cat.dotActive} text-white border-white/30`
+                            : "bg-muted text-muted-foreground/60 border-border"
+                          }`}
+                      >
+                        {product.active ? "✓" : "$"}
+                      </div>
+                      <span className={`text-[7px] sm:text-[8px] font-medium text-center leading-tight max-w-[70px] sm:max-w-[80px]
+                        ${product.active ? "text-foreground" : "text-muted-foreground/70"}`}>
+                        {product.label}
+                      </span>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Legend */}
+      <div className="flex items-center justify-center gap-6 text-[10px] text-muted-foreground">
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded-full bg-blue-500" />
+          <span>Activated</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded-full bg-muted border-2 border-border" />
+          <span>Pending</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-4 h-0 border-t border-dashed border-border" />
+          <span>Revenue connection</span>
+        </div>
+      </div>
     </div>
   );
 }
