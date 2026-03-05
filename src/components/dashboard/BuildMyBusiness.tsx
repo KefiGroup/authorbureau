@@ -649,6 +649,7 @@ export default function BuildMyBusiness() {
                 bookId={pendingBookSelection.id}
                 bookTitle={pendingBookSelection.title}
                 onUploadComplete={handleManuscriptUploaded}
+                onContinue={handleManuscriptUploaded}
               />
             )}
 

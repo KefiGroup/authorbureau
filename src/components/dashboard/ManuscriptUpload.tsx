@@ -17,9 +17,10 @@ interface ManuscriptUploadProps {
   bookTitle: string;
   compact?: boolean;
   onUploadComplete?: () => void;
+  onContinue?: () => void;
 }
 
-export default function ManuscriptUpload({ bookId, bookTitle, compact = false, onUploadComplete }: ManuscriptUploadProps) {
+export default function ManuscriptUpload({ bookId, bookTitle, compact = false, onUploadComplete, onContinue }: ManuscriptUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -259,28 +260,39 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
       {uploading ? (
         <UploadProgressIndicator />
       ) : (
-        <div className="flex items-center gap-2">
+        <div className="space-y-2">
           {hasManuscript ? (
             <>
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-xs"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-              >
-                <Upload className="h-3 w-3 mr-1" />
-                Replace
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-xs text-destructive hover:text-destructive"
-                onClick={handleRemove}
-                disabled={uploading}
-              >
-                <Trash2 className="h-3 w-3 mr-1" /> Remove
-              </Button>
+              {onContinue && (
+                <Button
+                  size="sm"
+                  className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 text-sm font-semibold"
+                  onClick={onContinue}
+                >
+                  Continue — Let Abby read &amp; advise →
+                </Button>
+              )}
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-xs"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                >
+                  <Upload className="h-3 w-3 mr-1" />
+                  Replace
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-xs text-destructive hover:text-destructive"
+                  onClick={handleRemove}
+                  disabled={uploading}
+                >
+                  <Trash2 className="h-3 w-3 mr-1" /> Remove
+                </Button>
+              </div>
             </>
           ) : (
             <Button
