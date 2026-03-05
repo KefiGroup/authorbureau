@@ -31,7 +31,9 @@ interface Workbook {
 export default function WorkbooksManager() {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const bookFilterId = searchParams.get("bookId");
+  const bookTitle = searchParams.get("bookTitle");
   const [workbooks, setWorkbooks] = useState<Workbook[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
