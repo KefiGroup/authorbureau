@@ -131,8 +131,9 @@ export default function BookHubOverview({ book, onConsultAbby, onNavigateTab }: 
               </span>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Based on your book <strong>"{book.title}"</strong>, I recommend starting with a <strong>Workbook ($27)</strong> and <strong>Online Course ($197)</strong>. 
-              These two products alone can generate significant recurring revenue. Click below to build your first product or consult me for a personalized strategy.
+              I've read your book <strong>"{book.title}"</strong> cover to cover. I can extract your proprietary frameworks, identify your ideal audience, 
+              and map out a personalized monetization strategy across up to 27 revenue streams — all tailored to your content, your expertise, and your goals. 
+              Let's build something that's uniquely yours.
             </p>
             <div className="flex flex-wrap gap-2 mt-4">
               <Button
