@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import BadgeDisplay, { type BadgeLevel } from "@/components/BadgeDisplay";
+import ABBYFrameworkGrid from "@/components/dashboard/ABBYFrameworkGrid";
 
 interface DashboardOverviewProps {
   onNavigate?: (section: string) => void;
@@ -267,57 +268,6 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
     },
   ];
 
-  const monetisationSteps = [
-    {
-      step: "AI Engine",
-      color: "text-primary",
-      bgColor: "bg-primary/10",
-      items: [
-        { icon: Rocket, label: "Build My Business", section: "build-business", description: "One-click AI pipeline — generate all revenue assets from your manuscript." },
-      ],
-    },
-    {
-      step: "Step 1 — Digital Products",
-      color: "text-blue-600",
-      bgColor: "bg-blue-500/10",
-      items: [
-        { icon: GraduationCap, label: "Online Courses", section: "courses", description: "Transform chapters into structured online courses." },
-        { icon: FileText, label: "Workbooks", section: "workbooks", description: "AI-generated companion workbooks with exercises.", comingSoon: true },
-        { icon: Video, label: "Webinars", section: "webinars", description: "Webinar scripts, slides, and registration pages.", comingSoon: true },
-        { icon: Share2, label: "Social Media", section: "social-media", description: "90-day content calendar from your book.", comingSoon: true },
-      ],
-    },
-    {
-      step: "Step 2 — Coaching",
-      color: "text-amber-600",
-      bgColor: "bg-amber-500/10",
-      items: [
-        { icon: Users, label: "Coaching Packages", section: "coaching", description: "Build and sell coaching packages." },
-        { icon: Users, label: "Group Coaching", section: "group-coaching", description: "8-week group coaching programs.", comingSoon: true },
-        { icon: Trophy, label: "Big Ticket", section: "big-ticket", description: "Premium consulting packages.", comingSoon: true },
-      ],
-    },
-    {
-      step: "Step 3 — Speaking",
-      color: "text-rose-500",
-      bgColor: "bg-rose-500/10",
-      items: [
-        { icon: Mic, label: "Speaking Topics", section: "speaking", description: "Create your speaker profile with topics and fees." },
-        { icon: Podcast, label: "Podcast", section: "podcast", description: "AI-generated podcast series from your book.", comingSoon: true },
-        { icon: Building, label: "Corporate Training", section: "corporate-training", description: "Corporate training curricula.", comingSoon: true },
-      ],
-    },
-    {
-      step: "Step 4 — Seminars",
-      color: "text-emerald-500",
-      bgColor: "bg-emerald-500/10",
-      items: [
-        { icon: Calendar, label: "Retreats & Bootcamps", section: "retreats", description: "Multi-day event programs.", comingSoon: true },
-        { icon: Award, label: "Certification", section: "certification", description: "Professional certification programs.", comingSoon: true },
-        { icon: Trophy, label: "Masterminds", section: "masterminds", description: "Exclusive mastermind groups.", comingSoon: true },
-      ],
-    },
-  ];
 
   return (
     <div className="max-w-5xl space-y-10">
@@ -483,78 +433,17 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
         </div>
       </div>
 
-      {/* 4-Step Author Business Framework */}
+      {/* THE ABBY FRAMEWORK */}
       <div>
-        <div className="flex items-center gap-3 mb-5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
-            <Rocket className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="font-heading text-xl font-bold">Build Your Author Business</h2>
-            <p className="text-sm text-muted-foreground">
-              The 4-step framework to turn your book into 27 revenue streams
-              {!isPremium && (
-                <span className="inline-flex items-center gap-1 ml-2 text-secondary font-semibold">
-                  <Crown className="h-3 w-3" /> Premium required
-                </span>
-              )}
-            </p>
-          </div>
+        <div className="flex flex-col items-center gap-1 mb-6">
+          <div className="w-px h-8 bg-border" />
+          <ArrowRight className="h-4 w-4 text-muted-foreground rotate-90" />
+          <h2 className="font-heading text-sm font-bold uppercase tracking-[0.2em] text-muted-foreground mt-2">
+            The ABBY Framework
+          </h2>
         </div>
 
-        <div className="space-y-6">
-          {monetisationSteps.map((step) => (
-            <div key={step.step}>
-              <h3 className={`text-xs font-bold uppercase tracking-wider mb-3 ${step.color}`}>
-                {step.step}
-              </h3>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {step.items.map((item) => {
-                  const isAvailable = isPremium && !item.comingSoon;
-                  return (
-                    <button
-                      key={item.label}
-                      type="button"
-                      onClick={() => {
-                        if (!isPremium) {
-                          handleUpgrade();
-                        } else {
-                          onNavigate?.(item.section);
-                        }
-                      }}
-                      className={`rounded-xl border p-4 text-left transition-all group ${
-                        isAvailable
-                          ? "border-border bg-card hover:shadow-[var(--shadow-card-hover)] hover:border-secondary/40 cursor-pointer"
-                          : "border-border bg-muted/20 cursor-pointer hover:bg-muted/30"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5 mb-2">
-                        <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-                          isAvailable ? step.bgColor : "bg-muted"
-                        }`}>
-                          {isAvailable ? (
-                            <item.icon className={`h-4 w-4 ${step.color}`} />
-                          ) : isPremium ? (
-                            <item.icon className="h-4 w-4 text-muted-foreground/50" />
-                          ) : (
-                            <Lock className="h-4 w-4 text-muted-foreground/50" />
-                          )}
-                        </div>
-                        <span className="font-heading text-sm font-semibold truncate">{item.label}</span>
-                        {item.comingSoon && (
-                          <span className="ml-auto text-[9px] font-medium uppercase tracking-wide text-muted-foreground/50 bg-muted rounded px-1.5 py-0.5 shrink-0">
-                            Soon
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
+        <ABBYFrameworkGrid isPremium={isPremium} onNavigate={onNavigate} onUpgrade={handleUpgrade} />
       </div>
 
       {/* Incomplete Profile Reminder Dialog */}
