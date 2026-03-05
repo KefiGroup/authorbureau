@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as cloudSupabase } from "@/integrations/supabase/client";
+import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +17,6 @@ interface Book {
   id: string;
   title: string;
   cover_image_url: string | null;
-  author_name: string | null;
 }
 
 const PLATFORMS = [
@@ -35,6 +35,13 @@ interface Props {
   onNext: () => void;
 }
 
+async function getActiveToken(): Promise<string | null> {
+  const { data: cloudSession } = await cloudSupabase.auth.getSession();
+  if (cloudSession?.session?.access_token) return cloudSession.session.access_token;
+  const { data: sharedSession } = await sharedSupabase.auth.getSession();
+  return sharedSession?.session?.access_token || null;
+}
+
 export default function ConfigureStep({ config, onConfigChange, onNext }: Props) {
   const { user } = useAuth();
   const [books, setBooks] = useState<Book[]>([]);
@@ -45,15 +52,43 @@ export default function ConfigureStep({ config, onConfigChange, onNext }: Props)
   const [avoidTags, setAvoidTags] = useState<string[]>([]);
 
   useEffect(() => {
-    if (!user) return;
-    (async () => {
-      const { data } = await supabase
-        .from("books")
-        .select("id, title, cover_image_url, author_name")
-        .eq("author_id", user.id)
-        .order("created_at", { ascending: false });
-      if (data) setBooks(data);
+    if (!user) {
       setLoading(false);
+      return;
+    }
+
+    (async () => {
+      try {
+        const token = await getActiveToken();
+        if (!token) {
+          setBooks([]);
+          setLoading(false);
+          return;
+        }
+
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ action: "list" }),
+        });
+
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Failed to fetch books");
+
+        setBooks((result.books || []).map((b: any) => ({
+          id: b.id,
+          title: b.title,
+          cover_image_url: b.cover_image_url ?? null,
+        })));
+      } catch (error) {
+        console.error("ConfigureStep failed to load books:", error);
+        setBooks([]);
+      } finally {
+        setLoading(false);
+      }
     })();
   }, [user]);
 
