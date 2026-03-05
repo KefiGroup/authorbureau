@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import { Video, Loader2, Edit3, Eye, Save, X, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import BookBuilderContextBar from "./BookBuilderContextBar";
 
 interface Webinar {
   id: string;
