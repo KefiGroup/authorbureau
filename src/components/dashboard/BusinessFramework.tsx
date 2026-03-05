@@ -6,9 +6,10 @@ import {
   Bookmark, Calendar, Link2, TrendingUp, Megaphone,
   Headphones, BookMarked, Globe, Presentation, UserCheck,
   HandCoins, Handshake, BarChart3, ShieldCheck,
-  ArrowRight, Sparkles, X, ChevronRight, Lock,
+  ArrowRight, Sparkles, X, Lock,
 } from "lucide-react";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
+import ABBYFrameworkVisual from "@/components/dashboard/book-hub/ABBYFrameworkVisual";
 
 interface Props {
   onNavigate: (section: DashboardSection | string) => void;
@@ -252,65 +253,19 @@ export default function BusinessFramework({ onNavigate, isPremium, focusStep }: 
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
-          {steps.map((step, idx) => {
-            const isActive = activeStep === step.id;
-            const liveCount = step.nodes.filter((n) => n.status === "live").length;
-            const totalCount = step.nodes.length;
-
-            return (
-              <motion.button
-                key={step.id}
-                onClick={() => setActiveStep(isActive ? null : step.id)}
-                className={`relative group rounded-2xl border-2 p-5 text-left transition-all duration-300 ${
-                  isActive
-                    ? `${step.ringColor} ring-2 border-transparent shadow-lg`
-                    : "border-border hover:border-muted-foreground/20 hover:shadow-md"
-                }`}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.35 + idx * 0.08 }}
-                whileHover={{ y: -2 }}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${step.gradientFrom} ${step.gradientTo} flex items-center justify-center text-white font-bold text-sm shadow-sm`}>
-                      {idx + 1}
-                    </div>
-                    <div>
-                      <p className={`text-xs font-bold uppercase tracking-wider ${step.color}`}>
-                        {step.label}
-                      </p>
-                      <h3 className="font-heading text-lg font-bold leading-tight">
-                        {step.subtitle}
-                      </h3>
-                    </div>
-                  </div>
-                  <ChevronRight className={`h-5 w-5 text-muted-foreground/40 transition-transform ${isActive ? "rotate-90" : "group-hover:translate-x-0.5"}`} />
-                </div>
-                <div className="flex items-center gap-3 text-xs">
-                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium ${step.bgColor} ${step.color}`}>
-                    {totalCount} products
-                  </span>
-                  {liveCount > 0 && (
-                    <span className="text-green-600 font-medium">{liveCount} live</span>
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-1.5 mt-3">
-                  {step.nodes.map((node) => (
-                    <div
-                      key={node.id}
-                      className={`w-2 h-2 rounded-full ${
-                        node.status === "live" ? "bg-green-500" : node.status === "coming-soon" ? "bg-amber-400" : "bg-muted-foreground/20"
-                      }`}
-                      title={node.label}
-                    />
-                  ))}
-                </div>
-              </motion.button>
-            );
-          })}
-        </div>
+        <ABBYFrameworkVisual
+          hasConsultation={true}
+          onConsultAbby={() => onNavigate("build-business")}
+          onNavigateTab={(tab) => {
+            const tabToStep: Record<string, string> = {
+              automate: "step-1",
+              build: "step-2",
+              broadcast: "step-3",
+              yield: "step-4",
+            };
+            setActiveStep(tabToStep[tab] ?? null);
+          }}
+        />
       </motion.div>
 
       {/* Expanded Step Detail Panel */}
