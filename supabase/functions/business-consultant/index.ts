@@ -273,9 +273,10 @@ serve(async (req) => {
 
     const selectedBook = bookId ? books.find((b: any) => b.id === bookId) : null;
 
-    // Find manuscript content from generated assets if available
-    const manuscriptAsset = existingAssets.find((a: any) => a.asset_type === "manuscript_analysis");
-    const manuscriptContent = manuscriptAsset ? manuscriptAsset.content.slice(0, 50000) : null;
+    // Find manuscript content from generated assets if available — prioritize full manuscript
+    const manuscriptAsset = existingAssets.find((a: any) => a.asset_type === "source_material") 
+      || existingAssets.find((a: any) => a.asset_type === "manuscript_analysis");
+    const manuscriptContent = manuscriptAsset ? manuscriptAsset.content.slice(0, 150000) : null;
 
     const contextBlock = `
 CURRENT CONTEXT:
@@ -298,7 +299,11 @@ books: ${JSON.stringify(books.map((b: any) => ({
       review_count: b.review_count,
     })))}
 selected_book: ${selectedBook ? JSON.stringify({ id: selectedBook.id, title: selectedBook.title, description: selectedBook.description, genre: selectedBook.genre }) : "none"}
-${manuscriptContent ? `manuscript_excerpt: ${manuscriptContent}` : "manuscript_content: not available"}
+${manuscriptContent ? `
+=== FULL BOOK MANUSCRIPT (READ THIS CAREFULLY) ===
+CRITICAL: You MUST read this entire manuscript to understand the author's unique theories, frameworks, and methodology. Extract any proprietary concepts, step-by-step processes, or unique terminology the author uses. Reference these in ALL your recommendations.
+${manuscriptContent}
+=== END MANUSCRIPT ===` : "manuscript_content: not available — during discovery, ask the author to upload their manuscript for better recommendations"}
 existing_products: ${JSON.stringify(existingProducts)}
 audience_metrics: { email_subscribers: ${subscriberCount} }
 generation_history: ${JSON.stringify(existingAssets.map((a: any) => a.asset_type))}
