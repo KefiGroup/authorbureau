@@ -16,205 +16,121 @@ interface RevenueNode {
 interface StepCluster {
   id: string;
   step: number;
-  letter: string;
   title: string;
-  subtitle: string;
-  color: string;        // tailwind bg for hub
-  nodeColor: string;     // tailwind bg for satellite
-  nodeBorder: string;
+  hubColor: string;
+  nodeColor: string;
+  nodeColorMuted: string;
   nodes: RevenueNode[];
   tabKey: string;
 }
 
 const CLUSTERS: StepCluster[] = [
   {
-    id: "automate",
-    step: 1,
-    letter: "A",
-    title: "DIGITAL PRODUCTS",
-    subtitle: "Automate",
-    color: "bg-blue-500",
-    nodeColor: "bg-blue-400",
-    nodeBorder: "border-blue-300",
+    id: "automate", step: 1, title: "DIGITAL\nPRODUCTS",
+    hubColor: "#3b82f6", nodeColor: "#60a5fa", nodeColorMuted: "#93c5fd",
     tabKey: "automate",
     nodes: [
       { label: "Online Courses", active: false },
       { label: "Affiliates", active: false },
       { label: "Audio Book", active: false },
-      { label: "Home Study Courses", active: false },
+      { label: "Home Study\nCourses", active: false },
       { label: "Webinars", active: false },
       { label: "Website", active: false },
       { label: "Workbook", active: false },
-      { label: "Monthly Memberships", active: false },
-      { label: "Upsells / Downsells", active: false },
+      { label: "Monthly\nMemberships", active: false },
+      { label: "Upsells /\nDownsells", active: false },
       { label: "Social Media", active: false },
     ],
   },
   {
-    id: "build",
-    step: 2,
-    letter: "B",
-    title: "COACHING / CONSULTING",
-    subtitle: "Build",
-    color: "bg-amber-600",
-    nodeColor: "bg-amber-500",
-    nodeBorder: "border-amber-300",
+    id: "build", step: 2, title: "COACHING /\nCONSULTING",
+    hubColor: "#d97706", nodeColor: "#f59e0b", nodeColorMuted: "#fcd34d",
     tabKey: "build",
     nodes: [
-      { label: "1-on-1 Coaching", active: false },
-      { label: "Group Coaching", active: false },
+      { label: "1-on-1\nCoaching", active: false },
+      { label: "Group\nCoaching", active: false },
       { label: "Big Ticket", active: false },
-      { label: "Revenue Sharing", active: false },
+      { label: "Revenue\nSharing", active: false },
     ],
   },
   {
-    id: "broadcast",
-    step: 3,
-    letter: "B",
-    title: "SPEAKING",
-    subtitle: "Broadcast",
-    color: "bg-rose-400",
-    nodeColor: "bg-rose-400",
-    nodeBorder: "border-rose-300",
+    id: "broadcast", step: 3, title: "SPEAKING",
+    hubColor: "#f43f5e", nodeColor: "#fb7185", nodeColorMuted: "#fda4af",
     tabKey: "broadcast",
     nodes: [
       { label: "JVs", active: false },
       { label: "Podcasts", active: false },
       { label: "Book Sales", active: false },
       { label: "Fund Raising", active: false },
-      { label: "In-House Speaker", active: false },
-      { label: "Special Editions", active: false },
+      { label: "In-House\nSpeaker", active: false },
+      { label: "Special\nEditions", active: false },
     ],
   },
   {
-    id: "yield",
-    step: 4,
-    letter: "Y",
-    title: "SEMINARS",
-    subtitle: "Yield",
-    color: "bg-emerald-500",
-    nodeColor: "bg-emerald-400",
-    nodeBorder: "border-emerald-300",
+    id: "yield", step: 4, title: "SEMINARS",
+    hubColor: "#10b981", nodeColor: "#34d399", nodeColorMuted: "#6ee7b7",
     tabKey: "yield",
     nodes: [
-      { label: "Retreats & Bootcamps", active: false },
+      { label: "Retreats &\nBootcamps", active: false },
       { label: "Certification", active: false },
       { label: "Masterminds", active: false },
-      { label: "Exhibitors / JV", active: false },
+      { label: "Exhibitors /\nJV", active: false },
       { label: "Conventions", active: false },
-      { label: "Training Programs", active: false },
+      { label: "Training\nPrograms", active: false },
       { label: "Conferences", active: false },
     ],
   },
 ];
 
-/* ── helpers to fan satellite nodes in an arc around each hub ── */
+/* ── SVG viewBox ── */
+const VW = 1200;
+const VH = 800;
+const CX = VW / 2;
+const CY = VH / 2;
 
-function getNodePositions(count: number, radius: number, startAngle: number, sweep: number) {
-  const positions: { x: number; y: number }[] = [];
-  for (let i = 0; i < count; i++) {
-    const angle = startAngle + (sweep / Math.max(count - 1, 1)) * i;
-    const rad = (angle * Math.PI) / 180;
-    positions.push({ x: Math.cos(rad) * radius, y: Math.sin(rad) * radius });
-  }
-  return positions;
-}
-
-/* ── quadrant layout: hub positions + arc directions ── */
-
-const QUADRANT_CONFIG: Record<string, { hubX: number; hubY: number; startAngle: number; sweep: number; radius: number }> = {
-  automate:  { hubX: 22, hubY: 25, startAngle: 180, sweep: 180, radius: 140 },
-  build:     { hubX: 22, hubY: 75, startAngle: 180, sweep: 150, radius: 120 },
-  broadcast: { hubX: 78, hubY: 75, startAngle: -30, sweep: 180, radius: 120 },
-  yield:     { hubX: 78, hubY: 25, startAngle: -10, sweep: 180, radius: 140 },
+/* Hub positions + arc config (SVG coords) */
+const HUB_CFG: Record<string, { x: number; y: number; startDeg: number; sweepDeg: number; r: number }> = {
+  automate:  { x: 240, y: 220, startDeg: 120, sweepDeg: 240, r: 170 },
+  build:     { x: 240, y: 600, startDeg: 150, sweepDeg: 180, r: 150 },
+  broadcast: { x: 960, y: 600, startDeg: -30, sweepDeg: 180, r: 150 },
+  yield:     { x: 960, y: 220, startDeg: -60, sweepDeg: 240, r: 170 },
 };
 
-function SatelliteNode({ node, x, y, color, border, delay }: {
-  node: RevenueNode; x: number; y: number; color: string; border: string; delay: number;
-}) {
-  return (
-    <motion.div
-      className="absolute flex flex-col items-center gap-1 pointer-events-auto"
-      style={{ left: x, top: y, transform: "translate(-50%, -50%)" }}
-      initial={{ opacity: 0, scale: 0 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.4, delay }}
-    >
-      <div
-        className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-[9px] font-bold text-white shadow-md
-          ${node.active ? color : "bg-muted"} ${!node.active ? "opacity-50" : ""} border-2 ${node.active ? border : "border-muted-foreground/20"}`}
-      >
-        $
-      </div>
-      <span className={`text-[8px] sm:text-[9px] font-medium text-center leading-tight max-w-[72px]
-        ${node.active ? "text-foreground" : "text-muted-foreground"}`}>
-        {node.label}
-      </span>
-    </motion.div>
-  );
+function arcPositions(count: number, cx: number, cy: number, r: number, startDeg: number, sweepDeg: number) {
+  const out: { x: number; y: number }[] = [];
+  for (let i = 0; i < count; i++) {
+    const angle = startDeg + (sweepDeg / Math.max(count - 1, 1)) * i;
+    const rad = (angle * Math.PI) / 180;
+    out.push({ x: cx + Math.cos(rad) * r, y: cy + Math.sin(rad) * r });
+  }
+  return out;
 }
 
-function ClusterGroup({ cluster, containerW, containerH, onClick, index }: {
-  cluster: StepCluster; containerW: number; containerH: number; onClick: () => void; index: number;
+/* Multi-line SVG text helper */
+function MultiLineText({ x, y, text, fontSize, fill, fontWeight, opacity, anchor }: {
+  x: number; y: number; text: string; fontSize: number; fill: string; fontWeight?: string; opacity?: number; anchor?: string;
 }) {
-  const cfg = QUADRANT_CONFIG[cluster.id];
-  const hubPxX = (cfg.hubX / 100) * containerW;
-  const hubPxY = (cfg.hubY / 100) * containerH;
-
-  // Scale radius based on container
-  const scale = Math.min(containerW, containerH) / 600;
-  const radius = cfg.radius * Math.max(scale, 0.55);
-  const positions = getNodePositions(cluster.nodes.length, radius, cfg.startAngle, cfg.sweep);
-  const activeCount = cluster.nodes.filter((n) => n.active).length;
-
+  const lines = text.split("\n");
+  const lineHeight = fontSize * 1.2;
+  const startY = y - ((lines.length - 1) * lineHeight) / 2;
   return (
-    <div className="absolute inset-0">
-      {/* Dashed lines from hub to each node */}
-      <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: "visible" }}>
-        {positions.map((pos, i) => (
-          <line
-            key={i}
-            x1={hubPxX}
-            y1={hubPxY}
-            x2={hubPxX + pos.x}
-            y2={hubPxY + pos.y}
-            stroke="hsl(var(--border))"
-            strokeWidth="1"
-            strokeDasharray="4 4"
-            opacity={0.5}
-          />
-        ))}
-      </svg>
-
-      {/* Satellite nodes */}
-      {cluster.nodes.map((node, i) => (
-        <SatelliteNode
-          key={node.label}
-          node={node}
-          x={hubPxX + positions[i].x}
-          y={hubPxY + positions[i].y}
-          color={cluster.nodeColor}
-          border={cluster.nodeBorder}
-          delay={0.15 + index * 0.1 + i * 0.04}
-        />
+    <>
+      {lines.map((line, i) => (
+        <text
+          key={i}
+          x={x}
+          y={startY + i * lineHeight}
+          textAnchor={anchor || "middle"}
+          dominantBaseline="central"
+          fill={fill}
+          fontSize={fontSize}
+          fontWeight={fontWeight || "normal"}
+          opacity={opacity ?? 1}
+        >
+          {line}
+        </text>
       ))}
-
-      {/* Hub node */}
-      <motion.div
-        className={`absolute flex flex-col items-center justify-center rounded-full shadow-lg cursor-pointer
-          w-20 h-20 sm:w-24 sm:h-24 ${cluster.color} text-white z-10`}
-        style={{ left: hubPxX, top: hubPxY, transform: "translate(-50%, -50%)" }}
-        initial={{ opacity: 0, scale: 0 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5, delay: 0.1 * index }}
-        whileHover={{ scale: 1.08 }}
-        onClick={onClick}
-      >
-        <span className="text-[9px] font-bold opacity-80">STEP {cluster.step}</span>
-        <span className="text-[10px] sm:text-xs font-extrabold leading-tight text-center px-1">{cluster.title}</span>
-        <span className="text-[8px] opacity-70 mt-0.5">{activeCount}/{cluster.nodes.length}</span>
-      </motion.div>
-    </div>
+    </>
   );
 }
 
@@ -245,70 +161,134 @@ export default function ABBYFrameworkVisual({ hasConsultation, onConsultAbby, on
         </Button>
       </div>
 
-      {/* Constellation Map */}
-      <div className="relative w-full rounded-2xl border border-border bg-card overflow-hidden" style={{ height: 520 }}>
-        {/* Center book icon */}
-        <motion.div
-          className="absolute z-20 flex flex-col items-center gap-1"
-          style={{ left: "50%", top: "50%", transform: "translate(-50%, -50%)" }}
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6 }}
+      {/* Constellation Map — pure SVG */}
+      <div className="w-full rounded-2xl border border-border bg-card overflow-hidden">
+        <svg
+          viewBox={`0 0 ${VW} ${VH}`}
+          className="w-full h-auto"
+          style={{ minHeight: 380, maxHeight: 600 }}
         >
-          <div className="w-16 h-20 sm:w-20 sm:h-24 rounded-lg bg-gradient-to-br from-secondary/80 to-secondary shadow-xl flex items-center justify-center border-2 border-secondary-foreground/20">
-            <span className="text-2xl sm:text-3xl">📖</span>
-          </div>
-          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mt-1">Your Book</span>
-        </motion.div>
-
-        {/* Arrow lines from center to hubs */}
-        <svg className="absolute inset-0 w-full h-full pointer-events-none z-[1]">
-          {CLUSTERS.map((cluster) => {
-            const cfg = QUADRANT_CONFIG[cluster.id];
+          {/* Dashed lines: center → hubs */}
+          {CLUSTERS.map((c) => {
+            const h = HUB_CFG[c.id];
             return (
-              <motion.line
-                key={cluster.id}
-                x1="50%"
-                y1="50%"
-                x2={`${cfg.hubX}%`}
-                y2={`${cfg.hubY}%`}
+              <line
+                key={`ctr-${c.id}`}
+                x1={CX} y1={CY} x2={h.x} y2={h.y}
                 stroke="hsl(var(--secondary))"
-                strokeWidth="2"
-                strokeDasharray="6 4"
-                opacity={0.4}
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: 1 }}
-                transition={{ duration: 0.8 }}
+                strokeWidth="2.5"
+                strokeDasharray="8 6"
+                opacity={0.35}
               />
             );
           })}
-        </svg>
 
-        {/* Cluster groups */}
-        {CLUSTERS.map((cluster, i) => (
-          <ClusterGroup
-            key={cluster.id}
-            cluster={cluster}
-            containerW={800}
-            containerH={520}
-            onClick={() => onNavigateTab(cluster.tabKey)}
-            index={i}
-          />
-        ))}
+          {/* Dashed lines: hubs → nodes */}
+          {CLUSTERS.map((c) => {
+            const h = HUB_CFG[c.id];
+            const positions = arcPositions(c.nodes.length, h.x, h.y, h.r, h.startDeg, h.sweepDeg);
+            return positions.map((pos, i) => (
+              <line
+                key={`spoke-${c.id}-${i}`}
+                x1={h.x} y1={h.y} x2={pos.x} y2={pos.y}
+                stroke="hsl(var(--border))"
+                strokeWidth="1.2"
+                strokeDasharray="4 4"
+                opacity={0.45}
+              />
+            ));
+          })}
+
+          {/* Product nodes */}
+          {CLUSTERS.map((c) => {
+            const h = HUB_CFG[c.id];
+            const positions = arcPositions(c.nodes.length, h.x, h.y, h.r, h.startDeg, h.sweepDeg);
+            return positions.map((pos, i) => {
+              const node = c.nodes[i];
+              return (
+                <g key={`node-${c.id}-${i}`}>
+                  <circle
+                    cx={pos.x} cy={pos.y} r={22}
+                    fill={node.active ? c.nodeColor : "hsl(var(--muted))"}
+                    stroke={node.active ? c.nodeColorMuted : "hsl(var(--border))"}
+                    strokeWidth="2.5"
+                    opacity={node.active ? 1 : 0.5}
+                  />
+                  <text
+                    x={pos.x} y={pos.y}
+                    textAnchor="middle" dominantBaseline="central"
+                    fill="white" fontSize="14" fontWeight="bold"
+                    opacity={node.active ? 1 : 0.6}
+                  >
+                    {node.active ? "✓" : "$"}
+                  </text>
+                  <MultiLineText
+                    x={pos.x} y={pos.y + 34}
+                    text={node.label}
+                    fontSize={11}
+                    fill="hsl(var(--foreground))"
+                    fontWeight="500"
+                    opacity={node.active ? 0.9 : 0.5}
+                  />
+                </g>
+              );
+            });
+          })}
+
+          {/* Hub circles */}
+          {CLUSTERS.map((c) => {
+            const h = HUB_CFG[c.id];
+            const activeCount = c.nodes.filter((n) => n.active).length;
+            return (
+              <g key={`hub-${c.id}`} className="cursor-pointer">
+                <circle cx={h.x} cy={h.y} r={58} fill={c.hubColor} />
+                <circle cx={h.x} cy={h.y} r={58} fill="none" stroke="white" strokeWidth="2" opacity={0.2} />
+                <text x={h.x} y={h.y - 18} textAnchor="middle" dominantBaseline="central" fill="white" fontSize="10" fontWeight="bold" opacity={0.8}>
+                  STEP {c.step}
+                </text>
+                <MultiLineText
+                  x={h.x} y={h.y + 2}
+                  text={c.title}
+                  fontSize={13}
+                  fill="white"
+                  fontWeight="800"
+                />
+                <text x={h.x} y={h.y + 30} textAnchor="middle" dominantBaseline="central" fill="white" fontSize="10" opacity={0.7}>
+                  {activeCount}/{c.nodes.length}
+                </text>
+              </g>
+            );
+          })}
+
+          {/* Center book */}
+          <g>
+            <rect x={CX - 35} y={CY - 42} width={70} height={84} rx={10}
+              fill="hsl(var(--secondary))" opacity={0.9} />
+            <rect x={CX - 35} y={CY - 42} width={70} height={84} rx={10}
+              fill="none" stroke="white" strokeWidth="2" opacity={0.15} />
+            <text x={CX} y={CY - 4} textAnchor="middle" dominantBaseline="central" fontSize="32">
+              📖
+            </text>
+            <text x={CX} y={CY + 58} textAnchor="middle" fill="hsl(var(--muted-foreground))"
+              fontSize="11" fontWeight="bold" letterSpacing="1.5">
+              YOUR BOOK
+            </text>
+          </g>
+        </svg>
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-6 text-[10px] text-muted-foreground">
+      <div className="flex items-center justify-center gap-6 text-[10px] text-muted-foreground">
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full bg-blue-400 border-2 border-blue-300" />
+          <div className="w-3 h-3 rounded-full" style={{ background: "#60a5fa" }} />
           <span>Activated</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full bg-muted opacity-50 border-2 border-muted-foreground/20" />
+          <div className="w-3 h-3 rounded-full bg-muted border-2 border-border" />
           <span>Not yet activated</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-0 border-t border-dashed border-border" style={{ width: 16 }} />
+          <div className="w-4 h-0 border-t border-dashed border-border" style={{ width: 16 }} />
           <span>Revenue connection</span>
         </div>
       </div>
