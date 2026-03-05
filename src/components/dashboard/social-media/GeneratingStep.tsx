@@ -75,8 +75,8 @@ export default function GeneratingStep({ config, onComplete, onBack }: Props) {
         {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            const token = await getActiveToken();
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             bookId: config.bookId,
