@@ -105,20 +105,23 @@ export const stepConfigs: StepConfig[] = [
 interface Props {
   stepId: string;
   bookId: string;
+  bookTitle?: string;
   isPremium: boolean;
 }
 
-export default function BookHubStepTab({ stepId, bookId, isPremium }: Props) {
+export default function BookHubStepTab({ stepId, bookId, bookTitle, isPremium }: Props) {
   const navigate = useNavigate();
   const stepData = stepConfigs.find((s) => s.id === stepId);
   if (!stepData) return null;
 
+  const titleParam = bookTitle ? `&bookTitle=${encodeURIComponent(bookTitle)}` : "";
+
   const getStudioPath = (nodeId: string): string | null => {
     const map: Record<string, string> = {
-      "social-media": "/dashboard?section=social-media",
-      workbooks: `/dashboard?section=workbooks&bookId=${bookId}`,
-      webinars: "/dashboard?section=webinars",
-      audiobook: `/dashboard?section=audiobook-studio&bookId=${bookId}`,
+      "social-media": `/dashboard?section=social-media&bookId=${bookId}${titleParam}`,
+      workbooks: `/dashboard?section=workbooks&bookId=${bookId}${titleParam}`,
+      webinars: `/dashboard?section=webinars&bookId=${bookId}${titleParam}`,
+      audiobook: `/dashboard?section=audiobook-studio&bookId=${bookId}${titleParam}`,
     };
 
     return map[nodeId] || null;
