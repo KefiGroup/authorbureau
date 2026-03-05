@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
-import FrameworkInterviewModal from "@/components/dashboard/FrameworkInterviewModal";
+import FrameworkInterviewModal, { type BuildMode } from "@/components/dashboard/FrameworkInterviewModal";
 import ManuscriptUpload from "@/components/dashboard/ManuscriptUpload";
 import type { AuthorFramework } from "@/components/dashboard/FrameworksEditor";
 import {
@@ -311,10 +311,12 @@ export default function BuildMyBusiness() {
     setShowFrameworkModal(true);
   };
 
-  const handleFrameworkConfirm = (frameworks: AuthorFramework[]) => {
+  const handleFrameworkConfirm = (frameworks: AuthorFramework[], buildMode: BuildMode) => {
     setShowFrameworkModal(false);
     if (pendingBuildReq) {
-      executeBuild(pendingBuildReq, frameworks);
+      // Pass build mode info so the builder knows if it's one-per-framework or combined
+      const enrichedReq = { ...pendingBuildReq, build_mode: buildMode };
+      executeBuild(enrichedReq, frameworks);
       setPendingBuildReq(null);
     }
   };
