@@ -9,9 +9,10 @@ interface ManuscriptUploadProps {
   bookId: string;
   bookTitle: string;
   compact?: boolean;
+  onUploadComplete?: () => void;
 }
 
-export default function ManuscriptUpload({ bookId, bookTitle, compact = false }: ManuscriptUploadProps) {
+export default function ManuscriptUpload({ bookId, bookTitle, compact = false, onUploadComplete }: ManuscriptUploadProps) {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -95,6 +96,7 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false }:
       setHasManuscript(true);
       setCharCount(result.characterCount);
       toast.success(`Manuscript uploaded! ${Math.round(result.characterCount / 1000)}k characters extracted — Abby can now read your book.`);
+      onUploadComplete?.();
     } catch (err) {
       console.error("Manuscript upload error:", err);
       toast.error(err instanceof Error ? err.message : "Upload failed. Please try again.");
