@@ -86,6 +86,7 @@ export default function WebinarsManager() {
   if (webinars.length === 0) {
     return (
       <div className="max-w-2xl mx-auto py-16 text-center">
+        <BookBuilderContextBar backTab="automate" />
         <div className="w-16 h-16 rounded-2xl bg-purple-50 flex items-center justify-center mx-auto mb-6">
           <Video className="h-8 w-8 text-purple-600" />
         </div>
