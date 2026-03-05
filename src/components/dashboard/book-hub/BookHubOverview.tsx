@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, Zap, BarChart3 } from "lucide-react";
+import { Sparkles, Zap, BarChart3, FileText, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ManuscriptUpload from "@/components/dashboard/ManuscriptUpload";
 import ABBYFrameworkVisual from "./ABBYFrameworkVisual";
@@ -17,22 +17,39 @@ interface Props {
   onNavigateTab: (tab: string) => void;
 }
 
-
 export default function BookHubOverview({ book, onConsultAbby, onNavigateTab }: Props) {
   const [hasConsultation, setHasConsultation] = useState(false);
+  const [hasManuscript, setHasManuscript] = useState(false);
+  const [manuscriptChars, setManuscriptChars] = useState(0);
+  const [showManuscriptUpload, setShowManuscriptUpload] = useState(false);
 
   useEffect(() => {
-    async function checkConsultation() {
+    async function checkData() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
+      // Check consultation
       const { count } = await supabase
         .from("consultation_sessions")
         .select("id", { count: "exact", head: true })
         .eq("book_id", book.id)
         .eq("user_id", user.id);
       setHasConsultation((count ?? 0) > 0);
+
+      // Check manuscript
+      const { data: assets } = await supabase
+        .from("generated_assets")
+        .select("content")
+        .eq("book_id", book.id)
+        .eq("author_id", user.id)
+        .eq("asset_type", "source_material")
+        .limit(1);
+      if (assets && assets.length > 0 && assets[0].content) {
+        setHasManuscript(true);
+        setManuscriptChars(assets[0].content.length);
+      }
     }
-    checkConsultation();
+    checkData();
   }, [book.id]);
 
   return (
@@ -70,6 +87,31 @@ export default function BookHubOverview({ book, onConsultAbby, onNavigateTab }: 
                 </>
               )}
             </p>
+
+            {/* Compact manuscript status */}
+            <div className="flex items-center gap-2 mt-3 text-xs">
+              <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+              {hasManuscript ? (
+                <span className="text-muted-foreground">
+                  ✅ Manuscript loaded — {Math.round(manuscriptChars / 1000)}k characters
+                  <button
+                    onClick={() => setShowManuscriptUpload(!showManuscriptUpload)}
+                    className="ml-2 text-secondary hover:underline"
+                  >
+                    {showManuscriptUpload ? "Hide" : "Replace"}
+                  </button>
+                </span>
+              ) : (
+                <button
+                  onClick={() => setShowManuscriptUpload(!showManuscriptUpload)}
+                  className="text-secondary hover:underline flex items-center gap-1"
+                >
+                  <Upload className="h-3 w-3" />
+                  Upload manuscript for Abby to analyze
+                </button>
+              )}
+            </div>
+
             <div className="flex flex-wrap gap-2 mt-4">
               <Button
                 size="sm"
@@ -94,17 +136,23 @@ export default function BookHubOverview({ book, onConsultAbby, onNavigateTab }: 
         </div>
       </motion.div>
 
+      {/* Expandable manuscript upload */}
+      {showManuscriptUpload && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          exit={{ opacity: 0, height: 0 }}
+        >
+          <ManuscriptUpload bookId={book.id} bookTitle={book.title} />
+        </motion.div>
+      )}
+
       {/* ABBY Framework Visual — the 27 circles ARE the progress tracker */}
       <ABBYFrameworkVisual
         hasConsultation={true}
         onConsultAbby={onConsultAbby}
         onNavigateTab={onNavigateTab}
       />
-
-      {/* Manuscript Upload — show prominently if no consultation yet */}
-      {!hasConsultation && (
-        <ManuscriptUpload bookId={book.id} bookTitle={book.title} />
-      )}
 
       {/* Recent Activity */}
       <div className="rounded-xl border border-border bg-card p-5">
