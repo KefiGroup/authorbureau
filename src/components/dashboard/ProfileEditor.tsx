@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import FrameworksEditor, { type AuthorFramework } from "@/components/dashboard/FrameworksEditor";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -69,6 +70,7 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
   const [syncing, setSyncing] = useState(false);
   const [profile, setProfile] = useState<AuthorProfile>(EMPTY_PROFILE);
   const [profileExists, setProfileExists] = useState(false);
+  const [frameworks, setFrameworks] = useState<AuthorFramework[]>([]);
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
@@ -105,6 +107,7 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
           genres: (data.genres as string[]) || [],
           directory_status: data.directory_status || "unlisted",
         });
+        setFrameworks(Array.isArray((data as any).frameworks) ? (data as any).frameworks : []);
       }
     } catch (err) {
       console.error("Profile fetch failed:", err);
@@ -307,6 +310,13 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
               </a>
             ))}
           </div>
+        </section>
+      )}
+
+      {/* Frameworks & Theories */}
+      {profileExists && (
+        <section className="rounded-xl border border-border bg-card p-6">
+          <FrameworksEditor frameworks={frameworks} onChange={setFrameworks} />
         </section>
       )}
 

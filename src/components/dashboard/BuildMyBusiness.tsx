@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
+import FrameworkInterviewModal from "@/components/dashboard/FrameworkInterviewModal";
+import type { AuthorFramework } from "@/components/dashboard/FrameworksEditor";
 import {
   Rocket, BookOpen, Loader2, Send, ArrowLeft, Sparkles, User, RotateCcw,
   Wrench, MessageCircleHeart, Crown, ExternalLink,
@@ -52,6 +54,8 @@ export default function BuildMyBusiness() {
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [isBuilding, setIsBuilding] = useState<string | null>(null);
+  const [pendingBuildReq, setPendingBuildReq] = useState<Record<string, string> | null>(null);
+  const [showFrameworkModal, setShowFrameworkModal] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -274,8 +278,8 @@ export default function BuildMyBusiness() {
     return { label: entry.label, path: `${base}?tab=${entry.tab}` };
   };
 
-  // Execute a build request — with premium gating
-  const executeBuild = async (buildReq: Record<string, string>) => {
+  // Show framework interview before building
+  const startBuild = (buildReq: Record<string, string>) => {
     if (!selectedBook || !user) return;
 
     // ─── Premium Gate ────────────────────────────────
@@ -287,6 +291,22 @@ export default function BuildMyBusiness() {
       });
       return;
     }
+
+    setPendingBuildReq(buildReq);
+    setShowFrameworkModal(true);
+  };
+
+  const handleFrameworkConfirm = (frameworks: AuthorFramework[]) => {
+    setShowFrameworkModal(false);
+    if (pendingBuildReq) {
+      executeBuild(pendingBuildReq, frameworks);
+      setPendingBuildReq(null);
+    }
+  };
+
+  // Execute a build request — with premium gating
+  const executeBuild = async (buildReq: Record<string, string>, frameworks: AuthorFramework[] = []) => {
+    if (!selectedBook || !user) return;
 
     // Normalize plural/variant product types to their canonical form
     const typeMap: Record<string, string> = {
@@ -325,6 +345,7 @@ export default function BuildMyBusiness() {
           bookDescription: selectedBook.description || "No description provided.",
           authorName: selectedBook.author_name || "Author",
           additionalContext: buildReq.content_focus || buildReq.special_instructions || "",
+          frameworks: frameworks.length > 0 ? frameworks : undefined,
         }),
       });
 
@@ -605,7 +626,7 @@ export default function BuildMyBusiness() {
                               <Button
                                 size="sm"
                                 className="w-full gap-2"
-                                onClick={() => executeBuild(req)}
+                                onClick={() => startBuild(req)}
                                 disabled={!!isBuilding}
                               >
                                 {isBuilding === req.product_type ? (
@@ -730,6 +751,14 @@ export default function BuildMyBusiness() {
           Abby • AI Business Consultant by AuthorsBureau
         </p>
       </div>
+      {/* Framework Interview Modal */}
+      <FrameworkInterviewModal
+        open={showFrameworkModal}
+        onClose={() => { setShowFrameworkModal(false); setPendingBuildReq(null); }}
+        onConfirm={handleFrameworkConfirm}
+        productType={pendingBuildReq?.product_type || "product"}
+        bookTitle={selectedBook?.title || ""}
+      />
     </div>
   );
 }

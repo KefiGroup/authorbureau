@@ -166,6 +166,7 @@ export type Database = {
           created_at: string
           credentials: Json | null
           directory_status: string
+          frameworks: Json | null
           genres: string[] | null
           id: string
           instagram_url: string | null
@@ -196,6 +197,7 @@ export type Database = {
           created_at?: string
           credentials?: Json | null
           directory_status?: string
+          frameworks?: Json | null
           genres?: string[] | null
           id?: string
           instagram_url?: string | null
@@ -226,6 +228,7 @@ export type Database = {
           created_at?: string
           credentials?: Json | null
           directory_status?: string
+          frameworks?: Json | null
           genres?: string[] | null
           id?: string
           instagram_url?: string | null
