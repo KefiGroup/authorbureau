@@ -13,14 +13,17 @@ import ApproveStep from "./ApproveStep";
 
 interface Props {
   onExit: () => void;
+  initialBookId?: string;
+  initialBookTitle?: string;
+  initialBookCoverUrl?: string | null;
 }
 
-export default function SocialMediaStudio({ onExit }: Props) {
+export default function SocialMediaStudio({ onExit, initialBookId, initialBookTitle, initialBookCoverUrl }: Props) {
   const [step, setStep] = useState(0);
   const [config, setConfig] = useState<CalendarConfig>({
-    bookId: "",
-    bookTitle: "",
-    bookCoverUrl: null,
+    bookId: initialBookId || "",
+    bookTitle: initialBookTitle || "",
+    bookCoverUrl: initialBookCoverUrl || null,
     platforms: ["linkedin", "instagram"],
     frequency: "daily",
     contentMix: { tips: 30, quotes: 20, stories: 20, promotions: 15, engagement: 15 },

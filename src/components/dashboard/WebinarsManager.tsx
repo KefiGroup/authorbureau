@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import { Video, Loader2, Edit3, Eye, Save, X, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import BookBuilderContextBar from "./BookBuilderContextBar";
 
 interface Webinar {
   id: string;
@@ -26,6 +28,8 @@ interface Webinar {
 
 export default function WebinarsManager() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const bookFilterId = searchParams.get("bookId");
   const [webinars, setWebinars] = useState<Webinar[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -38,15 +42,19 @@ export default function WebinarsManager() {
   useEffect(() => {
     if (!user) return;
     fetchWebinars();
-  }, [user]);
+  }, [user, bookFilterId]);
 
   const fetchWebinars = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    let query = supabase
       .from("webinars" as any)
       .select("*")
       .eq("author_id", user!.id)
       .order("created_at", { ascending: false });
+    if (bookFilterId) {
+      query = query.eq("book_id", bookFilterId);
+    }
+    const { data, error } = await query;
     if (!error && data) setWebinars(data as any);
     setLoading(false);
   };
@@ -78,6 +86,7 @@ export default function WebinarsManager() {
   if (webinars.length === 0) {
     return (
       <div className="max-w-2xl mx-auto py-16 text-center">
+        <BookBuilderContextBar backTab="automate" />
         <div className="w-16 h-16 rounded-2xl bg-purple-50 flex items-center justify-center mx-auto mb-6">
           <Video className="h-8 w-8 text-purple-600" />
         </div>
@@ -141,6 +150,7 @@ export default function WebinarsManager() {
 
   return (
     <div className="max-w-4xl space-y-6">
+      <BookBuilderContextBar backTab="automate" />
       <div><h2 className="font-heading text-2xl font-bold">Webinars</h2><p className="text-sm text-muted-foreground mt-1">{webinars.length} webinar{webinars.length !== 1 ? "s" : ""}</p></div>
       <div className="grid gap-4">
         {webinars.map(w => (

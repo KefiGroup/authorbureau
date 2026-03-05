@@ -8,10 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
-import { FileText, Loader2, Edit3, Eye, Download, Save, X, ExternalLink, ChevronDown, ArrowLeft } from "lucide-react";
+import { FileText, Loader2, Edit3, Eye, Download, Save, X, ExternalLink, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { redirectToPublishNow } from "@/lib/publishnow-redirect";
-import { useNavigate } from "react-router-dom";
+import BookBuilderContextBar from "./BookBuilderContextBar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -31,9 +31,7 @@ interface Workbook {
 export default function WorkbooksManager() {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const bookFilterId = searchParams.get("bookId");
-  const bookTitle = searchParams.get("bookTitle");
   const [workbooks, setWorkbooks] = useState<Workbook[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -185,6 +183,7 @@ export default function WorkbooksManager() {
   if (workbooks.length === 0) {
     return (
       <div className="max-w-2xl mx-auto py-16 text-center">
+        <BookBuilderContextBar backTab="automate" />
         <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-6">
           <FileText className="h-8 w-8 text-blue-600" />
         </div>
@@ -301,11 +300,7 @@ export default function WorkbooksManager() {
   // List view
   return (
     <div className="max-w-4xl space-y-6">
-      {bookFilterId && (
-        <Button variant="ghost" size="sm" className="-ml-2 text-muted-foreground" onClick={() => navigate(`/dashboard/book/${bookFilterId}?tab=automate`)}>
-          <ArrowLeft className="h-4 w-4 mr-1" /> Back to {bookTitle ? decodeURIComponent(bookTitle) : "Book Hub"}
-        </Button>
-      )}
+      <BookBuilderContextBar backTab="automate" />
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-heading text-2xl font-bold">Workbooks</h2>
