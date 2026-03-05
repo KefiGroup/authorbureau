@@ -163,7 +163,8 @@ export default function ConfigureStep({ config, onConfigChange, onNext }: Props)
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      {/* Book Selector */}
+      {/* Book Selector — hidden when book is pre-selected from Book Hub */}
+      {!config.bookId && (
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg">Select Book</CardTitle>
