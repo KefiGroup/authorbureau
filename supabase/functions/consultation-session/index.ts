@@ -11,9 +11,18 @@ const SHARED_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnRkcG5la3NjcnNnaHF0c3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MDYzODksImV4cCI6MjA4NDQ4MjM4OX0.o2qA4tLao4UtxPGxSnavXIYKUmVZvS99pHtnL220L-s";
 
 async function resolveUser(token: string) {
+  // Try shared backend first
   const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
-  const { data: { user } } = await sharedClient.auth.getUser(token);
-  return user;
+  const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
+  if (sharedUser) return sharedUser;
+
+  // Fallback: try local cloud auth
+  const cloudClient = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!
+  );
+  const { data: { user: cloudUser } } = await cloudClient.auth.getUser(token);
+  return cloudUser;
 }
 
 Deno.serve(async (req) => {
