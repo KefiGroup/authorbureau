@@ -366,7 +366,28 @@ author_frameworks: ${profile?.frameworks && Array.isArray(profile.frameworks) &&
   : "none saved in profile — but if a manuscript is provided above, you MUST extract frameworks directly from the book text. Look for named theories, step-by-step processes, acronyms, unique models, and signature concepts. Present them to the author as discoveries: 'I found your [Framework Name] in your book — this is going to be the cornerstone of everything we build!'"}
 `;
 
-    const fullSystemPrompt = SYSTEM_PROMPT + "\n\n" + contextBlock;
+    const assistantTurns = Array.isArray(messages)
+      ? messages.filter((m: any) => m?.role === "assistant").length
+      : 0;
+
+    const progressionBlock = assistantTurns > 0
+      ? `
+CONVERSATION PROGRESSION (STRICT):
+- You are mid-conversation. DO NOT restart with a fresh intro.
+- DO NOT repeat the same recommendation already discussed.
+- Build directly on the latest user message and prior context.
+- If the user asks for alternatives, provide a DIFFERENT next best recommendation.
+`
+      : `
+CONVERSATION START:
+- This is the first turn. Introduce yourself once, then move into strategic guidance.
+`;
+
+    const fullSystemPrompt = `${SYSTEM_PROMPT}\n\n${progressionBlock}\n${contextBlock}\nrequest_meta: ${JSON.stringify({
+      request_id: crypto.randomUUID(),
+      generated_at: new Date().toISOString(),
+      assistant_turns: assistantTurns,
+    })}`;
 
     const aiMessages = [
       { role: "system", content: fullSystemPrompt },
@@ -380,8 +401,9 @@ author_frameworks: ${profile?.frameworks && Array.isArray(profile.frameworks) &&
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-3-flash-preview",
         messages: aiMessages,
+        temperature: 0.85,
         stream: true,
       }),
     });
