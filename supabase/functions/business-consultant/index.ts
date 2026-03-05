@@ -302,18 +302,28 @@ serve(async (req) => {
     // Fetch context data in parallel
     const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const [profileRes, booksRes, assetsRes, subscribersRes, coursesRes, workbooksRes, webinarsRes, coachingRes, speakingRes] = await Promise.all([
+    const [profileRes, booksRes, assetsRes, subscribersRes, coursesRes, workbooksRes, webinarsRes, coachingRes, speakingRes, socialRes, emailFlowsRes, audiobooksRes, homeStudyRes] = await Promise.all([
       adminClient.from("author_profiles").select("*").eq("user_id", user.id).maybeSingle(),
       adminClient.from("books").select("*").eq("author_id", user.id),
       bookId
         ? adminClient.from("generated_assets").select("asset_type, content").eq("book_id", bookId).eq("author_id", user.id)
         : Promise.resolve({ data: [] }),
       adminClient.from("author_subscribers").select("id").eq("author_id", user.id).eq("status", "active"),
-      adminClient.from("courses").select("id, title, status").eq("author_id", user.id),
-      adminClient.from("workbooks").select("id, title, status").eq("author_id", user.id),
-      adminClient.from("webinars").select("id, title, status").eq("author_id", user.id),
-      adminClient.from("coaching_packages").select("id, title, status").eq("author_id", user.id),
-      adminClient.from("speaking_topics").select("id, title, status").eq("author_id", user.id),
+      adminClient.from("courses").select("id, title, status, description, price, currency").eq("author_id", user.id),
+      adminClient.from("workbooks").select("id, title, status, description, price, currency").eq("author_id", user.id),
+      adminClient.from("webinars").select("id, title, status, description, price, is_free").eq("author_id", user.id),
+      adminClient.from("coaching_packages").select("id, title, status, description, price, type, sessions_count").eq("author_id", user.id),
+      adminClient.from("speaking_topics").select("id, title, status, description, fee").eq("author_id", user.id),
+      bookId
+        ? adminClient.from("social_media_content").select("id, platform, status").eq("book_id", bookId).eq("author_id", user.id)
+        : Promise.resolve({ data: [] }),
+      adminClient.from("email_flows").select("id, title, status, flow_type").eq("author_id", user.id),
+      bookId
+        ? adminClient.from("audiobooks").select("id, title, status").eq("book_id", bookId).eq("author_id", user.id)
+        : Promise.resolve({ data: [] }),
+      bookId
+        ? adminClient.from("home_study_courses").select("id, title, status").eq("book_id", bookId).eq("author_id", user.id)
+        : Promise.resolve({ data: [] }),
     ]);
 
     // Build context injection
@@ -328,7 +338,23 @@ serve(async (req) => {
       webinars: (webinarsRes.data || []) as any[],
       coaching_packages: (coachingRes.data || []) as any[],
       speaking_topics: (speakingRes.data || []) as any[],
+      social_media_posts: (socialRes.data || []) as any[],
+      email_flows: (emailFlowsRes.data || []) as any[],
+      audiobooks: (audiobooksRes.data || []) as any[],
+      home_study_courses: (homeStudyRes.data || []) as any[],
     };
+
+    // Build a human-readable summary of what's already built
+    const builtSummary: string[] = [];
+    if (existingProducts.workbooks.length > 0) builtSummary.push(`${existingProducts.workbooks.length} workbook(s): ${existingProducts.workbooks.map((w: any) => w.title).join(", ")}`);
+    if (existingProducts.courses.length > 0) builtSummary.push(`${existingProducts.courses.length} course(s): ${existingProducts.courses.map((c: any) => c.title).join(", ")}`);
+    if (existingProducts.webinars.length > 0) builtSummary.push(`${existingProducts.webinars.length} webinar(s): ${existingProducts.webinars.map((w: any) => w.title).join(", ")}`);
+    if (existingProducts.audiobooks.length > 0) builtSummary.push(`${existingProducts.audiobooks.length} audiobook(s)`);
+    if (existingProducts.home_study_courses.length > 0) builtSummary.push(`${existingProducts.home_study_courses.length} home study course(s)`);
+    if (existingProducts.coaching_packages.length > 0) builtSummary.push(`${existingProducts.coaching_packages.length} coaching package(s)`);
+    if (existingProducts.speaking_topics.length > 0) builtSummary.push(`${existingProducts.speaking_topics.length} speaking topic(s)`);
+    if (existingProducts.social_media_posts.length > 0) builtSummary.push(`${existingProducts.social_media_posts.length} social media posts`);
+    if (existingProducts.email_flows.length > 0) builtSummary.push(`${existingProducts.email_flows.length} email flow(s)`);
 
     const selectedBook = bookId ? books.find((b: any) => b.id === bookId) : null;
 
