@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, Lightbulb, Sparkles, BookOpen, CheckCircle2 } from "lucide-react";
+import { Loader2, Lightbulb, Sparkles, BookOpen, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import FrameworksEditor, { type AuthorFramework } from "./FrameworksEditor";
@@ -124,8 +124,8 @@ export default function FrameworkInterviewModal({
               Abby's Pre-Build Interview
             </DialogTitle>
           </div>
-          <DialogDescription className="text-sm">
-            Before generating your <strong>{productLabel}</strong> for "<strong>{bookTitle}</strong>", Abby reads your manuscript to identify your unique frameworks and theories. Review them below — edit, add, or remove as needed.
+           <DialogDescription className="text-sm">
+            Abby found the frameworks below in your manuscript. <strong>Remove any that aren't relevant</strong> to this {productLabel} — typically 1–2 core frameworks work best. Use the trash icon to remove, or edit names and descriptions as needed.
           </DialogDescription>
         </DialogHeader>
 
@@ -152,10 +152,10 @@ export default function FrameworkInterviewModal({
         ) : (
           <div className="py-2 space-y-3">
             {extracted && frameworks.length > 0 && (
-              <div className="flex items-start gap-2 rounded-lg bg-green-50 border border-green-200 p-3">
-                <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                <p className="text-xs text-green-800">
-                  <strong>Abby found {frameworks.length} framework{frameworks.length > 1 ? "s" : ""}</strong> in your manuscript! Review them below — you can edit names, descriptions, and key principles before building.
+              <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-3">
+                <Lightbulb className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-amber-800">
+                  <strong>Abby found {frameworks.length} frameworks</strong> — you probably only need <strong>1–2</strong> for this {productLabel}. Remove the ones that aren't central to this product using the <Trash2 className="h-3 w-3 inline text-amber-700" /> icon.
                 </p>
               </div>
             )}
