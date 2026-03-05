@@ -65,8 +65,9 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
 
     setUploading(true);
     try {
-      // 1. Upload to storage
-      const storagePath = `${user.id}/${bookId}/${file.name}`;
+      // 1. Upload to storage — sanitize filename to remove invalid chars like []
+      const safeName = file.name.replace(/[[\]{}()|\\^$*+?#]/g, "_");
+      const storagePath = `${user.id}/${bookId}/${safeName}`;
       const { error: uploadErr } = await supabase.storage
         .from("manuscripts")
         .upload(storagePath, file, { upsert: true });
