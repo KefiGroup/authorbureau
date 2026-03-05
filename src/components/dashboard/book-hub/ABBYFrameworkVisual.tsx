@@ -135,7 +135,7 @@ function MultiLineText({ x, y, text, fontSize, fill, fontWeight, opacity, anchor
 }
 
 export default function ABBYFrameworkVisual({ hasConsultation, onConsultAbby, onNavigateTab }: Props) {
-  if (!hasConsultation) return null;
+  // Always show the constellation — the circles themselves are the progress tracker
 
   const totalNodes = CLUSTERS.reduce((s, c) => s + c.nodes.length, 0);
   const activeNodes = CLUSTERS.reduce((s, c) => s + c.nodes.filter((n) => n.active).length, 0);

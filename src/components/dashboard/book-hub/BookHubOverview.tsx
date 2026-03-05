@@ -17,97 +17,6 @@ interface Props {
   onNavigateTab: (tab: string) => void;
 }
 
-const TOTAL_REVENUE_STREAMS = 27;
-
-function RevenuePotentialMeter({ activeStreams }: { activeStreams: number }) {
-  const percentage = Math.round((activeStreams / TOTAL_REVENUE_STREAMS) * 100);
-  return (
-    <div className="rounded-xl border border-border bg-card p-5">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-heading font-bold text-sm">Revenue Potential</h3>
-        <span className="text-xs font-medium text-muted-foreground">
-          {activeStreams} of {TOTAL_REVENUE_STREAMS} streams
-        </span>
-      </div>
-      <div className="relative h-3 rounded-full bg-muted overflow-hidden">
-        <motion.div
-          className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-secondary to-secondary/70"
-          initial={{ width: 0 }}
-          animate={{ width: `${Math.max(percentage, 2)}%` }}
-          transition={{ duration: 1.2, ease: "easeOut" }}
-        />
-      </div>
-      <p className="text-xs text-muted-foreground mt-2">
-        {percentage}% unlocked — {TOTAL_REVENUE_STREAMS - activeStreams} more revenue streams available
-      </p>
-    </div>
-  );
-}
-
-function ABBYProgressRing() {
-  const rings = [
-    { label: "A", color: "#3b82f6", percent: 0 },
-    { label: "B", color: "#d97706", percent: 0 },
-    { label: "B", color: "#f43f5e", percent: 0 },
-    { label: "Y", color: "#10b981", percent: 0 },
-  ];
-
-  const size = 160;
-  const center = size / 2;
-
-  return (
-    <div className="rounded-xl border border-border bg-card p-5 flex flex-col items-center">
-      <h3 className="font-heading font-bold text-sm mb-4">ABBY Progress</h3>
-      <div className="relative" style={{ width: size, height: size }}>
-        {rings.map((ring, i) => {
-          const radius = 70 - i * 14;
-          const circumference = 2 * Math.PI * radius;
-          const offset = circumference - (ring.percent / 100) * circumference;
-
-          return (
-            <svg key={i} className="absolute inset-0" width={size} height={size}>
-              <circle
-                cx={center}
-                cy={center}
-                r={radius}
-                fill="none"
-                stroke="hsl(var(--muted))"
-                strokeWidth="8"
-              />
-              {ring.percent > 0 && (
-                <motion.circle
-                  cx={center}
-                  cy={center}
-                  r={radius}
-                  fill="none"
-                  stroke={ring.color}
-                  strokeWidth="8"
-                  strokeLinecap="round"
-                  strokeDasharray={circumference}
-                  initial={{ strokeDashoffset: circumference }}
-                  animate={{ strokeDashoffset: offset }}
-                  transition={{ duration: 1.5, delay: i * 0.15, ease: "easeOut" }}
-                  transform={`rotate(-90 ${center} ${center})`}
-                />
-              )}
-            </svg>
-          );
-        })}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-xs font-bold text-muted-foreground">0%</span>
-        </div>
-      </div>
-      <div className="flex items-center gap-3 mt-4">
-        {rings.map((ring, i) => (
-          <div key={i} className="flex items-center gap-1">
-            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: ring.color }} />
-            <span className="text-[10px] font-semibold text-muted-foreground">{ring.label}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export default function BookHubOverview({ book, onConsultAbby, onNavigateTab }: Props) {
   const [hasConsultation, setHasConsultation] = useState(false);
@@ -185,9 +94,9 @@ export default function BookHubOverview({ book, onConsultAbby, onNavigateTab }: 
         </div>
       </motion.div>
 
-      {/* Customised ABBY Framework — appears after consultation */}
+      {/* ABBY Framework Visual — the 27 circles ARE the progress tracker */}
       <ABBYFrameworkVisual
-        hasConsultation={hasConsultation}
+        hasConsultation={true}
         onConsultAbby={onConsultAbby}
         onNavigateTab={onNavigateTab}
       />
@@ -196,12 +105,6 @@ export default function BookHubOverview({ book, onConsultAbby, onNavigateTab }: 
       {!hasConsultation && (
         <ManuscriptUpload bookId={book.id} bookTitle={book.title} />
       )}
-
-      {/* Metrics Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <RevenuePotentialMeter activeStreams={0} />
-        <ABBYProgressRing />
-      </div>
 
       {/* Recent Activity */}
       <div className="rounded-xl border border-border bg-card p-5">
