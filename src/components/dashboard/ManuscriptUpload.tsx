@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { FileText, Upload, Loader2, CheckCircle2, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
 interface ManuscriptUploadProps {
@@ -13,41 +12,52 @@ interface ManuscriptUploadProps {
 }
 
 export default function ManuscriptUpload({ bookId, bookTitle, compact = false, onUploadComplete }: ManuscriptUploadProps) {
-  const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [hasManuscript, setHasManuscript] = useState(false);
   const [charCount, setCharCount] = useState<number | null>(null);
   const [checking, setChecking] = useState(true);
 
+  const getAuthenticatedUserId = async () => {
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user) throw new Error("Please sign in again.");
+    return data.user.id;
+  };
+
   useEffect(() => {
-    if (!user) return;
     checkExisting();
-  }, [user, bookId]);
+  }, [bookId]);
 
   const checkExisting = async () => {
     setChecking(true);
-    const { data } = await supabase
-      .from("generated_assets")
-      .select("id, content")
-      .eq("book_id", bookId)
-      .eq("author_id", user!.id)
-      .eq("asset_type", "source_material")
-      .maybeSingle();
+    try {
+      await getAuthenticatedUserId();
 
-    if (data) {
-      setHasManuscript(true);
-      setCharCount(data.content?.length || 0);
-    } else {
+      const { data } = await supabase
+        .from("generated_assets")
+        .select("id, content")
+        .eq("book_id", bookId)
+        .eq("asset_type", "source_material")
+        .maybeSingle();
+
+      if (data) {
+        setHasManuscript(true);
+        setCharCount(data.content?.length || 0);
+      } else {
+        setHasManuscript(false);
+        setCharCount(null);
+      }
+    } catch {
       setHasManuscript(false);
       setCharCount(null);
+    } finally {
+      setChecking(false);
     }
-    setChecking(false);
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !user) return;
+    if (!file) return;
     e.target.value = "";
 
     const maxSize = 20 * 1024 * 1024; // 20MB
@@ -65,9 +75,11 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
 
     setUploading(true);
     try {
+      const userId = await getAuthenticatedUserId();
+
       // 1. Upload to storage — sanitize filename to remove invalid chars like []
       const safeName = file.name.replace(/[[\]{}()|\\^$*+?#]/g, "_");
-      const storagePath = `${user.id}/${bookId}/${safeName}`;
+      const storagePath = `${userId}/${bookId}/${safeName}`;
       const { error: uploadErr } = await supabase.storage
         .from("manuscripts")
         .upload(storagePath, file, { upsert: true });
@@ -87,7 +99,7 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ bookId, storagePath, fileName: file.name }),
+          body: JSON.stringify({ bookId, storagePath, fileName: safeName }),
         }
       );
 
@@ -107,31 +119,31 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
   };
 
   const handleRemove = async () => {
-    if (!user) return;
     setUploading(true);
     try {
+      const userId = await getAuthenticatedUserId();
+
       await supabase
         .from("generated_assets")
         .delete()
         .eq("book_id", bookId)
-        .eq("author_id", user.id)
         .eq("asset_type", "source_material");
 
       // Also remove from storage
       const { data: files } = await supabase.storage
         .from("manuscripts")
-        .list(`${user.id}/${bookId}`);
+        .list(`${userId}/${bookId}`);
 
       if (files && files.length > 0) {
         await supabase.storage
           .from("manuscripts")
-          .remove(files.map(f => `${user.id}/${bookId}/${f.name}`));
+          .remove(files.map(f => `${userId}/${bookId}/${f.name}`));
       }
 
       setHasManuscript(false);
       setCharCount(null);
       toast.success("Manuscript removed.");
-    } catch (err) {
+    } catch {
       toast.error("Failed to remove manuscript.");
     } finally {
       setUploading(false);
