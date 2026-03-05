@@ -70,12 +70,13 @@ export default function GeneratingStep({ config, onComplete, onBack }: Props) {
     setTotalExpected(total);
 
     try {
+      const token = await getActiveToken();
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-social-content`,
         {
           method: "POST",
           headers: {
-            const token = await getActiveToken();
+            "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
