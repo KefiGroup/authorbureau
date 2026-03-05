@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { BookOpen, Plus, ExternalLink, Loader2, ImagePlus, EyeOff, Clock, Pencil, Sparkles, Crown } from "lucide-react";
+import ManuscriptUpload from "./ManuscriptUpload";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import DualModeBookForm from "@/components/DualModeBookForm";
@@ -303,6 +304,8 @@ export default function MyBooks({ isPremium = false, onNavigate }: MyBooksProps)
                 {book.genre && (
                   <p className="text-[11px] text-muted-foreground truncate">{book.genre}</p>
                 )}
+
+                <ManuscriptUpload bookId={book.id} bookTitle={book.title} compact />
 
                 <div className="flex items-center justify-between gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center gap-2">
