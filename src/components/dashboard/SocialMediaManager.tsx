@@ -7,6 +7,7 @@ import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import { Share2, Loader2, Eye, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SocialMediaStudio from "./social-media/SocialMediaStudio";
+import BookBuilderContextBar, { useBookContext } from "./BookBuilderContextBar";
 
 interface SocialContent {
   id: string;
@@ -20,27 +21,42 @@ interface SocialContent {
 
 export default function SocialMediaManager() {
   const { user } = useAuth();
+  const { bookId, bookTitle, bookCoverUrl } = useBookContext();
   const [content, setContent] = useState<SocialContent[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [showStudio, setShowStudio] = useState(false);
+  // Auto-launch studio when arriving from Book Hub with a book context
+  const [showStudio, setShowStudio] = useState(!!bookId);
 
   const loadContent = async () => {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase
+    let query = supabase
       .from("social_media_content" as any)
       .select("*")
       .eq("author_id", user.id)
       .order("created_at", { ascending: false });
+    if (bookId) {
+      query = query.eq("book_id", bookId);
+    }
+    const { data, error } = await query;
     if (!error && data) setContent(data as any);
     setLoading(false);
   };
 
-  useEffect(() => { loadContent(); }, [user]);
+  useEffect(() => { loadContent(); }, [user, bookId]);
 
   if (showStudio) {
-    return <SocialMediaStudio onExit={() => { setShowStudio(false); loadContent(); }} />;
+    return (
+      <>
+        <SocialMediaStudio
+          onExit={() => { setShowStudio(false); loadContent(); }}
+          initialBookId={bookId}
+          initialBookTitle={bookTitle ? decodeURIComponent(bookTitle) : ""}
+          initialBookCoverUrl={bookCoverUrl}
+        />
+      </>
+    );
   }
 
   const selected = content.find(c => c.id === selectedId);
@@ -52,6 +68,7 @@ export default function SocialMediaManager() {
   if (content.length === 0) {
     return (
       <div className="max-w-2xl mx-auto py-16 text-center">
+        <BookBuilderContextBar backTab="automate" />
         <div className="w-16 h-16 rounded-2xl bg-secondary/10 flex items-center justify-center mx-auto mb-6">
           <Share2 className="h-8 w-8 text-secondary" />
         </div>
@@ -83,6 +100,7 @@ export default function SocialMediaManager() {
 
   return (
     <div className="max-w-4xl space-y-6">
+      <BookBuilderContextBar backTab="automate" />
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-heading text-2xl font-bold">Social Media Content</h2>
