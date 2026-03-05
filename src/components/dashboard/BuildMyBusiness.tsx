@@ -512,11 +512,18 @@ export default function BuildMyBusiness() {
   };
 
   const handleReset = async () => {
-    // Mark current session as inactive
+    // Mark current session as inactive via edge function
     if (sessionId) {
-      await cloudSupabase.from("consultation_sessions" as any)
-        .update({ is_active: false } as any)
-        .eq("id", sessionId);
+      try {
+        const headers = await getSessionHeaders();
+        await fetch(CONSULTATION_SESSION_URL, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ action: "reset", session_id: sessionId }),
+        });
+      } catch (err) {
+        console.error("Failed to reset session:", err);
+      }
     }
     setMessages([]);
     setSelectedBook(null);
