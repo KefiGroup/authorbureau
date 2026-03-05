@@ -51,3 +51,15 @@ project_id = "tubpbslfrxyfhldkcyyq"
     verify_jwt = false
   [functions.generate-social-content]
     verify_jwt = false
+  [functions.elevenlabs-tts-audiobook]
+    verify_jwt = false
+  [functions.populate-assets]
+    verify_jwt = false
+  [functions.extract-frameworks]
+    verify_jwt = false
+  [functions.parse-manuscript]
+    verify_jwt = false
+  [functions.get-author-profile]
+    verify_jwt = false
+  [functions.dashboard-state]
+    verify_jwt = false
