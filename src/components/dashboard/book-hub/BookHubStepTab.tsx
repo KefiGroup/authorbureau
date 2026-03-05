@@ -118,6 +118,7 @@ export default function BookHubStepTab({ stepId, bookId, isPremium }: Props) {
       "social-media": "/dashboard?section=social-media",
       workbooks: `/dashboard?section=workbooks&bookId=${bookId}`,
       webinars: "/dashboard?section=webinars",
+      audiobook: `/dashboard?section=audiobook-studio&bookId=${bookId}`,
     };
 
     return map[nodeId] || null;
