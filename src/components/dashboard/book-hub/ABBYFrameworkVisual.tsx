@@ -90,7 +90,7 @@ const CY = VH / 2;
 
 /* Hub positions + arc config (SVG coords) */
 const HUB_CFG: Record<string, { x: number; y: number; startDeg: number; sweepDeg: number; r: number }> = {
-  automate:  { x: 240, y: 220, startDeg: 120, sweepDeg: 240, r: 170 },
+  automate:  { x: 240, y: 220, startDeg: 100, sweepDeg: 300, r: 170 },
   build:     { x: 240, y: 600, startDeg: 150, sweepDeg: 180, r: 120 },
   broadcast: { x: 960, y: 600, startDeg: -30, sweepDeg: 180, r: 150 },
   yield:     { x: 960, y: 220, startDeg: -60, sweepDeg: 240, r: 170 },
