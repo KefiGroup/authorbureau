@@ -50,7 +50,7 @@ export const stepConfigs: StepConfig[] = [
     gradientFrom: "from-blue-500", gradientTo: "to-blue-600",
     nodes: [
       { id: "workbooks", label: "Workbooks", iconName: "FileText", description: "Companion workbook PDFs with exercises & action plans.", status: "live", buildOrder: 1, buildReason: "Simple product with high perceived value." },
-      { id: "audiobook", label: "Audiobook", iconName: "Headphones", description: "AI-generated audiobook scripts — passive income.", status: "coming-soon", buildOrder: 2, buildReason: "Scalable passive income asset." },
+      { id: "audiobook", label: "Audiobook", iconName: "Headphones", description: "ElevenLabs-powered narration from your manuscript.", status: "live", buildOrder: 2, buildReason: "Scalable passive income asset." },
       { id: "social-media", label: "Social Media", iconName: "Share2", description: "90-day AI content calendar from your book chapters.", status: "live", buildOrder: 3, buildReason: "Ongoing visibility & engagement." },
       { id: "podcast-script", label: "Podcast Scripts", iconName: "Podcast", description: "AI-generated podcast episode scripts from your book.", status: "planned", buildOrder: 4, buildReason: "Expand reach via audio." },
       { id: "webinars", label: "Webinars", iconName: "Video", description: "Complete webinar scripts + slide decks + registration pages.", status: "live", buildOrder: 5, buildReason: "Lead generation engine." },
