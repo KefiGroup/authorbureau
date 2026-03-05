@@ -305,23 +305,28 @@ export default function WorkbooksManager() {
 
       <div className="grid gap-4">
         {workbooks.map(wb => (
-          <Card key={wb.id} className="cursor-pointer hover:shadow-md hover:border-primary/20 transition-all" onClick={() => setSelectedId(wb.id)}>
+          <Card key={wb.id} className="hover:shadow-md hover:border-primary/20 transition-all">
             <CardContent className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
-                  <FileText className="h-5 w-5 text-blue-600" />
+              <div className="flex items-center gap-4 cursor-pointer flex-1 min-w-0" onClick={() => setSelectedId(wb.id)}>
+                <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center shrink-0">
+                  <FileText className="h-5 w-5 text-secondary" />
                 </div>
-                <div>
-                  <h3 className="font-medium text-sm">{wb.title}</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">{wb.description || "No description"}</p>
+                <div className="min-w-0">
+                  <h3 className="font-medium text-sm truncate">{wb.title}</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5 truncate">{wb.description || "No description"}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 shrink-0 ml-3">
                 {wb.price > 0 && <span className="text-sm font-medium">${wb.price}</span>}
                 <Badge variant={wb.status === "published" ? "default" : "secondary"} className="text-xs">
                   {wb.status}
                 </Badge>
-                <Eye className="h-4 w-4 text-muted-foreground" />
+                <Button variant="outline" size="sm" onClick={() => setSelectedId(wb.id)}>
+                  <Eye className="h-3.5 w-3.5 mr-1" /> View
+                </Button>
+                <Button size="sm" onClick={(e) => { e.stopPropagation(); handlePublishViaPublishNow(); }}>
+                  <ExternalLink className="h-3.5 w-3.5 mr-1" /> Publish
+                </Button>
               </div>
             </CardContent>
           </Card>
