@@ -83,17 +83,17 @@ const CLUSTERS: StepCluster[] = [
 ];
 
 /* ── SVG viewBox ── */
-const VW = 1400;
-const VH = 900;
+const VW = 900;
+const VH = 700;
 const CX = VW / 2;
 const CY = VH / 2;
 
-/* Hub positions + arc config (SVG coords) — pushed outward with larger radii */
+/* Hub positions + arc config — compact but non-overlapping */
 const HUB_CFG: Record<string, { x: number; y: number; startDeg: number; sweepDeg: number; r: number }> = {
-  automate:  { x: 210, y: 200, startDeg: 110, sweepDeg: 220, r: 180 },
-  build:     { x: 210, y: 700, startDeg: 160, sweepDeg: 160, r: 165 },
-  broadcast: { x: 1190, y: 700, startDeg: -20, sweepDeg: 160, r: 165 },
-  yield:     { x: 1190, y: 200, startDeg: -50, sweepDeg: 220, r: 180 },
+  automate:  { x: 190, y: 170, startDeg: 130, sweepDeg: 180, r: 130 },
+  build:     { x: 190, y: 530, startDeg: 160, sweepDeg: 140, r: 120 },
+  broadcast: { x: 710, y: 530, startDeg: -20, sweepDeg: 140, r: 120 },
+  yield:     { x: 710, y: 170, startDeg: -30, sweepDeg: 180, r: 130 },
 };
 
 function arcPositions(count: number, cx: number, cy: number, r: number, startDeg: number, sweepDeg: number) {
@@ -166,7 +166,7 @@ export default function ABBYFrameworkVisual({ hasConsultation, onConsultAbby, on
         <svg
           viewBox={`0 0 ${VW} ${VH}`}
           className="w-full h-auto"
-          style={{ minHeight: 380, maxHeight: 600 }}
+          style={{ minHeight: 340, maxHeight: 520 }}
         >
           {/* Dashed lines: center → hubs */}
           {CLUSTERS.map((c) => {
@@ -208,24 +208,24 @@ export default function ABBYFrameworkVisual({ hasConsultation, onConsultAbby, on
               return (
                 <g key={`node-${c.id}-${i}`}>
                   <circle
-                    cx={pos.x} cy={pos.y} r={22}
+                    cx={pos.x} cy={pos.y} r={18}
                     fill={node.active ? c.nodeColor : "hsl(var(--muted))"}
                     stroke={node.active ? c.nodeColorMuted : "hsl(var(--border))"}
-                    strokeWidth="2.5"
+                    strokeWidth="2"
                     opacity={node.active ? 1 : 0.5}
                   />
                   <text
                     x={pos.x} y={pos.y}
                     textAnchor="middle" dominantBaseline="central"
-                    fill="white" fontSize="14" fontWeight="bold"
+                    fill="white" fontSize="11" fontWeight="bold"
                     opacity={node.active ? 1 : 0.6}
                   >
                     {node.active ? "✓" : "$"}
                   </text>
                   <MultiLineText
-                    x={pos.x} y={pos.y + 34}
+                    x={pos.x} y={pos.y + 28}
                     text={node.label}
-                    fontSize={11}
+                    fontSize={9}
                     fill="hsl(var(--foreground))"
                     fontWeight="500"
                     opacity={node.active ? 0.9 : 0.5}
@@ -241,19 +241,19 @@ export default function ABBYFrameworkVisual({ hasConsultation, onConsultAbby, on
             const activeCount = c.nodes.filter((n) => n.active).length;
             return (
               <g key={`hub-${c.id}`} className="cursor-pointer">
-                <circle cx={h.x} cy={h.y} r={58} fill={c.hubColor} />
-                <circle cx={h.x} cy={h.y} r={58} fill="none" stroke="white" strokeWidth="2" opacity={0.2} />
-                <text x={h.x} y={h.y - 18} textAnchor="middle" dominantBaseline="central" fill="white" fontSize="10" fontWeight="bold" opacity={0.8}>
+                <circle cx={h.x} cy={h.y} r={46} fill={c.hubColor} />
+                <circle cx={h.x} cy={h.y} r={46} fill="none" stroke="white" strokeWidth="1.5" opacity={0.2} />
+                <text x={h.x} y={h.y - 14} textAnchor="middle" dominantBaseline="central" fill="white" fontSize="8" fontWeight="bold" opacity={0.8}>
                   STEP {c.step}
                 </text>
                 <MultiLineText
                   x={h.x} y={h.y + 2}
                   text={c.title}
-                  fontSize={13}
+                  fontSize={10}
                   fill="white"
                   fontWeight="800"
                 />
-                <text x={h.x} y={h.y + 30} textAnchor="middle" dominantBaseline="central" fill="white" fontSize="10" opacity={0.7}>
+                <text x={h.x} y={h.y + 24} textAnchor="middle" dominantBaseline="central" fill="white" fontSize="8" opacity={0.7}>
                   {activeCount}/{c.nodes.length}
                 </text>
               </g>
@@ -262,15 +262,15 @@ export default function ABBYFrameworkVisual({ hasConsultation, onConsultAbby, on
 
           {/* Center book */}
           <g>
-            <rect x={CX - 35} y={CY - 42} width={70} height={84} rx={10}
+            <rect x={CX - 28} y={CY - 34} width={56} height={68} rx={8}
               fill="hsl(var(--secondary))" opacity={0.9} />
-            <rect x={CX - 35} y={CY - 42} width={70} height={84} rx={10}
-              fill="none" stroke="white" strokeWidth="2" opacity={0.15} />
-            <text x={CX} y={CY - 4} textAnchor="middle" dominantBaseline="central" fontSize="32">
+            <rect x={CX - 28} y={CY - 34} width={56} height={68} rx={8}
+              fill="none" stroke="white" strokeWidth="1.5" opacity={0.15} />
+            <text x={CX} y={CY - 4} textAnchor="middle" dominantBaseline="central" fontSize="26">
               📖
             </text>
-            <text x={CX} y={CY + 58} textAnchor="middle" fill="hsl(var(--muted-foreground))"
-              fontSize="11" fontWeight="bold" letterSpacing="1.5">
+            <text x={CX} y={CY + 46} textAnchor="middle" fill="hsl(var(--muted-foreground))"
+              fontSize="9" fontWeight="bold" letterSpacing="1.5">
               YOUR BOOK
             </text>
           </g>
