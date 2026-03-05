@@ -52,6 +52,13 @@ export default function BookHub() {
   const { bookId } = useParams<{ bookId: string }>();
   const navigate = useNavigate();
   const { user, loading: authLoading, isAdmin, isPremium, subscription, signOut } = useAuth();
+
+  // Guard: if bookId is missing or is the literal route param placeholder, redirect
+  useEffect(() => {
+    if (!authLoading && bookId && (bookId === ":bookId" || !/^[0-9a-f-]{36}$/i.test(bookId))) {
+      navigate("/dashboard?section=my-books", { replace: true });
+    }
+  }, [bookId, authLoading, navigate]);
   const [searchParams] = useSearchParams();
   const initialTab = (searchParams.get("tab") as BookHubTab) || "overview";
   const [book, setBook] = useState<BookData | null>(null);
