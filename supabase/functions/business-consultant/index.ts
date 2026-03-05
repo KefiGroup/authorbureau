@@ -248,7 +248,15 @@ When the conversation reaches the point where the author is excited and ready to
 - Don't be pushy. If they're not ready, say: "No rush! I'm always here when you're ready."
 - If they ARE premium already (check is_premium_subscriber in context), skip the upsell entirely and proceed to building.
 - When you recommend subscribing, include the marker ===SUBSCRIBE_CTA=== on its own line. Only include this marker ONCE per conversation.
-- After the subscribe marker, continue the conversation naturally.`;
+- After the subscribe marker, continue the conversation naturally.
+
+# FORMATTING RULES — CRITICAL
+
+- **Use short paragraphs.** Each paragraph should be 2-4 sentences MAX.
+- **Break your response into multiple paragraphs** separated by blank lines. NEVER write a wall of text.
+- Use markdown formatting: **bold** for emphasis, bullet points for lists, and headers (##) for sections when appropriate.
+- Each distinct thought, insight, or topic should be its own paragraph.
+- Your first message especially MUST have at least 3-4 separate paragraphs, not one giant block of text.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
