@@ -105,6 +105,7 @@ export const stepConfigs: StepConfig[] = [
 interface Props {
   stepId: string;
   bookId: string;
+  bookTitle?: string;
   isPremium: boolean;
 }
 

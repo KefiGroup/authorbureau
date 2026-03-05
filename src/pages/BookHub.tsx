@@ -133,7 +133,7 @@ export default function BookHub() {
       case "build":
       case "broadcast":
       case "yield":
-        return <BookHubStepTab stepId={activeTab} bookId={book.id} isPremium={isPremium || isAdmin} />;
+        return <BookHubStepTab stepId={activeTab} bookId={book.id} bookTitle={book.title} isPremium={isPremium || isAdmin} />;
       case "analytics":
         return <BookHubAnalytics bookId={book.id} />;
       default:
