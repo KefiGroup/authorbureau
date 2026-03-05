@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import ManuscriptUpload from "@/components/dashboard/ManuscriptUpload";
 import ABBYFrameworkVisual from "./ABBYFrameworkVisual";
 import { supabase } from "@/integrations/supabase/client";
+import { supabase as sharedSupabase } from "@/lib/shared-backend";
 
 interface Book {
   id: string;
@@ -25,23 +26,33 @@ export default function BookHubOverview({ book, onConsultAbby, onNavigateTab }: 
 
   useEffect(() => {
     async function checkData() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const { data: { session } } = await sharedSupabase.auth.getSession();
+      const token = session?.access_token;
+      const userId = session?.user?.id;
+      if (!userId) return;
 
-      // Check consultation
-      const { count } = await supabase
-        .from("consultation_sessions")
-        .select("id", { count: "exact", head: true })
-        .eq("book_id", book.id)
-        .eq("user_id", user.id);
-      setHasConsultation((count ?? 0) > 0);
+      // Check consultation via edge function
+      try {
+        const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/consultation-session`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ action: "count", book_id: book.id }),
+        });
+        const result = await resp.json();
+        setHasConsultation((result.count ?? 0) > 0);
+      } catch {
+        setHasConsultation(false);
+      }
 
       // Check manuscript
       const { data: assets } = await supabase
         .from("generated_assets")
         .select("content")
         .eq("book_id", book.id)
-        .eq("author_id", user.id)
+        .eq("author_id", userId)
         .eq("asset_type", "source_material")
         .limit(1);
       if (assets && assets.length > 0 && assets[0].content) {
