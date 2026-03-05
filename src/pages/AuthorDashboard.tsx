@@ -14,6 +14,7 @@ import PortfolioStepView from "@/components/dashboard/PortfolioStepView";
 import WorkbooksManager from "@/components/dashboard/WorkbooksManager";
 import WebinarsManager from "@/components/dashboard/WebinarsManager";
 import SocialMediaManager from "@/components/dashboard/SocialMediaManager";
+import AudiobookStudio from "@/components/dashboard/AudiobookStudio";
 
 import MyBooks from "@/components/dashboard/MyBooks";
 import BuildMyBusiness from "@/components/dashboard/BuildMyBusiness";
