@@ -125,7 +125,7 @@ export default function FrameworkInterviewModal({
             </DialogTitle>
           </div>
            <DialogDescription className="text-sm">
-            Abby found the frameworks below in your manuscript. <strong>Remove any that aren't relevant</strong> to this {productLabel} — typically 1–2 core frameworks work best. Use the trash icon to remove, or edit names and descriptions as needed.
+            Abby found the frameworks below in your manuscript. <strong>Keep all to build a {productLabel} around each one</strong>, or remove any you'd like to skip for now. You can edit names and descriptions before building.
           </DialogDescription>
         </DialogHeader>
 
@@ -152,10 +152,10 @@ export default function FrameworkInterviewModal({
         ) : (
           <div className="py-2 space-y-3">
             {extracted && frameworks.length > 0 && (
-              <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-3">
-                <Lightbulb className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                <p className="text-xs text-amber-800">
-                  <strong>Abby found {frameworks.length} frameworks</strong> — you probably only need <strong>1–2</strong> for this {productLabel}. Remove the ones that aren't central to this product using the <Trash2 className="h-3 w-3 inline text-amber-700" /> icon.
+              <div className="flex items-start gap-2 rounded-lg bg-green-50 border border-green-200 p-3">
+                <Sparkles className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-green-800">
+                  <strong>Abby found {frameworks.length} frameworks</strong> — that means you can generate <strong>{frameworks.length} unique {productLabel}s</strong>, one per framework! Remove any you want to skip with the <Trash2 className="h-3 w-3 inline text-green-700" /> icon.
                 </p>
               </div>
             )}
