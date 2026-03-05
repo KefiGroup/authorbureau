@@ -5,12 +5,15 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { motion, AnimatePresence } from "framer-motion";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import FrameworkInterviewModal from "@/components/dashboard/FrameworkInterviewModal";
+import ManuscriptUpload from "@/components/dashboard/ManuscriptUpload";
 import type { AuthorFramework } from "@/components/dashboard/FrameworksEditor";
 import {
   Rocket, BookOpen, Loader2, Send, ArrowLeft, Sparkles, User, RotateCcw,
-  Wrench, MessageCircleHeart, Crown, ExternalLink,
+  Wrench, MessageCircleHeart, Crown, ExternalLink, FileText, Upload,
 } from "lucide-react";
 import { TIERS } from "@/hooks/useAuth";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
@@ -56,6 +59,10 @@ export default function BuildMyBusiness() {
   const [isBuilding, setIsBuilding] = useState<string | null>(null);
   const [pendingBuildReq, setPendingBuildReq] = useState<Record<string, string> | null>(null);
   const [showFrameworkModal, setShowFrameworkModal] = useState(false);
+  const [showManuscriptGate, setShowManuscriptGate] = useState(false);
+  const [pendingBookSelection, setPendingBookSelection] = useState<Book | null>(null);
+  const [abbyReading, setAbbyReading] = useState(false);
+  const [readingProgress, setReadingProgress] = useState(0);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -137,15 +144,19 @@ export default function BuildMyBusiness() {
     }
   }, [isStreaming, messages.length]);
 
-  // When book is selected, load existing session or auto-start
+  // When book is selected, load existing session or wait for reading animation
   useEffect(() => {
     if (!selectedBook) return;
     (async () => {
       const existing = await loadExistingSession(selectedBook.id);
       if (existing && existing.length > 0) {
         setMessages(existing);
+        setAbbyReading(false); // Skip reading animation for restored sessions
         toast({ title: "Session restored", description: "Your previous conversation with Abby has been loaded." });
-      } else if (messages.length === 0) {
+      }
+      // If no existing session and not reading, the reading animation handler will auto-start
+      // If no manuscript was uploaded (skip path), auto-start without reading
+      if (!existing && !abbyReading && messages.length === 0) {
         sendMessage("I'd like to build a business around my book. Please analyze my book and advise me on the best strategy.", true);
       }
     })();
@@ -462,11 +473,76 @@ export default function BuildMyBusiness() {
     setSelectedBook(null);
     setSessionId(null);
     setInput("");
+    setAbbyReading(false);
+    setReadingProgress(0);
+  };
+
+  // Check manuscript and handle book selection
+  const handleBookSelect = async (book: Book) => {
+    if (!user) return;
+    // Check if manuscript exists
+    const { data } = await cloudSupabase
+      .from("generated_assets")
+      .select("id")
+      .eq("book_id", book.id)
+      .eq("author_id", user.id)
+      .eq("asset_type", "source_material")
+      .maybeSingle();
+
+    if (data) {
+      // Manuscript exists — show reading animation then start
+      startWithReadingAnimation(book);
+    } else {
+      // No manuscript — show gate
+      setPendingBookSelection(book);
+      setShowManuscriptGate(true);
+    }
+  };
+
+  const startWithReadingAnimation = (book: Book) => {
+    setSelectedBook(book);
+    setAbbyReading(true);
+    setReadingProgress(0);
+    
+    // Simulate reading progress over ~8 seconds
+    const duration = 8000;
+    const interval = 100;
+    let elapsed = 0;
+    const timer = setInterval(() => {
+      elapsed += interval;
+      const progress = Math.min((elapsed / duration) * 100, 100);
+      setReadingProgress(progress);
+      if (elapsed >= duration) {
+        clearInterval(timer);
+        setAbbyReading(false);
+        // Auto-start consultation
+        if (messages.length === 0) {
+          sendMessage("I'd like to build a business around my book. Please analyze my book and advise me on the best strategy.", true);
+        }
+      }
+    }, interval);
+  };
+
+  const handleManuscriptGateSkip = () => {
+    setShowManuscriptGate(false);
+    if (pendingBookSelection) {
+      setSelectedBook(pendingBookSelection);
+      setPendingBookSelection(null);
+    }
+  };
+
+  const handleManuscriptUploaded = () => {
+    setShowManuscriptGate(false);
+    if (pendingBookSelection) {
+      startWithReadingAnimation(pendingBookSelection);
+      setPendingBookSelection(null);
+    }
   };
 
   // ─── Book Selection ─────────────────────────────────
   if (!selectedBook) {
     return (
+      <>
       <div className="max-w-4xl space-y-8">
         <div className="text-center max-w-xl mx-auto">
           <div className="w-16 h-16 rounded-full bg-secondary/10 flex items-center justify-center mx-auto mb-4 text-2xl">
@@ -518,7 +594,7 @@ export default function BuildMyBusiness() {
               <Card
                 key={book.id}
                 className="overflow-hidden cursor-pointer hover:shadow-[var(--shadow-card-hover)] hover:border-secondary/30 transition-all group"
-                onClick={() => setSelectedBook(book)}
+                onClick={() => handleBookSelect(book)}
               >
                 <div className="aspect-[3/2] bg-muted flex items-center justify-center overflow-hidden">
                   {book.cover_image_url ? (
@@ -537,6 +613,119 @@ export default function BuildMyBusiness() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Manuscript Gate Dialog */}
+      <Dialog open={showManuscriptGate} onOpenChange={(o) => !o && setShowManuscriptGate(false)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center text-lg">
+                👩‍💼
+              </div>
+              <div>
+                <DialogTitle className="font-heading text-base">
+                  Abby needs your manuscript
+                </DialogTitle>
+                <DialogDescription className="text-xs">
+                  To give you the best business strategy for <strong>"{pendingBookSelection?.title}"</strong>
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="rounded-xl bg-muted/50 p-4 text-sm text-muted-foreground leading-relaxed">
+              <p>
+                "Before we start, I'd love to <strong>read your entire book</strong> so I can give you strategic advice based on your actual content, frameworks, and unique methodology — not generic suggestions."
+              </p>
+              <p className="mt-2 text-xs italic">— Abby, Your AI Business Consultant</p>
+            </div>
+
+            {pendingBookSelection && (
+              <ManuscriptUpload
+                bookId={pendingBookSelection.id}
+                bookTitle={pendingBookSelection.title}
+                onUploadComplete={handleManuscriptUploaded}
+              />
+            )}
+
+            <div className="flex items-center gap-3">
+              <div className="flex-1 border-t border-border" />
+              <span className="text-xs text-muted-foreground">or</span>
+              <div className="flex-1 border-t border-border" />
+            </div>
+
+            <Button
+              variant="ghost"
+              className="w-full text-xs text-muted-foreground"
+              onClick={handleManuscriptGateSkip}
+            >
+              Skip — consult without manuscript (less personalized)
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+    );
+  }
+
+  // ─── Reading Animation ─────────────────────────────
+  if (abbyReading) {
+    const readingStages = [
+      { threshold: 0, text: "Opening your manuscript...", emoji: "📖" },
+      { threshold: 15, text: "Reading chapter by chapter...", emoji: "📚" },
+      { threshold: 35, text: "Identifying your unique frameworks...", emoji: "🔍" },
+      { threshold: 55, text: "Analyzing your methodology...", emoji: "🧠" },
+      { threshold: 75, text: "Mapping business opportunities...", emoji: "💡" },
+      { threshold: 90, text: "Preparing your strategic brief...", emoji: "✨" },
+    ];
+    const currentStage = [...readingStages].reverse().find(s => readingProgress >= s.threshold) || readingStages[0];
+
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-12rem)] max-w-lg mx-auto text-center">
+        <motion.div
+          className="w-20 h-20 rounded-full bg-secondary/10 flex items-center justify-center text-3xl mb-6"
+          animate={{ scale: [1, 1.05, 1] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+        >
+          👩‍💼
+        </motion.div>
+
+        <h2 className="font-heading text-xl font-bold mb-2">Abby is reading your book</h2>
+        <p className="text-sm text-muted-foreground mb-6">
+          "{selectedBook?.title}"
+        </p>
+
+        {/* Progress bar */}
+        <div className="w-full max-w-xs mb-4">
+          <div className="relative h-2 rounded-full bg-muted overflow-hidden">
+            <motion.div
+              className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-secondary to-secondary/70"
+              style={{ width: `${readingProgress}%` }}
+              transition={{ duration: 0.1 }}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">{Math.round(readingProgress)}%</p>
+        </div>
+
+        {/* Current stage */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentStage.text}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="flex items-center gap-2 text-sm font-medium"
+          >
+            <span className="text-lg">{currentStage.emoji}</span>
+            <span>{currentStage.text}</span>
+          </motion.div>
+        </AnimatePresence>
+
+        <p className="text-[11px] text-muted-foreground mt-8 max-w-sm">
+          Abby reads your entire manuscript to understand your unique theories, frameworks, and methodology — so every recommendation is tailored to <em>your</em> book.
+        </p>
       </div>
     );
   }
