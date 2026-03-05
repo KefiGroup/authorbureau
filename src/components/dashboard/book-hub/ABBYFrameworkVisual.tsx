@@ -1,21 +1,6 @@
 import { motion } from "framer-motion";
-import { ArrowRight, Sparkles, Lock } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-interface FrameworkProduct {
-  name: string;
-  status: "recommended" | "built" | "locked";
-}
-
-interface FrameworkCategory {
-  letter: string;
-  label: string;
-  tagline: string;
-  color: string;
-  bgColor: string;
-  borderColor: string;
-  products: FrameworkProduct[];
-}
 
 interface Props {
   hasConsultation: boolean;
@@ -23,87 +8,221 @@ interface Props {
   onNavigateTab: (tab: string) => void;
 }
 
-const DEFAULT_FRAMEWORK: FrameworkCategory[] = [
+interface RevenueNode {
+  label: string;
+  active: boolean;
+}
+
+interface StepCluster {
+  id: string;
+  step: number;
+  letter: string;
+  title: string;
+  subtitle: string;
+  color: string;        // tailwind bg for hub
+  nodeColor: string;     // tailwind bg for satellite
+  nodeBorder: string;
+  nodes: RevenueNode[];
+  tabKey: string;
+}
+
+const CLUSTERS: StepCluster[] = [
   {
+    id: "automate",
+    step: 1,
     letter: "A",
-    label: "Automate",
-    tagline: "Digital products that sell while you sleep",
-    color: "text-blue-600",
-    bgColor: "bg-blue-50 dark:bg-blue-950/30",
-    borderColor: "border-blue-200 dark:border-blue-800",
-    products: [
-      { name: "Workbook", status: "recommended" },
-      { name: "Online Course", status: "recommended" },
-      { name: "Audiobook", status: "recommended" },
-      { name: "Home Study Course", status: "recommended" },
-      { name: "Email Nurture Sequence", status: "recommended" },
+    title: "DIGITAL PRODUCTS",
+    subtitle: "Automate",
+    color: "bg-blue-500",
+    nodeColor: "bg-blue-400",
+    nodeBorder: "border-blue-300",
+    tabKey: "automate",
+    nodes: [
+      { label: "Online Courses", active: false },
+      { label: "Affiliates", active: false },
+      { label: "Audio Book", active: false },
+      { label: "Home Study Courses", active: false },
+      { label: "Webinars", active: false },
+      { label: "Website", active: false },
+      { label: "Workbook", active: false },
+      { label: "Monthly Memberships", active: false },
+      { label: "Upsells / Downsells", active: false },
+      { label: "Social Media", active: false },
     ],
   },
   {
+    id: "build",
+    step: 2,
     letter: "B",
-    label: "Build",
-    tagline: "High-touch coaching & consulting",
-    color: "text-amber-600",
-    bgColor: "bg-amber-50 dark:bg-amber-950/30",
-    borderColor: "border-amber-200 dark:border-amber-800",
-    products: [
-      { name: "1-on-1 Coaching", status: "recommended" },
-      { name: "Group Programme", status: "recommended" },
-      { name: "Mastermind", status: "recommended" },
-      { name: "Corporate Workshop", status: "recommended" },
+    title: "COACHING / CONSULTING",
+    subtitle: "Build",
+    color: "bg-amber-600",
+    nodeColor: "bg-amber-500",
+    nodeBorder: "border-amber-300",
+    tabKey: "build",
+    nodes: [
+      { label: "1-on-1 Coaching", active: false },
+      { label: "Group Coaching", active: false },
+      { label: "Big Ticket", active: false },
+      { label: "Revenue Sharing", active: false },
     ],
   },
   {
+    id: "broadcast",
+    step: 3,
     letter: "B",
-    label: "Broadcast",
-    tagline: "Speak, present & reach new audiences",
-    color: "text-rose-500",
-    bgColor: "bg-rose-50 dark:bg-rose-950/30",
-    borderColor: "border-rose-200 dark:border-rose-800",
-    products: [
-      { name: "Keynote Talk", status: "recommended" },
-      { name: "Webinar Series", status: "recommended" },
-      { name: "Podcast Tour", status: "recommended" },
-      { name: "Social Media Calendar", status: "recommended" },
+    title: "SPEAKING",
+    subtitle: "Broadcast",
+    color: "bg-rose-400",
+    nodeColor: "bg-rose-400",
+    nodeBorder: "border-rose-300",
+    tabKey: "broadcast",
+    nodes: [
+      { label: "JVs", active: false },
+      { label: "Podcasts", active: false },
+      { label: "Book Sales", active: false },
+      { label: "Fund Raising", active: false },
+      { label: "In-House Speaker", active: false },
+      { label: "Special Editions", active: false },
     ],
   },
   {
+    id: "yield",
+    step: 4,
     letter: "Y",
-    label: "Yield",
-    tagline: "Recurring revenue & scaled impact",
-    color: "text-emerald-600",
-    bgColor: "bg-emerald-50 dark:bg-emerald-950/30",
-    borderColor: "border-emerald-200 dark:border-emerald-800",
-    products: [
-      { name: "Live Seminar", status: "recommended" },
-      { name: "Certification Programme", status: "recommended" },
-      { name: "Membership Community", status: "recommended" },
-      { name: "Licensing & Franchise", status: "recommended" },
+    title: "SEMINARS",
+    subtitle: "Yield",
+    color: "bg-emerald-500",
+    nodeColor: "bg-emerald-400",
+    nodeBorder: "border-emerald-300",
+    tabKey: "yield",
+    nodes: [
+      { label: "Retreats & Bootcamps", active: false },
+      { label: "Certification", active: false },
+      { label: "Masterminds", active: false },
+      { label: "Exhibitors / JV", active: false },
+      { label: "Conventions", active: false },
+      { label: "Training Programs", active: false },
+      { label: "Conferences", active: false },
     ],
   },
 ];
 
-function StatusDot({ status }: { status: FrameworkProduct["status"] }) {
-  if (status === "built") {
-    return <div className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0" />;
+/* ── helpers to fan satellite nodes in an arc around each hub ── */
+
+function getNodePositions(count: number, radius: number, startAngle: number, sweep: number) {
+  const positions: { x: number; y: number }[] = [];
+  for (let i = 0; i < count; i++) {
+    const angle = startAngle + (sweep / Math.max(count - 1, 1)) * i;
+    const rad = (angle * Math.PI) / 180;
+    positions.push({ x: Math.cos(rad) * radius, y: Math.sin(rad) * radius });
   }
-  if (status === "recommended") {
-    return <div className="w-2 h-2 rounded-full bg-secondary flex-shrink-0 animate-pulse" />;
-  }
-  return <Lock className="w-2.5 h-2.5 text-muted-foreground/40 flex-shrink-0" />;
+  return positions;
+}
+
+/* ── quadrant layout: hub positions + arc directions ── */
+
+const QUADRANT_CONFIG: Record<string, { hubX: number; hubY: number; startAngle: number; sweep: number; radius: number }> = {
+  automate:  { hubX: 22, hubY: 25, startAngle: 180, sweep: 180, radius: 140 },
+  build:     { hubX: 22, hubY: 75, startAngle: 180, sweep: 150, radius: 120 },
+  broadcast: { hubX: 78, hubY: 75, startAngle: -30, sweep: 180, radius: 120 },
+  yield:     { hubX: 78, hubY: 25, startAngle: -10, sweep: 180, radius: 140 },
+};
+
+function SatelliteNode({ node, x, y, color, border, delay }: {
+  node: RevenueNode; x: number; y: number; color: string; border: string; delay: number;
+}) {
+  return (
+    <motion.div
+      className="absolute flex flex-col items-center gap-1 pointer-events-auto"
+      style={{ left: x, top: y, transform: "translate(-50%, -50%)" }}
+      initial={{ opacity: 0, scale: 0 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.4, delay }}
+    >
+      <div
+        className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-[9px] font-bold text-white shadow-md
+          ${node.active ? color : "bg-muted"} ${!node.active ? "opacity-50" : ""} border-2 ${node.active ? border : "border-muted-foreground/20"}`}
+      >
+        $
+      </div>
+      <span className={`text-[8px] sm:text-[9px] font-medium text-center leading-tight max-w-[72px]
+        ${node.active ? "text-foreground" : "text-muted-foreground"}`}>
+        {node.label}
+      </span>
+    </motion.div>
+  );
+}
+
+function ClusterGroup({ cluster, containerW, containerH, onClick, index }: {
+  cluster: StepCluster; containerW: number; containerH: number; onClick: () => void; index: number;
+}) {
+  const cfg = QUADRANT_CONFIG[cluster.id];
+  const hubPxX = (cfg.hubX / 100) * containerW;
+  const hubPxY = (cfg.hubY / 100) * containerH;
+
+  // Scale radius based on container
+  const scale = Math.min(containerW, containerH) / 600;
+  const radius = cfg.radius * Math.max(scale, 0.55);
+  const positions = getNodePositions(cluster.nodes.length, radius, cfg.startAngle, cfg.sweep);
+  const activeCount = cluster.nodes.filter((n) => n.active).length;
+
+  return (
+    <div className="absolute inset-0">
+      {/* Dashed lines from hub to each node */}
+      <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: "visible" }}>
+        {positions.map((pos, i) => (
+          <line
+            key={i}
+            x1={hubPxX}
+            y1={hubPxY}
+            x2={hubPxX + pos.x}
+            y2={hubPxY + pos.y}
+            stroke="hsl(var(--border))"
+            strokeWidth="1"
+            strokeDasharray="4 4"
+            opacity={0.5}
+          />
+        ))}
+      </svg>
+
+      {/* Satellite nodes */}
+      {cluster.nodes.map((node, i) => (
+        <SatelliteNode
+          key={node.label}
+          node={node}
+          x={hubPxX + positions[i].x}
+          y={hubPxY + positions[i].y}
+          color={cluster.nodeColor}
+          border={cluster.nodeBorder}
+          delay={0.15 + index * 0.1 + i * 0.04}
+        />
+      ))}
+
+      {/* Hub node */}
+      <motion.div
+        className={`absolute flex flex-col items-center justify-center rounded-full shadow-lg cursor-pointer
+          w-20 h-20 sm:w-24 sm:h-24 ${cluster.color} text-white z-10`}
+        style={{ left: hubPxX, top: hubPxY, transform: "translate(-50%, -50%)" }}
+        initial={{ opacity: 0, scale: 0 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5, delay: 0.1 * index }}
+        whileHover={{ scale: 1.08 }}
+        onClick={onClick}
+      >
+        <span className="text-[9px] font-bold opacity-80">STEP {cluster.step}</span>
+        <span className="text-[10px] sm:text-xs font-extrabold leading-tight text-center px-1">{cluster.title}</span>
+        <span className="text-[8px] opacity-70 mt-0.5">{activeCount}/{cluster.nodes.length}</span>
+      </motion.div>
+    </div>
+  );
 }
 
 export default function ABBYFrameworkVisual({ hasConsultation, onConsultAbby, onNavigateTab }: Props) {
-  if (!hasConsultation) {
-    return null;
-  }
+  if (!hasConsultation) return null;
 
-  const tabMap: Record<string, string> = {
-    Automate: "automate",
-    Build: "build",
-    Broadcast: "broadcast",
-    Yield: "yield",
-  };
+  const totalNodes = CLUSTERS.reduce((s, c) => s + c.nodes.length, 0);
+  const activeNodes = CLUSTERS.reduce((s, c) => s + c.nodes.filter((n) => n.active).length, 0);
 
   return (
     <motion.div
@@ -115,9 +234,9 @@ export default function ABBYFrameworkVisual({ hasConsultation, onConsultAbby, on
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-heading font-bold text-base">Your Customised ABBY Framework</h3>
+          <h3 className="font-heading font-bold text-base">Your ABBY Monetisation Map</h3>
           <p className="text-xs text-muted-foreground">
-            Abby's recommended monetisation map based on your consultation
+            {activeNodes} of {totalNodes} revenue streams activated
           </p>
         </div>
         <Button size="sm" variant="outline" onClick={onConsultAbby}>
@@ -126,61 +245,71 @@ export default function ABBYFrameworkVisual({ hasConsultation, onConsultAbby, on
         </Button>
       </div>
 
-      {/* Framework Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {DEFAULT_FRAMEWORK.map((cat, i) => (
-          <motion.div
-            key={`${cat.letter}-${cat.label}`}
-            className={`rounded-xl border ${cat.borderColor} ${cat.bgColor} p-4 cursor-pointer hover:shadow-md transition-shadow`}
-            onClick={() => onNavigateTab(tabMap[cat.label])}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.1 * i }}
-            whileHover={{ y: -2 }}
-          >
-            {/* Category header */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className={`text-lg font-black ${cat.color}`}>{cat.letter}</span>
-                <span className={`text-sm font-bold ${cat.color}`}>{cat.label}</span>
-              </div>
-              <ArrowRight className={`h-3.5 w-3.5 ${cat.color} opacity-40`} />
-            </div>
+      {/* Constellation Map */}
+      <div className="relative w-full rounded-2xl border border-border bg-card overflow-hidden" style={{ height: 520 }}>
+        {/* Center book icon */}
+        <motion.div
+          className="absolute z-20 flex flex-col items-center gap-1"
+          style={{ left: "50%", top: "50%", transform: "translate(-50%, -50%)" }}
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6 }}
+        >
+          <div className="w-16 h-20 sm:w-20 sm:h-24 rounded-lg bg-gradient-to-br from-secondary/80 to-secondary shadow-xl flex items-center justify-center border-2 border-secondary-foreground/20">
+            <span className="text-2xl sm:text-3xl">📖</span>
+          </div>
+          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mt-1">Your Book</span>
+        </motion.div>
 
-            <p className="text-[10px] text-muted-foreground mb-3 leading-tight">{cat.tagline}</p>
+        {/* Arrow lines from center to hubs */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none z-[1]">
+          {CLUSTERS.map((cluster) => {
+            const cfg = QUADRANT_CONFIG[cluster.id];
+            return (
+              <motion.line
+                key={cluster.id}
+                x1="50%"
+                y1="50%"
+                x2={`${cfg.hubX}%`}
+                y2={`${cfg.hubY}%`}
+                stroke="hsl(var(--secondary))"
+                strokeWidth="2"
+                strokeDasharray="6 4"
+                opacity={0.4}
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: 0.8 }}
+              />
+            );
+          })}
+        </svg>
 
-            {/* Product list */}
-            <div className="space-y-1.5">
-              {cat.products.map((p) => (
-                <div key={p.name} className="flex items-center gap-2">
-                  <StatusDot status={p.status} />
-                  <span className="text-xs text-foreground/80 truncate">{p.name}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-3 pt-2 border-t border-border/50">
-              <span className="text-[10px] font-medium text-muted-foreground">
-                {cat.products.filter((p) => p.status === "built").length}/{cat.products.length} built
-              </span>
-            </div>
-          </motion.div>
+        {/* Cluster groups */}
+        {CLUSTERS.map((cluster, i) => (
+          <ClusterGroup
+            key={cluster.id}
+            cluster={cluster}
+            containerW={800}
+            containerH={520}
+            onClick={() => onNavigateTab(cluster.tabKey)}
+            index={i}
+          />
         ))}
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
+      <div className="flex items-center gap-6 text-[10px] text-muted-foreground">
         <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
-          <span>Recommended by Abby</span>
+          <div className="w-3 h-3 rounded-full bg-blue-400 border-2 border-blue-300" />
+          <span>Activated</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full bg-emerald-500" />
-          <span>Built</span>
+          <div className="w-3 h-3 rounded-full bg-muted opacity-50 border-2 border-muted-foreground/20" />
+          <span>Not yet activated</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <Lock className="w-2.5 h-2.5 text-muted-foreground/40" />
-          <span>Locked</span>
+          <div className="w-3 h-0 border-t border-dashed border-border" style={{ width: 16 }} />
+          <span>Revenue connection</span>
         </div>
       </div>
     </motion.div>
