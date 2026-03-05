@@ -205,6 +205,7 @@ export default function ConfigureStep({ config, onConfigChange, onNext }: Props)
           )}
         </CardContent>
       </Card>
+      )}
 
       {/* Platforms */}
       <Card>
