@@ -28,6 +28,8 @@ interface Webinar {
 
 export default function WebinarsManager() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const bookFilterId = searchParams.get("bookId");
   const [webinars, setWebinars] = useState<Webinar[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -40,15 +42,19 @@ export default function WebinarsManager() {
   useEffect(() => {
     if (!user) return;
     fetchWebinars();
-  }, [user]);
+  }, [user, bookFilterId]);
 
   const fetchWebinars = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    let query = supabase
       .from("webinars" as any)
       .select("*")
       .eq("author_id", user!.id)
       .order("created_at", { ascending: false });
+    if (bookFilterId) {
+      query = query.eq("book_id", bookFilterId);
+    }
+    const { data, error } = await query;
     if (!error && data) setWebinars(data as any);
     setLoading(false);
   };
