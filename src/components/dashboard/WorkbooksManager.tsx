@@ -48,16 +48,9 @@ export default function WorkbooksManager() {
   const fetchWorkbooks = async () => {
     setLoading(true);
 
-    const { data: authData } = await supabase.auth.getUser();
-    const cloudUserId = authData.user?.id;
-
     let query = supabase
       .from("workbooks" as any)
       .select("*");
-
-    if (cloudUserId) {
-      query = query.eq("author_id", cloudUserId);
-    }
 
     if (bookFilterId) {
       query = query.eq("book_id", bookFilterId);
