@@ -131,9 +131,10 @@ export default function BookHubOverview({ book, onConsultAbby, onNavigateTab }: 
               </span>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              I've read your book <strong>"{book.title}"</strong> cover to cover. I can extract your proprietary frameworks, identify your ideal audience, 
-              and map out a personalized monetization strategy across up to 27 revenue streams — all tailored to your content, your expertise, and your goals. 
-              Let's build something that's uniquely yours.
+              I'll start by conducting a <strong>Needs Analysis</strong> on your book <strong>"{book.title}"</strong> — understanding your goals, audience size, and revenue ambitions. 
+              From there, I'll design a <strong>customised ABBY Framework</strong> mapping the exact products and revenue streams that fit your expertise. 
+              You'll see transparent, itemised à-la-carte pricing for each product — plus a bundled subscription option that saves you more. 
+              Think of me as your strategist <em>and</em> your sales partner: I don't just advise, I help you build and sell.
             </p>
             <div className="flex flex-wrap gap-2 mt-4">
               <Button
