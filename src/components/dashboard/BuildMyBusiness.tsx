@@ -94,49 +94,57 @@ export default function BuildMyBusiness() {
     })();
   }, [user]);
 
+  const CONSULTATION_SESSION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/consultation-session`;
+
+  const getSessionHeaders = useCallback(async () => {
+    const token = await getActiveToken();
+    return {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+    };
+  }, []);
+
   // ─── Chat Persistence ────────────────────────────────
   const saveSession = useCallback(async (msgs: ChatMessage[]) => {
     if (!user || !selectedBook || msgs.length === 0) return;
     try {
-      if (sessionId) {
-        await cloudSupabase.from("consultation_sessions" as any).update({
-          messages: msgs,
-        } as any).eq("id", sessionId);
-      } else {
-        const { data } = await cloudSupabase.from("consultation_sessions" as any).insert({
-          user_id: user.id,
+      const headers = await getSessionHeaders();
+      const resp = await fetch(CONSULTATION_SESSION_URL, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          action: "save",
           book_id: selectedBook.id,
+          session_id: sessionId,
           messages: msgs,
-          is_active: true,
-        } as any).select("id").single();
-        if (data) setSessionId((data as any).id);
-      }
+        }),
+      });
+      const result = await resp.json();
+      if (result.id && !sessionId) setSessionId(result.id);
     } catch (err) {
       console.error("Failed to save session:", err);
     }
-  }, [user, selectedBook, sessionId]);
+  }, [user, selectedBook, sessionId, getSessionHeaders]);
 
   const loadExistingSession = useCallback(async (bookId: string): Promise<ChatMessage[] | null> => {
     if (!user) return null;
     try {
-      const { data } = await cloudSupabase
-        .from("consultation_sessions" as any)
-        .select("id, messages")
-        .eq("user_id", user.id)
-        .eq("book_id", bookId)
-        .eq("is_active", true)
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (data) {
-        setSessionId((data as any).id);
-        return (data as any).messages as ChatMessage[];
+      const headers = await getSessionHeaders();
+      const resp = await fetch(CONSULTATION_SESSION_URL, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ action: "load", book_id: bookId }),
+      });
+      const result = await resp.json();
+      if (result.session) {
+        setSessionId(result.session.id);
+        return result.session.messages as ChatMessage[];
       }
     } catch (err) {
       console.error("Failed to load session:", err);
     }
     return null;
-  }, [user]);
+  }, [user, getSessionHeaders]);
 
   // Save messages whenever they change (debounced via streaming end)
   useEffect(() => {
