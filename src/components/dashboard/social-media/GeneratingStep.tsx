@@ -5,7 +5,16 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, Sparkles, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase as cloudSupabase } from "@/integrations/supabase/client";
+import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import type { SocialPost, CalendarConfig, CATEGORY_COLORS } from "./types";
+
+async function getActiveToken(): Promise<string | null> {
+  const { data: cloudSession } = await cloudSupabase.auth.getSession();
+  if (cloudSession?.session?.access_token) return cloudSession.session.access_token;
+  const { data: sharedSession } = await sharedSupabase.auth.getSession();
+  return sharedSession?.session?.access_token ?? null;
+}
 
 const CATEGORY_BG: Record<string, string> = {
   tips: "bg-blue-500/10 text-blue-700",
@@ -61,13 +70,14 @@ export default function GeneratingStep({ config, onComplete, onBack }: Props) {
     setTotalExpected(total);
 
     try {
+      const token = await getActiveToken();
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-social-content`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             bookId: config.bookId,
