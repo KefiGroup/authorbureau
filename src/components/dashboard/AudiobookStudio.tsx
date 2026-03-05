@@ -71,11 +71,10 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
         .from("generated_assets")
         .select("content")
         .eq("book_id", bookId)
-        .eq("author_id", userId)
         .eq("asset_type", "source_material")
         .order("updated_at", { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (data?.content) {
         setManuscript(data.content);
@@ -85,7 +84,7 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
       console.error("No manuscript found:", e);
     }
     setLoadingManuscript(false);
-  }, [bookId, userId]);
+  }, [bookId]);
 
   useEffect(() => { loadManuscript(); }, [loadManuscript]);
 
