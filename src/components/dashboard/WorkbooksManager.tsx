@@ -118,22 +118,24 @@ export default function WorkbooksManager() {
 
   const handleDownloadPdf = async (wb: Workbook) => {
     toast.info("Generating PDF…");
-    const html2pdf = (await import("html2pdf.js")).default;
-    const container = document.createElement("div");
-    container.style.padding = "40px";
-    container.style.fontFamily = "Georgia, serif";
-    container.style.fontSize = "12pt";
-    container.style.lineHeight = "1.6";
-    container.innerHTML = markdownToHtml(wb.content_markdown);
-    document.body.appendChild(container);
-    await html2pdf().set({
-      margin: [15, 15],
-      filename: `${fileSlug(wb.title)}.pdf`,
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-    }).from(container).save();
-    document.body.removeChild(container);
-    toast.success("PDF downloaded!");
+    const htmlContent = markdownToHtml(wb.content_markdown);
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      toast.error("Please allow popups to download PDF.");
+      return;
+    }
+    printWindow.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${wb.title}</title><style>
+      @page { size: A4; margin: 15mm; }
+      body { font-family: Georgia, serif; font-size: 12pt; line-height: 1.6; padding: 40px; }
+      h1, h2, h3 { margin-top: 1.5em; }
+      @media print { body { padding: 0; } }
+    </style></head><body>${htmlContent}</body></html>`);
+    printWindow.document.close();
+    printWindow.onload = () => {
+      printWindow.print();
+      printWindow.close();
+    };
+    toast.success("PDF print dialog opened!");
   };
 
   const handleDownloadDocx = async (wb: Workbook) => {
