@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, Lightbulb, Sparkles } from "lucide-react";
+import { Loader2, Lightbulb, Sparkles, BookOpen, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import FrameworksEditor, { type AuthorFramework } from "./FrameworksEditor";
@@ -10,22 +10,25 @@ import { toast } from "sonner";
 interface FrameworkInterviewModalProps {
   open: boolean;
   onClose: () => void;
-  /** Called with the frameworks to use for this generation */
   onConfirm: (frameworks: AuthorFramework[]) => void;
   productType: string;
   bookTitle: string;
+  bookId?: string;
 }
 
 export default function FrameworkInterviewModal({
-  open, onClose, onConfirm, productType, bookTitle,
+  open, onClose, onConfirm, productType, bookTitle, bookId,
 }: FrameworkInterviewModalProps) {
   const { user } = useAuth();
   const [frameworks, setFrameworks] = useState<AuthorFramework[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [extracting, setExtracting] = useState(false);
+  const [extracted, setExtracted] = useState(false);
 
   useEffect(() => {
     if (!open || !user) return;
+    setExtracted(false);
     (async () => {
       setLoading(true);
       const { data } = await supabase
@@ -34,16 +37,62 @@ export default function FrameworkInterviewModal({
         .eq("user_id", user.id)
         .maybeSingle();
       const saved = (data as any)?.frameworks;
-      setFrameworks(Array.isArray(saved) ? saved : []);
+      const existing = Array.isArray(saved) ? saved : [];
+      setFrameworks(existing);
       setLoading(false);
+
+      // If no frameworks saved and we have a bookId, auto-extract from manuscript
+      if (existing.length === 0 && bookId) {
+        autoExtractFrameworks();
+      }
     })();
   }, [open, user]);
 
+  const autoExtractFrameworks = async () => {
+    setExtracting(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const token = session?.session?.access_token;
+      if (!token) throw new Error("Not authenticated");
+
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-frameworks`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ bookId }),
+        }
+      );
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        if (resp.status === 404) {
+          // No manuscript — silently skip
+          return;
+        }
+        throw new Error(err.error || "Extraction failed");
+      }
+
+      const { frameworks: extracted } = await resp.json();
+      if (Array.isArray(extracted) && extracted.length > 0) {
+        setFrameworks(extracted);
+        setExtracted(true);
+        toast.success(`Abby found ${extracted.length} framework${extracted.length > 1 ? "s" : ""} in your book!`);
+      }
+    } catch (err) {
+      console.error("Framework extraction error:", err);
+      // Non-critical — author can still add manually
+    } finally {
+      setExtracting(false);
+    }
+  };
+
   const handleConfirm = async () => {
-    // Save frameworks to profile for future use
     if (user) {
       setSaving(true);
-      // Filter out empty frameworks
       const validFrameworks = frameworks.filter(fw => fw.name.trim());
       await supabase
         .from("author_profiles" as any)
@@ -76,26 +125,60 @@ export default function FrameworkInterviewModal({
             </DialogTitle>
           </div>
           <DialogDescription className="text-sm">
-            Before generating your <strong>{productLabel}</strong> for "<strong>{bookTitle}</strong>", tell Abby about your unique frameworks and theories. This ensures the generated content reflects <em>your</em> methodology, not generic advice.
+            Before generating your <strong>{productLabel}</strong> for "<strong>{bookTitle}</strong>", Abby reads your manuscript to identify your unique frameworks and theories. Review them below — edit, add, or remove as needed.
           </DialogDescription>
         </DialogHeader>
 
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-5 w-5 animate-spin mr-2 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Loading your frameworks…</span>
+        {loading || extracting ? (
+          <div className="flex flex-col items-center justify-center py-12 gap-3">
+            <div className="flex items-center gap-2">
+              {extracting ? (
+                <BookOpen className="h-5 w-5 animate-pulse text-amber-600" />
+              ) : (
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              )}
+              <span className="text-sm text-muted-foreground font-medium">
+                {extracting
+                  ? "Abby is reading your manuscript to find your unique frameworks…"
+                  : "Loading your frameworks…"}
+              </span>
+            </div>
+            {extracting && (
+              <p className="text-xs text-muted-foreground text-center max-w-sm">
+                This takes 15–30 seconds. Abby analyzes your entire book to identify proprietary theories, methodologies, and step-by-step processes.
+              </p>
+            )}
           </div>
         ) : (
-          <div className="py-2">
+          <div className="py-2 space-y-3">
+            {extracted && frameworks.length > 0 && (
+              <div className="flex items-start gap-2 rounded-lg bg-green-50 border border-green-200 p-3">
+                <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-green-800">
+                  <strong>Abby found {frameworks.length} framework{frameworks.length > 1 ? "s" : ""}</strong> in your manuscript! Review them below — you can edit names, descriptions, and key principles before building.
+                </p>
+              </div>
+            )}
             <FrameworksEditor frameworks={frameworks} onChange={setFrameworks} compact autoSave={false} />
+            {bookId && frameworks.length === 0 && !extracting && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={autoExtractFrameworks}
+                className="text-xs gap-1"
+              >
+                <BookOpen className="h-3 w-3" />
+                Re-scan manuscript for frameworks
+              </Button>
+            )}
           </div>
         )}
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
-          <Button variant="ghost" size="sm" onClick={handleSkip} className="text-muted-foreground">
+          <Button variant="ghost" size="sm" onClick={handleSkip} className="text-muted-foreground" disabled={extracting}>
             Skip — generate without frameworks
           </Button>
-          <Button onClick={handleConfirm} disabled={saving} className="bg-gradient-to-r from-amber-500 to-amber-600 text-white">
+          <Button onClick={handleConfirm} disabled={saving || extracting} className="bg-gradient-to-r from-amber-500 to-amber-600 text-white">
             {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Sparkles className="h-3.5 w-3.5 mr-1" />}
             Apply Frameworks & Build
           </Button>

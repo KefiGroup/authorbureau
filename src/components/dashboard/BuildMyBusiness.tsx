@@ -950,6 +950,7 @@ export default function BuildMyBusiness() {
         onConfirm={handleFrameworkConfirm}
         productType={pendingBuildReq?.product_type || "product"}
         bookTitle={selectedBook?.title || ""}
+        bookId={selectedBook?.id}
       />
     </div>
   );

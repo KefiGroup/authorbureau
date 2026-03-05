@@ -326,8 +326,15 @@ books: ${JSON.stringify(books.map((b: any) => ({
     })))}
 selected_book: ${selectedBook ? JSON.stringify({ id: selectedBook.id, title: selectedBook.title, description: selectedBook.description, genre: selectedBook.genre }) : "none"}
 ${manuscriptContent ? `
-=== FULL BOOK MANUSCRIPT (READ THIS CAREFULLY) ===
-CRITICAL: You MUST read this entire manuscript to understand the author's unique theories, frameworks, and methodology. Extract any proprietary concepts, step-by-step processes, or unique terminology the author uses. Reference these in ALL your recommendations.
+=== FULL BOOK MANUSCRIPT (READ THIS CAREFULLY — THIS IS YOUR #1 PRIORITY) ===
+CRITICAL FRAMEWORK EXTRACTION INSTRUCTIONS:
+1. Read the ENTIRE manuscript below before responding.
+2. EXTRACT every unique framework, theory, methodology, acronym-based system, step-by-step process, named concept, or proprietary model the author has created.
+3. In your FIRST message, NAME each framework you discovered and explain how you'll use it as the foundation for their business strategy.
+4. If the author uses a unique term (e.g., "SUCKcess", "The 5P Method", "Hemispheric Intelligence"), ALWAYS use that exact term — never paraphrase it into generic language.
+5. Build ALL product recommendations around these discovered frameworks.
+6. If no explicit named framework exists, identify the author's core methodology from the book's structure and present it as their implicit framework.
+
 ${manuscriptContent}
 === END MANUSCRIPT ===` : "manuscript_content: not available — USE the book description, genre, subtitle, and author profile frameworks to provide strategic recommendations. Do NOT ask the author to upload their manuscript. Work confidently with what you have."}
 existing_products: ${JSON.stringify(existingProducts)}
@@ -336,7 +343,7 @@ generation_history: ${JSON.stringify(existingAssets.map((a: any) => a.asset_type
 is_premium_subscriber: ${!!isPremium}
 author_frameworks: ${profile?.frameworks && Array.isArray(profile.frameworks) && profile.frameworks.length > 0
   ? JSON.stringify(profile.frameworks)
-  : "none — you should ask the author about any unique theories, methodologies, or frameworks they've developed"}
+  : "none saved in profile — but if a manuscript is provided above, you MUST extract frameworks directly from the book text. Look for named theories, step-by-step processes, acronyms, unique models, and signature concepts. Present them to the author as discoveries: 'I found your [Framework Name] in your book — this is going to be the cornerstone of everything we build!'"}
 `;
 
     const fullSystemPrompt = SYSTEM_PROMPT + "\n\n" + contextBlock;
