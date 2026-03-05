@@ -66,6 +66,7 @@ export default function BuildMyBusiness() {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [shouldAutoStart, setShouldAutoStart] = useState(false);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -144,23 +145,26 @@ export default function BuildMyBusiness() {
     }
   }, [isStreaming, messages.length]);
 
-  // When book is selected, load existing session or wait for reading animation
+  // When book is selected, load existing session
   useEffect(() => {
     if (!selectedBook) return;
     (async () => {
       const existing = await loadExistingSession(selectedBook.id);
       if (existing && existing.length > 0) {
         setMessages(existing);
-        setAbbyReading(false); // Skip reading animation for restored sessions
+        setAbbyReading(false);
         toast({ title: "Session restored", description: "Your previous conversation with Abby has been loaded." });
-      }
-      // If no existing session and not reading, the reading animation handler will auto-start
-      // If no manuscript was uploaded (skip path), auto-start without reading
-      if (!existing && !abbyReading && messages.length === 0) {
-        sendMessage("I'd like to build a business around my book. Please analyze my book and advise me on the best strategy.", true);
       }
     })();
   }, [selectedBook]);
+
+  // Auto-start consultation after reading animation completes or skip
+  useEffect(() => {
+    if (shouldAutoStart && selectedBook && !isStreaming && !abbyReading && messages.length === 0) {
+      setShouldAutoStart(false);
+      sendMessage("I'd like to build a business around my book. Please analyze my book and advise me on the best strategy.", true);
+    }
+  }, [shouldAutoStart, abbyReading, selectedBook, messages.length, isStreaming]);
 
   const sendMessage = useCallback(async (content: string, isAutoStart = false) => {
     if (!selectedBook || !content.trim() || isStreaming) return;
@@ -515,10 +519,7 @@ export default function BuildMyBusiness() {
       if (elapsed >= duration) {
         clearInterval(timer);
         setAbbyReading(false);
-        // Auto-start consultation
-        if (messages.length === 0) {
-          sendMessage("I'd like to build a business around my book. Please analyze my book and advise me on the best strategy.", true);
-        }
+        setShouldAutoStart(true);
       }
     }, interval);
   };
@@ -528,6 +529,7 @@ export default function BuildMyBusiness() {
     if (pendingBookSelection) {
       setSelectedBook(pendingBookSelection);
       setPendingBookSelection(null);
+      setShouldAutoStart(true);
     }
   };
 
