@@ -397,6 +397,9 @@ CRITICAL FRAMEWORK EXTRACTION INSTRUCTIONS:
 ${manuscriptContent}
 === END MANUSCRIPT ===` : "manuscript_content: not available — USE the book description, genre, subtitle, and author profile frameworks to provide strategic recommendations. Do NOT ask the author to upload their manuscript. Work confidently with what you have."}
 existing_products: ${JSON.stringify(existingProducts)}
+=== ALREADY BUILT (DO NOT RECOMMEND THESE AGAIN) ===
+${builtSummary.length > 0 ? builtSummary.join("\n") : "Nothing built yet — this is a fresh start."}
+=== END ALREADY BUILT ===
 audience_metrics: { email_subscribers: ${subscriberCount} }
 generation_history: ${JSON.stringify(existingAssets.map((a: any) => a.asset_type))}
 is_premium_subscriber: ${!!isPremium}
