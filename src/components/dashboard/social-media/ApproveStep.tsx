@@ -41,7 +41,7 @@ function buildPostText(p: SocialPost): string {
   return p.caption + hashtags;
 }
 
-export default function ApproveStep({ posts, config, onBack, onDone, onRegenerate }: Props) {
+export default function ApproveStep({ posts, config, onBack, onDone, onRegenerate, onPostsChange }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
