@@ -859,7 +859,7 @@ export default function BuildMyBusiness() {
             <p className="text-xs text-muted-foreground truncate">Strategy for: {selectedBook.title}</p>
           </div>
         </div>
-        <Button variant="ghost" size="sm" onClick={handleReset} className="text-xs gap-1.5">
+        <Button variant="ghost" size="sm" onClick={() => handleReset(false)} className="text-xs gap-1.5">
           <RotateCcw className="h-3 w-3" /> New Session
         </Button>
       </div>
