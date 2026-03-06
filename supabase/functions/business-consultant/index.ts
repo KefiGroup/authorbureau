@@ -245,25 +245,68 @@ After presenting the business plan summary (Phase 6), output a structured block 
   "summary": "[1-2 sentence executive strategy summary]",
   "target_audience": "[specific persona description]",
   "core_framework": "[discovered framework name or 'General Book Methodology']",
-  "recommended_nodes": [
-    {
-      "node": "[product type: workbook/course/webinar/audiobook/social_media/podcast/coaching/speaking/etc.]",
-      "phase": "[build/bridge/yield]",
-      "priority": [1-5 integer],
-      "title": "[specific product title tied to their book]",
-      "pricing": "[realistic price]",
-      "monthly_revenue_low": "[conservative monthly projection]",
-      "monthly_revenue_high": "[optimistic monthly projection]",
-      "reasoning": "[1 sentence why this product for this author]",
-      "status": "recommended"
+  "book_title": "[the book title]",
+  "author_name": "[the author's name]",
+  "packages": {
+    "starter": {
+      "label": "Starter Package",
+      "tagline": "Quick Wins",
+      "timeline": "Month 1-2",
+      "products": [
+        {
+          "node": "[product type]",
+          "title": "[specific product title]",
+          "pricing": "[price]",
+          "monthly_revenue_low": "[low]",
+          "monthly_revenue_high": "[high]",
+          "reasoning": "[why]"
+        }
+      ],
+      "monthly_revenue_low": "[total low]",
+      "monthly_revenue_high": "[total high]"
+    },
+    "pro": {
+      "label": "Pro Package",
+      "tagline": "Growth Engine",
+      "timeline": "Month 3-6",
+      "products": [
+        {
+          "node": "[product type]",
+          "title": "[specific product title]",
+          "pricing": "[price]",
+          "monthly_revenue_low": "[low]",
+          "monthly_revenue_high": "[high]",
+          "reasoning": "[why]"
+        }
+      ],
+      "monthly_revenue_low": "[total low]",
+      "monthly_revenue_high": "[total high]"
+    },
+    "enterprise": {
+      "label": "Enterprise Package",
+      "tagline": "Authority & Scale",
+      "timeline": "Month 6-12",
+      "includes_consultation": true,
+      "consultation_note": "1-on-1 strategic session with Pauline Teo, founder of Authors Bureau",
+      "products": [
+        {
+          "node": "[product type]",
+          "title": "[specific product title]",
+          "pricing": "[price]",
+          "monthly_revenue_low": "[low]",
+          "monthly_revenue_high": "[high]",
+          "reasoning": "[why]"
+        }
+      ],
+      "monthly_revenue_low": "[total low]",
+      "monthly_revenue_high": "[total high]"
     }
-  ],
-  "subscriber_count": [current count],
-  "phase_1_target": "[revenue target for months 1-2]",
-  "phase_2_target": "[revenue target for months 3-6]",
+  },
+  "subscriber_count": "[current count]",
   "annual_projection_low": "[conservative annual total]",
   "annual_projection_high": "[optimistic annual total]",
-  "roi_breakeven": "[how many sales to cover subscription cost]"
+  "roi_breakeven": "[how many sales to cover subscription cost]",
+  "abbys_promise": "Start with the Starter Package. I'll build each product step by step, as and when you're ready. When you're ready to grow, we move to Pro. And when you're ready for premium authority positioning, the Enterprise Package — including a personal session with our founder Pauline Teo — will take you to the next level."
 }
 ===END_ABBY_PLAN===
 
