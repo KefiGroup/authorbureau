@@ -37,42 +37,39 @@ interface StepConfig {
 
 const stepConfigs: Record<string, StepConfig> = {
   "step-1": {
-    id: "step-1", label: "A · Analyze", subtitle: "Digital Products",
+    id: "step-1", label: "A · Analyze", subtitle: "Discover & Map",
     color: "text-blue-600", bgColor: "bg-blue-500/10",
     gradientFrom: "from-blue-500", gradientTo: "to-blue-600",
     nodes: [
       { id: "social-media", label: "Social Media", icon: Share2, description: "90-day AI content calendar", status: "live", buildOrder: 1 },
-      { id: "workbooks", label: "Workbooks", icon: FileText, description: "Companion workbook PDFs", status: "live", buildOrder: 2 },
-      { id: "webinars", label: "Webinars", icon: Video, description: "Webinar scripts + slide decks", status: "live", buildOrder: 3 },
-      { id: "podcast-script", label: "Podcast Scripts", icon: Podcast, description: "Episode scripts from book chapters", status: "planned", buildOrder: 4 },
-      { id: "courses", label: "Online Courses", icon: GraduationCap, description: "8-12 module structured courses", status: "coming-soon", buildOrder: 5 },
-      { id: "audiobook", label: "Audiobook", icon: Headphones, description: "AI-generated audiobook scripts", status: "coming-soon", buildOrder: 6 },
-      { id: "home-study", label: "Home Study Course", icon: BookMarked, description: "Self-paced study guide", status: "coming-soon", buildOrder: 7 },
-      { id: "memberships", label: "Monthly Memberships", icon: CreditCard, description: "3-tier membership system", status: "planned", buildOrder: 8 },
-      { id: "affiliates", label: "Affiliates", icon: Link2, description: "Affiliate tracking links", status: "planned", buildOrder: 9 },
-      { id: "upsells", label: "Upsells / Downsells", icon: TrendingUp, description: "AI-generated conversion sequences", status: "planned", buildOrder: 10 },
+      { id: "podcast-script", label: "Podcast Scripts", icon: Podcast, description: "Episode scripts from book chapters", status: "planned", buildOrder: 2 },
+      { id: "workbooks", label: "Workbooks", icon: FileText, description: "Companion workbook PDFs", status: "live", buildOrder: 3 },
+      { id: "audiobook", label: "Audiobook", icon: Headphones, description: "AI-generated audiobook scripts", status: "coming-soon", buildOrder: 4 },
+      { id: "home-study", label: "Home Study Course", icon: BookMarked, description: "Self-paced study guide", status: "coming-soon", buildOrder: 5 },
+      { id: "webinars", label: "Webinars", icon: Video, description: "Webinar scripts + slide decks", status: "live", buildOrder: 6 },
+      { id: "courses", label: "Online Courses", icon: GraduationCap, description: "8-12 module structured courses", status: "coming-soon", buildOrder: 7 },
     ],
   },
   "step-2": {
-    id: "step-2", label: "B · Build", subtitle: "Coaching & Consulting",
+    id: "step-2", label: "B · Build", subtitle: "Create & Package",
     color: "text-amber-600", bgColor: "bg-amber-500/10",
     gradientFrom: "from-amber-500", gradientTo: "to-amber-600",
     nodes: [
       { id: "coaching-1on1", label: "1-on-1 Coaching", icon: UserCheck, description: "6/12-session coaching programs", status: "live" },
       { id: "group-coaching", label: "Group Coaching", icon: Users, description: "8-week group coaching curriculum", status: "coming-soon" },
+      { id: "keynotes", label: "Keynotes", icon: Mic, description: "3-5 keynote topics with slide decks", status: "live" },
+      { id: "corporate-training", label: "Corporate Training", icon: Building2, description: "Corporate training programs", status: "planned" },
       { id: "big-ticket", label: "Big Ticket", icon: Trophy, description: "Premium consulting packages", status: "planned" },
-      { id: "revenue-sharing", label: "Revenue Sharing / JV", icon: Handshake, description: "Partnership matching + contracts", status: "planned" },
       { id: "coaching-membership", label: "Coaching Membership", icon: CreditCard, description: "Monthly coaching tier", status: "planned" },
+      { id: "revenue-sharing", label: "Revenue Sharing / JV", icon: Handshake, description: "Partnership matching + contracts", status: "planned" },
     ],
   },
   "step-3": {
-    id: "step-3", label: "B · Bridge", subtitle: "Speaking",
+    id: "step-3", label: "B · Bridge", subtitle: "Connect & Distribute",
     color: "text-rose-500", bgColor: "bg-rose-500/10",
     gradientFrom: "from-rose-500", gradientTo: "to-rose-600",
     nodes: [
-      { id: "keynotes", label: "Keynotes", icon: Mic, description: "3-5 keynote topics with slide decks", status: "live" },
       { id: "podcast-guest", label: "Podcast Pitches", icon: Podcast, description: "Podcast pitch kit", status: "planned" },
-      { id: "corporate-training", label: "Corporate Training", icon: Building2, description: "Corporate training programs", status: "planned" },
       { id: "jvs-speaking", label: "Joint Ventures", icon: Handshake, description: "JV proposals for co-hosting", status: "planned" },
       { id: "book-sales-events", label: "Book Sales at Events", icon: BookOpen, description: "QR code order pages", status: "planned" },
       { id: "special-editions", label: "Special Editions", icon: Sparkles, description: "Special edition proposals", status: "planned" },
@@ -82,13 +79,16 @@ const stepConfigs: Record<string, StepConfig> = {
     ],
   },
   "step-4": {
-    id: "step-4", label: "Y · Yield", subtitle: "Seminars & Events",
+    id: "step-4", label: "Y · Yield", subtitle: "Monetize & Earn",
     color: "text-emerald-500", bgColor: "bg-emerald-500/10",
     gradientFrom: "from-emerald-500", gradientTo: "to-emerald-600",
     nodes: [
-      { id: "retreats", label: "Retreats & Bootcamps", icon: Bookmark, description: "2-3 day retreat programs", status: "planned" },
+      { id: "memberships", label: "Monthly Memberships", icon: CreditCard, description: "3-tier membership system", status: "planned" },
+      { id: "affiliates", label: "Affiliates", icon: Link2, description: "Affiliate tracking links", status: "planned" },
+      { id: "upsells", label: "Upsells / Downsells", icon: TrendingUp, description: "AI-generated conversion sequences", status: "planned" },
       { id: "certification", label: "Certification Programs", icon: ShieldCheck, description: "Multi-module curriculum + exam", status: "planned" },
       { id: "masterminds", label: "Masterminds", icon: BarChart3, description: "Quarterly mastermind groups", status: "planned" },
+      { id: "retreats", label: "Retreats & Bootcamps", icon: Bookmark, description: "2-3 day retreat programs", status: "planned" },
       { id: "exhibitors", label: "Exhibitors / JV", icon: Megaphone, description: "Exhibitor prospectus", status: "planned" },
     ],
   },
@@ -233,7 +233,6 @@ export default function PortfolioStepView({ stepId }: Props) {
                 whileHover={{ y: -2 }}
               >
                 <div className="flex items-center gap-4">
-                  {/* Book Cover */}
                   <div className="h-16 w-12 rounded-lg overflow-hidden bg-muted flex items-center justify-center shrink-0 shadow-sm border border-border">
                     {book.cover_image_url ? (
                       <img src={book.cover_image_url} alt={book.title} className="h-full w-full object-cover" />
@@ -241,16 +240,12 @@ export default function PortfolioStepView({ stepId }: Props) {
                       <BookOpen className="h-5 w-5 text-muted-foreground/30" />
                     )}
                   </div>
-
-                  {/* Book Info */}
                   <div className="flex-1 min-w-0">
                     <h4 className="font-heading font-bold text-base truncate">{book.title}</h4>
                     <p className="text-xs text-muted-foreground mt-1">
                       No {step.subtitle.toLowerCase()} products yet — click to start building
                     </p>
                   </div>
-
-                  {/* CTA */}
                   <div className="flex items-center gap-2 shrink-0">
                     <Button size="sm" variant="outline" className="gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
                       Manage
