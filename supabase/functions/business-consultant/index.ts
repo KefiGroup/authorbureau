@@ -583,19 +583,25 @@ author_frameworks: ${profile?.frameworks && Array.isArray(profile.frameworks) &&
       ? messages.filter((m: any) => m?.role === "assistant").length
       : 0;
 
+    // Determine which conversation turn this is (for pacing enforcement)
+    const conversationTurn = assistantTurns + 1; // Next turn number
+
     const progressionBlock = assistantTurns > 0
       ? `
 CONVERSATION PROGRESSION:
+- You are on Turn ${conversationTurn} of the consultation.
 - You are mid-conversation. DO NOT restart with a fresh intro.
 - DO NOT repeat the same recommendation already discussed.
 - Build directly on the latest user message and prior context.
-- If the user asks for a business plan, generate it now as clean formatted text.
+${conversationTurn <= 3 ? `- PACING ENFORCEMENT: This is Turn ${conversationTurn}. Your response MUST be under 200 words. Ask ONE question and STOP. Do NOT generate the business plan yet.` : ""}
+${conversationTurn >= 4 ? "- The author has answered your diagnostic questions. If they confirmed the direction or asked for the plan, generate the FULL ABBY Business Plan now." : ""}
 `
       : `
 CONVERSATION START:
-- This is the first turn. Introduce yourself once, then move into strategic guidance.
-- Demonstrate you've read and understood their book.
-- Ask ONE focused question about their goals before generating the business plan.
+- This is Turn 1. Follow the Turn 1 pacing rules EXACTLY.
+- Greet warmly, show ONE brief insight about their book, ask ONE goal question, then STOP.
+- Your response MUST be under 200 words. Do NOT generate the business plan.
+- Do NOT skip ahead. Do NOT provide strategic analysis yet. Just greet and ask.
 `;
 
     const fullSystemPrompt = `${SYSTEM_PROMPT}\n\n${progressionBlock}\n${contextBlock}\nrequest_meta: ${JSON.stringify({
