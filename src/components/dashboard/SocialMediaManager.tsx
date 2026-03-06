@@ -25,6 +25,7 @@ export default function SocialMediaManager() {
   const [content, setContent] = useState<SocialContent[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const navigate = useNavigate();
   // Auto-launch studio when arriving from Book Hub with a book context
   const [showStudio, setShowStudio] = useState(!!bookId);
 
