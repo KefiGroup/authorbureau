@@ -429,7 +429,95 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, bookId, isPremium, subscriptionTier, subscriptionStatus } = await req.json();
+    const body = await req.json();
+    const { action } = body;
+
+    // --- SAVE-PLAN ACTION (non-streaming) ---
+    if (action === "save-plan") {
+      const { bookId: savePlanBookId, content: planContent } = body;
+      if (!savePlanBookId || !planContent) {
+        return new Response(JSON.stringify({ error: "bookId and content required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+      const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const authHeader = req.headers.get("Authorization") || "";
+      const token = authHeader.replace("Bearer ", "");
+      const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+        global: { headers: { Authorization: `Bearer ${token}` } },
+      });
+      const { data: { user }, error: authErr } = await userClient.auth.getUser();
+      if (authErr || !user) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      const { error: upsertErr } = await adminClient.from("generated_assets").upsert(
+        {
+          book_id: savePlanBookId,
+          author_id: user.id,
+          asset_type: "business_plan",
+          content: planContent,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "book_id,asset_type" }
+      );
+
+      if (upsertErr) {
+        console.error("Failed to save plan:", upsertErr);
+        return new Response(JSON.stringify({ error: "Failed to save plan" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ saved: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // --- GET-PLAN ACTION (non-streaming) ---
+    if (action === "get-plan") {
+      const { bookId: getPlanBookId } = body;
+      if (!getPlanBookId) {
+        return new Response(JSON.stringify({ error: "bookId required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+      const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const authHeader = req.headers.get("Authorization") || "";
+      const token = authHeader.replace("Bearer ", "");
+      const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+        global: { headers: { Authorization: `Bearer ${token}` } },
+      });
+      const { data: { user }, error: authErr } = await userClient.auth.getUser();
+      if (authErr || !user) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      const { data: planData } = await adminClient
+        .from("generated_assets")
+        .select("content")
+        .eq("book_id", getPlanBookId)
+        .eq("author_id", user.id)
+        .eq("asset_type", "business_plan")
+        .maybeSingle();
+
+      return new Response(JSON.stringify({ content: planData?.content || null }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // --- CONSULTATION ACTION (streaming) ---
+    const { messages, bookId, isPremium, subscriptionTier, subscriptionStatus } = body;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");

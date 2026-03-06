@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Download, Loader2, FileText, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { asBlob } from "html-docx-js-typescript";
-import { supabase as cloudSupabase } from "@/integrations/supabase/client";
+import { supabase as sharedSupabase } from "@/lib/shared-backend";
 
 interface BusinessPlanActionsProps {
   content: string;
@@ -93,24 +93,24 @@ export default function BusinessPlanActions({
   const { toast } = useToast();
   const savedRef = useRef(false);
 
-  // Auto-save the business plan to generated_assets
+  // Auto-save the business plan via edge function (bypasses RLS)
   useEffect(() => {
     if (savedRef.current) return;
     savedRef.current = true;
 
     (async () => {
       try {
-        await cloudSupabase.from("generated_assets" as any).upsert(
-          {
-            book_id: bookId,
-            author_id: authorId,
-            asset_type: "business_plan",
-            content,
-            updated_at: new Date().toISOString(),
+        const { data: { session } } = await sharedSupabase.auth.getSession();
+        const token = session?.access_token;
+        const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/business-consultant`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
-          { onConflict: "book_id,asset_type" }
-        );
-        setSaved(true);
+          body: JSON.stringify({ action: "save-plan", bookId, content }),
+        });
+        if (resp.ok) setSaved(true);
       } catch (err) {
         console.error("Failed to save business plan:", err);
       }
