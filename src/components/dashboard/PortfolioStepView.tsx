@@ -5,9 +5,9 @@ import {
   BookOpen, Mic, Podcast, GraduationCap, FileText, Video,
   Share2, CreditCard, Users, Trophy, Building2,
   Bookmark, Calendar, Link2, TrendingUp, Megaphone,
-  Headphones, BookMarked, Globe, Presentation, UserCheck,
+  Headphones, BookMarked, Presentation, UserCheck,
   HandCoins, Handshake, BarChart3, ShieldCheck,
-  ArrowRight, Sparkles, Loader2, Plus,
+  ArrowRight, Sparkles, Loader2, Plus, DollarSign, Radio, Award,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
@@ -21,10 +21,9 @@ interface Node {
   icon: typeof BookOpen;
   description: string;
   status: "live" | "coming-soon" | "planned";
-  buildOrder?: number;
 }
 
-interface StepConfig {
+interface CategoryConfig {
   id: string;
   label: string;
   subtitle: string;
@@ -32,63 +31,60 @@ interface StepConfig {
   bgColor: string;
   gradientFrom: string;
   gradientTo: string;
+  headerIcon: typeof DollarSign;
   nodes: Node[];
 }
 
-const stepConfigs: Record<string, StepConfig> = {
-  "step-1": {
-    id: "step-1", label: "A · Analyze", subtitle: "Discover & Map",
-    color: "text-blue-600", bgColor: "bg-blue-500/10",
-    gradientFrom: "from-blue-500", gradientTo: "to-blue-600",
-    nodes: [
-      { id: "social-media", label: "Social Media", icon: Share2, description: "90-day AI content calendar", status: "live", buildOrder: 1 },
-      { id: "podcast-script", label: "Podcast Scripts", icon: Podcast, description: "Episode scripts from book chapters", status: "planned", buildOrder: 2 },
-      { id: "workbooks", label: "Workbooks", icon: FileText, description: "Companion workbook PDFs", status: "live", buildOrder: 3 },
-      { id: "audiobook", label: "Audiobook", icon: Headphones, description: "AI-generated audiobook scripts", status: "coming-soon", buildOrder: 4 },
-      { id: "home-study", label: "Home Study Course", icon: BookMarked, description: "Self-paced study guide", status: "coming-soon", buildOrder: 5 },
-      { id: "webinars", label: "Webinars", icon: Video, description: "Webinar scripts + slide decks", status: "live", buildOrder: 6 },
-      { id: "courses", label: "Online Courses", icon: GraduationCap, description: "8-12 module structured courses", status: "coming-soon", buildOrder: 7 },
-    ],
-  },
-  "step-2": {
-    id: "step-2", label: "B · Build", subtitle: "Create & Package",
-    color: "text-amber-600", bgColor: "bg-amber-500/10",
-    gradientFrom: "from-amber-500", gradientTo: "to-amber-600",
-    nodes: [
-      { id: "coaching-1on1", label: "1-on-1 Coaching", icon: UserCheck, description: "6/12-session coaching programs", status: "live" },
-      { id: "group-coaching", label: "Group Coaching", icon: Users, description: "8-week group coaching curriculum", status: "coming-soon" },
-      { id: "keynotes", label: "Keynotes", icon: Mic, description: "3-5 keynote topics with slide decks", status: "live" },
-      { id: "corporate-training", label: "Corporate Training", icon: Building2, description: "Corporate training programs", status: "planned" },
-      { id: "big-ticket", label: "Big Ticket", icon: Trophy, description: "Premium consulting packages", status: "planned" },
-      { id: "coaching-membership", label: "Coaching Membership", icon: CreditCard, description: "Monthly coaching tier", status: "planned" },
-      { id: "revenue-sharing", label: "Revenue Sharing / JV", icon: Handshake, description: "Partnership matching + contracts", status: "planned" },
-    ],
-  },
-  "step-3": {
-    id: "step-3", label: "B · Bridge", subtitle: "Connect & Distribute",
-    color: "text-rose-500", bgColor: "bg-rose-500/10",
-    gradientFrom: "from-rose-500", gradientTo: "to-rose-600",
-    nodes: [
-      { id: "podcast-guest", label: "Podcast Pitches", icon: Podcast, description: "Podcast pitch kit", status: "planned" },
-      { id: "jvs-speaking", label: "Joint Ventures", icon: Handshake, description: "JV proposals for co-hosting", status: "planned" },
-      { id: "book-sales-events", label: "Book Sales at Events", icon: BookOpen, description: "QR code order pages", status: "planned" },
-      { id: "special-editions", label: "Special Editions", icon: Sparkles, description: "Special edition proposals", status: "planned" },
-      { id: "in-house-speaker", label: "In-House Speaker", icon: Presentation, description: "Corporate speaker profile", status: "planned" },
-      { id: "fundraising", label: "Fund Raising", icon: HandCoins, description: "Fundraising event templates", status: "planned" },
-      { id: "conventions", label: "Conventions", icon: Calendar, description: "Conference submission generator", status: "planned" },
-    ],
-  },
-  "step-4": {
-    id: "step-4", label: "Y · Yield", subtitle: "Monetize & Earn",
-    color: "text-emerald-500", bgColor: "bg-emerald-500/10",
+const categoryConfigs: Record<string, CategoryConfig> = {
+  "revenue-streams": {
+    id: "revenue-streams", label: "Revenue Streams", subtitle: "Products & services you sell",
+    color: "text-emerald-600", bgColor: "bg-emerald-500/10",
     gradientFrom: "from-emerald-500", gradientTo: "to-emerald-600",
+    headerIcon: DollarSign,
     nodes: [
+      { id: "workbooks", label: "Workbooks", icon: FileText, description: "Companion workbook PDFs", status: "live" },
+      { id: "audiobook", label: "Audiobook", icon: Headphones, description: "AI-narrated audiobook", status: "coming-soon" },
+      { id: "courses", label: "Online Courses", icon: GraduationCap, description: "8-12 module structured courses", status: "coming-soon" },
+      { id: "home-study", label: "Home Study Course", icon: BookMarked, description: "Self-paced study guide", status: "coming-soon" },
+      { id: "webinars", label: "Webinars", icon: Video, description: "Webinar scripts + slide decks", status: "live" },
       { id: "memberships", label: "Monthly Memberships", icon: CreditCard, description: "3-tier membership system", status: "planned" },
-      { id: "affiliates", label: "Affiliates", icon: Link2, description: "Affiliate tracking links", status: "planned" },
-      { id: "upsells", label: "Upsells / Downsells", icon: TrendingUp, description: "AI-generated conversion sequences", status: "planned" },
-      { id: "certification", label: "Certification Programs", icon: ShieldCheck, description: "Multi-module curriculum + exam", status: "planned" },
+      { id: "upsells", label: "Upsells / Downsells", icon: TrendingUp, description: "Conversion sequences", status: "planned" },
+      { id: "certification", label: "Certification Programs", icon: ShieldCheck, description: "Curriculum + exam + certificates", status: "planned" },
       { id: "masterminds", label: "Masterminds", icon: BarChart3, description: "Quarterly mastermind groups", status: "planned" },
       { id: "retreats", label: "Retreats & Bootcamps", icon: Bookmark, description: "2-3 day retreat programs", status: "planned" },
+    ],
+  },
+  "marketing-channels": {
+    id: "marketing-channels", label: "Marketing Channels", subtitle: "How you reach your audience",
+    color: "text-violet-600", bgColor: "bg-violet-500/10",
+    gradientFrom: "from-violet-500", gradientTo: "to-violet-600",
+    headerIcon: Radio,
+    nodes: [
+      { id: "social-media", label: "Social Media", icon: Share2, description: "90-day AI content calendar", status: "live" },
+      { id: "podcast-script", label: "Podcast Scripts", icon: Podcast, description: "Episode scripts from book", status: "planned" },
+      { id: "podcast-guest", label: "Podcast Pitches", icon: Podcast, description: "Get booked as a guest", status: "planned" },
+      { id: "affiliates", label: "Affiliates", icon: Link2, description: "Affiliate tracking links", status: "planned" },
+      { id: "book-sales-events", label: "Book Sales at Events", icon: BookOpen, description: "QR code order pages", status: "planned" },
+      { id: "conventions", label: "Conventions", icon: Calendar, description: "Conference submission generator", status: "planned" },
+      { id: "fundraising", label: "Fund Raising", icon: HandCoins, description: "Fundraising event templates", status: "planned" },
+      { id: "jvs", label: "Joint Ventures", icon: Handshake, description: "JV proposals + partnership matching", status: "planned" },
+      { id: "special-editions", label: "Special Editions", icon: Sparkles, description: "Signed copies, bundles", status: "planned" },
+    ],
+  },
+  "authority-builders": {
+    id: "authority-builders", label: "Authority Builders", subtitle: "Build credibility & premium positioning",
+    color: "text-sky-600", bgColor: "bg-sky-500/10",
+    gradientFrom: "from-sky-500", gradientTo: "to-sky-600",
+    headerIcon: Award,
+    nodes: [
+      { id: "coaching-1on1", label: "1-on-1 Coaching", icon: UserCheck, description: "6/12-session coaching programs", status: "live" },
+      { id: "group-coaching", label: "Group Coaching", icon: Users, description: "8-week group curriculum", status: "coming-soon" },
+      { id: "big-ticket", label: "Big Ticket Consulting", icon: Trophy, description: "Premium packages ($5K–$25K)", status: "planned" },
+      { id: "coaching-membership", label: "Coaching Membership", icon: CreditCard, description: "Monthly coaching tier", status: "planned" },
+      { id: "keynotes", label: "Keynotes", icon: Mic, description: "3-5 keynote topics + slide decks", status: "live" },
+      { id: "corporate-training", label: "Corporate Training", icon: Building2, description: "Corporate training programs", status: "planned" },
+      { id: "in-house-speaker", label: "In-House Speaker", icon: Presentation, description: "Speaker profile + booking", status: "planned" },
+      { id: "revenue-sharing", label: "Revenue Sharing / JV", icon: Handshake, description: "Partnership matching", status: "planned" },
       { id: "exhibitors", label: "Exhibitors / JV", icon: Megaphone, description: "Exhibitor prospectus", status: "planned" },
     ],
   },
@@ -109,15 +105,15 @@ async function getActiveToken(): Promise<string | null> {
 }
 
 interface Props {
-  stepId: string;
+  categoryId: string;
 }
 
-export default function PortfolioStepView({ stepId }: Props) {
+export default function PortfolioStepView({ categoryId }: Props) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [books, setBooks] = useState<BookSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const step = stepConfigs[stepId];
+  const category = categoryConfigs[categoryId];
 
   useEffect(() => {
     async function fetchBooks() {
@@ -141,45 +137,35 @@ export default function PortfolioStepView({ stepId }: Props) {
     fetchBooks();
   }, [user]);
 
-  if (!step) return null;
+  if (!category) return null;
 
-  const stepIndex = Object.keys(stepConfigs).indexOf(stepId);
-
-  const tabMap: Record<string, string> = {
-    "step-1": "automate",
-    "step-2": "build",
-    "step-3": "broadcast",
-    "step-4": "yield",
-  };
+  const HeaderIcon = category.headerIcon;
 
   return (
     <div className="max-w-6xl space-y-8">
-      {/* Step Header */}
+      {/* Header */}
       <div className="flex items-center gap-4">
-        <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${step.gradientFrom} ${step.gradientTo} flex items-center justify-center text-white font-bold text-xl shadow-md`}>
-          {stepIndex + 1}
+        <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${category.gradientFrom} ${category.gradientTo} flex items-center justify-center text-white shadow-md`}>
+          <HeaderIcon className="h-7 w-7" />
         </div>
         <div>
-          <p className={`text-xs font-bold uppercase tracking-wider ${step.color}`}>
-            {step.label}
-          </p>
-          <h1 className="font-heading text-2xl md:text-3xl font-bold">{step.subtitle}</h1>
+          <h1 className="font-heading text-2xl md:text-3xl font-bold">{category.label}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Portfolio view — all {step.subtitle.toLowerCase()} across your books
+            {category.subtitle} — portfolio view across all your books
           </p>
         </div>
         <div className="ml-auto">
-          <span className={`text-xs font-medium rounded-full px-3 py-1.5 ${step.bgColor} ${step.color}`}>
-            {step.nodes.length} product types
+          <span className={`text-xs font-medium rounded-full px-3 py-1.5 ${category.bgColor} ${category.color}`}>
+            {category.nodes.length} product types
           </span>
         </div>
       </div>
 
       {/* Product Type Overview */}
       <div className="rounded-2xl border border-border bg-card p-5">
-        <h3 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Available Product Types</h3>
+        <h3 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Available Products</h3>
         <div className="flex flex-wrap gap-2">
-          {step.nodes.map((node) => {
+          {category.nodes.map((node) => {
             const Icon = node.icon;
             const statusColor = node.status === "live"
               ? "bg-green-500/10 text-green-700 border-green-500/20"
@@ -202,7 +188,7 @@ export default function PortfolioStepView({ stepId }: Props) {
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-heading text-lg font-bold">By Book</h3>
           <p className="text-xs text-muted-foreground">
-            Click a book to manage its {step.subtitle.toLowerCase()}
+            Click a book to manage its products
           </p>
         </div>
 
@@ -215,7 +201,7 @@ export default function PortfolioStepView({ stepId }: Props) {
             <BookOpen className="h-10 w-10 text-muted-foreground/30 mb-4" />
             <h3 className="font-heading text-lg font-semibold mb-2">No books yet</h3>
             <p className="text-sm text-muted-foreground max-w-sm mb-4">
-              Add a book first, then come back here to see your {step.subtitle.toLowerCase()} portfolio.
+              Add a book first, then come back to manage your {category.label.toLowerCase()}.
             </p>
             <Button onClick={() => navigate("/dashboard?section=my-books")} variant="outline">
               <Plus className="h-4 w-4 mr-1.5" /> Add Your First Book
@@ -227,7 +213,7 @@ export default function PortfolioStepView({ stepId }: Props) {
               <motion.div
                 key={book.id}
                 className="group rounded-2xl border border-border bg-card p-5 hover:shadow-md hover:border-muted-foreground/20 transition-all cursor-pointer"
-                onClick={() => navigate(`/dashboard/book/${book.id}?tab=${tabMap[stepId]}`)}
+                onClick={() => navigate(`/dashboard/book/${book.id}?tab=${categoryId}`)}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 whileHover={{ y: -2 }}
@@ -243,7 +229,7 @@ export default function PortfolioStepView({ stepId }: Props) {
                   <div className="flex-1 min-w-0">
                     <h4 className="font-heading font-bold text-base truncate">{book.title}</h4>
                     <p className="text-xs text-muted-foreground mt-1">
-                      No {step.subtitle.toLowerCase()} products yet — click to start building
+                      No {category.label.toLowerCase()} products yet — click to start building
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
@@ -262,7 +248,7 @@ export default function PortfolioStepView({ stepId }: Props) {
       {/* Help Text */}
       <div className="rounded-xl bg-muted/50 border border-border p-4 text-center">
         <p className="text-xs text-muted-foreground leading-relaxed max-w-lg mx-auto">
-          <strong>All Books View:</strong> This page shows {step.subtitle.toLowerCase()} across all your books.
+          <strong>All Books View:</strong> This shows {category.label.toLowerCase()} across all your books.
           To build or manage products for a specific book, go to <strong>My Books Hub</strong> and click into it.
         </p>
       </div>
