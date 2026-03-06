@@ -22,6 +22,7 @@ interface ProductNode {
   iconName: string;
   description: string;
   status: "live" | "coming-soon" | "planned";
+  group?: string;
 }
 
 interface CategoryConfig {
@@ -49,24 +50,28 @@ export const categoryConfigs: CategoryConfig[] = [
     gradientFrom: "from-emerald-500", gradientTo: "to-emerald-600",
     headerIconName: "DollarSign",
     nodes: [
-      { id: "courses", label: "Online Courses", iconName: "GraduationCap", description: "8-12 module structured courses from your manuscript.", status: "coming-soon" },
-      { id: "home-study", label: "Home Study Courses", iconName: "BookMarked", description: "Self-paced study guide with daily schedules.", status: "coming-soon" },
-      { id: "workbooks", label: "Workbook", iconName: "FileText", description: "Companion workbook PDFs with exercises & action plans.", status: "live" },
-      { id: "audiobook", label: "Audiobook", iconName: "Headphones", description: "AI-narrated audiobook from your manuscript.", status: "coming-soon" },
-      { id: "memberships", label: "Monthly Memberships", iconName: "CreditCard", description: "3-tier membership with gated content drip.", status: "planned" },
-      { id: "upsells", label: "Upsells / Downsells", iconName: "TrendingUp", description: "AI-generated conversion sequences.", status: "planned" },
-      { id: "coaching-1on1", label: "1-on-1 Coaching", iconName: "UserCheck", description: "6/12-session coaching programs with session outlines.", status: "live" },
-      { id: "group-coaching", label: "Group Coaching", iconName: "Users", description: "8-week group coaching curriculum.", status: "coming-soon" },
-      { id: "big-ticket", label: "Big Ticket Consulting", iconName: "Trophy", description: "Premium consulting packages ($5K–$25K).", status: "planned" },
-      { id: "revenue-sharing", label: "Revenue Sharing / JV", iconName: "Handshake", description: "Partnership matching + contract templates.", status: "planned" },
-      { id: "keynotes", label: "Keynotes", iconName: "Mic", description: "3-5 keynote topics with slide decks.", status: "live" },
-      { id: "in-house-speaker", label: "In-House Speaker", iconName: "Presentation", description: "Corporate speaker profile + booking.", status: "planned" },
-      { id: "training", label: "Training Programs", iconName: "Building2", description: "Half/full-day corporate training programs.", status: "planned" },
-      { id: "retreats", label: "Retreats & Bootcamps", iconName: "Bookmark", description: "2-3 day retreat programs.", status: "planned" },
-      { id: "certification", label: "Certification", iconName: "ShieldCheck", description: "Curriculum + exam + digital certificates.", status: "planned" },
-      { id: "masterminds", label: "Masterminds", iconName: "BarChart3", description: "Quarterly mastermind group programs.", status: "planned" },
-      { id: "special-editions", label: "Special Editions", iconName: "Sparkles", description: "Signed copies, bundles, collector's editions.", status: "planned" },
-      { id: "book-sales-events", label: "Book Sales (Events)", iconName: "BookOpen", description: "QR code order pages for live event sales.", status: "planned" },
+      // Digital Products
+      { id: "workbooks", label: "Workbook", iconName: "FileText", description: "Companion workbook PDFs with exercises & action plans.", status: "live", group: "Digital Products" },
+      { id: "audiobook", label: "Audiobook", iconName: "Headphones", description: "AI-narrated audiobook from your manuscript.", status: "coming-soon", group: "Digital Products" },
+      { id: "book-sales-events", label: "Book Sales (Events)", iconName: "BookOpen", description: "QR code order pages for live event sales.", status: "planned", group: "Digital Products" },
+      { id: "home-study", label: "Home Study Courses", iconName: "BookMarked", description: "Self-paced study guide with daily schedules.", status: "coming-soon", group: "Digital Products" },
+      { id: "courses", label: "Online Courses", iconName: "GraduationCap", description: "8-12 module structured courses from your manuscript.", status: "coming-soon", group: "Digital Products" },
+      { id: "special-editions", label: "Special Editions", iconName: "Sparkles", description: "Signed copies, bundles, collector's editions.", status: "planned", group: "Digital Products" },
+      { id: "memberships", label: "Monthly Memberships", iconName: "CreditCard", description: "3-tier membership with gated content drip.", status: "planned", group: "Digital Products" },
+      // Coaching
+      { id: "group-coaching", label: "Group Coaching", iconName: "Users", description: "8-week group coaching curriculum.", status: "coming-soon", group: "Coaching" },
+      { id: "coaching-1on1", label: "1-on-1 Coaching", iconName: "UserCheck", description: "6/12-session coaching programs with session outlines.", status: "live", group: "Coaching" },
+      // Speaking
+      { id: "in-house-speaker", label: "In-House Speaker", iconName: "Presentation", description: "Corporate speaker profile + booking.", status: "planned", group: "Speaking" },
+      { id: "training", label: "Training Programs", iconName: "Building2", description: "Half/full-day corporate training programs.", status: "planned", group: "Speaking" },
+      { id: "retreats", label: "Retreats & Bootcamps", iconName: "Bookmark", description: "2-3 day retreat programs.", status: "planned", group: "Speaking" },
+      { id: "masterminds", label: "Masterminds", iconName: "BarChart3", description: "Quarterly mastermind group programs.", status: "planned", group: "Speaking" },
+      { id: "certification", label: "Certification", iconName: "ShieldCheck", description: "Curriculum + exam + digital certificates.", status: "planned", group: "Speaking" },
+      { id: "keynotes", label: "Keynotes", iconName: "Mic", description: "3-5 keynote topics with slide decks.", status: "live", group: "Speaking" },
+      { id: "big-ticket", label: "Big Ticket Consulting", iconName: "Trophy", description: "Premium consulting packages ($5K–$25K).", status: "planned", group: "Speaking" },
+      // Partnerships
+      { id: "upsells", label: "Upsells / Downsells / Cross Sells", iconName: "TrendingUp", description: "AI-generated conversion sequences.", status: "planned", group: "Partnerships" },
+      { id: "revenue-sharing", label: "Revenue Sharing", iconName: "Handshake", description: "Partnership matching + contract templates.", status: "planned", group: "Partnerships" },
     ],
   },
   {
@@ -147,9 +152,23 @@ export default function BookHubStepTab({ categoryId, bookId, bookTitle, isPremiu
         </div>
       </div>
 
-      {/* Product Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {catData.nodes.map((node) => {
+      {/* Product Grid — grouped */}
+      <div className="space-y-8">
+        {(() => {
+          const groups: { name: string; nodes: ProductNode[] }[] = [];
+          catData.nodes.forEach((node) => {
+            const groupName = node.group || "Other";
+            const existing = groups.find((g) => g.name === groupName);
+            if (existing) existing.nodes.push(node);
+            else groups.push({ name: groupName, nodes: [node] });
+          });
+          return groups.map((group) => (
+            <div key={group.name}>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                {group.name}
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {group.nodes.map((node) => {
           const status = statusStyles[node.status];
           const Icon = iconMap[node.iconName] || BookOpen;
           const canOpen = node.status === "live";
@@ -205,6 +224,10 @@ export default function BookHubStepTab({ categoryId, bookId, bookTitle, isPremiu
             </motion.div>
           );
         })}
+              </div>
+            </div>
+          ));
+        })()}
       </div>
     </div>
   );
