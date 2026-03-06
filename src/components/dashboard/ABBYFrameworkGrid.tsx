@@ -44,7 +44,7 @@ const FRAMEWORK: Category[] = [
     ],
   },
   {
-    letter: "B", subtitle: "BRIDGE", title: "SPEAKING",
+    letter: "B", subtitle: "BRIDGE", title: "BRIDGE CHANNELS",
     hubColor: "#f43f5e", nodeColor: "#fb7185",
     products: [
       { label: "Keynotes", active: false, category: "authority" },
