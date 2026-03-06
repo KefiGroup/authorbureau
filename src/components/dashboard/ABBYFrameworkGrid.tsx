@@ -33,7 +33,7 @@ const FRAMEWORK: Category[] = [
     ],
   },
   {
-    letter: "B", subtitle: "BUILD", title: "COACHING",
+    letter: "B", subtitle: "BUILD", title: "BUILD AUTHORITY",
     hubColor: "#d97706", nodeColor: "#f59e0b",
     products: [
       { label: "1-on-1 Coaching", active: false, category: "revenue" },
