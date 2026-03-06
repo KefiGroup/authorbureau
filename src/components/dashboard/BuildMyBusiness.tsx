@@ -15,6 +15,7 @@ import {
   Rocket, BookOpen, Loader2, Send, ArrowLeft, Sparkles, User, RotateCcw,
   Wrench, MessageCircleHeart, Crown, ExternalLink, FileText, Upload,
 } from "lucide-react";
+import BusinessPlanCard, { type AbbyPlan } from "@/components/dashboard/BusinessPlanCard";
 import { TIERS } from "@/hooks/useAuth";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
@@ -847,6 +848,11 @@ export default function BuildMyBusiness() {
 
           const buildRequests = msg.role === "assistant" ? parseBuildRequests(msg.content) : [];
           const hasSubscribeCta = msg.role === "assistant" && msg.content.includes("===SUBSCRIBE_CTA===");
+          const planMatch = msg.role === "assistant" ? msg.content.match(/===ABBY_PLAN===([\s\S]*?)===END_ABBY_PLAN===/) : null;
+          let parsedPlan: AbbyPlan | null = null;
+          if (planMatch) {
+            try { parsedPlan = JSON.parse(planMatch[1].trim()); } catch {}
+          }
           // Clean BUILD_REQUEST and SUBSCRIBE_CTA blocks from displayed content
           const displayContent = msg.content
             .replace(/===BUILD_REQUEST===[\s\S]*?===END_BUILD_REQUEST===/g, "")
@@ -968,6 +974,11 @@ export default function BuildMyBusiness() {
                       </CardContent>
                     </Card>
                   </div>
+                )}
+
+                {/* Business Plan Card */}
+                {parsedPlan && (
+                  <BusinessPlanCard plan={parsedPlan} />
                 )}
               </div>
               {msg.role === "user" && (

@@ -63,3 +63,11 @@ project_id = "tubpbslfrxyfhldkcyyq"
     verify_jwt = false
   [functions.dashboard-state]
     verify_jwt = false
+  [functions.business-consultant]
+    verify_jwt = false
+  [functions.consultation-session]
+    verify_jwt = false
+  [functions.generate-podcast-season]
+    verify_jwt = false
+  [functions.generate-social-graphic]
+    verify_jwt = false
