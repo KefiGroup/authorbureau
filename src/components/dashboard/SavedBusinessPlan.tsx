@@ -5,7 +5,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { FileText, Download, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { asBlob } from "html-docx-js-typescript";
-import { supabase as cloudSupabase } from "@/integrations/supabase/client";
+import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 
 interface SavedBusinessPlanProps {
