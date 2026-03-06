@@ -32,8 +32,6 @@ const navItems: NavItem[] = [
   { id: "revenue-streams", label: "Build Authority", icon: DollarSign, premiumOnly: true, color: "text-emerald-500" },
   { id: "marketing-channels", label: "Bridge Channels", icon: Radio, premiumOnly: true, color: "text-violet-500" },
   { id: "authority-builders", label: "Yield Revenue", icon: Award, premiumOnly: true, color: "text-sky-500" },
-  { id: "marketing" as DashboardSection, label: "Marketing", icon: Megaphone, premiumOnly: true },
-  { id: "crm" as DashboardSection, label: "CRM", icon: Contact, premiumOnly: true },
 ];
 
 const sisterLinks = [
