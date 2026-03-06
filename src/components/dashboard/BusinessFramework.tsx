@@ -24,6 +24,7 @@ interface Node {
   section?: DashboardSection;
   description: string;
   status: "live" | "coming-soon" | "planned";
+  group?: string;
 }
 
 interface Category {
@@ -52,27 +53,27 @@ const categories: Category[] = [
     headerIcon: DollarSign,
     nodes: [
       // Digital Products
-      { id: "workbooks", label: "Workbooks", icon: FileText, section: "workbooks", description: "Companion workbook PDFs with exercises, templates & action plans.", status: "live" },
-      { id: "audiobook", label: "Audiobook", icon: Headphones, description: "AI-generated audiobook from your manuscript.", status: "coming-soon" },
-      { id: "book-sales-events", label: "Book Sales (Events)", icon: BookOpen, description: "QR code order pages for live event sales.", status: "planned" },
-      { id: "home-study", label: "Home Study Courses", icon: BookMarked, description: "Self-paced study guide with daily schedules.", status: "coming-soon" },
-      { id: "courses", label: "Online Courses", icon: GraduationCap, section: "courses", description: "8-12 module structured courses — highest revenue potential.", status: "coming-soon" },
-      { id: "special-editions", label: "Special Editions", icon: Sparkles, description: "Signed copies, bundles, collector's editions.", status: "planned" },
-      { id: "memberships", label: "Monthly Memberships", icon: CreditCard, section: "memberships", description: "3-tier membership — Reader Circle, Pro, VIP — with gated content drip.", status: "planned" },
+      { id: "workbooks", label: "Workbooks", icon: FileText, section: "workbooks", description: "Companion workbook PDFs with exercises, templates & action plans.", status: "live", group: "Digital Products" },
+      { id: "audiobook", label: "Audiobook", icon: Headphones, description: "AI-generated audiobook from your manuscript.", status: "coming-soon", group: "Digital Products" },
+      { id: "book-sales-events", label: "Book Sales (Events)", icon: BookOpen, description: "QR code order pages for live event sales.", status: "planned", group: "Digital Products" },
+      { id: "home-study", label: "Home Study Courses", icon: BookMarked, description: "Self-paced study guide with daily schedules.", status: "coming-soon", group: "Digital Products" },
+      { id: "courses", label: "Online Courses", icon: GraduationCap, section: "courses", description: "8-12 module structured courses — highest revenue potential.", status: "coming-soon", group: "Digital Products" },
+      { id: "special-editions", label: "Special Editions", icon: Sparkles, description: "Signed copies, bundles, collector's editions.", status: "planned", group: "Digital Products" },
+      { id: "memberships", label: "Monthly Memberships", icon: CreditCard, section: "memberships", description: "3-tier membership — Reader Circle, Pro, VIP — with gated content drip.", status: "planned", group: "Digital Products" },
       // Coaching
-      { id: "group-coaching", label: "Group Coaching", icon: Users, section: "group-coaching", description: "8-week group coaching curriculum.", status: "coming-soon" },
-      { id: "coaching-1on1", label: "1-on-1 Coaching", icon: UserCheck, section: "coaching", description: "6/12-session coaching programs.", status: "live" },
+      { id: "group-coaching", label: "Group Coaching", icon: Users, section: "group-coaching", description: "8-week group coaching curriculum.", status: "coming-soon", group: "Coaching" },
+      { id: "coaching-1on1", label: "1-on-1 Coaching", icon: UserCheck, section: "coaching", description: "6/12-session coaching programs.", status: "live", group: "Coaching" },
       // Speaking
-      { id: "in-house-speaker", label: "In-House Speaker", icon: Presentation, description: "Corporate speaker profile + booking system.", status: "planned" },
-      { id: "corporate-training", label: "Training Programs", icon: Building2, section: "corporate-training", description: "Half/full-day corporate training programs.", status: "planned" },
-      { id: "retreats", label: "Retreats & Bootcamps", icon: Bookmark, section: "retreats", description: "2-3 day retreat programs with agendas & registration.", status: "planned" },
-      { id: "masterminds", label: "Masterminds", icon: BarChart3, section: "masterminds", description: "Quarterly mastermind group programs.", status: "planned" },
-      { id: "certification", label: "Certification Programs", icon: ShieldCheck, section: "certification", description: "Multi-module curriculum + exam + digital certificates.", status: "planned" },
-      { id: "keynotes", label: "Keynotes", icon: Mic, section: "speaking", description: "3-5 keynote topics with slide decks.", status: "live" },
-      { id: "big-ticket", label: "Big Ticket Consulting", icon: Trophy, section: "big-ticket", description: "Premium consulting packages ($5K–$25K).", status: "planned" },
+      { id: "in-house-speaker", label: "In-House Speaker", icon: Presentation, description: "Corporate speaker profile + booking system.", status: "planned", group: "Speaking" },
+      { id: "corporate-training", label: "Training Programs", icon: Building2, section: "corporate-training", description: "Half/full-day corporate training programs.", status: "planned", group: "Speaking" },
+      { id: "retreats", label: "Retreats & Bootcamps", icon: Bookmark, section: "retreats", description: "2-3 day retreat programs with agendas & registration.", status: "planned", group: "Speaking" },
+      { id: "masterminds", label: "Masterminds", icon: BarChart3, section: "masterminds", description: "Quarterly mastermind group programs.", status: "planned", group: "Speaking" },
+      { id: "certification", label: "Certification Programs", icon: ShieldCheck, section: "certification", description: "Multi-module curriculum + exam + digital certificates.", status: "planned", group: "Speaking" },
+      { id: "keynotes", label: "Keynotes", icon: Mic, section: "speaking", description: "3-5 keynote topics with slide decks.", status: "live", group: "Speaking" },
+      { id: "big-ticket", label: "Big Ticket Consulting", icon: Trophy, section: "big-ticket", description: "Premium consulting packages ($5K–$25K).", status: "planned", group: "Speaking" },
       // Partnerships
-      { id: "upsells", label: "Upsells / Downsells / Cross Sells", icon: TrendingUp, description: "AI-generated conversion sequences.", status: "planned" },
-      { id: "revenue-sharing", label: "Revenue Sharing", icon: Handshake, description: "Partnership matching + contract templates.", status: "planned" },
+      { id: "upsells", label: "Upsells / Downsells / Cross Sells", icon: TrendingUp, description: "AI-generated conversion sequences.", status: "planned", group: "Partnerships" },
+      { id: "revenue-sharing", label: "Revenue Sharing", icon: Handshake, description: "Partnership matching + contract templates.", status: "planned", group: "Partnerships" },
     ],
   },
   {
@@ -248,10 +249,28 @@ export default function BusinessFramework({ onNavigate, isPremium, focusStep }: 
                   <X className="h-4 w-4 text-muted-foreground" />
                 </button>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {activeCatData.nodes.map((node) => (
-                  <NodeCard key={node.id} node={node} category={activeCatData} onNavigate={onNavigate} isPremium={isPremium} />
-                ))}
+              <div className="space-y-6">
+                {(() => {
+                  const groups: { name: string; nodes: Node[] }[] = [];
+                  activeCatData.nodes.forEach((node) => {
+                    const groupName = node.group || "Other";
+                    const existing = groups.find((g) => g.name === groupName);
+                    if (existing) existing.nodes.push(node);
+                    else groups.push({ name: groupName, nodes: [node] });
+                  });
+                  return groups.map((group) => (
+                    <div key={group.name}>
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                        {group.name}
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {group.nodes.map((node) => (
+                          <NodeCard key={node.id} node={node} category={activeCatData} onNavigate={onNavigate} isPremium={isPremium} />
+                        ))}
+                      </div>
+                    </div>
+                  ));
+                })()}
               </div>
             </div>
           </motion.div>
