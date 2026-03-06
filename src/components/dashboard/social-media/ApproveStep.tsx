@@ -404,15 +404,10 @@ export default function ApproveStep({ posts, config, onBack, onDone, onRegenerat
                           variant="outline"
                           size="sm"
                           className="h-6 px-2 text-[10px] bg-secondary/10 border-secondary/20 text-secondary hover:bg-secondary/20"
-                          onClick={() => generateImage(post)}
-                          disabled={generatingImageId === post.id}
-                          title="AI Generate Image"
+                          onClick={() => setImagePickerPostId(post.id)}
+                          title="Generate Image with Style Picker"
                         >
-                          {generatingImageId === post.id ? (
-                            <><Loader2 className="h-3 w-3 animate-spin mr-1" /> Generating…</>
-                          ) : (
-                            <><ImagePlus className="h-3 w-3 mr-1" /> Generate</>
-                          )}
+                          <Palette className="h-3 w-3 mr-1" /> Generate
                         </Button>
                       </div>
                     </div>
