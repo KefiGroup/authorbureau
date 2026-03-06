@@ -208,6 +208,7 @@ export default function ABBYFrameworkVisual({ hasConsultation, onConsultAbby, on
 
           {/* Dashed lines: hubs → nodes */}
           {CLUSTERS.map((c) => {
+            const h = HUB_CFG[c.id];
             const positions = getNodePositions(
               c.id,
               c.nodes.map((n) => n.label),
