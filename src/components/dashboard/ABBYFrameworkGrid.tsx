@@ -80,8 +80,8 @@ const CY = H / 2;
 const HUBS: Record<number, { x: number; y: number; startAngle: number; sweep: number; radius: number }> = {
   0: { x: 220, y: 260, startAngle: 120, sweep: 280, radius: 180 },   // Analyze – 10 nodes, top-left
   1: { x: 220, y: 600, startAngle: 160, sweep: 200, radius: 150 },   // Build – 5 nodes, bottom-left
-  2: { x: 960, y: 600, startAngle: -20, sweep: 200, radius: 170 },   // Bridge – 9 nodes, bottom-right
-  3: { x: 960, y: 260, startAngle: -60, sweep: 280, radius: 160 },   // Yield – 4 nodes, top-right
+  2: { x: 960, y: 600, startAngle: -60, sweep: 300, radius: 180 },   // Bridge – 9 nodes, wide wrap
+  3: { x: 960, y: 260, startAngle: -120, sweep: 180, radius: 160 },  // Yield – 4 nodes, fan upward
 };
 
 function getNodePositions(count: number, cx: number, cy: number, radius: number, startAngle: number, sweep: number) {
