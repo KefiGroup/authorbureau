@@ -272,20 +272,14 @@ export default function PublishingDashboard({ posts, config, onPostsChange }: Pr
                         )}
                       </Button>
 
-                      {/* Step 2: Generate image */}
                       {!generatedImages[post.id] && (
                         <Button
                           size="sm"
                           variant="outline"
                           className="text-xs h-8 border-secondary/30 text-secondary hover:bg-secondary/10"
-                          onClick={() => generateImage(post)}
-                          disabled={generatingId === post.id}
+                          onClick={() => setImagePickerPostId(post.id)}
                         >
-                          {generatingId === post.id ? (
-                            <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Generating…</>
-                          ) : (
-                            <><ImagePlus className="h-3.5 w-3.5 mr-1.5" /> 2. Generate Image</>
-                          )}
+                          <Palette className="h-3.5 w-3.5 mr-1.5" /> 2. Choose Style & Generate
                         </Button>
                       )}
 
