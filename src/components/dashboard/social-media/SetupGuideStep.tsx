@@ -29,7 +29,7 @@ const PLATFORMS: PlatformSetup[] = [
     profileUrl: "https://www.linkedin.com/in/",
     steps: [
       { label: "Create or log into your LinkedIn account", detail: "Go to linkedin.com and sign up with your professional email." },
-      { label: "Switch to Creator Mode", detail: "Settings → Resources → Creator Mode → Turn ON. This unlocks analytics, newsletter, and LinkedIn Live." },
+      { label: "Enable Creator tools", detail: "LinkedIn now enables Creator Mode by default. Go to your profile → 'Creator tools' section to verify analytics, newsletter, and LinkedIn Live are active." },
       { label: "Add author headline", detail: "Use format: 'Author of [Book Title] | Helping [audience] achieve [result]'. e.g. 'Author of The Lean Startup | Helping entrepreneurs build smarter'" },
       { label: "Upload professional headshot", detail: "Use your author photo. LinkedIn profiles with photos get 21x more views." },
       { label: "Write an 'About' section from your book", detail: "First 3 lines are visible before 'see more'. Start with your strongest hook from the book." },
