@@ -93,7 +93,7 @@ export default function ABBYFrameworkVisual({ hasConsultation, onConsultAbby, on
         </div>
 
         {/* BBY Phase Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           {BBY_PHASES.map((phase) => (
             <button
               key={phase.id}
