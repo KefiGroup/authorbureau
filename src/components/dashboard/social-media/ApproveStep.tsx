@@ -558,11 +558,19 @@ export default function ApproveStep({ posts, config, onBack, onDone, onRegenerat
 
       {/* Done button after saving */}
       {saved && (
-        <div className="text-center pt-2">
+        <div className="text-center pt-2 space-x-3">
+          <Button
+            onClick={() => setShowDashboard(true)}
+            className="bg-secondary text-secondary-foreground hover:bg-secondary/90 px-6"
+          >
+            <LayoutDashboard className="h-4 w-4 mr-1.5" /> Open Publishing Dashboard
+          </Button>
           <Button onClick={onDone} variant="outline" className="px-8">
             ✓ Done — Return to Dashboard
           </Button>
         </div>
+      )}
+        </>
       )}
     </div>
   );
