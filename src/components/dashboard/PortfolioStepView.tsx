@@ -37,7 +37,7 @@ interface CategoryConfig {
 
 const categoryConfigs: Record<string, CategoryConfig> = {
   "revenue-streams": {
-    id: "revenue-streams", label: "Revenue Streams", subtitle: "Directly generate income",
+    id: "revenue-streams", label: "B · Build Authority", subtitle: "Digital assets & authority products",
     color: "text-emerald-600", bgColor: "bg-emerald-500/10",
     gradientFrom: "from-emerald-500", gradientTo: "to-emerald-600",
     headerIcon: DollarSign,
@@ -63,7 +63,7 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     ],
   },
   "marketing-channels": {
-    id: "marketing-channels", label: "Marketing Channels", subtitle: "Drive awareness & leads",
+    id: "marketing-channels", label: "B · Bridge Channels", subtitle: "Marketing channels & audience connections",
     color: "text-violet-600", bgColor: "bg-violet-500/10",
     gradientFrom: "from-violet-500", gradientTo: "to-violet-600",
     headerIcon: Radio,
@@ -77,7 +77,7 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     ],
   },
   "authority-builders": {
-    id: "authority-builders", label: "Authority Builders", subtitle: "Credibility & positioning",
+    id: "authority-builders", label: "Y · Yield Revenue", subtitle: "Premium revenue streams & monetization",
     color: "text-sky-600", bgColor: "bg-sky-500/10",
     gradientFrom: "from-sky-500", gradientTo: "to-sky-600",
     headerIcon: Award,

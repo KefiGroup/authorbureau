@@ -42,8 +42,8 @@ interface Category {
 const categories: Category[] = [
   {
     id: "revenue-streams",
-    label: "Revenue Streams",
-    subtitle: "Products & services you sell",
+    label: "B · Build Authority",
+    subtitle: "Digital assets & authority products from your book",
     color: "text-emerald-600",
     bgColor: "bg-emerald-500/10",
     ringColor: "ring-emerald-500/30",
@@ -65,8 +65,8 @@ const categories: Category[] = [
   },
   {
     id: "marketing-channels",
-    label: "Marketing Channels",
-    subtitle: "How you reach your audience",
+    label: "B · Bridge Channels",
+    subtitle: "Marketing channels & audience connections",
     color: "text-violet-600",
     bgColor: "bg-violet-500/10",
     ringColor: "ring-violet-500/30",
@@ -87,8 +87,8 @@ const categories: Category[] = [
   },
   {
     id: "authority-builders",
-    label: "Authority Builders",
-    subtitle: "Build credibility & premium positioning",
+    label: "Y · Yield Revenue",
+    subtitle: "Premium revenue streams & high-value monetization",
     color: "text-sky-600",
     bgColor: "bg-sky-500/10",
     ringColor: "ring-sky-500/30",
@@ -128,7 +128,7 @@ export default function BusinessFramework({ onNavigate, isPremium, focusStep }: 
           Your <span className="text-gradient-gold">Monetization Framework</span>
         </h1>
         <p className="text-muted-foreground text-sm max-w-lg mx-auto">
-          Revenue Streams · Marketing Channels · Authority Builders — your complete journey from published author to thriving business owner.
+          Build Authority · Bridge Channels · Yield Revenue — your complete ABBY journey from published author to thriving business owner.
         </p>
       </div>
 
@@ -256,7 +256,7 @@ export default function BusinessFramework({ onNavigate, isPremium, focusStep }: 
         <p className="text-xs text-muted-foreground leading-relaxed max-w-lg mx-auto">
           <strong>Your monetization journey:</strong> <strong>Build</strong> authority & digital assets from your book →
           <strong>Bridge</strong> marketing channels & connections →
-          <strong>Yield</strong> revenue streams & monetize your expertise.
+          <strong>Yield</strong> revenue streams & maximize your ROI.
           <br />
           <span className="text-secondary font-medium">Abby will guide you through every step — turning your book into a business with {categories.reduce((s, c) => s + c.nodes.length, 0)} revenue streams.</span>
         </p>

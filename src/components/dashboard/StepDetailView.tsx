@@ -33,8 +33,8 @@ interface CategoryDef {
 const categories: CategoryDef[] = [
   {
     id: "revenue-streams",
-    label: "Revenue Streams",
-    subtitle: "Directly generate income (18 nodes)",
+    label: "B · Build Authority",
+    subtitle: "Digital assets & authority products (18 nodes)",
     color: "text-emerald-600",
     bgColor: "bg-emerald-500/10",
     gradientFrom: "from-emerald-500",
@@ -63,8 +63,8 @@ const categories: CategoryDef[] = [
   },
   {
     id: "marketing-channels",
-    label: "Marketing Channels",
-    subtitle: "Drive awareness & leads (6 nodes)",
+    label: "B · Bridge Channels",
+    subtitle: "Marketing channels & audience connections (6 nodes)",
     color: "text-violet-600",
     bgColor: "bg-violet-500/10",
     gradientFrom: "from-violet-500",
@@ -81,8 +81,8 @@ const categories: CategoryDef[] = [
   },
   {
     id: "authority-builders",
-    label: "Authority Builders",
-    subtitle: "Credibility & positioning (3 nodes)",
+    label: "Y · Yield Revenue",
+    subtitle: "Premium revenue streams & monetization (3 nodes)",
     color: "text-sky-600",
     bgColor: "bg-sky-500/10",
     gradientFrom: "from-sky-500",

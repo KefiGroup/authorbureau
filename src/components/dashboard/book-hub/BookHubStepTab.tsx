@@ -44,7 +44,7 @@ const statusStyles = {
 
 export const categoryConfigs: CategoryConfig[] = [
   {
-    id: "revenue-streams", label: "Revenue Streams", subtitle: "Directly generate income (18 nodes)",
+    id: "revenue-streams", label: "B · Build Authority", subtitle: "Digital assets & authority products (18 nodes)",
     color: "text-emerald-600", bgColor: "bg-emerald-500/10",
     gradientFrom: "from-emerald-500", gradientTo: "to-emerald-600",
     headerIconName: "DollarSign",
@@ -70,7 +70,7 @@ export const categoryConfigs: CategoryConfig[] = [
     ],
   },
   {
-    id: "marketing-channels", label: "Marketing Channels", subtitle: "Drive awareness & leads (6 nodes)",
+    id: "marketing-channels", label: "B · Bridge Channels", subtitle: "Marketing channels & audience connections (6 nodes)",
     color: "text-violet-600", bgColor: "bg-violet-500/10",
     gradientFrom: "from-violet-500", gradientTo: "to-violet-600",
     headerIconName: "Radio",
@@ -84,7 +84,7 @@ export const categoryConfigs: CategoryConfig[] = [
     ],
   },
   {
-    id: "authority-builders", label: "Authority Builders", subtitle: "Credibility & positioning (3 nodes)",
+    id: "authority-builders", label: "Y · Yield Revenue", subtitle: "Premium revenue streams & monetization (3 nodes)",
     color: "text-sky-600", bgColor: "bg-sky-500/10",
     gradientFrom: "from-sky-500", gradientTo: "to-sky-600",
     headerIconName: "Award",
