@@ -116,7 +116,7 @@ export default function ABBYFrameworkVisual({ hasConsultation, onConsultAbby, on
               👩‍💼
             </div>
           </div>
-          <h4 className="font-heading font-bold text-lg md:text-xl mb-1">Consult with Abby</h4>
+          <h4 className="font-heading font-bold text-lg md:text-xl mb-1">Analyze with Abby</h4>
           <p className="text-[10px] font-bold uppercase tracking-widest text-secondary mb-3">
             Authors Bureau Business Advisor
           </p>
@@ -125,7 +125,7 @@ export default function ABBYFrameworkVisual({ hasConsultation, onConsultAbby, on
           </p>
           <span className="inline-flex items-center bg-secondary hover:bg-secondary/90 text-secondary-foreground shadow-md px-6 py-2.5 rounded-md font-medium text-sm transition-colors">
             <Sparkles className="h-4 w-4 mr-2" />
-            {hasConsultation ? "Continue Consultation" : "Start Consultation"}
+            {hasConsultation ? "Continue Analysis with Abby" : "Analyze with Abby"}
           </span>
         </button>
 
