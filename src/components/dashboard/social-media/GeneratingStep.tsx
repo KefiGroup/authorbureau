@@ -162,6 +162,15 @@ export default function GeneratingStep({ config, onComplete, onBack }: Props) {
 
   return (
     <div className="max-w-3xl mx-auto space-y-8 py-8">
+      <AbbyCoachingTip
+        title="What Abby Is Doing Right Now"
+        tips={[
+          "📖 Reading your manuscript to extract key themes, quotes, frameworks, and teaching moments.",
+          "🧠 Applying the 80/20 content strategy — 80% value, 20% promotion — proven to build audience trust.",
+          "🎨 Assigning the highest-engagement format for each platform (Carousels for LinkedIn, Reels for Instagram, etc.).",
+          "🪝 Writing scroll-stopping hooks and platform-specific CTAs for every post.",
+        ]}
+      />
       {/* Status */}
       <div className="text-center space-y-4">
         <div className="w-20 h-20 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center">
