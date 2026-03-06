@@ -232,7 +232,15 @@ export default function ABBYFrameworkVisual({ hasConsultation, onConsultAbby, on
           {/* Product nodes */}
           {CLUSTERS.map((c) => {
             const h = HUB_CFG[c.id];
-            const positions = arcPositions(c.nodes.length, h.x, h.y, h.r, h.startDeg, h.sweepDeg);
+            const positions = getNodePositions(
+              c.id,
+              c.nodes.map((n) => n.label),
+              h.x,
+              h.y,
+              h.r,
+              h.startDeg,
+              h.sweepDeg
+            );
             return positions.map((pos, i) => {
               const node = c.nodes[i];
               const catColor = CATEGORY_COLORS[node.category];
