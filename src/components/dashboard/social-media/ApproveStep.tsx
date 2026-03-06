@@ -11,6 +11,7 @@ import type { SocialPost, CalendarConfig } from "./types";
 import { CATEGORY_COLORS, FORMAT_LABELS, FORMAT_COLORS, type ContentFormat } from "./types";
 import AbbyCoachingTip from "./AbbyCoachingTip";
 import PublishingDashboard from "./PublishingDashboard";
+import ImageStylePicker from "./ImageStylePicker";
 
 interface Props {
   posts: SocialPost[];
