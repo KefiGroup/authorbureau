@@ -109,7 +109,7 @@ function ComingSoonPlaceholder({ sectionId }: { sectionId: string }) {
 }
 
 export default function AuthorDashboard({ initialSection }: { initialSection?: DashboardSection }) {
-  const { user, loading, isAdmin, isPremium, subscription, checkSubscription, signOut } = useAuth();
+  const { user, loading, isAdmin, isPremium, tier, subscription, checkSubscription, signOut } = useAuth();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const location = useLocation();
