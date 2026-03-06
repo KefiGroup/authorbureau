@@ -849,6 +849,36 @@ export default function BuildMyBusiness() {
         </Button>
       </div>
 
+      {/* Premium Upgrade Banner for non-subscribers */}
+      {!(isPremium || isAdmin) && (
+        <div className="mb-4 flex-shrink-0">
+          <Card className="border-secondary/40 bg-gradient-to-r from-secondary/5 via-secondary/10 to-secondary/5 overflow-hidden">
+            <CardContent className="p-3 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-secondary/20 flex items-center justify-center flex-shrink-0">
+                <Crown className="h-4 w-4 text-secondary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold">You're on the Free Plan</p>
+                <p className="text-[11px] text-muted-foreground">Abby's consultation is free. Subscribe to ABBY Premium to unlock all AI builders and start creating products.</p>
+              </div>
+              <Button
+                size="sm"
+                className="flex-shrink-0 gap-1.5 bg-secondary text-secondary-foreground hover:bg-secondary/90 rounded-full text-xs px-4"
+                onClick={handleSubscribe}
+                disabled={checkoutLoading}
+              >
+                {checkoutLoading ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Crown className="h-3 w-3" />
+                )}
+                Subscribe
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Saved Business Plan Reference */}
       {user && (
         <div className="mb-4 flex-shrink-0">
