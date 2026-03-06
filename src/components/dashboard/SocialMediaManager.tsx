@@ -33,14 +33,20 @@ export default function SocialMediaManager() {
   const loadContent = async () => {
     if (!user) return;
     setLoading(true);
+
+    const { data: cloudSession } = await supabase.auth.getSession();
+    const authorId = cloudSession?.session?.user?.id || user.id;
+
     let query = supabase
       .from("social_media_content" as any)
       .select("*")
-      .eq("author_id", user.id)
+      .eq("author_id", authorId)
       .order("created_at", { ascending: false });
+
     if (bookId) {
       query = query.eq("book_id", bookId);
     }
+
     const { data, error } = await query;
     if (!error && data) setContent(data as any);
     setLoading(false);
