@@ -192,7 +192,7 @@ export default function Auth() {
         console.log("[Auth] Primary OTP verify failed, trying local fallback...", msg);
         const { data: localAuth, error: localErr } = await supabase.auth.verifyOtp({
           email: email.trim(),
-          token: otp,
+          token: code,
           type: "email",
         });
         if (localErr || !localAuth?.session) {
