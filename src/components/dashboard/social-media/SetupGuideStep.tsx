@@ -133,12 +133,37 @@ export default function SetupGuideStep({
   const [expandedPlatform, setExpandedPlatform] = useState<string | null>(null);
 
   const platforms = buildPlatformGuides(bookTitle);
+  const checklistStorageKey = `social-setup-checklist:${bookTitle || "default"}`;
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(checklistStorageKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Record<string, number[]>;
+      const restored: Record<string, Set<number>> = {};
+      Object.entries(parsed).forEach(([platformId, indices]) => {
+        restored[platformId] = new Set(indices);
+      });
+      setCompletedSteps(restored);
+    } catch {
+      // no-op
+    }
+  }, [checklistStorageKey]);
+
+  useEffect(() => {
+    const serializable = Object.fromEntries(
+      Object.entries(completedSteps).map(([platformId, set]) => [platformId, Array.from(set)])
+    );
+    localStorage.setItem(checklistStorageKey, JSON.stringify(serializable));
+  }, [completedSteps, checklistStorageKey]);
 
   const toggleStep = (platformId: string, stepIdx: number) => {
-    const current = completedSteps[platformId] || new Set();
-    const next = new Set(current);
-    next.has(stepIdx) ? next.delete(stepIdx) : next.add(stepIdx);
-    setCompletedSteps({ ...completedSteps, [platformId]: next });
+    setCompletedSteps((prev) => {
+      const current = prev[platformId] || new Set();
+      const next = new Set(current);
+      next.has(stepIdx) ? next.delete(stepIdx) : next.add(stepIdx);
+      return { ...prev, [platformId]: next };
+    });
   };
 
   const totalCompleted = platforms.reduce(
