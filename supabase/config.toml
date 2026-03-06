@@ -71,3 +71,5 @@ project_id = "tubpbslfrxyfhldkcyyq"
     verify_jwt = false
   [functions.generate-social-graphic]
     verify_jwt = false
+  [functions.abby-execute]
+    verify_jwt = false
