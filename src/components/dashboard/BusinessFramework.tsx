@@ -87,8 +87,8 @@ const categories: Category[] = [
   },
   {
     id: "authority-builders",
-    label: "Authority Builders",
-    subtitle: "Build credibility & premium positioning",
+    label: "Y · Yield Revenue",
+    subtitle: "Premium revenue streams & high-value monetization",
     color: "text-sky-600",
     bgColor: "bg-sky-500/10",
     ringColor: "ring-sky-500/30",
