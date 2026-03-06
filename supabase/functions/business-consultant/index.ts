@@ -582,7 +582,9 @@ serve(async (req) => {
       bookId
         ? adminClient.from("social_media_content").select("id, platform, status").eq("book_id", bookId).eq("author_id", user.id)
         : Promise.resolve({ data: [] }),
-      adminClient.from("email_flows").select("id, title, status, flow_type").eq("author_id", user.id),
+      bookId
+        ? adminClient.from("email_flows").select("id, title, status, flow_type").eq("author_id", user.id).eq("book_id", bookId)
+        : adminClient.from("email_flows").select("id, title, status, flow_type").eq("author_id", user.id),
       bookId
         ? adminClient.from("audiobooks").select("id, title, status").eq("book_id", bookId).eq("author_id", user.id)
         : Promise.resolve({ data: [] }),
