@@ -631,7 +631,7 @@ export default function BuildMyBusiness() {
           <h2 className="font-heading text-2xl font-bold mb-1">Meet Abby</h2>
           <p className="text-sm text-secondary font-medium mb-2">Your AI Business Consultant</p>
           <p className="text-muted-foreground text-sm leading-relaxed">
-            Hi! I'm Abby. I'll help you turn your book into a complete business using The ABBY Framework — <strong>A</strong>utomate, <strong>B</strong>uild, <strong>B</strong>roadcast, <strong>Y</strong>ield.
+            Hi! I'm Abby. I'll help you turn your book into revenue streams using The ABBY Framework — <strong>A</strong>nalyze, <strong>B</strong>uild, <strong>B</strong>ridge, <strong>Y</strong>ield.
           </p>
         </div>
 
