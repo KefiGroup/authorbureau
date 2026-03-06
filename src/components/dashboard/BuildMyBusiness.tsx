@@ -653,7 +653,7 @@ export default function BuildMyBusiness() {
         </div>
 
         <p className="text-center text-xs text-muted-foreground max-w-md mx-auto">
-          Your book is the hook. Abby will walk you through The ABBY Framework — select a book below to begin your consultation.
+          Your book is the hook. Abby will walk you through The ABBY Framework — select a book below to begin your analysis.
         </p>
 
         {loadingBooks ? (
