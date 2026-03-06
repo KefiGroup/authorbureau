@@ -15,6 +15,7 @@ import {
   Rocket, BookOpen, Loader2, Send, ArrowLeft, Sparkles, User, RotateCcw,
   Wrench, MessageCircleHeart, Crown, ExternalLink, FileText, Upload,
 } from "lucide-react";
+import BusinessPlanCard, { type AbbyPlan } from "@/components/dashboard/BusinessPlanCard";
 import { TIERS } from "@/hooks/useAuth";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
