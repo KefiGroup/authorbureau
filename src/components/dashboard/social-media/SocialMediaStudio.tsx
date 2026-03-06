@@ -94,6 +94,7 @@ export default function SocialMediaStudio({ onExit, initialBookId, initialBookTi
     bookId: initialBookId || "",
     bookTitle: initialBookTitle || "",
     bookCoverUrl: initialBookCoverUrl || null,
+    bookAmazonUrl: null,
     platforms: ["linkedin", "instagram"],
     frequency: "daily",
     contentMix: { tips: 30, quotes: 20, stories: 20, promotions: 15, engagement: 15 },

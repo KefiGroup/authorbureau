@@ -196,7 +196,7 @@ export default function ConfigureStep({ config, onConfigChange, onNext }: Props)
               {books.map(book => (
                 <button
                   key={book.id}
-                  onClick={() => update({ bookId: book.id, bookTitle: book.title, bookCoverUrl: book.cover_image_url })}
+                  onClick={() => update({ bookId: book.id, bookTitle: book.title, bookCoverUrl: book.cover_image_url, bookAmazonUrl: book.amazon_url })}
                   className={`relative rounded-xl border-2 p-2 transition-all text-left ${
                     config.bookId === book.id
                       ? "border-secondary ring-2 ring-secondary/30 bg-secondary/5"
