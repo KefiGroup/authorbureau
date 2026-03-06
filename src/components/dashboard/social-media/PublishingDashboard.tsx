@@ -41,9 +41,9 @@ export default function PublishingDashboard({ posts, config, onPostsChange }: Pr
     return futureDates[0] || posts[0]?.scheduled_date || today;
   });
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [generatedImages, setGeneratedImages] = useState<Record<string, string>>({});
   const [markingId, setMarkingId] = useState<string | null>(null);
+  const [imagePickerPostId, setImagePickerPostId] = useState<string | null>(null);
 
   const allDates = useMemo(() => {
     const dateSet = new Set(posts.map(p => p.scheduled_date));
