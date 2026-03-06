@@ -5,12 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  Copy, CheckCircle2, ExternalLink, ImagePlus, Download,
+  Copy, CheckCircle2, ExternalLink, Download,
   Loader2, Calendar, ChevronLeft, ChevronRight, Clock,
-  Image as ImageIcon,
+  Image as ImageIcon, Palette,
 } from "lucide-react";
 import type { SocialPost, CalendarConfig, ContentFormat } from "./types";
 import { FORMAT_LABELS, FORMAT_COLORS, CATEGORY_COLORS } from "./types";
+import ImageStylePicker from "./ImageStylePicker";
 
 interface Props {
   posts: SocialPost[];
