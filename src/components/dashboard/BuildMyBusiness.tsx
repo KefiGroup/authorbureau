@@ -562,7 +562,7 @@ export default function BuildMyBusiness() {
     }
   };
 
-  const handleReset = async () => {
+  const handleReset = async (goBackToBookSelect = false) => {
     // Mark current session as inactive via edge function
     if (sessionId) {
       try {
@@ -577,11 +577,17 @@ export default function BuildMyBusiness() {
       }
     }
     setMessages([]);
-    setSelectedBook(null);
     updateSessionId(null);
     setInput("");
     setAbbyReading(false);
     setReadingProgress(0);
+
+    if (goBackToBookSelect) {
+      setSelectedBook(null);
+    } else if (selectedBook) {
+      // Start a fresh session for the same book
+      setShouldAutoStart(true);
+    }
   };
 
   // Check manuscript and handle book selection
