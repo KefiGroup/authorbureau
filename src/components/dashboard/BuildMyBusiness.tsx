@@ -994,7 +994,7 @@ export default function BuildMyBusiness() {
                 {/* Subscribe CTA */}
                 {hasSubscribeCta && !(isPremium || isAdmin) && (
                   <div className="mt-5">
-                    <Card className="border-2 border-secondary/40 bg-gradient-to-br from-secondary/5 via-secondary/10 to-amber-500/5 shadow-lg">
+                    <Card className="border-2 border-secondary/40 bg-gradient-to-br from-secondary/5 via-secondary/10 to-accent/10 shadow-lg">
                       <CardContent className="p-5">
                         <div className="flex items-center gap-2 mb-3">
                           <div className="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center">
