@@ -45,42 +45,39 @@ const statusStyles = {
 
 export const stepConfigs: StepConfig[] = [
   {
-    id: "analyze", label: "A · Analyze", subtitle: "Digital Products",
+    id: "automate", label: "A · Analyze", subtitle: "Discover & Map",
     color: "text-blue-600", bgColor: "bg-blue-500/10",
     gradientFrom: "from-blue-500", gradientTo: "to-blue-600",
     nodes: [
-      { id: "workbooks", label: "Workbooks", iconName: "FileText", description: "Companion workbook PDFs with exercises & action plans.", status: "live", buildOrder: 1, buildReason: "Simple product with high perceived value." },
-      { id: "audiobook", label: "Audiobook", iconName: "Headphones", description: "ElevenLabs-powered narration from your manuscript.", status: "live", buildOrder: 2, buildReason: "Scalable passive income asset." },
-      { id: "social-media", label: "Social Media", iconName: "Share2", description: "90-day AI content calendar from your book chapters.", status: "live", buildOrder: 3, buildReason: "Ongoing visibility & engagement." },
-      { id: "podcast-script", label: "Podcast Scripts", iconName: "Podcast", description: "AI-generated podcast episode scripts from your book.", status: "planned", buildOrder: 4, buildReason: "Expand reach via audio." },
-      { id: "webinars", label: "Webinars", iconName: "Video", description: "Complete webinar scripts + slide decks + registration pages.", status: "live", buildOrder: 5, buildReason: "Lead generation engine." },
-      { id: "home-study", label: "Home Study Course", iconName: "BookMarked", description: "Self-paced study guide with daily schedules.", status: "coming-soon", buildOrder: 6, buildReason: "Structured self-paced learning." },
-      { id: "courses", label: "Online Courses", iconName: "GraduationCap", description: "8-12 module structured courses — highest revenue potential.", status: "coming-soon", buildOrder: 7, buildReason: "Highest revenue potential." },
-      { id: "memberships", label: "Monthly Memberships", iconName: "CreditCard", description: "3-tier membership with gated content drip.", status: "planned", buildOrder: 8 },
-      { id: "upsells", label: "Upsells / Downsells", iconName: "TrendingUp", description: "AI-generated conversion sequences.", status: "planned", buildOrder: 9 },
-      { id: "affiliates", label: "Affiliates", iconName: "Link2", description: "Affiliate tracking links with commissions.", status: "planned", buildOrder: 10 },
+      { id: "social-media", label: "Social Media", iconName: "Share2", description: "90-day AI content calendar from your book chapters.", status: "live", buildOrder: 1, buildReason: "Immediate visibility & audience growth." },
+      { id: "podcast-script", label: "Podcast Scripts", iconName: "Podcast", description: "AI-generated episode scripts from your book.", status: "planned", buildOrder: 2, buildReason: "Expand reach via audio content." },
+      { id: "workbooks", label: "Workbooks", iconName: "FileText", description: "Companion workbook PDFs with exercises & action plans.", status: "live", buildOrder: 3, buildReason: "Simple product with high perceived value." },
+      { id: "audiobook", label: "Audiobook", iconName: "Headphones", description: "ElevenLabs-powered narration from your manuscript.", status: "live", buildOrder: 4, buildReason: "Scalable passive income asset." },
+      { id: "home-study", label: "Home Study Course", iconName: "BookMarked", description: "Self-paced study guide with daily schedules.", status: "coming-soon", buildOrder: 5, buildReason: "Structured self-paced learning." },
+      { id: "webinars", label: "Webinars", iconName: "Video", description: "Complete webinar scripts + slide decks + registration pages.", status: "live", buildOrder: 6, buildReason: "Lead generation engine." },
+      { id: "courses", label: "Online Courses", iconName: "GraduationCap", description: "8-12 module structured courses — highest revenue potential.", status: "coming-soon", buildOrder: 7, buildReason: "Highest revenue digital product." },
     ],
   },
   {
-    id: "build", label: "B · Build", subtitle: "Coaching & Consulting",
+    id: "build", label: "B · Build", subtitle: "Create & Package",
     color: "text-amber-600", bgColor: "bg-amber-500/10",
     gradientFrom: "from-amber-500", gradientTo: "to-amber-600",
     nodes: [
       { id: "coaching-1on1", label: "1-on-1 Coaching", iconName: "UserCheck", description: "AI generates 6/12-session coaching programs.", status: "live" },
       { id: "group-coaching", label: "Group Coaching", iconName: "Users", description: "8-week group coaching curriculum.", status: "coming-soon" },
+      { id: "keynotes", label: "Keynotes", iconName: "Mic", description: "AI generates 3-5 keynote topics with slide decks.", status: "live" },
+      { id: "corporate-training", label: "Corporate Training", iconName: "Building2", description: "Half/full-day corporate training programs.", status: "planned" },
       { id: "big-ticket", label: "Big Ticket", iconName: "Trophy", description: "Premium consulting packages ($5K–$25K).", status: "planned" },
-      { id: "revenue-sharing", label: "Revenue Sharing / JV", iconName: "Handshake", description: "Partnership matching + contract templates.", status: "planned" },
       { id: "coaching-membership", label: "Coaching Membership", iconName: "CreditCard", description: "Monthly coaching tier — recurring revenue.", status: "planned" },
+      { id: "revenue-sharing", label: "Revenue Sharing / JV", iconName: "Handshake", description: "Partnership matching + contract templates.", status: "planned" },
     ],
   },
   {
-    id: "bridge", label: "B · Bridge", subtitle: "Speaking",
+    id: "broadcast", label: "B · Bridge", subtitle: "Connect & Distribute",
     color: "text-rose-500", bgColor: "bg-rose-500/10",
     gradientFrom: "from-rose-500", gradientTo: "to-rose-600",
     nodes: [
-      { id: "keynotes", label: "Keynotes", iconName: "Mic", description: "AI generates 3-5 keynote topics with slide decks.", status: "live" },
       { id: "podcast-guest", label: "Podcast Pitches", iconName: "Podcast", description: "AI-generated podcast pitch kit.", status: "planned" },
-      { id: "corporate-training", label: "Corporate Training", iconName: "Building2", description: "Half/full-day corporate training programs.", status: "planned" },
       { id: "jvs-speaking", label: "Joint Ventures", iconName: "Handshake", description: "JV proposals for co-hosting speaking events.", status: "planned" },
       { id: "book-sales-events", label: "Book Sales at Events", iconName: "BookOpen", description: "QR code order pages for live events.", status: "planned" },
       { id: "special-editions", label: "Special Editions", iconName: "Sparkles", description: "Special edition proposals — signed copies, bundles.", status: "planned" },
@@ -90,13 +87,16 @@ export const stepConfigs: StepConfig[] = [
     ],
   },
   {
-    id: "yield", label: "Y · Yield", subtitle: "Seminars & Events",
+    id: "yield", label: "Y · Yield", subtitle: "Monetize & Earn",
     color: "text-emerald-500", bgColor: "bg-emerald-500/10",
     gradientFrom: "from-emerald-500", gradientTo: "to-emerald-600",
     nodes: [
-      { id: "retreats", label: "Retreats & Bootcamps", iconName: "Bookmark", description: "2-3 day retreat programs with agendas.", status: "planned" },
+      { id: "memberships", label: "Monthly Memberships", iconName: "CreditCard", description: "3-tier membership with gated content drip.", status: "planned" },
+      { id: "affiliates", label: "Affiliates", iconName: "Link2", description: "Affiliate tracking links with commissions.", status: "planned" },
+      { id: "upsells", label: "Upsells / Downsells", iconName: "TrendingUp", description: "AI-generated conversion sequences.", status: "planned" },
       { id: "certification", label: "Certification Programs", iconName: "ShieldCheck", description: "Multi-module curriculum + exam + certificates.", status: "planned" },
       { id: "masterminds", label: "Masterminds", iconName: "BarChart3", description: "Quarterly mastermind group programs.", status: "planned" },
+      { id: "retreats", label: "Retreats & Bootcamps", iconName: "Bookmark", description: "2-3 day retreat programs with agendas.", status: "planned" },
       { id: "exhibitors", label: "Exhibitors / JV", iconName: "Megaphone", description: "Exhibitor prospectus + partnership matching.", status: "planned" },
     ],
   },
@@ -126,9 +126,9 @@ export default function BookHubStepTab({ stepId, bookId, bookTitle, isPremium }:
       keynotes: `/dashboard?section=speaking&bookId=${bookId}${titleParam}`,
       courses: `/dashboard?section=courses&bookId=${bookId}${titleParam}`,
     };
-
     return map[nodeId] || null;
   };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -152,7 +152,7 @@ export default function BookHubStepTab({ stepId, bookId, bookTitle, isPremium }:
         </div>
       </div>
 
-      {/* Products numbered in recommended build sequence */}
+      {/* Build sequence note */}
       {stepData.nodes[0]?.buildOrder && (
         <p className="text-xs text-muted-foreground">Products numbered in recommended build sequence</p>
       )}

@@ -27,42 +27,39 @@ interface StepCluster {
 
 const CLUSTERS: StepCluster[] = [
   {
-    id: "analyze", letter: "A", title: "ANALYZE\nDIGITAL PRODUCTS",
+    id: "analyze", letter: "A", title: "ANALYZE\nDISCOVER & MAP",
     hubColor: "#3b82f6", nodeColor: "#60a5fa", nodeColorMuted: "#93c5fd",
-    tabKey: "analyze",
+    tabKey: "automate",
     nodes: [
-      { label: "Online Courses", active: false, category: "revenue" },
+      { label: "Social Media", active: false, category: "marketing" },
+      { label: "Podcast\nScripts", active: false, category: "marketing" },
       { label: "Workbook", active: false, category: "revenue" },
       { label: "Audio Book", active: false, category: "revenue" },
-      { label: "Home Study\nCourses", active: false, category: "revenue" },
+      { label: "Home Study\nCourse", active: false, category: "revenue" },
       { label: "Webinars", active: false, category: "revenue" },
-      { label: "Monthly\nMemberships", active: false, category: "revenue" },
-      { label: "Upsells /\nDownsells", active: false, category: "revenue" },
-      { label: "Affiliates", active: false, category: "revenue" },
-      { label: "Social Media", active: false, category: "marketing" },
-      { label: "Podcast", active: false, category: "marketing" },
+      { label: "Online\nCourses", active: false, category: "revenue" },
     ],
   },
   {
-    id: "build", letter: "B", title: "BUILD\nCOACHING",
+    id: "build", letter: "B", title: "BUILD\nCREATE & PACKAGE",
     hubColor: "#d97706", nodeColor: "#f59e0b", nodeColorMuted: "#fcd34d",
     tabKey: "build",
     nodes: [
       { label: "1-on-1\nCoaching", active: false, category: "revenue" },
       { label: "Group\nCoaching", active: false, category: "revenue" },
+      { label: "Keynotes", active: false, category: "authority" },
+      { label: "Corporate\nTraining", active: false, category: "authority" },
       { label: "Big Ticket", active: false, category: "revenue" },
-      { label: "Revenue\nSharing", active: false, category: "revenue" },
       { label: "Coaching\nMembership", active: false, category: "revenue" },
+      { label: "Revenue\nSharing", active: false, category: "revenue" },
     ],
   },
   {
-    id: "bridge", letter: "B", title: "BRIDGE\nSPEAKING",
+    id: "bridge", letter: "B", title: "BRIDGE\nCONNECT & DISTRIBUTE",
     hubColor: "#f43f5e", nodeColor: "#fb7185", nodeColorMuted: "#fda4af",
-    tabKey: "bridge",
+    tabKey: "broadcast",
     nodes: [
-      { label: "Keynotes", active: false, category: "authority" },
       { label: "Podcasts\n(Guest)", active: false, category: "marketing" },
-      { label: "Corporate\nTraining", active: false, category: "authority" },
       { label: "Joint\nVentures", active: false, category: "revenue" },
       { label: "Book Sales\nat Events", active: false, category: "revenue" },
       { label: "Special\nEditions", active: false, category: "revenue" },
@@ -72,20 +69,23 @@ const CLUSTERS: StepCluster[] = [
     ],
   },
   {
-    id: "yield", letter: "Y", title: "YIELD\nSEMINARS",
+    id: "yield", letter: "Y", title: "YIELD\nMONETIZE & EARN",
     hubColor: "#10b981", nodeColor: "#34d399", nodeColorMuted: "#6ee7b7",
     tabKey: "yield",
     nodes: [
-      { label: "Retreats &\nBootcamps", active: false, category: "revenue" },
+      { label: "Monthly\nMemberships", active: false, category: "revenue" },
+      { label: "Affiliates", active: false, category: "revenue" },
+      { label: "Upsells /\nDownsells", active: false, category: "revenue" },
       { label: "Certification", active: false, category: "revenue" },
       { label: "Masterminds", active: false, category: "revenue" },
+      { label: "Retreats &\nBootcamps", active: false, category: "revenue" },
       { label: "Exhibitors /\nJV", active: false, category: "revenue" },
     ],
   },
 ];
 
 const CATEGORY_COLORS: Record<string, { fill: string; stroke: string }> = {
-  revenue: { fill: "", stroke: "" }, // uses cluster color
+  revenue: { fill: "", stroke: "" },
   marketing: { fill: "#8b5cf6", stroke: "#a78bfa" },
   authority: { fill: "#0ea5e9", stroke: "#38bdf8" },
 };
@@ -96,12 +96,12 @@ const VH = 800;
 const CX = VW / 2;
 const CY = VH / 2;
 
-/* Hub positions + arc config (SVG coords) */
+/* Hub positions + arc config */
 const HUB_CFG: Record<string, { x: number; y: number; startDeg: number; sweepDeg: number; r: number }> = {
   analyze:  { x: 240, y: 220, startDeg: 100, sweepDeg: 300, r: 140 },
-  build:    { x: 240, y: 600, startDeg: 0, sweepDeg: 180, r: 140 },
-  bridge:   { x: 880, y: 560, startDeg: -150, sweepDeg: 300, r: 140 },
-  yield:    { x: 960, y: 250, startDeg: -165, sweepDeg: 150, r: 140 },
+  build:    { x: 240, y: 600, startDeg: -30, sweepDeg: 210, r: 140 },
+  bridge:   { x: 880, y: 560, startDeg: -150, sweepDeg: 210, r: 140 },
+  yield:    { x: 960, y: 250, startDeg: -165, sweepDeg: 210, r: 140 },
 };
 
 function arcPositions(count: number, cx: number, cy: number, r: number, startDeg: number, sweepDeg: number) {
@@ -114,24 +114,6 @@ function arcPositions(count: number, cx: number, cy: number, r: number, startDeg
   return out;
 }
 
-const NODE_POSITION_OVERRIDES: Record<string, Partial<Record<string, { dx: number; dy: number }>>> = {
-  bridge: {
-    Keynotes: { dx: 0, dy: 50 },
-  },
-};
-
-function getNodePositions(clusterId: string, labels: string[], cx: number, cy: number, r: number, startDeg: number, sweepDeg: number) {
-  const positions = arcPositions(labels.length, cx, cy, r, startDeg, sweepDeg);
-  const overrides = NODE_POSITION_OVERRIDES[clusterId] || {};
-
-  return positions.map((pos, i) => {
-    const override = overrides[labels[i]];
-    if (!override) return pos;
-    return { x: pos.x + (override.dx || 0), y: pos.y + (override.dy || 0) };
-  });
-}
-
-/* Multi-line SVG text helper */
 function MultiLineText({ x, y, text, fontSize, fill, fontWeight, opacity, anchor }: {
   x: number; y: number; text: string; fontSize: number; fill: string; fontWeight?: string; opacity?: number; anchor?: string;
 }) {
@@ -184,7 +166,7 @@ export default function ABBYFrameworkVisual({ hasConsultation, onConsultAbby, on
         </Button>
       </div>
 
-      {/* Constellation Map — pure SVG */}
+      {/* Constellation Map */}
       <div className="w-full rounded-2xl border border-border bg-card overflow-hidden">
         <svg
           viewBox={`0 0 ${VW} ${VH}`}
@@ -209,15 +191,7 @@ export default function ABBYFrameworkVisual({ hasConsultation, onConsultAbby, on
           {/* Dashed lines: hubs → nodes */}
           {CLUSTERS.map((c) => {
             const h = HUB_CFG[c.id];
-            const positions = getNodePositions(
-              c.id,
-              c.nodes.map((n) => n.label),
-              h.x,
-              h.y,
-              h.r,
-              h.startDeg,
-              h.sweepDeg
-            );
+            const positions = arcPositions(c.nodes.length, h.x, h.y, h.r, h.startDeg, h.sweepDeg);
             return positions.map((pos, i) => (
               <line
                 key={`spoke-${c.id}-${i}`}
@@ -233,15 +207,7 @@ export default function ABBYFrameworkVisual({ hasConsultation, onConsultAbby, on
           {/* Product nodes */}
           {CLUSTERS.map((c) => {
             const h = HUB_CFG[c.id];
-            const positions = getNodePositions(
-              c.id,
-              c.nodes.map((n) => n.label),
-              h.x,
-              h.y,
-              h.r,
-              h.startDeg,
-              h.sweepDeg
-            );
+            const positions = arcPositions(c.nodes.length, h.x, h.y, h.r, h.startDeg, h.sweepDeg);
             return positions.map((pos, i) => {
               const node = c.nodes[i];
               const catColor = CATEGORY_COLORS[node.category];
@@ -251,7 +217,6 @@ export default function ABBYFrameworkVisual({ hasConsultation, onConsultAbby, on
               const nodeStroke = node.active
                 ? (catColor.stroke || c.nodeColorMuted)
                 : "hsl(var(--border))";
-              // Category indicator ring for marketing/authority
               const showCatRing = !node.active && node.category !== "revenue";
               return (
                 <g key={`node-${c.id}-${i}`}>
@@ -311,7 +276,7 @@ export default function ABBYFrameworkVisual({ hasConsultation, onConsultAbby, on
                 <MultiLineText
                   x={h.x} y={h.y + 2}
                   text={c.title}
-                  fontSize={13}
+                  fontSize={12}
                   fill="white"
                   fontWeight="800"
                 />
