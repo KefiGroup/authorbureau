@@ -1,6 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
+const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
+const SHARED_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnRkcG5la3NjcnNnaHF0c3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MDYzODksImV4cCI6MjA4NDQ4MjM4OX0.o2qA4tLao4UtxPGxSnavXIYKUmVZvS99pHtnL220L-s";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -16,20 +20,44 @@ serve(async (req) => {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Auth
+    // Auth - resolve user with identity mapping
     const authHeader = req.headers.get("Authorization") || "";
     const token = authHeader.replace("Bearer ", "");
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const userClient = createClient(SUPABASE_URL, anonKey, {
-      global: { headers: { Authorization: `Bearer ${token}` } },
-    });
-    const { data: { user }, error: authError } = await userClient.auth.getUser();
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+
+    const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+
+    let userId: string;
+    let userEmail: string | null = null;
+
+    // Try Cloud auth first
+    const { data: { user: cloudUser } } = await adminClient.auth.getUser(token);
+    if (cloudUser) {
+      userId = cloudUser.id;
+      userEmail = cloudUser.email ?? null;
+    } else {
+      // Fallback: try shared backend (for SSO sessions)
+      const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
+      const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
+      if (!sharedUser) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      userId = sharedUser.id;
+      userEmail = sharedUser.email ?? null;
+
+      // For shared backend users, find their Cloud user ID by email
+      if (sharedUser.email) {
+        const { data: { users } } = await adminClient.auth.admin.listUsers();
+        const localMatch = users?.find(
+          (u: any) => u.email?.toLowerCase() === sharedUser.email?.toLowerCase()
+        );
+        if (localMatch) userId = localMatch.id;
+      }
     }
+
+    console.log("[parse-manuscript] Resolved userId:", userId, "email:", userEmail);
 
     const { bookId, storagePath, fileName } = await req.json();
     if (!bookId || !storagePath) {
@@ -39,22 +67,36 @@ serve(async (req) => {
       });
     }
 
-    const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
-
-    // Verify the book belongs to this user
-    const { data: book, error: bookErr } = await adminClient
+    // Verify the book belongs to this user (check author_id OR owner_email)
+    let book = null;
+    const { data: bookById } = await adminClient
       .from("books")
       .select("id, title, author_id")
       .eq("id", bookId)
-      .eq("author_id", user.id)
+      .eq("author_id", userId)
       .maybeSingle();
 
-    if (bookErr || !book) {
+    if (bookById) {
+      book = bookById;
+    } else if (userEmail) {
+      const { data: bookByEmail } = await adminClient
+        .from("books")
+        .select("id, title, author_id")
+        .eq("id", bookId)
+        .eq("owner_email", userEmail)
+        .maybeSingle();
+      book = bookByEmail;
+    }
+
+    if (!book) {
       return new Response(JSON.stringify({ error: "Book not found or access denied" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Use the book's actual author_id for downstream operations
+    const authorId = book.author_id;
 
     // Download file from storage
     const { data: fileData, error: downloadErr } = await adminClient.storage
@@ -76,11 +118,9 @@ serve(async (req) => {
     if (lowerName.endsWith(".txt")) {
       extractedText = await fileData.text();
     } else if (lowerName.endsWith(".pdf") || lowerName.endsWith(".docx") || lowerName.endsWith(".doc") || lowerName.endsWith(".epub")) {
-      // Use Lovable AI to extract text from complex documents
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
       if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-      // Convert file to base64
       const arrayBuffer = await fileData.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
       let binaryStr = "";
@@ -89,14 +129,12 @@ serve(async (req) => {
       }
       const base64Content = btoa(binaryStr);
 
-      // Determine MIME type
       let mimeType = "application/octet-stream";
       if (lowerName.endsWith(".pdf")) mimeType = "application/pdf";
       else if (lowerName.endsWith(".docx")) mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
       else if (lowerName.endsWith(".doc")) mimeType = "application/msword";
       else if (lowerName.endsWith(".epub")) mimeType = "application/epub+zip";
 
-      // Use Gemini to extract text from the document
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -159,7 +197,7 @@ serve(async (req) => {
       .from("generated_assets")
       .select("id")
       .eq("book_id", bookId)
-      .eq("author_id", user.id)
+      .eq("author_id", authorId)
       .eq("asset_type", "source_material")
       .maybeSingle();
 
@@ -173,7 +211,7 @@ serve(async (req) => {
         .from("generated_assets")
         .insert({
           book_id: bookId,
-          author_id: user.id,
+          author_id: authorId,
           asset_type: "source_material",
           content: extractedText,
         });
