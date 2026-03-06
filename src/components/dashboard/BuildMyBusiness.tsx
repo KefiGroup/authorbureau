@@ -578,7 +578,7 @@ export default function BuildMyBusiness() {
     }
     setMessages([]);
     setSelectedBook(null);
-    setSessionId(null);
+    updateSessionId(null);
     setInput("");
     setAbbyReading(false);
     setReadingProgress(0);
