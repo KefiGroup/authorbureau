@@ -177,14 +177,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(interval);
   }, [user, checkSubscription]);
 
-  const isPremium = isAdmin || (subscription.subscribed && subscription.productId === TIERS.premium.product_id);
+  const tier: SubscriptionTier = isAdmin ? "enterprise" : getTierFromProductId(subscription.productId);
+  const isPremium = isAdmin || tier !== "free";
 
   const signOut = async () => {
     await supabase.auth.signOut();
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isAdmin, subscription, isPremium, checkSubscription, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, isAdmin, subscription, isPremium, tier, checkSubscription, signOut }}>
       {children}
     </AuthContext.Provider>
   );
