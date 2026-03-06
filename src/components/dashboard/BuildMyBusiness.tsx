@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
+import BusinessPlanActions, { isBusinessPlanMessage } from "@/components/dashboard/BusinessPlanActions";
+import SavedBusinessPlan from "@/components/dashboard/SavedBusinessPlan";
 import FrameworkInterviewModal, { type BuildMode } from "@/components/dashboard/FrameworkInterviewModal";
 import ManuscriptUpload from "@/components/dashboard/ManuscriptUpload";
 import type { AuthorFramework } from "@/components/dashboard/FrameworksEditor";
@@ -845,6 +847,13 @@ export default function BuildMyBusiness() {
         </Button>
       </div>
 
+      {/* Saved Business Plan Reference */}
+      {user && (
+        <div className="mb-4 flex-shrink-0">
+          <SavedBusinessPlan bookId={selectedBook.id} bookTitle={selectedBook.title} authorId={user.id} />
+        </div>
+      )}
+
       {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-4 pr-2 pb-4">
         {messages.filter(m => !(m.role === "user" && messages.indexOf(m) === 0 && messages.length > 1)).length === 0 && !isStreaming && (
@@ -979,6 +988,15 @@ export default function BuildMyBusiness() {
                       </CardContent>
                     </Card>
                   </div>
+                )}
+                {/* Business plan download + save */}
+                {msg.role === "assistant" && user && !isStreaming && isBusinessPlanMessage(displayContent) && (
+                  <BusinessPlanActions
+                    content={displayContent}
+                    bookId={selectedBook.id}
+                    bookTitle={selectedBook.title}
+                    authorId={user.id}
+                  />
                 )}
 
                 {/* Business plan is now rendered as clean markdown inline */}
