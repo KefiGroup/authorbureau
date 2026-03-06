@@ -539,6 +539,17 @@ export default function ApproveStep({ posts, config, onBack, onDone, onRegenerat
           </Button>
         </div>
       )}
+
+      {/* Image Style Picker Modal */}
+      {imagePickerPostId && (
+        <ImageStylePicker
+          post={posts.find(p => p.id === imagePickerPostId)!}
+          config={config}
+          open={!!imagePickerPostId}
+          onClose={() => setImagePickerPostId(null)}
+          onSelect={(url) => onImageSelected(imagePickerPostId, url)}
+        />
+      )}
         </>
       )}
     </div>
