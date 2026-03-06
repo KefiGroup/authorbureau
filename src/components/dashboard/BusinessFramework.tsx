@@ -249,10 +249,28 @@ export default function BusinessFramework({ onNavigate, isPremium, focusStep }: 
                   <X className="h-4 w-4 text-muted-foreground" />
                 </button>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {activeCatData.nodes.map((node) => (
-                  <NodeCard key={node.id} node={node} category={activeCatData} onNavigate={onNavigate} isPremium={isPremium} />
-                ))}
+              <div className="space-y-6">
+                {(() => {
+                  const groups: { name: string; nodes: Node[] }[] = [];
+                  activeCatData.nodes.forEach((node) => {
+                    const groupName = node.group || "Other";
+                    const existing = groups.find((g) => g.name === groupName);
+                    if (existing) existing.nodes.push(node);
+                    else groups.push({ name: groupName, nodes: [node] });
+                  });
+                  return groups.map((group) => (
+                    <div key={group.name}>
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                        {group.name}
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {group.nodes.map((node) => (
+                          <NodeCard key={node.id} node={node} category={activeCatData} onNavigate={onNavigate} isPremium={isPremium} />
+                        ))}
+                      </div>
+                    </div>
+                  ));
+                })()}
               </div>
             </div>
           </motion.div>
