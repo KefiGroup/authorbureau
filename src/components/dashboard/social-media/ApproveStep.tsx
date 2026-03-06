@@ -46,6 +46,7 @@ export default function ApproveStep({ posts, config, onBack, onDone, onRegenerat
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
   const [cloudUserId, setCloudUserId] = useState<string | null>(null);
   const [copiedPostId, setCopiedPostId] = useState<string | null>(null);
   const [copiedPromptId, setCopiedPromptId] = useState<string | null>(null);
