@@ -258,7 +258,7 @@ export default function BusinessFramework({ onNavigate, isPremium, focusStep }: 
           <strong>Bridge</strong> marketing channels & connections →
           <strong>Yield</strong> revenue streams & maximize your ROI.
           <br />
-          <span className="text-secondary font-medium">Abby will guide you through every step — turning your book into a business with {categories.reduce((s, c) => s + c.nodes.length, 0)} revenue streams.</span>
+          <span className="text-secondary font-medium">Turn your book into revenue streams with ABBY.</span>
         </p>
       </motion.div>
     </div>
