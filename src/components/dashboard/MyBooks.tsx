@@ -399,7 +399,7 @@ export default function MyBooks({ isPremium = false, onNavigate }: MyBooksProps)
                 onClick={() => onNavigate?.("build-business")}
               >
                 <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-                Consult Abby
+                Analyze with Abby
               </Button>
             </div>
           </Card>

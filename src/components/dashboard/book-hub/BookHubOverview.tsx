@@ -130,7 +130,7 @@ export default function BookHubOverview({ book, onConsultAbby, onNavigateTab }: 
                 onClick={onConsultAbby}
               >
                 <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-                {hasConsultation ? "Continue Consultation" : "Consult Abby About This Book"}
+                {hasConsultation ? "Continue Analysis with Abby" : "Analyze with Abby"}
               </Button>
               {hasConsultation && (
                 <Button
