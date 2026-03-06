@@ -37,7 +37,7 @@ interface CategoryConfig {
 
 const categoryConfigs: Record<string, CategoryConfig> = {
   "revenue-streams": {
-    id: "revenue-streams", label: "Revenue Streams", subtitle: "Directly generate income",
+    id: "revenue-streams", label: "B · Build Authority", subtitle: "Digital assets & authority products",
     color: "text-emerald-600", bgColor: "bg-emerald-500/10",
     gradientFrom: "from-emerald-500", gradientTo: "to-emerald-600",
     headerIcon: DollarSign,
