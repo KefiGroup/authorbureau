@@ -63,7 +63,7 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     ],
   },
   "marketing-channels": {
-    id: "marketing-channels", label: "Marketing Channels", subtitle: "Drive awareness & leads",
+    id: "marketing-channels", label: "B · Bridge Channels", subtitle: "Marketing channels & audience connections",
     color: "text-violet-600", bgColor: "bg-violet-500/10",
     gradientFrom: "from-violet-500", gradientTo: "to-violet-600",
     headerIcon: Radio,
