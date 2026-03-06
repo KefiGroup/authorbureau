@@ -9,6 +9,7 @@ import { CheckCircle2, Save, Loader2 } from "lucide-react";
 import { useState } from "react";
 import type { SocialPost, CalendarConfig } from "./types";
 import { CATEGORY_COLORS, FORMAT_LABELS, FORMAT_COLORS, type ContentFormat } from "./types";
+import AbbyCoachingTip from "./AbbyCoachingTip";
 
 interface Props {
   posts: SocialPost[];
