@@ -126,6 +126,16 @@ export default function SocialMediaStudio({ onExit, initialBookId, initialBookTi
           return;
         }
 
+        // Fetch book's amazon_url for the purchase link
+        const { data: bookData } = await supabase
+          .from("books")
+          .select("amazon_url")
+          .eq("id", config.bookId)
+          .single();
+        if (bookData?.amazon_url) {
+          setConfig(prev => ({ ...prev, bookAmazonUrl: bookData.amazon_url }));
+        }
+
         const { data, error } = await supabase
           .from("social_media_content")
           .select("id, platform, content_type, content_text, image_prompt, day_number, scheduled_date, status, created_at")
