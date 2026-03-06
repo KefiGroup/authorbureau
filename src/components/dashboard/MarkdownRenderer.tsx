@@ -34,7 +34,7 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
           </h4>
         ),
         p: ({ children }) => (
-          <p className="text-sm leading-relaxed text-foreground mb-4 last:mb-0">
+          <p className="text-[14px] leading-[1.75] text-foreground mb-5 last:mb-0">
             {children}
           </p>
         ),
