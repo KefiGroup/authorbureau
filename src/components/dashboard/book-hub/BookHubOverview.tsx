@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, Zap, BarChart3, FileText, Upload } from "lucide-react";
+import { Sparkles, Zap, FileText, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ManuscriptUpload from "@/components/dashboard/ManuscriptUpload";
 import ABBYFrameworkVisual from "./ABBYFrameworkVisual";
