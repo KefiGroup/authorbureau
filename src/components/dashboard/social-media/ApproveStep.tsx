@@ -55,12 +55,13 @@ export default function ApproveStep({ posts, config, onBack, onDone }: Props) {
   }, [posts]);
 
   const savePosts = async (status: "draft" | "approved") => {
-    if (!user) return;
+    const authorId = cloudUserId || user?.id;
+    if (!authorId) return;
     setSaving(true);
 
     try {
       const rows = posts.map(p => ({
-        author_id: user.id,
+        author_id: authorId,
         book_id: config.bookId,
         platform: p.platform,
         content_type: p.category,
@@ -75,7 +76,7 @@ export default function ApproveStep({ posts, config, onBack, onDone }: Props) {
       await supabase
         .from("social_media_content")
         .delete()
-        .eq("author_id", user.id)
+        .eq("author_id", authorId)
         .eq("book_id", config.bookId);
 
       const { error } = await supabase.from("social_media_content").insert(rows as any);
