@@ -94,17 +94,25 @@ export default function BookHubOverview({ book, onConsultAbby, onNavigateTab }: 
         setManuscriptChars(assets[0].content.length);
       }
 
-      // Check saved business plan
-      const { data: planData } = await supabase
-        .from("generated_assets")
-        .select("content")
-        .eq("book_id", book.id)
-        .eq("author_id", userId)
-        .eq("asset_type", "business_plan")
-        .maybeSingle();
-      if (planData?.content) {
-        setPlanContent(planData.content);
-        setPlanSections(extractSections(planData.content));
+      // Check saved business plan via edge function (bypasses RLS)
+      try {
+        const planResp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/business-consultant`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ action: "get-plan", bookId: book.id }),
+        });
+        if (planResp.ok) {
+          const planResult = await planResp.json();
+          if (planResult.content) {
+            setPlanContent(planResult.content);
+            setPlanSections(extractSections(planResult.content));
+          }
+        }
+      } catch {
+        console.error("Failed to fetch business plan");
       }
     }
     checkData();
