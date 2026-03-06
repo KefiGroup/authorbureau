@@ -50,8 +50,8 @@ export default function ApproveStep({ posts, config, onBack, onDone, onRegenerat
   const [cloudUserId, setCloudUserId] = useState<string | null>(null);
   const [copiedPostId, setCopiedPostId] = useState<string | null>(null);
   const [copiedPromptId, setCopiedPromptId] = useState<string | null>(null);
-  const [generatingImageId, setGeneratingImageId] = useState<string | null>(null);
   const [generatedImages, setGeneratedImages] = useState<Record<string, string>>({});
+  const [imagePickerPostId, setImagePickerPostId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
