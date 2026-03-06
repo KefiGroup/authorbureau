@@ -68,6 +68,7 @@ const AuthContext = createContext<AuthContextType>({
   isAdmin: false,
   subscription: { subscribed: false, productId: null, subscriptionEnd: null, loading: true },
   isPremium: false,
+  tier: "free",
   checkSubscription: async () => {},
   signOut: async () => {},
 });
