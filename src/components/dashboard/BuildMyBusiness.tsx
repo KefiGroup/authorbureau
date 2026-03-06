@@ -562,7 +562,7 @@ export default function BuildMyBusiness() {
     }
   };
 
-  const handleReset = async () => {
+  const handleReset = async (goBackToBookSelect = false) => {
     // Mark current session as inactive via edge function
     if (sessionId) {
       try {
@@ -577,11 +577,17 @@ export default function BuildMyBusiness() {
       }
     }
     setMessages([]);
-    setSelectedBook(null);
     updateSessionId(null);
     setInput("");
     setAbbyReading(false);
     setReadingProgress(0);
+
+    if (goBackToBookSelect) {
+      setSelectedBook(null);
+    } else if (selectedBook) {
+      // Start a fresh session for the same book
+      setShouldAutoStart(true);
+    }
   };
 
   // Check manuscript and handle book selection
@@ -841,7 +847,7 @@ export default function BuildMyBusiness() {
     <div className="flex flex-col h-[calc(100vh-8rem)] max-w-4xl">
       {/* Header */}
       <div className="flex items-center gap-3 pb-4 border-b border-border mb-4 flex-shrink-0">
-        <Button variant="ghost" size="icon" onClick={handleReset} className="h-8 w-8">
+        <Button variant="ghost" size="icon" onClick={() => handleReset(true)} className="h-8 w-8">
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -853,7 +859,7 @@ export default function BuildMyBusiness() {
             <p className="text-xs text-muted-foreground truncate">Strategy for: {selectedBook.title}</p>
           </div>
         </div>
-        <Button variant="ghost" size="sm" onClick={handleReset} className="text-xs gap-1.5">
+        <Button variant="ghost" size="sm" onClick={() => handleReset(false)} className="text-xs gap-1.5">
           <RotateCcw className="h-3 w-3" /> New Session
         </Button>
       </div>
