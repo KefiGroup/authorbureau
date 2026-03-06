@@ -70,7 +70,7 @@ export const categoryConfigs: CategoryConfig[] = [
     ],
   },
   {
-    id: "marketing-channels", label: "Marketing Channels", subtitle: "Drive awareness & leads (6 nodes)",
+    id: "marketing-channels", label: "B · Bridge Channels", subtitle: "Marketing channels & audience connections (6 nodes)",
     color: "text-violet-600", bgColor: "bg-violet-500/10",
     gradientFrom: "from-violet-500", gradientTo: "to-violet-600",
     headerIconName: "Radio",
