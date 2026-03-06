@@ -442,14 +442,9 @@ export default function ApproveStep({ posts, config, onBack, onDone, onRegenerat
                     variant="ghost"
                     size="sm"
                     className="h-6 px-2 text-[10px] text-muted-foreground hover:text-secondary"
-                    onClick={() => generateImage(post)}
-                    disabled={generatingImageId === post.id}
+                    onClick={() => setImagePickerPostId(post.id)}
                   >
-                    {generatingImageId === post.id ? (
-                      <><Loader2 className="h-3 w-3 animate-spin mr-1" /> Generating…</>
-                    ) : (
-                      <><ImagePlus className="h-3 w-3 mr-1" /> Generate Image</>
-                    )}
+                    <Palette className="h-3 w-3 mr-1" /> Generate Image
                   </Button>
                 )}
                 {/* Show generated image for non-prompt posts */}
