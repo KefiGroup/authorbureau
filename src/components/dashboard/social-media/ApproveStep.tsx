@@ -168,13 +168,70 @@ export default function ApproveStep({ posts, config, onBack, onDone, onRegenerat
     <div className="max-w-4xl mx-auto space-y-6">
       <AbbyCoachingTip
         title="Your Publishing Game Plan"
-        tips={[
-          "📋 Step 1: Save your calendar first, then download the Buffer CSV → upload to buffer.com/publish → all posts auto-schedule.",
-          "🎨 Step 2: Download Visual Brief → create images in Canva using the AI prompts → attach to each post.",
-          "🎬 Step 3: For Reel/Video posts, follow the shot lists → film with your phone → upload to scheduling tool.",
-          "📊 Step 4: After 7 days, check analytics → double down on top-performing content types.",
-          "🔁 Step 5: After 30 days, come back here and generate a new calendar based on what worked.",
-        ]}
+        customContent={
+          <div className="space-y-3 text-sm">
+            <div className="flex items-start gap-2">
+              <span className="shrink-0">→ 📋</span>
+              <p>
+                Step 1:{" "}
+                <button onClick={() => savePosts("approved")} disabled={saving} className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium">
+                  {saved ? "✓ Calendar saved" : "Save your calendar"}
+                </button>
+                {" first, then "}
+                <button onClick={() => { setActiveTab("export"); setTimeout(exportBufferCSV, 300); }} className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium">
+                  download the Buffer CSV
+                </button>
+                {" → upload to "}
+                <a href="https://publish.buffer.com" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium inline-flex items-center gap-0.5">
+                  buffer.com/publish <ExternalLink className="h-3 w-3" />
+                </a>
+                {" → all posts auto-schedule."}
+              </p>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="shrink-0">→ 🎨</span>
+              <p>
+                Step 2:{" "}
+                <button onClick={() => { setActiveTab("visuals"); }} className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium">
+                  Download Visual Brief
+                </button>
+                {" → create images in "}
+                <a href="https://www.canva.com" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium inline-flex items-center gap-0.5">
+                  Canva <ExternalLink className="h-3 w-3" />
+                </a>
+                {" using the AI prompts → attach to each post."}
+              </p>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="shrink-0">→ 🎬</span>
+              <p>
+                Step 3: For Reel/Video posts,{" "}
+                <button onClick={() => setActiveTab("visuals")} className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium">
+                  view the shot lists
+                </button>
+                {" → film with your phone → upload to scheduling tool."}
+              </p>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="shrink-0">→ 📊</span>
+              <p>Step 4: After 7 days, check analytics → double down on top-performing content types.</p>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="shrink-0">→ 🔁</span>
+              <p>
+                Step 5: After 30 days,{" "}
+                {onRegenerate ? (
+                  <button onClick={onRegenerate} className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium">
+                    generate a new calendar
+                  </button>
+                ) : (
+                  <span>come back here and generate a new calendar</span>
+                )}
+                {" based on what worked."}
+              </p>
+            </div>
+          </div>
+        }
       />
 
       {/* Summary Header */}
@@ -360,13 +417,15 @@ export default function ApproveStep({ posts, config, onBack, onDone, onRegenerat
           <AbbyCoachingTip
             title="How to Auto-Schedule Everything"
             expandedByDefault
-            tips={[
-              "1️⃣ Download the Buffer CSV below.",
-              "2️⃣ Go to buffer.com → Publishing → Bulk Create → Upload CSV.",
-              "3️⃣ Buffer will auto-schedule all posts at optimal times.",
-              "4️⃣ Attach visuals to each post in Buffer's composer.",
-              "5️⃣ Review and hit 'Add to Queue'. Done! 🎉",
-            ]}
+            customContent={
+              <div className="space-y-2 text-xs text-muted-foreground">
+                <p>1️⃣ <button onClick={exportBufferCSV} className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium">Download the Buffer CSV</button> below.</p>
+                <p>2️⃣ Go to <a href="https://publish.buffer.com" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium inline-flex items-center gap-0.5">Buffer Publishing <ExternalLink className="h-3 w-3" /></a> → Bulk Create → Upload CSV.</p>
+                <p>3️⃣ Buffer will auto-schedule all posts at optimal times.</p>
+                <p>4️⃣ Attach visuals to each post in Buffer's composer.</p>
+                <p>5️⃣ Review and hit 'Add to Queue'. Done! 🎉</p>
+              </div>
+            }
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

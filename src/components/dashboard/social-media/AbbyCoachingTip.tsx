@@ -3,11 +3,12 @@ import { useState } from "react";
 
 interface Props {
   title: string;
-  tips: string[];
+  tips?: string[];
+  customContent?: React.ReactNode;
   expandedByDefault?: boolean;
 }
 
-export default function AbbyCoachingTip({ title, tips, expandedByDefault = false }: Props) {
+export default function AbbyCoachingTip({ title, tips, customContent, expandedByDefault = false }: Props) {
   const [expanded, setExpanded] = useState(expandedByDefault);
 
   return (
@@ -32,7 +33,7 @@ export default function AbbyCoachingTip({ title, tips, expandedByDefault = false
 
       {expanded && (
         <div className="px-4 pb-4 space-y-2 border-t border-secondary/20 pt-3">
-          {tips.map((tip, i) => (
+          {customContent ? customContent : tips?.map((tip, i) => (
             <div key={i} className="flex items-start gap-2">
               <span className="text-secondary font-bold text-xs mt-0.5">→</span>
               <p className="text-xs text-muted-foreground leading-relaxed">{tip}</p>
