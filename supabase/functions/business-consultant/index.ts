@@ -567,6 +567,16 @@ ${builtSummary.length > 0 ? builtSummary.join("\n") : "Nothing built yet — thi
 === END ALREADY BUILT ===
 audience_metrics: { email_subscribers: ${subscriberCount} }
 generation_history: ${JSON.stringify(existingAssets.map((a: any) => a.asset_type))}
+${existingBusinessPlan ? `
+=== EXISTING BUSINESS PLAN (PREVIOUSLY GENERATED) ===
+This author already has a saved business plan. When they return, you should:
+1. Acknowledge the existing plan and ask what they'd like to refine or update
+2. DO NOT regenerate the entire plan from scratch unless explicitly asked
+3. Focus on specific sections they want to adjust, new products to add, or strategy pivots
+4. When updating, maintain consistency with the existing plan structure
+
+${existingBusinessPlan}
+=== END EXISTING BUSINESS PLAN ===` : "existing_business_plan: none — this is a fresh consultation."}
 is_premium_subscriber: ${!!isPremium}
 subscription_tier: "${isPremium ? subscriptionTier || "enterprise" : subscriptionTier || "free"}"
 subscription_status: "${isPremium ? "active" : subscriptionStatus || "none"}"
