@@ -600,24 +600,42 @@ author_frameworks: ${profile?.frameworks && Array.isArray(profile.frameworks) &&
 
     // Determine which conversation turn this is (for pacing enforcement)
     const conversationTurn = assistantTurns + 1; // Next turn number
+    const hasSavedPlan = !!existingBusinessPlan;
 
-    const progressionBlock = assistantTurns > 0
-      ? `
+    let progressionBlock: string;
+
+    if (hasSavedPlan && assistantTurns === 0) {
+      // Returning author with existing plan — REFINEMENT MODE
+      progressionBlock = `
+REFINEMENT MODE — EXISTING PLAN DETECTED:
+- This author already has a saved ABBY Business Plan (see EXISTING BUSINESS PLAN in context).
+- DO NOT run the 4-turn diagnostic sequence. DO NOT regenerate the plan from scratch.
+- Instead, greet them warmly and briefly acknowledge their existing plan.
+- Ask what they'd like to refine: "Welcome back! Your business plan for [book] is saved and ready. Would you like to refine any section, add new products, or discuss next steps for execution?"
+- Keep your response under 200 words.
+- If they ask to see the plan, remind them it's available above the chat. If they want changes, make targeted updates only.
+`;
+    } else if (assistantTurns > 0) {
+      progressionBlock = `
 CONVERSATION PROGRESSION:
 - You are on Turn ${conversationTurn} of the consultation.
 - You are mid-conversation. DO NOT restart with a fresh intro.
 - DO NOT repeat the same recommendation already discussed.
 - Build directly on the latest user message and prior context.
-${conversationTurn <= 3 ? `- PACING ENFORCEMENT: This is Turn ${conversationTurn}. Your response MUST be under 200 words. Ask ONE question and STOP. Do NOT generate the business plan yet.` : ""}
-${conversationTurn >= 4 ? "- The author has answered your diagnostic questions. If they confirmed the direction or asked for the plan, generate the FULL ABBY Business Plan now." : ""}
-`
-      : `
+${hasSavedPlan ? "- The author has an EXISTING business plan. Reference it when discussing strategy. Only update specific sections they request." : ""}
+${!hasSavedPlan && conversationTurn <= 3 ? `- PACING ENFORCEMENT: This is Turn ${conversationTurn}. Your response MUST be under 200 words. Ask ONE question and STOP. Do NOT generate the business plan yet.` : ""}
+${!hasSavedPlan && conversationTurn >= 4 ? "- The author has answered your diagnostic questions. If they confirmed the direction or asked for the plan, generate the FULL ABBY Business Plan now." : ""}
+`;
+    } else {
+      // Brand new consultation — no saved plan
+      progressionBlock = `
 CONVERSATION START:
 - This is Turn 1. Follow the Turn 1 pacing rules EXACTLY.
 - Greet warmly, show ONE brief insight about their book, ask ONE goal question, then STOP.
 - Your response MUST be under 200 words. Do NOT generate the business plan.
 - Do NOT skip ahead. Do NOT provide strategic analysis yet. Just greet and ask.
 `;
+    }
 
     const fullSystemPrompt = `${SYSTEM_PROMPT}\n\n${progressionBlock}\n${contextBlock}\nrequest_meta: ${JSON.stringify({
       request_id: crypto.randomUUID(),
