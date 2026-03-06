@@ -669,7 +669,28 @@ author_frameworks: ${profile?.frameworks && Array.isArray(profile.frameworks) &&
       ? messages.filter((m: any) => m?.role === "assistant").length
       : 0;
 
-    const progressionBlock = assistantTurns > 0
+    const latestUserMessage = Array.isArray(messages)
+      ? [...messages].reverse().find((m: any) => m?.role === "user")?.content || ""
+      : "";
+
+    const hasPlanAlready = Array.isArray(messages)
+      ? messages.some((m: any) => m?.role === "assistant" && typeof m?.content === "string" && m.content.includes("===ABBY_PLAN==="))
+      : false;
+
+    const userExplicitlyRequestsPlan = /\b(where(?:'s| is)?\s+the\s+plan|show\s+(?:me\s+)?(?:the\s+)?plan|full\s+plan|business\s+plan|27\s+nodes?|all\s+nodes?)\b/i.test(latestUserMessage);
+
+    const mustReturnPlanNow = !hasPlanAlready && (userExplicitlyRequestsPlan || assistantTurns >= 3);
+
+    const progressionBlock = mustReturnPlanNow
+      ? `
+MANDATORY RESPONSE MODE — DELIVER PLAN NOW:
+- In this NEXT response, you MUST output the complete Phase 6 deliverable.
+- Present the full 27-node ABBY business plan immediately (all nodes, grouped by phase/category).
+- Include the structured ===ABBY_PLAN=== JSON block in the same response.
+- Do NOT ask discovery questions first. Do NOT delay. Do NOT provide only a single recommendation.
+- End by asking the author which 2-3 nodes they want to build first.
+`
+      : assistantTurns > 0
       ? `
 CONVERSATION PROGRESSION (STRICT):
 - You are mid-conversation. DO NOT restart with a fresh intro.
@@ -686,6 +707,8 @@ CONVERSATION START:
       request_id: crypto.randomUUID(),
       generated_at: new Date().toISOString(),
       assistant_turns: assistantTurns,
+      user_explicitly_requests_plan: userExplicitlyRequestsPlan,
+      must_return_plan_now: mustReturnPlanNow,
     })}`;
 
     const aiMessages = [
