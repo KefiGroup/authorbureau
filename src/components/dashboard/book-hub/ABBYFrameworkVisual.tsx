@@ -98,10 +98,10 @@ const CY = VH / 2;
 
 /* Hub positions + arc config (SVG coords) */
 const HUB_CFG: Record<string, { x: number; y: number; startDeg: number; sweepDeg: number; r: number }> = {
-  analyze:  { x: 240, y: 220, startDeg: 100, sweepDeg: 300, r: 170 },
-  build:    { x: 240, y: 600, startDeg: 0, sweepDeg: 180, r: 120 },
-  bridge:   { x: 880, y: 560, startDeg: -150, sweepDeg: 300, r: 150 },
-  yield:    { x: 960, y: 250, startDeg: -165, sweepDeg: 150, r: 130 },
+  analyze:  { x: 240, y: 220, startDeg: 100, sweepDeg: 300, r: 140 },
+  build:    { x: 240, y: 600, startDeg: 0, sweepDeg: 180, r: 140 },
+  bridge:   { x: 880, y: 560, startDeg: -150, sweepDeg: 300, r: 140 },
+  yield:    { x: 960, y: 250, startDeg: -165, sweepDeg: 150, r: 140 },
 };
 
 function arcPositions(count: number, cx: number, cy: number, r: number, startDeg: number, sweepDeg: number) {
