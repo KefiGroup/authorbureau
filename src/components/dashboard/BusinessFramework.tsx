@@ -139,7 +139,7 @@ export default function BusinessFramework({ onNavigate, isPremium, focusStep }: 
           Build Your <span className="text-gradient-gold">ABBY Monetization Framework</span>
         </h1>
         <p className="text-muted-foreground text-sm max-w-lg mx-auto">
-          <strong>A</strong>utomate · <strong>B</strong>uild · <strong>B</strong>roadcast · <strong>Y</strong>ield — your complete journey from published author to thriving business owner.
+           <strong>A</strong>nalyze · <strong>B</strong>uild · <strong>B</strong>ridge · <strong>Y</strong>ield — your complete journey from published author to thriving business owner.
         </p>
       </div>
 
