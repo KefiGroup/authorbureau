@@ -114,6 +114,23 @@ function arcPositions(count: number, cx: number, cy: number, r: number, startDeg
   return out;
 }
 
+const NODE_POSITION_OVERRIDES: Record<string, Partial<Record<string, { dx: number; dy: number }>>> = {
+  bridge: {
+    Keynotes: { dx: 0, dy: 84 },
+  },
+};
+
+function getNodePositions(clusterId: string, labels: string[], cx: number, cy: number, r: number, startDeg: number, sweepDeg: number) {
+  const positions = arcPositions(labels.length, cx, cy, r, startDeg, sweepDeg);
+  const overrides = NODE_POSITION_OVERRIDES[clusterId] || {};
+
+  return positions.map((pos, i) => {
+    const override = overrides[labels[i]];
+    if (!override) return pos;
+    return { x: pos.x + (override.dx || 0), y: pos.y + (override.dy || 0) };
+  });
+}
+
 /* Multi-line SVG text helper */
 function MultiLineText({ x, y, text, fontSize, fill, fontWeight, opacity, anchor }: {
   x: number; y: number; text: string; fontSize: number; fill: string; fontWeight?: string; opacity?: number; anchor?: string;
