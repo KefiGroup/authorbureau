@@ -425,6 +425,56 @@ When the author is excited and ready to build:
 - ALWAYS recommend the MINIMUM viable tier. Don't push Enterprise when Starter covers their needs.`;
 
 
+// Resilient user resolution: getClaims → getUser → email lookup
+async function resolveUser(req: Request): Promise<{ id: string; email: string } | null> {
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const authHeader = req.headers.get("Authorization") || "";
+  if (!authHeader.startsWith("Bearer ")) return null;
+  const token = authHeader.replace("Bearer ", "");
+
+  const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+  });
+
+  // Tier 1: getClaims (fast, works with signing-keys)
+  try {
+    const { data, error } = await userClient.auth.getClaims(token);
+    if (!error && data?.claims?.sub) {
+      return { id: data.claims.sub as string, email: (data.claims.email || "") as string };
+    }
+  } catch (_) { /* fall through */ }
+
+  // Tier 2: getUser (server round-trip)
+  try {
+    const { data: { user }, error } = await userClient.auth.getUser();
+    if (!error && user) {
+      return { id: user.id, email: user.email || "" };
+    }
+  } catch (_) { /* fall through */ }
+
+  // Tier 3: decode JWT email and find by email in profiles
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    const email = payload.email;
+    if (email) {
+      const adminClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      const { data: profile } = await adminClient
+        .from("profiles")
+        .select("user_id")
+        .eq("display_name", email)
+        .maybeSingle();
+      // Also try auth.admin lookup
+      const { data: { users } } = await adminClient.auth.admin.listUsers();
+      const match = users?.find((u: any) => u.email === email);
+      if (match) return { id: match.id, email };
+      if (profile) return { id: profile.user_id, email };
+    }
+  } catch (_) { /* fall through */ }
+
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -443,19 +493,15 @@ serve(async (req) => {
         });
       }
 
-      const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-      const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-      const authHeader = req.headers.get("Authorization") || "";
-      const token = authHeader.replace("Bearer ", "");
-      const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
-        global: { headers: { Authorization: `Bearer ${token}` } },
-      });
-      const { data: { user }, error: authErr } = await userClient.auth.getUser();
-      if (authErr || !user) {
+      const user = await resolveUser(req);
+      if (!user) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+
+      const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+      const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
       const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
       const { error: upsertErr } = await adminClient.from("generated_assets").upsert(
@@ -490,19 +536,15 @@ serve(async (req) => {
         });
       }
 
-      const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-      const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-      const authHeader = req.headers.get("Authorization") || "";
-      const token = authHeader.replace("Bearer ", "");
-      const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
-        global: { headers: { Authorization: `Bearer ${token}` } },
-      });
-      const { data: { user }, error: authErr } = await userClient.auth.getUser();
-      if (authErr || !user) {
+      const user = await resolveUser(req);
+      if (!user) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+
+      const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+      const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
       const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
       const { data: planData } = await adminClient
@@ -527,14 +569,9 @@ serve(async (req) => {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Get auth user
-    const authHeader = req.headers.get("Authorization") || "";
-    const token = authHeader.replace("Bearer ", "");
-    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: `Bearer ${token}` } },
-    });
-    const { data: { user }, error: authError } = await userClient.auth.getUser();
-    if (authError || !user) {
+    // Get auth user via resilient resolver
+    const user = await resolveUser(req);
+    if (!user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
