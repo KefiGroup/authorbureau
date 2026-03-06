@@ -893,10 +893,10 @@ export default function BuildMyBusiness() {
               )}
               <div className={`max-w-[85%] ${msg.role === "user"
                 ? "bg-primary text-primary-foreground rounded-2xl rounded-br-md px-4 py-3"
-                : "bg-muted/50 rounded-2xl rounded-bl-md px-4 py-3"
+                : "rounded-2xl rounded-bl-md px-5 py-4"
               }`}>
                 {msg.role === "assistant" ? (
-                  <div className="prose prose-sm max-w-none dark:prose-invert">
+                  <div className="space-y-0">
                     <MarkdownRenderer content={displayContent} />
                   </div>
                 ) : (
