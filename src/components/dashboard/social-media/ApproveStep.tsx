@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,13 @@ export default function ApproveStep({ posts, config, onBack, onDone }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
+  const [cloudUserId, setCloudUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data?.session?.user?.id) setCloudUserId(data.session.user.id);
+    });
+  }, []);
 
   const platformCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -48,12 +55,13 @@ export default function ApproveStep({ posts, config, onBack, onDone }: Props) {
   }, [posts]);
 
   const savePosts = async (status: "draft" | "approved") => {
-    if (!user) return;
+    const authorId = cloudUserId || user?.id;
+    if (!authorId) return;
     setSaving(true);
 
     try {
       const rows = posts.map(p => ({
-        author_id: user.id,
+        author_id: authorId,
         book_id: config.bookId,
         platform: p.platform,
         content_type: p.category,
@@ -68,7 +76,7 @@ export default function ApproveStep({ posts, config, onBack, onDone }: Props) {
       await supabase
         .from("social_media_content")
         .delete()
-        .eq("author_id", user.id)
+        .eq("author_id", authorId)
         .eq("book_id", config.bookId);
 
       const { error } = await supabase.from("social_media_content").insert(rows as any);
