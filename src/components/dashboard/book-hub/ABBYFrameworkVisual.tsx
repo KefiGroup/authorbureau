@@ -84,59 +84,7 @@ export default function ABBYFrameworkVisual({ hasConsultation, onConsultAbby, on
     >
       {/* ═══ VERTICAL FLOW ═══ */}
 
-      {/* Phase 1: YOUR BOOK */}
-      <div className="flex flex-col items-center">
-        <div className="flex flex-col items-center">
-          <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center shadow-md">
-            <BookOpen className="h-7 w-7 text-secondary-foreground" />
-          </div>
-          <span className="text-[11px] font-bold text-muted-foreground mt-2 uppercase tracking-widest">
-            Your Book
-          </span>
-        </div>
-
-        {/* Connector */}
-        <div className="flex flex-col items-center my-3">
-          <div className="w-px h-8 bg-border" />
-          <ChevronDown className="h-4 w-4 text-secondary" />
-        </div>
-      </div>
-
-      {/* Phase 2: A — ANALYZE */}
-      <div className="flex flex-col items-center">
-        <button
-          onClick={onConsultAbby}
-          className="w-full max-w-xl rounded-2xl border-2 border-secondary/40 bg-secondary/5 p-6 md:p-8 text-center hover:shadow-md transition-all cursor-pointer group"
-        >
-          <span className="inline-block text-[10px] font-bold uppercase tracking-widest text-secondary-foreground/60 bg-secondary/30 rounded-full px-4 py-1 mb-4">
-            A · Analyze
-          </span>
-          <div className="flex justify-center mb-3">
-            <div className="w-14 h-14 rounded-full bg-secondary/30 flex items-center justify-center text-2xl">
-              👩‍💼
-            </div>
-          </div>
-          <h4 className="font-heading font-bold text-lg md:text-xl mb-1">Analyze with Abby</h4>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-secondary mb-3">
-            Authors Bureau Business Advisor
-          </p>
-          <p className="text-sm text-muted-foreground leading-relaxed max-w-md mx-auto mb-5">
-            Abby reads your manuscript, maps opportunities, and builds a personalized monetization strategy — recommending exactly which products to create first and why.
-          </p>
-          <span className="inline-flex items-center bg-secondary hover:bg-secondary/90 text-secondary-foreground shadow-md px-6 py-2.5 rounded-md font-medium text-sm transition-colors">
-            <Sparkles className="h-4 w-4 mr-2" />
-            {hasConsultation ? "Continue Analysis with Abby" : "Analyze with Abby"}
-          </span>
-        </button>
-
-        {/* Connector */}
-        <div className="flex flex-col items-center my-3">
-          <div className="w-px h-8 bg-border" />
-          <ChevronDown className="h-4 w-4 text-muted-foreground" />
-        </div>
-      </div>
-
-      {/* Phase 3: B·B·Y — EXECUTION */}
+      {/* B·B·Y — EXECUTION */}
       <div className="w-full space-y-4">
         <div className="text-center mb-2">
           <span className="inline-block text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 bg-muted rounded-full px-4 py-1 mb-2">

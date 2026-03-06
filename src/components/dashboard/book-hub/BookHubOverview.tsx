@@ -165,15 +165,6 @@ export default function BookHubOverview({ book, onConsultAbby, onNavigateTab }: 
         onNavigateTab={onNavigateTab}
       />
 
-      {/* Recent Activity */}
-      <div className="rounded-xl border border-border bg-card p-5">
-        <h3 className="font-heading font-bold text-sm mb-3">Recent Activity</h3>
-        <div className="text-sm text-muted-foreground text-center py-6">
-          <BarChart3 className="h-8 w-8 mx-auto mb-2 text-muted-foreground/30" />
-          <p>No activity yet for this book.</p>
-          <p className="text-xs mt-1">Start by consulting Abby or building your first product.</p>
-        </div>
-      </div>
     </div>
   );
 }
