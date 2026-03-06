@@ -107,26 +107,36 @@ export default function BuildMyBusiness() {
   }, []);
 
   // ─── Chat Persistence ────────────────────────────────
-  const saveSession = useCallback(async (msgs: ChatMessage[]) => {
-    if (!user || !selectedBook || msgs.length === 0) return;
+  // Use ref for sessionId to avoid stale closures in save
+  const updateSessionId = (id: string | null) => {
+    setSessionId(id);
+    sessionIdRef.current = id;
+  };
+
+  const saveSession = useCallback(async (msgs: ChatMessage[], bookId?: string) => {
+    const targetBookId = bookId || selectedBook?.id;
+    if (!user || !targetBookId || msgs.length === 0) return;
     try {
       const headers = await getSessionHeaders();
+      const currentSessionId = sessionIdRef.current;
       const resp = await fetch(CONSULTATION_SESSION_URL, {
         method: "POST",
         headers,
         body: JSON.stringify({
           action: "save",
-          book_id: selectedBook.id,
-          session_id: sessionId,
+          book_id: targetBookId,
+          session_id: currentSessionId,
           messages: msgs,
         }),
       });
       const result = await resp.json();
-      if (result.id && !sessionId) setSessionId(result.id);
+      if (result.id && !currentSessionId) {
+        updateSessionId(result.id);
+      }
     } catch (err) {
       console.error("Failed to save session:", err);
     }
-  }, [user, selectedBook, sessionId, getSessionHeaders]);
+  }, [user, selectedBook, getSessionHeaders]);
 
   const loadExistingSession = useCallback(async (bookId: string): Promise<ChatMessage[] | null> => {
     if (!user) return null;
@@ -139,7 +149,7 @@ export default function BuildMyBusiness() {
       });
       const result = await resp.json();
       if (result.session) {
-        setSessionId(result.session.id);
+        updateSessionId(result.session.id);
         return result.session.messages as ChatMessage[];
       }
     } catch (err) {
@@ -148,12 +158,25 @@ export default function BuildMyBusiness() {
     return null;
   }, [user, getSessionHeaders]);
 
-  // Save messages whenever they change (debounced via streaming end)
+  // Save messages whenever streaming ends
   useEffect(() => {
     if (!isStreaming && messages.length > 0 && selectedBook) {
       saveSession(messages);
     }
-  }, [isStreaming, messages.length]);
+  }, [isStreaming, messages.length, saveSession, selectedBook]);
+
+  // Save on unmount to catch any unsaved state
+  const messagesRef = useRef<ChatMessage[]>([]);
+  const selectedBookRef = useRef<Book | null>(null);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
+  useEffect(() => { selectedBookRef.current = selectedBook; }, [selectedBook]);
+  useEffect(() => {
+    return () => {
+      if (messagesRef.current.length > 0 && selectedBookRef.current) {
+        saveSession(messagesRef.current, selectedBookRef.current.id);
+      }
+    };
+  }, [saveSession]);
 
   // When book is selected, load existing session
   useEffect(() => {
