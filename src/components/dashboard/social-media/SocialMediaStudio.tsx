@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { WIZARD_STEPS } from "./types";
-import type { SocialPost, CalendarConfig } from "./types";
+import type { SocialPost, CalendarConfig, ContentFormat } from "./types";
 import SetupGuideStep from "./SetupGuideStep";
 import ConfigureStep from "./ConfigureStep";
 import GeneratingStep from "./GeneratingStep";
@@ -31,6 +31,60 @@ interface SavedSocialContentRow {
   scheduled_date: string | null;
   status: string;
   created_at: string;
+}
+
+/** Decode the JSON metadata stored in image_prompt column back to rich post fields */
+function decodePostMeta(imagePromptField: string | null): {
+  hashtags: string[];
+  format: ContentFormat;
+  format_notes: string;
+  hook: string;
+  cta: string;
+  image_prompt: string;
+  video_shot_list: string;
+  suggested_time: string;
+} {
+  const defaults = {
+    hashtags: [] as string[],
+    format: "text_post" as ContentFormat,
+    format_notes: "",
+    hook: "",
+    cta: "",
+    image_prompt: "",
+    video_shot_list: "",
+    suggested_time: "09:00",
+  };
+
+  if (!imagePromptField) return defaults;
+
+  try {
+    const parsed = JSON.parse(imagePromptField);
+    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+      return {
+        hashtags: Array.isArray(parsed.hashtags) ? parsed.hashtags : defaults.hashtags,
+        format: parsed.format || defaults.format,
+        format_notes: parsed.format_notes || defaults.format_notes,
+        hook: parsed.hook || defaults.hook,
+        cta: parsed.cta || defaults.cta,
+        image_prompt: parsed.image_prompt || defaults.image_prompt,
+        video_shot_list: parsed.video_shot_list || defaults.video_shot_list,
+        suggested_time: parsed.suggested_time || defaults.suggested_time,
+      };
+    }
+  } catch {
+    // Legacy format: hashtags as comma-separated string
+    if (imagePromptField.includes("#") || imagePromptField.includes(",")) {
+      return {
+        ...defaults,
+        hashtags: imagePromptField
+          .split(",")
+          .map(tag => tag.trim().replace(/^#/, ""))
+          .filter(Boolean),
+      };
+    }
+  }
+
+  return defaults;
 }
 
 export default function SocialMediaStudio({ onExit, initialBookId, initialBookTitle, initialBookCoverUrl }: Props) {
@@ -83,28 +137,28 @@ export default function SocialMediaStudio({ onExit, initialBookId, initialBookTi
           return;
         }
 
-        const restoredPosts: SocialPost[] = (data as SavedSocialContentRow[]).map((row, idx) => ({
-          id: row.id,
-          platform: row.platform,
-          caption: row.content_text,
-          hashtags: (row.image_prompt || "")
-            .split(",")
-            .map((tag) => tag.trim().replace(/^#/, ""))
-            .filter(Boolean),
-          category: (row.content_type as SocialPost["category"]) || "tips",
-          format: "text_post",
-          format_notes: "",
-          hook: "",
-          cta: "",
-          image_prompt: "",
-          video_shot_list: "",
-          suggested_time: "09:00",
-          day_number: row.day_number || idx + 1,
-          scheduled_date: row.scheduled_date || row.created_at.split("T")[0],
-          status: row.status === "scheduled" ? "scheduled" : "draft",
-          ai_generated: false,
-          edited: false,
-        }));
+        const restoredPosts: SocialPost[] = (data as SavedSocialContentRow[]).map((row, idx) => {
+          const meta = decodePostMeta(row.image_prompt);
+          return {
+            id: row.id,
+            platform: row.platform,
+            caption: row.content_text,
+            hashtags: meta.hashtags,
+            category: (row.content_type as SocialPost["category"]) || "tips",
+            format: meta.format,
+            format_notes: meta.format_notes,
+            hook: meta.hook,
+            cta: meta.cta,
+            image_prompt: meta.image_prompt,
+            video_shot_list: meta.video_shot_list,
+            suggested_time: meta.suggested_time,
+            day_number: row.day_number || idx + 1,
+            scheduled_date: row.scheduled_date || row.created_at.split("T")[0],
+            status: row.status === "scheduled" ? "scheduled" : "draft",
+            ai_generated: false,
+            edited: false,
+          };
+        });
 
         setPosts(restoredPosts);
         setStep(5);
@@ -115,6 +169,11 @@ export default function SocialMediaStudio({ onExit, initialBookId, initialBookTi
 
     loadSavedCalendar();
   }, [config.bookId, user?.id]);
+
+  const handleRegenerate = () => {
+    setPosts([]);
+    setStep(1); // Go to Configure step to let user adjust settings before regenerating
+  };
 
   return (
     <div className="space-y-0">
@@ -150,8 +209,8 @@ export default function SocialMediaStudio({ onExit, initialBookId, initialBookTi
         ))}
       </div>
 
-      {/* Book Context Bar */}
-      {config.bookId && step > 1 && (
+      {/* Book Context Bar — show whenever book is selected */}
+      {config.bookId && (
         <motion.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: "auto" }}
@@ -204,7 +263,13 @@ export default function SocialMediaStudio({ onExit, initialBookId, initialBookTi
               <BulkEditStep posts={posts} onPostsChange={setPosts} onNext={() => setStep(5)} onBack={() => setStep(3)} />
             )}
             {step === 5 && (
-              <ApproveStep posts={posts} config={config} onBack={() => setStep(4)} onDone={onExit} />
+              <ApproveStep
+                posts={posts}
+                config={config}
+                onBack={() => setStep(4)}
+                onDone={onExit}
+                onRegenerate={handleRegenerate}
+              />
             )}
           </>
         )}
@@ -212,4 +277,3 @@ export default function SocialMediaStudio({ onExit, initialBookId, initialBookTi
     </div>
   );
 }
-
