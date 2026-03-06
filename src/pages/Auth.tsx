@@ -383,7 +383,14 @@ export default function Auth() {
                 </button>
 
                 <div className="flex justify-center">
-                  <InputOTP maxLength={6} value={otp} onChange={setOtp}>
+                  <InputOTP
+                    maxLength={6}
+                    value={otp}
+                    onChange={(value) => {
+                      setOtp(value);
+                      if (value.length === 6 && !submitting) void handleVerifyOtp(value);
+                    }}
+                  >
                     <InputOTPGroup>
                       {[0, 1, 2, 3, 4, 5].map((i) => (
                         <InputOTPSlot key={i} index={i} className="h-12 w-12 text-lg border-secondary/50" />
@@ -393,7 +400,7 @@ export default function Auth() {
                 </div>
 
                 <Button
-                  onClick={handleVerifyOtp}
+                  onClick={() => void handleVerifyOtp()}
                   disabled={otp.length !== 6 || submitting}
                   className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold rounded-full"
                   size="lg"
