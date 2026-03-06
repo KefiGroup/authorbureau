@@ -388,8 +388,8 @@ export default function MyBooks({ isPremium = false, onNavigate }: MyBooksProps)
                 </h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {isPremium
-                    ? "Consult Abby to build courses, workbooks, webinars & more from your book content."
-                    : "Consult Abby (free!) to discover how your book can generate multiple revenue streams."
+                    ? "Analyze with Abby to build courses, workbooks, webinars & more from your book content."
+                    : "Analyze with Abby (free!) to discover how your book can generate multiple revenue streams."
                   }
                 </p>
               </div>
