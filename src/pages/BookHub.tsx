@@ -12,7 +12,7 @@ import BookHubStepTab from "@/components/dashboard/book-hub/BookHubStepTab";
 import BookHubAnalytics from "@/components/dashboard/book-hub/BookHubAnalytics";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
 
-type BookHubTab = "overview" | "automate" | "build" | "broadcast" | "yield" | "analytics";
+type BookHubTab = "overview" | "revenue-streams" | "marketing-channels" | "authority-builders" | "analytics";
 
 interface BookData {
   id: string;
@@ -34,18 +34,16 @@ async function getActiveToken(): Promise<string | null> {
 
 const tabs: { id: BookHubTab; label: string }[] = [
   { id: "overview", label: "Overview" },
-  { id: "automate", label: "A · Analyze" },
-  { id: "build", label: "B · Build" },
-  { id: "broadcast", label: "B · Bridge" },
-  { id: "yield", label: "Y · Yield" },
+  { id: "revenue-streams", label: "💰 Revenue" },
+  { id: "marketing-channels", label: "📣 Marketing" },
+  { id: "authority-builders", label: "🏆 Authority" },
   { id: "analytics", label: "Analytics" },
 ];
 
 const tabColors: Record<string, string> = {
-  automate: "text-blue-600 border-blue-500",
-  build: "text-amber-600 border-amber-500",
-  broadcast: "text-rose-500 border-rose-500",
-  yield: "text-emerald-500 border-emerald-500",
+  "revenue-streams": "text-emerald-600 border-emerald-500",
+  "marketing-channels": "text-violet-600 border-violet-500",
+  "authority-builders": "text-sky-600 border-sky-500",
 };
 
 export default function BookHub() {
@@ -53,12 +51,12 @@ export default function BookHub() {
   const navigate = useNavigate();
   const { user, loading: authLoading, isAdmin, isPremium, subscription, signOut } = useAuth();
 
-  // Guard: if bookId is missing or is the literal route param placeholder, redirect
   useEffect(() => {
     if (!authLoading && bookId && (bookId === ":bookId" || !/^[0-9a-f-]{36}$/i.test(bookId))) {
       navigate("/dashboard?section=my-books", { replace: true });
     }
   }, [bookId, authLoading, navigate]);
+
   const [searchParams] = useSearchParams();
   const initialTab = (searchParams.get("tab") as BookHubTab) || "overview";
   const [book, setBook] = useState<BookData | null>(null);
@@ -129,11 +127,10 @@ export default function BookHub() {
             onNavigateTab={(tab) => setActiveTab(tab as BookHubTab)}
           />
         );
-      case "automate":
-      case "build":
-      case "broadcast":
-      case "yield":
-        return <BookHubStepTab stepId={activeTab} bookId={book.id} bookTitle={book.title} isPremium={isPremium || isAdmin} />;
+      case "revenue-streams":
+      case "marketing-channels":
+      case "authority-builders":
+        return <BookHubStepTab categoryId={activeTab} bookId={book.id} bookTitle={book.title} isPremium={isPremium || isAdmin} />;
       case "analytics":
         return <BookHubAnalytics bookId={book.id} />;
       default:
@@ -160,7 +157,6 @@ export default function BookHub() {
           onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
         <main className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-6">
-          {/* Context Bar */}
           <BookHubContextBar book={book} onBack={() => navigate("/dashboard?section=my-books")} />
 
           {/* Tab Navigation */}
@@ -184,7 +180,6 @@ export default function BookHub() {
             })}
           </div>
 
-          {/* Tab Content */}
           {renderTab()}
         </main>
       </div>

@@ -1,10 +1,8 @@
 import {
-  LayoutDashboard, User, BookOpen, Sparkles, Rocket,
-  Package, Users as UsersIcon, Mic, Building2,
+  LayoutDashboard, User, BookOpen, Sparkles,
   ChevronLeft, ChevronRight, Crown, ExternalLink, PenLine, BookMarked,
-  Megaphone, Contact,
+  Megaphone, Contact, DollarSign, Radio, Award,
 } from "lucide-react";
-import { useState } from "react";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
 import logoIcon from "@/assets/logo-icon.png";
 import { redirectToPublishNow } from "@/lib/publishnow-redirect";
@@ -23,7 +21,7 @@ interface NavItem {
   label: string;
   icon: typeof LayoutDashboard;
   premiumOnly?: boolean;
-  stepColor?: string;
+  color?: string;
 }
 
 const navItems: NavItem[] = [
@@ -31,10 +29,9 @@ const navItems: NavItem[] = [
   { id: "profile", label: "Author Profile", icon: User },
   { id: "my-books", label: "My Books Hub", icon: BookOpen },
   { id: "build-business", label: "Consult Abby", icon: Sparkles, premiumOnly: true },
-  { id: "step-1" as DashboardSection, label: "A · Analyze", icon: Package, premiumOnly: true, stepColor: "text-blue-500" },
-  { id: "step-2" as DashboardSection, label: "B · Build", icon: UsersIcon, premiumOnly: true, stepColor: "text-amber-600" },
-  { id: "step-3" as DashboardSection, label: "B · Bridge", icon: Mic, premiumOnly: true, stepColor: "text-rose-500" },
-  { id: "step-4" as DashboardSection, label: "Y · Yield", icon: Building2, premiumOnly: true, stepColor: "text-emerald-500" },
+  { id: "revenue-streams", label: "Revenue Streams", icon: DollarSign, premiumOnly: true, color: "text-emerald-500" },
+  { id: "marketing-channels", label: "Marketing Channels", icon: Radio, premiumOnly: true, color: "text-violet-500" },
+  { id: "authority-builders", label: "Authority Builders", icon: Award, premiumOnly: true, color: "text-sky-500" },
   { id: "marketing" as DashboardSection, label: "Marketing", icon: Megaphone, premiumOnly: true },
   { id: "crm" as DashboardSection, label: "CRM", icon: Contact, premiumOnly: true },
 ];
@@ -75,7 +72,6 @@ export default function DashboardSidebar({ activeSection, onSectionChange, colla
         {navItems.map((item) => {
           const isLocked = item.premiumOnly && !isPremium;
           const isActive = activeSection === item.id;
-          const isStep = item.id.startsWith("step-");
 
           return (
             <button
@@ -94,15 +90,10 @@ export default function DashboardSidebar({ activeSection, onSectionChange, colla
               }`}
               title={isLocked ? "Premium feature" : item.label}
             >
-              <item.icon className={`h-4 w-4 shrink-0 ${!isActive && isStep && item.stepColor ? item.stepColor : ""}`} />
+              <item.icon className={`h-4 w-4 shrink-0 ${!isActive && item.color ? item.color : ""}`} />
               {!collapsed && (
                 <>
                   <span className="truncate">{item.label}</span>
-                  {isStep && !isLocked && (
-                    <span className={`ml-auto text-[10px] font-bold ${item.stepColor || "text-muted-foreground"}`}>
-                      {item.id.replace("step-", "")}
-                    </span>
-                  )}
                   {isLocked && <Crown className="ml-auto h-3 w-3 text-secondary" />}
                 </>
               )}

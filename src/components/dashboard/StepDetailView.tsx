@@ -1,11 +1,11 @@
 import { motion } from "framer-motion";
 import {
   BookOpen, Mic, Podcast, GraduationCap, FileText, Video,
-  Share2, CreditCard, Users, Trophy, Building2, Award,
+  Share2, CreditCard, Users, Trophy, Building2,
   Bookmark, Calendar, Link2, TrendingUp, Megaphone,
-  Headphones, BookMarked, Globe, Presentation, UserCheck,
+  Headphones, BookMarked, Presentation, UserCheck,
   HandCoins, Handshake, BarChart3, ShieldCheck,
-  ArrowRight, Sparkles, Lock,
+  ArrowRight, Lock, Sparkles, DollarSign, Radio, Award,
 } from "lucide-react";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
 
@@ -16,96 +16,82 @@ interface Node {
   section?: DashboardSection;
   description: string;
   status: "live" | "coming-soon" | "planned";
-  buildOrder?: number;
-  buildReason?: string;
 }
 
-interface Step {
+interface CategoryDef {
   id: string;
   label: string;
   subtitle: string;
   color: string;
   bgColor: string;
-  ringColor: string;
   gradientFrom: string;
   gradientTo: string;
+  headerIcon: typeof DollarSign;
   nodes: Node[];
 }
 
-const steps: Step[] = [
+const categories: CategoryDef[] = [
   {
-    id: "step-1",
-    label: "A · Analyze",
-    subtitle: "Discover & Map",
-    color: "text-blue-600",
-    bgColor: "bg-blue-500/10",
-    ringColor: "ring-blue-500/30",
-    gradientFrom: "from-blue-500",
-    gradientTo: "to-blue-600",
-    nodes: [
-      { id: "social-media", label: "Social Media", icon: Share2, section: "social-media", description: "90-day AI content calendar from your book chapters — drive traffic & build authority.", status: "live", buildOrder: 1, buildReason: "Immediate visibility — drives audience growth that feeds all other products." },
-      { id: "podcast-script", label: "Podcast Scripts", icon: Podcast, description: "AI-generated podcast episode scripts from your book chapters — content marketing.", status: "planned", buildOrder: 2, buildReason: "Expand reach via audio content." },
-      { id: "workbooks", label: "Workbooks", icon: FileText, section: "workbooks", description: "Companion workbook PDFs (40-80 pages) with exercises, templates & action plans.", status: "live", buildOrder: 3, buildReason: "Simple product with high perceived value." },
-      { id: "audiobook", label: "Audiobook", icon: Headphones, description: "AI-generated audiobook scripts — author records or uses AI narration.", status: "coming-soon", buildOrder: 4, buildReason: "Scalable passive income asset." },
-      { id: "home-study", label: "Home Study Course", icon: BookMarked, description: "Self-paced study guide with daily schedules — a structured learning experience.", status: "coming-soon", buildOrder: 5, buildReason: "Structured self-paced learning path." },
-      { id: "webinars", label: "Webinars", icon: Video, section: "webinars", description: "Complete webinar scripts + slide decks + registration pages — sell live or recorded.", status: "live", buildOrder: 6, buildReason: "Lead generation engine — feeds course and coaching sales." },
-      { id: "courses", label: "Online Courses", icon: GraduationCap, section: "courses", description: "8-12 module structured courses — the biggest digital product revenue potential.", status: "coming-soon", buildOrder: 7, buildReason: "Highest revenue digital product." },
-    ],
-  },
-  {
-    id: "step-2",
-    label: "B · Build",
-    subtitle: "Create & Package",
-    color: "text-amber-600",
-    bgColor: "bg-amber-500/10",
-    ringColor: "ring-amber-500/30",
-    gradientFrom: "from-amber-500",
-    gradientTo: "to-amber-600",
-    nodes: [
-      { id: "coaching-1on1", label: "1-on-1 Coaching", icon: UserCheck, section: "coaching", description: "AI generates 6/12-session coaching programs with session outlines & client materials.", status: "live" },
-      { id: "group-coaching", label: "Group Coaching", icon: Users, section: "group-coaching", description: "8-week group coaching curriculum with session agendas & participant workbooks.", status: "coming-soon" },
-      { id: "keynotes", label: "Keynotes", icon: Mic, section: "speaking", description: "AI generates 3-5 keynote topics with slide decks — your signature talks.", status: "live" },
-      { id: "corporate-training", label: "Corporate Training", icon: Building2, section: "corporate-training", description: "Half/full-day corporate training programs with facilitator guides.", status: "planned" },
-      { id: "big-ticket", label: "Big Ticket", icon: Trophy, section: "big-ticket", description: "Premium consulting packages ($5K–$25K) with application forms & VIP delivery.", status: "planned" },
-      { id: "coaching-membership", label: "Coaching Membership", icon: CreditCard, description: "Monthly coaching tier — recurring revenue from ongoing client relationships.", status: "planned" },
-      { id: "revenue-sharing", label: "Revenue Sharing / JV", icon: Handshake, description: "Partnership matching + contract templates — grow through collaboration.", status: "planned" },
-    ],
-  },
-  {
-    id: "step-3",
-    label: "B · Bridge",
-    subtitle: "Connect & Distribute",
-    color: "text-rose-500",
-    bgColor: "bg-rose-500/10",
-    ringColor: "ring-rose-500/30",
-    gradientFrom: "from-rose-500",
-    gradientTo: "to-rose-600",
-    nodes: [
-      { id: "podcast-guest", label: "Podcast Pitches", icon: Podcast, section: "podcast", description: "AI-generated podcast pitch kit — get booked as a guest expert.", status: "planned" },
-      { id: "jvs-speaking", label: "Joint Ventures", icon: Handshake, description: "JV proposals for co-hosting speaking events — leverage each other's audiences.", status: "planned" },
-      { id: "book-sales-events", label: "Book Sales at Events", icon: BookOpen, description: "QR code order pages for book sales at live events — capture impulse buyers.", status: "planned" },
-      { id: "special-editions", label: "Special Editions", icon: Sparkles, description: "AI generates special edition proposals — signed copies, bundles, collector's.", status: "planned" },
-      { id: "in-house-speaker", label: "In-House Speaker", icon: Presentation, description: "Corporate speaker profile + booking system — get hired for internal events.", status: "planned" },
-      { id: "fundraising", label: "Fund Raising", icon: HandCoins, description: "Fundraising event templates — use your author authority for causes.", status: "planned" },
-      { id: "conventions", label: "Conventions", icon: Calendar, description: "Conference submission generator — get accepted to speak at industry events.", status: "planned" },
-    ],
-  },
-  {
-    id: "step-4",
-    label: "Y · Yield",
-    subtitle: "Monetize & Earn",
-    color: "text-emerald-500",
+    id: "revenue-streams",
+    label: "Revenue Streams",
+    subtitle: "Products & services you sell",
+    color: "text-emerald-600",
     bgColor: "bg-emerald-500/10",
-    ringColor: "ring-emerald-500/30",
     gradientFrom: "from-emerald-500",
     gradientTo: "to-emerald-600",
+    headerIcon: DollarSign,
     nodes: [
-      { id: "memberships", label: "Monthly Memberships", icon: CreditCard, section: "memberships", description: "3-tier membership system — Reader Circle, Pro, VIP — with gated content drip.", status: "planned" },
-      { id: "affiliates", label: "Affiliates", icon: Link2, description: "Affiliate tracking links with commission structures — grow through partnerships.", status: "planned" },
-      { id: "upsells", label: "Upsells / Downsells", icon: TrendingUp, description: "AI-generated conversion sequences in your checkout flow — maximize every sale.", status: "planned" },
+      { id: "workbooks", label: "Workbooks", icon: FileText, section: "workbooks", description: "Companion workbook PDFs (40-80 pages) with exercises, templates & action plans.", status: "live" },
+      { id: "audiobook", label: "Audiobook", icon: Headphones, description: "AI-generated audiobook from your manuscript — author records or uses AI narration.", status: "coming-soon" },
+      { id: "courses", label: "Online Courses", icon: GraduationCap, section: "courses", description: "8-12 module structured courses — the biggest digital product revenue potential.", status: "coming-soon" },
+      { id: "home-study", label: "Home Study Course", icon: BookMarked, description: "Self-paced study guide with daily schedules — a structured learning experience.", status: "coming-soon" },
+      { id: "webinars", label: "Webinars", icon: Video, section: "webinars", description: "Complete webinar scripts + slide decks + registration pages.", status: "live" },
+      { id: "memberships", label: "Monthly Memberships", icon: CreditCard, section: "memberships", description: "3-tier membership — Reader Circle, Pro, VIP — with gated content drip.", status: "planned" },
+      { id: "upsells", label: "Upsells / Downsells", icon: TrendingUp, description: "AI-generated conversion sequences in your checkout flow.", status: "planned" },
       { id: "certification", label: "Certification Programs", icon: ShieldCheck, section: "certification", description: "Multi-module curriculum + exam + digital certificates — build an academy.", status: "planned" },
       { id: "masterminds", label: "Masterminds", icon: BarChart3, section: "masterminds", description: "Quarterly mastermind group programs with hot-seat format & accountability.", status: "planned" },
       { id: "retreats", label: "Retreats & Bootcamps", icon: Bookmark, section: "retreats", description: "2-3 day retreat programs with agendas, materials & registration.", status: "planned" },
+    ],
+  },
+  {
+    id: "marketing-channels",
+    label: "Marketing Channels",
+    subtitle: "How you reach your audience",
+    color: "text-violet-600",
+    bgColor: "bg-violet-500/10",
+    gradientFrom: "from-violet-500",
+    gradientTo: "to-violet-600",
+    headerIcon: Radio,
+    nodes: [
+      { id: "social-media", label: "Social Media", icon: Share2, section: "social-media", description: "90-day AI content calendar from your book chapters — drive traffic & build authority.", status: "live" },
+      { id: "podcast-script", label: "Podcast Scripts", icon: Podcast, description: "AI-generated podcast episode scripts from your book chapters.", status: "planned" },
+      { id: "podcast-guest", label: "Podcast Pitches", icon: Podcast, section: "podcast", description: "AI-generated podcast pitch kit — get booked as a guest expert.", status: "planned" },
+      { id: "affiliates", label: "Affiliates", icon: Link2, description: "Affiliate tracking links with commission structures — grow through partnerships.", status: "planned" },
+      { id: "book-sales-events", label: "Book Sales at Events", icon: BookOpen, description: "QR code order pages for book sales at live events.", status: "planned" },
+      { id: "conventions", label: "Conventions", icon: Calendar, description: "Conference submission generator — get accepted to speak at industry events.", status: "planned" },
+      { id: "fundraising", label: "Fund Raising", icon: HandCoins, description: "Fundraising event templates — use your author authority for causes.", status: "planned" },
+      { id: "jvs", label: "Joint Ventures", icon: Handshake, description: "JV proposals for co-hosting events — leverage each other's audiences.", status: "planned" },
+      { id: "special-editions", label: "Special Editions", icon: Sparkles, description: "Special edition proposals — signed copies, bundles, collector's.", status: "planned" },
+    ],
+  },
+  {
+    id: "authority-builders",
+    label: "Authority Builders",
+    subtitle: "Build credibility & premium positioning",
+    color: "text-sky-600",
+    bgColor: "bg-sky-500/10",
+    gradientFrom: "from-sky-500",
+    gradientTo: "to-sky-600",
+    headerIcon: Award,
+    nodes: [
+      { id: "coaching-1on1", label: "1-on-1 Coaching", icon: UserCheck, section: "coaching", description: "AI generates 6/12-session coaching programs with session outlines & client materials.", status: "live" },
+      { id: "group-coaching", label: "Group Coaching", icon: Users, section: "group-coaching", description: "8-week group coaching curriculum with session agendas & participant workbooks.", status: "coming-soon" },
+      { id: "big-ticket", label: "Big Ticket Consulting", icon: Trophy, section: "big-ticket", description: "Premium consulting packages ($5K–$25K) with application forms & VIP delivery.", status: "planned" },
+      { id: "coaching-membership", label: "Coaching Membership", icon: CreditCard, description: "Monthly coaching tier — recurring revenue from ongoing client relationships.", status: "planned" },
+      { id: "keynotes", label: "Keynotes", icon: Mic, section: "speaking", description: "AI generates 3-5 keynote topics with slide decks — your signature talks.", status: "live" },
+      { id: "corporate-training", label: "Corporate Training", icon: Building2, section: "corporate-training", description: "Half/full-day corporate training programs with facilitator guides.", status: "planned" },
+      { id: "in-house-speaker", label: "In-House Speaker", icon: Presentation, description: "Corporate speaker profile + booking system — get hired for internal events.", status: "planned" },
+      { id: "revenue-sharing", label: "Revenue Sharing / JV", icon: Handshake, description: "Partnership matching + contract templates — grow through collaboration.", status: "planned" },
       { id: "exhibitors", label: "Exhibitors / JV", icon: Megaphone, description: "Exhibitor prospectus + partnership matching for your events.", status: "planned" },
     ],
   },
@@ -118,40 +104,35 @@ const statusStyles = {
 };
 
 interface Props {
-  stepId: string;
+  categoryId: string;
   onNavigate: (section: DashboardSection | string) => void;
   isPremium: boolean;
 }
 
-export default function StepDetailView({ stepId, onNavigate, isPremium }: Props) {
-  const stepData = steps.find((s) => s.id === stepId);
-  if (!stepData) return null;
+export default function StepDetailView({ categoryId, onNavigate, isPremium }: Props) {
+  const catData = categories.find((c) => c.id === categoryId);
+  if (!catData) return null;
 
-  const stepIndex = steps.indexOf(stepData);
+  const HeaderIcon = catData.headerIcon;
 
   return (
     <div className="max-w-6xl space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stepData.gradientFrom} ${stepData.gradientTo} flex items-center justify-center text-white font-bold text-lg shadow-sm`}>
-          {stepIndex + 1}
+        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${catData.gradientFrom} ${catData.gradientTo} flex items-center justify-center text-white shadow-sm`}>
+          <HeaderIcon className="h-6 w-6" />
         </div>
         <div>
-          <p className={`text-xs font-bold uppercase tracking-wider ${stepData.color}`}>
-            {stepData.label}
-          </p>
-          <h1 className="font-heading text-2xl md:text-3xl font-bold">{stepData.subtitle}</h1>
-          {stepData.id === "step-1" && (
-            <p className="text-xs text-muted-foreground mt-0.5">Products numbered in recommended build sequence</p>
-          )}
+          <h1 className="font-heading text-2xl md:text-3xl font-bold">{catData.label}</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">{catData.subtitle}</p>
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <span className={`text-xs font-medium rounded-full px-3 py-1 ${stepData.bgColor} ${stepData.color}`}>
-            {stepData.nodes.length} products
+          <span className={`text-xs font-medium rounded-full px-3 py-1 ${catData.bgColor} ${catData.color}`}>
+            {catData.nodes.length} products
           </span>
-          {stepData.nodes.filter(n => n.status === "live").length > 0 && (
+          {catData.nodes.filter(n => n.status === "live").length > 0 && (
             <span className="text-xs font-medium rounded-full px-3 py-1 bg-green-500/15 text-green-700">
-              {stepData.nodes.filter(n => n.status === "live").length} live
+              {catData.nodes.filter(n => n.status === "live").length} live
             </span>
           )}
         </div>
@@ -159,7 +140,7 @@ export default function StepDetailView({ stepId, onNavigate, isPremium }: Props)
 
       {/* Product Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {stepData.nodes.map((node) => {
+        {catData.nodes.map((node) => {
           const status = statusStyles[node.status];
           const canNavigate = node.section && node.status === "live";
           const Icon = node.icon;
@@ -179,21 +160,13 @@ export default function StepDetailView({ stepId, onNavigate, isPremium }: Props)
               animate={{ opacity: 1, y: 0 }}
               whileHover={canNavigate ? { y: -2 } : {}}
             >
-              {node.buildOrder && (
-                <div className={`absolute -top-2.5 -left-2.5 w-6 h-6 rounded-full bg-gradient-to-br ${stepData.gradientFrom} ${stepData.gradientTo} flex items-center justify-center text-white text-[10px] font-bold shadow-sm ring-2 ring-background`}>
-                  {node.buildOrder}
-                </div>
-              )}
               <div className="flex items-start gap-3">
-                <div className={`w-9 h-9 rounded-lg ${stepData.bgColor} flex items-center justify-center shrink-0`}>
-                  <Icon className={`h-4 w-4 ${stepData.color}`} />
+                <div className={`w-9 h-9 rounded-lg ${catData.bgColor} flex items-center justify-center shrink-0`}>
+                  <Icon className={`h-4 w-4 ${catData.color}`} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <h4 className="font-semibold text-sm truncate">{node.label}</h4>
                   <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 mt-1">{node.description}</p>
-                  {node.buildReason && (
-                    <p className="text-[10px] text-muted-foreground/70 italic leading-snug mt-1 line-clamp-1">{node.buildReason}</p>
-                  )}
                   <div className="flex items-center gap-2 mt-2">
                     <span className={`text-[10px] font-medium rounded-full px-2 py-0.5 ${status.className}`}>
                       {status.badge}

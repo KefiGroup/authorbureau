@@ -32,7 +32,7 @@ export type DashboardSection =
   | "speaking" | "podcast" | "corporate-training"
   | "retreats" | "certification" | "masterminds"
   | "email-marketing" | "subscribers" | "email-templates"
-  | "step-1" | "step-2" | "step-3" | "step-4"
+  | "revenue-streams" | "marketing-channels" | "authority-builders"
   | "marketing" | "crm";
 
 const comingSoonSections: Record<string, { title: string; description: string; icon: typeof Rocket }> = {
@@ -73,7 +73,7 @@ const comingSoonSections: Record<string, { title: string; description: string; i
   },
   crm: {
     title: "CRM & Contacts",
-    description: "Your unified customer relationship management hub — track every lead, client, and attendee across all 4 steps.",
+    description: "Your unified customer relationship management hub — track every lead, client, and attendee across all categories.",
     icon: Users,
   },
   marketing: {
@@ -181,14 +181,12 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "email-templates":
         return gate("Email Marketing", <EmailMarketing activeTab={activeSection} onTabChange={(s) => setActiveSection(s as DashboardSection)} />);
       
-      // Step categories → show the Business Framework (it handles step focusing internally)
-      case "step-1":
-      case "step-2":
-      case "step-3":
-      case "step-4":
-        return (
-          <PortfolioStepView stepId={activeSection} />
-        );
+      // 3-category views
+      case "revenue-streams":
+      case "marketing-channels":
+      case "authority-builders":
+        return <PortfolioStepView categoryId={activeSection} />;
+
       case "overview":
         return (
           <BusinessFramework
