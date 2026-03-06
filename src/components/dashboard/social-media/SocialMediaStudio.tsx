@@ -280,6 +280,7 @@ export default function SocialMediaStudio({ onExit, initialBookId, initialBookTi
                 onBack={() => setStep(4)}
                 onDone={onExit}
                 onRegenerate={handleRegenerate}
+                onPostsChange={setPosts}
               />
             )}
           </>

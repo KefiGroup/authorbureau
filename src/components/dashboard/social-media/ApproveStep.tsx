@@ -5,11 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, Save, Loader2, Download, Copy, ExternalLink, RefreshCw, Clipboard, Sparkles, ImagePlus, Image as ImageIcon } from "lucide-react";
+import { CheckCircle2, Save, Loader2, Download, Copy, ExternalLink, RefreshCw, Clipboard, Sparkles, ImagePlus, Image as ImageIcon, LayoutDashboard } from "lucide-react";
 import { useState } from "react";
 import type { SocialPost, CalendarConfig } from "./types";
 import { CATEGORY_COLORS, FORMAT_LABELS, FORMAT_COLORS, type ContentFormat } from "./types";
 import AbbyCoachingTip from "./AbbyCoachingTip";
+import PublishingDashboard from "./PublishingDashboard";
 
 interface Props {
   posts: SocialPost[];
@@ -17,6 +18,7 @@ interface Props {
   onBack: () => void;
   onDone: () => void;
   onRegenerate?: () => void;
+  onPostsChange?: (posts: SocialPost[]) => void;
 }
 
 /** Encode rich post metadata into a single JSON string for the image_prompt DB column */
@@ -39,11 +41,12 @@ function buildPostText(p: SocialPost): string {
   return p.caption + hashtags;
 }
 
-export default function ApproveStep({ posts, config, onBack, onDone, onRegenerate }: Props) {
+export default function ApproveStep({ posts, config, onBack, onDone, onRegenerate, onPostsChange }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
   const [cloudUserId, setCloudUserId] = useState<string | null>(null);
   const [copiedPostId, setCopiedPostId] = useState<string | null>(null);
   const [copiedPromptId, setCopiedPromptId] = useState<string | null>(null);
@@ -216,44 +219,56 @@ export default function ApproveStep({ posts, config, onBack, onDone, onRegenerat
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      {/* Simplified 3-step workflow */}
+      {/* Publishing Dashboard toggle */}
+      {showDashboard ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Button variant="ghost" size="sm" onClick={() => setShowDashboard(false)}>
+              ← Back to Overview
+            </Button>
+          </div>
+          <PublishingDashboard
+            posts={posts}
+            config={config}
+            onPostsChange={onPostsChange || (() => {})}
+          />
+        </div>
+      ) : (
+        <>
+      {/* Publishing workflow guide */}
       <AbbyCoachingTip
-        title="Your 2-Step Publishing Workflow"
+        title="Your Daily Publishing Workflow"
         expandedByDefault
         customContent={
           <div className="space-y-4 text-sm">
             <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/5 border border-secondary/10">
-              <span className="shrink-0 text-lg">1️⃣</span>
+              <span className="shrink-0 text-lg">📋</span>
               <div>
-                <p className="font-semibold text-foreground">Generate images → Download</p>
+                <p className="font-semibold text-foreground">Open Publishing Dashboard daily</p>
                 <p className="text-muted-foreground text-xs mt-0.5">
-                  Click <ImagePlus className="h-3 w-3 inline" /> <span className="font-medium text-foreground">Generate</span> on any post below — AI creates a platform-sized graphic instantly.
-                  Download it and you're ready to post. No Canva needed!
+                  See today's posts, copy text, generate images, open each platform, paste & post — then mark as done. No Buffer subscription needed!
                 </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
-              <span className="shrink-0 text-lg">2️⃣</span>
-              <div>
-                <p className="font-semibold text-foreground">Copy post + attach image → Schedule in Buffer</p>
-                <p className="text-muted-foreground text-xs mt-0.5">
-                  Click <Copy className="h-3 w-3 inline" /> on any post → open{" "}
-                  <a href="https://publish.buffer.com" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium inline-flex items-center gap-0.5">
-                    Buffer <ExternalLink className="h-3 w-3" />
-                  </a>
-                  {" → paste text → drag in your generated image → schedule. Done!"}
-                </p>
+                <Button
+                  size="sm"
+                  className="mt-2 text-xs h-7 bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                  onClick={() => { if (!saved) savePosts("approved").then(() => setShowDashboard(true)); else setShowDashboard(true); }}
+                  disabled={saving}
+                >
+                  <LayoutDashboard className="h-3.5 w-3.5 mr-1.5" />
+                  {saved ? "Open Publishing Dashboard" : "Save & Open Publishing Dashboard"}
+                </Button>
               </div>
             </div>
             <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 border border-border">
               <span className="shrink-0 text-lg">💡</span>
               <div>
-                <p className="font-semibold text-foreground">Bulk option: CSV import</p>
+                <p className="font-semibold text-foreground">Alternative: Bulk CSV export</p>
                 <p className="text-muted-foreground text-xs mt-0.5">
-                  <button onClick={exportBufferCSV} className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium">
-                    Download CSV
-                  </button>
-                  {" → Buffer → Content → Import → all posts schedule at once."}
+                  Prefer using{" "}
+                  <a href="https://publish.buffer.com" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium inline-flex items-center gap-0.5">
+                    Buffer <ExternalLink className="h-3 w-3" />
+                  </a>
+                  ? <button onClick={exportBufferCSV} className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium">Download CSV</button> → Import → schedule all at once.
                 </p>
               </div>
             </div>
@@ -543,11 +558,19 @@ export default function ApproveStep({ posts, config, onBack, onDone, onRegenerat
 
       {/* Done button after saving */}
       {saved && (
-        <div className="text-center pt-2">
+        <div className="text-center pt-2 space-x-3">
+          <Button
+            onClick={() => setShowDashboard(true)}
+            className="bg-secondary text-secondary-foreground hover:bg-secondary/90 px-6"
+          >
+            <LayoutDashboard className="h-4 w-4 mr-1.5" /> Open Publishing Dashboard
+          </Button>
           <Button onClick={onDone} variant="outline" className="px-8">
             ✓ Done — Return to Dashboard
           </Button>
         </div>
+      )}
+        </>
       )}
     </div>
   );
