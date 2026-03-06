@@ -568,9 +568,15 @@ serve(async (req) => {
         ? adminClient.from("generated_assets").select("asset_type, content").eq("book_id", bookId).eq("author_id", user.id)
         : Promise.resolve({ data: [] }),
       adminClient.from("author_subscribers").select("id").eq("author_id", user.id).eq("status", "active"),
-      adminClient.from("courses").select("id, title, status, description, price, currency").eq("author_id", user.id),
-      adminClient.from("workbooks").select("id, title, status, description, price, currency").eq("author_id", user.id),
-      adminClient.from("webinars").select("id, title, status, description, price, is_free").eq("author_id", user.id),
+      bookId
+        ? adminClient.from("courses").select("id, title, status, description, price, currency").eq("author_id", user.id).eq("book_id", bookId)
+        : adminClient.from("courses").select("id, title, status, description, price, currency").eq("author_id", user.id),
+      bookId
+        ? adminClient.from("workbooks").select("id, title, status, description, price, currency").eq("author_id", user.id).eq("book_id", bookId)
+        : adminClient.from("workbooks").select("id, title, status, description, price, currency").eq("author_id", user.id),
+      bookId
+        ? adminClient.from("webinars").select("id, title, status, description, price, is_free").eq("author_id", user.id).eq("book_id", bookId)
+        : adminClient.from("webinars").select("id, title, status, description, price, is_free").eq("author_id", user.id),
       adminClient.from("coaching_packages").select("id, title, status, description, price, type, sessions_count").eq("author_id", user.id),
       adminClient.from("speaking_topics").select("id, title, status, description, fee").eq("author_id", user.id),
       bookId
