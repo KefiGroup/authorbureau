@@ -716,36 +716,58 @@ CONVERSATION START:
       ...(messages || []).map((m: any) => ({ role: m.role, content: m.content })),
     ];
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-5.2",
-        messages: aiMessages,
-        temperature: 0.85,
-        stream: true,
-      }),
+    const aiRequestBody = JSON.stringify({
+      model: "openai/gpt-5.2",
+      messages: aiMessages,
+      temperature: 0.85,
+      stream: true,
     });
 
-    if (!response.ok) {
-      if (response.status === 429) {
+    const aiRequestHeaders = {
+      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      "Content-Type": "application/json",
+    };
+
+    // Retry logic: up to 2 attempts for transient 502/503 errors
+    let response: Response | null = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: aiRequestHeaders,
+        body: aiRequestBody,
+      });
+
+      if (response.ok || (response.status !== 502 && response.status !== 503)) {
+        break;
+      }
+      // Consume body before retry
+      await response.text();
+      if (attempt === 0) {
+        console.warn(`AI gateway returned ${response.status}, retrying in 2s...`);
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+    }
+
+    if (!response || !response.ok) {
+      const status = response?.status ?? 500;
+      if (status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 402) {
+      if (status === 402) {
         return new Response(JSON.stringify({ error: "AI credits exhausted." }), {
           status: 402,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
-      return new Response(JSON.stringify({ error: "AI service error." }), {
+      const t = response ? await response.text() : "No response";
+      console.error("AI gateway error:", status, t);
+      const userMsg = (status === 502 || status === 503)
+        ? "Abby is temporarily unavailable. Please try again in a few seconds."
+        : "AI service error.";
+      return new Response(JSON.stringify({ error: userMsg }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
