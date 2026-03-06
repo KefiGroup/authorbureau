@@ -60,6 +60,15 @@ export default function BulkEditStep({ posts, onPostsChange, onNext, onBack }: P
 
   return (
     <div className="space-y-4">
+      <AbbyCoachingTip
+        title="Bulk Edit Power Moves"
+        tips={[
+          "🔄 Select multiple posts and change categories at once to rebalance your content mix.",
+          "📆 Use bulk reschedule to shift posts forward if you need prep time for visual assets.",
+          "📸 Posts marked 'Carousel' or 'Reel Script' need visual assets — prepare these first before scheduling.",
+          "💡 Pro tip: batch-create all carousel slides for the week in one sitting for consistency.",
+        ]}
+      />
       {/* Bulk Actions Bar */}
       {selected.size > 0 && (
         <Card className="border-secondary/30 bg-secondary/5">

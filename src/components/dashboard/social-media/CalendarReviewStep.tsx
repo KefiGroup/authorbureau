@@ -77,6 +77,15 @@ export default function CalendarReviewStep({ posts, onPostsChange, onNext, onBac
 
   return (
     <div className="space-y-4">
+      <AbbyCoachingTip
+        title="How to Review Your Calendar"
+        tips={[
+          "📌 Drag posts between dates to optimize timing. Best days: Tue-Thu for LinkedIn, Mon-Fri for Instagram.",
+          "✏️ Click any post to edit the caption. Add your personal voice — AI drafts the structure, you add the soul.",
+          "🎯 Check format distribution: aim for 40% visual (carousels/reels), 30% text, 20% interactive (polls/questions), 10% video scripts.",
+          "🗑️ Delete low-impact posts rather than keeping filler. Quality > quantity always wins.",
+        ]}
+      />
       {/* Top Bar */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex gap-1.5 overflow-x-auto">
