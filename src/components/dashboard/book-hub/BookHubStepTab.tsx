@@ -132,6 +132,9 @@ export default function BookHubStepTab({ categoryId, bookId, bookTitle, isPremiu
 
   return (
     <div className="space-y-6">
+      {/* Abby Build Advisor */}
+      <AbbyBuildAdvisor categoryId={categoryId} bookId={bookId} bookTitle={bookTitle} />
+
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${catData.gradientFrom} ${catData.gradientTo} flex items-center justify-center text-white shadow-sm`}>
