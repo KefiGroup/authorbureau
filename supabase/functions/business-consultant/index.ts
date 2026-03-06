@@ -525,7 +525,9 @@ When the author is excited and ready to build:
 11. Always incorporate discovered frameworks into recommendations.
 12. NEVER recommend a product that already exists.
 13. Show the funnel/ladder progression — each product should lead to the next.
-14. Revenue projections MUST be calibrated to audience size — don't project 500 sales to someone with 0 subscribers.`;
+14. Revenue projections MUST be calibrated to audience size — don't project 500 sales to someone with 0 subscribers.
+15. Phase 6 MUST present ALL 27 revenue nodes with fit scores — the author picks which ones to pursue. This is NOT optional.
+16. The consultation's GOAL is to deliver a complete 27-node business plan. Every phase builds toward this deliverable.`;
 
 
 serve(async (req) => {
