@@ -77,7 +77,7 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     ],
   },
   "authority-builders": {
-    id: "authority-builders", label: "Authority Builders", subtitle: "Credibility & positioning",
+    id: "authority-builders", label: "Y · Yield Revenue", subtitle: "Premium revenue streams & monetization",
     color: "text-sky-600", bgColor: "bg-sky-500/10",
     gradientFrom: "from-sky-500", gradientTo: "to-sky-600",
     headerIcon: Award,

@@ -34,9 +34,9 @@ async function getActiveToken(): Promise<string | null> {
 
 const tabs: { id: BookHubTab; label: string }[] = [
   { id: "overview", label: "Overview" },
-  { id: "revenue-streams", label: "💰 Revenue" },
-  { id: "marketing-channels", label: "📣 Marketing" },
-  { id: "authority-builders", label: "🏆 Authority" },
+  { id: "revenue-streams", label: "🏗️ Build" },
+  { id: "marketing-channels", label: "🌉 Bridge" },
+  { id: "authority-builders", label: "💰 Yield" },
   { id: "analytics", label: "Analytics" },
 ];
 
