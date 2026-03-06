@@ -526,7 +526,7 @@ export default function BuildMyBusiness() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
-          body: JSON.stringify({ priceId: TIERS.premium.price_id }),
+          body: JSON.stringify({ priceId: TIERS.starter.price_id }),
         }
       );
       const result = await resp.json();
