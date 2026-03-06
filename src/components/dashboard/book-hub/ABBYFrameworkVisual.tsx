@@ -136,20 +136,20 @@ export default function ABBYFrameworkVisual({ hasConsultation, onConsultAbby, on
       {/* Legend */}
       <div className="flex items-center justify-center gap-6 text-[10px] text-muted-foreground pt-6">
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full" style={{ background: "#f59e0b" }} />
-          <span>A · Analyze</span>
-        </div>
-        <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded-full" style={{ background: "#10b981" }} />
-          <span>B · Build</span>
+          <span>Digital Products</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded-full" style={{ background: "#8b5cf6" }} />
-          <span>B · Bridge</span>
+          <span>Coaching</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded-full" style={{ background: "#0ea5e9" }} />
-          <span>Y · Yield</span>
+          <span>Speaking</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded-full" style={{ background: "#f59e0b" }} />
+          <span>Partnerships</span>
         </div>
       </div>
     </motion.div>
