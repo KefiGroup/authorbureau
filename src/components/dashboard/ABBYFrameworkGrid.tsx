@@ -1,13 +1,12 @@
 import { motion } from "framer-motion";
-import { BookOpen } from "lucide-react";
 
 interface FrameworkProduct {
   label: string;
   active: boolean;
+  category: "revenue" | "marketing" | "authority";
 }
 
 interface Category {
-  step: number;
   letter: string;
   subtitle: string;
   title: string;
@@ -18,54 +17,55 @@ interface Category {
 
 const FRAMEWORK: Category[] = [
   {
-    step: 1, letter: "A", subtitle: "AUTOMATE", title: "DIGITAL PRODUCTS",
+    letter: "A", subtitle: "ANALYZE", title: "DIGITAL PRODUCTS",
     hubColor: "#3b82f6", nodeColor: "#60a5fa",
     products: [
-      { label: "Online Courses", active: false },
-      { label: "Affiliates", active: false },
-      { label: "Audio Book", active: false },
-      { label: "Home Study Courses", active: false },
-      { label: "Webinars", active: false },
-      { label: "Website", active: false },
-      { label: "Workbook", active: false },
-      { label: "Monthly Memberships", active: false },
-      { label: "Upsells / Downsells", active: false },
-      { label: "Social Media", active: false },
+      { label: "Online Courses", active: false, category: "revenue" },
+      { label: "Workbook", active: false, category: "revenue" },
+      { label: "Audio Book", active: false, category: "revenue" },
+      { label: "Home Study Courses", active: false, category: "revenue" },
+      { label: "Webinars", active: false, category: "revenue" },
+      { label: "Monthly Memberships", active: false, category: "revenue" },
+      { label: "Upsells / Downsells", active: false, category: "revenue" },
+      { label: "Affiliates", active: false, category: "revenue" },
+      { label: "Social Media", active: false, category: "marketing" },
+      { label: "Podcast", active: false, category: "marketing" },
     ],
   },
   {
-    step: 2, letter: "B", subtitle: "BUILD", title: "COACHING / CONSULTING",
+    letter: "B", subtitle: "BUILD", title: "COACHING",
     hubColor: "#d97706", nodeColor: "#f59e0b",
     products: [
-      { label: "1-on-1 Coaching", active: false },
-      { label: "Group Coaching", active: false },
-      { label: "Big Ticket", active: false },
-      { label: "Revenue Sharing", active: false },
+      { label: "1-on-1 Coaching", active: false, category: "revenue" },
+      { label: "Group Coaching", active: false, category: "revenue" },
+      { label: "Big Ticket", active: false, category: "revenue" },
+      { label: "Revenue Sharing", active: false, category: "revenue" },
+      { label: "Coaching Membership", active: false, category: "revenue" },
     ],
   },
   {
-    step: 3, letter: "B", subtitle: "BROADCAST", title: "SPEAKING",
+    letter: "B", subtitle: "BRIDGE", title: "SPEAKING",
     hubColor: "#f43f5e", nodeColor: "#fb7185",
     products: [
-      { label: "JVs", active: false },
-      { label: "Podcasts", active: false },
-      { label: "Book Sales", active: false },
-      { label: "Fund Raising", active: false },
-      { label: "In-House Speaker", active: false },
-      { label: "Special Editions", active: false },
+      { label: "Keynotes", active: false, category: "authority" },
+      { label: "Podcasts (Guest)", active: false, category: "marketing" },
+      { label: "Corporate Training", active: false, category: "authority" },
+      { label: "Joint Ventures", active: false, category: "revenue" },
+      { label: "Book Sales", active: false, category: "revenue" },
+      { label: "Special Editions", active: false, category: "revenue" },
+      { label: "In-House Speaker", active: false, category: "authority" },
+      { label: "Fund Raising", active: false, category: "authority" },
+      { label: "Conventions", active: false, category: "authority" },
     ],
   },
   {
-    step: 4, letter: "Y", subtitle: "YIELD", title: "SEMINARS",
+    letter: "Y", subtitle: "YIELD", title: "SEMINARS",
     hubColor: "#10b981", nodeColor: "#34d399",
     products: [
-      { label: "Retreats & Bootcamps", active: false },
-      { label: "Certification", active: false },
-      { label: "Masterminds", active: false },
-      { label: "Exhibitors / JV", active: false },
-      { label: "Conventions", active: false },
-      { label: "Training Programs", active: false },
-      { label: "Conferences", active: false },
+      { label: "Retreats & Bootcamps", active: false, category: "revenue" },
+      { label: "Certification", active: false, category: "revenue" },
+      { label: "Masterminds", active: false, category: "revenue" },
+      { label: "Exhibitors / JV", active: false, category: "revenue" },
     ],
   },
 ];
@@ -78,10 +78,10 @@ const CY = H / 2;
 
 // Hub positions (absolute SVG coords)
 const HUBS: Record<number, { x: number; y: number; startAngle: number; sweep: number; radius: number }> = {
-  1: { x: 200, y: 180, startAngle: 150, sweep: 220, radius: 155 },
-  2: { x: 200, y: 500, startAngle: 150, sweep: 170, radius: 130 },
-  3: { x: 800, y: 500, startAngle: -40, sweep: 170, radius: 130 },
-  4: { x: 800, y: 180, startAngle: -40, sweep: 220, radius: 155 },
+  0: { x: 200, y: 180, startAngle: 150, sweep: 220, radius: 155 },
+  1: { x: 200, y: 500, startAngle: 150, sweep: 170, radius: 130 },
+  2: { x: 800, y: 500, startAngle: -40, sweep: 170, radius: 130 },
+  3: { x: 800, y: 180, startAngle: -40, sweep: 220, radius: 155 },
 };
 
 function getNodePositions(count: number, cx: number, cy: number, radius: number, startAngle: number, sweep: number) {
@@ -93,6 +93,12 @@ function getNodePositions(count: number, cx: number, cy: number, radius: number,
   }
   return positions;
 }
+
+const CATEGORY_ICONS: Record<string, string> = {
+  revenue: "$",
+  marketing: "📣",
+  authority: "🏆",
+};
 
 interface Props {
   isPremium: boolean;
@@ -108,7 +114,7 @@ export default function ABBYFrameworkGrid({ isPremium, onNavigate, onUpgrade }: 
     <div className="space-y-3">
       <div className="text-center">
         <p className="text-xs text-muted-foreground">
-          {activeProducts} of {totalProducts} revenue streams activated
+          <strong>A</strong>nalyze · <strong>B</strong>uild · <strong>B</strong>ridge · <strong>Y</strong>ield — {activeProducts} of {totalProducts} streams activated
         </p>
       </div>
 
@@ -116,11 +122,11 @@ export default function ABBYFrameworkGrid({ isPremium, onNavigate, onUpgrade }: 
       <div className="w-full rounded-2xl border border-border bg-card overflow-hidden">
         <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" style={{ minHeight: 340 }}>
           {/* Dashed lines from center book to each hub */}
-          {FRAMEWORK.map((cat) => {
-            const hub = HUBS[cat.step];
+          {FRAMEWORK.map((cat, idx) => {
+            const hub = HUBS[idx];
             return (
               <line
-                key={`center-${cat.step}`}
+                key={`center-${idx}`}
                 x1={CX} y1={CY}
                 x2={hub.x} y2={hub.y}
                 stroke="hsl(var(--border))"
@@ -132,12 +138,12 @@ export default function ABBYFrameworkGrid({ isPremium, onNavigate, onUpgrade }: 
           })}
 
           {/* Dashed lines from each hub to its nodes */}
-          {FRAMEWORK.map((cat) => {
-            const hub = HUBS[cat.step];
+          {FRAMEWORK.map((cat, idx) => {
+            const hub = HUBS[idx];
             const positions = getNodePositions(cat.products.length, hub.x, hub.y, hub.radius, hub.startAngle, hub.sweep);
             return positions.map((pos, i) => (
               <line
-                key={`spoke-${cat.step}-${i}`}
+                key={`spoke-${idx}-${i}`}
                 x1={hub.x} y1={hub.y}
                 x2={pos.x} y2={pos.y}
                 stroke="hsl(var(--border))"
@@ -149,13 +155,13 @@ export default function ABBYFrameworkGrid({ isPremium, onNavigate, onUpgrade }: 
           })}
 
           {/* Product nodes (circles + text) */}
-          {FRAMEWORK.map((cat) => {
-            const hub = HUBS[cat.step];
+          {FRAMEWORK.map((cat, idx) => {
+            const hub = HUBS[idx];
             const positions = getNodePositions(cat.products.length, hub.x, hub.y, hub.radius, hub.startAngle, hub.sweep);
             return positions.map((pos, i) => {
               const p = cat.products[i];
               return (
-                <g key={`node-${cat.step}-${i}`}>
+                <g key={`node-${idx}-${i}`}>
                   <circle
                     cx={pos.x} cy={pos.y} r={18}
                     fill={p.active ? cat.nodeColor : "hsl(var(--muted))"}
@@ -169,7 +175,7 @@ export default function ABBYFrameworkGrid({ isPremium, onNavigate, onUpgrade }: 
                     fill="white" fontSize="12" fontWeight="bold"
                     opacity={p.active ? 1 : 0.7}
                   >
-                    {p.active ? "✓" : "$"}
+                    {p.active ? "✓" : CATEGORY_ICONS[p.category]}
                   </text>
                   <text
                     x={pos.x} y={pos.y + 28}
@@ -187,13 +193,13 @@ export default function ABBYFrameworkGrid({ isPremium, onNavigate, onUpgrade }: 
           })}
 
           {/* Hub circles */}
-          {FRAMEWORK.map((cat) => {
-            const hub = HUBS[cat.step];
+          {FRAMEWORK.map((cat, idx) => {
+            const hub = HUBS[idx];
             return (
-              <g key={`hub-${cat.step}`} className="cursor-pointer">
+              <g key={`hub-${idx}`} className="cursor-pointer">
                 <circle cx={hub.x} cy={hub.y} r={48} fill={cat.hubColor} />
                 <text x={hub.x} y={hub.y - 14} textAnchor="middle" fill="white" fontSize="9" fontWeight="bold" opacity={0.8}>
-                  STEP {cat.step}
+                  {cat.letter} · {cat.subtitle}
                 </text>
                 <text x={hub.x} y={hub.y + 2} textAnchor="middle" fill="white" fontSize="11" fontWeight="800">
                   {cat.title}
@@ -224,11 +230,13 @@ export default function ABBYFrameworkGrid({ isPremium, onNavigate, onUpgrade }: 
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded-full bg-muted border-2 border-border" />
-          <span>Pending</span>
+          <span>💰 Revenue</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-4 h-0 border-t border-dashed border-border" />
-          <span>Revenue connection</span>
+          <span>📣 Marketing</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span>🏆 Authority</span>
         </div>
       </div>
     </div>

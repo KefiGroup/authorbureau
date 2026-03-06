@@ -31,9 +31,9 @@ const navItems: NavItem[] = [
   { id: "profile", label: "Author Profile", icon: User },
   { id: "my-books", label: "My Books Hub", icon: BookOpen },
   { id: "build-business", label: "Consult Abby", icon: Sparkles, premiumOnly: true },
-  { id: "step-1" as DashboardSection, label: "A · Automate", icon: Package, premiumOnly: true, stepColor: "text-blue-500" },
+  { id: "step-1" as DashboardSection, label: "A · Analyze", icon: Package, premiumOnly: true, stepColor: "text-blue-500" },
   { id: "step-2" as DashboardSection, label: "B · Build", icon: UsersIcon, premiumOnly: true, stepColor: "text-amber-600" },
-  { id: "step-3" as DashboardSection, label: "B · Broadcast", icon: Mic, premiumOnly: true, stepColor: "text-rose-500" },
+  { id: "step-3" as DashboardSection, label: "B · Bridge", icon: Mic, premiumOnly: true, stepColor: "text-rose-500" },
   { id: "step-4" as DashboardSection, label: "Y · Yield", icon: Building2, premiumOnly: true, stepColor: "text-emerald-500" },
   { id: "marketing" as DashboardSection, label: "Marketing", icon: Megaphone, premiumOnly: true },
   { id: "crm" as DashboardSection, label: "CRM", icon: Contact, premiumOnly: true },
@@ -45,7 +45,6 @@ const sisterLinks = [
 ];
 
 export default function DashboardSidebar({ activeSection, onSectionChange, collapsed, onToggleCollapse, isPremium }: Props) {
-  // Map step sections to overview with the step pre-selected
   const handleNav = (id: DashboardSection) => {
     onSectionChange(id);
   };
