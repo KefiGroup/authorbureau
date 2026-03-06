@@ -989,6 +989,15 @@ export default function BuildMyBusiness() {
                     </Card>
                   </div>
                 )}
+                {/* Business plan download + save */}
+                {msg.role === "assistant" && user && !isStreaming && isBusinessPlanMessage(displayContent) && (
+                  <BusinessPlanActions
+                    content={displayContent}
+                    bookId={selectedBook.id}
+                    bookTitle={selectedBook.title}
+                    authorId={user.id}
+                  />
+                )}
 
                 {/* Business plan is now rendered as clean markdown inline */}
               </div>
