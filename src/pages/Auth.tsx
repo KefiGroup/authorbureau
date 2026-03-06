@@ -167,12 +167,13 @@ export default function Auth() {
     }
   };
 
-  const handleVerifyOtp = async () => {
-    if (otp.length !== 6) return;
+  const handleVerifyOtp = async (codeOverride?: string) => {
+    const code = codeOverride ?? otp;
+    if (code.length !== 6) return;
     setSubmitting(true);
     try {
       try {
-        const data = await authFetch({ action: "verify", email: email.trim(), code: otp });
+        const data = await authFetch({ action: "verify", email: email.trim(), code });
         console.log("[Auth] verify response:", JSON.stringify(data));
         if (data && data.success === false) {
           throw new Error(data.error || "Verification failed. Please try again.");
