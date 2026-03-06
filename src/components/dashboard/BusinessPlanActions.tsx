@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Download, Loader2, FileText, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { asBlob } from "html-docx-js-typescript";
-import { supabase as cloudSupabase } from "@/integrations/supabase/client";
+import { supabase as sharedSupabase } from "@/lib/shared-backend";
 
 interface BusinessPlanActionsProps {
   content: string;
