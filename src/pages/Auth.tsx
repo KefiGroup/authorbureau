@@ -67,7 +67,6 @@ export default function Auth() {
   const [otp, setOtp] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [magicLinkProcessing, setMagicLinkProcessing] = useState(false);
-  const autoVerifyTriggeredFor = useRef("");
 
   // Resend timer
   const [resendCooldown, setResendCooldown] = useState(0);
