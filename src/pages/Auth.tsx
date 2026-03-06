@@ -211,17 +211,6 @@ export default function Auth() {
     }
   };
 
-  useEffect(() => {
-    if (flow !== "otp" || otp.length !== 6 || submitting) return;
-    const key = `${email.trim()}:${otp}`;
-    if (autoVerifyTriggeredFor.current === key) return;
-    autoVerifyTriggeredFor.current = key;
-    void handleVerifyOtp();
-  }, [flow, otp, submitting, email]);
-
-  useEffect(() => {
-    if (otp.length < 6) autoVerifyTriggeredFor.current = "";
-  }, [otp]);
 
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
