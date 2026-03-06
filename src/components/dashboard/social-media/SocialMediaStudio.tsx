@@ -94,6 +94,7 @@ export default function SocialMediaStudio({ onExit, initialBookId, initialBookTi
     bookId: initialBookId || "",
     bookTitle: initialBookTitle || "",
     bookCoverUrl: initialBookCoverUrl || null,
+    bookAmazonUrl: null,
     platforms: ["linkedin", "instagram"],
     frequency: "daily",
     contentMix: { tips: 30, quotes: 20, stories: 20, promotions: 15, engagement: 15 },
@@ -123,6 +124,16 @@ export default function SocialMediaStudio({ onExit, initialBookId, initialBookTi
         if (!authorId) {
           setLoadingSavedCalendar(false);
           return;
+        }
+
+        // Fetch book's amazon_url for the purchase link
+        const { data: bookData } = await supabase
+          .from("books")
+          .select("amazon_url")
+          .eq("id", config.bookId)
+          .single();
+        if (bookData?.amazon_url) {
+          setConfig(prev => ({ ...prev, bookAmazonUrl: bookData.amazon_url }));
         }
 
         const { data, error } = await supabase

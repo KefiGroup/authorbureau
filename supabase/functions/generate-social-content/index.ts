@@ -102,7 +102,7 @@ serve(async (req) => {
     const { bookId, platforms, frequency, contentMix, tones, duration, topicsEmphasize, topicsAvoid } = await req.json();
 
     // Fetch book data
-    const { data: book, error: bookErr } = await sb.from("books").select("title, subtitle, description, genre, author_name").eq("id", bookId).single();
+    const { data: book, error: bookErr } = await sb.from("books").select("title, subtitle, description, genre, author_name, amazon_url").eq("id", bookId).single();
     if (bookErr || !book) {
       return new Response(JSON.stringify({ error: "Book not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -145,6 +145,9 @@ ${CONTENT_PILLAR_FRAMEWORK}
 PLATFORM-SPECIFIC FORMAT STRATEGIES (USE THESE EXACT RATIOS):
 ${platformStrategies}
 
+BOOK PURCHASE LINK: ${book.amazon_url || "N/A"}
+${book.amazon_url ? `IMPORTANT: For PROMOTIONAL posts (category: promotions), ALWAYS include the book purchase link "${book.amazon_url}" in the caption with a clear "Get your copy" or "Grab the book" CTA. For VALUE posts (tips, quotes, stories, engagement), include the link in approximately 30% of posts as a soft mention (e.g., "More insights in the book → [link]").` : ""}
+
 CRITICAL RULES:
 1. MATCH CONTENT FORMATS TO PLATFORM DATA: Use the exact format distribution ratios above for each platform.
 2. Every post MUST have a scroll-stopping hook in the first line.
@@ -153,6 +156,7 @@ CRITICAL RULES:
 5. Apply the 80/20 rule: max 20% of posts should be direct promotions.
 6. Vary content pillars across the calendar — don't cluster similar types.
 7. For each platform, use the HIGHEST-PERFORMING format as the dominant format.
+8. ALL promotional posts MUST include the book purchase link in the caption text.
 
 For each post return a JSON object with these fields:
 - platform (lowercase)

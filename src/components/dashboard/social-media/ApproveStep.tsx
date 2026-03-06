@@ -161,11 +161,12 @@ export default function ApproveStep({ posts, config, onBack, onDone, onRegenerat
 
   const exportBufferCSV = () => {
     const headers = ["Text", "Link", "Scheduled Date", "Scheduled Time", "Profile Names"];
+    const bookLink = config.bookAmazonUrl || "";
     const rows = posts.map(p => {
       const hashtags = p.hashtags.length > 0 ? "\n\n" + p.hashtags.map(h => `#${h}`).join(" ") : "";
       return [
         `"${(p.caption + hashtags).replace(/"/g, '""')}"`,
-        "",
+        `"${bookLink}"`,
         p.scheduled_date,
         p.suggested_time || "09:00",
         p.platform,

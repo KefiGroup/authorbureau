@@ -32,6 +32,7 @@ export interface CalendarConfig {
   bookId: string;
   bookTitle: string;
   bookCoverUrl: string | null;
+  bookAmazonUrl: string | null;
   platforms: string[];
   frequency: string;
   contentMix: Record<string, number>;
