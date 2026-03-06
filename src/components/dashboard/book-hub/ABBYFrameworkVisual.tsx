@@ -100,7 +100,7 @@ const CY = VH / 2;
 const HUB_CFG: Record<string, { x: number; y: number; startDeg: number; sweepDeg: number; r: number }> = {
   analyze:  { x: 240, y: 220, startDeg: 100, sweepDeg: 300, r: 140 },
   build:    { x: 240, y: 600, startDeg: 0, sweepDeg: 180, r: 140 },
-  bridge:   { x: 880, y: 560, startDeg: -120, sweepDeg: 240, r: 140 },
+  bridge:   { x: 880, y: 560, startDeg: -150, sweepDeg: 300, r: 140 },
   yield:    { x: 960, y: 250, startDeg: -165, sweepDeg: 150, r: 140 },
 };
 
@@ -112,6 +112,23 @@ function arcPositions(count: number, cx: number, cy: number, r: number, startDeg
     out.push({ x: cx + Math.cos(rad) * r, y: cy + Math.sin(rad) * r });
   }
   return out;
+}
+
+const NODE_POSITION_OVERRIDES: Record<string, Partial<Record<string, { dx: number; dy: number }>>> = {
+  bridge: {
+    Keynotes: { dx: 0, dy: 84 },
+  },
+};
+
+function getNodePositions(clusterId: string, labels: string[], cx: number, cy: number, r: number, startDeg: number, sweepDeg: number) {
+  const positions = arcPositions(labels.length, cx, cy, r, startDeg, sweepDeg);
+  const overrides = NODE_POSITION_OVERRIDES[clusterId] || {};
+
+  return positions.map((pos, i) => {
+    const override = overrides[labels[i]];
+    if (!override) return pos;
+    return { x: pos.x + (override.dx || 0), y: pos.y + (override.dy || 0) };
+  });
 }
 
 /* Multi-line SVG text helper */
@@ -192,7 +209,15 @@ export default function ABBYFrameworkVisual({ hasConsultation, onConsultAbby, on
           {/* Dashed lines: hubs → nodes */}
           {CLUSTERS.map((c) => {
             const h = HUB_CFG[c.id];
-            const positions = arcPositions(c.nodes.length, h.x, h.y, h.r, h.startDeg, h.sweepDeg);
+            const positions = getNodePositions(
+              c.id,
+              c.nodes.map((n) => n.label),
+              h.x,
+              h.y,
+              h.r,
+              h.startDeg,
+              h.sweepDeg
+            );
             return positions.map((pos, i) => (
               <line
                 key={`spoke-${c.id}-${i}`}
@@ -208,7 +233,15 @@ export default function ABBYFrameworkVisual({ hasConsultation, onConsultAbby, on
           {/* Product nodes */}
           {CLUSTERS.map((c) => {
             const h = HUB_CFG[c.id];
-            const positions = arcPositions(c.nodes.length, h.x, h.y, h.r, h.startDeg, h.sweepDeg);
+            const positions = getNodePositions(
+              c.id,
+              c.nodes.map((n) => n.label),
+              h.x,
+              h.y,
+              h.r,
+              h.startDeg,
+              h.sweepDeg
+            );
             return positions.map((pos, i) => {
               const node = c.nodes[i];
               const catColor = CATEGORY_COLORS[node.category];
