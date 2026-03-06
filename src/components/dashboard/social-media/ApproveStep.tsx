@@ -9,6 +9,7 @@ import { CheckCircle2, Save, Loader2 } from "lucide-react";
 import { useState } from "react";
 import type { SocialPost, CalendarConfig } from "./types";
 import { CATEGORY_COLORS, FORMAT_LABELS, FORMAT_COLORS, type ContentFormat } from "./types";
+import AbbyCoachingTip from "./AbbyCoachingTip";
 
 interface Props {
   posts: SocialPost[];
@@ -91,6 +92,17 @@ export default function ApproveStep({ posts, config, onBack, onDone }: Props) {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      <AbbyCoachingTip
+        title="Before You Publish — Final Checklist"
+        tips={[
+          "✅ Review every 'hook' — it's the first line people see. Make it impossible to scroll past.",
+          "🔗 Ensure each 'CTA' has a clear next step: comment, save, share, or click your book link.",
+          "📱 How to post: Copy each post's caption, open the platform app, paste, add your visual, and publish. Or use scheduling tools like Buffer, Hootsuite, or Later.",
+          "⏰ Schedule posts at optimal times: LinkedIn 7-8 AM; Instagram 11 AM-1 PM & 7-9 PM; Facebook 1-4 PM; X 8-10 AM.",
+          "🤖 Automate: Connect Buffer or Later to auto-publish. Upload all posts in one session and let the tool handle timing.",
+          "📊 Track performance weekly. Double down on what works (save rate, shares, comments). Drop what doesn't.",
+        ]}
+      />
       {/* Summary Header */}
       <div className="text-center space-y-2">
         <div className="w-16 h-16 mx-auto rounded-2xl bg-green-500/10 flex items-center justify-center">

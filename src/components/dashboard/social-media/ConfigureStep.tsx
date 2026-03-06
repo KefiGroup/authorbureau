@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { CalendarConfig } from "./types";
 import { BookOpen, Loader2, X as XIcon } from "lucide-react";
+import AbbyCoachingTip from "./AbbyCoachingTip";
 
 interface Book {
   id: string;
@@ -163,6 +164,22 @@ export default function ConfigureStep({ config, onConfigChange, onNext }: Props)
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      {/* Abby's Strategy Methodology */}
+      <AbbyCoachingTip
+        title="Your Social Media Strategy Methodology"
+        expandedByDefault
+        tips={[
+          "🎯 80/20 Rule: 80% value content (tips, stories, inspiration) and only 20% promotional. This is the proven ratio that builds trust and drives sales.",
+          "📊 5 Content Pillars: Educate (30%) — teach from your book; Inspire (20%) — share transformations; Entertain (15%) — relatable stories; Connect (15%) — ask questions & polls; Promote (20%) — book links, launches, offers.",
+          "🏅 Platform-Optimized Formats: LinkedIn → Carousels (278% more engagement than video), Document posts for thought leadership. Instagram → Reels (122% more reach), Carousels (12% more engagement than Reels). Facebook → Photos (44% more engagement than video). X → Text posts (30% more engagement than video), Threads for deep dives.",
+          "🪝 Every post uses a scroll-stopping Hook (pattern interrupt, bold claim, or question) + a platform-specific CTA (comment, save, share, click link).",
+          "📅 Optimal posting times: LinkedIn 7-8 AM Tue-Thu; Instagram 11 AM-1 PM & 7-9 PM daily; Facebook 1-4 PM Wed-Fri; X 8-10 AM & 6-9 PM weekdays.",
+          "🔁 Content Recycling: Your best-performing posts will be repurposed across platforms in different formats (e.g., a LinkedIn carousel → Instagram Reel script → X thread).",
+          "#️⃣ Hashtag Strategy: 3-5 niche hashtags per post (avoid generic ones). Mix branded hashtags with topic-specific ones for discoverability.",
+          "🚀 Virality Triggers: Controversial takes, personal vulnerability, data-backed insights, 'save this for later' value, and 'tag someone who needs this' CTAs.",
+        ]}
+      />
+
       {/* Book Selector — hidden when book is pre-selected from Book Hub */}
       {!config.bookId && (
       <Card>
