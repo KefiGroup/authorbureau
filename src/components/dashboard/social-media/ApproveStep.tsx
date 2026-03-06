@@ -22,6 +22,14 @@ export default function ApproveStep({ posts, config, onBack, onDone }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
+  const [cloudUserId, setCloudUserId] = useState<string | null>(null);
+
+  // Get the Cloud-authenticated user ID (may differ from shared backend user ID)
+  useState(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data?.session?.user?.id) setCloudUserId(data.session.user.id);
+    });
+  });
 
   const platformCounts = useMemo(() => {
     const counts: Record<string, number> = {};
