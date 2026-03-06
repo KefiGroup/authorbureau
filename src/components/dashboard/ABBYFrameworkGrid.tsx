@@ -17,7 +17,7 @@ interface Category {
 
 const FRAMEWORK: Category[] = [
   {
-    letter: "A", subtitle: "ANALYZE", title: "DIGITAL PRODUCTS",
+    letter: "A", subtitle: "ANALYZE", title: "ANALYZE & STRATEGIZE",
     hubColor: "#3b82f6", nodeColor: "#60a5fa",
     products: [
       { label: "Online Courses", active: false, category: "revenue" },
