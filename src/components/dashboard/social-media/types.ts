@@ -79,7 +79,7 @@ export const PLATFORM_ICONS: Record<string, string> = {
 };
 
 export const WIZARD_STEPS = [
-  { label: "Setup Guide", description: "Create & optimize accounts" },
+  { label: "Optimize Profiles", description: "Quick wins for your accounts" },
   { label: "Configure", description: "Set preferences" },
   { label: "Generating", description: "AI creates content" },
   { label: "Calendar Review", description: "Review & edit" },

@@ -98,7 +98,11 @@ export default function SocialMediaStudio({ onExit, initialBookId, initialBookTi
       {/* Step Content */}
       <motion.div key={step} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2 }}>
         {step === 0 && (
-          <SetupGuideStep onNext={() => setStep(1)} />
+          <SetupGuideStep
+            onNext={() => setStep(1)}
+            bookTitle={config.bookTitle}
+            bookCoverUrl={config.bookCoverUrl}
+          />
         )}
         {step === 1 && (
           <ConfigureStep config={config} onConfigChange={setConfig} onNext={() => setStep(2)} />
