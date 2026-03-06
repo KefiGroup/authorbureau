@@ -638,7 +638,7 @@ export default function BuildMyBusiness() {
         {/* 4-Step Framework Overview */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto">
           {[
-            { step: "A", label: "Analyze", desc: "Manuscript analysis & strategy", icon: "🔍", color: "text-amber-500" },
+            { step: "A", label: "Analyze", desc: "Analyse Manuscript & Finalize Strategies", icon: "🔍", color: "text-amber-500" },
             { step: "B", label: "Build", desc: "Build authority & digital assets", icon: "🏗️", color: "text-emerald-500" },
             { step: "B", label: "Bridge", desc: "Bridge marketing channels", icon: "🌉", color: "text-violet-500" },
             { step: "Y", label: "Yield", desc: "Yield revenue streams & ROI", icon: "💰", color: "text-sky-500" },
