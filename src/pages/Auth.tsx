@@ -167,12 +167,13 @@ export default function Auth() {
     }
   };
 
-  const handleVerifyOtp = async () => {
-    if (otp.length !== 6) return;
+  const handleVerifyOtp = async (codeOverride?: string) => {
+    const code = codeOverride ?? otp;
+    if (code.length !== 6) return;
     setSubmitting(true);
     try {
       try {
-        const data = await authFetch({ action: "verify", email: email.trim(), code: otp });
+        const data = await authFetch({ action: "verify", email: email.trim(), code });
         console.log("[Auth] verify response:", JSON.stringify(data));
         if (data && data.success === false) {
           throw new Error(data.error || "Verification failed. Please try again.");
@@ -210,6 +211,7 @@ export default function Auth() {
       setSubmitting(false);
     }
   };
+
 
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -381,7 +383,14 @@ export default function Auth() {
                 </button>
 
                 <div className="flex justify-center">
-                  <InputOTP maxLength={6} value={otp} onChange={setOtp}>
+                  <InputOTP
+                    maxLength={6}
+                    value={otp}
+                    onChange={(value) => {
+                      setOtp(value);
+                      if (value.length === 6 && !submitting) void handleVerifyOtp(value);
+                    }}
+                  >
                     <InputOTPGroup>
                       {[0, 1, 2, 3, 4, 5].map((i) => (
                         <InputOTPSlot key={i} index={i} className="h-12 w-12 text-lg border-secondary/50" />
@@ -391,7 +400,7 @@ export default function Auth() {
                 </div>
 
                 <Button
-                  onClick={handleVerifyOtp}
+                  onClick={() => void handleVerifyOtp()}
                   disabled={otp.length !== 6 || submitting}
                   className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold rounded-full"
                   size="lg"
