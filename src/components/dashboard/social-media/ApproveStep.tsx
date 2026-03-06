@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, Save, Loader2, Download, Copy, ExternalLink, RefreshCw, Clipboard, Sparkles } from "lucide-react";
+import { CheckCircle2, Save, Loader2, Download, Copy, ExternalLink, RefreshCw, Clipboard, Sparkles, ImagePlus, Image as ImageIcon } from "lucide-react";
 import { useState } from "react";
 import type { SocialPost, CalendarConfig } from "./types";
 import { CATEGORY_COLORS, FORMAT_LABELS, FORMAT_COLORS, type ContentFormat } from "./types";
