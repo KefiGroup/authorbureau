@@ -18,6 +18,8 @@ export interface SocialPost {
   format_notes: string;
   hook: string;
   cta: string;
+  image_prompt: string;
+  video_shot_list: string;
   suggested_time: string;
   day_number: number;
   scheduled_date: string;
@@ -77,9 +79,10 @@ export const PLATFORM_ICONS: Record<string, string> = {
 };
 
 export const WIZARD_STEPS = [
+  { label: "Setup Guide", description: "Create & optimize accounts" },
   { label: "Configure", description: "Set preferences" },
   { label: "Generating", description: "AI creates content" },
   { label: "Calendar Review", description: "Review & edit" },
   { label: "Bulk Edit", description: "Fine-tune posts" },
-  { label: "Approve & Publish", description: "Go live" },
+  { label: "Export & Publish", description: "Schedule & go live" },
 ];

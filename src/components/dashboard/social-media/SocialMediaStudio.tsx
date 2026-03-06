@@ -5,6 +5,7 @@ import { BookOpen, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WIZARD_STEPS } from "./types";
 import type { SocialPost, CalendarConfig } from "./types";
+import SetupGuideStep from "./SetupGuideStep";
 import ConfigureStep from "./ConfigureStep";
 import GeneratingStep from "./GeneratingStep";
 import CalendarReviewStep from "./CalendarReviewStep";
@@ -69,7 +70,7 @@ export default function SocialMediaStudio({ onExit, initialBookId, initialBookTi
       </div>
 
       {/* Book Context Bar */}
-      {config.bookId && step > 0 && (
+      {config.bookId && step > 1 && (
         <motion.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: "auto" }}
@@ -97,19 +98,22 @@ export default function SocialMediaStudio({ onExit, initialBookId, initialBookTi
       {/* Step Content */}
       <motion.div key={step} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2 }}>
         {step === 0 && (
-          <ConfigureStep config={config} onConfigChange={setConfig} onNext={() => setStep(1)} />
+          <SetupGuideStep onNext={() => setStep(1)} />
         )}
         {step === 1 && (
-          <GeneratingStep config={config} onComplete={(p) => { setPosts(p); setStep(2); }} onBack={() => setStep(0)} />
+          <ConfigureStep config={config} onConfigChange={setConfig} onNext={() => setStep(2)} />
         )}
         {step === 2 && (
-          <CalendarReviewStep posts={posts} onPostsChange={setPosts} onNext={() => setStep(3)} onBack={() => setStep(1)} />
+          <GeneratingStep config={config} onComplete={(p) => { setPosts(p); setStep(3); }} onBack={() => setStep(1)} />
         )}
         {step === 3 && (
-          <BulkEditStep posts={posts} onPostsChange={setPosts} onNext={() => setStep(4)} onBack={() => setStep(2)} />
+          <CalendarReviewStep posts={posts} onPostsChange={setPosts} onNext={() => setStep(4)} onBack={() => setStep(2)} />
         )}
         {step === 4 && (
-          <ApproveStep posts={posts} config={config} onBack={() => setStep(3)} onDone={onExit} />
+          <BulkEditStep posts={posts} onPostsChange={setPosts} onNext={() => setStep(5)} onBack={() => setStep(3)} />
+        )}
+        {step === 5 && (
+          <ApproveStep posts={posts} config={config} onBack={() => setStep(4)} onDone={onExit} />
         )}
       </motion.div>
     </div>

@@ -302,6 +302,8 @@ function parsePostsFromContent(content: string, config: CalendarConfig): SocialP
         format_notes: p.format_notes || "",
         hook: p.hook || "",
         cta: p.cta || "",
+        image_prompt: p.image_prompt || "",
+        video_shot_list: p.video_shot_list || "",
         suggested_time: p.suggested_time || "09:00",
         day_number: dayNum,
         scheduled_date: date.toISOString().split("T")[0],
