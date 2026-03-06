@@ -116,7 +116,7 @@ function arcPositions(count: number, cx: number, cy: number, r: number, startDeg
 
 const NODE_POSITION_OVERRIDES: Record<string, Partial<Record<string, { dx: number; dy: number }>>> = {
   bridge: {
-    Keynotes: { dx: 0, dy: 84 },
+    Keynotes: { dx: 0, dy: 50 },
   },
 };
 
