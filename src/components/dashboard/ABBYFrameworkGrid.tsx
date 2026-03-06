@@ -59,7 +59,7 @@ const FRAMEWORK: Category[] = [
     ],
   },
   {
-    letter: "Y", subtitle: "YIELD", title: "SEMINARS",
+    letter: "Y", subtitle: "YIELD", title: "YIELD REVENUE",
     hubColor: "#10b981", nodeColor: "#34d399",
     products: [
       { label: "Retreats & Bootcamps", active: false, category: "revenue" },
