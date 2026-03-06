@@ -16,7 +16,6 @@ import {
   Wrench, MessageCircleHeart, Crown, ExternalLink, FileText, Upload,
 } from "lucide-react";
 import { TIERS } from "@/hooks/useAuth";
-import { TIERS } from "@/hooks/useAuth";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 
