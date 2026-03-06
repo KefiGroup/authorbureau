@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import type { SocialPost, CalendarConfig, CATEGORY_COLORS } from "./types";
+import AbbyCoachingTip from "./AbbyCoachingTip";
 
 async function getActiveToken(): Promise<string | null> {
   const { data: cloudSession } = await cloudSupabase.auth.getSession();
