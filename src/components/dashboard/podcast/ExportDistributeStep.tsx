@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +22,7 @@ interface Props {
 export default function ExportDistributeStep({ episodes, config, onBack, onDone, onRegenerate }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [cloudUserId, setCloudUserId] = useState<string | null>(null);
@@ -39,7 +41,6 @@ export default function ExportDistributeStep({ episodes, config, onBack, onDone,
     setSaving(true);
 
     try {
-      // Upsert podcast
       const { data: existingPodcast } = await supabase
         .from("podcasts" as any)
         .select("id")
@@ -61,7 +62,6 @@ export default function ExportDistributeStep({ episodes, config, onBack, onDone,
           monetization_goals: config.monetizationGoals,
         }).eq("id", podcastId);
 
-        // Delete old episodes
         await supabase.from("podcast_episodes" as any).delete().eq("podcast_id", podcastId);
       } else {
         const { data: newPodcast, error: insertErr } = await supabase.from("podcasts" as any).insert({
@@ -79,7 +79,6 @@ export default function ExportDistributeStep({ episodes, config, onBack, onDone,
         podcastId = (newPodcast as any).id;
       }
 
-      // Insert episodes
       const episodeRows = episodes.map(ep => ({
         podcast_id: podcastId,
         author_id: authorId,
@@ -167,19 +166,83 @@ export default function ExportDistributeStep({ episodes, config, onBack, onDone,
     toast({ title: "RSS Metadata Downloaded", description: "Use this to populate your podcast hosting platform." });
   };
 
+  const goToAudiobookStudio = () => {
+    navigate(`/dashboard?section=audiobook-studio&bookId=${config.bookId}&bookTitle=${encodeURIComponent(config.bookTitle)}`);
+  };
+
+  const goToSocialMedia = () => {
+    navigate(`/dashboard?section=social-media&bookId=${config.bookId}&bookTitle=${encodeURIComponent(config.bookTitle)}`);
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <AbbyCoachingTip
         title="Abby's Launch & Distribution Checklist"
         expandedByDefault
-        tips={[
-          "💾 Step 1: SAVE your season first — this stores everything in your account for editing later.",
-          "📥 Step 2: Download the Scripts Bundle — this is your recording reference with all scripts, intros, outros, and show notes.",
-          "🎙️ Step 3: Record your episodes — use the scripts as guides. Options: self-record or use AI TTS (ElevenLabs) from the Audiobook Studio.",
-          "📤 Step 4: Upload recordings to Spotify for Podcasters → copy RSS feed → submit to Apple Podcasts, YouTube, Amazon.",
-          "📱 Step 5: Use the pull quotes to create audiogram clips for social media (pairs perfectly with your Social Media Calendar!).",
-          "💰 Step 6: Once you hit 500+ downloads/episode, use the Media Kit to pitch sponsors.",
-        ]}
+        customContent={
+          <div className="space-y-3 text-sm">
+            <div className="flex items-start gap-2">
+              <span className="shrink-0">→ 💾</span>
+              <p>
+                Step 1:{" "}
+                <button onClick={savePodcast} disabled={saving} className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium">
+                  {saved ? "✓ Season saved" : "Save your season"}
+                </button>
+                {" — this stores everything in your account for editing later."}
+              </p>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="shrink-0">→ 📥</span>
+              <p>
+                Step 2:{" "}
+                <button onClick={exportScriptsBundle} className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium">
+                  Download the Scripts Bundle
+                </button>
+                {" — your recording reference with all scripts, intros, outros, and show notes."}
+              </p>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="shrink-0">→ 🎙️</span>
+              <p>
+                Step 3: Record your episodes — use the scripts as guides. Self-record or use{" "}
+                <button onClick={goToAudiobookStudio} className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium">
+                  AI TTS in Audiobook Studio
+                </button>.
+              </p>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="shrink-0">→ 📤</span>
+              <p>
+                Step 4: Upload recordings to{" "}
+                <a href="https://podcasters.spotify.com/" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium inline-flex items-center gap-0.5">
+                  Spotify for Podcasters <ExternalLink className="h-3 w-3" />
+                </a>
+                {" → copy RSS feed → submit to "}
+                <a href="https://podcastsconnect.apple.com/" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium inline-flex items-center gap-0.5">
+                  Apple Podcasts <ExternalLink className="h-3 w-3" />
+                </a>
+                {", "}
+                <a href="https://studio.youtube.com/" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium inline-flex items-center gap-0.5">
+                  YouTube <ExternalLink className="h-3 w-3" />
+                </a>
+                {", Amazon."}
+              </p>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="shrink-0">→ 📱</span>
+              <p>
+                Step 5: Use pull quotes to create audiogram clips — pairs perfectly with your{" "}
+                <button onClick={goToSocialMedia} className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium">
+                  Social Media Calendar
+                </button>!
+              </p>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="shrink-0">→ 💰</span>
+              <p>Step 6: Once you hit 500+ downloads/episode, use the Media Kit from the previous step to pitch sponsors.</p>
+            </div>
+          </div>
+        }
       />
 
       {/* Summary */}
@@ -236,17 +299,27 @@ export default function ExportDistributeStep({ episodes, config, onBack, onDone,
                 <Mic className="h-5 w-5 text-blue-600" />
                 <h4 className="font-medium text-sm">Self-Record</h4>
               </div>
-              <p className="text-xs text-muted-foreground">Use the downloaded scripts as your guide. Record with your microphone, edit in Audacity or GarageBand, upload to hosting.</p>
+              <p className="text-xs text-muted-foreground">
+                Use the{" "}
+                <button onClick={exportScriptsBundle} className="text-primary underline underline-offset-2 hover:text-primary/80">
+                  downloaded scripts
+                </button>
+                {" as your guide. Record with your microphone, edit in "}
+                <a href="https://www.audacityteam.org/" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80 inline-flex items-center gap-0.5">
+                  Audacity <ExternalLink className="h-3 w-3" />
+                </a>
+                {" or GarageBand, upload to hosting."}
+              </p>
               <Badge variant="outline" className="text-[10px]">Recommended for authenticity</Badge>
             </div>
-            <div className="rounded-lg border border-border p-4 space-y-2">
+            <button onClick={goToAudiobookStudio} className="rounded-lg border border-border p-4 space-y-2 text-left hover:border-primary/30 hover:bg-muted/30 transition-all">
               <div className="flex items-center gap-2">
                 <Volume2 className="h-5 w-5 text-purple-600" />
                 <h4 className="font-medium text-sm">AI Voice (ElevenLabs)</h4>
               </div>
-              <p className="text-xs text-muted-foreground">Generate audio using your existing Audiobook Studio voice. Same TTS engine, podcast-optimized delivery.</p>
-              <Badge variant="outline" className="text-[10px]">Coming soon via Audiobook Studio</Badge>
-            </div>
+              <p className="text-xs text-muted-foreground">Generate audio using your Audiobook Studio voice profile. Same TTS engine, podcast-optimized delivery.</p>
+              <Badge variant="secondary" className="text-[10px]">Open Audiobook Studio →</Badge>
+            </button>
           </div>
         </CardContent>
       </Card>
