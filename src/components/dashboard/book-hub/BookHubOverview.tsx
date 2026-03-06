@@ -159,22 +159,50 @@ export default function BookHubOverview({ book, onConsultAbby, onNavigateTab }: 
                 AI Advisor
               </span>
             </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {hasConsultation ? (
-                <>
-                  I've completed your <strong>Needs Analysis</strong> for <strong>"{book.title}"</strong> and designed your customised ABBY Framework below. 
-                  Each category shows the products I recommend — with transparent, itemised pricing available when you're ready to build. 
-                  Let's turn your expertise into revenue.
-                </>
-              ) : (
-                <>
-                  I'll start by conducting a <strong>Needs Analysis</strong> on your book <strong>"{book.title}"</strong> — understanding your goals, audience size, and revenue ambitions. 
-                  From there, I'll design a <strong>customised ABBY Framework</strong> mapping the exact products and revenue streams that fit your expertise. 
-                  You'll see transparent, itemised à-la-carte pricing for each product — plus a bundled subscription option that saves you more. 
-                  Think of me as your strategist <em>and</em> your business partner: I don't just advise, I help you build and grow.
-                </>
-              )}
-            </p>
+            {planSections.length > 0 ? (
+              <>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-3">
+                  Your <strong>ABBY Business Plan</strong> for <strong>"{book.title}"</strong> is ready. Explore each section below — or refine it further with me.
+                </p>
+                <Tabs defaultValue={planSections[0]?.key} className="mt-2">
+                  <TabsList className="h-auto flex-wrap gap-1 bg-transparent p-0">
+                    {planSections.map((s) => (
+                      <TabsTrigger
+                        key={s.key}
+                        value={s.key}
+                        className="text-[11px] px-3 py-1.5 data-[state=active]:bg-secondary/15 data-[state=active]:text-secondary rounded-full"
+                      >
+                        {s.emoji} {s.label}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                  {planSections.map((s) => (
+                    <TabsContent key={s.key} value={s.key} className="mt-3">
+                      <div className="rounded-lg bg-muted/30 p-4 max-h-[300px] overflow-y-auto text-sm">
+                        <MarkdownRenderer content={s.content} />
+                      </div>
+                    </TabsContent>
+                  ))}
+                </Tabs>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {hasConsultation ? (
+                  <>
+                    I've completed your <strong>Needs Analysis</strong> for <strong>"{book.title}"</strong> and designed your customised ABBY Framework below. 
+                    Each category shows the products I recommend — with transparent, itemised pricing available when you're ready to build. 
+                    Let's turn your expertise into revenue.
+                  </>
+                ) : (
+                  <>
+                    I'll start by conducting a <strong>Needs Analysis</strong> on your book <strong>"{book.title}"</strong> — understanding your goals, audience size, and revenue ambitions. 
+                    From there, I'll design a <strong>customised ABBY Framework</strong> mapping the exact products and revenue streams that fit your expertise. 
+                    You'll see transparent, itemised à-la-carte pricing for each product — plus a bundled subscription option that saves you more. 
+                    Think of me as your strategist <em>and</em> your business partner: I don't just advise, I help you build and grow.
+                  </>
+                )}
+              </p>
+            )}
 
             {/* Compact manuscript status */}
             <div className="flex items-center gap-2 mt-3 text-xs">
@@ -207,8 +235,20 @@ export default function BookHubOverview({ book, onConsultAbby, onNavigateTab }: 
                 onClick={onConsultAbby}
               >
                 <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-                {hasConsultation ? "Continue Analysis with Abby" : "Analyze with Abby"}
+                {planSections.length > 0 ? "Refine Plan with Abby" : hasConsultation ? "Continue Analysis with Abby" : "Analyze with Abby"}
               </Button>
+              {planSections.length > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5"
+                  onClick={handleDownloadPlan}
+                  disabled={downloading}
+                >
+                  {downloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                  Download .docx
+                </Button>
+              )}
               {hasConsultation && (
                 <Button
                   size="sm"
