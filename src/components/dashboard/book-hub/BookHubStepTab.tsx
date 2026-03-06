@@ -224,6 +224,10 @@ export default function BookHubStepTab({ categoryId, bookId, bookTitle, isPremiu
             </motion.div>
           );
         })}
+              </div>
+            </div>
+          ));
+        })()}
       </div>
     </div>
   );
