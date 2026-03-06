@@ -74,7 +74,7 @@ export const stepConfigs: StepConfig[] = [
     ],
   },
   {
-    id: "broadcast", label: "B · Broadcast", subtitle: "Speaking",
+    id: "bridge", label: "B · Bridge", subtitle: "Speaking",
     color: "text-rose-500", bgColor: "bg-rose-500/10",
     gradientFrom: "from-rose-500", gradientTo: "to-rose-600",
     nodes: [

@@ -314,9 +314,9 @@ export default function BusinessFramework({ onNavigate, isPremium, focusStep }: 
         transition={{ delay: 0.5 }}
       >
         <p className="text-xs text-muted-foreground leading-relaxed max-w-lg mx-auto">
-          <strong>The ABBY journey:</strong> <strong>A</strong>utomate your book into digital products →
+          <strong>The ABBY journey:</strong> <strong>A</strong>nalyze your book into digital products →
           <strong>B</strong>uild high-touch coaching relationships →
-          <strong>B</strong>roadcast your expertise through speaking →
+          <strong>B</strong>ridge your expertise to speaking platforms →
           <strong>Y</strong>ield premium returns through events.
           <br />
           <span className="text-secondary font-medium">Abby will walk you through the ABBY Framework — turning your book into a business with 27 revenue streams.</span>
