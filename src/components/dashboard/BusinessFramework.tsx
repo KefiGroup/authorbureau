@@ -51,16 +51,28 @@ const categories: Category[] = [
     gradientTo: "to-emerald-600",
     headerIcon: DollarSign,
     nodes: [
-      { id: "workbooks", label: "Workbooks", icon: FileText, section: "workbooks", description: "Companion workbook PDFs (40-80 pages) with exercises, templates & action plans.", status: "live" },
+      // Digital Products
+      { id: "workbooks", label: "Workbooks", icon: FileText, section: "workbooks", description: "Companion workbook PDFs with exercises, templates & action plans.", status: "live" },
       { id: "audiobook", label: "Audiobook", icon: Headphones, description: "AI-generated audiobook from your manuscript.", status: "coming-soon" },
+      { id: "book-sales-events", label: "Book Sales (Events)", icon: BookOpen, description: "QR code order pages for live event sales.", status: "planned" },
+      { id: "home-study", label: "Home Study Courses", icon: BookMarked, description: "Self-paced study guide with daily schedules.", status: "coming-soon" },
       { id: "courses", label: "Online Courses", icon: GraduationCap, section: "courses", description: "8-12 module structured courses — highest revenue potential.", status: "coming-soon" },
-      { id: "home-study", label: "Home Study Course", icon: BookMarked, description: "Self-paced study guide with daily schedules.", status: "coming-soon" },
-      { id: "webinars", label: "Webinars", icon: Video, section: "webinars", description: "Complete webinar scripts + slide decks + registration pages.", status: "live" },
+      { id: "special-editions", label: "Special Editions", icon: Sparkles, description: "Signed copies, bundles, collector's editions.", status: "planned" },
       { id: "memberships", label: "Monthly Memberships", icon: CreditCard, section: "memberships", description: "3-tier membership — Reader Circle, Pro, VIP — with gated content drip.", status: "planned" },
-      { id: "upsells", label: "Upsells / Downsells", icon: TrendingUp, description: "AI-generated conversion sequences.", status: "planned" },
-      { id: "certification", label: "Certification Programs", icon: ShieldCheck, section: "certification", description: "Multi-module curriculum + exam + digital certificates.", status: "planned" },
-      { id: "masterminds", label: "Masterminds", icon: BarChart3, section: "masterminds", description: "Quarterly mastermind group programs.", status: "planned" },
+      // Coaching
+      { id: "group-coaching", label: "Group Coaching", icon: Users, section: "group-coaching", description: "8-week group coaching curriculum.", status: "coming-soon" },
+      { id: "coaching-1on1", label: "1-on-1 Coaching", icon: UserCheck, section: "coaching", description: "6/12-session coaching programs.", status: "live" },
+      // Speaking
+      { id: "in-house-speaker", label: "In-House Speaker", icon: Presentation, description: "Corporate speaker profile + booking system.", status: "planned" },
+      { id: "corporate-training", label: "Training Programs", icon: Building2, section: "corporate-training", description: "Half/full-day corporate training programs.", status: "planned" },
       { id: "retreats", label: "Retreats & Bootcamps", icon: Bookmark, section: "retreats", description: "2-3 day retreat programs with agendas & registration.", status: "planned" },
+      { id: "masterminds", label: "Masterminds", icon: BarChart3, section: "masterminds", description: "Quarterly mastermind group programs.", status: "planned" },
+      { id: "certification", label: "Certification Programs", icon: ShieldCheck, section: "certification", description: "Multi-module curriculum + exam + digital certificates.", status: "planned" },
+      { id: "keynotes", label: "Keynotes", icon: Mic, section: "speaking", description: "3-5 keynote topics with slide decks.", status: "live" },
+      { id: "big-ticket", label: "Big Ticket Consulting", icon: Trophy, section: "big-ticket", description: "Premium consulting packages ($5K–$25K).", status: "planned" },
+      // Partnerships
+      { id: "upsells", label: "Upsells / Downsells / Cross Sells", icon: TrendingUp, description: "AI-generated conversion sequences.", status: "planned" },
+      { id: "revenue-sharing", label: "Revenue Sharing", icon: Handshake, description: "Partnership matching + contract templates.", status: "planned" },
     ],
   },
   {
