@@ -71,17 +71,17 @@ const FRAMEWORK: Category[] = [
 ];
 
 // SVG viewBox dimensions
-const W = 1000;
-const H = 650;
+const W = 1200;
+const H = 800;
 const CX = W / 2;
 const CY = H / 2;
 
 // Hub positions (absolute SVG coords)
 const HUBS: Record<number, { x: number; y: number; startAngle: number; sweep: number; radius: number }> = {
-  0: { x: 200, y: 180, startAngle: 150, sweep: 220, radius: 155 },
-  1: { x: 200, y: 500, startAngle: 150, sweep: 170, radius: 130 },
-  2: { x: 800, y: 500, startAngle: -40, sweep: 170, radius: 130 },
-  3: { x: 800, y: 180, startAngle: -40, sweep: 220, radius: 155 },
+  0: { x: 220, y: 260, startAngle: 120, sweep: 280, radius: 180 },   // Analyze – 10 nodes, top-left
+  1: { x: 220, y: 600, startAngle: 160, sweep: 200, radius: 150 },   // Build – 5 nodes, bottom-left
+  2: { x: 960, y: 600, startAngle: -20, sweep: 200, radius: 170 },   // Bridge – 9 nodes, bottom-right
+  3: { x: 960, y: 260, startAngle: -60, sweep: 280, radius: 160 },   // Yield – 4 nodes, top-right
 };
 
 function getNodePositions(count: number, cx: number, cy: number, radius: number, startAngle: number, sweep: number) {
