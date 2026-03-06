@@ -178,9 +178,14 @@ export default function BuildMyBusiness() {
     };
   }, [saveSession]);
 
-  // When book is selected, load existing session
+  // When book is selected, load existing session (but not if we just reset for a fresh start)
+  const skipLoadRef = useRef(false);
   useEffect(() => {
     if (!selectedBook) return;
+    if (skipLoadRef.current) {
+      skipLoadRef.current = false;
+      return;
+    }
     (async () => {
       const existing = await loadExistingSession(selectedBook.id);
       if (existing && existing.length > 0) {
@@ -585,7 +590,8 @@ export default function BuildMyBusiness() {
     if (goBackToBookSelect) {
       setSelectedBook(null);
     } else if (selectedBook) {
-      // Start a fresh session for the same book
+      // Start a fresh session for the same book — skip loading old session
+      skipLoadRef.current = true;
       setShouldAutoStart(true);
     }
   };
