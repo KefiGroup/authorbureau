@@ -152,9 +152,23 @@ export default function BookHubStepTab({ categoryId, bookId, bookTitle, isPremiu
         </div>
       </div>
 
-      {/* Product Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {catData.nodes.map((node) => {
+      {/* Product Grid — grouped */}
+      <div className="space-y-8">
+        {(() => {
+          const groups: { name: string; nodes: ProductNode[] }[] = [];
+          catData.nodes.forEach((node) => {
+            const groupName = node.group || "Other";
+            const existing = groups.find((g) => g.name === groupName);
+            if (existing) existing.nodes.push(node);
+            else groups.push({ name: groupName, nodes: [node] });
+          });
+          return groups.map((group) => (
+            <div key={group.name}>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                {group.name}
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {group.nodes.map((node) => {
           const status = statusStyles[node.status];
           const Icon = iconMap[node.iconName] || BookOpen;
           const canOpen = node.status === "live";
