@@ -252,11 +252,9 @@ export default function BuildMyBusiness() {
         setMessages(prev => prev.filter((m, i) => !(i === prev.length - 1 && m.role === "assistant" && !m.content)));
       }
     } finally {
-      // Check for ABBY_PLAN in the final accumulated response
-      if (accumulated) parseAndSaveAbbyPlan(accumulated);
       setIsStreaming(false);
     }
-  }, [selectedBook, messages, isStreaming, toast, parseAndSaveAbbyPlan]);
+  }, [selectedBook, messages, isStreaming, toast]);
 
   // Parse BUILD_REQUEST blocks from assistant messages
   const parseBuildRequests = (content: string) => {
