@@ -902,7 +902,7 @@ export default function BuildMyBusiness() {
                 : "rounded-2xl rounded-bl-md px-5 py-4"
               }`}>
                 {msg.role === "assistant" ? (
-                  <div className="space-y-0">
+                <div>
                     <MarkdownRenderer content={displayContent} />
                   </div>
                 ) : (
