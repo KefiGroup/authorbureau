@@ -47,7 +47,7 @@ async function getActiveToken(): Promise<string | null> {
 
 export default function BuildMyBusiness() {
   const navigate = useNavigate();
-  const { user, isPremium, isAdmin } = useAuth();
+  const { user, isPremium, isAdmin, tier } = useAuth();
   const { toast } = useToast();
   const [books, setBooks] = useState<Book[]>([]);
   const [loadingBooks, setLoadingBooks] = useState(true);
@@ -229,7 +229,7 @@ export default function BuildMyBusiness() {
           messages: updatedMessages,
           bookId: selectedBook.id,
           isPremium: isPremium || isAdmin,
-          subscriptionTier: isPremium || isAdmin ? "Premium" : "free",
+          subscriptionTier: tier,
           subscriptionStatus: isPremium || isAdmin ? "active" : "none",
         }),
         signal: abort.signal,
@@ -526,7 +526,7 @@ export default function BuildMyBusiness() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
-          body: JSON.stringify({ priceId: TIERS.premium.price_id }),
+          body: JSON.stringify({ priceId: TIERS.starter.price_id }),
         }
       );
       const result = await resp.json();

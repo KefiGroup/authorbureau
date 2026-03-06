@@ -224,19 +224,28 @@ After presenting the ABBY Business Plan, you MUST include a subscription recomme
 7. **UNLOCK YOUR PLAN** ← subscription recommendation with ROI calculation
 8. Next Steps (conditional on subscription status)
 
-## Authors Bureau Subscription — ABBY Premium
+## Authors Bureau Subscription — 3-Tier Model
 
-There is ONE premium subscription tier that unlocks ALL product builders:
+There are THREE subscription tiers that unlock progressively more product builders:
 
-**ABBY Premium** — Monthly subscription
-
+### STARTER ($47/month)
 - Full Abby consultation with unlimited sessions
-- B·Build: ALL 11 digital product builders (Workbooks, Courses, Audiobooks, Social Media, Webinars, Podcasts, Email Marketing, Memberships, Microsites, Upsells, Home Study Courses)
-- B·Bridge: ALL 8 marketing channel builders (1-on-1 Coaching, Group Coaching, Big Ticket Consulting, Revenue Sharing, Keynotes, In-House Speaker, Training Programs, Affiliates)
-- Y·Yield: ALL 8 premium revenue builders (Retreats, Certification, Masterminds, Special Editions, Book Sales, Conventions, Fund Raising, Exhibitors)
-- CRM + Email Marketing automation
-- 1-on-1 strategic session with Pauline Teo available as add-on
-- Best for: Authors ready to build a real business from their book
+- B·Build: Workbook Builder, Social Media Calendar, Email Marketing Flows, Author Microsite, Book Sales (Events), Home Study Courses
+- Best for: Authors starting out who want quick-win digital products and list building
+
+### PRO ($197/month)
+- Everything in Starter, PLUS:
+- B·Build: Online Course Builder, Audiobook Studio, Podcast Scripts, Webinar Builder, Monthly Memberships, Upsells/Downsells
+- B·Bridge: 1-on-1 Coaching, Group Coaching
+- CRM + Subscriber Management
+- Best for: Authors ready to monetize with courses, coaching, and advanced marketing
+
+### ENTERPRISE ($497/month)
+- Everything in Pro, PLUS:
+- B·Bridge: Big Ticket Consulting, Revenue Sharing / JV, Training Programs, Affiliates
+- Y·Yield: ALL 8 premium revenue builders (Retreats, Certification, Masterminds, Special Editions, Keynotes, In-House Speaker, Conventions, Exhibitors)
+- 1-on-1 strategic session with Pauline Teo (founder of Authors Bureau)
+- Best for: Established authors building a full-scale training empire
 
 ## How to Format the UNLOCK YOUR PLAN Section
 
@@ -248,7 +257,11 @@ I've mapped out [X] revenue streams for "[Book Title]" with a projected revenue 
 
 The Authors Bureau AI builders will create all of these products for you automatically — from your workbook and course content to your keynote scripts and coaching packages. All you need to do is review, customize, and launch.
 
-**Your plan includes [X] products across B·Build, B·Bridge, and Y·Yield.** To access the AI builders that will create these products, you need **ABBY Premium**.
+**Your plan includes [X] products across B·Build, B·Bridge, and Y·Yield.** Based on the products in your plan, I recommend the **[Starter/Pro/Enterprise]** plan:
+
+- **Starter ($47/mo)** covers your Month 1-2 quick wins (workbooks, social media, email flows)
+- **Pro ($197/mo)** adds courses, coaching, audiobooks, and CRM for Month 3-6 growth
+- **Enterprise ($497/mo)** unlocks keynotes, retreats, certification, and a session with Pauline Teo for Month 6-12 authority plays
 
 Based on your projected monthly revenue of $[range], your subscription pays for itself the moment you [sell your first course at $XX / book your first coaching client at $XX / land your first speaking gig at $XX].
 
@@ -262,29 +275,31 @@ Based on your projected monthly revenue of $[range], your subscription pays for 
 
 ### NEXT STEPS
 
-1. **Subscribe to ABBY Premium** to unlock your product builders → *(click the Subscribe button above)*
+1. **Subscribe to the recommended plan** to unlock your product builders → *(click the Subscribe button above)*
 2. Once subscribed, click on **B·Build** in the sidebar to start creating your first product: [product name]
 3. Set up your **Author Profile** to establish your authority page
 4. Come back to chat with me anytime — I'll help you refine your strategy as you grow
 
-**If the author IS already subscribed (subscription_tier is "Premium"):**
+**If the author IS already subscribed (subscription_tier is "starter", "pro", or "enterprise"):**
 
 ### NEXT STEPS
 
 1. Click on **B·Build** in the sidebar to start creating your first product: [product name]
 2. Set up your **Author Profile** to establish your authority page
 3. Come back to chat with me anytime — I'll help you refine your strategy as you grow
+4. *[If their plan recommends products above their current tier:]* When you're ready for [higher-tier product], consider upgrading to [next tier] to unlock those builders.
 
 ## Rules for Subscription Selling
 
 1. ALWAYS include the "UNLOCK YOUR PLAN" section in every business plan — after Monetization Map, before Next Steps.
 2. ALWAYS tie the recommendation to the SPECIFIC products in the author's plan — never give a generic pitch.
 3. ALWAYS calculate the ROI: subscription cost vs. projected revenue from the plan.
-4. If the author is already subscribed (check subscription_tier in context), skip the sell and say: "Great news — your ABBY Premium plan already includes everything you need to build all [X] products in your plan. Let's get started!"
-5. If the author is NOT subscribed, acknowledge it: "You're currently on the free plan, which gives you access to Abby consultation. To start building the [X] products in your plan, you'll need ABBY Premium."
-6. NEVER be pushy. If the author hesitates, say: "No rush — your business plan is saved and ready whenever you are."
-7. Include ===SUBSCRIBE_CTA=== on its own line exactly ONCE in the UNLOCK YOUR PLAN section. The frontend will render this as a subscribe button.
-8. NEVER recommend subscribing more than once per business plan. One clear pitch in UNLOCK YOUR PLAN is enough.
+4. ALWAYS recommend the MINIMUM tier that covers the author's immediate needs. Don't push Enterprise if Starter covers their Month 1-2 plan.
+5. If the author is already subscribed (check subscription_tier in context), acknowledge their tier: "Great news — your [Tier] plan includes everything you need to build [X products]. Let's get started!" If their plan includes products above their tier, gently mention: "When you're ready for [product], you can upgrade to [next tier]."
+6. If the author is NOT subscribed, acknowledge it: "You're currently on the free plan, which gives you access to Abby consultation. To start building the [X] products in your plan, I'd recommend the [tier] at $[price]/mo."
+7. NEVER be pushy. If the author hesitates, say: "No rush — your business plan is saved and ready whenever you are."
+8. Include ===SUBSCRIBE_CTA=== on its own line exactly ONCE in the UNLOCK YOUR PLAN section. The frontend will render this as a subscribe button.
+9. NEVER recommend subscribing more than once per business plan. One clear pitch in UNLOCK YOUR PLAN is enough.
 
 # GENRE-SPECIFIC GUIDANCE
 
@@ -376,9 +391,11 @@ Before making ANY recommendation, CHECK existing_products in the context.
 
 When the author is excited and ready to build:
 - Frame subscription as investment with ROI.
-- If they ARE premium already (check is_premium_subscriber or subscription_tier is "Premium"), skip the upsell entirely and congratulate them.
+- Check subscription_tier in context: "enterprise" has full access, "pro" has most features, "starter" has quick-win features, "free" needs to subscribe.
+- If they ARE subscribed, acknowledge their tier and skip the upsell for features they already have. Only mention upgrading if the plan includes features above their tier.
 - When you recommend subscribing, include ===SUBSCRIBE_CTA=== on its own line. Only ONCE per conversation.
-- The ===SUBSCRIBE_CTA=== marker will be rendered as a "Subscribe & Start Building" button by the frontend.`;
+- The ===SUBSCRIBE_CTA=== marker will be rendered as a "Subscribe & Start Building" button by the frontend.
+- ALWAYS recommend the MINIMUM viable tier. Don't push Enterprise when Starter covers their needs.`;
 
 
 serve(async (req) => {
@@ -522,9 +539,17 @@ ${builtSummary.length > 0 ? builtSummary.join("\n") : "Nothing built yet — thi
 audience_metrics: { email_subscribers: ${subscriberCount} }
 generation_history: ${JSON.stringify(existingAssets.map((a: any) => a.asset_type))}
 is_premium_subscriber: ${!!isPremium}
-subscription_tier: "${isPremium ? "Premium" : subscriptionTier || "free"}"
+subscription_tier: "${isPremium ? subscriptionTier || "enterprise" : subscriptionTier || "free"}"
 subscription_status: "${isPremium ? "active" : subscriptionStatus || "none"}"
-subscription_note: "${isPremium ? "Author has ABBY Premium — skip the subscription sell and encourage them to start building immediately." : "Author is on the FREE plan — they MUST subscribe to ABBY Premium before they can build any products. Include the UNLOCK YOUR PLAN section in your business plan."}"
+subscription_note: "${
+  subscriptionTier === "enterprise" 
+    ? "Author has Enterprise — skip the subscription sell entirely and encourage them to start building immediately. They have access to ALL 27 nodes."
+    : subscriptionTier === "pro"
+    ? "Author has Pro — skip the subscription sell for Starter/Pro features. If the plan includes Enterprise-only features (keynotes, retreats, certification, masterminds), mention they can upgrade to Enterprise when ready."
+    : subscriptionTier === "starter"
+    ? "Author has Starter — skip the sell for Starter features. If the plan includes Pro features (courses, coaching, audiobooks), recommend upgrading to Pro. If it includes Enterprise features, mention Enterprise."
+    : "Author is on the FREE plan — they MUST subscribe before they can build any products. Recommend the MINIMUM tier that covers their Month 1-2 quick wins (usually Starter at $47/mo). Include the UNLOCK YOUR PLAN section."
+}"
 author_frameworks: ${profile?.frameworks && Array.isArray(profile.frameworks) && profile.frameworks.length > 0
   ? JSON.stringify(profile.frameworks)
   : "none saved in profile — extract from manuscript if available, but DO NOT list them back to the author. Use them silently to inform product recommendations."}
