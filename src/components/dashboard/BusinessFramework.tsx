@@ -42,8 +42,8 @@ interface Category {
 const categories: Category[] = [
   {
     id: "revenue-streams",
-    label: "Revenue Streams",
-    subtitle: "Products & services you sell",
+    label: "B · Build Authority",
+    subtitle: "Digital assets & authority products from your book",
     color: "text-emerald-600",
     bgColor: "bg-emerald-500/10",
     ringColor: "ring-emerald-500/30",
