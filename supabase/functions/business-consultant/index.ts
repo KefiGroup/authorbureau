@@ -622,7 +622,7 @@ CONVERSATION START:
       model: "openai/gpt-5.2",
       messages: aiMessages,
       temperature: 0.85,
-      max_tokens: maxTokens,
+      max_completion_tokens: maxTokens,
       stream: true,
     });
 
