@@ -615,10 +615,14 @@ CONVERSATION START:
       ...(messages || []).map((m: any) => ({ role: m.role, content: m.content })),
     ];
 
+    // Enforce max_tokens based on conversation turn to prevent info-dumping
+    const maxTokens = conversationTurn <= 3 ? 400 : 4096;
+
     const aiRequestBody = JSON.stringify({
       model: "openai/gpt-5.2",
       messages: aiMessages,
       temperature: 0.85,
+      max_tokens: maxTokens,
       stream: true,
     });
 
