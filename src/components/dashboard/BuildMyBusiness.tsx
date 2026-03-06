@@ -847,6 +847,13 @@ export default function BuildMyBusiness() {
         </Button>
       </div>
 
+      {/* Saved Business Plan Reference */}
+      {user && (
+        <div className="mb-4 flex-shrink-0">
+          <SavedBusinessPlan bookId={selectedBook.id} bookTitle={selectedBook.title} authorId={user.id} />
+        </div>
+      )}
+
       {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-4 pr-2 pb-4">
         {messages.filter(m => !(m.role === "user" && messages.indexOf(m) === 0 && messages.length > 1)).length === 0 && !isStreaming && (
