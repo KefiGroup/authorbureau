@@ -537,9 +537,17 @@ ${builtSummary.length > 0 ? builtSummary.join("\n") : "Nothing built yet — thi
 audience_metrics: { email_subscribers: ${subscriberCount} }
 generation_history: ${JSON.stringify(existingAssets.map((a: any) => a.asset_type))}
 is_premium_subscriber: ${!!isPremium}
-subscription_tier: "${isPremium ? "Premium" : subscriptionTier || "free"}"
+subscription_tier: "${isPremium ? subscriptionTier || "enterprise" : subscriptionTier || "free"}"
 subscription_status: "${isPremium ? "active" : subscriptionStatus || "none"}"
-subscription_note: "${isPremium ? "Author has ABBY Premium — skip the subscription sell and encourage them to start building immediately." : "Author is on the FREE plan — they MUST subscribe to ABBY Premium before they can build any products. Include the UNLOCK YOUR PLAN section in your business plan."}"
+subscription_note: "${
+  subscriptionTier === "enterprise" 
+    ? "Author has Enterprise — skip the subscription sell entirely and encourage them to start building immediately. They have access to ALL 27 nodes."
+    : subscriptionTier === "pro"
+    ? "Author has Pro — skip the subscription sell for Starter/Pro features. If the plan includes Enterprise-only features (keynotes, retreats, certification, masterminds), mention they can upgrade to Enterprise when ready."
+    : subscriptionTier === "starter"
+    ? "Author has Starter — skip the sell for Starter features. If the plan includes Pro features (courses, coaching, audiobooks), recommend upgrading to Pro. If it includes Enterprise features, mention Enterprise."
+    : "Author is on the FREE plan — they MUST subscribe before they can build any products. Recommend the MINIMUM tier that covers their Month 1-2 quick wins (usually Starter at $47/mo). Include the UNLOCK YOUR PLAN section."
+}"
 author_frameworks: ${profile?.frameworks && Array.isArray(profile.frameworks) && profile.frameworks.length > 0
   ? JSON.stringify(profile.frameworks)
   : "none saved in profile — extract from manuscript if available, but DO NOT list them back to the author. Use them silently to inform product recommendations."}
