@@ -130,10 +130,10 @@ export default function AdminDashboard() {
     setAdminsLoading(false);
   }, []);
 
-  // Check super admin on mount
+  // Local admin = super admin (no shared backend call needed)
   useEffect(() => {
     if (!isAdmin) return;
-    adminApi.isSuperAdmin().then((data) => setIsSuperAdmin(!!data?.is_super_admin)).catch(() => {});
+    setIsSuperAdmin(true);
     adminApi.checkPublishNowAdmin().then((data) => setIsPublishNowAdmin(!!data?.is_super_admin)).catch(() => {});
   }, [isAdmin]);
 
