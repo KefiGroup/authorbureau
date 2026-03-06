@@ -22,6 +22,7 @@ interface ProductNode {
   iconName: string;
   description: string;
   status: "live" | "coming-soon" | "planned";
+  group?: string;
 }
 
 interface CategoryConfig {
