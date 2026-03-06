@@ -141,6 +141,22 @@ export default function ApproveStep({ posts, config, onBack, onDone }: Props) {
         </CardContent>
       </Card>
 
+      {/* Format Mix */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">Format Distribution</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(formatCounts).map(([format, count]) => (
+              <Badge key={format} className={`${FORMAT_COLORS[format as ContentFormat] || "bg-muted text-muted-foreground"} text-xs px-3 py-1`}>
+                {FORMAT_LABELS[format as ContentFormat] || format} ({count})
+              </Badge>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Schedule Preview */}
       <Card>
         <CardHeader className="pb-3">
