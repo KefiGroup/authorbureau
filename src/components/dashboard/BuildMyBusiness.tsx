@@ -52,6 +52,7 @@ export default function BuildMyBusiness() {
   const [loadingBooks, setLoadingBooks] = useState(true);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const sessionIdRef = useRef<string | null>(null);
 
   // Chat state
   const [messages, setMessages] = useState<ChatMessage[]>([]);
