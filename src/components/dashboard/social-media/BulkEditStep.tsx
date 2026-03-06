@@ -136,6 +136,11 @@ export default function BulkEditStep({ posts, onPostsChange, onNext, onBack }: P
                   <td className="p-2">
                     <Badge variant="outline" className="text-[10px] capitalize">{post.platform}</Badge>
                   </td>
+                  <td className="p-2">
+                    <Badge className={`text-[10px] ${FORMAT_COLORS[post.format as ContentFormat] || "bg-muted text-muted-foreground"}`}>
+                      {FORMAT_LABELS[post.format as ContentFormat] || post.format}
+                    </Badge>
+                  </td>
                   <td className="p-2 text-xs max-w-[200px] truncate">{post.caption}</td>
                   <td className="p-2">
                     <div className="flex items-center gap-1.5">
