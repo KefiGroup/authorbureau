@@ -523,6 +523,10 @@ serve(async (req) => {
       || existingAssets.find((a: any) => a.asset_type === "manuscript_analysis");
     const manuscriptContent = manuscriptAsset ? manuscriptAsset.content.slice(0, 150000) : null;
 
+    // Find existing business plan
+    const businessPlanAsset = existingAssets.find((a: any) => a.asset_type === "business_plan");
+    const existingBusinessPlan = businessPlanAsset ? businessPlanAsset.content.slice(0, 20000) : null;
+
     const contextBlock = `
 CURRENT CONTEXT:
 author_profile: ${JSON.stringify({
