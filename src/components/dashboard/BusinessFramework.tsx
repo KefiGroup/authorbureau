@@ -83,7 +83,7 @@ const steps: Step[] = [
   },
   {
     id: "step-3",
-    label: "B · Broadcast",
+    label: "B · Bridge",
     subtitle: "Speaking",
     color: "text-rose-500",
     bgColor: "bg-rose-500/10",
