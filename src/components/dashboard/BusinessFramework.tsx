@@ -258,9 +258,9 @@ export default function BusinessFramework({ onNavigate, isPremium, focusStep }: 
           onConsultAbby={() => onNavigate("build-business")}
           onNavigateTab={(tab) => {
             const tabToStep: Record<string, string> = {
-              automate: "step-1",
+              analyze: "step-1",
               build: "step-2",
-              broadcast: "step-3",
+              bridge: "step-3",
               yield: "step-4",
             };
             setActiveStep(tabToStep[tab] ?? null);
