@@ -45,7 +45,7 @@ const statusStyles = {
 
 export const stepConfigs: StepConfig[] = [
   {
-    id: "automate", label: "A · Automate", subtitle: "Digital Products",
+    id: "analyze", label: "A · Analyze", subtitle: "Digital Products",
     color: "text-blue-600", bgColor: "bg-blue-500/10",
     gradientFrom: "from-blue-500", gradientTo: "to-blue-600",
     nodes: [
