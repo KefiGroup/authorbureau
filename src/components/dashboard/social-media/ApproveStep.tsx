@@ -18,6 +18,7 @@ interface Props {
   onBack: () => void;
   onDone: () => void;
   onRegenerate?: () => void;
+  onPostsChange?: (posts: SocialPost[]) => void;
 }
 
 /** Encode rich post metadata into a single JSON string for the image_prompt DB column */
