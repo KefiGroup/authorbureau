@@ -52,7 +52,14 @@ export default function SocialMediaManager() {
     return (
       <>
         <SocialMediaStudio
-          onExit={() => { setShowStudio(false); loadContent(); }}
+          onExit={() => {
+            if (bookId) {
+              navigate(`/dashboard/book/${bookId}?tab=automate`);
+            } else {
+              setShowStudio(false);
+              loadContent();
+            }
+          }}
           initialBookId={bookId}
           initialBookTitle={bookTitle ? decodeURIComponent(bookTitle) : ""}
           initialBookCoverUrl={bookCoverUrl}
