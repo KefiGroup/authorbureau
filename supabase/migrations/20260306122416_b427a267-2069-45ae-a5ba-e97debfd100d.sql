@@ -1,0 +1,1 @@
+DELETE FROM consultation_sessions WHERE user_id = '5fd84779-8ac5-49f6-9524-0d7f1dcd4f33';
