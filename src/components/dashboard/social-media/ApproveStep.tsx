@@ -1,11 +1,11 @@
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, Save, Loader2, Download, FileText, Image, ExternalLink, RefreshCw } from "lucide-react";
+import { CheckCircle2, Save, Loader2, Download, Copy, ExternalLink, RefreshCw, Clipboard, Sparkles } from "lucide-react";
 import { useState } from "react";
 import type { SocialPost, CalendarConfig } from "./types";
 import { CATEGORY_COLORS, FORMAT_LABELS, FORMAT_COLORS, type ContentFormat } from "./types";
@@ -33,13 +33,20 @@ function encodePostMeta(p: SocialPost): string {
   });
 }
 
+/** Build the full post text (caption + hashtags) for clipboard */
+function buildPostText(p: SocialPost): string {
+  const hashtags = p.hashtags.length > 0 ? "\n\n" + p.hashtags.map(h => `#${h}`).join(" ") : "";
+  return p.caption + hashtags;
+}
+
 export default function ApproveStep({ posts, config, onBack, onDone, onRegenerate }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [cloudUserId, setCloudUserId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "visuals" | "export">("overview");
+  const [copiedPostId, setCopiedPostId] = useState<string | null>(null);
+  const [copiedPromptId, setCopiedPromptId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -72,7 +79,7 @@ export default function ApproveStep({ posts, config, onBack, onDone, onRegenerat
   }, [posts]);
 
   const visualPosts = useMemo(() =>
-    posts.filter(p => ["carousel", "reel_script", "video_script", "image_caption", "story_script"].includes(p.format)),
+    posts.filter(p => p.image_prompt || p.video_shot_list),
     [posts]
   );
 
@@ -107,7 +114,7 @@ export default function ApproveStep({ posts, config, onBack, onDone, onRegenerat
       setSaved(true);
       toast({
         title: status === "approved" ? "Calendar Approved! 🎉" : "Saved as Draft",
-        description: `${posts.length} posts ${status === "approved" ? "scheduled" : "saved"}. You can now export your content.`,
+        description: `${posts.length} posts ${status === "approved" ? "scheduled" : "saved"}.`,
       });
     } catch (e) {
       console.error("Save error:", e);
@@ -116,6 +123,41 @@ export default function ApproveStep({ posts, config, onBack, onDone, onRegenerat
       setSaving(false);
     }
   };
+
+  const copyPostToClipboard = useCallback((post: SocialPost) => {
+    const text = buildPostText(post);
+    navigator.clipboard.writeText(text);
+    setCopiedPostId(post.id);
+    toast({ title: "Copied!", description: "Paste into Buffer's 'Create Post' → use their AI Assistant to enhance." });
+    setTimeout(() => setCopiedPostId(null), 2000);
+  }, [toast]);
+
+  const copyImagePrompt = useCallback((post: SocialPost) => {
+    const prompt = post.image_prompt || post.video_shot_list || "";
+    navigator.clipboard.writeText(prompt);
+    setCopiedPromptId(post.id);
+    toast({ title: "Prompt Copied!", description: "Paste into Canva's AI Image Generator or Magic Design." });
+    setTimeout(() => setCopiedPromptId(null), 2000);
+  }, [toast]);
+
+  const copyAllPosts = useCallback(() => {
+    const allText = posts.map((p, i) =>
+      `--- Post ${i + 1} (${p.platform.toUpperCase()}) — Day ${p.day_number}, ${p.scheduled_date} ---\n${buildPostText(p)}`
+    ).join("\n\n");
+    navigator.clipboard.writeText(allText);
+    toast({ title: "All Posts Copied!", description: `${posts.length} posts on your clipboard.` });
+  }, [posts, toast]);
+
+  const copyAllVisualPrompts = useCallback(() => {
+    const allPrompts = visualPosts.map((p, i) => {
+      let text = `--- Post ${i + 1} (${p.platform}, Day ${p.day_number}) ---\n`;
+      if (p.image_prompt) text += `🎨 Image: ${p.image_prompt}\n`;
+      if (p.video_shot_list) text += `🎬 Video: ${p.video_shot_list}\n`;
+      return text;
+    }).join("\n");
+    navigator.clipboard.writeText(allPrompts);
+    toast({ title: "All Prompts Copied!", description: `${visualPosts.length} visual prompts on your clipboard. Paste into Canva AI.` });
+  }, [visualPosts, toast]);
 
   const exportBufferCSV = () => {
     const headers = ["Text", "Link", "Scheduled Date", "Scheduled Time", "Profile Names"];
@@ -137,98 +179,61 @@ export default function ApproveStep({ posts, config, onBack, onDone, onRegenerat
     a.download = `social-calendar-${config.bookTitle.replace(/\s+/g, "-").toLowerCase()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast({ title: "CSV Downloaded", description: "Upload this file to Buffer, Hootsuite, or Later." });
-  };
-
-  const exportVisualBrief = () => {
-    const lines = visualPosts.map((p, i) => {
-      let brief = `--- Post ${i + 1}: Day ${p.day_number} (${p.scheduled_date}) ---\n`;
-      brief += `Platform: ${p.platform.toUpperCase()}\n`;
-      brief += `Format: ${FORMAT_LABELS[p.format as ContentFormat] || p.format}\n`;
-      brief += `Caption: ${p.caption.slice(0, 100)}...\n`;
-      if (p.image_prompt) brief += `\n🎨 IMAGE PROMPT:\n${p.image_prompt}\n`;
-      if (p.video_shot_list) brief += `\n🎬 VIDEO SHOT LIST:\n${p.video_shot_list}\n`;
-      if (p.format_notes) brief += `\n📋 FORMAT NOTES:\n${p.format_notes}\n`;
-      return brief;
-    });
-    const content = `VISUAL ASSET BRIEF — ${config.bookTitle}\n${"=".repeat(50)}\n\n${visualPosts.length} posts need visual assets.\n\n${lines.join("\n\n")}`;
-    const blob = new Blob([content], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `visual-brief-${config.bookTitle.replace(/\s+/g, "-").toLowerCase()}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast({ title: "Visual Brief Downloaded", description: "Use these prompts to create images with Canva, Midjourney, or DALL·E." });
+    toast({ title: "CSV Downloaded", description: "Go to Buffer → Content → Import → upload this file." });
   };
 
   const totalPie = Object.values(categoryCounts).reduce((s, v) => s + v, 0);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      {/* Simplified 3-step workflow */}
       <AbbyCoachingTip
-        title="Your Publishing Game Plan"
+        title="Your 3-Step Publishing Workflow"
+        expandedByDefault
         customContent={
-          <div className="space-y-3 text-sm">
-            <div className="flex items-start gap-2">
-              <span className="shrink-0">→ 📋</span>
-              <p>
-                Step 1:{" "}
-                <button onClick={() => savePosts("approved")} disabled={saving} className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium">
-                  {saved ? "✓ Calendar saved" : "Save your calendar"}
-                </button>
-                {" first, then "}
-                <button onClick={() => { setActiveTab("export"); setTimeout(exportBufferCSV, 300); }} className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium">
-                  download the Buffer CSV
-                </button>
-                {" → upload to "}
-                <a href="https://publish.buffer.com" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium inline-flex items-center gap-0.5">
-                  buffer.com/publish <ExternalLink className="h-3 w-3" />
-                </a>
-                {" → all posts auto-schedule."}
-              </p>
+          <div className="space-y-4 text-sm">
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
+              <span className="shrink-0 text-lg">1️⃣</span>
+              <div>
+                <p className="font-semibold text-foreground">Copy a post → Paste into Buffer</p>
+                <p className="text-muted-foreground text-xs mt-0.5">
+                  Click <Copy className="h-3 w-3 inline" /> on any post below → open{" "}
+                  <a href="https://publish.buffer.com" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium inline-flex items-center gap-0.5">
+                    Buffer <ExternalLink className="h-3 w-3" />
+                  </a>
+                  {" → click '+ New Post' → paste → Buffer's "}
+                  <span className="font-medium text-foreground">AI Assistant</span> will help you refine it. Schedule and repeat.
+                </p>
+              </div>
             </div>
-            <div className="flex items-start gap-2">
-              <span className="shrink-0">→ 🎨</span>
-              <p>
-                Step 2:{" "}
-                <button onClick={() => { setActiveTab("visuals"); }} className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium">
-                  Download Visual Brief
-                </button>
-                {" → create images in "}
-                <a href="https://www.canva.com" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium inline-flex items-center gap-0.5">
-                  Canva <ExternalLink className="h-3 w-3" />
-                </a>
-                {" using the AI prompts → attach to each post."}
-              </p>
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/5 border border-secondary/10">
+              <span className="shrink-0 text-lg">2️⃣</span>
+              <div>
+                <p className="font-semibold text-foreground">Copy an image prompt → Paste into Canva AI</p>
+                <p className="text-muted-foreground text-xs mt-0.5">
+                  Click <Sparkles className="h-3 w-3 inline" /> on any visual post → open{" "}
+                  <a href="https://www.canva.com/ai-image-generator/" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium inline-flex items-center gap-0.5">
+                    Canva AI Image Generator <ExternalLink className="h-3 w-3" />
+                  </a>
+                  {" → paste the prompt → Canva creates your visual. Attach to your Buffer post."}
+                </p>
+              </div>
             </div>
-            <div className="flex items-start gap-2">
-              <span className="shrink-0">→ 🎬</span>
-              <p>
-                Step 3: For Reel/Video posts,{" "}
-                <button onClick={() => setActiveTab("visuals")} className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium">
-                  view the shot lists
-                </button>
-                {" → film with your phone → upload to scheduling tool."}
-              </p>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="shrink-0">→ 📊</span>
-              <p>Step 4: After 7 days, check analytics → double down on top-performing content types.</p>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="shrink-0">→ 🔁</span>
-              <p>
-                Step 5: After 30 days,{" "}
-                {onRegenerate ? (
-                  <button onClick={onRegenerate} className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium">
-                    generate a new calendar
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 border border-border">
+              <span className="shrink-0 text-lg">3️⃣</span>
+              <div>
+                <p className="font-semibold text-foreground">Power users: Bulk import via CSV</p>
+                <p className="text-muted-foreground text-xs mt-0.5">
+                  <button onClick={exportBufferCSV} className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium">
+                    Download CSV
                   </button>
-                ) : (
-                  <span>come back here and generate a new calendar</span>
-                )}
-                {" based on what worked."}
-              </p>
+                  {" → Buffer → Content → "}
+                  <a href="https://publish.buffer.com/content" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium inline-flex items-center gap-0.5">
+                    Import <ExternalLink className="h-3 w-3" />
+                  </a>
+                  {" → all posts schedule at once."}
+                </p>
+              </div>
             </div>
           </div>
         }
@@ -239,7 +244,7 @@ export default function ApproveStep({ posts, config, onBack, onDone, onRegenerat
         <div className="w-16 h-16 mx-auto rounded-2xl bg-green-500/10 flex items-center justify-center">
           <CheckCircle2 className="h-8 w-8 text-green-600" />
         </div>
-        <h2 className="font-heading text-2xl font-bold">Review & Export</h2>
+        <h2 className="font-heading text-2xl font-bold">Review & Publish</h2>
         <p className="text-sm text-muted-foreground">
           {posts.length} posts ready • {dateRange.start} to {dateRange.end}
         </p>
@@ -248,243 +253,162 @@ export default function ApproveStep({ posts, config, onBack, onDone, onRegenerat
         )}
       </div>
 
-      {/* Tab Switcher */}
-      <div className="flex gap-1 bg-muted rounded-lg p-0.5 w-fit mx-auto">
-        {(["overview", "visuals", "export"] as const).map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-1.5 rounded-md text-xs font-medium capitalize transition-all ${
-              activeTab === tab ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {tab === "visuals" ? "Visual Assets" : tab === "export" ? "Export & Schedule" : tab}
-          </button>
+      {/* Quick Actions Bar */}
+      <div className="flex flex-wrap gap-2 justify-center">
+        <Button variant="outline" size="sm" onClick={copyAllPosts}>
+          <Clipboard className="h-3.5 w-3.5 mr-1.5" /> Copy All Posts
+        </Button>
+        {visualPosts.length > 0 && (
+          <Button variant="outline" size="sm" onClick={copyAllVisualPrompts}>
+            <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Copy All Image Prompts
+          </Button>
+        )}
+        <Button variant="outline" size="sm" onClick={exportBufferCSV}>
+          <Download className="h-3.5 w-3.5 mr-1.5" /> Download Buffer CSV
+        </Button>
+      </div>
+
+      {/* Stats Row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {Object.entries(platformCounts).map(([platform, count]) => (
+          <Card key={platform}>
+            <CardContent className="p-3 text-center">
+              <p className="text-xl font-bold">{count}</p>
+              <p className="text-[10px] text-muted-foreground capitalize">{platform}</p>
+            </CardContent>
+          </Card>
         ))}
       </div>
 
-      {/* === Overview Tab === */}
-      {activeTab === "overview" && (
-        <>
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {Object.entries(platformCounts).map(([platform, count]) => (
-              <Card key={platform}>
-                <CardContent className="p-4 text-center">
-                  <p className="text-2xl font-bold">{count}</p>
-                  <p className="text-xs text-muted-foreground capitalize">{platform}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Content Mix */}
-          <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-lg">Content Mix</CardTitle></CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {Object.entries(categoryCounts).map(([category, count]) => {
-                  const pct = Math.round((count / totalPie) * 100);
-                  return (
-                    <div key={category} className="flex items-center gap-3">
-                      <div className={`w-3 h-3 rounded-full ${CATEGORY_COLORS[category]}`} />
-                      <span className="text-sm capitalize flex-1">{category}</span>
-                      <div className="w-32 h-2 rounded-full bg-muted overflow-hidden">
-                        <div className={`h-full rounded-full ${CATEGORY_COLORS[category]}`} style={{ width: `${pct}%` }} />
-                      </div>
-                      <span className="text-xs text-muted-foreground w-12 text-right">{pct}% ({count})</span>
+      {/* Content Mix + Format Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Content Mix</CardTitle></CardHeader>
+          <CardContent>
+            <div className="space-y-1.5">
+              {Object.entries(categoryCounts).map(([category, count]) => {
+                const pct = Math.round((count / totalPie) * 100);
+                return (
+                  <div key={category} className="flex items-center gap-2">
+                    <div className={`w-2.5 h-2.5 rounded-full ${CATEGORY_COLORS[category]}`} />
+                    <span className="text-xs capitalize flex-1">{category}</span>
+                    <div className="w-20 h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div className={`h-full rounded-full ${CATEGORY_COLORS[category]}`} style={{ width: `${pct}%` }} />
                     </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Format Mix */}
-          <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-lg">Format Distribution</CardTitle></CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(formatCounts).map(([format, count]) => (
-                  <Badge key={format} className={`${FORMAT_COLORS[format as ContentFormat] || "bg-muted text-muted-foreground"} text-xs px-3 py-1`}>
-                    {FORMAT_LABELS[format as ContentFormat] || format} ({count})
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Schedule Preview */}
-          <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-lg">Schedule Preview</CardTitle></CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-7 gap-1">
-                {posts.slice(0, 28).map((post) => (
-                  <div
-                    key={post.id}
-                    className="aspect-square rounded bg-muted/50 flex items-center justify-center"
-                    title={`${post.scheduled_date}: ${post.platform} - ${post.category}`}
-                  >
-                    <div className={`w-2.5 h-2.5 rounded-full ${CATEGORY_COLORS[post.category]}`} />
+                    <span className="text-[10px] text-muted-foreground w-10 text-right">{pct}%</span>
                   </div>
-                ))}
-                {posts.length > 28 && (
-                  <div className="aspect-square rounded bg-muted/50 flex items-center justify-center col-span-7">
-                    <span className="text-[10px] text-muted-foreground">+{posts.length - 28} more posts</span>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Formats</CardTitle></CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-1.5">
+              {Object.entries(formatCounts).map(([format, count]) => (
+                <Badge key={format} className={`${FORMAT_COLORS[format as ContentFormat] || "bg-muted text-muted-foreground"} text-[10px] px-2 py-0.5`}>
+                  {FORMAT_LABELS[format as ContentFormat] || format} ({count})
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* === Posts List with Copy Buttons === */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg">Your Posts</CardTitle>
+            <span className="text-xs text-muted-foreground">{posts.length} total</span>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
+            {posts.map((post) => (
+              <div key={post.id} className="rounded-lg border border-border p-3 space-y-2 group hover:border-primary/20 transition-colors">
+                {/* Post header */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge variant="outline" className="text-[10px] capitalize">{post.platform}</Badge>
+                    <Badge className={`text-[10px] ${FORMAT_COLORS[post.format as ContentFormat]}`}>
+                      {FORMAT_LABELS[post.format as ContentFormat]}
+                    </Badge>
+                    <Badge className={`text-[10px] ${CATEGORY_COLORS[post.category]}`}>
+                      {post.category}
+                    </Badge>
+                    <span className="text-[10px] text-muted-foreground">Day {post.day_number} • {post.scheduled_date}</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs opacity-60 group-hover:opacity-100"
+                    onClick={() => copyPostToClipboard(post)}
+                  >
+                    {copiedPostId === post.id ? (
+                      <><CheckCircle2 className="h-3.5 w-3.5 mr-1 text-green-600" /> Copied</>
+                    ) : (
+                      <><Copy className="h-3.5 w-3.5 mr-1" /> Copy Post</>
+                    )}
+                  </Button>
+                </div>
+
+                {/* Caption preview */}
+                <p className="text-xs text-foreground leading-relaxed">{post.caption.slice(0, 200)}{post.caption.length > 200 ? "..." : ""}</p>
+
+                {/* Hashtags */}
+                {post.hashtags.length > 0 && (
+                  <p className="text-[10px] text-primary/70">{post.hashtags.map(h => `#${h}`).join(" ")}</p>
+                )}
+
+                {/* Image prompt with copy button */}
+                {post.image_prompt && (
+                  <div className="rounded-md bg-secondary/5 border border-secondary/15 p-2 flex items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] font-semibold text-secondary mb-0.5">🎨 Image Prompt (paste into Canva AI)</p>
+                      <p className="text-[10px] text-muted-foreground line-clamp-2">{post.image_prompt}</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-1.5 text-[10px] shrink-0"
+                      onClick={() => copyImagePrompt(post)}
+                    >
+                      {copiedPromptId === post.id ? (
+                        <CheckCircle2 className="h-3 w-3 text-green-600" />
+                      ) : (
+                        <Sparkles className="h-3 w-3" />
+                      )}
+                    </Button>
+                  </div>
+                )}
+
+                {/* Video shot list with copy */}
+                {post.video_shot_list && (
+                  <div className="rounded-md bg-accent/5 border border-accent/15 p-2 flex items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] font-semibold text-accent-foreground mb-0.5">🎬 Video Script</p>
+                      <p className="text-[10px] text-muted-foreground line-clamp-2">{post.video_shot_list}</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-1.5 text-[10px] shrink-0"
+                      onClick={() => { 
+                        navigator.clipboard.writeText(post.video_shot_list);
+                        toast({ title: "Script Copied!" });
+                      }}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
                   </div>
                 )}
               </div>
-            </CardContent>
-          </Card>
-        </>
-      )}
-
-      {/* === Visual Assets Tab === */}
-      {activeTab === "visuals" && (
-        <>
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Image className="h-5 w-5 text-secondary" />
-                  Visual Assets Needed
-                </CardTitle>
-                <Badge variant="outline" className="text-xs">{visualPosts.length} posts need visuals</Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-1">
-              {visualPosts.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">
-                  No visual-format posts in this calendar. All posts are text-based.
-                </p>
-              ) : (
-                <>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Each visual post below includes an AI-generated prompt. Use these with Canva, Midjourney, DALL·E, or your designer.
-                  </p>
-                  <div className="space-y-3 max-h-[500px] overflow-y-auto">
-                    {visualPosts.map((post) => (
-                      <div key={post.id} className="rounded-lg border border-border p-3 space-y-2">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Badge variant="outline" className="text-[10px] capitalize">{post.platform}</Badge>
-                          <Badge className={`text-[10px] ${FORMAT_COLORS[post.format as ContentFormat]}`}>
-                            {FORMAT_LABELS[post.format as ContentFormat]}
-                          </Badge>
-                          <span className="text-[10px] text-muted-foreground">Day {post.day_number} • {post.scheduled_date}</span>
-                        </div>
-                        <p className="text-xs text-foreground line-clamp-2">{post.caption.slice(0, 120)}...</p>
-                        
-                        {post.image_prompt && (
-                          <div className="rounded-md bg-teal-500/5 border border-teal-500/20 p-2">
-                            <p className="text-[10px] font-semibold text-teal-700 mb-1">🎨 Image Prompt</p>
-                            <p className="text-xs text-muted-foreground">{post.image_prompt}</p>
-                          </div>
-                        )}
-                        
-                        {post.video_shot_list && (
-                          <div className="rounded-md bg-pink-500/5 border border-pink-500/20 p-2">
-                            <p className="text-[10px] font-semibold text-pink-700 mb-1">🎬 Shot List / Script</p>
-                            <p className="text-xs text-muted-foreground whitespace-pre-line">{post.video_shot_list}</p>
-                          </div>
-                        )}
-
-                        {post.format_notes && (
-                          <div className="rounded-md bg-muted/50 p-2">
-                            <p className="text-[10px] font-semibold text-foreground mb-1">📋 Format Notes</p>
-                            <p className="text-xs text-muted-foreground">{post.format_notes}</p>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          {visualPosts.length > 0 && (
-            <Button variant="outline" onClick={exportVisualBrief} className="w-full">
-              <FileText className="h-4 w-4 mr-2" />
-              Download Full Visual Brief (.txt)
-            </Button>
-          )}
-        </>
-      )}
-
-      {/* === Export & Schedule Tab === */}
-      {activeTab === "export" && (
-        <>
-          <AbbyCoachingTip
-            title="How to Auto-Schedule Everything"
-            expandedByDefault
-            customContent={
-              <div className="space-y-2 text-xs text-muted-foreground">
-                <p>1️⃣ <button onClick={exportBufferCSV} className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium">Download the Buffer CSV</button> below.</p>
-                <p>2️⃣ Go to <a href="https://publish.buffer.com" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium inline-flex items-center gap-0.5">Buffer Publishing <ExternalLink className="h-3 w-3" /></a> → Bulk Create → Upload CSV.</p>
-                <p>3️⃣ Buffer will auto-schedule all posts at optimal times.</p>
-                <p>4️⃣ Attach visuals to each post in Buffer's composer.</p>
-                <p>5️⃣ Review and hit 'Add to Queue'. Done! 🎉</p>
-              </div>
-            }
-          />
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card className="cursor-pointer hover:border-primary/30 transition-all" onClick={exportBufferCSV}>
-              <CardContent className="p-6 text-center space-y-3">
-                <div className="w-12 h-12 mx-auto rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Download className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="font-heading font-semibold">Download Buffer CSV</h3>
-                <p className="text-xs text-muted-foreground">
-                  Import all {posts.length} posts into Buffer, Hootsuite, or Later with one upload.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="cursor-pointer hover:border-primary/30 transition-all" onClick={exportVisualBrief}>
-              <CardContent className="p-6 text-center space-y-3">
-                <div className="w-12 h-12 mx-auto rounded-xl bg-secondary/10 flex items-center justify-center">
-                  <Image className="h-6 w-6 text-secondary" />
-                </div>
-                <h3 className="font-heading font-semibold">Download Visual Brief</h3>
-                <p className="text-xs text-muted-foreground">
-                  {visualPosts.length} image prompts & video scripts for your designer or AI tools.
-                </p>
-              </CardContent>
-            </Card>
+            ))}
           </div>
-
-          {/* Quick Links */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Scheduling Tools</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {[
-                  { name: "Buffer", url: "https://publish.buffer.com", desc: "Upload CSV → auto-schedule" },
-                  { name: "Later", url: "https://app.later.com", desc: "Drag-and-drop visual planner" },
-                  { name: "Canva", url: "https://www.canva.com", desc: "Create carousel slides & graphics" },
-                ].map(tool => (
-                  <a
-                    key={tool.name}
-                    href={tool.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="rounded-lg border border-border p-3 hover:border-primary/30 hover:bg-muted/30 transition-all flex items-center gap-3"
-                  >
-                    <div>
-                      <p className="text-sm font-semibold">{tool.name}</p>
-                      <p className="text-xs text-muted-foreground">{tool.desc}</p>
-                    </div>
-                    <ExternalLink className="h-4 w-4 text-muted-foreground ml-auto shrink-0" />
-                  </a>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </>
-      )}
+        </CardContent>
+      </Card>
 
       {/* AI Stats */}
       <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
@@ -506,7 +430,7 @@ export default function ApproveStep({ posts, config, onBack, onDone, onRegenerat
         <div className="flex gap-3">
           <Button variant="outline" onClick={() => savePosts("draft")} disabled={saving}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
-            Save as Draft
+            Save Draft
           </Button>
           <Button onClick={() => savePosts("approved")} disabled={saving} className="bg-secondary text-secondary-foreground hover:bg-secondary/90 px-6">
             {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <CheckCircle2 className="h-4 w-4 mr-1" />}
