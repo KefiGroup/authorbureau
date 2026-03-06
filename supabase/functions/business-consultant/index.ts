@@ -523,6 +523,10 @@ serve(async (req) => {
       || existingAssets.find((a: any) => a.asset_type === "manuscript_analysis");
     const manuscriptContent = manuscriptAsset ? manuscriptAsset.content.slice(0, 150000) : null;
 
+    // Find existing business plan
+    const businessPlanAsset = existingAssets.find((a: any) => a.asset_type === "business_plan");
+    const existingBusinessPlan = businessPlanAsset ? businessPlanAsset.content.slice(0, 20000) : null;
+
     const contextBlock = `
 CURRENT CONTEXT:
 author_profile: ${JSON.stringify({
@@ -563,6 +567,16 @@ ${builtSummary.length > 0 ? builtSummary.join("\n") : "Nothing built yet — thi
 === END ALREADY BUILT ===
 audience_metrics: { email_subscribers: ${subscriberCount} }
 generation_history: ${JSON.stringify(existingAssets.map((a: any) => a.asset_type))}
+${existingBusinessPlan ? `
+=== EXISTING BUSINESS PLAN (PREVIOUSLY GENERATED) ===
+This author already has a saved business plan. When they return, you should:
+1. Acknowledge the existing plan and ask what they'd like to refine or update
+2. DO NOT regenerate the entire plan from scratch unless explicitly asked
+3. Focus on specific sections they want to adjust, new products to add, or strategy pivots
+4. When updating, maintain consistency with the existing plan structure
+
+${existingBusinessPlan}
+=== END EXISTING BUSINESS PLAN ===` : "existing_business_plan: none — this is a fresh consultation."}
 is_premium_subscriber: ${!!isPremium}
 subscription_tier: "${isPremium ? subscriptionTier || "enterprise" : subscriptionTier || "free"}"
 subscription_status: "${isPremium ? "active" : subscriptionStatus || "none"}"
@@ -586,24 +600,42 @@ author_frameworks: ${profile?.frameworks && Array.isArray(profile.frameworks) &&
 
     // Determine which conversation turn this is (for pacing enforcement)
     const conversationTurn = assistantTurns + 1; // Next turn number
+    const hasSavedPlan = !!existingBusinessPlan;
 
-    const progressionBlock = assistantTurns > 0
-      ? `
+    let progressionBlock: string;
+
+    if (hasSavedPlan && assistantTurns === 0) {
+      // Returning author with existing plan — REFINEMENT MODE
+      progressionBlock = `
+REFINEMENT MODE — EXISTING PLAN DETECTED:
+- This author already has a saved ABBY Business Plan (see EXISTING BUSINESS PLAN in context).
+- DO NOT run the 4-turn diagnostic sequence. DO NOT regenerate the plan from scratch.
+- Instead, greet them warmly and briefly acknowledge their existing plan.
+- Ask what they'd like to refine: "Welcome back! Your business plan for [book] is saved and ready. Would you like to refine any section, add new products, or discuss next steps for execution?"
+- Keep your response under 200 words.
+- If they ask to see the plan, remind them it's available above the chat. If they want changes, make targeted updates only.
+`;
+    } else if (assistantTurns > 0) {
+      progressionBlock = `
 CONVERSATION PROGRESSION:
 - You are on Turn ${conversationTurn} of the consultation.
 - You are mid-conversation. DO NOT restart with a fresh intro.
 - DO NOT repeat the same recommendation already discussed.
 - Build directly on the latest user message and prior context.
-${conversationTurn <= 3 ? `- PACING ENFORCEMENT: This is Turn ${conversationTurn}. Your response MUST be under 200 words. Ask ONE question and STOP. Do NOT generate the business plan yet.` : ""}
-${conversationTurn >= 4 ? "- The author has answered your diagnostic questions. If they confirmed the direction or asked for the plan, generate the FULL ABBY Business Plan now." : ""}
-`
-      : `
+${hasSavedPlan ? "- The author has an EXISTING business plan. Reference it when discussing strategy. Only update specific sections they request." : ""}
+${!hasSavedPlan && conversationTurn <= 3 ? `- PACING ENFORCEMENT: This is Turn ${conversationTurn}. Your response MUST be under 200 words. Ask ONE question and STOP. Do NOT generate the business plan yet.` : ""}
+${!hasSavedPlan && conversationTurn >= 4 ? "- The author has answered your diagnostic questions. If they confirmed the direction or asked for the plan, generate the FULL ABBY Business Plan now." : ""}
+`;
+    } else {
+      // Brand new consultation — no saved plan
+      progressionBlock = `
 CONVERSATION START:
 - This is Turn 1. Follow the Turn 1 pacing rules EXACTLY.
 - Greet warmly, show ONE brief insight about their book, ask ONE goal question, then STOP.
 - Your response MUST be under 200 words. Do NOT generate the business plan.
 - Do NOT skip ahead. Do NOT provide strategic analysis yet. Just greet and ask.
 `;
+    }
 
     const fullSystemPrompt = `${SYSTEM_PROMPT}\n\n${progressionBlock}\n${contextBlock}\nrequest_meta: ${JSON.stringify({
       request_id: crypto.randomUUID(),
@@ -617,7 +649,10 @@ CONVERSATION START:
     ];
 
     // Enforce max_tokens based on conversation turn to prevent info-dumping
-    const maxTokens = conversationTurn <= 3 ? 400 : 4096;
+    // Refinement mode (has saved plan) uses short responses unless explicitly asked for full regen
+    const isEarlyTurn = !hasSavedPlan && conversationTurn <= 3;
+    const isRefinementGreeting = hasSavedPlan && assistantTurns === 0;
+    const maxTokens = (isEarlyTurn || isRefinementGreeting) ? 400 : 4096;
 
     const aiRequestBody = JSON.stringify({
       model: "openai/gpt-5.2",
