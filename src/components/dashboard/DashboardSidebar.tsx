@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, User, BookOpen, Sparkles,
   ChevronLeft, ChevronRight, Crown, ExternalLink, PenLine, BookMarked,
-  Megaphone, Contact, DollarSign, Radio, Award,
+  Megaphone, Contact, DollarSign, Users, Mic, Handshake,
 } from "lucide-react";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
 import logoIcon from "@/assets/logo-icon.png";
