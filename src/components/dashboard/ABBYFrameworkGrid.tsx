@@ -17,7 +17,7 @@ interface Category {
 
 const FRAMEWORK: Category[] = [
   {
-    letter: "A", subtitle: "ANALYZE", title: "DIGITAL PRODUCTS",
+    letter: "A", subtitle: "ANALYZE", title: "ANALYZE & STRATEGIZE",
     hubColor: "#3b82f6", nodeColor: "#60a5fa",
     products: [
       { label: "Online Courses", active: false, category: "revenue" },
@@ -33,7 +33,7 @@ const FRAMEWORK: Category[] = [
     ],
   },
   {
-    letter: "B", subtitle: "BUILD", title: "COACHING",
+    letter: "B", subtitle: "BUILD", title: "BUILD AUTHORITY",
     hubColor: "#d97706", nodeColor: "#f59e0b",
     products: [
       { label: "1-on-1 Coaching", active: false, category: "revenue" },
@@ -44,7 +44,7 @@ const FRAMEWORK: Category[] = [
     ],
   },
   {
-    letter: "B", subtitle: "BRIDGE", title: "SPEAKING",
+    letter: "B", subtitle: "BRIDGE", title: "BRIDGE CHANNELS",
     hubColor: "#f43f5e", nodeColor: "#fb7185",
     products: [
       { label: "Keynotes", active: false, category: "authority" },
@@ -59,7 +59,7 @@ const FRAMEWORK: Category[] = [
     ],
   },
   {
-    letter: "Y", subtitle: "YIELD", title: "SEMINARS",
+    letter: "Y", subtitle: "YIELD", title: "YIELD REVENUE",
     hubColor: "#10b981", nodeColor: "#34d399",
     products: [
       { label: "Retreats & Bootcamps", active: false, category: "revenue" },

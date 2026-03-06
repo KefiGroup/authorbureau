@@ -631,17 +631,17 @@ export default function BuildMyBusiness() {
           <h2 className="font-heading text-2xl font-bold mb-1">Meet Abby</h2>
           <p className="text-sm text-secondary font-medium mb-2">Your AI Business Consultant</p>
           <p className="text-muted-foreground text-sm leading-relaxed">
-            Hi! I'm Abby. I'll help you turn your book into a complete business using The ABBY Framework — <strong>A</strong>utomate, <strong>B</strong>uild, <strong>B</strong>roadcast, <strong>Y</strong>ield.
+            Hi! I'm Abby. I'll help you turn your book into revenue streams using The ABBY Framework — <strong>A</strong>nalyze, <strong>B</strong>uild, <strong>B</strong>ridge, <strong>Y</strong>ield.
           </p>
         </div>
 
         {/* 4-Step Framework Overview */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto">
           {[
-            { step: "A", label: "Automate", desc: "Courses, workbooks, webinars & more", icon: "📦", color: "text-blue-500" },
-            { step: "B", label: "Build", desc: "1-on-1, group coaching & consulting", icon: "🎯", color: "text-amber-600" },
-            { step: "B", label: "Broadcast", desc: "Keynotes, podcasts & corporate gigs", icon: "🎤", color: "text-rose-500" },
-            { step: "Y", label: "Yield", desc: "Retreats, certifications & masterminds", icon: "🏛️", color: "text-emerald-500" },
+            { step: "A", label: "Analyze", desc: "Manuscript analysis & strategy", icon: "🔍", color: "text-amber-500" },
+            { step: "B", label: "Build", desc: "Build authority & digital assets", icon: "🏗️", color: "text-emerald-500" },
+            { step: "B", label: "Bridge", desc: "Bridge marketing channels", icon: "🌉", color: "text-violet-500" },
+            { step: "Y", label: "Yield", desc: "Yield revenue streams & ROI", icon: "💰", color: "text-sky-500" },
           ].map((s, i) => (
             <div key={i} className="bg-muted/50 rounded-xl p-3 text-center border border-border">
               <div className="text-2xl mb-1">{s.icon}</div>
@@ -653,7 +653,7 @@ export default function BuildMyBusiness() {
         </div>
 
         <p className="text-center text-xs text-muted-foreground max-w-md mx-auto">
-          Your book is the hook. Abby will walk you through The ABBY Framework — select a book below to begin your consultation.
+          Your book is the hook. Abby will walk you through The ABBY Framework — select a book below to begin your analysis.
         </p>
 
         {loadingBooks ? (
@@ -837,7 +837,7 @@ export default function BuildMyBusiness() {
       <div className="flex-1 overflow-y-auto space-y-4 pr-2 pb-4">
         {messages.filter(m => !(m.role === "user" && messages.indexOf(m) === 0 && messages.length > 1)).length === 0 && !isStreaming && (
           <div className="flex items-center justify-center py-16 text-muted-foreground">
-            <Loader2 className="h-5 w-5 animate-spin mr-2" /> Starting consultation…
+            <Loader2 className="h-5 w-5 animate-spin mr-2" /> Starting analysis…
           </div>
         )}
 
