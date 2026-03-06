@@ -26,7 +26,7 @@ interface BBYPhase {
 
 const BBY_PHASES: BBYPhase[] = [
   {
-    id: "build", letter: "B", title: "B · Build", subtitle: "AI generates all content & assets",
+    id: "build", letter: "B", title: "B · Build", subtitle: "Build authority & digital assets",
     color: "#10b981",
     nodes: [
       { label: "Online Courses", step: "B" },
@@ -43,7 +43,7 @@ const BBY_PHASES: BBYPhase[] = [
     ],
   },
   {
-    id: "bridge", letter: "B", title: "B · Bridge", subtitle: "Connect to best-in-class tools",
+    id: "bridge", letter: "B", title: "B · Bridge", subtitle: "Bridge marketing channels & connections",
     color: "#8b5cf6",
     nodes: [
       { label: "1-on-1 Coaching", step: "B" },
@@ -57,7 +57,7 @@ const BBY_PHASES: BBYPhase[] = [
     ],
   },
   {
-    id: "yield", letter: "Y", title: "Y · Yield", subtitle: "Monetize & earn",
+    id: "yield", letter: "Y", title: "Y · Yield", subtitle: "Yield revenue streams & monetize",
     color: "#0ea5e9",
     nodes: [
       { label: "Retreats & Bootcamps", step: "Y" },
