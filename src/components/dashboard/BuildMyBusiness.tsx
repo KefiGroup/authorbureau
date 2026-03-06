@@ -279,6 +279,28 @@ export default function BuildMyBusiness() {
           }
         }
       }
+
+      // Auto-save business plan if detected
+      if (accumulated && isBusinessPlanMessage(accumulated) && selectedBook && user) {
+        try {
+          const saveToken = await getActiveToken();
+          await fetch(CONSULTANT_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${saveToken || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+            body: JSON.stringify({
+              action: "save-plan",
+              bookId: selectedBook.id,
+              content: accumulated,
+            }),
+          });
+          console.log("Business plan auto-saved");
+        } catch (saveErr) {
+          console.error("Failed to auto-save plan:", saveErr);
+        }
+      }
     } catch (err: any) {
       if (!abort.signal.aborted) {
         toast({ title: "Error", description: err.message, variant: "destructive" });
