@@ -55,14 +55,20 @@ export default function SavedBusinessPlan({ bookId, bookTitle, authorId }: Saved
     (async () => {
       setLoading(true);
       try {
-        const { data } = await cloudSupabase
-          .from("generated_assets")
-          .select("content")
-          .eq("book_id", bookId)
-          .eq("author_id", authorId)
-          .eq("asset_type", "business_plan")
-          .maybeSingle();
-        setPlan(data?.content || null);
+        const { data: { session } } = await sharedSupabase.auth.getSession();
+        const token = session?.access_token;
+        const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/business-consultant`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ action: "get-plan", bookId }),
+        });
+        if (resp.ok) {
+          const result = await resp.json();
+          setPlan(result.content || null);
+        }
       } catch (err) {
         console.error("Failed to load plan:", err);
       }
