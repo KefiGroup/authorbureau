@@ -851,6 +851,7 @@ export default function BuildMyBusiness() {
           const displayContent = msg.content
             .replace(/===BUILD_REQUEST===[\s\S]*?===END_BUILD_REQUEST===/g, "")
             .replace(/===SUBSCRIBE_CTA===/g, "")
+            .replace(/===ABBY_PLAN===[\s\S]*?===END_ABBY_PLAN===/g, "")
             .trim();
 
           return (
