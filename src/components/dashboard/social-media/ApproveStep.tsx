@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, Save, Loader2, Download, FileText, Image, Video, ExternalLink } from "lucide-react";
+import { CheckCircle2, Save, Loader2, Download, FileText, Image, ExternalLink, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import type { SocialPost, CalendarConfig } from "./types";
 import { CATEGORY_COLORS, FORMAT_LABELS, FORMAT_COLORS, type ContentFormat } from "./types";
@@ -16,12 +16,28 @@ interface Props {
   config: CalendarConfig;
   onBack: () => void;
   onDone: () => void;
+  onRegenerate?: () => void;
 }
 
-export default function ApproveStep({ posts, config, onBack, onDone }: Props) {
+/** Encode rich post metadata into a single JSON string for the image_prompt DB column */
+function encodePostMeta(p: SocialPost): string {
+  return JSON.stringify({
+    hashtags: p.hashtags,
+    format: p.format,
+    format_notes: p.format_notes,
+    hook: p.hook,
+    cta: p.cta,
+    image_prompt: p.image_prompt,
+    video_shot_list: p.video_shot_list,
+    suggested_time: p.suggested_time,
+  });
+}
+
+export default function ApproveStep({ posts, config, onBack, onDone, onRegenerate }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [cloudUserId, setCloudUserId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"overview" | "visuals" | "export">("overview");
 
@@ -74,7 +90,7 @@ export default function ApproveStep({ posts, config, onBack, onDone }: Props) {
         content_text: p.caption,
         day_number: p.day_number,
         scheduled_date: p.scheduled_date,
-        image_prompt: p.hashtags.join(", "),
+        image_prompt: encodePostMeta(p),
         status: status === "approved" ? "scheduled" : "draft",
       }));
 
@@ -88,11 +104,11 @@ export default function ApproveStep({ posts, config, onBack, onDone }: Props) {
 
       if (error) throw error;
 
+      setSaved(true);
       toast({
         title: status === "approved" ? "Calendar Approved! 🎉" : "Saved as Draft",
-        description: `${posts.length} posts ${status === "approved" ? "scheduled" : "saved"}.`,
+        description: `${posts.length} posts ${status === "approved" ? "scheduled" : "saved"}. You can now export your content.`,
       });
-      onDone();
     } catch (e) {
       console.error("Save error:", e);
       toast({ title: "Save failed", description: "Please try again.", variant: "destructive" });
@@ -153,7 +169,7 @@ export default function ApproveStep({ posts, config, onBack, onDone }: Props) {
       <AbbyCoachingTip
         title="Your Publishing Game Plan"
         tips={[
-          "📋 Step 1: Download the Buffer CSV → upload to buffer.com/publish → all posts auto-schedule.",
+          "📋 Step 1: Save your calendar first, then download the Buffer CSV → upload to buffer.com/publish → all posts auto-schedule.",
           "🎨 Step 2: Download Visual Brief → create images in Canva using the AI prompts → attach to each post.",
           "🎬 Step 3: For Reel/Video posts, follow the shot lists → film with your phone → upload to scheduling tool.",
           "📊 Step 4: After 7 days, check analytics → double down on top-performing content types.",
@@ -170,6 +186,9 @@ export default function ApproveStep({ posts, config, onBack, onDone }: Props) {
         <p className="text-sm text-muted-foreground">
           {posts.length} posts ready • {dateRange.start} to {dateRange.end}
         </p>
+        {saved && (
+          <Badge className="bg-green-500/10 text-green-700 text-xs">✓ Saved to your account</Badge>
+        )}
       </div>
 
       {/* Tab Switcher */}
@@ -277,51 +296,61 @@ export default function ApproveStep({ posts, config, onBack, onDone }: Props) {
               </div>
             </CardHeader>
             <CardContent className="space-y-1">
-              <p className="text-sm text-muted-foreground mb-4">
-                Each visual post below includes an AI-generated prompt. Use these with Canva, Midjourney, DALL·E, or your designer.
-              </p>
-              <div className="space-y-3 max-h-[500px] overflow-y-auto">
-                {visualPosts.map((post, idx) => (
-                  <div key={post.id} className="rounded-lg border border-border p-3 space-y-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="outline" className="text-[10px] capitalize">{post.platform}</Badge>
-                      <Badge className={`text-[10px] ${FORMAT_COLORS[post.format as ContentFormat]}`}>
-                        {FORMAT_LABELS[post.format as ContentFormat]}
-                      </Badge>
-                      <span className="text-[10px] text-muted-foreground">Day {post.day_number} • {post.scheduled_date}</span>
-                    </div>
-                    <p className="text-xs text-foreground line-clamp-2">{post.caption.slice(0, 120)}...</p>
-                    
-                    {post.image_prompt && (
-                      <div className="rounded-md bg-teal-500/5 border border-teal-500/20 p-2">
-                        <p className="text-[10px] font-semibold text-teal-700 mb-1">🎨 Image Prompt</p>
-                        <p className="text-xs text-muted-foreground">{post.image_prompt}</p>
-                      </div>
-                    )}
-                    
-                    {post.video_shot_list && (
-                      <div className="rounded-md bg-pink-500/5 border border-pink-500/20 p-2">
-                        <p className="text-[10px] font-semibold text-pink-700 mb-1">🎬 Shot List / Script</p>
-                        <p className="text-xs text-muted-foreground whitespace-pre-line">{post.video_shot_list}</p>
-                      </div>
-                    )}
+              {visualPosts.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">
+                  No visual-format posts in this calendar. All posts are text-based.
+                </p>
+              ) : (
+                <>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Each visual post below includes an AI-generated prompt. Use these with Canva, Midjourney, DALL·E, or your designer.
+                  </p>
+                  <div className="space-y-3 max-h-[500px] overflow-y-auto">
+                    {visualPosts.map((post) => (
+                      <div key={post.id} className="rounded-lg border border-border p-3 space-y-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant="outline" className="text-[10px] capitalize">{post.platform}</Badge>
+                          <Badge className={`text-[10px] ${FORMAT_COLORS[post.format as ContentFormat]}`}>
+                            {FORMAT_LABELS[post.format as ContentFormat]}
+                          </Badge>
+                          <span className="text-[10px] text-muted-foreground">Day {post.day_number} • {post.scheduled_date}</span>
+                        </div>
+                        <p className="text-xs text-foreground line-clamp-2">{post.caption.slice(0, 120)}...</p>
+                        
+                        {post.image_prompt && (
+                          <div className="rounded-md bg-teal-500/5 border border-teal-500/20 p-2">
+                            <p className="text-[10px] font-semibold text-teal-700 mb-1">🎨 Image Prompt</p>
+                            <p className="text-xs text-muted-foreground">{post.image_prompt}</p>
+                          </div>
+                        )}
+                        
+                        {post.video_shot_list && (
+                          <div className="rounded-md bg-pink-500/5 border border-pink-500/20 p-2">
+                            <p className="text-[10px] font-semibold text-pink-700 mb-1">🎬 Shot List / Script</p>
+                            <p className="text-xs text-muted-foreground whitespace-pre-line">{post.video_shot_list}</p>
+                          </div>
+                        )}
 
-                    {post.format_notes && !post.image_prompt && !post.video_shot_list && (
-                      <div className="rounded-md bg-muted/50 p-2">
-                        <p className="text-[10px] font-semibold text-foreground mb-1">📋 Format Notes</p>
-                        <p className="text-xs text-muted-foreground">{post.format_notes}</p>
+                        {post.format_notes && (
+                          <div className="rounded-md bg-muted/50 p-2">
+                            <p className="text-[10px] font-semibold text-foreground mb-1">📋 Format Notes</p>
+                            <p className="text-xs text-muted-foreground">{post.format_notes}</p>
+                          </div>
+                        )}
                       </div>
-                    )}
+                    ))}
                   </div>
-                ))}
-              </div>
+                </>
+              )}
             </CardContent>
           </Card>
 
-          <Button variant="outline" onClick={exportVisualBrief} className="w-full">
-            <FileText className="h-4 w-4 mr-2" />
-            Download Full Visual Brief (.txt)
-          </Button>
+          {visualPosts.length > 0 && (
+            <Button variant="outline" onClick={exportVisualBrief} className="w-full">
+              <FileText className="h-4 w-4 mr-2" />
+              Download Full Visual Brief (.txt)
+            </Button>
+          )}
         </>
       )}
 
@@ -407,7 +436,14 @@ export default function ApproveStep({ posts, config, onBack, onDone }: Props) {
 
       {/* Actions */}
       <div className="flex justify-between pt-2">
-        <Button variant="outline" onClick={onBack}>← Back</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={onBack}>← Back</Button>
+          {onRegenerate && (
+            <Button variant="outline" onClick={onRegenerate}>
+              <RefreshCw className="h-4 w-4 mr-1" /> Regenerate
+            </Button>
+          )}
+        </div>
         <div className="flex gap-3">
           <Button variant="outline" onClick={() => savePosts("draft")} disabled={saving}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
@@ -419,6 +455,15 @@ export default function ApproveStep({ posts, config, onBack, onDone }: Props) {
           </Button>
         </div>
       </div>
+
+      {/* Done button after saving */}
+      {saved && (
+        <div className="text-center pt-2">
+          <Button onClick={onDone} variant="outline" className="px-8">
+            ✓ Done — Return to Dashboard
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
