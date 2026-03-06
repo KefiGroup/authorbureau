@@ -797,31 +797,32 @@ author_frameworks: ${profile?.frameworks && Array.isArray(profile.frameworks) &&
       progressionBlock = `
 REFINEMENT MODE — EXISTING PLAN DETECTED:
 - This author already has a saved ABBY Business Plan (see EXISTING BUSINESS PLAN in context).
-- DO NOT run the 4-turn diagnostic sequence. DO NOT regenerate the plan from scratch.
+- DO NOT run the 6-turn diagnostic sequence. DO NOT regenerate the plan from scratch.
 - Instead, greet them warmly and briefly acknowledge their existing plan.
 - Ask what they'd like to refine: "Welcome back! Your business plan for [book] is saved and ready. Would you like to refine any section, add new products, or discuss next steps for execution?"
-- Keep your response under 200 words.
+- Keep your response under 150 words.
 - If they ask to see the plan, remind them it's available above the chat. If they want changes, make targeted updates only.
 `;
     } else if (assistantTurns > 0) {
       progressionBlock = `
 CONVERSATION PROGRESSION:
-- You are on Turn ${conversationTurn} of the consultation.
-- You are mid-conversation. DO NOT restart with a fresh intro.
-- DO NOT repeat the same recommendation already discussed.
-- Build directly on the latest user message and prior context.
+CURRENT TURN: ${conversationTurn}. You MUST follow Turn ${conversationTurn} instructions ONLY. Do NOT generate content from Turn ${conversationTurn + 1} or later. End your response at the [STOP] marker for Turn ${conversationTurn}. Maximum ${conversationTurn === 4 ? 2000 : 150} words.
+
 ${hasSavedPlan ? "- The author has an EXISTING business plan. Reference it when discussing strategy. Only update specific sections they request." : ""}
-${!hasSavedPlan && conversationTurn <= 3 ? `- PACING ENFORCEMENT: This is Turn ${conversationTurn}. Your response MUST be under 200 words. Ask ONE question and STOP. Do NOT generate the business plan yet.` : ""}
+${!hasSavedPlan && conversationTurn <= 3 ? `- PACING ENFORCEMENT: This is Turn ${conversationTurn}. Your response MUST be under 150 words. Ask ONE question and STOP. Do NOT generate the business plan yet. Do NOT skip ahead.` : ""}
 ${!hasSavedPlan && conversationTurn === 4 ? `- BUSINESS PLAN GENERATION TIME: The author has answered your diagnostic questions. NOW you MUST generate the FULL ABBY Business Plan. Start with: "Great — I have everything I need. Let me generate your personalised ABBY Business Plan now. This will be saved to your Book Hub so you can access it anytime." Then output the complete plan with ALL sections.` : ""}
-${!hasSavedPlan && conversationTurn > 4 ? "- The business plan should have been generated in Turn 4. If it wasn't, generate it now. Otherwise, help the author refine or discuss next steps." : ""}
+${!hasSavedPlan && conversationTurn === 5 ? "- POST-PLAN FOLLOW UP: The author has seen the plan. Give 3 specific next steps. End with: 'Would you like to start building [first recommended product]? I'll be right there in the builder to guide you.'" : ""}
+${!hasSavedPlan && conversationTurn > 5 ? "- ONGOING CONVERSATION: Keep responses under 150 words. Reference the business plan. Tie recommendations to manuscript content." : ""}
 `;
     } else {
       // Brand new consultation — no saved plan
       progressionBlock = `
 CONVERSATION START:
-- This is Turn 1. Follow the Turn 1 pacing rules EXACTLY.
-- Greet warmly, show ONE brief insight about their book, ask ONE goal question, then STOP.
-- Your response MUST be under 200 words. Do NOT generate the business plan.
+CURRENT TURN: 1. You MUST follow Turn 1 instructions ONLY. Do NOT generate content from Turn 2 or later. End your response at the [STOP] marker for Turn 1. Maximum 150 words.
+
+- This is Turn 1. Follow the Turn 1 instructions EXACTLY.
+- Greet warmly, show ONE brief insight about their book, ask the A/B/C/D priority question, then STOP.
+- Your response MUST be under 150 words. Do NOT generate the business plan.
 - Do NOT skip ahead. Do NOT provide strategic analysis yet. Just greet and ask.
 `;
     }
@@ -838,10 +839,10 @@ CONVERSATION START:
     ];
 
     // Enforce max_tokens based on conversation turn to prevent info-dumping
-    // Refinement mode (has saved plan) uses short responses unless explicitly asked for full regen
     const isEarlyTurn = !hasSavedPlan && conversationTurn <= 3;
+    const isPostPlan = !hasSavedPlan && conversationTurn >= 5;
     const isRefinementGreeting = hasSavedPlan && assistantTurns === 0;
-    const maxTokens = (isEarlyTurn || isRefinementGreeting) ? 400 : 4096;
+    const maxTokens = (isEarlyTurn || isRefinementGreeting || isPostPlan) ? 300 : 4096;
 
     const aiRequestBody = JSON.stringify({
       model: "openai/gpt-5.2",
