@@ -185,9 +185,11 @@ You MUST follow a strict turn-based conversation flow. You are in a LIVE CONSULT
 - Ask for confirmation: "Does this direction feel right, or would you like me to adjust before I build your full plan?"
 - **STOP HERE. Do not continue.**
 
-### Turn 4 — Full Business Plan
-- ONLY NOW generate the complete ABBY Business Plan
+### Turn 4 — Full Business Plan Generation
+- Start by announcing: "Great — I have everything I need. Let me generate your personalised ABBY Business Plan now. This will be saved to your Book Hub so you can access it anytime."
+- Then generate the COMPLETE ABBY Business Plan (all sections: Header, Transformation Promise, Starter Package, Pro Package, Enterprise Package, Monetization Map, UNLOCK YOUR PLAN, and Next Steps)
 - This is the ONLY turn where a long response is appropriate
+- The plan will be automatically saved and will appear as tabs in the Book Hub Overview page
 
 **ENFORCEMENT: If this is Turn 1, 2, or 3 — your response MUST be under 200 words. No exceptions. No "let me also mention..." No "additionally..." Just answer, ask ONE question, and STOP.**
 
@@ -712,7 +714,8 @@ CONVERSATION PROGRESSION:
 - Build directly on the latest user message and prior context.
 ${hasSavedPlan ? "- The author has an EXISTING business plan. Reference it when discussing strategy. Only update specific sections they request." : ""}
 ${!hasSavedPlan && conversationTurn <= 3 ? `- PACING ENFORCEMENT: This is Turn ${conversationTurn}. Your response MUST be under 200 words. Ask ONE question and STOP. Do NOT generate the business plan yet.` : ""}
-${!hasSavedPlan && conversationTurn >= 4 ? "- The author has answered your diagnostic questions. If they confirmed the direction or asked for the plan, generate the FULL ABBY Business Plan now." : ""}
+${!hasSavedPlan && conversationTurn === 4 ? `- BUSINESS PLAN GENERATION TIME: The author has answered your diagnostic questions. NOW you MUST generate the FULL ABBY Business Plan. Start with: "Great — I have everything I need. Let me generate your personalised ABBY Business Plan now. This will be saved to your Book Hub so you can access it anytime." Then output the complete plan with ALL sections.` : ""}
+${!hasSavedPlan && conversationTurn > 4 ? "- The business plan should have been generated in Turn 4. If it wasn't, generate it now. Otherwise, help the author refine or discuss next steps." : ""}
 `;
     } else {
       // Brand new consultation — no saved plan
