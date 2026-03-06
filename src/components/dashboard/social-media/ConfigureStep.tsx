@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { CalendarConfig } from "./types";
 import { BookOpen, Loader2, X as XIcon } from "lucide-react";
+import AbbyCoachingTip from "./AbbyCoachingTip";
 
 interface Book {
   id: string;
