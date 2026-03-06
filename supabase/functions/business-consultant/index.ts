@@ -538,7 +538,7 @@ generation_history: ${JSON.stringify(existingAssets.map((a: any) => a.asset_type
 is_premium_subscriber: ${!!isPremium}
 author_frameworks: ${profile?.frameworks && Array.isArray(profile.frameworks) && profile.frameworks.length > 0
   ? JSON.stringify(profile.frameworks)
-  : "none saved in profile — but if a manuscript is provided above, you MUST extract frameworks directly from the book text. Look for named theories, step-by-step processes, acronyms, unique models, and signature concepts. Present them to the author as discoveries: 'I found your [Framework Name] in your book — this is going to be the cornerstone of everything we build!'"}
+  : "none saved in profile — extract from manuscript if available, but DO NOT list them back to the author. Use them silently to inform product recommendations."}
 `;
 
     const assistantTurns = Array.isArray(messages)
