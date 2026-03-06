@@ -114,6 +114,7 @@ export default function BulkEditStep({ posts, onPostsChange, onNext, onBack }: P
                 </th>
                 <th className="p-2 text-xs font-semibold text-muted-foreground">Date</th>
                 <th className="p-2 text-xs font-semibold text-muted-foreground">Platform</th>
+                <th className="p-2 text-xs font-semibold text-muted-foreground">Format</th>
                 <th className="p-2 text-xs font-semibold text-muted-foreground">Caption</th>
                 <th className="p-2 text-xs font-semibold text-muted-foreground">Category</th>
                 <th className="p-2 text-xs font-semibold text-muted-foreground">Hashtags</th>
