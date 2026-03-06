@@ -520,14 +520,12 @@ books: ${JSON.stringify(books.map((b: any) => ({
     })))}
 selected_book: ${selectedBook ? JSON.stringify({ id: selectedBook.id, title: selectedBook.title, description: selectedBook.description, genre: selectedBook.genre }) : "none"}
 ${manuscriptContent ? `
-=== FULL BOOK MANUSCRIPT (READ THIS CAREFULLY — THIS IS YOUR #1 PRIORITY) ===
-CRITICAL FRAMEWORK EXTRACTION INSTRUCTIONS:
-1. Read the ENTIRE manuscript below before responding.
-2. EXTRACT every unique framework, theory, methodology, acronym-based system, step-by-step process, named concept, or proprietary model the author has created.
-3. In your FIRST message, NAME each framework you discovered and explain how you'll use it as the foundation for their business strategy.
-4. If the author uses a unique term (e.g., "SUCKcess", "The 5P Method", "Hemispheric Intelligence"), ALWAYS use that exact term — never paraphrase it into generic language.
-5. Build ALL product recommendations around these discovered frameworks.
-6. If no explicit named framework exists, identify the author's core methodology from the book's structure and present it as their implicit framework.
+=== FULL BOOK MANUSCRIPT (REFERENCE ONLY — DO NOT RECITE BACK) ===
+You have read this manuscript. Use it to inform your STRATEGY and PRODUCT RECOMMENDATIONS.
+DO NOT list frameworks, quote chapters, or summarize the book back to the author. They wrote it — they know what's in it.
+Instead, reference specific content ONLY when explaining WHY a particular product or strategy will work:
+- GOOD: "Your 8-step system maps perfectly to an online course structure — each step becomes a module."
+- BAD: "I found your SUCKcess Theory with 8 steps: Start by Sucking, Understand Yourself, Choose Your Path..."
 
 ${manuscriptContent}
 === END MANUSCRIPT ===` : "manuscript_content: not available — USE the book description, genre, subtitle, and author profile frameworks to provide strategic recommendations. Do NOT ask the author to upload their manuscript. Work confidently with what you have."}
