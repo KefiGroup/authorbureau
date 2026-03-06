@@ -26,48 +26,45 @@ interface BBYPhase {
 
 const BBY_PHASES: BBYPhase[] = [
   {
-    id: "build", letter: "B", title: "B · Build", subtitle: "Build authority & digital assets",
+    id: "revenue-streams", letter: "D", title: "Digital Products", subtitle: "Low-hanging fruits — monetize fast",
     color: "#10b981",
     nodes: [
-      { label: "Online Courses", step: "B" },
-      { label: "Home Study Courses", step: "B" },
       { label: "Workbook", step: "B" },
       { label: "Audiobook", step: "B" },
+      { label: "Book Sales (Events)", step: "B" },
+      { label: "Home Study Courses", step: "B" },
+      { label: "Online Courses", step: "B" },
+      { label: "Special Editions", step: "B" },
       { label: "Monthly Memberships", step: "B" },
-      { label: "Upsells / Downsells", step: "B" },
-      { label: "Social Media", step: "B" },
-      { label: "Webinars", step: "B" },
-      { label: "Podcasts (Guest)", step: "B" },
-      { label: "Website / Microsite", step: "B" },
-      { label: "Email Marketing", step: "B" },
     ],
   },
   {
-    id: "bridge", letter: "B", title: "B · Bridge", subtitle: "Bridge marketing channels & connections",
+    id: "marketing-channels", letter: "C", title: "Coaching", subtitle: "High-touch expertise programs",
     color: "#8b5cf6",
     nodes: [
-      { label: "1-on-1 Coaching", step: "B" },
       { label: "Group Coaching", step: "B" },
-      { label: "Big Ticket Consulting", step: "B" },
-      { label: "Revenue Sharing / JV", step: "B" },
-      { label: "Keynotes", step: "B" },
-      { label: "In-House Speaker", step: "B" },
-      { label: "Training Programs", step: "B" },
-      { label: "Affiliates", step: "B" },
+      { label: "1-on-1 Coaching", step: "B" },
     ],
   },
   {
-    id: "yield", letter: "Y", title: "Y · Yield", subtitle: "Yield revenue streams & monetize",
+    id: "authority-builders", letter: "S", title: "Speaking", subtitle: "Stage, training & premium engagements",
     color: "#0ea5e9",
     nodes: [
+      { label: "In-House Speaker", step: "Y" },
+      { label: "Training Programs", step: "Y" },
       { label: "Retreats & Bootcamps", step: "Y" },
-      { label: "Certification", step: "Y" },
       { label: "Masterminds", step: "Y" },
-      { label: "Special Editions", step: "Y" },
-      { label: "Book Sales (Events)", step: "Y" },
-      { label: "Conventions / Conferences", step: "Y" },
-      { label: "Fund Raising", step: "Y" },
-      { label: "Exhibitors / JV", step: "Y" },
+      { label: "Certification", step: "Y" },
+      { label: "Keynotes", step: "Y" },
+      { label: "Big Ticket Consulting", step: "Y" },
+    ],
+  },
+  {
+    id: "partnerships", letter: "P", title: "Partnerships", subtitle: "Strategic alliances & revenue multipliers",
+    color: "#f59e0b",
+    nodes: [
+      { label: "Upsells / Downsells / Cross Sells", step: "Y" },
+      { label: "Revenue Sharing", step: "Y" },
     ],
   },
 ];
@@ -96,7 +93,7 @@ export default function ABBYFrameworkVisual({ hasConsultation, onConsultAbby, on
         </div>
 
         {/* BBY Phase Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           {BBY_PHASES.map((phase) => (
             <button
               key={phase.id}
@@ -139,20 +136,20 @@ export default function ABBYFrameworkVisual({ hasConsultation, onConsultAbby, on
       {/* Legend */}
       <div className="flex items-center justify-center gap-6 text-[10px] text-muted-foreground pt-6">
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full" style={{ background: "#f59e0b" }} />
-          <span>A · Analyze</span>
-        </div>
-        <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded-full" style={{ background: "#10b981" }} />
-          <span>B · Build</span>
+          <span>Digital Products</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded-full" style={{ background: "#8b5cf6" }} />
-          <span>B · Bridge</span>
+          <span>Coaching</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded-full" style={{ background: "#0ea5e9" }} />
-          <span>Y · Yield</span>
+          <span>Speaking</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded-full" style={{ background: "#f59e0b" }} />
+          <span>Partnerships</span>
         </div>
       </div>
     </motion.div>
