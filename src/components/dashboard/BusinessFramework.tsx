@@ -65,8 +65,8 @@ const categories: Category[] = [
   },
   {
     id: "marketing-channels",
-    label: "Marketing Channels",
-    subtitle: "How you reach your audience",
+    label: "B · Bridge Channels",
+    subtitle: "Marketing channels & audience connections",
     color: "text-violet-600",
     bgColor: "bg-violet-500/10",
     ringColor: "ring-violet-500/30",
