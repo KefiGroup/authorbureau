@@ -5,12 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  Copy, CheckCircle2, ExternalLink, ImagePlus, Download,
+  Copy, CheckCircle2, ExternalLink, Download,
   Loader2, Calendar, ChevronLeft, ChevronRight, Clock,
-  Image as ImageIcon,
+  Image as ImageIcon, Palette,
 } from "lucide-react";
 import type { SocialPost, CalendarConfig, ContentFormat } from "./types";
 import { FORMAT_LABELS, FORMAT_COLORS, CATEGORY_COLORS } from "./types";
+import ImageStylePicker from "./ImageStylePicker";
 
 interface Props {
   posts: SocialPost[];
@@ -40,9 +41,9 @@ export default function PublishingDashboard({ posts, config, onPostsChange }: Pr
     return futureDates[0] || posts[0]?.scheduled_date || today;
   });
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [generatedImages, setGeneratedImages] = useState<Record<string, string>>({});
   const [markingId, setMarkingId] = useState<string | null>(null);
+  const [imagePickerPostId, setImagePickerPostId] = useState<string | null>(null);
 
   const allDates = useMemo(() => {
     const dateSet = new Set(posts.map(p => p.scheduled_date));
@@ -77,31 +78,10 @@ export default function PublishingDashboard({ posts, config, onPostsChange }: Pr
     setTimeout(() => setCopiedId(null), 2000);
   }, [toast]);
 
-  const generateImage = useCallback(async (post: SocialPost) => {
-    setGeneratingId(post.id);
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-social-graphic", {
-        body: {
-          platform: post.platform,
-          imagePrompt: post.image_prompt || post.caption.slice(0, 200),
-          bookTitle: config.bookTitle,
-          bookCoverUrl: config.bookCoverUrl,
-          caption: post.caption,
-        },
-      });
-      if (error) throw error;
-      if (data?.imageUrl) {
-        setGeneratedImages(prev => ({ ...prev, [post.id]: data.imageUrl }));
-        toast({ title: "Image ready! 🎨", description: "Download it and attach to your post." });
-      } else {
-        throw new Error(data?.error || "No image returned");
-      }
-    } catch (e: any) {
-      toast({ title: "Generation failed", description: e.message, variant: "destructive" });
-    } finally {
-      setGeneratingId(null);
-    }
-  }, [config, toast]);
+  const onImageSelected = useCallback((postId: string, imageUrl: string) => {
+    setGeneratedImages(prev => ({ ...prev, [postId]: imageUrl }));
+    toast({ title: "Image ready! 🎨", description: "Download it and attach to your post." });
+  }, [toast]);
 
   const markAsPosted = useCallback(async (postId: string) => {
     setMarkingId(postId);
@@ -292,20 +272,14 @@ export default function PublishingDashboard({ posts, config, onPostsChange }: Pr
                         )}
                       </Button>
 
-                      {/* Step 2: Generate image */}
                       {!generatedImages[post.id] && (
                         <Button
                           size="sm"
                           variant="outline"
                           className="text-xs h-8 border-secondary/30 text-secondary hover:bg-secondary/10"
-                          onClick={() => generateImage(post)}
-                          disabled={generatingId === post.id}
+                          onClick={() => setImagePickerPostId(post.id)}
                         >
-                          {generatingId === post.id ? (
-                            <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Generating…</>
-                          ) : (
-                            <><ImagePlus className="h-3.5 w-3.5 mr-1.5" /> 2. Generate Image</>
-                          )}
+                          <Palette className="h-3.5 w-3.5 mr-1.5" /> 2. Choose Style & Generate
                         </Button>
                       )}
 
@@ -373,6 +347,16 @@ export default function PublishingDashboard({ posts, config, onPostsChange }: Pr
           </div>
         </CardContent>
       </Card>
+      {/* Image Style Picker Modal */}
+      {imagePickerPostId && (
+        <ImageStylePicker
+          post={posts.find(p => p.id === imagePickerPostId)!}
+          config={config}
+          open={!!imagePickerPostId}
+          onClose={() => setImagePickerPostId(null)}
+          onSelect={(url) => onImageSelected(imagePickerPostId, url)}
+        />
+      )}
     </div>
   );
 }

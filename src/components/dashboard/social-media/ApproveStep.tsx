@@ -5,12 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, Save, Loader2, Download, Copy, ExternalLink, RefreshCw, Clipboard, Sparkles, ImagePlus, Image as ImageIcon, LayoutDashboard } from "lucide-react";
+import { CheckCircle2, Save, Loader2, Download, Copy, ExternalLink, RefreshCw, Clipboard, Sparkles, ImagePlus, Image as ImageIcon, LayoutDashboard, Palette } from "lucide-react";
 import { useState } from "react";
 import type { SocialPost, CalendarConfig } from "./types";
 import { CATEGORY_COLORS, FORMAT_LABELS, FORMAT_COLORS, type ContentFormat } from "./types";
 import AbbyCoachingTip from "./AbbyCoachingTip";
 import PublishingDashboard from "./PublishingDashboard";
+import ImageStylePicker from "./ImageStylePicker";
 
 interface Props {
   posts: SocialPost[];
@@ -50,8 +51,8 @@ export default function ApproveStep({ posts, config, onBack, onDone, onRegenerat
   const [cloudUserId, setCloudUserId] = useState<string | null>(null);
   const [copiedPostId, setCopiedPostId] = useState<string | null>(null);
   const [copiedPromptId, setCopiedPromptId] = useState<string | null>(null);
-  const [generatingImageId, setGeneratingImageId] = useState<string | null>(null);
   const [generatedImages, setGeneratedImages] = useState<Record<string, string>>({});
+  const [imagePickerPostId, setImagePickerPostId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -164,32 +165,10 @@ export default function ApproveStep({ posts, config, onBack, onDone, onRegenerat
     toast({ title: "All Prompts Copied!", description: `${visualPosts.length} visual prompts on your clipboard. Paste into Canva AI.` });
   }, [visualPosts, toast]);
 
-  const generateImage = useCallback(async (post: SocialPost) => {
-    setGeneratingImageId(post.id);
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-social-graphic", {
-        body: {
-          platform: post.platform,
-          imagePrompt: post.image_prompt || post.caption.slice(0, 200),
-          bookTitle: config.bookTitle,
-          bookCoverUrl: config.bookCoverUrl,
-          caption: post.caption,
-        },
-      });
-      if (error) throw error;
-      if (data?.imageUrl) {
-        setGeneratedImages(prev => ({ ...prev, [post.id]: data.imageUrl }));
-        toast({ title: "Image Generated! 🎨", description: `${data.dimensions} graphic ready. Right-click to save, then upload to Buffer.` });
-      } else {
-        throw new Error(data?.error || "No image returned");
-      }
-    } catch (e: any) {
-      console.error("Image gen error:", e);
-      toast({ title: "Generation failed", description: e.message || "Please try again.", variant: "destructive" });
-    } finally {
-      setGeneratingImageId(null);
-    }
-  }, [config, toast]);
+  const onImageSelected = useCallback((postId: string, imageUrl: string) => {
+    setGeneratedImages(prev => ({ ...prev, [postId]: imageUrl }));
+    toast({ title: "Image Selected! 🎨", description: "Download it and attach to your post." });
+  }, [toast]);
 
   const exportBufferCSV = () => {
     const headers = ["Text", "Link", "Scheduled Date", "Scheduled Time", "Profile Names"];
@@ -425,15 +404,10 @@ export default function ApproveStep({ posts, config, onBack, onDone, onRegenerat
                           variant="outline"
                           size="sm"
                           className="h-6 px-2 text-[10px] bg-secondary/10 border-secondary/20 text-secondary hover:bg-secondary/20"
-                          onClick={() => generateImage(post)}
-                          disabled={generatingImageId === post.id}
-                          title="AI Generate Image"
+                          onClick={() => setImagePickerPostId(post.id)}
+                          title="Generate Image with Style Picker"
                         >
-                          {generatingImageId === post.id ? (
-                            <><Loader2 className="h-3 w-3 animate-spin mr-1" /> Generating…</>
-                          ) : (
-                            <><ImagePlus className="h-3 w-3 mr-1" /> Generate</>
-                          )}
+                          <Palette className="h-3 w-3 mr-1" /> Generate
                         </Button>
                       </div>
                     </div>
@@ -468,14 +442,9 @@ export default function ApproveStep({ posts, config, onBack, onDone, onRegenerat
                     variant="ghost"
                     size="sm"
                     className="h-6 px-2 text-[10px] text-muted-foreground hover:text-secondary"
-                    onClick={() => generateImage(post)}
-                    disabled={generatingImageId === post.id}
+                    onClick={() => setImagePickerPostId(post.id)}
                   >
-                    {generatingImageId === post.id ? (
-                      <><Loader2 className="h-3 w-3 animate-spin mr-1" /> Generating…</>
-                    ) : (
-                      <><ImagePlus className="h-3 w-3 mr-1" /> Generate Image</>
-                    )}
+                    <Palette className="h-3 w-3 mr-1" /> Generate Image
                   </Button>
                 )}
                 {/* Show generated image for non-prompt posts */}
@@ -569,6 +538,17 @@ export default function ApproveStep({ posts, config, onBack, onDone, onRegenerat
             ✓ Done — Return to Dashboard
           </Button>
         </div>
+      )}
+
+      {/* Image Style Picker Modal */}
+      {imagePickerPostId && (
+        <ImageStylePicker
+          post={posts.find(p => p.id === imagePickerPostId)!}
+          config={config}
+          open={!!imagePickerPostId}
+          onClose={() => setImagePickerPostId(null)}
+          onSelect={(url) => onImageSelected(imagePickerPostId, url)}
+        />
       )}
         </>
       )}
