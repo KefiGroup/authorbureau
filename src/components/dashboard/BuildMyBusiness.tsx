@@ -993,30 +993,39 @@ export default function BuildMyBusiness() {
 
                 {/* Subscribe CTA */}
                 {hasSubscribeCta && !(isPremium || isAdmin) && (
-                  <div className="mt-4">
-                    <Card className="border-secondary/30 bg-gradient-to-r from-secondary/5 to-secondary/10">
-                      <CardContent className="p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Crown className="h-4 w-4 text-secondary" />
-                          <span className="font-heading font-semibold text-sm">
-                            Activate ABBY Premium
-                          </span>
+                  <div className="mt-5">
+                    <Card className="border-2 border-secondary/40 bg-gradient-to-br from-secondary/5 via-secondary/10 to-amber-500/5 shadow-lg">
+                      <CardContent className="p-5">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center">
+                            <Crown className="h-4 w-4 text-secondary" />
+                          </div>
+                          <div>
+                            <span className="font-heading font-bold text-sm block">
+                              🚀 Activate ABBY Premium
+                            </span>
+                            <span className="text-[11px] text-muted-foreground">
+                              Turn this plan into real products
+                            </span>
+                          </div>
                         </div>
-                        <p className="text-xs text-muted-foreground mb-3">
-                          Unlock all AI-powered builders to turn Abby's strategy into real products — courses, workbooks, webinars, and more, generated automatically from your book.
+                        <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
+                          Your business plan is ready. Subscribe to ABBY Premium to unlock <strong>all 27 AI-powered builders</strong> — courses, workbooks, coaching packages, webinars, and more — generated automatically from your book content.
                         </p>
                         <Button
-                          size="sm"
-                          className="w-full gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                          className="w-full gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold rounded-full h-10"
                           onClick={handleSubscribe}
                           disabled={checkoutLoading}
                         >
                           {checkoutLoading ? (
-                            <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Opening checkout…</>
+                            <><Loader2 className="h-4 w-4 animate-spin" /> Opening checkout…</>
                           ) : (
-                            <><Crown className="h-3.5 w-3.5" /> Subscribe & Start Building</>
+                            <><Crown className="h-4 w-4" /> Subscribe & Start Building →</>
                           )}
                         </Button>
+                        <p className="text-[10px] text-muted-foreground mt-2 text-center">
+                          Cancel anytime • Your plan is saved
+                        </p>
                       </CardContent>
                     </Card>
                   </div>
