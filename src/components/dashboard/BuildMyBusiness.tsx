@@ -590,7 +590,8 @@ export default function BuildMyBusiness() {
     if (goBackToBookSelect) {
       setSelectedBook(null);
     } else if (selectedBook) {
-      // Start a fresh session for the same book
+      // Start a fresh session for the same book — skip loading old session
+      skipLoadRef.current = true;
       setShouldAutoStart(true);
     }
   };
