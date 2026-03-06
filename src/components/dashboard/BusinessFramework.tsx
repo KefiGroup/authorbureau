@@ -185,45 +185,7 @@ export default function BusinessFramework({ onNavigate, isPremium, focusStep }: 
 
       {/* Connector */}
       <div className="flex flex-col items-center gap-1">
-        <div className="w-px h-6 bg-gradient-to-b from-border to-secondary/40" />
-        <ArrowRight className="h-4 w-4 text-secondary rotate-90" />
-      </div>
-
-      {/* ═══ PHASE 2: ABBY'S CONSULTATION ═══ */}
-      <motion.div
-        className="rounded-2xl border-2 border-secondary/30 bg-gradient-to-r from-secondary/5 via-secondary/10 to-secondary/5 p-6 text-center"
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-      >
-        <div className="flex items-center justify-center gap-2 mb-3">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-secondary bg-secondary/10 rounded-full px-3 py-1">
-            Strategic Planning
-          </span>
-        </div>
-        <div className="w-16 h-16 rounded-full bg-secondary/10 flex items-center justify-center mx-auto mb-3 text-2xl">
-          👩‍💼
-        </div>
-        <h2 className="font-heading text-xl font-bold mb-1">Consult with Abby</h2>
-        <p className="text-xs text-secondary font-semibold uppercase tracking-wider mb-2">
-          Authors Bureau Business Advisor
-        </p>
-        <p className="text-muted-foreground text-sm max-w-md mx-auto mb-4 leading-relaxed">
-          Abby analyzes your book, understands your goals, and builds a personalized monetization strategy — recommending exactly which products to create first and why.
-        </p>
-        <motion.button
-          onClick={() => onNavigate("build-business")}
-          className="inline-flex items-center gap-2 rounded-xl bg-secondary text-secondary-foreground px-6 py-3 font-semibold text-sm hover:bg-secondary/90 transition-colors shadow-[var(--shadow-gold)]"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          <Sparkles className="h-4 w-4" /> Start Consultation
-        </motion.button>
-      </motion.div>
-
-      {/* Connector */}
-      <div className="flex flex-col items-center gap-1">
-        <div className="w-px h-6 bg-gradient-to-b from-secondary/40 to-border" />
+        <div className="w-px h-6 bg-gradient-to-b from-border to-muted-foreground/20" />
         <ArrowRight className="h-4 w-4 text-muted-foreground/40 rotate-90" />
       </div>
 
