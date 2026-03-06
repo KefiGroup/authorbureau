@@ -649,7 +649,10 @@ CONVERSATION START:
     ];
 
     // Enforce max_tokens based on conversation turn to prevent info-dumping
-    const maxTokens = conversationTurn <= 3 ? 400 : 4096;
+    // Refinement mode (has saved plan) uses short responses unless explicitly asked for full regen
+    const isEarlyTurn = !hasSavedPlan && conversationTurn <= 3;
+    const isRefinementGreeting = hasSavedPlan && assistantTurns === 0;
+    const maxTokens = (isEarlyTurn || isRefinementGreeting) ? 400 : 4096;
 
     const aiRequestBody = JSON.stringify({
       model: "openai/gpt-5.2",
