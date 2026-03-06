@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import AbbyBuildAdvisor from "./AbbyBuildAdvisor";
 import {
   BookOpen, Mic, Podcast, GraduationCap, FileText, Video,
   Share2, CreditCard, Users, Trophy, Building2,
