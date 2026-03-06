@@ -47,7 +47,7 @@ async function getActiveToken(): Promise<string | null> {
 
 export default function BuildMyBusiness() {
   const navigate = useNavigate();
-  const { user, isPremium, isAdmin } = useAuth();
+  const { user, isPremium, isAdmin, tier } = useAuth();
   const { toast } = useToast();
   const [books, setBooks] = useState<Book[]>([]);
   const [loadingBooks, setLoadingBooks] = useState(true);
