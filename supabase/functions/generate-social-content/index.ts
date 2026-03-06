@@ -102,7 +102,7 @@ serve(async (req) => {
     const { bookId, platforms, frequency, contentMix, tones, duration, topicsEmphasize, topicsAvoid } = await req.json();
 
     // Fetch book data
-    const { data: book, error: bookErr } = await sb.from("books").select("title, subtitle, description, genre, author_name").eq("id", bookId).single();
+    const { data: book, error: bookErr } = await sb.from("books").select("title, subtitle, description, genre, author_name, amazon_url").eq("id", bookId).single();
     if (bookErr || !book) {
       return new Response(JSON.stringify({ error: "Book not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
