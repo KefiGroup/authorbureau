@@ -392,25 +392,105 @@ export default function ApproveStep({ posts, config, onBack, onDone, onRegenerat
                   <p className="text-[10px] text-primary/70">{post.hashtags.map(h => `#${h}`).join(" ")}</p>
                 )}
 
-                {/* Image prompt with copy button */}
+                {/* Image prompt with generate + copy buttons */}
                 {post.image_prompt && (
-                  <div className="rounded-md bg-secondary/5 border border-secondary/15 p-2 flex items-start gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[10px] font-semibold text-secondary mb-0.5">🎨 Image Prompt (paste into Canva AI)</p>
-                      <p className="text-[10px] text-muted-foreground line-clamp-2">{post.image_prompt}</p>
+                  <div className="rounded-md bg-secondary/5 border border-secondary/15 p-2 space-y-2">
+                    <div className="flex items-start gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] font-semibold text-secondary mb-0.5">🎨 Visual Prompt</p>
+                        <p className="text-[10px] text-muted-foreground line-clamp-2">{post.image_prompt}</p>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-1.5 text-[10px]"
+                          onClick={() => copyImagePrompt(post)}
+                          title="Copy prompt for Canva"
+                        >
+                          {copiedPromptId === post.id ? (
+                            <CheckCircle2 className="h-3 w-3 text-green-600" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-6 px-2 text-[10px] bg-secondary/10 border-secondary/20 text-secondary hover:bg-secondary/20"
+                          onClick={() => generateImage(post)}
+                          disabled={generatingImageId === post.id}
+                          title="AI Generate Image"
+                        >
+                          {generatingImageId === post.id ? (
+                            <><Loader2 className="h-3 w-3 animate-spin mr-1" /> Generating…</>
+                          ) : (
+                            <><ImagePlus className="h-3 w-3 mr-1" /> Generate</>
+                          )}
+                        </Button>
+                      </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 px-1.5 text-[10px] shrink-0"
-                      onClick={() => copyImagePrompt(post)}
-                    >
-                      {copiedPromptId === post.id ? (
-                        <CheckCircle2 className="h-3 w-3 text-green-600" />
-                      ) : (
-                        <Sparkles className="h-3 w-3" />
-                      )}
-                    </Button>
+                    {/* Show generated image */}
+                    {generatedImages[post.id] && (
+                      <div className="rounded-lg overflow-hidden border border-secondary/20 bg-muted/30">
+                        <img 
+                          src={generatedImages[post.id]} 
+                          alt={`Generated graphic for ${post.platform}`} 
+                          className="w-full h-auto max-h-64 object-contain"
+                        />
+                        <div className="flex items-center justify-between px-2 py-1.5 bg-muted/50">
+                          <span className="text-[10px] text-muted-foreground">✓ Ready for {post.platform} — right-click to save</span>
+                          <a
+                            href={generatedImages[post.id]}
+                            download={`${config.bookTitle.replace(/\s+/g, "-")}-${post.platform}-day${post.day_number}.png`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[10px] text-secondary font-medium hover:underline flex items-center gap-0.5"
+                          >
+                            <Download className="h-3 w-3" /> Download
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Generate image button for posts WITHOUT an image prompt */}
+                {!post.image_prompt && !post.video_shot_list && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-[10px] text-muted-foreground hover:text-secondary"
+                    onClick={() => generateImage(post)}
+                    disabled={generatingImageId === post.id}
+                  >
+                    {generatingImageId === post.id ? (
+                      <><Loader2 className="h-3 w-3 animate-spin mr-1" /> Generating…</>
+                    ) : (
+                      <><ImagePlus className="h-3 w-3 mr-1" /> Generate Image</>
+                    )}
+                  </Button>
+                )}
+                {/* Show generated image for non-prompt posts */}
+                {!post.image_prompt && generatedImages[post.id] && (
+                  <div className="rounded-lg overflow-hidden border border-secondary/20 bg-muted/30">
+                    <img 
+                      src={generatedImages[post.id]} 
+                      alt={`Generated graphic for ${post.platform}`} 
+                      className="w-full h-auto max-h-64 object-contain"
+                    />
+                    <div className="flex items-center justify-between px-2 py-1.5 bg-muted/50">
+                      <span className="text-[10px] text-muted-foreground">✓ Ready for {post.platform}</span>
+                      <a
+                        href={generatedImages[post.id]}
+                        download={`${config.bookTitle.replace(/\s+/g, "-")}-${post.platform}-day${post.day_number}.png`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[10px] text-secondary font-medium hover:underline flex items-center gap-0.5"
+                      >
+                        <Download className="h-3 w-3" /> Download
+                      </a>
+                    </div>
                   </div>
                 )}
 
