@@ -982,10 +982,7 @@ export default function BuildMyBusiness() {
                   </div>
                 )}
 
-                {/* Business Plan Card */}
-                {parsedPlan && (
-                  <BusinessPlanCard plan={parsedPlan} />
-                )}
+                {/* Business plan is now rendered as clean markdown inline */}
               </div>
               {msg.role === "user" && (
                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
