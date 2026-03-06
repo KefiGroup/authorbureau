@@ -277,6 +277,32 @@ export default function BuildMyBusiness() {
     return requests;
   };
 
+  // Detect and save ABBY_PLAN after streaming completes
+  const planSavedRef = useRef(false);
+  useEffect(() => {
+    if (isStreaming || !selectedBook || !user || messages.length === 0) return;
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg?.role !== "assistant") return;
+    const planMatch = lastMsg.content.match(/===ABBY_PLAN===([\s\S]*?)===END_ABBY_PLAN===/);
+    if (!planMatch || planSavedRef.current) return;
+    planSavedRef.current = true;
+    (async () => {
+      try {
+        const plan = JSON.parse(planMatch[1].trim());
+        await cloudSupabase.from("generated_assets").upsert({
+          book_id: selectedBook.id,
+          author_id: user.id,
+          asset_type: "business_plan",
+          content: JSON.stringify(plan),
+          updated_at: new Date().toISOString(),
+        } as any);
+        toast({ title: "📋 Business Plan saved!", description: "Your personalized ABBY Business Plan has been saved." });
+      } catch (e) {
+        console.error("Failed to parse/save ABBY_PLAN:", e);
+      }
+    })();
+  }, [isStreaming, messages, selectedBook, user, toast]);
+
   // Map product type to dashboard navigation
   const getProductLink = (productType: string): { label: string; path: string } | null => {
     if (!selectedBook) return null;
@@ -825,6 +851,7 @@ export default function BuildMyBusiness() {
           const displayContent = msg.content
             .replace(/===BUILD_REQUEST===[\s\S]*?===END_BUILD_REQUEST===/g, "")
             .replace(/===SUBSCRIBE_CTA===/g, "")
+            .replace(/===ABBY_PLAN===[\s\S]*?===END_ABBY_PLAN===/g, "")
             .trim();
 
           return (
