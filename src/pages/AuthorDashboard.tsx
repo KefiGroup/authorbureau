@@ -158,24 +158,24 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "build-business":
         return <BuildMyBusiness />;
       case "courses":
-        return gate("Course Builder", <CourseBuilder />);
+        return gate("Course Builder", <CourseBuilder />, "pro");
       case "workbooks":
         return gate("Workbooks", <WorkbooksManager />);
       case "webinars":
-        return gate("Webinars", <WebinarsManager />);
+        return gate("Webinars", <WebinarsManager />, "pro");
       case "social-media":
         return gate("Social Media", <SocialMediaManager />);
       case "audiobook-studio": {
         const bookIdParam = searchParams.get("bookId") || "";
         const bookTitleParam = searchParams.get("bookTitle") || "";
-        return gate("Audiobook Studio", <AudiobookStudio bookId={bookIdParam} bookTitle={bookTitleParam} userId={user.id} />);
+        return gate("Audiobook Studio", <AudiobookStudio bookId={bookIdParam} bookTitle={bookTitleParam} userId={user.id} />, "pro");
       }
       case "podcast":
-        return gate("Podcast Studio", <PodcastManager />);
+        return gate("Podcast Studio", <PodcastManager />, "pro");
       case "speaking":
-        return gate("Speaking Profile", <SpeakingProfile />);
+        return gate("Speaking Profile", <SpeakingProfile />, "enterprise");
       case "coaching":
-        return gate("Coaching CRM", <CoachingCRM />);
+        return gate("Coaching CRM", <CoachingCRM />, "pro");
       case "email-marketing":
       case "subscribers":
       case "email-templates":
