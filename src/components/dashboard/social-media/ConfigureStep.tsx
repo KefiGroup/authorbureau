@@ -18,6 +18,7 @@ interface Book {
   id: string;
   title: string;
   cover_image_url: string | null;
+  amazon_url: string | null;
 }
 
 const PLATFORMS = [
