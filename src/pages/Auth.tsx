@@ -171,18 +171,38 @@ export default function Auth() {
     if (otp.length !== 6) return;
     setSubmitting(true);
     try {
-    const data = await authFetch({ action: "verify", email: email.trim(), code: otp });
-      console.log("[Auth] verify response:", JSON.stringify(data));
-      if (data && data.success === false) {
-        throw new Error(data.error || "Verification failed. Please try again.");
-      }
-      if (data?.session_data?.access_token) {
-        await establishSession(data.session_data);
-      } else if (data?.authUrl) {
-        window.location.href = data.authUrl;
-        return;
-      } else {
-        throw new Error("Sign-in verified but no session was returned. Please try the magic link in your email instead.");
+      try {
+        const data = await authFetch({ action: "verify", email: email.trim(), code: otp });
+        console.log("[Auth] verify response:", JSON.stringify(data));
+        if (data && data.success === false) {
+          throw new Error(data.error || "Verification failed. Please try again.");
+        }
+        if (data?.session_data?.access_token) {
+          await establishSession(data.session_data);
+        } else if (data?.authUrl) {
+          window.location.href = data.authUrl;
+          return;
+        } else {
+          throw new Error("Sign-in verified but no session was returned. Please try the magic link in your email instead.");
+        }
+      } catch (primaryErr: any) {
+        const msg = primaryErr?.message || "";
+        // Fallback: try local Supabase OTP verification (works if code was sent via local fallback)
+        console.log("[Auth] Primary OTP verify failed, trying local fallback...", msg);
+        const { data: localAuth, error: localErr } = await supabase.auth.verifyOtp({
+          email: email.trim(),
+          token: otp,
+          type: "email",
+        });
+        if (localErr || !localAuth?.session) {
+          // Neither path worked — surface the original error and reset OTP
+          setOtp("");
+          throw new Error(msg.includes("failed to fetch")
+            ? "Verification service is temporarily unavailable. Please click the magic link in your email instead."
+            : msg || "Invalid or expired code. Please request a new one.");
+        }
+        // Local verification succeeded
+        console.log("[Auth] Local OTP fallback succeeded");
       }
     } catch (err: any) {
       toast({ title: err.message, variant: "destructive" });
