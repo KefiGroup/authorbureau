@@ -24,6 +24,7 @@ interface Node {
   section?: DashboardSection;
   description: string;
   status: "live" | "coming-soon" | "planned";
+  group?: string;
 }
 
 interface Category {
