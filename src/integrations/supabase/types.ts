@@ -1214,6 +1214,176 @@ export type Database = {
           },
         ]
       }
+      podcast_episodes: {
+        Row: {
+          ad_markers: Json | null
+          audio_url: string | null
+          author_id: string
+          created_at: string
+          description: string | null
+          duration_minutes: number | null
+          episode_number: number
+          format: string
+          guest_questions: Json | null
+          id: string
+          intro_script: string | null
+          outro_script: string | null
+          podcast_id: string
+          pull_quotes: Json | null
+          script_markdown: string
+          show_notes: string | null
+          status: string
+          title: string
+          tts_status: string | null
+          tts_voice_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ad_markers?: Json | null
+          audio_url?: string | null
+          author_id: string
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
+          episode_number?: number
+          format?: string
+          guest_questions?: Json | null
+          id?: string
+          intro_script?: string | null
+          outro_script?: string | null
+          podcast_id: string
+          pull_quotes?: Json | null
+          script_markdown?: string
+          show_notes?: string | null
+          status?: string
+          title: string
+          tts_status?: string | null
+          tts_voice_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ad_markers?: Json | null
+          audio_url?: string | null
+          author_id?: string
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
+          episode_number?: number
+          format?: string
+          guest_questions?: Json | null
+          id?: string
+          intro_script?: string | null
+          outro_script?: string | null
+          podcast_id?: string
+          pull_quotes?: Json | null
+          script_markdown?: string
+          show_notes?: string | null
+          status?: string
+          title?: string
+          tts_status?: string | null
+          tts_voice_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "podcast_episodes_podcast_id_fkey"
+            columns: ["podcast_id"]
+            isOneToOne: false
+            referencedRelation: "podcasts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      podcasts: {
+        Row: {
+          author_id: string
+          book_id: string
+          cover_image_url: string | null
+          created_at: string
+          description: string | null
+          episode_count: number | null
+          episode_format: string | null
+          id: string
+          monetization_goals: string[] | null
+          rate_card_json: Json | null
+          rss_author: string | null
+          rss_category: string | null
+          rss_description: string | null
+          rss_language: string | null
+          rss_title: string | null
+          source_asset_id: string | null
+          sponsorship_media_kit: string | null
+          status: string
+          target_audience: string | null
+          title: string
+          tone: string | null
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          book_id: string
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          episode_count?: number | null
+          episode_format?: string | null
+          id?: string
+          monetization_goals?: string[] | null
+          rate_card_json?: Json | null
+          rss_author?: string | null
+          rss_category?: string | null
+          rss_description?: string | null
+          rss_language?: string | null
+          rss_title?: string | null
+          source_asset_id?: string | null
+          sponsorship_media_kit?: string | null
+          status?: string
+          target_audience?: string | null
+          title: string
+          tone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          book_id?: string
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          episode_count?: number | null
+          episode_format?: string | null
+          id?: string
+          monetization_goals?: string[] | null
+          rate_card_json?: Json | null
+          rss_author?: string | null
+          rss_category?: string | null
+          rss_description?: string | null
+          rss_language?: string | null
+          rss_title?: string | null
+          source_asset_id?: string | null
+          sponsorship_media_kit?: string | null
+          status?: string
+          target_audience?: string | null
+          title?: string
+          tone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "podcasts_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "podcasts_source_asset_id_fkey"
+            columns: ["source_asset_id"]
+            isOneToOne: false
+            referencedRelation: "generated_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
