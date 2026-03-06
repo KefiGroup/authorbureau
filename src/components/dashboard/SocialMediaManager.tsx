@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,6 +26,7 @@ export default function SocialMediaManager() {
   const [content, setContent] = useState<SocialContent[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const navigate = useNavigate();
   // Auto-launch studio when arriving from Book Hub with a book context
   const [showStudio, setShowStudio] = useState(!!bookId);
 
@@ -50,7 +52,14 @@ export default function SocialMediaManager() {
     return (
       <>
         <SocialMediaStudio
-          onExit={() => { setShowStudio(false); loadContent(); }}
+          onExit={() => {
+            if (bookId) {
+              navigate(`/dashboard/book/${bookId}?tab=automate`);
+            } else {
+              setShowStudio(false);
+              loadContent();
+            }
+          }}
           initialBookId={bookId}
           initialBookTitle={bookTitle ? decodeURIComponent(bookTitle) : ""}
           initialBookCoverUrl={bookCoverUrl}
