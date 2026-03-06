@@ -56,6 +56,7 @@ interface AuthContextType {
   isAdmin: boolean;
   subscription: SubscriptionState;
   isPremium: boolean;
+  tier: SubscriptionTier;
   checkSubscription: () => Promise<void>;
   signOut: () => Promise<void>;
 }
