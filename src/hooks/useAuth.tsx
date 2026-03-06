@@ -5,13 +5,42 @@ import type { User, Session } from "@supabase/supabase-js";
 // Admin status key for sessionStorage (set by AdminAuth page on successful admin-auth login)
 const ADMIN_AUTH_KEY = "ab_admin_auth";
 
-// Stripe tier config
+// Stripe tier config — 3-tier ABBY subscription model
 export const TIERS = {
-  premium: {
-    price_id: "price_1T0EiXL6NAuEbKmpWFRCxYaV",
-    product_id: "prod_TyB48pNvpfAnf4",
+  starter: {
+    price_id: "price_1T7zieL6NAuEbKmpgIPawb4z",
+    product_id: "prod_U6C6uH8lxNdHGT",
+    label: "Starter",
+    monthlyPrice: 47,
+  },
+  pro: {
+    price_id: "price_1T7zmSL6NAuEbKmph7f5bCoH",
+    product_id: "prod_U6CAjp8iwbIoFj",
+    label: "Pro",
+    monthlyPrice: 197,
+  },
+  enterprise: {
+    price_id: "price_1T7zpUL6NAuEbKmp5onvSShB",
+    product_id: "prod_U6CDXjFWRuHmsb",
+    label: "Enterprise",
+    monthlyPrice: 497,
   },
 } as const;
+
+export type SubscriptionTier = "free" | "starter" | "pro" | "enterprise";
+
+export function getTierFromProductId(productId: string | null): SubscriptionTier {
+  if (!productId) return "free";
+  if (productId === TIERS.enterprise.product_id) return "enterprise";
+  if (productId === TIERS.pro.product_id) return "pro";
+  if (productId === TIERS.starter.product_id) return "starter";
+  return "free";
+}
+
+export function hasTierAccess(userTier: SubscriptionTier, requiredTier: SubscriptionTier): boolean {
+  const tierOrder: SubscriptionTier[] = ["free", "starter", "pro", "enterprise"];
+  return tierOrder.indexOf(userTier) >= tierOrder.indexOf(requiredTier);
+}
 
 interface SubscriptionState {
   subscribed: boolean;
