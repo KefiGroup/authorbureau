@@ -44,7 +44,7 @@ const statusStyles = {
 
 export const categoryConfigs: CategoryConfig[] = [
   {
-    id: "revenue-streams", label: "Revenue Streams", subtitle: "Directly generate income (18 nodes)",
+    id: "revenue-streams", label: "B · Build Authority", subtitle: "Digital assets & authority products (18 nodes)",
     color: "text-emerald-600", bgColor: "bg-emerald-500/10",
     gradientFrom: "from-emerald-500", gradientTo: "to-emerald-600",
     headerIconName: "DollarSign",
