@@ -170,6 +170,8 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         const bookTitleParam = searchParams.get("bookTitle") || "";
         return gate("Audiobook Studio", <AudiobookStudio bookId={bookIdParam} bookTitle={bookTitleParam} userId={user.id} />);
       }
+      case "podcast":
+        return gate("Podcast Studio", <PodcastManager />);
       case "speaking":
         return gate("Speaking Profile", <SpeakingProfile />);
       case "coaching":
