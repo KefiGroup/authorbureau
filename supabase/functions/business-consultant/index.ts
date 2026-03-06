@@ -522,7 +522,9 @@ ${builtSummary.length > 0 ? builtSummary.join("\n") : "Nothing built yet — thi
 audience_metrics: { email_subscribers: ${subscriberCount} }
 generation_history: ${JSON.stringify(existingAssets.map((a: any) => a.asset_type))}
 is_premium_subscriber: ${!!isPremium}
-subscription_tier: ${isPremium ? "Premium" : "Free"}
+subscription_tier: "${isPremium ? "Premium" : subscriptionTier || "free"}"
+subscription_status: "${isPremium ? "active" : subscriptionStatus || "none"}"
+subscription_note: "${isPremium ? "Author has ABBY Premium — skip the subscription sell and encourage them to start building immediately." : "Author is on the FREE plan — they MUST subscribe to ABBY Premium before they can build any products. Include the UNLOCK YOUR PLAN section in your business plan."}"
 author_frameworks: ${profile?.frameworks && Array.isArray(profile.frameworks) && profile.frameworks.length > 0
   ? JSON.stringify(profile.frameworks)
   : "none saved in profile — extract from manuscript if available, but DO NOT list them back to the author. Use them silently to inform product recommendations."}
