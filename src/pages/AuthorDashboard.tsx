@@ -51,11 +51,6 @@ const comingSoonSections: Record<string, { title: string; description: string; i
     description: "Premium consulting packages ($5K–$25K) with application forms, sales pages, and VIP delivery tracking.",
     icon: Trophy,
   },
-  podcast: {
-    title: "Podcast",
-    description: "AI-generated podcast series from your book chapters — episode scripts, show notes, and distribution to Apple Podcasts & Spotify.",
-    icon: Podcast,
-  },
   "corporate-training": {
     title: "Corporate Training",
     description: "Half-day and full-day corporate training curricula derived from your book, with facilitator guides and participant handbooks.",
