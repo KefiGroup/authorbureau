@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, Save, Loader2, Download, Copy, ExternalLink, RefreshCw, Clipboard, Sparkles } from "lucide-react";
+import { CheckCircle2, Save, Loader2, Download, Copy, ExternalLink, RefreshCw, Clipboard, Sparkles, ImagePlus, Image as ImageIcon } from "lucide-react";
 import { useState } from "react";
 import type { SocialPost, CalendarConfig } from "./types";
 import { CATEGORY_COLORS, FORMAT_LABELS, FORMAT_COLORS, type ContentFormat } from "./types";
@@ -47,6 +47,8 @@ export default function ApproveStep({ posts, config, onBack, onDone, onRegenerat
   const [cloudUserId, setCloudUserId] = useState<string | null>(null);
   const [copiedPostId, setCopiedPostId] = useState<string | null>(null);
   const [copiedPromptId, setCopiedPromptId] = useState<string | null>(null);
+  const [generatingImageId, setGeneratingImageId] = useState<string | null>(null);
+  const [generatedImages, setGeneratedImages] = useState<Record<string, string>>({});
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -159,6 +161,33 @@ export default function ApproveStep({ posts, config, onBack, onDone, onRegenerat
     toast({ title: "All Prompts Copied!", description: `${visualPosts.length} visual prompts on your clipboard. Paste into Canva AI.` });
   }, [visualPosts, toast]);
 
+  const generateImage = useCallback(async (post: SocialPost) => {
+    setGeneratingImageId(post.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-social-graphic", {
+        body: {
+          platform: post.platform,
+          imagePrompt: post.image_prompt || post.caption.slice(0, 200),
+          bookTitle: config.bookTitle,
+          bookCoverUrl: config.bookCoverUrl,
+          caption: post.caption,
+        },
+      });
+      if (error) throw error;
+      if (data?.imageUrl) {
+        setGeneratedImages(prev => ({ ...prev, [post.id]: data.imageUrl }));
+        toast({ title: "Image Generated! 🎨", description: `${data.dimensions} graphic ready. Right-click to save, then upload to Buffer.` });
+      } else {
+        throw new Error(data?.error || "No image returned");
+      }
+    } catch (e: any) {
+      console.error("Image gen error:", e);
+      toast({ title: "Generation failed", description: e.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setGeneratingImageId(null);
+    }
+  }, [config, toast]);
+
   const exportBufferCSV = () => {
     const headers = ["Text", "Link", "Scheduled Date", "Scheduled Time", "Profile Names"];
     const bookLink = config.bookAmazonUrl || "";
@@ -189,50 +218,42 @@ export default function ApproveStep({ posts, config, onBack, onDone, onRegenerat
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Simplified 3-step workflow */}
       <AbbyCoachingTip
-        title="Your 3-Step Publishing Workflow"
+        title="Your 2-Step Publishing Workflow"
         expandedByDefault
         customContent={
           <div className="space-y-4 text-sm">
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/5 border border-secondary/10">
               <span className="shrink-0 text-lg">1️⃣</span>
               <div>
-                <p className="font-semibold text-foreground">Copy a post → Paste into Buffer</p>
+                <p className="font-semibold text-foreground">Generate images → Download</p>
                 <p className="text-muted-foreground text-xs mt-0.5">
-                  Click <Copy className="h-3 w-3 inline" /> on any post below → open{" "}
-                  <a href="https://publish.buffer.com" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium inline-flex items-center gap-0.5">
-                    Buffer <ExternalLink className="h-3 w-3" />
-                  </a>
-                  {" → click '+ New Post' → paste → Buffer's "}
-                  <span className="font-medium text-foreground">AI Assistant</span> will help you refine it. Schedule and repeat.
+                  Click <ImagePlus className="h-3 w-3 inline" /> <span className="font-medium text-foreground">Generate</span> on any post below — AI creates a platform-sized graphic instantly.
+                  Download it and you're ready to post. No Canva needed!
                 </p>
               </div>
             </div>
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/5 border border-secondary/10">
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
               <span className="shrink-0 text-lg">2️⃣</span>
               <div>
-                <p className="font-semibold text-foreground">Copy an image prompt → Paste into Canva AI</p>
+                <p className="font-semibold text-foreground">Copy post + attach image → Schedule in Buffer</p>
                 <p className="text-muted-foreground text-xs mt-0.5">
-                  Click <Sparkles className="h-3 w-3 inline" /> on any visual post → open{" "}
-                  <a href="https://www.canva.com/ai-image-generator/" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium inline-flex items-center gap-0.5">
-                    Canva AI Image Generator <ExternalLink className="h-3 w-3" />
+                  Click <Copy className="h-3 w-3 inline" /> on any post → open{" "}
+                  <a href="https://publish.buffer.com" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium inline-flex items-center gap-0.5">
+                    Buffer <ExternalLink className="h-3 w-3" />
                   </a>
-                  {" → paste the prompt → Canva creates your visual. Attach to your Buffer post."}
+                  {" → paste text → drag in your generated image → schedule. Done!"}
                 </p>
               </div>
             </div>
             <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 border border-border">
-              <span className="shrink-0 text-lg">3️⃣</span>
+              <span className="shrink-0 text-lg">💡</span>
               <div>
-                <p className="font-semibold text-foreground">Power users: Bulk import via CSV</p>
+                <p className="font-semibold text-foreground">Bulk option: CSV import</p>
                 <p className="text-muted-foreground text-xs mt-0.5">
                   <button onClick={exportBufferCSV} className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium">
                     Download CSV
                   </button>
-                  {" → Buffer → Content → "}
-                  <a href="https://publish.buffer.com/content" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium inline-flex items-center gap-0.5">
-                    Import <ExternalLink className="h-3 w-3" />
-                  </a>
-                  {" → all posts schedule at once."}
+                  {" → Buffer → Content → Import → all posts schedule at once."}
                 </p>
               </div>
             </div>
@@ -363,25 +384,105 @@ export default function ApproveStep({ posts, config, onBack, onDone, onRegenerat
                   <p className="text-[10px] text-primary/70">{post.hashtags.map(h => `#${h}`).join(" ")}</p>
                 )}
 
-                {/* Image prompt with copy button */}
+                {/* Image prompt with generate + copy buttons */}
                 {post.image_prompt && (
-                  <div className="rounded-md bg-secondary/5 border border-secondary/15 p-2 flex items-start gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[10px] font-semibold text-secondary mb-0.5">🎨 Image Prompt (paste into Canva AI)</p>
-                      <p className="text-[10px] text-muted-foreground line-clamp-2">{post.image_prompt}</p>
+                  <div className="rounded-md bg-secondary/5 border border-secondary/15 p-2 space-y-2">
+                    <div className="flex items-start gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] font-semibold text-secondary mb-0.5">🎨 Visual Prompt</p>
+                        <p className="text-[10px] text-muted-foreground line-clamp-2">{post.image_prompt}</p>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-1.5 text-[10px]"
+                          onClick={() => copyImagePrompt(post)}
+                          title="Copy prompt for Canva"
+                        >
+                          {copiedPromptId === post.id ? (
+                            <CheckCircle2 className="h-3 w-3 text-green-600" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-6 px-2 text-[10px] bg-secondary/10 border-secondary/20 text-secondary hover:bg-secondary/20"
+                          onClick={() => generateImage(post)}
+                          disabled={generatingImageId === post.id}
+                          title="AI Generate Image"
+                        >
+                          {generatingImageId === post.id ? (
+                            <><Loader2 className="h-3 w-3 animate-spin mr-1" /> Generating…</>
+                          ) : (
+                            <><ImagePlus className="h-3 w-3 mr-1" /> Generate</>
+                          )}
+                        </Button>
+                      </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 px-1.5 text-[10px] shrink-0"
-                      onClick={() => copyImagePrompt(post)}
-                    >
-                      {copiedPromptId === post.id ? (
-                        <CheckCircle2 className="h-3 w-3 text-green-600" />
-                      ) : (
-                        <Sparkles className="h-3 w-3" />
-                      )}
-                    </Button>
+                    {/* Show generated image */}
+                    {generatedImages[post.id] && (
+                      <div className="rounded-lg overflow-hidden border border-secondary/20 bg-muted/30">
+                        <img 
+                          src={generatedImages[post.id]} 
+                          alt={`Generated graphic for ${post.platform}`} 
+                          className="w-full h-auto max-h-64 object-contain"
+                        />
+                        <div className="flex items-center justify-between px-2 py-1.5 bg-muted/50">
+                          <span className="text-[10px] text-muted-foreground">✓ Ready for {post.platform} — right-click to save</span>
+                          <a
+                            href={generatedImages[post.id]}
+                            download={`${config.bookTitle.replace(/\s+/g, "-")}-${post.platform}-day${post.day_number}.png`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[10px] text-secondary font-medium hover:underline flex items-center gap-0.5"
+                          >
+                            <Download className="h-3 w-3" /> Download
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Generate image button for posts WITHOUT an image prompt */}
+                {!post.image_prompt && !post.video_shot_list && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-[10px] text-muted-foreground hover:text-secondary"
+                    onClick={() => generateImage(post)}
+                    disabled={generatingImageId === post.id}
+                  >
+                    {generatingImageId === post.id ? (
+                      <><Loader2 className="h-3 w-3 animate-spin mr-1" /> Generating…</>
+                    ) : (
+                      <><ImagePlus className="h-3 w-3 mr-1" /> Generate Image</>
+                    )}
+                  </Button>
+                )}
+                {/* Show generated image for non-prompt posts */}
+                {!post.image_prompt && generatedImages[post.id] && (
+                  <div className="rounded-lg overflow-hidden border border-secondary/20 bg-muted/30">
+                    <img 
+                      src={generatedImages[post.id]} 
+                      alt={`Generated graphic for ${post.platform}`} 
+                      className="w-full h-auto max-h-64 object-contain"
+                    />
+                    <div className="flex items-center justify-between px-2 py-1.5 bg-muted/50">
+                      <span className="text-[10px] text-muted-foreground">✓ Ready for {post.platform}</span>
+                      <a
+                        href={generatedImages[post.id]}
+                        download={`${config.bookTitle.replace(/\s+/g, "-")}-${post.platform}-day${post.day_number}.png`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[10px] text-secondary font-medium hover:underline flex items-center gap-0.5"
+                      >
+                        <Download className="h-3 w-3" /> Download
+                      </a>
+                    </div>
                   </div>
                 )}
 
