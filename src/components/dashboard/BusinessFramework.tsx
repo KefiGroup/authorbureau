@@ -256,7 +256,7 @@ export default function BusinessFramework({ onNavigate, isPremium, focusStep }: 
         <p className="text-xs text-muted-foreground leading-relaxed max-w-lg mx-auto">
           <strong>Your monetization journey:</strong> <strong>Build</strong> authority & digital assets from your book →
           <strong>Bridge</strong> marketing channels & connections →
-          <strong>Yield</strong> revenue streams & monetize your expertise.
+          <strong>Yield</strong> revenue streams & maximize your ROI.
           <br />
           <span className="text-secondary font-medium">Abby will guide you through every step — turning your book into a business with {categories.reduce((s, c) => s + c.nodes.length, 0)} revenue streams.</span>
         </p>
