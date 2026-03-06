@@ -63,8 +63,8 @@ const categories: CategoryDef[] = [
   },
   {
     id: "marketing-channels",
-    label: "Marketing Channels",
-    subtitle: "Drive awareness & leads (6 nodes)",
+    label: "B · Bridge Channels",
+    subtitle: "Marketing channels & audience connections (6 nodes)",
     color: "text-violet-600",
     bgColor: "bg-violet-500/10",
     gradientFrom: "from-violet-500",
