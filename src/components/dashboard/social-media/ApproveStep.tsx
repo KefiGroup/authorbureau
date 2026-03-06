@@ -417,13 +417,15 @@ export default function ApproveStep({ posts, config, onBack, onDone, onRegenerat
           <AbbyCoachingTip
             title="How to Auto-Schedule Everything"
             expandedByDefault
-            tips={[
-              "1️⃣ Download the Buffer CSV below.",
-              "2️⃣ Go to buffer.com → Publishing → Bulk Create → Upload CSV.",
-              "3️⃣ Buffer will auto-schedule all posts at optimal times.",
-              "4️⃣ Attach visuals to each post in Buffer's composer.",
-              "5️⃣ Review and hit 'Add to Queue'. Done! 🎉",
-            ]}
+            customContent={
+              <div className="space-y-2 text-xs text-muted-foreground">
+                <p>1️⃣ <button onClick={exportBufferCSV} className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium">Download the Buffer CSV</button> below.</p>
+                <p>2️⃣ Go to <a href="https://publish.buffer.com" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium inline-flex items-center gap-0.5">Buffer Publishing <ExternalLink className="h-3 w-3" /></a> → Bulk Create → Upload CSV.</p>
+                <p>3️⃣ Buffer will auto-schedule all posts at optimal times.</p>
+                <p>4️⃣ Attach visuals to each post in Buffer's composer.</p>
+                <p>5️⃣ Review and hit 'Add to Queue'. Done! 🎉</p>
+              </div>
+            }
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
