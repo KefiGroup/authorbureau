@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar as CalendarIcon, List, ChevronLeft, ChevronRight, Sparkles, Pencil, X } from "lucide-react";
 import type { SocialPost } from "./types";
-import { CATEGORY_COLORS } from "./types";
+import { CATEGORY_COLORS, FORMAT_LABELS, FORMAT_COLORS, type ContentFormat } from "./types";
 
 interface Props {
   posts: SocialPost[];
@@ -173,12 +173,17 @@ export default function CalendarReviewStep({ posts, onPostsChange, onNext, onBac
               <CardContent className="p-3 flex items-start gap-3">
                 <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${CATEGORY_COLORS[post.category]}`} />
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <Badge variant="outline" className="text-[10px] capitalize">{post.platform}</Badge>
+                    <Badge className={`text-[10px] ${FORMAT_COLORS[post.format as ContentFormat] || "bg-muted text-muted-foreground"}`}>
+                      {FORMAT_LABELS[post.format as ContentFormat] || post.format}
+                    </Badge>
                     <span className="text-[10px] text-muted-foreground">{post.scheduled_date}</span>
                     {post.ai_generated && <Badge className="text-[9px] bg-secondary/10 text-secondary">AI</Badge>}
                   </div>
+                  {post.hook && <p className="text-xs font-semibold text-foreground mb-0.5">🎣 {post.hook}</p>}
                   <p className="text-xs text-foreground line-clamp-2">{post.caption}</p>
+                  {post.format_notes && <p className="text-[10px] text-muted-foreground mt-1 italic">📋 {post.format_notes}</p>}
                 </div>
                 <Button variant="ghost" size="sm" className="shrink-0 h-7 w-7 p-0" onClick={() => startEdit(post)}>
                   <Pencil className="h-3 w-3" />

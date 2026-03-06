@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { CheckCircle2, Save, Loader2 } from "lucide-react";
 import { useState } from "react";
 import type { SocialPost, CalendarConfig } from "./types";
-import { CATEGORY_COLORS } from "./types";
+import { CATEGORY_COLORS, FORMAT_LABELS, FORMAT_COLORS, type ContentFormat } from "./types";
 
 interface Props {
   posts: SocialPost[];
@@ -31,6 +31,12 @@ export default function ApproveStep({ posts, config, onBack, onDone }: Props) {
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     posts.forEach(p => { counts[p.category] = (counts[p.category] || 0) + 1; });
+    return counts;
+  }, [posts]);
+
+  const formatCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    posts.forEach(p => { counts[p.format] = (counts[p.format] || 0) + 1; });
     return counts;
   }, [posts]);
 
@@ -131,6 +137,22 @@ export default function ApproveStep({ posts, config, onBack, onDone }: Props) {
                 </div>
               );
             })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Format Mix */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">Format Distribution</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(formatCounts).map(([format, count]) => (
+              <Badge key={format} className={`${FORMAT_COLORS[format as ContentFormat] || "bg-muted text-muted-foreground"} text-xs px-3 py-1`}>
+                {FORMAT_LABELS[format as ContentFormat] || format} ({count})
+              </Badge>
+            ))}
           </div>
         </CardContent>
       </Card>

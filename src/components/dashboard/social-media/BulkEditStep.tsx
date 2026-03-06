@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { RefreshCw, CalendarDays, Tag } from "lucide-react";
 import type { SocialPost } from "./types";
-import { CATEGORY_COLORS } from "./types";
+import { CATEGORY_COLORS, FORMAT_LABELS, FORMAT_COLORS, type ContentFormat } from "./types";
 
 interface Props {
   posts: SocialPost[];
@@ -114,6 +114,7 @@ export default function BulkEditStep({ posts, onPostsChange, onNext, onBack }: P
                 </th>
                 <th className="p-2 text-xs font-semibold text-muted-foreground">Date</th>
                 <th className="p-2 text-xs font-semibold text-muted-foreground">Platform</th>
+                <th className="p-2 text-xs font-semibold text-muted-foreground">Format</th>
                 <th className="p-2 text-xs font-semibold text-muted-foreground">Caption</th>
                 <th className="p-2 text-xs font-semibold text-muted-foreground">Category</th>
                 <th className="p-2 text-xs font-semibold text-muted-foreground">Hashtags</th>
@@ -134,6 +135,11 @@ export default function BulkEditStep({ posts, onPostsChange, onNext, onBack }: P
                   <td className="p-2 text-xs text-muted-foreground whitespace-nowrap">{post.scheduled_date}</td>
                   <td className="p-2">
                     <Badge variant="outline" className="text-[10px] capitalize">{post.platform}</Badge>
+                  </td>
+                  <td className="p-2">
+                    <Badge className={`text-[10px] ${FORMAT_COLORS[post.format as ContentFormat] || "bg-muted text-muted-foreground"}`}>
+                      {FORMAT_LABELS[post.format as ContentFormat] || post.format}
+                    </Badge>
                   </td>
                   <td className="p-2 text-xs max-w-[200px] truncate">{post.caption}</td>
                   <td className="p-2">
