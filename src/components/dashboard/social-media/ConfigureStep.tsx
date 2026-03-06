@@ -84,6 +84,7 @@ export default function ConfigureStep({ config, onConfigChange, onNext }: Props)
           id: b.id,
           title: b.title,
           cover_image_url: b.cover_image_url ?? null,
+          amazon_url: b.amazon_url ?? null,
         })));
       } catch (error) {
         console.error("ConfigureStep failed to load books:", error);
