@@ -1,11 +1,41 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, Zap, FileText, Upload } from "lucide-react";
+import { Sparkles, Zap, FileText, Upload, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ManuscriptUpload from "@/components/dashboard/ManuscriptUpload";
 import ABBYFrameworkVisual from "./ABBYFrameworkVisual";
+import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import { supabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
+import { asBlob } from "html-docx-js-typescript";
+import { useToast } from "@/hooks/use-toast";
+
+interface PlanSection {
+  key: string;
+  label: string;
+  emoji: string;
+  content: string;
+}
+
+function extractSections(fullContent: string): PlanSection[] {
+  const sections: PlanSection[] = [];
+  const patterns: Array<{ key: string; label: string; emoji: string; regex: RegExp }> = [
+    { key: "transformation", label: "Transformation Promise", emoji: "✨", regex: /(?:#{1,3}.*?TRANSFORMATION PROMISE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?STARTER PACKAGE|$)/i },
+    { key: "starter", label: "Starter Package", emoji: "🟢", regex: /(?:#{1,3}.*?STARTER PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?PRO PACKAGE|$)/i },
+    { key: "pro", label: "Pro Package", emoji: "🔵", regex: /(?:#{1,3}.*?PRO PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?ENTERPRISE PACKAGE|$)/i },
+    { key: "enterprise", label: "Enterprise Package", emoji: "🟣", regex: /(?:#{1,3}.*?ENTERPRISE PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?MONETIZATION MAP|$)/i },
+    { key: "monetization", label: "Monetization Map", emoji: "📊", regex: /(?:#{1,3}.*?MONETIZATION MAP.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?NEXT STEPS|$)/i },
+    { key: "nextsteps", label: "Next Steps", emoji: "🚀", regex: /(?:#{1,3}.*?NEXT STEPS.*?\n)([\s\S]*?)$/i },
+  ];
+  for (const p of patterns) {
+    const match = fullContent.match(p.regex);
+    if (match?.[1]?.trim()) {
+      sections.push({ key: p.key, label: p.label, emoji: p.emoji, content: match[1].trim() });
+    }
+  }
+  return sections;
+}
 
 interface Book {
   id: string;
@@ -23,6 +53,10 @@ export default function BookHubOverview({ book, onConsultAbby, onNavigateTab }: 
   const [hasManuscript, setHasManuscript] = useState(false);
   const [manuscriptChars, setManuscriptChars] = useState(0);
   const [showManuscriptUpload, setShowManuscriptUpload] = useState(false);
+  const [planContent, setPlanContent] = useState<string | null>(null);
+  const [planSections, setPlanSections] = useState<PlanSection[]>([]);
+  const [downloading, setDownloading] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     async function checkData() {
@@ -59,9 +93,52 @@ export default function BookHubOverview({ book, onConsultAbby, onNavigateTab }: 
         setHasManuscript(true);
         setManuscriptChars(assets[0].content.length);
       }
+
+      // Check saved business plan
+      const { data: planData } = await supabase
+        .from("generated_assets")
+        .select("content")
+        .eq("book_id", book.id)
+        .eq("author_id", userId)
+        .eq("asset_type", "business_plan")
+        .maybeSingle();
+      if (planData?.content) {
+        setPlanContent(planData.content);
+        setPlanSections(extractSections(planData.content));
+      }
     }
     checkData();
   }, [book.id]);
+
+  const handleDownloadPlan = async () => {
+    if (!planContent) return;
+    setDownloading(true);
+    try {
+      let html = planContent
+        .replace(/^### (.+)$/gm, "<h3>$1</h3>")
+        .replace(/^## (.+)$/gm, "<h2>$1</h2>")
+        .replace(/^# (.+)$/gm, "<h1>$1</h1>")
+        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+        .replace(/\*(.+?)\*/g, "<em>$1</em>")
+        .replace(/^\d+\.\s+(.+)$/gm, "<li>$1</li>")
+        .replace(/^[-•]\s+(.+)$/gm, "<li>$1</li>")
+        .replace(/((?:<li>.*<\/li>\n?)+)/g, "<ul>$1</ul>")
+        .replace(/^(?!<[hulo])((?!<).+)$/gm, "<p>$1</p>")
+        .replace(/\n\n/g, "<br/>");
+      const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:'Calibri',sans-serif;color:#1a1a1a;line-height:1.6;padding:40px;max-width:800px;margin:0 auto}h1{font-size:26px;color:#B8860B;border-bottom:3px solid #B8860B;padding-bottom:12px}h2{font-size:20px;color:#333;margin-top:28px}h3{font-size:16px;color:#555}p{font-size:13px}ul,ol{font-size:13px}li{margin-bottom:4px}strong{color:#222}</style></head><body>${html}</body></html>`;
+      const blob = (await asBlob(fullHtml, { orientation: "portrait" })) as Blob;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `ABBY-Business-Plan-${book.title.replace(/[^a-zA-Z0-9]/g, "-")}.docx`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({ title: "Downloaded!", description: "Business plan saved as .docx" });
+    } catch {
+      toast({ title: "Download failed", variant: "destructive" });
+    }
+    setDownloading(false);
+  };
 
   return (
     <div className="space-y-6">
@@ -82,22 +159,50 @@ export default function BookHubOverview({ book, onConsultAbby, onNavigateTab }: 
                 AI Advisor
               </span>
             </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {hasConsultation ? (
-                <>
-                  I've completed your <strong>Needs Analysis</strong> for <strong>"{book.title}"</strong> and designed your customised ABBY Framework below. 
-                  Each category shows the products I recommend — with transparent, itemised pricing available when you're ready to build. 
-                  Let's turn your expertise into revenue.
-                </>
-              ) : (
-                <>
-                  I'll start by conducting a <strong>Needs Analysis</strong> on your book <strong>"{book.title}"</strong> — understanding your goals, audience size, and revenue ambitions. 
-                  From there, I'll design a <strong>customised ABBY Framework</strong> mapping the exact products and revenue streams that fit your expertise. 
-                  You'll see transparent, itemised à-la-carte pricing for each product — plus a bundled subscription option that saves you more. 
-                  Think of me as your strategist <em>and</em> your business partner: I don't just advise, I help you build and grow.
-                </>
-              )}
-            </p>
+            {planSections.length > 0 ? (
+              <>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-3">
+                  Your <strong>ABBY Business Plan</strong> for <strong>"{book.title}"</strong> is ready. Explore each section below — or refine it further with me.
+                </p>
+                <Tabs defaultValue={planSections[0]?.key} className="mt-2">
+                  <TabsList className="h-auto flex-wrap gap-1 bg-transparent p-0">
+                    {planSections.map((s) => (
+                      <TabsTrigger
+                        key={s.key}
+                        value={s.key}
+                        className="text-[11px] px-3 py-1.5 data-[state=active]:bg-secondary/15 data-[state=active]:text-secondary rounded-full"
+                      >
+                        {s.emoji} {s.label}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                  {planSections.map((s) => (
+                    <TabsContent key={s.key} value={s.key} className="mt-3">
+                      <div className="rounded-lg bg-muted/30 p-4 max-h-[300px] overflow-y-auto text-sm">
+                        <MarkdownRenderer content={s.content} />
+                      </div>
+                    </TabsContent>
+                  ))}
+                </Tabs>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {hasConsultation ? (
+                  <>
+                    I've completed your <strong>Needs Analysis</strong> for <strong>"{book.title}"</strong> and designed your customised ABBY Framework below. 
+                    Each category shows the products I recommend — with transparent, itemised pricing available when you're ready to build. 
+                    Let's turn your expertise into revenue.
+                  </>
+                ) : (
+                  <>
+                    I'll start by conducting a <strong>Needs Analysis</strong> on your book <strong>"{book.title}"</strong> — understanding your goals, audience size, and revenue ambitions. 
+                    From there, I'll design a <strong>customised ABBY Framework</strong> mapping the exact products and revenue streams that fit your expertise. 
+                    You'll see transparent, itemised à-la-carte pricing for each product — plus a bundled subscription option that saves you more. 
+                    Think of me as your strategist <em>and</em> your business partner: I don't just advise, I help you build and grow.
+                  </>
+                )}
+              </p>
+            )}
 
             {/* Compact manuscript status */}
             <div className="flex items-center gap-2 mt-3 text-xs">
@@ -130,8 +235,20 @@ export default function BookHubOverview({ book, onConsultAbby, onNavigateTab }: 
                 onClick={onConsultAbby}
               >
                 <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-                {hasConsultation ? "Continue Analysis with Abby" : "Analyze with Abby"}
+                {planSections.length > 0 ? "Refine Plan with Abby" : hasConsultation ? "Continue Analysis with Abby" : "Analyze with Abby"}
               </Button>
+              {planSections.length > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5"
+                  onClick={handleDownloadPlan}
+                  disabled={downloading}
+                >
+                  {downloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                  Download .docx
+                </Button>
+              )}
               {hasConsultation && (
                 <Button
                   size="sm"
