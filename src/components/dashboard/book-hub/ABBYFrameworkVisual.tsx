@@ -11,13 +11,12 @@ interface Props {
 interface RevenueNode {
   label: string;
   active: boolean;
-  category: "revenue" | "marketing" | "authority";
 }
 
-interface StepCluster {
+interface CategoryCluster {
   id: string;
-  letter: string;
   title: string;
+  emoji: string;
   hubColor: string;
   nodeColor: string;
   nodeColorMuted: string;
@@ -25,70 +24,57 @@ interface StepCluster {
   tabKey: string;
 }
 
-const CLUSTERS: StepCluster[] = [
+const CLUSTERS: CategoryCluster[] = [
   {
-    id: "analyze", letter: "A", title: "ANALYZE\nDISCOVER & MAP",
-    hubColor: "#3b82f6", nodeColor: "#60a5fa", nodeColorMuted: "#93c5fd",
-    tabKey: "automate",
-    nodes: [
-      { label: "Social Media", active: false, category: "marketing" },
-      { label: "Podcast\nScripts", active: false, category: "marketing" },
-      { label: "Workbook", active: false, category: "revenue" },
-      { label: "Audio Book", active: false, category: "revenue" },
-      { label: "Home Study\nCourse", active: false, category: "revenue" },
-      { label: "Webinars", active: false, category: "revenue" },
-      { label: "Online\nCourses", active: false, category: "revenue" },
-    ],
-  },
-  {
-    id: "build", letter: "B", title: "BUILD\nCREATE & PACKAGE",
-    hubColor: "#d97706", nodeColor: "#f59e0b", nodeColorMuted: "#fcd34d",
-    tabKey: "build",
-    nodes: [
-      { label: "1-on-1\nCoaching", active: false, category: "revenue" },
-      { label: "Group\nCoaching", active: false, category: "revenue" },
-      { label: "Keynotes", active: false, category: "authority" },
-      { label: "Corporate\nTraining", active: false, category: "authority" },
-      { label: "Big Ticket", active: false, category: "revenue" },
-      { label: "Coaching\nMembership", active: false, category: "revenue" },
-      { label: "Revenue\nSharing", active: false, category: "revenue" },
-    ],
-  },
-  {
-    id: "bridge", letter: "B", title: "BRIDGE\nCONNECT & DISTRIBUTE",
-    hubColor: "#f43f5e", nodeColor: "#fb7185", nodeColorMuted: "#fda4af",
-    tabKey: "broadcast",
-    nodes: [
-      { label: "Podcasts\n(Guest)", active: false, category: "marketing" },
-      { label: "Joint\nVentures", active: false, category: "revenue" },
-      { label: "Book Sales\nat Events", active: false, category: "revenue" },
-      { label: "Special\nEditions", active: false, category: "revenue" },
-      { label: "In-House\nSpeaker", active: false, category: "authority" },
-      { label: "Fund\nRaising", active: false, category: "authority" },
-      { label: "Conventions", active: false, category: "authority" },
-    ],
-  },
-  {
-    id: "yield", letter: "Y", title: "YIELD\nMONETIZE & EARN",
+    id: "revenue", title: "REVENUE\nSTREAMS", emoji: "💰",
     hubColor: "#10b981", nodeColor: "#34d399", nodeColorMuted: "#6ee7b7",
-    tabKey: "yield",
+    tabKey: "revenue-streams",
     nodes: [
-      { label: "Monthly\nMemberships", active: false, category: "revenue" },
-      { label: "Affiliates", active: false, category: "revenue" },
-      { label: "Upsells /\nDownsells", active: false, category: "revenue" },
-      { label: "Certification", active: false, category: "revenue" },
-      { label: "Masterminds", active: false, category: "revenue" },
-      { label: "Retreats &\nBootcamps", active: false, category: "revenue" },
-      { label: "Exhibitors /\nJV", active: false, category: "revenue" },
+      { label: "Workbook", active: false },
+      { label: "Audio Book", active: false },
+      { label: "Online\nCourses", active: false },
+      { label: "Home Study\nCourse", active: false },
+      { label: "Webinars", active: false },
+      { label: "Monthly\nMemberships", active: false },
+      { label: "Upsells /\nDownsells", active: false },
+      { label: "Certification", active: false },
+      { label: "Masterminds", active: false },
+      { label: "Retreats &\nBootcamps", active: false },
+    ],
+  },
+  {
+    id: "marketing", title: "MARKETING\nCHANNELS", emoji: "📣",
+    hubColor: "#8b5cf6", nodeColor: "#a78bfa", nodeColorMuted: "#c4b5fd",
+    tabKey: "marketing-channels",
+    nodes: [
+      { label: "Social Media", active: false },
+      { label: "Podcast\nScripts", active: false },
+      { label: "Podcast\nPitches", active: false },
+      { label: "Affiliates", active: false },
+      { label: "Book Sales\nat Events", active: false },
+      { label: "Conventions", active: false },
+      { label: "Fund\nRaising", active: false },
+      { label: "Joint\nVentures", active: false },
+      { label: "Special\nEditions", active: false },
+    ],
+  },
+  {
+    id: "authority", title: "AUTHORITY\nBUILDERS", emoji: "🏆",
+    hubColor: "#0ea5e9", nodeColor: "#38bdf8", nodeColorMuted: "#7dd3fc",
+    tabKey: "authority-builders",
+    nodes: [
+      { label: "1-on-1\nCoaching", active: false },
+      { label: "Group\nCoaching", active: false },
+      { label: "Big Ticket\nConsulting", active: false },
+      { label: "Coaching\nMembership", active: false },
+      { label: "Keynotes", active: false },
+      { label: "Corporate\nTraining", active: false },
+      { label: "In-House\nSpeaker", active: false },
+      { label: "Revenue\nSharing", active: false },
+      { label: "Exhibitors /\nJV", active: false },
     ],
   },
 ];
-
-const CATEGORY_COLORS: Record<string, { fill: string; stroke: string }> = {
-  revenue: { fill: "", stroke: "" },
-  marketing: { fill: "#8b5cf6", stroke: "#a78bfa" },
-  authority: { fill: "#0ea5e9", stroke: "#38bdf8" },
-};
 
 /* ── SVG viewBox ── */
 const VW = 1200;
@@ -96,12 +82,11 @@ const VH = 800;
 const CX = VW / 2;
 const CY = VH / 2;
 
-/* Hub positions + arc config */
+/* Hub positions: 3 clusters arranged around center */
 const HUB_CFG: Record<string, { x: number; y: number; startDeg: number; sweepDeg: number; r: number }> = {
-  analyze:  { x: 240, y: 220, startDeg: 100, sweepDeg: 300, r: 140 },
-  build:    { x: 240, y: 600, startDeg: -30, sweepDeg: 210, r: 140 },
-  bridge:   { x: 880, y: 560, startDeg: -150, sweepDeg: 210, r: 140 },
-  yield:    { x: 960, y: 250, startDeg: -165, sweepDeg: 210, r: 140 },
+  revenue:   { x: 300, y: 250, startDeg: 90, sweepDeg: 300, r: 150 },
+  marketing: { x: 300, y: 620, startDeg: -30, sweepDeg: 210, r: 150 },
+  authority: { x: 900, y: 420, startDeg: -120, sweepDeg: 240, r: 150 },
 };
 
 function arcPositions(count: number, cx: number, cy: number, r: number, startDeg: number, sweepDeg: number) {
@@ -155,9 +140,9 @@ export default function ABBYFrameworkVisual({ hasConsultation, onConsultAbby, on
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-heading font-bold text-base">Your ABBY Monetisation Map</h3>
+          <h3 className="font-heading font-bold text-base">Your Monetisation Map</h3>
           <p className="text-xs text-muted-foreground">
-            <strong>A</strong>nalyze · <strong>B</strong>uild · <strong>B</strong>ridge · <strong>Y</strong>ield — {activeNodes} of {totalNodes} streams activated
+            {activeNodes} of {totalNodes} streams activated — Revenue · Marketing · Authority
           </p>
         </div>
         <Button size="sm" variant="outline" onClick={onConsultAbby}>
@@ -210,26 +195,10 @@ export default function ABBYFrameworkVisual({ hasConsultation, onConsultAbby, on
             const positions = arcPositions(c.nodes.length, h.x, h.y, h.r, h.startDeg, h.sweepDeg);
             return positions.map((pos, i) => {
               const node = c.nodes[i];
-              const catColor = CATEGORY_COLORS[node.category];
-              const nodeFill = node.active
-                ? (catColor.fill || c.nodeColor)
-                : "hsl(var(--muted))";
-              const nodeStroke = node.active
-                ? (catColor.stroke || c.nodeColorMuted)
-                : "hsl(var(--border))";
-              const showCatRing = !node.active && node.category !== "revenue";
+              const nodeFill = node.active ? c.nodeColor : "hsl(var(--muted))";
+              const nodeStroke = node.active ? c.nodeColorMuted : "hsl(var(--border))";
               return (
                 <g key={`node-${c.id}-${i}`}>
-                  {showCatRing && (
-                    <circle
-                      cx={pos.x} cy={pos.y} r={25}
-                      fill="none"
-                      stroke={catColor.fill}
-                      strokeWidth="1.5"
-                      strokeDasharray="3 3"
-                      opacity={0.4}
-                    />
-                  )}
                   <circle
                     cx={pos.x} cy={pos.y} r={22}
                     fill={nodeFill}
@@ -243,7 +212,7 @@ export default function ABBYFrameworkVisual({ hasConsultation, onConsultAbby, on
                     fill="white" fontSize="14" fontWeight="bold"
                     opacity={node.active ? 1 : 0.6}
                   >
-                    {node.active ? "✓" : node.category === "marketing" ? "📣" : node.category === "authority" ? "🏆" : "$"}
+                    {node.active ? "✓" : c.emoji}
                   </text>
                   <MultiLineText
                     x={pos.x} y={pos.y + 34}
@@ -270,17 +239,14 @@ export default function ABBYFrameworkVisual({ hasConsultation, onConsultAbby, on
               >
                 <circle cx={h.x} cy={h.y} r={58} fill={c.hubColor} />
                 <circle cx={h.x} cy={h.y} r={58} fill="none" stroke="white" strokeWidth="2" opacity={0.2} />
-                <text x={h.x} y={h.y - 18} textAnchor="middle" dominantBaseline="central" fill="white" fontSize="10" fontWeight="bold" opacity={0.8}>
-                  {c.letter} · STEP
-                </text>
                 <MultiLineText
-                  x={h.x} y={h.y + 2}
+                  x={h.x} y={h.y - 4}
                   text={c.title}
-                  fontSize={12}
+                  fontSize={13}
                   fill="white"
                   fontWeight="800"
                 />
-                <text x={h.x} y={h.y + 30} textAnchor="middle" dominantBaseline="central" fill="white" fontSize="10" opacity={0.7}>
+                <text x={h.x} y={h.y + 28} textAnchor="middle" dominantBaseline="central" fill="white" fontSize="10" opacity={0.7}>
                   {activeCount}/{c.nodes.length}
                 </text>
               </g>
@@ -311,15 +277,15 @@ export default function ABBYFrameworkVisual({ hasConsultation, onConsultAbby, on
           <span>Activated</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full bg-muted border-2 border-border" />
+          <div className="w-3 h-3 rounded-full" style={{ background: "#10b981" }} />
           <span>💰 Revenue</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full" style={{ background: "#8b5cf620", border: "2px dashed #8b5cf6" }} />
+          <div className="w-3 h-3 rounded-full" style={{ background: "#8b5cf6" }} />
           <span>📣 Marketing</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full" style={{ background: "#0ea5e920", border: "2px dashed #0ea5e9" }} />
+          <div className="w-3 h-3 rounded-full" style={{ background: "#0ea5e9" }} />
           <span>🏆 Authority</span>
         </div>
       </div>
