@@ -229,6 +229,8 @@ export default function BuildMyBusiness() {
           messages: updatedMessages,
           bookId: selectedBook.id,
           isPremium: isPremium || isAdmin,
+          subscriptionTier: isPremium || isAdmin ? "Premium" : "free",
+          subscriptionStatus: isPremium || isAdmin ? "active" : "none",
         }),
         signal: abort.signal,
       });
