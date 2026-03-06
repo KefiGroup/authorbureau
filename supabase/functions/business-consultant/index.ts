@@ -391,9 +391,11 @@ Before making ANY recommendation, CHECK existing_products in the context.
 
 When the author is excited and ready to build:
 - Frame subscription as investment with ROI.
-- If they ARE premium already (check is_premium_subscriber or subscription_tier is "Premium"), skip the upsell entirely and congratulate them.
+- Check subscription_tier in context: "enterprise" has full access, "pro" has most features, "starter" has quick-win features, "free" needs to subscribe.
+- If they ARE subscribed, acknowledge their tier and skip the upsell for features they already have. Only mention upgrading if the plan includes features above their tier.
 - When you recommend subscribing, include ===SUBSCRIBE_CTA=== on its own line. Only ONCE per conversation.
-- The ===SUBSCRIBE_CTA=== marker will be rendered as a "Subscribe & Start Building" button by the frontend.`;
+- The ===SUBSCRIBE_CTA=== marker will be rendered as a "Subscribe & Start Building" button by the frontend.
+- ALWAYS recommend the MINIMUM viable tier. Don't push Enterprise when Starter covers their needs.`;
 
 
 serve(async (req) => {
