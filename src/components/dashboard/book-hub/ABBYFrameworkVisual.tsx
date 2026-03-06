@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Sparkles, BookOpen, ArrowRight, ChevronDown, Hammer, Link2, DollarSign } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface Props {
