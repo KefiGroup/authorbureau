@@ -84,7 +84,7 @@ export const categoryConfigs: CategoryConfig[] = [
     ],
   },
   {
-    id: "authority-builders", label: "Authority Builders", subtitle: "Credibility & positioning (3 nodes)",
+    id: "authority-builders", label: "Y · Yield Revenue", subtitle: "Premium revenue streams & monetization (3 nodes)",
     color: "text-sky-600", bgColor: "bg-sky-500/10",
     gradientFrom: "from-sky-500", gradientTo: "to-sky-600",
     headerIconName: "Award",

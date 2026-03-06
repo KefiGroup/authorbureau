@@ -29,9 +29,9 @@ const navItems: NavItem[] = [
   { id: "profile", label: "Author Profile", icon: User },
   { id: "my-books", label: "My Books Hub", icon: BookOpen },
   { id: "build-business", label: "Analyze with Abby", icon: Sparkles, premiumOnly: true },
-  { id: "revenue-streams", label: "Revenue Streams", icon: DollarSign, premiumOnly: true, color: "text-emerald-500" },
-  { id: "marketing-channels", label: "Marketing Channels", icon: Radio, premiumOnly: true, color: "text-violet-500" },
-  { id: "authority-builders", label: "Authority Builders", icon: Award, premiumOnly: true, color: "text-sky-500" },
+  { id: "revenue-streams", label: "Build Authority", icon: DollarSign, premiumOnly: true, color: "text-emerald-500" },
+  { id: "marketing-channels", label: "Bridge Channels", icon: Radio, premiumOnly: true, color: "text-violet-500" },
+  { id: "authority-builders", label: "Yield Revenue", icon: Award, premiumOnly: true, color: "text-sky-500" },
   { id: "marketing" as DashboardSection, label: "Marketing", icon: Megaphone, premiumOnly: true },
   { id: "crm" as DashboardSection, label: "CRM", icon: Contact, premiumOnly: true },
 ];
