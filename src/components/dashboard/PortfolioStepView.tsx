@@ -37,7 +37,7 @@ interface StepConfig {
 
 const stepConfigs: Record<string, StepConfig> = {
   "step-1": {
-    id: "step-1", label: "A · Automate", subtitle: "Digital Products",
+    id: "step-1", label: "A · Analyze", subtitle: "Digital Products",
     color: "text-blue-600", bgColor: "bg-blue-500/10",
     gradientFrom: "from-blue-500", gradientTo: "to-blue-600",
     nodes: [
@@ -66,7 +66,7 @@ const stepConfigs: Record<string, StepConfig> = {
     ],
   },
   "step-3": {
-    id: "step-3", label: "B · Broadcast", subtitle: "Speaking",
+    id: "step-3", label: "B · Bridge", subtitle: "Speaking",
     color: "text-rose-500", bgColor: "bg-rose-500/10",
     gradientFrom: "from-rose-500", gradientTo: "to-rose-600",
     nodes: [

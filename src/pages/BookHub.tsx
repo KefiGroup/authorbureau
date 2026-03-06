@@ -34,9 +34,9 @@ async function getActiveToken(): Promise<string | null> {
 
 const tabs: { id: BookHubTab; label: string }[] = [
   { id: "overview", label: "Overview" },
-  { id: "automate", label: "A · Automate" },
+  { id: "automate", label: "A · Analyze" },
   { id: "build", label: "B · Build" },
-  { id: "broadcast", label: "B · Broadcast" },
+  { id: "broadcast", label: "B · Bridge" },
   { id: "yield", label: "Y · Yield" },
   { id: "analytics", label: "Analytics" },
 ];
