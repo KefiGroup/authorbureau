@@ -34,6 +34,12 @@ export default function ApproveStep({ posts, config, onBack, onDone }: Props) {
     return counts;
   }, [posts]);
 
+  const formatCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    posts.forEach(p => { counts[p.format] = (counts[p.format] || 0) + 1; });
+    return counts;
+  }, [posts]);
+
   const dateRange = useMemo(() => {
     if (posts.length === 0) return { start: "", end: "" };
     const dates = posts.map(p => p.scheduled_date).sort();
