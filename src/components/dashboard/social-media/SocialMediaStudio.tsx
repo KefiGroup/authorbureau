@@ -28,7 +28,7 @@ export default function SocialMediaStudio({ onExit, initialBookId, initialBookTi
     frequency: "daily",
     contentMix: { tips: 30, quotes: 20, stories: 20, promotions: 15, engagement: 15 },
     tones: ["Professional", "Inspirational"],
-    duration: 90,
+    duration: 30,
     topicsEmphasize: "",
     topicsAvoid: "",
   });

@@ -248,7 +248,7 @@ export default function ConfigureStep({ config, onConfigChange, onNext }: Props)
           <CardHeader className="pb-3"><CardTitle className="text-lg">Duration</CardTitle></CardHeader>
           <CardContent>
             <div className="flex gap-2">
-              {[30, 60, 90].map(d => (
+              {[7, 14, 30].map(d => (
                 <Button
                   key={d}
                   variant={config.duration === d ? "default" : "outline"}
