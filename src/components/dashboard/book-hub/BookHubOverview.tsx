@@ -136,7 +136,7 @@ export default function BookHubOverview({ book, onConsultAbby, onNavigateTab }: 
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => onNavigateTab("automate")}
+                  onClick={() => onNavigateTab("analyze")}
                 >
                   <Zap className="h-3.5 w-3.5 mr-1.5" />
                   Build Next Product

@@ -35,7 +35,7 @@ interface Step {
 const steps: Step[] = [
   {
     id: "step-1",
-    label: "A · Automate",
+    label: "A · Analyze",
     subtitle: "Digital Products",
     color: "text-blue-600",
     bgColor: "bg-blue-500/10",
@@ -74,7 +74,7 @@ const steps: Step[] = [
   },
   {
     id: "step-3",
-    label: "B · Broadcast",
+    label: "B · Bridge",
     subtitle: "Speaking",
     color: "text-rose-500",
     bgColor: "bg-rose-500/10",

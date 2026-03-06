@@ -42,7 +42,7 @@ interface Step {
 const steps: Step[] = [
   {
     id: "step-1",
-    label: "A · Automate",
+    label: "A · Analyze",
     subtitle: "Digital Products",
     color: "text-blue-600",
     bgColor: "bg-blue-500/10",
@@ -83,7 +83,7 @@ const steps: Step[] = [
   },
   {
     id: "step-3",
-    label: "B · Broadcast",
+    label: "B · Bridge",
     subtitle: "Speaking",
     color: "text-rose-500",
     bgColor: "bg-rose-500/10",
@@ -139,7 +139,7 @@ export default function BusinessFramework({ onNavigate, isPremium, focusStep }: 
           Build Your <span className="text-gradient-gold">ABBY Monetization Framework</span>
         </h1>
         <p className="text-muted-foreground text-sm max-w-lg mx-auto">
-          <strong>A</strong>utomate · <strong>B</strong>uild · <strong>B</strong>roadcast · <strong>Y</strong>ield — your complete journey from published author to thriving business owner.
+           <strong>A</strong>nalyze · <strong>B</strong>uild · <strong>B</strong>ridge · <strong>Y</strong>ield — your complete journey from published author to thriving business owner.
         </p>
       </div>
 
@@ -258,9 +258,9 @@ export default function BusinessFramework({ onNavigate, isPremium, focusStep }: 
           onConsultAbby={() => onNavigate("build-business")}
           onNavigateTab={(tab) => {
             const tabToStep: Record<string, string> = {
-              automate: "step-1",
+              analyze: "step-1",
               build: "step-2",
-              broadcast: "step-3",
+              bridge: "step-3",
               yield: "step-4",
             };
             setActiveStep(tabToStep[tab] ?? null);
@@ -314,9 +314,9 @@ export default function BusinessFramework({ onNavigate, isPremium, focusStep }: 
         transition={{ delay: 0.5 }}
       >
         <p className="text-xs text-muted-foreground leading-relaxed max-w-lg mx-auto">
-          <strong>The ABBY journey:</strong> <strong>A</strong>utomate your book into digital products →
+          <strong>The ABBY journey:</strong> <strong>A</strong>nalyze your book into digital products →
           <strong>B</strong>uild high-touch coaching relationships →
-          <strong>B</strong>roadcast your expertise through speaking →
+          <strong>B</strong>ridge your expertise to speaking platforms →
           <strong>Y</strong>ield premium returns through events.
           <br />
           <span className="text-secondary font-medium">Abby will walk you through the ABBY Framework — turning your book into a business with 27 revenue streams.</span>
