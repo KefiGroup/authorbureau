@@ -100,7 +100,7 @@ const CY = VH / 2;
 const HUB_CFG: Record<string, { x: number; y: number; startDeg: number; sweepDeg: number; r: number }> = {
   analyze:  { x: 240, y: 220, startDeg: 100, sweepDeg: 300, r: 140 },
   build:    { x: 240, y: 600, startDeg: 0, sweepDeg: 180, r: 140 },
-  bridge:   { x: 880, y: 560, startDeg: -150, sweepDeg: 300, r: 140 },
+  bridge:   { x: 880, y: 560, startDeg: -120, sweepDeg: 240, r: 140 },
   yield:    { x: 960, y: 250, startDeg: -165, sweepDeg: 150, r: 140 },
 };
 
