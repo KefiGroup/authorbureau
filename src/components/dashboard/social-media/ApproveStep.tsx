@@ -165,32 +165,10 @@ export default function ApproveStep({ posts, config, onBack, onDone, onRegenerat
     toast({ title: "All Prompts Copied!", description: `${visualPosts.length} visual prompts on your clipboard. Paste into Canva AI.` });
   }, [visualPosts, toast]);
 
-  const generateImage = useCallback(async (post: SocialPost) => {
-    setGeneratingImageId(post.id);
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-social-graphic", {
-        body: {
-          platform: post.platform,
-          imagePrompt: post.image_prompt || post.caption.slice(0, 200),
-          bookTitle: config.bookTitle,
-          bookCoverUrl: config.bookCoverUrl,
-          caption: post.caption,
-        },
-      });
-      if (error) throw error;
-      if (data?.imageUrl) {
-        setGeneratedImages(prev => ({ ...prev, [post.id]: data.imageUrl }));
-        toast({ title: "Image Generated! 🎨", description: `${data.dimensions} graphic ready. Right-click to save, then upload to Buffer.` });
-      } else {
-        throw new Error(data?.error || "No image returned");
-      }
-    } catch (e: any) {
-      console.error("Image gen error:", e);
-      toast({ title: "Generation failed", description: e.message || "Please try again.", variant: "destructive" });
-    } finally {
-      setGeneratingImageId(null);
-    }
-  }, [config, toast]);
+  const onImageSelected = useCallback((postId: string, imageUrl: string) => {
+    setGeneratedImages(prev => ({ ...prev, [postId]: imageUrl }));
+    toast({ title: "Image Selected! 🎨", description: "Download it and attach to your post." });
+  }, [toast]);
 
   const exportBufferCSV = () => {
     const headers = ["Text", "Link", "Scheduled Date", "Scheduled Time", "Profile Names"];
