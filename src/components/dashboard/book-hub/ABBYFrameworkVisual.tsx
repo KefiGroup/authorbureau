@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import { Sparkles, BookOpen, Search, Hammer, Link2, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface Props {
@@ -8,131 +8,66 @@ interface Props {
   onNavigateTab: (tab: string) => void;
 }
 
-interface RevenueNode {
+/* ── Pipeline phases ── */
+interface Phase {
+  id: string;
+  letter: string;
   label: string;
-  active: boolean;
+  subtitle: string;
+  color: string;
+  colorMuted: string;
+  icon: typeof Search;
 }
 
-interface CategoryCluster {
+const PHASES: Phase[] = [
+  { id: "analyze", letter: "A", label: "Analyze", subtitle: "Map opportunities", color: "#f59e0b", colorMuted: "#fbbf24", icon: Search },
+  { id: "build",   letter: "B", label: "Build",   subtitle: "Generate assets",   color: "#10b981", colorMuted: "#34d399", icon: Hammer },
+  { id: "bridge",  letter: "B", label: "Bridge",  subtitle: "Connect tools",     color: "#8b5cf6", colorMuted: "#a78bfa", icon: Link2 },
+  { id: "yield",   letter: "Y", label: "Yield",   subtitle: "Monetize & earn",   color: "#0ea5e9", colorMuted: "#38bdf8", icon: DollarSign },
+];
+
+/* ── Category sub-groups (unchanged 28 nodes) ── */
+interface CategoryGroup {
   id: string;
   title: string;
   emoji: string;
-  hubColor: string;
-  nodeColor: string;
-  nodeColorMuted: string;
-  nodes: RevenueNode[];
-  tabKey: string;
+  color: string;
+  nodes: string[];
 }
 
-const CLUSTERS: CategoryCluster[] = [
+const CATEGORIES: CategoryGroup[] = [
   {
-    id: "revenue", title: "REVENUE\nSTREAMS", emoji: "💰",
-    hubColor: "#10b981", nodeColor: "#34d399", nodeColorMuted: "#6ee7b7",
-    tabKey: "revenue-streams",
+    id: "revenue", title: "Revenue Streams", emoji: "💰", color: "#10b981",
     nodes: [
-      { label: "Workbook", active: false },
-      { label: "Audio Book", active: false },
-      { label: "Online\nCourses", active: false },
-      { label: "Home Study\nCourse", active: false },
-      { label: "Webinars", active: false },
-      { label: "Monthly\nMemberships", active: false },
-      { label: "Upsells /\nDownsells", active: false },
-      { label: "Certification", active: false },
-      { label: "Masterminds", active: false },
-      { label: "Retreats &\nBootcamps", active: false },
+      "Workbook", "Audio Book", "Online Courses", "Home Study Course",
+      "Webinars", "Monthly Memberships", "Upsells / Downsells",
+      "Certification", "Masterminds", "Retreats & Bootcamps",
     ],
   },
   {
-    id: "marketing", title: "MARKETING\nCHANNELS", emoji: "📣",
-    hubColor: "#8b5cf6", nodeColor: "#a78bfa", nodeColorMuted: "#c4b5fd",
-    tabKey: "marketing-channels",
+    id: "marketing", title: "Marketing Channels", emoji: "📣", color: "#8b5cf6",
     nodes: [
-      { label: "Social Media", active: false },
-      { label: "Podcast\nScripts", active: false },
-      { label: "Podcast\nPitches", active: false },
-      { label: "Affiliates", active: false },
-      { label: "Book Sales\nat Events", active: false },
-      { label: "Conventions", active: false },
-      { label: "Fund\nRaising", active: false },
-      { label: "Joint\nVentures", active: false },
-      { label: "Special\nEditions", active: false },
+      "Social Media", "Podcast Scripts", "Podcast Pitches",
+      "Affiliates", "Book Sales at Events", "Conventions",
+      "Fund Raising", "Joint Ventures", "Special Editions",
     ],
   },
   {
-    id: "authority", title: "AUTHORITY\nBUILDERS", emoji: "🏆",
-    hubColor: "#0ea5e9", nodeColor: "#38bdf8", nodeColorMuted: "#7dd3fc",
-    tabKey: "authority-builders",
+    id: "authority", title: "Authority Builders", emoji: "🏆", color: "#0ea5e9",
     nodes: [
-      { label: "1-on-1\nCoaching", active: false },
-      { label: "Group\nCoaching", active: false },
-      { label: "Big Ticket\nConsulting", active: false },
-      { label: "Coaching\nMembership", active: false },
-      { label: "Keynotes", active: false },
-      { label: "Corporate\nTraining", active: false },
-      { label: "In-House\nSpeaker", active: false },
-      { label: "Revenue\nSharing", active: false },
-      { label: "Exhibitors /\nJV", active: false },
+      "1-on-1 Coaching", "Group Coaching", "Big Ticket Consulting",
+      "Coaching Membership", "Keynotes", "Corporate Training",
+      "In-House Speaker", "Revenue Sharing", "Exhibitors / JV",
     ],
   },
 ];
 
-/* ── SVG viewBox ── */
-const VW = 1200;
-const VH = 800;
-const CX = VW / 2;
-const CY = VH / 2;
-
-/* Hub positions: 3 clusters arranged around center */
-const HUB_CFG: Record<string, { x: number; y: number; startDeg: number; sweepDeg: number; r: number }> = {
-  revenue:   { x: 300, y: 250, startDeg: 90, sweepDeg: 300, r: 150 },
-  marketing: { x: 300, y: 620, startDeg: -30, sweepDeg: 210, r: 150 },
-  authority: { x: 900, y: 420, startDeg: -120, sweepDeg: 240, r: 150 },
-};
-
-function arcPositions(count: number, cx: number, cy: number, r: number, startDeg: number, sweepDeg: number) {
-  const out: { x: number; y: number }[] = [];
-  for (let i = 0; i < count; i++) {
-    const angle = startDeg + (sweepDeg / Math.max(count - 1, 1)) * i;
-    const rad = (angle * Math.PI) / 180;
-    out.push({ x: cx + Math.cos(rad) * r, y: cy + Math.sin(rad) * r });
-  }
-  return out;
-}
-
-function MultiLineText({ x, y, text, fontSize, fill, fontWeight, opacity, anchor }: {
-  x: number; y: number; text: string; fontSize: number; fill: string; fontWeight?: string; opacity?: number; anchor?: string;
-}) {
-  const lines = text.split("\n");
-  const lineHeight = fontSize * 1.2;
-  const startY = y - ((lines.length - 1) * lineHeight) / 2;
-  return (
-    <>
-      {lines.map((line, i) => (
-        <text
-          key={i}
-          x={x}
-          y={startY + i * lineHeight}
-          textAnchor={anchor || "middle"}
-          dominantBaseline="central"
-          fill={fill}
-          fontSize={fontSize}
-          fontWeight={fontWeight || "normal"}
-          opacity={opacity ?? 1}
-        >
-          {line}
-        </text>
-      ))}
-    </>
-  );
-}
+const totalNodes = CATEGORIES.reduce((s, c) => s + c.nodes.length, 0);
 
 export default function ABBYFrameworkVisual({ hasConsultation, onConsultAbby, onNavigateTab }: Props) {
-  const totalNodes = CLUSTERS.reduce((s, c) => s + c.nodes.length, 0);
-  const activeNodes = CLUSTERS.reduce((s, c) => s + c.nodes.filter((n) => n.active).length, 0);
-
   return (
     <motion.div
-      className="space-y-4"
+      className="space-y-6"
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.2 }}
@@ -140,154 +75,108 @@ export default function ABBYFrameworkVisual({ hasConsultation, onConsultAbby, on
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-heading font-bold text-base">Your Monetisation Map</h3>
+          <h3 className="font-heading font-bold text-base">Your ABBY Monetisation Journey</h3>
           <p className="text-xs text-muted-foreground">
-            {activeNodes} of {totalNodes} streams activated — Revenue · Marketing · Authority
+            0 of {totalNodes} streams activated across 4 phases
           </p>
         </div>
         <Button size="sm" variant="outline" onClick={onConsultAbby}>
           <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-          Refine with Abby
+          Consult Abby
         </Button>
       </div>
 
-      {/* Constellation Map */}
-      <div className="w-full rounded-2xl border border-border bg-card overflow-hidden">
-        <svg
-          viewBox={`0 0 ${VW} ${VH}`}
-          className="w-full h-auto"
-          style={{ minHeight: 380, maxHeight: 600 }}
-        >
-          {/* Dashed lines: center → hubs */}
-          {CLUSTERS.map((c) => {
-            const h = HUB_CFG[c.id];
-            return (
-              <line
-                key={`ctr-${c.id}`}
-                x1={CX} y1={CY} x2={h.x} y2={h.y}
-                stroke="hsl(var(--secondary))"
-                strokeWidth="2.5"
-                strokeDasharray="8 6"
-                opacity={0.35}
-              />
-            );
-          })}
+      {/* Sequential Pipeline */}
+      <div className="rounded-2xl border border-border bg-card p-6 overflow-x-auto">
+        {/* Phase Timeline */}
+        <div className="flex items-center justify-center gap-0 mb-8">
+          {/* Book origin */}
+          <div className="flex flex-col items-center shrink-0">
+            <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center">
+              <BookOpen className="h-6 w-6 text-secondary-foreground" />
+            </div>
+            <span className="text-[10px] font-bold text-muted-foreground mt-1.5 uppercase tracking-wider">
+              Your Book
+            </span>
+          </div>
 
-          {/* Dashed lines: hubs → nodes */}
-          {CLUSTERS.map((c) => {
-            const h = HUB_CFG[c.id];
-            const positions = arcPositions(c.nodes.length, h.x, h.y, h.r, h.startDeg, h.sweepDeg);
-            return positions.map((pos, i) => (
-              <line
-                key={`spoke-${c.id}-${i}`}
-                x1={h.x} y1={h.y} x2={pos.x} y2={pos.y}
-                stroke="hsl(var(--border))"
-                strokeWidth="1.2"
-                strokeDasharray="4 4"
-                opacity={0.45}
-              />
-            ));
-          })}
+          {PHASES.map((phase, idx) => (
+            <div key={phase.id} className="flex items-center shrink-0">
+              {/* Connector arrow */}
+              <div className="flex items-center mx-1 md:mx-3">
+                <div className="w-8 md:w-16 h-0.5 bg-border" />
+                <div className="w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-l-[8px]" style={{ borderLeftColor: phase.color }} />
+              </div>
 
-          {/* Product nodes */}
-          {CLUSTERS.map((c) => {
-            const h = HUB_CFG[c.id];
-            const positions = arcPositions(c.nodes.length, h.x, h.y, h.r, h.startDeg, h.sweepDeg);
-            return positions.map((pos, i) => {
-              const node = c.nodes[i];
-              const nodeFill = node.active ? c.nodeColor : "hsl(var(--muted))";
-              const nodeStroke = node.active ? c.nodeColorMuted : "hsl(var(--border))";
-              return (
-                <g key={`node-${c.id}-${i}`}>
-                  <circle
-                    cx={pos.x} cy={pos.y} r={22}
-                    fill={nodeFill}
-                    stroke={nodeStroke}
-                    strokeWidth="2.5"
-                    opacity={node.active ? 1 : 0.5}
-                  />
-                  <text
-                    x={pos.x} y={pos.y}
-                    textAnchor="middle" dominantBaseline="central"
-                    fill="white" fontSize="14" fontWeight="bold"
-                    opacity={node.active ? 1 : 0.6}
-                  >
-                    {node.active ? "✓" : c.emoji}
-                  </text>
-                  <MultiLineText
-                    x={pos.x} y={pos.y + 34}
-                    text={node.label}
-                    fontSize={11}
-                    fill="hsl(var(--foreground))"
-                    fontWeight="500"
-                    opacity={node.active ? 0.9 : 0.5}
-                  />
-                </g>
-              );
-            });
-          })}
-
-          {/* Hub circles */}
-          {CLUSTERS.map((c) => {
-            const h = HUB_CFG[c.id];
-            const activeCount = c.nodes.filter((n) => n.active).length;
-            return (
-              <g
-                key={`hub-${c.id}`}
-                className="cursor-pointer"
-                onClick={() => onNavigateTab(c.tabKey)}
+              {/* Phase circle */}
+              <button
+                onClick={() => onNavigateTab(phase.id)}
+                className="flex flex-col items-center group cursor-pointer shrink-0"
               >
-                <circle cx={h.x} cy={h.y} r={58} fill={c.hubColor} />
-                <circle cx={h.x} cy={h.y} r={58} fill="none" stroke="white" strokeWidth="2" opacity={0.2} />
-                <MultiLineText
-                  x={h.x} y={h.y - 4}
-                  text={c.title}
-                  fontSize={13}
-                  fill="white"
-                  fontWeight="800"
-                />
-                <text x={h.x} y={h.y + 28} textAnchor="middle" dominantBaseline="central" fill="white" fontSize="10" opacity={0.7}>
-                  {activeCount}/{c.nodes.length}
-                </text>
-              </g>
-            );
-          })}
+                <div
+                  className="w-16 h-16 md:w-20 md:h-20 rounded-full flex flex-col items-center justify-center transition-transform group-hover:scale-105 shadow-lg"
+                  style={{ background: phase.color }}
+                >
+                  <span className="text-white font-black text-lg md:text-xl leading-none">
+                    {phase.letter}
+                  </span>
+                  <span className="text-white/80 text-[8px] md:text-[9px] font-bold uppercase tracking-wider leading-none mt-0.5">
+                    {phase.label}
+                  </span>
+                </div>
+                <span className="text-[10px] text-muted-foreground font-medium mt-1.5 max-w-[80px] text-center leading-tight">
+                  {phase.subtitle}
+                </span>
+              </button>
+            </div>
+          ))}
+        </div>
 
-          {/* Center book */}
-          <g>
-            <rect x={CX - 35} y={CY - 42} width={70} height={84} rx={10}
-              fill="hsl(var(--secondary))" opacity={0.9} />
-            <rect x={CX - 35} y={CY - 42} width={70} height={84} rx={10}
-              fill="none" stroke="white" strokeWidth="2" opacity={0.15} />
-            <text x={CX} y={CY - 4} textAnchor="middle" dominantBaseline="central" fontSize="32">
-              📖
-            </text>
-            <text x={CX} y={CY + 58} textAnchor="middle" fill="hsl(var(--muted-foreground))"
-              fontSize="11" fontWeight="bold" letterSpacing="1.5">
-              YOUR BOOK
-            </text>
-          </g>
-        </svg>
+        {/* Category groups below */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {CATEGORIES.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => onNavigateTab(`${cat.id}-streams`)}
+              className="group rounded-xl border border-border bg-muted/30 p-4 text-left hover:bg-muted/60 transition-colors cursor-pointer"
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-sm"
+                  style={{ background: cat.color }}
+                >
+                  <span className="text-white text-xs">{cat.emoji}</span>
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-foreground">{cat.title}</h4>
+                  <span className="text-[10px] text-muted-foreground">
+                    0/{cat.nodes.length} activated
+                  </span>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {cat.nodes.map((node) => (
+                  <span
+                    key={node}
+                    className="inline-flex items-center rounded-full border border-border bg-background px-2 py-0.5 text-[10px] text-muted-foreground"
+                  >
+                    {node}
+                  </span>
+                ))}
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Legend */}
       <div className="flex items-center justify-center gap-6 text-[10px] text-muted-foreground">
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full" style={{ background: "#60a5fa" }} />
-          <span>Activated</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full" style={{ background: "#10b981" }} />
-          <span>💰 Revenue</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full" style={{ background: "#8b5cf6" }} />
-          <span>📣 Marketing</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full" style={{ background: "#0ea5e9" }} />
-          <span>🏆 Authority</span>
-        </div>
+        {PHASES.map((p) => (
+          <div key={p.id} className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-full" style={{ background: p.color }} />
+            <span>{p.letter} · {p.label}</span>
+          </div>
+        ))}
       </div>
     </motion.div>
   );
