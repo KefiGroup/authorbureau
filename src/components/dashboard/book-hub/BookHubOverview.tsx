@@ -1,11 +1,41 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, Zap, FileText, Upload } from "lucide-react";
+import { Sparkles, Zap, FileText, Upload, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ManuscriptUpload from "@/components/dashboard/ManuscriptUpload";
 import ABBYFrameworkVisual from "./ABBYFrameworkVisual";
+import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import { supabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
+import { asBlob } from "html-docx-js-typescript";
+import { useToast } from "@/hooks/use-toast";
+
+interface PlanSection {
+  key: string;
+  label: string;
+  emoji: string;
+  content: string;
+}
+
+function extractSections(fullContent: string): PlanSection[] {
+  const sections: PlanSection[] = [];
+  const patterns: Array<{ key: string; label: string; emoji: string; regex: RegExp }> = [
+    { key: "transformation", label: "Transformation Promise", emoji: "✨", regex: /(?:#{1,3}.*?TRANSFORMATION PROMISE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?STARTER PACKAGE|$)/i },
+    { key: "starter", label: "Starter Package", emoji: "🟢", regex: /(?:#{1,3}.*?STARTER PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?PRO PACKAGE|$)/i },
+    { key: "pro", label: "Pro Package", emoji: "🔵", regex: /(?:#{1,3}.*?PRO PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?ENTERPRISE PACKAGE|$)/i },
+    { key: "enterprise", label: "Enterprise Package", emoji: "🟣", regex: /(?:#{1,3}.*?ENTERPRISE PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?MONETIZATION MAP|$)/i },
+    { key: "monetization", label: "Monetization Map", emoji: "📊", regex: /(?:#{1,3}.*?MONETIZATION MAP.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?NEXT STEPS|$)/i },
+    { key: "nextsteps", label: "Next Steps", emoji: "🚀", regex: /(?:#{1,3}.*?NEXT STEPS.*?\n)([\s\S]*?)$/i },
+  ];
+  for (const p of patterns) {
+    const match = fullContent.match(p.regex);
+    if (match?.[1]?.trim()) {
+      sections.push({ key: p.key, label: p.label, emoji: p.emoji, content: match[1].trim() });
+    }
+  }
+  return sections;
+}
 
 interface Book {
   id: string;
