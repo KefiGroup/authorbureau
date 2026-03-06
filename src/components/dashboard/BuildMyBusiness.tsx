@@ -848,6 +848,11 @@ export default function BuildMyBusiness() {
 
           const buildRequests = msg.role === "assistant" ? parseBuildRequests(msg.content) : [];
           const hasSubscribeCta = msg.role === "assistant" && msg.content.includes("===SUBSCRIBE_CTA===");
+          const planMatch = msg.role === "assistant" ? msg.content.match(/===ABBY_PLAN===([\s\S]*?)===END_ABBY_PLAN===/) : null;
+          let parsedPlan: AbbyPlan | null = null;
+          if (planMatch) {
+            try { parsedPlan = JSON.parse(planMatch[1].trim()); } catch {}
+          }
           // Clean BUILD_REQUEST and SUBSCRIBE_CTA blocks from displayed content
           const displayContent = msg.content
             .replace(/===BUILD_REQUEST===[\s\S]*?===END_BUILD_REQUEST===/g, "")
