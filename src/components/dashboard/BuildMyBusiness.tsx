@@ -847,7 +847,7 @@ export default function BuildMyBusiness() {
     <div className="flex flex-col h-[calc(100vh-8rem)] max-w-4xl">
       {/* Header */}
       <div className="flex items-center gap-3 pb-4 border-b border-border mb-4 flex-shrink-0">
-        <Button variant="ghost" size="icon" onClick={handleReset} className="h-8 w-8">
+        <Button variant="ghost" size="icon" onClick={() => handleReset(true)} className="h-8 w-8">
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex items-center gap-3 flex-1 min-w-0">
