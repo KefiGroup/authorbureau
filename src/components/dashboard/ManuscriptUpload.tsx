@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { FileText, Upload, Loader2, CheckCircle2, Trash2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/shared-backend";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
+
+const EDGE_FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-manuscript`;
 
 const UPLOAD_STAGES = [
   { label: "Uploading file…", threshold: 0 },
@@ -29,13 +31,10 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
   const [checking, setChecking] = useState(true);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Elapsed timer during upload
   useEffect(() => {
     if (uploading) {
       setElapsedSeconds(0);
-      timerRef.current = setInterval(() => {
-        setElapsedSeconds(prev => prev + 1);
-      }, 1000);
+      timerRef.current = setInterval(() => setElapsedSeconds(prev => prev + 1), 1000);
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
     }
@@ -43,34 +42,30 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
   }, [uploading]);
 
   const currentStage = UPLOAD_STAGES.filter(s => elapsedSeconds >= s.threshold).pop() || UPLOAD_STAGES[0];
-  // Fake progress: asymptotically approaches 95% over ~180s
   const fakeProgress = uploading ? Math.min(95, (elapsedSeconds / (elapsedSeconds + 30)) * 100) : 0;
 
-  const getAuthenticatedUserId = async () => {
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) throw new Error("Please sign in again.");
-    return data.user.id;
+  const getToken = async () => {
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+    if (!token) throw new Error("Please sign in again.");
+    return token;
   };
 
-  useEffect(() => {
-    checkExisting();
-  }, [bookId]);
+  useEffect(() => { checkExisting(); }, [bookId]);
 
   const checkExisting = async () => {
     setChecking(true);
     try {
-      await getAuthenticatedUserId();
-
-      const { data } = await supabase
-        .from("generated_assets")
-        .select("id, content")
-        .eq("book_id", bookId)
-        .eq("asset_type", "source_material")
-        .maybeSingle();
-
-      if (data) {
+      const token = await getToken();
+      const resp = await fetch(EDGE_FN_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: "check", bookId }),
+      });
+      const result = await resp.json();
+      if (resp.ok && result.exists) {
         setHasManuscript(true);
-        setCharCount(data.content?.length || 0);
+        setCharCount(result.characterCount || 0);
       } else {
         setHasManuscript(false);
         setCharCount(null);
@@ -88,48 +83,28 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
     if (!file) return;
     e.target.value = "";
 
-    const maxSize = 20 * 1024 * 1024; // 20MB
-    if (file.size > maxSize) {
-      toast.error("File too large. Maximum size is 20MB.");
-      return;
-    }
+    const maxSize = 20 * 1024 * 1024;
+    if (file.size > maxSize) { toast.error("File too large. Maximum size is 20MB."); return; }
 
     const allowedTypes = [".pdf", ".docx", ".doc", ".txt", ".epub"];
     const ext = "." + file.name.split(".").pop()?.toLowerCase();
-    if (!allowedTypes.includes(ext)) {
-      toast.error("Unsupported format. Please upload PDF, DOCX, TXT, or EPUB.");
-      return;
-    }
+    if (!allowedTypes.includes(ext)) { toast.error("Unsupported format. Please upload PDF, DOCX, TXT, or EPUB."); return; }
 
     setUploading(true);
     try {
-      const userId = await getAuthenticatedUserId();
-
-      // 1. Upload to storage — sanitize filename to remove invalid chars like []
+      const token = await getToken();
       const safeName = file.name.replace(/[[\]{}()|\\^$*+?#]/g, "_");
-      const storagePath = `${userId}/${bookId}/${safeName}`;
-      const { error: uploadErr } = await supabase.storage
-        .from("manuscripts")
-        .upload(storagePath, file, { upsert: true });
 
-      if (uploadErr) throw uploadErr;
+      const formData = new FormData();
+      formData.append("file", file, safeName);
+      formData.append("bookId", bookId);
+      formData.append("fileName", safeName);
 
-      // 2. Call parse edge function
-      const { data: session } = await supabase.auth.getSession();
-      const token = session?.session?.access_token;
-      if (!token) throw new Error("Not authenticated");
-
-      const resp = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-manuscript`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ bookId, storagePath, fileName: safeName }),
-        }
-      );
+      const resp = await fetch(EDGE_FN_URL, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
 
       const result = await resp.json();
       if (!resp.ok) throw new Error(result.error || "Parse failed");
@@ -149,24 +124,14 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
   const handleRemove = async () => {
     setUploading(true);
     try {
-      const userId = await getAuthenticatedUserId();
-
-      await supabase
-        .from("generated_assets")
-        .delete()
-        .eq("book_id", bookId)
-        .eq("asset_type", "source_material");
-
-      // Also remove from storage
-      const { data: files } = await supabase.storage
-        .from("manuscripts")
-        .list(`${userId}/${bookId}`);
-
-      if (files && files.length > 0) {
-        await supabase.storage
-          .from("manuscripts")
-          .remove(files.map(f => `${userId}/${bookId}/${f.name}`));
-      }
+      const token = await getToken();
+      const resp = await fetch(EDGE_FN_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: "remove", bookId }),
+      });
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result.error || "Remove failed");
 
       setHasManuscript(false);
       setCharCount(null);
@@ -178,7 +143,6 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
     }
   };
 
-  // Upload progress overlay (shown in both compact and full modes)
   const UploadProgressIndicator = () => (
     <div className="space-y-2 w-full">
       <div className="flex items-center gap-2">
@@ -187,9 +151,7 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
       </div>
       <Progress value={fakeProgress} className="h-1.5" />
       <p className="text-[10px] text-muted-foreground">
-        {elapsedSeconds < 60
-          ? `${elapsedSeconds}s elapsed`
-          : `${Math.floor(elapsedSeconds / 60)}m ${elapsedSeconds % 60}s elapsed`}
+        {elapsedSeconds < 60 ? `${elapsedSeconds}s elapsed` : `${Math.floor(elapsedSeconds / 60)}m ${elapsedSeconds % 60}s elapsed`}
         {" · "}Please don't close this page
       </p>
     </div>
@@ -219,22 +181,10 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
           </span>
         ) : (
           <>
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-6 text-[10px] px-2 gap-1 border-dashed border-amber-400/50 text-amber-600 hover:bg-amber-50"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-            >
+            <Button size="sm" variant="outline" className="h-6 text-[10px] px-2 gap-1 border-dashed border-amber-400/50 text-amber-600 hover:bg-amber-50" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
               <Upload className="h-3 w-3" /> Upload Manuscript
             </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.docx,.doc,.txt,.epub"
-              className="hidden"
-              onChange={handleFileSelect}
-            />
+            <input ref={fileInputRef} type="file" accept=".pdf,.docx,.doc,.txt,.epub" className="hidden" onChange={handleFileSelect} />
           </>
         )}
       </div>
@@ -264,43 +214,21 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
           {hasManuscript ? (
             <>
               {onContinue && (
-                <Button
-                  size="sm"
-                  className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 text-sm font-semibold"
-                  onClick={onContinue}
-                >
+                <Button size="sm" className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 text-sm font-semibold" onClick={onContinue}>
                   Continue — Let Abby read &amp; advise →
                 </Button>
               )}
               <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="text-xs"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
-                >
-                  <Upload className="h-3 w-3 mr-1" />
-                  Replace
+                <Button size="sm" variant="outline" className="text-xs" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+                  <Upload className="h-3 w-3 mr-1" /> Replace
                 </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-xs text-destructive hover:text-destructive"
-                  onClick={handleRemove}
-                  disabled={uploading}
-                >
+                <Button size="sm" variant="ghost" className="text-xs text-destructive hover:text-destructive" onClick={handleRemove} disabled={uploading}>
                   <Trash2 className="h-3 w-3 mr-1" /> Remove
                 </Button>
               </div>
             </>
           ) : (
-            <Button
-              size="sm"
-              className="bg-secondary text-secondary-foreground hover:bg-secondary/90 text-xs"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-            >
+            <Button size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 text-xs" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
               <Upload className="h-3 w-3 mr-1" /> Upload Manuscript
             </Button>
           )}
@@ -308,14 +236,7 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
       )}
 
       <p className="text-[10px] text-muted-foreground">Supports PDF, DOCX, TXT, EPUB (max 20MB)</p>
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".pdf,.docx,.doc,.txt,.epub"
-        className="hidden"
-        onChange={handleFileSelect}
-      />
+      <input ref={fileInputRef} type="file" accept=".pdf,.docx,.doc,.txt,.epub" className="hidden" onChange={handleFileSelect} />
     </div>
   );
 }
