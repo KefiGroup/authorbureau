@@ -235,7 +235,41 @@ serve(async (req) => {
         return jsonResp({ success: true });
       }
 
-      // ─── NEW: upload-text — accepts pre-extracted text from client ───
+      // ─── batch-status: check manuscript + analysis status for multiple books ───
+      if (action === "batch-status") {
+        const { bookIds } = body;
+        if (!bookIds || !Array.isArray(bookIds) || bookIds.length === 0) {
+          return jsonResp({ error: "bookIds array required" }, 400);
+        }
+
+        const { data: assets } = await adminClient
+          .from("generated_assets")
+          .select("book_id, asset_type, content")
+          .in("book_id", bookIds)
+          .in("asset_type", ["source_material", "business_plan"]);
+
+        const manuscripts: string[] = [];
+        const analyzed: string[] = [];
+        const summaries: Record<string, any> = {};
+
+        (assets || []).forEach((a: any) => {
+          if (a.asset_type === "source_material" && !manuscripts.includes(a.book_id)) {
+            manuscripts.push(a.book_id);
+          }
+          if (a.asset_type === "business_plan" && !analyzed.includes(a.book_id)) {
+            analyzed.push(a.book_id);
+            try {
+              summaries[a.book_id] = JSON.parse(a.content);
+            } catch {
+              summaries[a.book_id] = { products: [] };
+            }
+          }
+        });
+
+        return jsonResp({ manuscripts, analyzed, summaries });
+      }
+
+      // ─── upload-text — accepts pre-extracted text from client ───
       if (action === "upload-text") {
         const { text, fileName } = body;
         if (!bookId || !text) return jsonResp({ error: "bookId and text are required" }, 400);

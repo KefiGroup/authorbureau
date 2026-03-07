@@ -1,66 +1,67 @@
 
 
-# Fix: "Build My Business" Doesn't Detect Uploaded Manuscripts
+## Phase 1: CRM Foundation + Reading Club Enhancement (Weeks 1-4)
 
-## Why This Keeps Happening (Architectural Root Cause)
+The roadmap says to build the CRM ("nervous system") and Reading Club ("demand engine") first, so every subsequent feature automatically captures contacts and drives conversions.
 
-This is the **same class of bug** as the manuscript upload failure — an RLS identity mismatch:
+### Current State
 
-- **Edge functions** store `generated_assets` records with `author_id` = the shared backend UUID (e.g., `ffbc179a-...`)
-- **Frontend** queries `generated_assets` via `cloudSupabase` (local Cloud client), where `auth.uid()` is a **different** UUID
-- RLS policy: `author_id = auth.uid()` → SELECT returns zero rows → UI thinks no manuscript exists
+- **CRM**: A basic `CRMDashboard.tsx` that reads from `profiles`, `reading_club_members`, and `newsletter_signups` as a unified contact list. Separate `crm_contacts`, `crm_contact_tags`, and `crm_activity_log` tables exist but are only used by the `CoachingCRM` component (which is actually a coaching package manager, not a CRM).
+- **Reading Club**: A public page with featured books, member signup (email+name), and basic discussions. No book catalog browsing, no challenges, no CRM integration.
 
-## Is This a Band-Aid or a Permanent Fix?
+### What We Build
 
-**This is a permanent architectural fix.** It follows the same proven pattern already used by `ManuscriptUpload` (which correctly calls the edge function to check status via `service_role`) and `consultation-session` (which resolves identity server-side). The fix eliminates the last direct `cloudSupabase` query against `generated_assets` in `BuildMyBusiness.tsx`, routing it through an edge function that bypasses RLS with `service_role`.
+**Week 1-2: Full CRM Dashboard**
 
-No data is degraded or deleted. The only change is **how** we read — not what we read or write.
+1. **Rebuild CRM Dashboard** to use the proper `crm_contacts` table (not the current hacky unified view from 3 tables):
+   - Contact list with search, sort, and filter by source/tag
+   - Add/edit contact form (name, email, phone, company, notes, source)
+   - Tag management: add/remove tags per contact, filter by tag
+   - Activity log panel: view and add notes, calls, emails per contact
+   - Auto-capture: when someone joins Reading Club or signs up for newsletter, auto-create a `crm_contacts` entry
 
-## Changes
+2. **CRM Auto-Capture Edge Function** (`crm-auto-capture`):
+   - Called by Reading Club signup, newsletter signup, and service inquiry flows
+   - Creates/updates `crm_contacts` record, adds source tag, logs activity
+   - Deduplicates by email
 
-### 1. `supabase/functions/parse-manuscript/index.ts` — Add `batch-status` action
+3. **CRM Stats on Dashboard Overview**: Total contacts, contacts this week, top tags, recent activity
 
-New JSON action accepting `{ action: "batch-status", bookIds: string[] }`. Uses `adminClient` (service_role) to query `generated_assets` for all matching book IDs with `asset_type IN ('source_material', 'business_plan')`. Returns:
+**Week 3-4: Reading Club Enhancement**
 
-```json
-{
-  "manuscripts": ["book-id-1"],
-  "analyzed": ["book-id-1"],
-  "summaries": { "book-id-1": { "products": [...] } }
-}
-```
+4. **Book Catalog**: Full browsable catalog of published books with genre filters, search, and cover images (not just featured books)
 
-No new tables, no schema changes, no RLS modifications.
+5. **Reading Challenges**: A simple "30-day reading challenge" feature — join a challenge tied to a featured book, track progress
 
-### 2. `src/components/dashboard/BuildMyBusiness.tsx` — Replace direct query (lines 112-136)
+6. **CRM Integration**: Every Reading Club signup triggers the CRM auto-capture, tagged as `reading_club`
 
-Replace the `cloudSupabase.from("generated_assets")` query with a fetch to the new `batch-status` edge function action. The response populates `manuscriptBookIds`, `analyzedBookIds`, and `planSummaries` identically to the current code — just sourced from a reliable path.
+### Technical Details
 
-**Before** (broken):
-```typescript
-const { data: assets } = await cloudSupabase
-  .from("generated_assets")
-  .select("book_id, asset_type, content")
-  .in("book_id", bookIds)
-  .in("asset_type", ["business_plan", "source_material"]);
-```
+**Database Changes:**
+- Add a `reading_club_challenges` table (id, book_id, title, description, duration_days, status, created_at)
+- Add a `reading_club_challenge_participants` table (id, challenge_id, member_id, progress, joined_at)
+- No changes needed for `crm_contacts`, `crm_contact_tags`, `crm_activity_log` — they already exist
 
-**After** (stable):
-```typescript
-const resp = await fetch(`${PARSE_MANUSCRIPT_URL}`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-  body: JSON.stringify({ action: "batch-status", bookIds }),
-});
-const result = await resp.json();
-// result.manuscripts, result.analyzed, result.summaries
-```
+**New Edge Function:**
+- `crm-auto-capture`: receives `{ email, name, source, source_detail }`, upserts into `crm_contacts`, adds tag, logs activity
 
-### What's NOT Changed
-- No tables modified or dropped
-- No RLS policies altered
-- No data deleted or migrated
-- `ManuscriptUpload.tsx` untouched (already uses edge function correctly)
-- `BookHubOverview.tsx` already fixed in prior commit
-- All existing write paths remain identical
+**Frontend Components (new or rewritten):**
+- `src/components/dashboard/CRMDashboard.tsx` — full rewrite with proper contact management
+- `src/components/dashboard/crm/ContactList.tsx` — already exists, may need updates
+- `src/components/dashboard/crm/ContactForm.tsx` — already exists, may need updates
+- `src/components/dashboard/crm/ActivityPanel.tsx` — already exists, may need updates
+- Reading Club page enhancements — book catalog grid, challenge cards
+
+**Files Modified:**
+- `src/pages/ReadingClub.tsx` — add catalog browse + challenge section
+- `src/components/dashboard/DashboardOverview.tsx` — add CRM stats card
+- `src/pages/AuthorDashboard.tsx` — wire updated CRM section
+
+### Implementation Order
+
+1. CRM auto-capture edge function + database migration for challenge tables
+2. Rewrite CRM Dashboard with full contact CRUD, tags, and activity log
+3. Add CRM stats to Dashboard Overview
+4. Enhance Reading Club with book catalog + challenges
+5. Wire auto-capture into Reading Club and newsletter signup flows
 
