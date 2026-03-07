@@ -25,6 +25,7 @@ import WebinarStepRenderer from "./webinar/WebinarStepRenderer";
 import PodcastScriptsStepRenderer from "./podcast-scripts/PodcastScriptsStepRenderer";
 import EmailMarketingStepRenderer from "./email-marketing/EmailMarketingStepRenderer";
 import WebsiteStepRenderer from "./website/WebsiteStepRenderer";
+import CoachingStepRenderer from "./coaching/CoachingStepRenderer";
 import type { BuilderNodeConfig, BuilderStep } from "./builderNodeConfig";
 
 interface Props {
@@ -573,6 +574,19 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
                   />
                 ) : nodeConfig.customRenderer === "website" ? (
                   <WebsiteStepRenderer
+                    stepId={currentStepConfig.id}
+                    stepData={stepData}
+                    setStepData={setStepData}
+                    onMarkEdited={(id) => setEditedSteps(prev => new Set([...prev, id]))}
+                    bookId={bookId}
+                    bookTitle={bookTitle}
+                    plan={plan}
+                    generationState={generationState}
+                    setGenerationState={setGenerationState}
+                    userId={user?.id || ""}
+                  />
+                ) : nodeConfig.customRenderer === "coaching" ? (
+                  <CoachingStepRenderer
                     stepId={currentStepConfig.id}
                     stepData={stepData}
                     setStepData={setStepData}
