@@ -109,10 +109,11 @@ export default function BuildMyBusiness() {
         // Check analysis and manuscript status
         const fetchedBooks = result.books || [];
         if (fetchedBooks.length > 0) {
+          const bookIds = fetchedBooks.map((b: any) => b.id);
           const { data: assets } = await cloudSupabase
             .from("generated_assets")
             .select("book_id, asset_type, content")
-            .eq("author_id", user.id)
+            .in("book_id", bookIds)
             .in("asset_type", ["business_plan", "source_material"]);
 
           const analyzed = new Set<string>();
