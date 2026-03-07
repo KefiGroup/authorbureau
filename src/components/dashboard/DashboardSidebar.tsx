@@ -27,7 +27,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { id: "overview", label: "ABBY Framework", icon: LayoutDashboard },
   { id: "my-books", label: "My Books Hub", icon: BookOpen },
-  { id: "build-business", label: "Analyze with Abby", icon: Sparkles, premiumOnly: true },
+  { id: "build-business", label: "Analyze with Abby", icon: Sparkles },
   { id: "revenue-streams", label: "Build Authority", icon: DollarSign, premiumOnly: true, color: "text-emerald-500" },
   { id: "marketing-channels", label: "Bridge Channels", icon: Radio, premiumOnly: true, color: "text-violet-500" },
   { id: "authority-builders", label: "Yield Revenue", icon: Award, premiumOnly: true, color: "text-sky-500" },

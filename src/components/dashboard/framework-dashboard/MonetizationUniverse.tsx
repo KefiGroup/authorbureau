@@ -1,0 +1,231 @@
+import { motion } from "framer-motion";
+import { Lock, ArrowRight, CheckCircle2, Star, Sparkles } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { useState } from "react";
+
+interface StreamNode {
+  label: string;
+  price: string;
+  status: "locked" | "unlocked" | "built" | "recommended";
+  requiredTier?: string;
+}
+
+interface StreamGroup {
+  id: string;
+  letter: string;
+  title: string;
+  color: string;
+  bgClass: string;
+  textClass: string;
+  borderClass: string;
+  nodes: StreamNode[];
+}
+
+const STREAMS: StreamGroup[] = [
+  {
+    id: "build",
+    letter: "B",
+    title: "BUILD",
+    color: "#22C55E",
+    bgClass: "bg-green-500/10",
+    textClass: "text-green-600",
+    borderClass: "border-green-500/30",
+    nodes: [
+      { label: "Online Courses", price: "$97–$497", status: "locked", requiredTier: "Pro" },
+      { label: "Home Study Courses", price: "$27–$97", status: "locked", requiredTier: "Starter" },
+      { label: "Workbooks", price: "$0–$27", status: "locked", requiredTier: "Starter" },
+      { label: "Audiobook", price: "$9.99–$24.99", status: "locked", requiredTier: "Pro" },
+      { label: "Monthly Memberships", price: "$9–$97/mo", status: "locked", requiredTier: "Pro" },
+      { label: "Upsells / Downsells", price: "Variable", status: "locked", requiredTier: "Starter" },
+      { label: "Social Media Calendar", price: "Free", status: "locked", requiredTier: "Starter" },
+      { label: "Webinars", price: "$0–$97", status: "locked", requiredTier: "Pro" },
+      { label: "Podcasts (Guest)", price: "Free", status: "locked", requiredTier: "Pro" },
+      { label: "Website / Microsite", price: "Free", status: "built" },
+      { label: "Email Marketing", price: "Free", status: "locked", requiredTier: "Starter" },
+    ],
+  },
+  {
+    id: "bridge",
+    letter: "B",
+    title: "BRIDGE",
+    color: "#8B5CF6",
+    bgClass: "bg-violet-500/10",
+    textClass: "text-violet-600",
+    borderClass: "border-violet-500/30",
+    nodes: [
+      { label: "1-on-1 Coaching", price: "$150–$500/session", status: "locked", requiredTier: "Pro" },
+      { label: "Group Coaching", price: "$297–$997/cohort", status: "locked", requiredTier: "Pro" },
+      { label: "Big Ticket Consulting", price: "$2,500–$10,000+", status: "locked", requiredTier: "Pro" },
+      { label: "Revenue Sharing / JV", price: "Variable", status: "locked", requiredTier: "Pro" },
+      { label: "Keynotes", price: "$2,500–$25,000", status: "locked", requiredTier: "Enterprise" },
+      { label: "In-House Speaker", price: "$2,500–$15,000", status: "locked", requiredTier: "Enterprise" },
+      { label: "Training Programs", price: "$5,000–$25,000", status: "locked", requiredTier: "Enterprise" },
+      { label: "Affiliates", price: "Commission", status: "locked", requiredTier: "Pro" },
+    ],
+  },
+  {
+    id: "yield",
+    letter: "Y",
+    title: "YIELD",
+    color: "#F59E0B",
+    bgClass: "bg-amber-500/10",
+    textClass: "text-amber-600",
+    borderClass: "border-amber-500/30",
+    nodes: [
+      { label: "Retreats & Bootcamps", price: "$997–$5,000", status: "locked", requiredTier: "Enterprise" },
+      { label: "Certification", price: "$2,500–$7,500", status: "locked", requiredTier: "Enterprise" },
+      { label: "Masterminds", price: "$5,000–$25,000/yr", status: "locked", requiredTier: "Enterprise" },
+      { label: "Special Editions", price: "$25–$150", status: "locked", requiredTier: "Enterprise" },
+      { label: "Book Sales Events", price: "$15–$30/book", status: "locked", requiredTier: "Enterprise" },
+      { label: "Conventions", price: "$197–$2,500/ticket", status: "locked", requiredTier: "Enterprise" },
+      { label: "Fund Raising", price: "Variable", status: "locked", requiredTier: "Enterprise" },
+      { label: "Exhibitors / JV", price: "Variable", status: "locked", requiredTier: "Enterprise" },
+    ],
+  },
+];
+
+interface Props {
+  activatedCount: number;
+  builtProducts: string[];
+  recommendedByAbby: string[];
+  subscribedTier: string;
+}
+
+export default function MonetizationUniverse({ activatedCount, builtProducts, recommendedByAbby, subscribedTier }: Props) {
+  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const totalStreams = STREAMS.reduce((s, g) => s + g.nodes.length, 0);
+
+  const getNodeStatus = (node: StreamNode): StreamNode["status"] => {
+    if (builtProducts.includes(node.label)) return "built";
+    if (recommendedByAbby.includes(node.label)) return "recommended";
+    if (!node.requiredTier) return "unlocked";
+    const tierOrder = ["free", "Starter", "Pro", "Enterprise"];
+    const userIdx = tierOrder.findIndex(t => t.toLowerCase() === subscribedTier.toLowerCase());
+    const reqIdx = tierOrder.findIndex(t => t === node.requiredTier);
+    return userIdx >= reqIdx ? "unlocked" : "locked";
+  };
+
+  const builtCount = STREAMS.reduce((s, g) => s + g.nodes.filter(n => getNodeStatus(n) === "built").length, 0);
+
+  return (
+    <motion.section
+      className="rounded-2xl overflow-hidden"
+      style={{ background: "#0F172A" }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.2 }}
+    >
+      <div className="p-6 md:p-10 space-y-6">
+        {/* Header */}
+        <div className="text-center space-y-2">
+          <h2 className="font-heading text-2xl md:text-3xl font-bold text-white">
+            Your Monetization Universe
+          </h2>
+          <p className="text-gray-400 text-sm">
+            One book. {totalStreams} revenue streams. <span className="text-amber-400 font-semibold">Your empire.</span>
+          </p>
+          <div className="max-w-xs mx-auto space-y-1.5 pt-2">
+            <div className="flex justify-between text-[10px] text-gray-400">
+              <span>{builtCount} of {totalStreams} activated</span>
+              <span>{Math.round((builtCount / totalStreams) * 100)}%</span>
+            </div>
+            <div className="h-2 rounded-full bg-gray-800 overflow-hidden">
+              <motion.div
+                className="h-full rounded-full bg-gradient-to-r from-green-500 via-violet-500 to-amber-500"
+                initial={{ width: 0 }}
+                animate={{ width: `${(builtCount / totalStreams) * 100}%` }}
+                transition={{ duration: 1, delay: 0.5 }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Three columns */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {STREAMS.map((group) => (
+            <div key={group.id} className="space-y-3">
+              {/* Group header */}
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white text-sm"
+                  style={{ backgroundColor: group.color }}
+                >
+                  {group.letter}
+                </div>
+                <div>
+                  <p className="text-white font-bold text-sm">{group.letter} · {group.title}</p>
+                  <p className="text-gray-500 text-[10px]">{group.nodes.length} streams</p>
+                </div>
+              </div>
+
+              {/* Nodes */}
+              <div className="space-y-1.5">
+                {group.nodes.map((node) => {
+                  const status = getNodeStatus(node);
+                  const isHovered = hoveredNode === `${group.id}-${node.label}`;
+
+                  return (
+                    <div
+                      key={node.label}
+                      className={`relative rounded-lg border px-3 py-2 transition-all cursor-default ${
+                        status === "built"
+                          ? "border-green-500/40 bg-green-500/10"
+                          : status === "recommended"
+                          ? "border-amber-500/40 bg-amber-500/5 ring-1 ring-amber-500/20"
+                          : status === "unlocked"
+                          ? "border-gray-600 bg-gray-800/50 hover:border-gray-500"
+                          : "border-gray-700/50 bg-gray-900/50 opacity-60"
+                      }`}
+                      onMouseEnter={() => setHoveredNode(`${group.id}-${node.label}`)}
+                      onMouseLeave={() => setHoveredNode(null)}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          {status === "built" && <CheckCircle2 className="h-3.5 w-3.5 text-green-400 shrink-0" />}
+                          {status === "recommended" && (
+                            <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 2 }}>
+                              <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400 shrink-0" />
+                            </motion.div>
+                          )}
+                          {status === "locked" && <Lock className="h-3 w-3 text-gray-600 shrink-0" />}
+                          {status === "unlocked" && <div className="w-3 h-3 rounded-full border-2 shrink-0" style={{ borderColor: group.color }} />}
+                          <span className={`text-xs font-medium truncate ${
+                            status === "locked" ? "text-gray-500" : "text-gray-200"
+                          }`}>
+                            {node.label}
+                          </span>
+                        </div>
+                        <span className="text-[9px] text-gray-500 shrink-0 whitespace-nowrap">
+                          {status === "locked" ? node.requiredTier : node.price}
+                        </span>
+                      </div>
+
+                      {/* Tooltip on hover */}
+                      {isHovered && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="absolute z-10 left-0 right-0 -bottom-1 translate-y-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 shadow-xl"
+                        >
+                          <p className="text-[10px] text-gray-300">{node.price}</p>
+                          {status === "locked" && (
+                            <p className="text-[10px] text-amber-400 mt-1">Unlock with {node.requiredTier}</p>
+                          )}
+                          {status === "unlocked" && (
+                            <p className="text-[10px] text-green-400 mt-1 flex items-center gap-1">
+                              <ArrowRight className="h-2.5 w-2.5" /> Open Builder
+                            </p>
+                          )}
+                        </motion.div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </motion.section>
+  );
+}
