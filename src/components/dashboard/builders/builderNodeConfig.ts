@@ -354,14 +354,14 @@ const affiliateBuilder: BuilderNodeConfig = {
   dbTable: "generated_assets",
   icon: "Link",
   color: "text-violet-500",
-  abbyGreeting: "An affiliate program turns your readers and peers into a sales force. Let's set one up.",
+  customRenderer: "affiliates",
+  abbyGreeting: "Affiliates are your unpaid sales team. I recommend 30-40% commission on digital products — it's generous enough to motivate promotion and you still profit.",
   abbyPublishMessage: "Your affiliate program is designed! Start recruiting your first 10 affiliates from your email list.",
   steps: [
-    { id: "configure", label: "Configure", description: "Set commission rates and terms", abbyTip: "30-50% commission on digital products is standard. Higher rates attract better affiliates." },
-    { id: "materials", label: "Affiliate Materials", description: "Create swipe copy and banners", abbyTip: "Provide ready-to-use email templates, social posts, and banner ads for your affiliates." },
-    { id: "tracking", label: "Tracking Setup", description: "Configure affiliate link tracking", abbyTip: "Use unique coupon codes per affiliate for easy tracking and attribution." },
-    { id: "recruitment", label: "Recruitment Plan", description: "Create affiliate recruitment strategy", abbyTip: "Your best affiliates are your best customers. Invite them first." },
-    { id: "preview", label: "Preview & Launch", description: "Review and launch your program", abbyTip: "Set up monthly payouts via PayPal or Stripe. Consistency builds trust with affiliates." },
+    { id: "setup", label: "Affiliate Program Setup", description: "Set program name, products, commission structure, cookie duration, payout schedule", abbyTip: "Affiliates are your unpaid sales team. I recommend 30-40% commission on digital products — it's generous enough to motivate promotion and you still profit." },
+    { id: "materials", label: "Affiliate Materials", description: "Signup page, email swipe copy, social posts, banners, review templates", abbyTip: "Provide ready-to-use email templates, social posts, and banner ads for your affiliates." },
+    { id: "dashboard", label: "Affiliate Dashboard", description: "Dashboard mockup, leaderboard, commission tracking, and payout history", abbyTip: "Use unique coupon codes per affiliate for easy tracking and attribution." },
+    { id: "preview", label: "Preview & Publish", description: "Preview signup page, dashboard, and revenue projection", abbyTip: "10 active affiliates each making 5 sales per month at $197 = $9,850/month in additional revenue." },
   ],
 };
 
