@@ -253,10 +253,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
             onAnalyze={() => setActiveSection("build-business")}
           />;
         }
-        return <PortfolioStepView categoryId={activeSection} />;
-      case "marketing-channels":
-        if (!hasAnalysis) {
-          return <SectionGatePage
+        return <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} />;
             sectionTitle="B · Bridge Channels"
             sectionSubtitle="Marketing channels & audience connections."
             gateMessage="Abby needs to understand your audience before she can recommend which marketing channels to activate."
