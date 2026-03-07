@@ -19,6 +19,7 @@ import HomeStudyStepRenderer from "./home-study/HomeStudyStepRenderer";
 import WorkbookStepRenderer from "./workbook/WorkbookStepRenderer";
 import AudiobookStepRenderer from "./audiobook/AudiobookStepRenderer";
 import MembershipStepRenderer from "./membership/MembershipStepRenderer";
+import UpsellStepRenderer from "./upsell/UpsellStepRenderer";
 import type { BuilderNodeConfig, BuilderStep } from "./builderNodeConfig";
 
 interface Props {
