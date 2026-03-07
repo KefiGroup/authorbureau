@@ -184,7 +184,7 @@ export default function DashboardSidebar({
               </span>
             ) : (
               <button
-                onClick={() => onSectionChange("overview")}
+                onClick={() => onSectionChange("connect-stripe" as any)}
                 className="inline-flex items-center gap-1.5 rounded-full bg-secondary/15 text-secondary px-2.5 py-1 text-[10px] font-semibold hover:bg-secondary/25 transition-colors"
               >
                 <CreditCard className="h-3 w-3" /> Connect Stripe

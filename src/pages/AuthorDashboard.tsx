@@ -26,6 +26,7 @@ import RevenueDashboard from "@/components/dashboard/RevenueDashboard";
 import MicrositeManager from "@/components/dashboard/MicrositeManager";
 import UniversalBuilderStudio from "@/components/dashboard/builders/UniversalBuilderStudio";
 import { BUILDER_NODE_MAP } from "@/components/dashboard/builders/builderNodeConfig";
+import ConnectStripePage from "@/components/dashboard/ConnectStripePage";
 import { Loader2, Rocket, FileText, Video, Share2, CreditCard, Users, Trophy, Podcast, Building2, Bookmark, Award } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -44,6 +45,7 @@ export type DashboardSection =
   | "revenue-streams" | "marketing-channels" | "authority-builders"
   | "marketing" | "crm"
   | "analytics" | "microsite-manager"
+  | "connect-stripe"
   // Universal builder nodes
   | "builder";
 
@@ -232,6 +234,8 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "marketing-channels":
       case "authority-builders":
         return <PortfolioStepView categoryId={activeSection} />;
+      case "connect-stripe":
+        return <ConnectStripePage />;
       case "overview":
         return (
           <ABBYFrameworkDashboard

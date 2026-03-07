@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Users, Clock, BookOpen, ShieldCheck, ArrowRight, RefreshCw, AlertCircle, UserCheck, Contact } from "lucide-react";
+import { Loader2, Clock, BookOpen, ShieldCheck, ArrowRight, RefreshCw, AlertCircle, UserCheck, Contact } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { AdminStats, Submission } from "@/types/admin";
@@ -48,14 +48,6 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
   const pendingCount = stats.pending_submissions ?? 0;
 
   const cards = [
-    { label: "Total Users", value: stats.total_users ?? stats.users ?? 0, icon: Users, action: () => onNavigate("users") },
-    {
-      label: "Submissions",
-      value: stats.total_submissions ?? stats.submissions ?? 0,
-      icon: Clock,
-      action: () => onNavigate("submissions"),
-      badge: pendingCount > 0 ? `${pendingCount} pending` : undefined,
-    },
     {
       label: "Books",
       value: stats.total_books ?? stats.books ?? 0,
@@ -65,7 +57,7 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
     },
     {
       label: "Authors",
-      value: pendingAuthorCount,
+      value: stats.total_users ?? 0,
       icon: UserCheck,
       action: () => onNavigate("authors"),
       badge: pendingAuthorCount > 0 ? `${pendingAuthorCount} unlisted` : undefined,
@@ -93,7 +85,7 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {cards.map((c) => {
           const Icon = c.icon;
           return (
@@ -154,8 +146,8 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
               Review {pendingCount} Pending Submission{pendingCount !== 1 ? "s" : ""}
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={() => onNavigate("users")}>
-            <Users className="h-4 w-4 mr-1.5" /> View All Users
+          <Button variant="outline" size="sm" onClick={() => onNavigate("authors")}>
+            <UserCheck className="h-4 w-4 mr-1.5" /> View All Authors
           </Button>
         </div>
       </div>

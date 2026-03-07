@@ -84,13 +84,24 @@ Deno.serve(async (req) => {
       const { data: books, error } = await query.range(from, from + pageSize - 1);
       if (error) throw error;
 
+      // Get total count for the current filter
+      let totalQuery = adminClient
+        .from("books")
+        .select("id", { count: "exact", head: true });
+      if (filter === "pending") {
+        totalQuery = totalQuery.is("published_at", null);
+      } else if (filter === "published") {
+        totalQuery = totalQuery.not("published_at", "is", null);
+      }
+      const { count: totalCount } = await totalQuery;
+
       // Also get pending count for badge
       const { count: pendingCount } = await adminClient
         .from("books")
         .select("id", { count: "exact", head: true })
         .is("published_at", null);
 
-      return new Response(JSON.stringify({ books: books || [], pendingCount: pendingCount || 0 }), {
+      return new Response(JSON.stringify({ books: books || [], pendingCount: pendingCount || 0, totalCount: totalCount || 0 }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -152,9 +163,14 @@ Deno.serve(async (req) => {
         .select("id", { count: "exact", head: true })
         .eq("directory_status", "unlisted");
 
+      const { count: totalBooks } = await adminClient
+        .from("books")
+        .select("id", { count: "exact", head: true });
+
       return new Response(JSON.stringify({
         pendingBooks: pendingBooks || 0,
         pendingAuthors: pendingAuthors || 0,
+        totalBooks: totalBooks || 0,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
