@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth, hasTierAccess, TIERS } from "@/hooks/useAuth";
 import { useAbbyPlan } from "@/hooks/useAbbyPlan";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
+import CourseStepRenderer from "./course/CourseStepRenderer";
 import type { BuilderNodeConfig, BuilderStep } from "./builderNodeConfig";
 
 interface Props {
