@@ -8,10 +8,10 @@ import { Progress } from "@/components/ui/progress";
 const EDGE_FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-manuscript`;
 
 const UPLOAD_STAGES = [
-  { label: "Uploading file…", threshold: 0 },
-  { label: "Abby is reading your manuscript — this may take 2–3 minutes for longer books…", threshold: 5 },
-  { label: "Extracting chapters and key frameworks…", threshold: 45 },
-  { label: "Almost there — processing final pages…", threshold: 120 },
+  { label: "Extracting text from your manuscript…", threshold: 0 },
+  { label: "Processing pages — this may take a moment for larger books…", threshold: 5 },
+  { label: "Saving extracted text…", threshold: 30 },
+  { label: "Almost done…", threshold: 60 },
 ];
 
 interface ManuscriptUploadProps {
@@ -20,6 +20,35 @@ interface ManuscriptUploadProps {
   compact?: boolean;
   onUploadComplete?: () => void;
   onContinue?: () => void;
+}
+
+/** Extract text from PDF using pdfjs-dist */
+async function extractPdfText(file: File): Promise<string> {
+  const pdfjsLib = await import("pdfjs-dist");
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const pages: string[] = [];
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const text = content.items
+      .map((item: any) => ("str" in item ? item.str : ""))
+      .join(" ");
+    pages.push(text);
+  }
+
+  return pages.join("\n\n");
+}
+
+/** Extract text from DOCX using mammoth */
+async function extractDocxText(file: File): Promise<string> {
+  const mammoth = await import("mammoth");
+  const arrayBuffer = await file.arrayBuffer();
+  const result = await mammoth.extractRawText({ arrayBuffer });
+  return result.value;
 }
 
 export default function ManuscriptUpload({ bookId, bookTitle, compact = false, onUploadComplete, onContinue }: ManuscriptUploadProps) {
@@ -91,32 +120,87 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
     if (!allowedTypes.includes(ext)) { toast.error("Unsupported format. Please upload PDF, DOCX, TXT, or EPUB."); return; }
 
     setUploading(true);
+    const abortController = new AbortController();
+    const timeout = setTimeout(() => abortController.abort(), 180_000); // 3 min
+
     try {
       const token = await getToken();
-      const safeName = file.name.replace(/[[\]{}()|\\^$*+?#]/g, "_");
 
-      const formData = new FormData();
-      formData.append("file", file, safeName);
-      formData.append("bookId", bookId);
-      formData.append("fileName", safeName);
+      // Client-side extraction for PDF, DOCX, TXT
+      if (ext === ".pdf" || ext === ".docx" || ext === ".doc" || ext === ".txt") {
+        let extractedText = "";
 
-      const resp = await fetch(EDGE_FN_URL, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
+        if (ext === ".txt") {
+          extractedText = await file.text();
+        } else if (ext === ".pdf") {
+          extractedText = await extractPdfText(file);
+        } else {
+          // .docx or .doc
+          extractedText = await extractDocxText(file);
+        }
 
-      const result = await resp.json();
-      if (!resp.ok) throw new Error(result.error || "Parse failed");
+        if (!extractedText || extractedText.trim().length < 50) {
+          toast.error("Could not extract enough text from this file. Please try a different format.");
+          return;
+        }
 
-      setHasManuscript(true);
-      setCharCount(result.characterCount);
-      toast.success(`Manuscript uploaded! ${Math.round(result.characterCount / 1000)}k characters extracted — Abby can now read your book.`);
-      onUploadComplete?.();
+        // Send extracted text directly
+        const resp = await fetch(EDGE_FN_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ action: "upload-text", bookId, text: extractedText, fileName: file.name }),
+          signal: abortController.signal,
+        });
+
+        let result: any;
+        try {
+          result = await resp.json();
+        } catch {
+          throw new Error("Server returned an invalid response. Please try again.");
+        }
+        if (!resp.ok) throw new Error(result.error || "Upload failed");
+
+        setHasManuscript(true);
+        setCharCount(result.characterCount);
+        toast.success(`Manuscript uploaded! ${Math.round(result.characterCount / 1000)}k characters extracted — Abby can now read your book.`);
+        onUploadComplete?.();
+      } else {
+        // EPUB: send as FormData for server-side native parsing
+        const safeName = file.name.replace(/[[\]{}()|\\^$*+?#]/g, "_");
+        const formData = new FormData();
+        formData.append("file", file, safeName);
+        formData.append("bookId", bookId);
+        formData.append("fileName", safeName);
+
+        const resp = await fetch(EDGE_FN_URL, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+          signal: abortController.signal,
+        });
+
+        let result: any;
+        try {
+          result = await resp.json();
+        } catch {
+          throw new Error("Server returned an invalid response. The file may be too large — try converting to TXT or PDF first.");
+        }
+        if (!resp.ok) throw new Error(result.error || "Parse failed");
+
+        setHasManuscript(true);
+        setCharCount(result.characterCount);
+        toast.success(`Manuscript uploaded! ${Math.round(result.characterCount / 1000)}k characters extracted — Abby can now read your book.`);
+        onUploadComplete?.();
+      }
     } catch (err) {
       console.error("Manuscript upload error:", err);
-      toast.error(err instanceof Error ? err.message : "Upload failed. Please try again.");
+      if (err instanceof DOMException && err.name === "AbortError") {
+        toast.error("Upload timed out. Please try a smaller file or convert to TXT format.");
+      } else {
+        toast.error(err instanceof Error ? err.message : "Upload failed. Please try again.");
+      }
     } finally {
+      clearTimeout(timeout);
       setUploading(false);
     }
   };
