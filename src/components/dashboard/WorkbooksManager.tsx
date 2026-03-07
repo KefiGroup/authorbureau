@@ -28,7 +28,7 @@ interface Workbook {
   created_at: string;
 }
 
-export default function WorkbooksManager() {
+export default function WorkbooksManager({ onNavigate }: { onNavigate?: (section: string) => void }) {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const bookFilterId = searchParams.get("bookId");
