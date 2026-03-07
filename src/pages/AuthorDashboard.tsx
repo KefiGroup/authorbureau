@@ -323,12 +323,33 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         />
         <div className="border-b border-border px-6 lg:px-8 bg-card">
           <JourneyBreadcrumb
-            micrositeState={journeyMicrosite}
-            booksAnalyzed={booksAnalyzed}
-            planState={journeyPlan}
-            buildState={journeyBuild}
-            sellState={journeySell}
-            showPayments={isPremium && !stripeConnected}
+            steps={[
+              {
+                label: journeyMicrosite === "done" ? "Microsite Live" : "Set Up Microsite",
+                state: journeyMicrosite,
+                onClick: () => setActiveSection("my-books"),
+              },
+              {
+                label: booksAnalyzed > 0 ? `${booksAnalyzed} Book${booksAnalyzed !== 1 ? "s" : ""} Analyzed` : "Analyze Books",
+                state: journeyPlan,
+                onClick: () => setActiveSection("build-business"),
+              },
+              ...(isPremium && !stripeConnected ? [{
+                label: "Connect Payments" as string,
+                state: (journeyPlan === "done" && !stripeConnected ? "current" : journeyPlan === "done" ? "done" : "upcoming") as JourneyStep,
+                onClick: () => setActiveSection("connect-stripe" as DashboardSection),
+              }] : []),
+              {
+                label: "Building Products",
+                state: journeyBuild,
+                onClick: () => setActiveSection("revenue-streams"),
+              },
+              {
+                label: "Earning Revenue",
+                state: journeySell,
+                onClick: () => setActiveSection("analytics" as DashboardSection),
+              },
+            ]}
           />
         </div>
         <main className="flex-1 overflow-y-auto p-6 lg:p-8">
