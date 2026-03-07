@@ -472,14 +472,14 @@ const mastermindBuilder: BuilderNodeConfig = {
   dbTable: "generated_assets",
   icon: "Brain",
   color: "text-amber-500",
-  abbyGreeting: "Masterminds are the ultimate high-ticket, high-impact offering. Let's design an exclusive group experience.",
+  customRenderer: "masterminds",
+  abbyGreeting: "Masterminds are your highest-value recurring product. 8 members at $10,000/year = $80,000 — and the community creates its own retention.",
   abbyPublishMessage: "Your mastermind program is designed! Start with an application process to curate the right group.",
   steps: [
-    { id: "configure", label: "Configure", description: "Set format, duration, and investment", abbyTip: "6-12 month programs with 6-10 members at $5K-$25K/year create deep transformation." },
-    { id: "structure", label: "Meeting Structure", description: "Design meeting format and cadence", abbyTip: "Monthly 2-hour meetings: Hot seats (30min each), guest expert (30min), accountability check." },
-    { id: "application", label: "Application Process", description: "Create screening and enrollment", abbyTip: "An application process increases perceived value and ensures group quality." },
-    { id: "materials", label: "Member Resources", description: "Create welcome kit and resources", abbyTip: "Include a member directory, shared resource library, and private communication channel." },
-    { id: "preview", label: "Preview & Launch", description: "Review and accept applications", abbyTip: "Interview every applicant. Group chemistry is the #1 factor in mastermind success." },
+    { id: "setup", label: "Mastermind Setup", description: "Set name, group size, duration, frequency, format, and pricing", abbyTip: "Masterminds are your highest-value recurring product. 8 members at $10,000/year = $80,000 — and the community creates its own retention." },
+    { id: "structure", label: "Structure & Framework", description: "Meeting agenda template, intake, onboarding, quarterly planning, and retreat component", abbyTip: "Monthly 2-hour meetings: Hot seats (30min each), guest expert (30min), accountability check." },
+    { id: "application", label: "Application & Sales", description: "Application form, sales page, interview script, and payment setup", abbyTip: "An application process increases perceived value and ensures group quality." },
+    { id: "preview", label: "Preview & Publish", description: "Preview application page, member experience, and revenue projection", abbyTip: "Interview every applicant. Group chemistry is the #1 factor in mastermind success." },
   ],
 };
 
