@@ -88,7 +88,7 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
           return (
             <div
               key={plan.id}
-              className={`relative rounded-2xl border p-6 transition-all ${
+              className={`relative rounded-2xl border p-6 transition-all flex flex-col ${
                 plan.popular
                   ? "border-amber-400 shadow-lg shadow-amber-500/10 ring-1 ring-amber-400/30"
                   : "border-border"
@@ -100,7 +100,7 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
                 </span>
               )}
 
-              <div className="space-y-4">
+              <div className="space-y-4 flex-1 flex flex-col">
                 <div>
                   <h3 className="font-heading text-lg font-bold">{plan.name}</h3>
                   <p className="text-xs text-muted-foreground">{plan.description}</p>
@@ -111,7 +111,7 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
                   <span className="text-muted-foreground text-sm">{plan.period}</span>
                 </div>
 
-                <ul className="space-y-2">
+                <ul className="space-y-2 flex-1">
                   {plan.features.map((f) => (
                     <li key={f} className="flex items-start gap-2 text-xs text-muted-foreground">
                       <Check className="h-3.5 w-3.5 text-green-500 shrink-0 mt-0.5" />
@@ -121,18 +121,18 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
                 </ul>
 
                 {isCurrent ? (
-                  <Button variant="outline" className="w-full" onClick={onManage} disabled={loading}>
+                  <Button variant="outline" className="w-full mt-auto" onClick={onManage} disabled={loading}>
                     {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ExternalLink className="h-4 w-4 mr-2" />}
                     Manage Plan
                   </Button>
                 ) : (
                   <Button
-                    className={`w-full ${plan.popular ? "bg-amber-500 hover:bg-amber-600 text-white" : ""}`}
+                    className={`w-full mt-auto ${plan.popular ? "bg-amber-500 hover:bg-amber-600 text-white" : ""}`}
                     onClick={() => onSubscribe(plan.id)}
                     disabled={loading}
                   >
                     {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Crown className="h-4 w-4 mr-2" />}
-                    {isSubscribed ? "Switch to " + plan.name : "Get " + plan.name}
+                    {isCurrent ? "Manage Plan" : isSubscribed ? `Switch to ${plan.name}` : `Get Started with ${plan.name}`}
                   </Button>
                 )}
               </div>
