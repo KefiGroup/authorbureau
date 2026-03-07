@@ -26,7 +26,7 @@ interface Webinar {
   created_at: string;
 }
 
-export default function WebinarsManager() {
+export default function WebinarsManager({ onNavigate }: { onNavigate?: (section: string) => void }) {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const bookFilterId = searchParams.get("bookId");
