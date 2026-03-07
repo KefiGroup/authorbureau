@@ -55,16 +55,58 @@ export default function AdminDashboard() {
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
     try {
-      // Fetch stats from local Cloud database
-      const [booksRes, authorsRes, adminsRes] = await Promise.all([
-        supabase.from("books").select("id", { count: "exact", head: true }),
+      // Use admin-books edge function for accurate counts (bypasses RLS)
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
+      // Fetch books count + pending counts via edge function
+      const [pendingRes, authorsRes] = await Promise.all([
+        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-books`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ action: "list", page: 1, filter: "all" }),
+        }),
         supabase.from("author_profiles").select("id", { count: "exact", head: true }),
-        supabase.from("user_roles").select("id", { count: "exact", head: true }).eq("role", "admin"),
       ]);
+
+      let totalBooks = 0;
+      let pendingBooks = 0;
+      if (pendingRes.ok) {
+        const booksData = await pendingRes.json();
+        totalBooks = booksData.books?.length ?? 0;
+        pendingBooks = booksData.pendingCount ?? 0;
+        // Fetch all books count by also getting a count-only request
+        // The list returns up to 20, so use pending-counts for accurate total
+      }
+
+      // Get accurate total books count
+      const countRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-books`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: "pending-counts" }),
+      });
+      let totalBooksCount = totalBooks;
+      let pendingAuthorsCount = 0;
+      if (countRes.ok) {
+        const countData = await countRes.json();
+        pendingBooks = countData.pendingBooks ?? pendingBooks;
+        pendingAuthorsCount = countData.pendingAuthors ?? 0;
+      }
+
+      // Get admins count via edge function too
+      let adminsCount = 0;
+      try {
+        const adminsData = await adminApi.listAdmins();
+        adminsCount = (adminsData?.admins || adminsData?.data || []).length;
+      } catch {}
+
+      setPendingBookCount(pendingBooks);
+      setPendingAuthorCount(pendingAuthorsCount);
+
       setStats({
         total_users: (authorsRes.count ?? 0),
-        total_books: (booksRes.count ?? 0),
-        total_admins: (adminsRes.count ?? 0),
+        total_books: totalBooks,
+        total_admins: adminsCount,
         total_submissions: 0,
         pending_submissions: 0,
         recent_submissions: [],

@@ -50,8 +50,7 @@ export default function AuthorsTab() {
 
       const { data: books } = await supabase
         .from("books")
-        .select("author_id, author_name")
-        .not("published_at", "is", null);
+        .select("author_id, author_name");
 
       // Count books by author_id
       const bookCounts = new Map<string, number>();

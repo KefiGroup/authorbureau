@@ -48,14 +48,6 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
   const pendingCount = stats.pending_submissions ?? 0;
 
   const cards = [
-    { label: "Total Users", value: stats.total_users ?? stats.users ?? 0, icon: Users, action: () => onNavigate("users") },
-    {
-      label: "Submissions",
-      value: stats.total_submissions ?? stats.submissions ?? 0,
-      icon: Clock,
-      action: () => onNavigate("submissions"),
-      badge: pendingCount > 0 ? `${pendingCount} pending` : undefined,
-    },
     {
       label: "Books",
       value: stats.total_books ?? stats.books ?? 0,
@@ -65,7 +57,7 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
     },
     {
       label: "Authors",
-      value: pendingAuthorCount,
+      value: stats.total_users ?? 0,
       icon: UserCheck,
       action: () => onNavigate("authors"),
       badge: pendingAuthorCount > 0 ? `${pendingAuthorCount} unlisted` : undefined,
