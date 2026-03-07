@@ -276,6 +276,12 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
         </Card>
       ) : (
         <>
+          {/* Stripe Connect Banner */}
+          {isPremium && !stripeConnected && <StripeConnectBanner />}
+
+          {/* Products Pending Review */}
+          <ProductReviewQueue onNavigate={onNavigate} />
+
           {/* Quick Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
