@@ -24,8 +24,13 @@ import PremiumGate from "@/components/dashboard/PremiumGate";
 import EmailMarketing from "@/components/dashboard/EmailMarketing";
 import RevenueDashboard from "@/components/dashboard/RevenueDashboard";
 import MicrositeManager from "@/components/dashboard/MicrositeManager";
+import UniversalBuilderStudio from "@/components/dashboard/builders/UniversalBuilderStudio";
+import { BUILDER_NODE_MAP } from "@/components/dashboard/builders/builderNodeConfig";
 import { Loader2, Rocket, FileText, Video, Share2, CreditCard, Users, Trophy, Podcast, Building2, Bookmark, Award } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+
+// All builder node IDs for the type union
+const BUILDER_NODE_IDS = Object.keys(BUILDER_NODE_MAP) as Array<keyof typeof BUILDER_NODE_MAP>;
 
 export type DashboardSection =
   | "overview" | "profile" | "my-books"
@@ -38,16 +43,11 @@ export type DashboardSection =
   | "email-marketing" | "subscribers" | "email-templates"
   | "revenue-streams" | "marketing-channels" | "authority-builders"
   | "marketing" | "crm"
-  | "analytics" | "microsite-manager";
+  | "analytics" | "microsite-manager"
+  // Universal builder nodes
+  | "builder";
 
 const comingSoonSections: Record<string, { title: string; description: string; icon: typeof Rocket }> = {
-  memberships: { title: "Monthly Memberships", description: "Tiered membership programs with content drip schedules and recurring billing.", icon: CreditCard },
-  "group-coaching": { title: "Group Coaching", description: "AI-generated 8-week group coaching curriculum with session agendas and workbooks.", icon: Users },
-  "big-ticket": { title: "Big Ticket Packages", description: "Premium consulting packages ($5K–$25K) with application forms and sales pages.", icon: Trophy },
-  "corporate-training": { title: "Corporate Training", description: "Half-day and full-day corporate training curricula derived from your book.", icon: Building2 },
-  retreats: { title: "Retreats & Bootcamps", description: "2-3 day retreat programs with detailed agendas and registration systems.", icon: Bookmark },
-  certification: { title: "Certification Programs", description: "Professional certification programs with multi-module curricula and digital certificates.", icon: Award },
-  masterminds: { title: "Masterminds", description: "Structured mastermind group programs with quarterly agendas and member applications.", icon: Trophy },
   crm: { title: "CRM & Contacts", description: "Your unified customer relationship management hub.", icon: Users },
   marketing: { title: "Marketing Package", description: "AI-driven marketing suite — email flows, social media, affiliate dashboard.", icon: Rocket },
 };
@@ -183,6 +183,17 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
   const handleNavigate = (s: string) => setActiveSection(s as DashboardSection);
 
   const renderSection = () => {
+    // Check if this is a universal builder node
+    const builderNodeId = searchParams.get("builder");
+    if (builderNodeId && BUILDER_NODE_MAP[builderNodeId]) {
+      return (
+        <UniversalBuilderStudio
+          nodeConfig={BUILDER_NODE_MAP[builderNodeId]}
+          onNavigate={handleNavigate}
+        />
+      );
+    }
+
     switch (activeSection) {
       case "profile":
         return <ProfileEditor onNavigate={handleNavigate} />;
