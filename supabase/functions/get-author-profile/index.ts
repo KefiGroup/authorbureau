@@ -12,7 +12,19 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { slug } = await req.json();
+    // Support both GET (query param) and POST (JSON body)
+    let slug: string | null = null;
+    if (req.method === "GET") {
+      const url = new URL(req.url);
+      slug = url.searchParams.get("slug");
+    } else {
+      try {
+        const body = await req.json();
+        slug = body.slug;
+      } catch {
+        slug = null;
+      }
+    }
     if (!slug) {
       return new Response(JSON.stringify({ error: "Slug required" }), {
         status: 400,
