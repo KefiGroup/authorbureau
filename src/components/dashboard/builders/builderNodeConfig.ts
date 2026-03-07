@@ -111,14 +111,14 @@ const bookSalesBuilder: BuilderNodeConfig = {
   dbTable: "books",
   icon: "ShoppingBag",
   color: "text-emerald-500",
+  customRenderer: "book-sales",
   abbyGreeting: "Selling books at events can be highly profitable with the right setup. Let's create your event sales kit.",
-  abbyPublishMessage: "Your event sales kit is ready! Print your materials and start booking speaking gigs. Consider your Speaking Profile next.",
+  abbyPublishMessage: "Your event sales kit is ready! Print your materials and start booking speaking gigs.",
   steps: [
-    { id: "configure", label: "Configure", description: "Set event type and sales goals", abbyTip: "Back-of-room sales convert at 20-40% when tied to your talk content." },
-    { id: "materials", label: "Sales Materials", description: "Generate sales sheets and QR codes", abbyTip: "A one-page sell sheet with testimonials and a QR code to purchase is essential." },
-    { id: "bundles", label: "Bundle Offers", description: "Create book + product bundles", abbyTip: "Bundle your book + workbook at a slight discount — average order value jumps 60%." },
-    { id: "tracking", label: "Order Tracking", description: "Set up inventory and order management", abbyTip: "Track which events convert best so you can prioritize future appearances." },
-    { id: "preview", label: "Preview & Export", description: "Review materials and export", abbyTip: "Print test copies and practice your pitch. First impressions matter at events." },
+    { id: "setup", label: "Event Sales Setup", description: "Set event type, attendance, books to bring, pricing, and payment methods", abbyTip: "Back-of-room book sales after a keynote convert at 30-50% of the audience. For a 200-person event, bring 60-100 books." },
+    { id: "materials", label: "Sales Materials", description: "Table display, QR codes, business cards, bundle offers, and email capture cards", abbyTip: "A one-page sell sheet with testimonials and a QR code to purchase is essential." },
+    { id: "logistics", label: "Logistics", description: "Inventory tracker, shipping calculator, packing checklist, and post-event follow-up", abbyTip: "Track which events convert best so you can prioritize future appearances." },
+    { id: "preview", label: "Preview & Publish", description: "Review all materials and revenue projection", abbyTip: "At a 200-person event with 40% conversion, you'd sell 80 books — plus capture emails for your funnel." },
   ],
 };
 
@@ -295,52 +295,54 @@ const groupCoachingBuilder: BuilderNodeConfig = {
   dbTable: "coaching_packages",
   icon: "Users",
   color: "text-violet-500",
-  abbyGreeting: "Group coaching scales your impact without scaling your time. Let's design an 8-week program.",
+  customRenderer: "group-coaching",
+  abbyGreeting: "Group coaching is your highest-leverage coaching product. At $497 per person with 20 participants, that's $9,940 per cohort — and you only run it once.",
   abbyPublishMessage: "Your group coaching program is designed! Start promoting to your email list for the next cohort.",
   steps: [
-    { id: "configure", label: "Configure", description: "Set group size, duration, and pricing", abbyTip: "8-12 people per cohort at $497-$997 is the sweet spot for engagement and revenue." },
-    { id: "curriculum", label: "AI Curriculum", description: "Generate 8-week group curriculum", abbyTip: "I'll create weekly themes from your book with group exercises and accountability partners." },
-    { id: "materials", label: "Session Materials", description: "Create worksheets and discussion guides", abbyTip: "Pre-work before each session increases engagement. Keep it to 15 minutes max." },
-    { id: "sales-page", label: "Sales Page", description: "Generate enrollment page", abbyTip: "Include a countdown timer and limited spots messaging. Scarcity drives enrollment." },
-    { id: "preview", label: "Preview & Launch", description: "Review and open enrollment", abbyTip: "Run a free workshop first to warm up your audience, then pitch the paid program at the end." },
+    { id: "setup", label: "Group Program Setup", description: "Set program name, cohort size, duration, frequency, format, and pricing", abbyTip: "Group coaching is your highest-leverage coaching product. At $497 per person with 20 participants, that's $9,940 per cohort — and you only run it once." },
+    { id: "curriculum", label: "Curriculum Builder", description: "AI generates week-by-week curriculum with themes, exercises, and accountability", abbyTip: "I'll create weekly themes from your book with group exercises, community prompts, and accountability partner pairing." },
+    { id: "materials", label: "Group Materials", description: "Welcome guide, community guidelines, worksheets, facilitation guide, and graduation materials", abbyTip: "Pre-work before each session increases engagement. Keep it to 15 minutes max." },
+    { id: "sales", label: "Sales & Enrollment", description: "Cohort enrollment page, application form, sales page, and email sequence", abbyTip: "Include a countdown timer and limited spots messaging. Scarcity drives enrollment." },
+    { id: "preview", label: "Preview & Publish", description: "Preview enrollment page, curriculum, and revenue calculator", abbyTip: "Run a free workshop first to warm up your audience, then pitch the paid program at the end." },
   ],
 };
 
 const speakingBuilder: BuilderNodeConfig = {
   id: "speaking",
-  label: "Speaking Profile",
+  label: "Keynotes",
   category: "bridge",
   requiredTier: "enterprise",
-  dbTable: "speaking_topics",
+  dbTable: "generated_assets",
   icon: "Presentation",
   color: "text-violet-500",
-  abbyGreeting: "Speaking is the fastest path to authority and premium clients. Let's build your professional speaking profile.",
-  abbyPublishMessage: "Your speaking profile is live! Submit it to speaker bureaus and start pitching to conferences.",
+  customRenderer: "keynotes",
+  abbyGreeting: "Your book naturally supports 3 keynote topics. I recommend starting with the broadest topic for maximum booking potential, then adding niche topics as you build your speaking reputation.",
+  abbyPublishMessage: "Your speaking materials are live! Submit to speaker bureaus and start pitching to conferences.",
   steps: [
-    { id: "topics", label: "Speaking Topics", description: "Create signature talk topics", abbyTip: "Create 2-3 signature talks. One keynote (45min), one workshop (2hr), one panel topic." },
-    { id: "bio", label: "Speaker Bio", description: "Generate professional speaker bio", abbyTip: "Lead with outcomes and credibility markers. Include media appearances and audience sizes." },
-    { id: "media-kit", label: "Media Kit", description: "Create speaker media kit", abbyTip: "Include professional photos, testimonials from event organizers, and a sizzle reel link." },
-    { id: "pricing", label: "Fee Structure", description: "Set speaking fees and packages", abbyTip: "Start at $2,500-$5,000 for keynotes. Bundle with book sales for event organizers." },
-    { id: "preview", label: "Preview & Publish", description: "Review and publish your profile", abbyTip: "List on SpeakerHub and reach out directly to 10 conferences in your niche this month." },
+    { id: "setup", label: "Keynote Setup", description: "Set number of keynote topics, titles, durations, audiences, and speaker fee range", abbyTip: "Your book naturally supports 3 keynote topics. I recommend starting with the broadest topic for maximum booking potential." },
+    { id: "talks", label: "Talk Builder", description: "AI generates talk outlines with time markers, hooks, key points, and interactive elements", abbyTip: "Great talks follow: Opening Hook → 3-5 Key Points with Stories → Interactive Element → Closing CTA. I've structured yours this way." },
+    { id: "materials", label: "Speaker Materials", description: "Speaker one-sheet, bio versions, intro script, tech requirements, and travel rider", abbyTip: "A professional speaker one-sheet is your calling card. Include your photo, topics, testimonials, and contact info." },
+    { id: "booking", label: "Booking System", description: "Speaker inquiry form, response emails, confirmation template, pre-event questionnaire", abbyTip: "A free 15-minute discovery call qualifies event organizers and builds trust. Follow up with a testimonial request after every gig." },
+    { id: "preview", label: "Preview & Publish", description: "Preview speaker one-sheet, profile page, and revenue projection", abbyTip: "Speaking is the highest-ROI activity for authors. One $5,000 keynote often leads to $10,000+ in back-of-room book sales and coaching inquiries." },
   ],
 };
 
 const corporateTrainingBuilder: BuilderNodeConfig = {
   id: "corporate-training",
-  label: "Corporate Training",
+  label: "In-House Speaker",
   category: "bridge",
   requiredTier: "enterprise",
-  dbTable: "courses",
+  dbTable: "generated_assets",
   icon: "Building2",
   color: "text-violet-500",
-  abbyGreeting: "Corporate training commands premium fees. Let's design programs that HR departments will love.",
+  customRenderer: "in-house-speaker",
+  abbyGreeting: "Corporate workshops are your highest per-hour revenue. A full-day workshop at $10,000 often leads to repeat bookings and training program contracts.",
   abbyPublishMessage: "Your corporate training program is ready! Create proposals for 3-5 target companies this month.",
   steps: [
-    { id: "configure", label: "Configure", description: "Set program type and audience", abbyTip: "Half-day workshops ($3K-$8K) are easiest to sell. Full-day programs ($8K-$15K) for established clients." },
-    { id: "curriculum", label: "AI Curriculum", description: "Generate training curriculum", abbyTip: "Include interactive exercises, case studies, and takeaway materials. Corporate buyers value engagement." },
-    { id: "materials", label: "Participant Materials", description: "Create handouts and worksheets", abbyTip: "Brand everything professionally. Include pre-work and post-training action plans." },
-    { id: "proposal", label: "Proposal Template", description: "Generate corporate proposal", abbyTip: "Quantify ROI. 'Teams that complete this training show 30% improvement in X metric.'" },
-    { id: "preview", label: "Preview & Publish", description: "Review and finalize", abbyTip: "Start by offering a free lunch-and-learn to build relationships with HR decision makers." },
+    { id: "setup", label: "Corporate Package Setup", description: "Set package types, topics, target organizations, and pricing", abbyTip: "Corporate workshops are your highest per-hour revenue. A full-day workshop at $10,000 often leads to repeat bookings and training program contracts." },
+    { id: "workshop", label: "Workshop Builder", description: "AI generates detailed agendas, participant workbooks, facilitator guides, and exercises", abbyTip: "Include interactive exercises, case studies, and takeaway materials. Corporate buyers value engagement." },
+    { id: "proposal", label: "Corporate Proposal", description: "Proposal template, case study, ROI calculator, and follow-up program options", abbyTip: "Quantify ROI. 'Teams that complete this training show 30% improvement in X metric.'" },
+    { id: "preview", label: "Preview & Publish", description: "Preview all materials and finalize", abbyTip: "Start by offering a free lunch-and-learn to build relationships with HR decision makers." },
   ],
 };
 
@@ -352,33 +354,33 @@ const affiliateBuilder: BuilderNodeConfig = {
   dbTable: "generated_assets",
   icon: "Link",
   color: "text-violet-500",
-  abbyGreeting: "An affiliate program turns your readers and peers into a sales force. Let's set one up.",
+  customRenderer: "affiliates",
+  abbyGreeting: "Affiliates are your unpaid sales team. I recommend 30-40% commission on digital products — it's generous enough to motivate promotion and you still profit.",
   abbyPublishMessage: "Your affiliate program is designed! Start recruiting your first 10 affiliates from your email list.",
   steps: [
-    { id: "configure", label: "Configure", description: "Set commission rates and terms", abbyTip: "30-50% commission on digital products is standard. Higher rates attract better affiliates." },
-    { id: "materials", label: "Affiliate Materials", description: "Create swipe copy and banners", abbyTip: "Provide ready-to-use email templates, social posts, and banner ads for your affiliates." },
-    { id: "tracking", label: "Tracking Setup", description: "Configure affiliate link tracking", abbyTip: "Use unique coupon codes per affiliate for easy tracking and attribution." },
-    { id: "recruitment", label: "Recruitment Plan", description: "Create affiliate recruitment strategy", abbyTip: "Your best affiliates are your best customers. Invite them first." },
-    { id: "preview", label: "Preview & Launch", description: "Review and launch your program", abbyTip: "Set up monthly payouts via PayPal or Stripe. Consistency builds trust with affiliates." },
+    { id: "setup", label: "Affiliate Program Setup", description: "Set program name, products, commission structure, cookie duration, payout schedule", abbyTip: "Affiliates are your unpaid sales team. I recommend 30-40% commission on digital products — it's generous enough to motivate promotion and you still profit." },
+    { id: "materials", label: "Affiliate Materials", description: "Signup page, email swipe copy, social posts, banners, review templates", abbyTip: "Provide ready-to-use email templates, social posts, and banner ads for your affiliates." },
+    { id: "dashboard", label: "Affiliate Dashboard", description: "Dashboard mockup, leaderboard, commission tracking, and payout history", abbyTip: "Use unique coupon codes per affiliate for easy tracking and attribution." },
+    { id: "preview", label: "Preview & Publish", description: "Preview signup page, dashboard, and revenue projection", abbyTip: "10 active affiliates each making 5 sales per month at $197 = $9,850/month in additional revenue." },
   ],
 };
 
 const partnershipBuilder: BuilderNodeConfig = {
   id: "partnerships",
-  label: "JV Partnerships",
+  label: "Revenue Sharing / JV",
   category: "bridge",
   requiredTier: "pro",
   dbTable: "generated_assets",
   icon: "Handshake",
   color: "text-violet-500",
-  abbyGreeting: "Strategic partnerships multiply your reach exponentially. Let's identify and structure the right collaborations.",
+  customRenderer: "jv-partnerships",
+  abbyGreeting: "JV partnerships are the fastest way to reach new audiences. I recommend starting with cross-promotions (free) before moving to revenue shares.",
   abbyPublishMessage: "Your partnership playbook is ready! Reach out to your top 5 potential partners this week.",
   steps: [
-    { id: "identify", label: "Identify Partners", description: "Find ideal JV partners", abbyTip: "Look for complementary (not competing) authors in adjacent niches with similar audience sizes." },
-    { id: "proposal", label: "Partnership Proposals", description: "Create collaboration proposals", abbyTip: "Lead with what you can offer them. Always propose a specific, low-risk first collaboration." },
-    { id: "structure", label: "Deal Structure", description: "Design revenue sharing models", abbyTip: "50/50 splits are standard for co-created products. Guest expert spots = affiliate commission." },
-    { id: "materials", label: "Co-Marketing Plan", description: "Plan joint marketing activities", abbyTip: "Start with a joint webinar or podcast episode. Low effort, high exposure for both parties." },
-    { id: "preview", label: "Review & Execute", description: "Finalize partnership playbook", abbyTip: "Always formalize agreements in writing, even with friends. It protects both parties." },
+    { id: "setup", label: "Partnership Setup", description: "Set partnership type, revenue split, partner criteria, and products available", abbyTip: "JV partnerships are the fastest way to reach new audiences. I recommend starting with cross-promotions (free) before moving to revenue shares." },
+    { id: "materials", label: "Partner Materials", description: "Proposal template, revenue sharing agreement, co-promotion swipe copy, and social templates", abbyTip: "Lead with what you can offer them. Always propose a specific, low-risk first collaboration." },
+    { id: "onboarding", label: "Partner Onboarding", description: "Welcome sequence, resource page, reporting template, and communication cadence", abbyTip: "Transparent tracking builds trust. Share dashboards with partners monthly." },
+    { id: "preview", label: "Preview & Publish", description: "Preview partner proposal, resource page, and revenue projection", abbyTip: "A single JV partner with a 10,000-person email list could generate significant sales with the right conversion rate." },
   ],
 };
 
@@ -430,14 +432,15 @@ const retreatBuilder: BuilderNodeConfig = {
   dbTable: "generated_assets",
   icon: "Mountain",
   color: "text-amber-500",
-  abbyGreeting: "Retreats create transformative experiences and premium revenue. Let's design an unforgettable 2-3 day program.",
+  customRenderer: "retreats",
+  abbyGreeting: "Retreats are your highest per-person revenue product. A 3-day retreat at $2,997 with 20 participants is $59,940 — minus venue costs, you could net $30,000-$40,000.",
   abbyPublishMessage: "Your retreat program is designed! Start scouting venues and promoting to your VIP list.",
   steps: [
-    { id: "configure", label: "Configure", description: "Set format, dates, and pricing", abbyTip: "2-day retreats at $1,997-$4,997 with 15-20 attendees are the sweet spot." },
-    { id: "agenda", label: "AI Agenda", description: "Generate detailed retreat agenda", abbyTip: "I'll create a transformative arc: Day 1 = Awareness, Day 2 = Action, Day 3 = Accountability." },
-    { id: "logistics", label: "Logistics Plan", description: "Venue, catering, and materials planning", abbyTip: "All-inclusive pricing simplifies the decision for attendees and increases perceived value." },
-    { id: "sales-page", label: "Sales Page", description: "Generate retreat sales copy", abbyTip: "Sell the transformation, not the schedule. 'Leave with a complete business plan' > 'Day 1: Introduction.'" },
-    { id: "preview", label: "Preview & Launch", description: "Review and open registration", abbyTip: "Offer a $500 early-bird discount and a payment plan option to maximize enrollment." },
+    { id: "setup", label: "Event Setup", description: "Set event type, name, capacity, pricing, and location type", abbyTip: "Retreats are your highest per-person revenue product. A 3-day retreat at $2,997 with 20 participants is $59,940." },
+    { id: "itinerary", label: "Itinerary Builder", description: "AI generates day-by-day schedule with sessions, activities, and ceremonies", abbyTip: "I'll create a transformative arc: Day 1 = Awareness, Day 2 = Action, Day 3 = Accountability." },
+    { id: "marketing", label: "Marketing Materials", description: "Sales page, brochure, email sequence, social posts, and pricing strategy", abbyTip: "Sell the transformation, not the schedule. 'Leave with a complete business plan' > 'Day 1: Introduction.'" },
+    { id: "logistics", label: "Logistics Planning", description: "Venue requirements, equipment, welcome packet, travel info, and waivers", abbyTip: "All-inclusive pricing simplifies the decision for attendees and increases perceived value." },
+    { id: "preview", label: "Preview & Publish", description: "Preview sales page, itinerary, and break-even analysis", abbyTip: "Offer a $500 early-bird discount and a payment plan option to maximize enrollment." },
   ],
 };
 
@@ -449,14 +452,15 @@ const certificationBuilder: BuilderNodeConfig = {
   dbTable: "courses",
   icon: "Award",
   color: "text-amber-500",
-  abbyGreeting: "A certification program establishes you as THE authority in your field. Let's design a professional credential.",
+  customRenderer: "certification",
+  abbyGreeting: "Certification is the ultimate authority builder. Certified practitioners become your ambassadors AND a recurring revenue stream through renewal fees.",
   abbyPublishMessage: "Your certification program is designed! This is a premium offering that builds your legacy.",
   steps: [
-    { id: "configure", label: "Configure", description: "Set levels, requirements, and pricing", abbyTip: "Start with one certification level at $2,997-$9,997. Add advanced levels later." },
-    { id: "curriculum", label: "AI Curriculum", description: "Generate multi-module curriculum", abbyTip: "8-12 modules with assessments at each stage. Include a capstone project for credibility." },
-    { id: "assessment", label: "Assessment Design", description: "Create exams and practical assessments", abbyTip: "Mix knowledge tests (60%) with practical application (40%). Include peer review components." },
-    { id: "credentials", label: "Credential Design", description: "Design certificates and digital badges", abbyTip: "Professional certificates increase perceived value. Include verifiable digital badges." },
-    { id: "preview", label: "Preview & Launch", description: "Review and open enrollment", abbyTip: "Launch to your coaching alumni first. They're already invested in your methodology." },
+    { id: "setup", label: "Certification Setup", description: "Set name, levels, duration, delivery, pricing, and renewal terms", abbyTip: "Certification is the ultimate authority builder. Certified practitioners become your ambassadors AND a recurring revenue stream." },
+    { id: "curriculum", label: "Curriculum Builder", description: "AI generates module-by-module breakdown with theory, practice, and assessments", abbyTip: "8-12 modules with assessments at each stage. Include a capstone project for credibility." },
+    { id: "assessment", label: "Assessment & Licensing", description: "Knowledge exams, practical rubrics, case studies, agreement, and renewal requirements", abbyTip: "Mix knowledge tests (60%) with practical application (40%). Include peer review components." },
+    { id: "directory", label: "Certified Directory", description: "Practitioner profile template, public directory, badge, and referral system", abbyTip: "Professional certificates increase perceived value. Include verifiable digital badges." },
+    { id: "preview", label: "Preview & Publish", description: "Preview sales page, curriculum, and revenue projection", abbyTip: "10 certified practitioners at $5,000 each = $50,000. Plus $500/year renewal fees = $5,000/year recurring." },
   ],
 };
 
@@ -468,14 +472,14 @@ const mastermindBuilder: BuilderNodeConfig = {
   dbTable: "generated_assets",
   icon: "Brain",
   color: "text-amber-500",
-  abbyGreeting: "Masterminds are the ultimate high-ticket, high-impact offering. Let's design an exclusive group experience.",
+  customRenderer: "masterminds",
+  abbyGreeting: "Masterminds are your highest-value recurring product. 8 members at $10,000/year = $80,000 — and the community creates its own retention.",
   abbyPublishMessage: "Your mastermind program is designed! Start with an application process to curate the right group.",
   steps: [
-    { id: "configure", label: "Configure", description: "Set format, duration, and investment", abbyTip: "6-12 month programs with 6-10 members at $5K-$25K/year create deep transformation." },
-    { id: "structure", label: "Meeting Structure", description: "Design meeting format and cadence", abbyTip: "Monthly 2-hour meetings: Hot seats (30min each), guest expert (30min), accountability check." },
-    { id: "application", label: "Application Process", description: "Create screening and enrollment", abbyTip: "An application process increases perceived value and ensures group quality." },
-    { id: "materials", label: "Member Resources", description: "Create welcome kit and resources", abbyTip: "Include a member directory, shared resource library, and private communication channel." },
-    { id: "preview", label: "Preview & Launch", description: "Review and accept applications", abbyTip: "Interview every applicant. Group chemistry is the #1 factor in mastermind success." },
+    { id: "setup", label: "Mastermind Setup", description: "Set name, group size, duration, frequency, format, and pricing", abbyTip: "Masterminds are your highest-value recurring product. 8 members at $10,000/year = $80,000 — and the community creates its own retention." },
+    { id: "structure", label: "Structure & Framework", description: "Meeting agenda template, intake, onboarding, quarterly planning, and retreat component", abbyTip: "Monthly 2-hour meetings: Hot seats (30min each), guest expert (30min), accountability check." },
+    { id: "application", label: "Application & Sales", description: "Application form, sales page, interview script, and payment setup", abbyTip: "An application process increases perceived value and ensures group quality." },
+    { id: "preview", label: "Preview & Publish", description: "Preview application page, member experience, and revenue projection", abbyTip: "Interview every applicant. Group chemistry is the #1 factor in mastermind success." },
   ],
 };
 
@@ -487,14 +491,14 @@ const bigTicketBuilder: BuilderNodeConfig = {
   dbTable: "coaching_packages",
   icon: "Gem",
   color: "text-amber-500",
-  abbyGreeting: "Premium consulting packages can generate $5K-$25K per client. Let's design your VIP offering.",
+  customRenderer: "big-ticket",
+  abbyGreeting: "Big ticket offers are where your expertise commands premium pricing. A VIP Day at $5,000 with 2 clients per month is $10,000/month — and it positions you as the expert.",
   abbyPublishMessage: "Your consulting packages are designed! Start with a free strategy session funnel to attract qualified leads.",
   steps: [
-    { id: "packages", label: "Design Packages", description: "Create premium consulting packages", abbyTip: "Offer a VIP Day ($5K), Quarter Intensive ($10K), and Year-Long Partnership ($25K)." },
-    { id: "process", label: "Delivery Process", description: "Map out the client journey", abbyTip: "Include a kickoff session, regular check-ins, async support, and a final review." },
-    { id: "application", label: "Application Funnel", description: "Create application and qualification", abbyTip: "Use a 'Free Strategy Session' to qualify leads and pitch the paid engagement." },
-    { id: "sales-page", label: "Sales Materials", description: "Generate premium sales copy", abbyTip: "Focus on ROI. 'Clients typically see a 10x return on their investment within 6 months.'" },
-    { id: "preview", label: "Preview & Publish", description: "Review and launch", abbyTip: "Start by converting your best coaching clients. They already trust your expertise." },
+    { id: "setup", label: "Offer Setup", description: "Set offer type, name, target client, deliverables, and pricing", abbyTip: "Big ticket offers are where your expertise commands premium pricing. A VIP Day at $5,000 with 2 clients per month is $10,000/month." },
+    { id: "package", label: "Package Builder", description: "AI generates pre-engagement, during, and post-engagement materials", abbyTip: "Include a kickoff session, regular check-ins, async support, and a final review." },
+    { id: "proposal", label: "Proposal & Sales", description: "Proposal template, application page, sales page, discovery call script, and follow-up sequence", abbyTip: "Focus on ROI. 'Clients typically see a 10x return on their investment within 6 months.'" },
+    { id: "preview", label: "Preview & Publish", description: "Preview all materials and revenue projection", abbyTip: "Start by converting your best coaching clients. They already trust your expertise." },
   ],
 };
 
@@ -593,7 +597,105 @@ const upsellBuilder: BuilderNodeConfig = {
   ],
 };
 
-// ─── EXPORT ALL 27 NODES ─────────────────────────────────────────────
+// ─── NEW BUILDERS (from spec) ────────────────────────────────────────
+
+const trainingProgramsBuilder: BuilderNodeConfig = {
+  id: "training-programs",
+  label: "Training Programs",
+  category: "bridge",
+  requiredTier: "enterprise",
+  dbTable: "courses",
+  icon: "BookMarked",
+  color: "text-violet-500",
+  customRenderer: "training-programs",
+  abbyGreeting: "Training programs create recurring revenue through licensing. One organization paying $25,000/year for your program license is worth 50 individual course sales.",
+  abbyPublishMessage: "Your training program is ready! Start pitching to organizations in your niche.",
+  steps: [
+    { id: "setup", label: "Program Setup", description: "Set program name, duration, frequency, delivery, capacity, and pricing model", abbyTip: "Training programs create recurring revenue through licensing. One organization paying $25,000/year for your program license is worth 50 individual course sales." },
+    { id: "curriculum", label: "Curriculum Builder", description: "AI generates session-by-session curriculum with assessments and manager briefings", abbyTip: "Include pre-program and post-program assessments to measure results. Organizations love data." },
+    { id: "materials", label: "Training Materials", description: "Participant handbook, facilitator guide, slide decks, exercises, case studies, and rubrics", abbyTip: "A detailed facilitator guide makes your program licensable — others can deliver it without you." },
+    { id: "licensing", label: "Licensing & Sales", description: "Brochure, licensing agreement, train-the-trainer guide, ROI case study, and proposal template", abbyTip: "A licensed training program creates passive income. One enterprise license at $25,000/year requires zero additional effort." },
+    { id: "preview", label: "Preview & Publish", description: "Preview all materials and revenue projection", abbyTip: "Approach industry associations and HR departments first — they have training budgets." },
+  ],
+};
+
+const specialEditionsBuilder: BuilderNodeConfig = {
+  id: "special-editions",
+  label: "Special Editions",
+  category: "yield",
+  requiredTier: "pro",
+  dbTable: "generated_assets",
+  icon: "BookHeart",
+  color: "text-amber-500",
+  customRenderer: "special-editions",
+  abbyGreeting: "Special editions create urgency and premium positioning. A limited run of 100 signed copies at $49.99 sells out fast and generates $4,999 in a single launch.",
+  abbyPublishMessage: "Your special edition is designed! Launch it to your email list for maximum impact.",
+  steps: [
+    { id: "setup", label: "Edition Setup", description: "Set edition type, print run, pricing, and extras", abbyTip: "Special editions create urgency and premium positioning. A limited run of 100 signed copies at $49.99 sells out fast." },
+    { id: "content", label: "Edition Content", description: "AI generates foreword, bonus chapter, discussion guide, and packaging description", abbyTip: "New exclusive content makes the special edition feel truly special. An author's letter adds a personal touch." },
+    { id: "sales", label: "Sales & Fulfillment", description: "Pre-order page, numbering system, fulfillment checklist, launch emails, and social posts", abbyTip: "Pre-orders with a countdown create urgency. Limited edition numbering adds collector value." },
+    { id: "preview", label: "Preview & Publish", description: "Preview sales page, edition content, and revenue projection", abbyTip: "Launch to your email list first for maximum conversion. Special editions reward your most loyal readers." },
+  ],
+};
+
+const conventionsBuilder: BuilderNodeConfig = {
+  id: "conventions",
+  label: "Conventions & Conferences",
+  category: "yield",
+  requiredTier: "enterprise",
+  dbTable: "generated_assets",
+  icon: "Landmark",
+  color: "text-amber-500",
+  customRenderer: "conventions",
+  abbyGreeting: "Conferences are where you build your professional network. I recommend submitting speaker proposals to 5-10 conferences per year in your niche.",
+  abbyPublishMessage: "Your conference materials are ready! Start submitting proposals and planning your conference strategy.",
+  steps: [
+    { id: "setup", label: "Conference Setup", description: "Set participation type, niche, goals, and budget", abbyTip: "Conferences are where you build your professional network. I recommend submitting speaker proposals to 5-10 conferences per year." },
+    { id: "submissions", label: "Submission Materials", description: "Speaker proposal, session descriptions, exhibitor booth plan, and sponsorship proposal", abbyTip: "Strong speaker proposals focus on attendee takeaways, not your credentials. What will they learn?" },
+    { id: "kit", label: "Conference Kit", description: "Networking strategy, elevator pitches, business cards, follow-up templates, and lead capture", abbyTip: "Prepare 30-second, 60-second, and 2-minute elevator pitches. Different situations need different lengths." },
+    { id: "preview", label: "Preview & Publish", description: "Preview all materials and lead generation projection", abbyTip: "One conference typically generates 20-50 qualified leads. At a 10% conversion rate, that's 2-5 new clients." },
+  ],
+};
+
+const fundraisingBuilder: BuilderNodeConfig = {
+  id: "fundraising",
+  label: "Fund Raising",
+  category: "yield",
+  requiredTier: "pro",
+  dbTable: "generated_assets",
+  icon: "Heart",
+  color: "text-amber-500",
+  customRenderer: "fundraising",
+  abbyGreeting: "Cause-aligned fundraising builds incredible goodwill and media coverage. Donating $1 per book sold to a relevant cause creates a compelling story.",
+  abbyPublishMessage: "Your fundraising campaign is designed! Launch it and watch the community rally around your cause.",
+  steps: [
+    { id: "setup", label: "Campaign Setup", description: "Set campaign type, cause alignment, fundraising goal, and duration", abbyTip: "Cause-aligned fundraising builds incredible goodwill and media coverage. Donating $1 per book sold creates a compelling story." },
+    { id: "materials", label: "Campaign Materials", description: "Campaign page, donation tiers, press release, social posts, email sequence, and partner outreach", abbyTip: "Donation tiers with tangible rewards (signed book, coaching call, VIP access) dramatically increase average donation." },
+    { id: "event", label: "Event Component", description: "Fundraising event plan, sponsorship packages, volunteer coordination, and thank-you materials", abbyTip: "A live fundraising event (even virtual) creates urgency and community. Pair it with your campaign for maximum impact." },
+    { id: "preview", label: "Preview & Publish", description: "Preview campaign page and fundraising projection", abbyTip: "Fundraising campaigns with author involvement raise 3-5x more than standard campaigns." },
+  ],
+};
+
+const exhibitorsBuilder: BuilderNodeConfig = {
+  id: "exhibitors",
+  label: "Exhibitors / JV",
+  category: "yield",
+  requiredTier: "enterprise",
+  dbTable: "generated_assets",
+  icon: "Store",
+  color: "text-amber-500",
+  customRenderer: "exhibitors",
+  abbyGreeting: "The best JV partnerships are where both parties bring something the other doesn't have. You bring expertise and content; they bring audience and distribution.",
+  abbyPublishMessage: "Your exhibitor and JV materials are ready! Start reaching out to potential partners and event organizers.",
+  steps: [
+    { id: "setup", label: "Partnership Setup", description: "Set partnership type, partner profile, what you bring, and what you want", abbyTip: "The best JV partnerships are where both parties bring something the other doesn't have." },
+    { id: "materials", label: "Partnership Materials", description: "Partnership proposal, co-marketing plan, revenue sharing agreement, and co-branded templates", abbyTip: "Lead with what you can offer them. Always propose a specific, low-risk first collaboration." },
+    { id: "kit", label: "Exhibitor Kit", description: "Booth design, product display, lead capture system, giveaway materials, and follow-up sequence", abbyTip: "A well-designed booth with clear messaging and a lead capture system maximizes your ROI at events." },
+    { id: "preview", label: "Preview & Publish", description: "Preview all materials and partnership projection", abbyTip: "Start with one partnership, prove the model works, then scale to 5-10 active partnerships." },
+  ],
+};
+
+// ─── EXPORT ALL NODES ────────────────────────────────────────────────
 
 export const ALL_BUILDER_NODES: BuilderNodeConfig[] = [
   // B·Build (11)
@@ -609,21 +711,26 @@ export const ALL_BUILDER_NODES: BuilderNodeConfig[] = [
   podcastBuilder,
   webinarBuilder,
   membershipBuilder,
-  // B·Bridge (8+1)
+  // B·Bridge (9)
   coachingBuilder,
   groupCoachingBuilder,
   speakingBuilder,
   corporateTrainingBuilder,
+  trainingProgramsBuilder,
   affiliateBuilder,
   partnershipBuilder,
+  upsellBuilder,
   licensingBuilder,
   communityBuilder,
-  upsellBuilder,
-  // Y·Yield (8)
+  // Y·Yield (8+5)
   retreatBuilder,
   certificationBuilder,
   mastermindBuilder,
   bigTicketBuilder,
+  specialEditionsBuilder,
+  conventionsBuilder,
+  fundraisingBuilder,
+  exhibitorsBuilder,
   revenueShareBuilder,
   whitelabelBuilder,
   eventsBuilder,
