@@ -165,20 +165,21 @@ const audiobookBuilder: BuilderNodeConfig = {
 
 const podcastBuilder: BuilderNodeConfig = {
   id: "podcast",
-  label: "Podcast Studio",
+  label: "Podcast Scripts",
   category: "build",
   requiredTier: "pro",
   dbTable: "podcasts",
   icon: "Mic",
   color: "text-emerald-500",
-  abbyGreeting: "Podcasts build authority and audience like nothing else. Let's create a full season from your book content.",
-  abbyPublishMessage: "Your podcast season is ready! Use the Media Kit for sponsorship outreach. Consider your Webinar next.",
+  customRenderer: "podcast-scripts",
+  abbyGreeting: "Podcasts build authority and audience like nothing else. Let's create production-ready scripts, show notes, and guest guides from your book.",
+  abbyPublishMessage: "Your podcast scripts are ready! A consistent podcast builds authority faster than any other channel. Consider your Webinar next.",
   steps: [
-    { id: "configure", label: "Configure", description: "Set format, episodes, and audience", abbyTip: "Mix solo teaching (70%) with simulated interviews (30%) for variety." },
-    { id: "generate", label: "AI Generate", description: "Generate full season of episode scripts", abbyTip: "I'll create 8-12 episodes covering your book's key themes with hooks and CTAs." },
-    { id: "edit", label: "Edit Episodes", description: "Customize scripts and show notes", abbyTip: "Start each episode with a hook question. 'What if I told you...' grabs attention." },
-    { id: "monetize", label: "Monetization Kit", description: "Generate media kit and rate cards", abbyTip: "Even new podcasts can get sponsors. Your niche expertise is the sell, not download numbers." },
-    { id: "export", label: "Export & Distribute", description: "Export RSS feed and distribute", abbyTip: "Submit to Apple Podcasts, Spotify, and Google Podcasts simultaneously. Use Buzzsprout for hosting." },
+    { id: "setup", label: "Podcast Setup", description: "Set name, tagline, format, episode length, and schedule", abbyTip: "Your book has multiple chapters — that's a perfect multi-episode season. I recommend 20-30 minute solo episodes for non-fiction. Launch with 3 episodes, then weekly." },
+    { id: "roadmap", label: "Episode Roadmap", description: "AI generates an episode plan with titles, topics, and special episodes", abbyTip: "I'll map your chapters to episodes with a launch trailer, mid-season recap, and season finale with CTA." },
+    { id: "script", label: "Script Generator", description: "Generate structured scripts with timestamps, quotes, and show notes", abbyTip: "Each script includes a cold open hook, highlighted book quotes, listener action items, and platform-specific CTAs." },
+    { id: "guests", label: "Guest Interview Guides", description: "Research briefs, questions, and outreach templates", abbyTip: "AI suggests relevant guests based on your book topics with pre-interview research and 10-15 tailored questions." },
+    { id: "publish", label: "Preview & Publish", description: "Read through scripts, export, and publish", abbyTip: "A consistent podcast builds authority faster than any other channel. After 20 episodes, most authors see a 200-400% increase in website traffic." },
   ],
 };
 
