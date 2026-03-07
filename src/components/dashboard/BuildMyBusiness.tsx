@@ -332,6 +332,26 @@ export default function BuildMyBusiness() {
     return requests;
   };
 
+  // Parse ===NAV:xxx=== markers from assistant messages
+  const NAV_CONFIG: Record<string, { label: string; icon: string; section: string }> = {
+    build: { label: "B · Build Authority", icon: "🏗️", section: "build-authority" },
+    bridge: { label: "B · Bridge Channels", icon: "🌉", section: "bridge-channels" },
+    yield: { label: "Y · Yield Revenue", icon: "💰", section: "yield-revenue" },
+    profile: { label: "Author Profile", icon: "👤", section: "profile" },
+  };
+
+  const parseNavMarkers = (content: string): string[] => {
+    const regex = /===NAV:(\w+)===/g;
+    const markers: string[] = [];
+    let match;
+    while ((match = regex.exec(content)) !== null) {
+      if (NAV_CONFIG[match[1]] && !markers.includes(match[1])) {
+        markers.push(match[1]);
+      }
+    }
+    return markers;
+  };
+
   // Business plan is now rendered as clean markdown in the chat — no JSON parsing needed
 
   // Map product type to dashboard navigation
