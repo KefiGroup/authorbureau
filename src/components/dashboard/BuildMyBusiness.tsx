@@ -942,10 +942,12 @@ export default function BuildMyBusiness() {
 
           const buildRequests = msg.role === "assistant" ? parseBuildRequests(msg.content) : [];
           const hasSubscribeCta = msg.role === "assistant" && msg.content.includes("===SUBSCRIBE_CTA===");
-          // Clean BUILD_REQUEST and SUBSCRIBE_CTA blocks from displayed content
+          const navMarkers = msg.role === "assistant" ? parseNavMarkers(msg.content) : [];
+          // Clean BUILD_REQUEST, SUBSCRIBE_CTA, and NAV markers from displayed content
           const displayContent = msg.content
             .replace(/===BUILD_REQUEST===[\s\S]*?===END_BUILD_REQUEST===/g, "")
             .replace(/===SUBSCRIBE_CTA===/g, "")
+            .replace(/===NAV:\w+===/g, "")
             .trim();
 
           return (
