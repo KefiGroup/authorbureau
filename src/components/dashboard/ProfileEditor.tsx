@@ -35,6 +35,132 @@ function SetPasswordSection() {
   );
 }
 
+const SERVICE_TYPES = ["Speaking", "Coaching", "Consulting", "Workshops", "Mentoring", "Other"] as const;
+
+interface AuthorService {
+  id: string;
+  type: string;
+  title: string;
+  description: string;
+  rate: string;
+  bookingLink: string;
+}
+
+function ServicesSection() {
+  const [services, setServices] = useState<AuthorService[]>([]);
+  const [editing, setEditing] = useState<AuthorService | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ type: "Speaking", title: "", description: "", rate: "", bookingLink: "" });
+
+  const handleSave = () => {
+    if (!form.title.trim()) return;
+    if (editing) {
+      setServices(prev => prev.map(s => s.id === editing.id ? { ...s, ...form } : s));
+    } else {
+      setServices(prev => [...prev, { ...form, id: crypto.randomUUID() }]);
+    }
+    setForm({ type: "Speaking", title: "", description: "", rate: "", bookingLink: "" });
+    setEditing(null);
+    setShowForm(false);
+  };
+
+  const handleEdit = (s: AuthorService) => {
+    setForm({ type: s.type, title: s.title, description: s.description, rate: s.rate, bookingLink: s.bookingLink });
+    setEditing(s);
+    setShowForm(true);
+  };
+
+  const handleDelete = (id: string) => {
+    setServices(prev => prev.filter(s => s.id !== id));
+  };
+
+  return (
+    <section className="rounded-xl border border-border bg-card p-6 space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Briefcase className="h-5 w-5 text-muted-foreground" />
+          <h3 className="font-heading text-lg font-semibold">Services & Expertise</h3>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => { setEditing(null); setForm({ type: "Speaking", title: "", description: "", rate: "", bookingLink: "" }); setShowForm(!showForm); }}>
+          <PlusCircle className="h-3.5 w-3.5 mr-1" /> Add Service
+        </Button>
+      </div>
+
+      {showForm && (
+        <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Service Type</Label>
+              <select
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors"
+                value={form.type}
+                onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
+              >
+                {SERVICE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            <div>
+              <Label className="text-xs">Service Title</Label>
+              <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="e.g. Executive Coaching" />
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs">Description</Label>
+            <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Describe what this service includes..." rows={2} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Price / Rate</Label>
+              <Input value={form.rate} onChange={e => setForm(f => ({ ...f, rate: e.target.value }))} placeholder="e.g. $500/hour" />
+            </div>
+            <div>
+              <Label className="text-xs">Booking Link (optional)</Label>
+              <Input value={form.bookingLink} onChange={e => setForm(f => ({ ...f, bookingLink: e.target.value }))} placeholder="https://calendly.com/..." />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={handleSave} disabled={!form.title.trim()}>
+              {editing ? "Update" : "Add"} Service
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => { setShowForm(false); setEditing(null); }}>Cancel</Button>
+          </div>
+        </div>
+      )}
+
+      {services.length === 0 && !showForm && (
+        <p className="text-sm text-muted-foreground text-center py-4">
+          No services added yet. Add your speaking, coaching, or consulting offerings.
+        </p>
+      )}
+
+      {services.length > 0 && (
+        <div className="grid gap-3">
+          {services.map(s => (
+            <div key={s.id} className="rounded-lg border border-border p-4 flex items-start gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold px-2 py-0.5 rounded bg-primary/10 text-primary">{s.type}</span>
+                  <h4 className="font-heading font-semibold text-sm">{s.title}</h4>
+                </div>
+                {s.description && <p className="text-xs text-muted-foreground mt-1">{s.description}</p>}
+                {s.rate && <p className="text-xs font-medium mt-1">{s.rate}</p>}
+              </div>
+              <div className="flex gap-1 shrink-0">
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleEdit(s)}>
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => handleDelete(s.id)}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 interface AuthorProfile {
   pen_name: string;
   bio_short: string;
