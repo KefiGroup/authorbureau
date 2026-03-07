@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ExternalLink, Globe, BookOpen, Mic, Link2, User, Camera } from "lucide-react";
+import { ExternalLink, Globe, BookOpen, Camera, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type ProfileState = "none" | "incomplete" | "live";
@@ -89,7 +89,6 @@ export default function FreeMicrositeHero({
             </div>
             {/* Page content */}
             <div className="p-5 space-y-4 min-h-[220px]">
-              {/* Author section */}
               <div className="flex items-center gap-3">
                 {authorPhoto && profileState === "live" ? (
                   <img src={authorPhoto} alt="" className="w-12 h-12 rounded-full object-cover border-2 border-amber-400" />
@@ -103,7 +102,6 @@ export default function FreeMicrositeHero({
                   <p className="text-gray-400 text-[10px]">Published Author & Speaker</p>
                 </div>
               </div>
-              {/* Books section */}
               <div>
                 <p className="text-[10px] uppercase tracking-wider text-amber-400 font-bold mb-2">Published Books</p>
                 <div className="flex gap-2">
@@ -122,7 +120,6 @@ export default function FreeMicrositeHero({
                   )}
                 </div>
               </div>
-              {/* Services */}
               <div className="flex gap-2">
                 <span className="rounded-full bg-amber-500/20 text-amber-300 text-[9px] px-2 py-0.5">Speaking</span>
                 <span className="rounded-full bg-blue-500/20 text-blue-300 text-[9px] px-2 py-0.5">Coaching</span>
