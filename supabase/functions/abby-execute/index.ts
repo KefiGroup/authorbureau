@@ -40,7 +40,15 @@ serve(async (req) => {
       });
     }
 
-    const body = await req.json();
+    let body: any;
+    try {
+      body = await req.json();
+    } catch (parseErr) {
+      console.error("abby-execute: request body is not valid JSON");
+      return new Response(JSON.stringify({ error: "Invalid request body — expected JSON" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const { action, bookId, productNode, businessPlan, completedProducts } = body;
 
     // ─── ACTION: PLAN — Decompose a product into executable steps ───
