@@ -18,6 +18,7 @@ export interface BuilderNodeConfig {
   abbyPublishMessage: string;
   icon: string; // lucide icon name
   color: string; // tailwind color class
+  customRenderer?: string; // Optional: use a custom step renderer instead of the generic placeholder
 }
 
 // ─── B·BUILD (11 nodes) ───────────────────────────────────────────────
@@ -125,14 +126,17 @@ const onlineCourseBuilder: BuilderNodeConfig = {
   dbTable: "courses",
   icon: "PlayCircle",
   color: "text-emerald-500",
+  customRenderer: "course",
   abbyGreeting: "Online courses are where authors build real recurring revenue. Let's transform your expertise into a structured learning experience.",
   abbyPublishMessage: "Your course is ready to launch! Connect it to Teachable or host it on your microsite. Next: consider your Audiobook.",
   steps: [
-    { id: "configure", label: "Configure", description: "Set title, modules, and pricing", abbyTip: "Price between $197-$497 for a comprehensive course. Include a money-back guarantee." },
-    { id: "curriculum", label: "AI Curriculum", description: "Generate course modules and lessons", abbyTip: "I'll structure your book into 4-8 modules with video lesson outlines and action items." },
-    { id: "content", label: "Lesson Content", description: "Edit lessons, add quizzes and resources", abbyTip: "Each lesson should be 10-15 minutes. Include a quiz at the end of each module." },
-    { id: "sales-page", label: "Sales Page", description: "Generate course sales page copy", abbyTip: "Lead with the transformation, not the features. 'You will...' beats 'This course includes...'" },
-    { id: "preview", label: "Preview & Publish", description: "Review and launch your course", abbyTip: "Consider offering an early-bird discount to your email list for the first 48 hours." },
+    { id: "foundation", label: "Course Foundation", description: "Set title, audience, pricing, and format", abbyTip: "Your business plan positions this as your flagship digital product. I recommend pricing based on your audience and genre." },
+    { id: "curriculum", label: "Curriculum Builder", description: "AI generates a module-lesson tree from your manuscript", abbyTip: "I've mapped your chapters into modules. Chapters that naturally combine are grouped together. Does this structure feel right?" },
+    { id: "content", label: "Lesson Content", description: "Generate scripts, exercises, quizzes for each lesson", abbyTip: "Strong lessons follow the Teach → Show → Do → Review pattern. I've structured each lesson this way." },
+    { id: "materials", label: "Course Materials", description: "Welcome video, workbook, certificate, and bonuses", abbyTip: "A companion workbook increases perceived value by 40%. Link it to your Workbook Builder." },
+    { id: "sales-page", label: "Sales Page", description: "AI generates a complete high-converting sales page", abbyTip: "Lead with the transformation, not the features. 'You will...' beats 'This course includes...'" },
+    { id: "email-sequence", label: "Email Sequence", description: "Generate a 7-email nurture and launch sequence", abbyTip: "A well-crafted launch sequence can double your enrollment rate. Subject lines under 50 characters get 12% higher open rates." },
+    { id: "preview", label: "Preview & Publish", description: "Simulate the student experience and publish", abbyTip: "Consider offering an early-bird discount to your email list for the first 48 hours." },
   ],
 };
 
