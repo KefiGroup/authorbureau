@@ -18,11 +18,12 @@ import WebinarsManager from "@/components/dashboard/WebinarsManager";
 import SocialMediaManager from "@/components/dashboard/SocialMediaManager";
 import PodcastManager from "@/components/dashboard/PodcastManager";
 import AudiobookStudio from "@/components/dashboard/AudiobookStudio";
-
 import MyBooks from "@/components/dashboard/MyBooks";
 import BuildMyBusiness from "@/components/dashboard/BuildMyBusiness";
 import PremiumGate from "@/components/dashboard/PremiumGate";
 import EmailMarketing from "@/components/dashboard/EmailMarketing";
+import RevenueDashboard from "@/components/dashboard/RevenueDashboard";
+import MicrositeManager from "@/components/dashboard/MicrositeManager";
 import { Loader2, Rocket, FileText, Video, Share2, CreditCard, Users, Trophy, Podcast, Building2, Bookmark, Award } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -36,7 +37,8 @@ export type DashboardSection =
   | "retreats" | "certification" | "masterminds"
   | "email-marketing" | "subscribers" | "email-templates"
   | "revenue-streams" | "marketing-channels" | "authority-builders"
-  | "marketing" | "crm";
+  | "marketing" | "crm"
+  | "analytics" | "microsite-manager";
 
 const comingSoonSections: Record<string, { title: string; description: string; icon: typeof Rocket }> = {
   memberships: { title: "Monthly Memberships", description: "Tiered membership programs with content drip schedules and recurring billing.", icon: CreditCard },
@@ -92,6 +94,8 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
   const [hasBooks, setHasBooks] = useState(false);
   const [hasMicrosite, setHasMicrosite] = useState(false);
   const [hasAnalysis, setHasAnalysis] = useState(false);
+  const [stripeConnected, setStripeConnected] = useState(false);
+  const [pendingReviewCount, setPendingReviewCount] = useState(0);
 
   useEffect(() => {
     if (sectionParam && sectionParam !== activeSection) setActiveSection(sectionParam);
@@ -105,6 +109,11 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
     } else if (status === "cancelled") {
       toast({ title: "Checkout cancelled", variant: "destructive" });
     }
+    // Stripe Connect return
+    if (searchParams.get("stripe_connected") === "true") {
+      toast({ title: "Stripe Connected! 💳", description: "You can now accept payments from your audience." });
+      setStripeConnected(true);
+    }
   }, [searchParams]);
 
   // Fetch journey state
@@ -112,25 +121,23 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
     if (!user) return;
     (async () => {
       try {
-        // Check profile
         const { data: profile } = await supabase
           .from("author_profiles")
-          .select("directory_status, pen_name, photo_url, bio_short")
+          .select("directory_status, pen_name, photo_url, bio_short, stripe_onboarding_complete")
           .eq("user_id", user.id)
           .maybeSingle();
 
         const isLive = profile && ["listed", "verified", "featured"].includes(profile.directory_status || "") && !!profile.pen_name && !!profile.photo_url;
         setHasMicrosite(!!isLive);
         setJourneyMicrosite(isLive ? "done" : "current");
+        setStripeConnected(!!(profile as any)?.stripe_onboarding_complete);
 
-        // Check books
         const { data: books } = await supabase
           .from("books")
           .select("id")
           .eq("author_id", user.id);
         setHasBooks((books || []).length > 0);
 
-        // Check analyzed books
         const { data: plans } = await supabase
           .from("generated_assets")
           .select("book_id")
@@ -143,6 +150,19 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         setJourneyPlan(analyzed > 0 ? "done" : (isLive ? "current" : "upcoming"));
         setJourneyBuild(analyzed > 0 && isPremium ? "current" : "upcoming");
         setJourneySell("upcoming");
+
+        // Count pending review products
+        let reviewCount = 0;
+        const tables = ["courses", "home_study_courses", "webinars", "audiobooks", "podcasts"] as const;
+        for (const table of tables) {
+          const { count } = await supabase
+            .from(table)
+            .select("id", { count: "exact", head: true })
+            .eq("author_id", user.id)
+            .eq("status", "ready_for_review");
+          reviewCount += count || 0;
+        }
+        setPendingReviewCount(reviewCount);
       } catch {}
     })();
   }, [user, isPremium]);
@@ -160,14 +180,20 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
     <PremiumGate isPremium={isPremium || isAdmin} featureName={featureName} requiredTier={requiredTier} currentTier={tier}>{children}</PremiumGate>
   );
 
+  const handleNavigate = (s: string) => setActiveSection(s as DashboardSection);
+
   const renderSection = () => {
     switch (activeSection) {
       case "profile":
-        return <ProfileEditor onNavigate={(s) => setActiveSection(s as DashboardSection)} />;
+        return <ProfileEditor onNavigate={handleNavigate} />;
       case "my-books":
-        return <MyBooks isPremium={isPremium || isAdmin} onNavigate={(s) => setActiveSection(s as DashboardSection)} />;
+        return <MyBooks isPremium={isPremium || isAdmin} onNavigate={handleNavigate} stripeConnected={stripeConnected} />;
       case "build-business":
         return <BuildMyBusiness />;
+      case "analytics":
+        return <RevenueDashboard onNavigate={handleNavigate} />;
+      case "microsite-manager":
+        return <MicrositeManager onNavigate={handleNavigate} />;
       case "courses":
         return gate("Course Builder", <CourseBuilder />, "pro");
       case "workbooks":
@@ -198,7 +224,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "overview":
         return (
           <ABBYFrameworkDashboard
-            onNavigate={(s) => setActiveSection(s as DashboardSection)}
+            onNavigate={handleNavigate}
             isPremium={isPremium || isAdmin}
           />
         );
@@ -208,7 +234,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         }
         return (
           <ABBYFrameworkDashboard
-            onNavigate={(s) => setActiveSection(s as DashboardSection)}
+            onNavigate={handleNavigate}
             isPremium={isPremium || isAdmin}
           />
         );
@@ -227,6 +253,8 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         hasBooks={hasBooks}
         hasAnalysis={hasAnalysis}
         hasMicrosite={hasMicrosite}
+        stripeConnected={stripeConnected}
+        pendingReviewCount={pendingReviewCount}
       />
       <div className="flex flex-1 flex-col min-w-0">
         <DashboardHeader
@@ -237,7 +265,6 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           onSignOut={signOut}
           onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
-        {/* Journey Breadcrumb */}
         <div className="border-b border-border px-6 lg:px-8 bg-card">
           <JourneyBreadcrumb
             micrositeState={journeyMicrosite}
@@ -245,6 +272,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
             planState={journeyPlan}
             buildState={journeyBuild}
             sellState={journeySell}
+            showPayments={isPremium && !stripeConnected}
           />
         </div>
         <main className="flex-1 overflow-y-auto p-6 lg:p-8">
