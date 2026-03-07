@@ -86,6 +86,7 @@ export default function AdminDashboard() {
         const countData = await countsRes.json();
         pendingBooks = countData.pendingBooks ?? pendingBooks;
         pendingAuthorsCount = countData.pendingAuthors ?? 0;
+        totalBooks = countData.totalBooks ?? totalBooks;
       }
 
       // Get admins count
