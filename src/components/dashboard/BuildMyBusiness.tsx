@@ -1096,7 +1096,13 @@ export default function BuildMyBusiness() {
                           size="sm"
                           className="gap-2 rounded-full"
                           variant={key === navMarkers[0] ? "default" : "outline"}
-                          onClick={() => navigate(`/dashboard?section=${cfg.section}`)}
+                          onClick={() => {
+                            if (key === "profile") {
+                              navigate("/dashboard?section=profile");
+                            } else if (selectedBook) {
+                              navigate(`/dashboard/book/${selectedBook.id}?tab=${cfg.tab}`);
+                            }
+                          }}
                         >
                           <span>{cfg.icon}</span>
                           {cfg.label}
