@@ -234,6 +234,8 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "marketing-channels":
       case "authority-builders":
         return <PortfolioStepView categoryId={activeSection} />;
+      case "connect-stripe":
+        return <ConnectStripePage />;
       case "overview":
         return (
           <ABBYFrameworkDashboard
