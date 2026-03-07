@@ -51,14 +51,15 @@ const socialMediaBuilder: BuilderNodeConfig = {
   dbTable: "social_media_content",
   icon: "Share2",
   color: "text-emerald-500",
-  abbyGreeting: "A consistent social media presence is key to building your author brand. Let's create 30 days of content from your book.",
+  customRenderer: "social-media",
+  abbyGreeting: "A consistent social media presence is key to building your author brand. Let's create a 90-day content calendar from your book.",
   abbyPublishMessage: "Your social media calendar is ready! Export it to Buffer or schedule manually. Consider building your Email Marketing next.",
   steps: [
-    { id: "configure", label: "Configure", description: "Select platforms, tone, and content mix", abbyTip: "Focus on 2-3 platforms max. LinkedIn + Instagram works great for non-fiction authors." },
-    { id: "generate", label: "AI Generate", description: "Generate 30 days of social content", abbyTip: "I'm pulling key quotes, insights, and talking points from your strongest chapters." },
-    { id: "review", label: "Review & Edit", description: "Edit posts and approve content", abbyTip: "Personal posts (behind-the-scenes, lessons learned) get 3x more engagement than promotional ones." },
-    { id: "graphics", label: "Graphics", description: "Generate social media graphics", abbyTip: "Consistent visual branding builds recognition. Use your book colors." },
-    { id: "schedule", label: "Schedule & Export", description: "Export calendar or connect to Buffer", abbyTip: "Best posting times: LinkedIn 9-11am, Instagram 11am-1pm, Twitter 8-10am." },
+    { id: "setup", label: "Social Media Setup", description: "Select platforms, frequency, content pillars, tone, and duration", abbyTip: "For non-fiction authors, LinkedIn and Instagram drive the most course sales. I recommend 3x/week on each. Your book's themes naturally create 4 content pillars." },
+    { id: "generate", label: "Content Generation", description: "AI generates the full calendar with platform-specific posts", abbyTip: "I'm pulling key quotes, insights, and talking points from your strongest chapters. Each post is optimized for its platform." },
+    { id: "graphics", label: "Visual Assets", description: "AI-generated graphics and templates for each post", abbyTip: "Consistent visual branding builds recognition. All graphics use your book's color palette for brand consistency." },
+    { id: "hashtags", label: "Hashtag & CTA Strategy", description: "Platform-specific hashtags and CTA rotation", abbyTip: "Best posting times: LinkedIn 9-11am, Instagram 11am-1pm, X 8-10am. Rotate CTAs to drive traffic across all your products." },
+    { id: "publish", label: "Preview & Publish", description: "Preview calendar, export CSV, or publish", abbyTip: "Consistent posting for 90 days typically grows an author's following by 30-50% and drives significant traffic to your product pages." },
   ],
 };
 

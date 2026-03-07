@@ -20,6 +20,7 @@ import WorkbookStepRenderer from "./workbook/WorkbookStepRenderer";
 import AudiobookStepRenderer from "./audiobook/AudiobookStepRenderer";
 import MembershipStepRenderer from "./membership/MembershipStepRenderer";
 import UpsellStepRenderer from "./upsell/UpsellStepRenderer";
+import SocialMediaStepRenderer from "./social-media/SocialMediaStepRenderer";
 import type { BuilderNodeConfig, BuilderStep } from "./builderNodeConfig";
 
 interface Props {
@@ -503,6 +504,19 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
                   />
                 ) : nodeConfig.customRenderer === "upsell" ? (
                   <UpsellStepRenderer
+                    stepId={currentStepConfig.id}
+                    stepData={stepData}
+                    setStepData={setStepData}
+                    onMarkEdited={(id) => setEditedSteps(prev => new Set([...prev, id]))}
+                    bookId={bookId}
+                    bookTitle={bookTitle}
+                    plan={plan}
+                    generationState={generationState}
+                    setGenerationState={setGenerationState}
+                    userId={user?.id || ""}
+                  />
+                ) : nodeConfig.customRenderer === "social-media" ? (
+                  <SocialMediaStepRenderer
                     stepId={currentStepConfig.id}
                     stepData={stepData}
                     setStepData={setStepData}
