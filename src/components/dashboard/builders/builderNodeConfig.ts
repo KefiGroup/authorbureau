@@ -295,14 +295,15 @@ const groupCoachingBuilder: BuilderNodeConfig = {
   dbTable: "coaching_packages",
   icon: "Users",
   color: "text-violet-500",
-  abbyGreeting: "Group coaching scales your impact without scaling your time. Let's design an 8-week program.",
+  customRenderer: "group-coaching",
+  abbyGreeting: "Group coaching is your highest-leverage coaching product. At $497 per person with 20 participants, that's $9,940 per cohort — and you only run it once.",
   abbyPublishMessage: "Your group coaching program is designed! Start promoting to your email list for the next cohort.",
   steps: [
-    { id: "configure", label: "Configure", description: "Set group size, duration, and pricing", abbyTip: "8-12 people per cohort at $497-$997 is the sweet spot for engagement and revenue." },
-    { id: "curriculum", label: "AI Curriculum", description: "Generate 8-week group curriculum", abbyTip: "I'll create weekly themes from your book with group exercises and accountability partners." },
-    { id: "materials", label: "Session Materials", description: "Create worksheets and discussion guides", abbyTip: "Pre-work before each session increases engagement. Keep it to 15 minutes max." },
-    { id: "sales-page", label: "Sales Page", description: "Generate enrollment page", abbyTip: "Include a countdown timer and limited spots messaging. Scarcity drives enrollment." },
-    { id: "preview", label: "Preview & Launch", description: "Review and open enrollment", abbyTip: "Run a free workshop first to warm up your audience, then pitch the paid program at the end." },
+    { id: "setup", label: "Group Program Setup", description: "Set program name, cohort size, duration, frequency, format, and pricing", abbyTip: "Group coaching is your highest-leverage coaching product. At $497 per person with 20 participants, that's $9,940 per cohort — and you only run it once." },
+    { id: "curriculum", label: "Curriculum Builder", description: "AI generates week-by-week curriculum with themes, exercises, and accountability", abbyTip: "I'll create weekly themes from your book with group exercises, community prompts, and accountability partner pairing." },
+    { id: "materials", label: "Group Materials", description: "Welcome guide, community guidelines, worksheets, facilitation guide, and graduation materials", abbyTip: "Pre-work before each session increases engagement. Keep it to 15 minutes max." },
+    { id: "sales", label: "Sales & Enrollment", description: "Cohort enrollment page, application form, sales page, and email sequence", abbyTip: "Include a countdown timer and limited spots messaging. Scarcity drives enrollment." },
+    { id: "preview", label: "Preview & Publish", description: "Preview enrollment page, curriculum, and revenue calculator", abbyTip: "Run a free workshop first to warm up your audience, then pitch the paid program at the end." },
   ],
 };
 
