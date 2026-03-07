@@ -88,14 +88,15 @@ const homeStudyCourseBuilder: BuilderNodeConfig = {
   dbTable: "home_study_courses",
   icon: "GraduationCap",
   color: "text-emerald-500",
+  customRenderer: "home-study",
   abbyGreeting: "A self-paced course is perfect for readers who want to go deeper. Let's turn your book into a structured learning experience.",
   abbyPublishMessage: "Your home study course is ready! This is a great passive income product. Consider adding a Workbook companion next.",
   steps: [
-    { id: "configure", label: "Configure", description: "Set title, duration, and pricing", abbyTip: "30-day courses at $47-$97 hit the sweet spot for self-paced learning." },
-    { id: "generate", label: "AI Generate", description: "Generate curriculum from your manuscript", abbyTip: "I'll structure your book's content into daily lessons with exercises and reflections." },
-    { id: "edit", label: "Edit Lessons", description: "Customize daily lessons and activities", abbyTip: "Keep daily lessons to 15-20 minutes. Shorter is better for completion rates." },
-    { id: "schedule", label: "Study Schedule", description: "Set the daily drip schedule", abbyTip: "Include 'catch-up days' every 7th day — it reduces dropout rates significantly." },
-    { id: "preview", label: "Preview & Publish", description: "Review and launch your course", abbyTip: "Offer a 'Day 1 Preview' as a lead magnet to build your email list." },
+    { id: "setup", label: "Program Setup", description: "Set title, duration, commitment, and pricing", abbyTip: "A 30-day program at 30 minutes/day has the highest completion rate for self-help books. I recommend this format for your audience." },
+    { id: "schedule", label: "Daily Schedule", description: "AI generates a day-by-day plan from your manuscript", abbyTip: "I've grouped your days into weeks, each building on the last. Week 1 is awareness, Week 2 is skills, Week 3 is practice, Week 4 is mastery." },
+    { id: "content", label: "Daily Content", description: "Generate readings, exercises, and reflections for each day", abbyTip: "Keep daily lessons to 15-20 minutes. Shorter is better for completion rates. Add reflection prompts to boost engagement." },
+    { id: "materials", label: "Materials & Packaging", description: "PDF layout, progress tracker, certificate, and upsells", abbyTip: "Students who complete this program are perfect candidates for your Online Course. Include an upsell on the final page." },
+    { id: "preview", label: "Preview & Publish", description: "Flip through the guide and publish", abbyTip: "Offer a 'Day 1 Preview' as a lead magnet to build your email list before launching." },
   ],
 };
 
