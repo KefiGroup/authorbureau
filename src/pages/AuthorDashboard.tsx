@@ -126,20 +126,27 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       try {
         const { data: profile } = await supabase
           .from("author_profiles")
-          .select("directory_status, pen_name, photo_url, bio_short, stripe_onboarding_complete")
+          .select("directory_status, pen_name, photo_url, bio_short, bio_long, stripe_onboarding_complete")
           .eq("user_id", user.id)
           .maybeSingle();
 
-        const isLive = profile && ["listed", "verified", "featured"].includes(profile.directory_status || "") && !!profile.pen_name && !!profile.photo_url;
-        setHasMicrosite(!!isLive);
-        setJourneyMicrosite(isLive ? "done" : "current");
+        const hasName = !!profile?.pen_name?.trim();
+        const hasPhoto = !!profile?.photo_url?.trim();
+        const hasBio = !!(profile?.bio_long?.trim() || profile?.bio_short?.trim());
+        const isListed = profile && ["listed", "verified", "featured"].includes(profile.directory_status || "");
+        const profileComplete = isListed && hasName && hasPhoto && hasBio;
         setStripeConnected(!!(profile as any)?.stripe_onboarding_complete);
 
         const { data: books } = await supabase
           .from("books")
           .select("id")
           .eq("author_id", user.id);
-        setHasBooks((books || []).length > 0);
+        const bookCount = (books || []).length;
+        setHasBooks(bookCount > 0);
+
+        // Step 1 done = profile complete + has books
+        const step1Done = !!profileComplete && bookCount > 0;
+        setHasMicrosite(step1Done);
 
         const { data: plans } = await supabase
           .from("generated_assets")
@@ -149,9 +156,13 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
 
         const analyzed = new Set((plans || []).map((p: any) => p.book_id)).size;
         setBooksAnalyzed(analyzed);
-        setHasAnalysis(analyzed > 0);
-        setJourneyPlan(analyzed > 0 ? "done" : (isLive ? "current" : "upcoming"));
-        setJourneyBuild(analyzed > 0 && isPremium ? "current" : "upcoming");
+        const step2Done = analyzed > 0;
+        setHasAnalysis(step2Done);
+
+        // Sequential journey logic
+        setJourneyMicrosite(step1Done ? "done" : "current");
+        setJourneyPlan(step2Done ? "done" : step1Done ? "current" : "upcoming");
+        setJourneyBuild(step2Done ? (isPremium ? "current" : "upcoming") : "upcoming");
         setJourneySell("upcoming");
 
         // Count pending review products
