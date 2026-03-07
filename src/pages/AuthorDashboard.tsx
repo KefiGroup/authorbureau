@@ -225,9 +225,9 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "courses":
         return gate("Course Builder", <CourseBuilder />, "pro");
       case "workbooks":
-        return gate("Workbooks", <WorkbooksManager />);
+        return gate("Workbooks", <WorkbooksManager onNavigate={handleNavigate} />);
       case "webinars":
-        return gate("Webinars", <WebinarsManager />, "pro");
+        return gate("Webinars", <WebinarsManager onNavigate={handleNavigate} />, "pro");
       case "social-media":
         return gate("Social Media", <SocialMediaManager />);
       case "audiobook-studio": {

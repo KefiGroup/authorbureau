@@ -28,7 +28,7 @@ interface Workbook {
   created_at: string;
 }
 
-export default function WorkbooksManager() {
+export default function WorkbooksManager({ onNavigate }: { onNavigate?: (section: string) => void }) {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const bookFilterId = searchParams.get("bookId");
@@ -191,7 +191,7 @@ export default function WorkbooksManager() {
         <p className="text-muted-foreground text-sm leading-relaxed max-w-lg mx-auto mb-6">
           AI-generated companion workbooks appear here after you run "Build My Author Business" for a book. Each workbook contains exercises, reflection questions, and action plans from your book chapters.
         </p>
-        <Badge variant="secondary">Generate from AI Engine → Build My Business</Badge>
+        <Button variant="secondary" onClick={() => onNavigate?.("build-business")}>Generate from AI Engine → Build My Business</Button>
       </div>
     );
   }
