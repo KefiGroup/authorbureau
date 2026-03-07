@@ -106,34 +106,28 @@ export default function BuildMyBusiness() {
           .maybeSingle();
         if (profile?.pen_name) setAuthorName(profile.pen_name);
 
-        // Check analysis and manuscript status
+        // Check analysis and manuscript status via edge function (bypasses RLS mismatch)
         const fetchedBooks = result.books || [];
         if (fetchedBooks.length > 0) {
           const bookIds = fetchedBooks.map((b: any) => b.id);
-          const { data: assets } = await cloudSupabase
-            .from("generated_assets")
-            .select("book_id, asset_type, content")
-            .in("book_id", bookIds)
-            .in("asset_type", ["business_plan", "source_material"]);
-
-          const analyzed = new Set<string>();
-          const manuscripts = new Set<string>();
-          const summaries: Record<string, any> = {};
-          (assets || []).forEach((a: any) => {
-            if (a.asset_type === "business_plan") {
-              analyzed.add(a.book_id);
-              try {
-                const parsed = JSON.parse(a.content);
-                summaries[a.book_id] = parsed;
-              } catch {
-                summaries[a.book_id] = { products: [] };
+          try {
+            const statusResp = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-manuscript`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ action: "batch-status", bookIds }),
               }
+            );
+            const statusResult = await statusResp.json();
+            if (statusResp.ok) {
+              setManuscriptBookIds(new Set(statusResult.manuscripts || []));
+              setAnalyzedBookIds(new Set(statusResult.analyzed || []));
+              setPlanSummaries(statusResult.summaries || {});
             }
-            if (a.asset_type === "source_material") manuscripts.add(a.book_id);
-          });
-          setAnalyzedBookIds(analyzed);
-          setManuscriptBookIds(manuscripts);
-          setPlanSummaries(summaries);
+          } catch (err) {
+            console.error("Failed to fetch asset status:", err);
+          }
         }
       } catch (err) {
         console.error("Failed to fetch books:", err);
