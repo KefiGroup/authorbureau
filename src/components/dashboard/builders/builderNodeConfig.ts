@@ -18,6 +18,7 @@ export interface BuilderNodeConfig {
   abbyPublishMessage: string;
   icon: string; // lucide icon name
   color: string; // tailwind color class
+  customRenderer?: string; // Optional: use a custom step renderer instead of the generic placeholder
 }
 
 // ─── B·BUILD (11 nodes) ───────────────────────────────────────────────
