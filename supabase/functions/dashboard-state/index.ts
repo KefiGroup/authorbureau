@@ -25,19 +25,36 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Resolve user from shared backend
+    // Resolve user: try shared backend first, fall back to local Cloud auth
+    let userId: string | null = null;
+    let userEmail = "";
+
     const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
     const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
 
-    if (!sharedUser) {
+    if (sharedUser) {
+      userId = sharedUser.id;
+      userEmail = sharedUser.email || "";
+    } else {
+      // Fallback: validate against local Cloud auth
+      const localClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: `Bearer ${token}` } } }
+      );
+      const { data: { user: localUser } } = await localClient.auth.getUser();
+      if (localUser) {
+        userId = localUser.id;
+        userEmail = localUser.email || "";
+      }
+    }
+
+    if (!userId) {
       return new Response(JSON.stringify({ error: "Invalid session" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const userId = sharedUser.id;
-    const userEmail = sharedUser.email || "";
     console.log("dashboard-state: userId=", userId, "email=", userEmail);
 
     // Use service role to query local DB (bypasses RLS mismatch)
