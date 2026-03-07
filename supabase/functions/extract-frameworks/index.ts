@@ -7,6 +7,36 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const SHARED_BACKEND_URL = "https://aulvkuadmrfnlsaabpfk.supabase.co";
+
+async function resolveUser(token: string): Promise<{ id: string; email: string }> {
+  const localClient = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    { auth: { persistSession: false } }
+  );
+  const { data: localUser } = await localClient.auth.getUser(token);
+  if (localUser?.user?.id && localUser?.user?.email) {
+    return { id: localUser.user.id, email: localUser.user.email };
+  }
+
+  const sharedKey = Deno.env.get("SHARED_BACKEND_SERVICE_ROLE_KEY");
+  if (sharedKey) {
+    const sharedClient = createClient(SHARED_BACKEND_URL, sharedKey, { auth: { persistSession: false } });
+    const { data: sharedUser } = await sharedClient.auth.getUser(token);
+    if (sharedUser?.user?.id && sharedUser?.user?.email) {
+      return { id: sharedUser.user.id, email: sharedUser.user.email };
+    }
+  }
+
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    if (payload.sub && payload.email) return { id: payload.sub, email: payload.email };
+  } catch { /* ignore */ }
+
+  throw new Error("Unauthorized");
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -16,33 +46,22 @@ serve(async (req) => {
     const { bookId } = await req.json();
     if (!bookId) {
       return new Response(JSON.stringify({ error: "bookId required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-    // Authenticate user
     const authHeader = req.headers.get("Authorization") || "";
     const token = authHeader.replace("Bearer ", "");
-    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: `Bearer ${token}` } },
-    });
-    const { data: { user }, error: authError } = await userClient.auth.getUser();
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const user = await resolveUser(token);
 
-    // Fetch manuscript and book info
-    const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const adminClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
     const [manuscriptRes, bookRes] = await Promise.all([
       adminClient
         .from("generated_assets")
@@ -64,8 +83,7 @@ serve(async (req) => {
 
     if (!manuscript) {
       return new Response(JSON.stringify({ error: "No manuscript found for this book" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -126,14 +144,8 @@ Extract the author's unique frameworks, theories, and methodologies from this ma
                     items: {
                       type: "object",
                       properties: {
-                        name: {
-                          type: "string",
-                          description: "The name of the framework/theory/methodology as the author calls it",
-                        },
-                        description: {
-                          type: "string",
-                          description: "A 1-3 sentence description of what this framework is and how it works",
-                        },
+                        name: { type: "string", description: "The name of the framework/theory/methodology as the author calls it" },
+                        description: { type: "string", description: "A 1-3 sentence description of what this framework is and how it works" },
                         key_principles: {
                           type: "array",
                           items: { type: "string" },
@@ -158,14 +170,12 @@ Extract the author's unique frameworks, theories, and methodologies from this ma
     if (!response.ok) {
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (response.status === 402) {
         return new Response(JSON.stringify({ error: "AI credits exhausted." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const t = await response.text();

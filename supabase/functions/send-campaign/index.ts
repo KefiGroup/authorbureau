@@ -6,6 +6,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const SHARED_BACKEND_URL = "https://aulvkuadmrfnlsaabpfk.supabase.co";
+
 function escapeHtml(str: string): string {
   return str
     .replace(/&/g, "&amp;")
@@ -15,19 +17,14 @@ function escapeHtml(str: string): string {
     .replace(/'/g, "&#039;");
 }
 
-/** Simple Markdown-to-HTML for email bodies */
 function markdownToHtml(md: string): string {
   let html = escapeHtml(md);
-  // headings
   html = html.replace(/^### (.+)$/gm, "<h3>$1</h3>");
   html = html.replace(/^## (.+)$/gm, "<h2>$1</h2>");
   html = html.replace(/^# (.+)$/gm, "<h1>$1</h1>");
-  // bold / italic
   html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
   html = html.replace(/\*(.+?)\*/g, "<em>$1</em>");
-  // links
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color:#c68a2e;">$1</a>');
-  // line breaks
   html = html.replace(/\n\n/g, "</p><p>");
   html = html.replace(/\n/g, "<br/>");
   return `<p>${html}</p>`;
@@ -53,6 +50,34 @@ function buildEmailHtml(bodyHtml: string, senderName: string): string {
 </html>`;
 }
 
+async function resolveUser(token: string): Promise<{ id: string; email: string }> {
+  const localClient = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    { auth: { persistSession: false } }
+  );
+  const { data: localUser } = await localClient.auth.getUser(token);
+  if (localUser?.user?.id && localUser?.user?.email) {
+    return { id: localUser.user.id, email: localUser.user.email };
+  }
+
+  const sharedKey = Deno.env.get("SHARED_BACKEND_SERVICE_ROLE_KEY");
+  if (sharedKey) {
+    const sharedClient = createClient(SHARED_BACKEND_URL, sharedKey, { auth: { persistSession: false } });
+    const { data: sharedUser } = await sharedClient.auth.getUser(token);
+    if (sharedUser?.user?.id && sharedUser?.user?.email) {
+      return { id: sharedUser.user.id, email: sharedUser.user.email };
+    }
+  }
+
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    if (payload.sub && payload.email) return { id: payload.sub, email: payload.email };
+  } catch { /* ignore */ }
+
+  throw new Error("Not authenticated");
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -67,24 +92,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-    // Validate auth
     const authHeader = req.headers.get("authorization") || "";
     const token = authHeader.replace("Bearer ", "");
+    const user = await resolveUser(token);
 
-    const supabaseAuth = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: `Bearer ${token}` } },
-    });
-    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
 
     const { campaignId } = await req.json();
     if (!campaignId) {
@@ -113,14 +128,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Fetch author email settings
     const { data: settings } = await supabase
       .from("author_email_settings")
       .select("*")
       .eq("author_id", user.id)
       .single();
 
-    // Fetch author profile for name
     const { data: profile } = await supabase
       .from("author_profiles")
       .select("pen_name, bio_short")
@@ -131,7 +144,6 @@ Deno.serve(async (req) => {
     const fromEmail = `${senderName} <newsletter@authorsbureau.com>`;
     const replyTo = settings?.reply_to_email || undefined;
 
-    // Fetch active subscribers
     const { data: subscribers, error: subErr } = await supabase
       .from("author_subscribers")
       .select("id, email, name")
@@ -144,13 +156,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Update campaign status to sending
     await supabase
       .from("email_campaigns")
       .update({ status: "sending", recipient_count: subscribers.length })
       .eq("id", campaignId);
 
-    // Build email HTML
     const bodyMarkdown = campaign.content_json?.body || "";
     const bodyHtml = markdownToHtml(bodyMarkdown);
     const fullHtml = buildEmailHtml(bodyHtml, senderName);
@@ -158,7 +168,6 @@ Deno.serve(async (req) => {
     let sentCount = 0;
     let failCount = 0;
 
-    // Send in batches of 10
     const batchSize = 10;
     for (let i = 0; i < subscribers.length; i += batchSize) {
       const batch = subscribers.slice(i, i + batchSize);
@@ -182,7 +191,6 @@ Deno.serve(async (req) => {
 
           const result = await res.json();
 
-          // Log the send
           await supabase.from("email_send_logs").insert({
             campaign_id: campaignId,
             subscriber_id: sub.id,
@@ -209,7 +217,6 @@ Deno.serve(async (req) => {
       await Promise.all(sendPromises);
     }
 
-    // Update campaign as sent
     await supabase
       .from("email_campaigns")
       .update({

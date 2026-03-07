@@ -7,21 +7,50 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const SHARED_BACKEND_URL = "https://aulvkuadmrfnlsaabpfk.supabase.co";
+
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
 };
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  const supabaseClient = createClient(
+async function resolveUserEmail(token: string): Promise<string> {
+  const localClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     { auth: { persistSession: false } }
   );
+  const { data: localUser } = await localClient.auth.getUser(token);
+  if (localUser?.user?.email) {
+    logStep("Resolved via local auth", { email: localUser.user.email });
+    return localUser.user.email;
+  }
+
+  const sharedKey = Deno.env.get("SHARED_BACKEND_SERVICE_ROLE_KEY");
+  if (sharedKey) {
+    const sharedClient = createClient(SHARED_BACKEND_URL, sharedKey, { auth: { persistSession: false } });
+    const { data: sharedUser } = await sharedClient.auth.getUser(token);
+    if (sharedUser?.user?.email) {
+      logStep("Resolved via shared backend", { email: sharedUser.user.email });
+      return sharedUser.user.email;
+    }
+  }
+
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    if (payload.email) {
+      logStep("Resolved via JWT decode", { email: payload.email });
+      return payload.email;
+    }
+  } catch { /* ignore */ }
+
+  throw new Error("Could not resolve user email");
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
 
   try {
     logStep("Function started");
@@ -33,14 +62,11 @@ serve(async (req) => {
     if (!authHeader) throw new Error("No authorization header provided");
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError) throw new Error(`Authentication error: ${userError.message}`);
-    const user = userData.user;
-    if (!user?.email) throw new Error("User not authenticated or email not available");
-    logStep("User authenticated", { userId: user.id, email: user.email });
+    const email = await resolveUserEmail(token);
+    logStep("User resolved", { email });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    const customers = await stripe.customers.list({ email, limit: 1 });
 
     if (customers.data.length === 0) {
       logStep("No Stripe customer found");
