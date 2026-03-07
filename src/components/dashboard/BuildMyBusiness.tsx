@@ -578,11 +578,12 @@ export default function BuildMyBusiness() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-3xl mx-auto">
                 {[
                   { emoji: "📄", title: "Personalized Business Plan", desc: "Up to 27 revenue streams mapped from your book content" },
-                  { emoji: "🏷️", title: "Branded Product Recommendations", desc: "Product names, pricing, and descriptions ready to build" },
+                  { emoji: "🏷️", title: "Branded Product Recommendations", desc: "Product names, pricing, and descriptions ready to build", highlight: true },
                   { emoji: "📈", title: "Revenue Projections", desc: "Monthly and yearly estimates based on your genre and audience" },
                 ].map((card) => (
-                  <Card key={card.title} className="p-4 text-center">
+                  <Card key={card.title} className={`p-4 text-center ${card.highlight ? "ring-1 ring-secondary/30 bg-secondary/5" : ""}`}>
                     <span className="text-2xl mb-2 block">{card.emoji}</span>
+                    {card.highlight && <span className="text-[9px] font-bold uppercase tracking-wider text-secondary mb-1 block">Most Valuable</span>}
                     <h4 className="font-heading font-semibold text-sm mb-1">{card.title}</h4>
                     <p className="text-xs text-muted-foreground leading-relaxed">{card.desc}</p>
                   </Card>
