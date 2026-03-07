@@ -309,20 +309,21 @@ const groupCoachingBuilder: BuilderNodeConfig = {
 
 const speakingBuilder: BuilderNodeConfig = {
   id: "speaking",
-  label: "Speaking Profile",
+  label: "Keynotes",
   category: "bridge",
   requiredTier: "enterprise",
-  dbTable: "speaking_topics",
+  dbTable: "generated_assets",
   icon: "Presentation",
   color: "text-violet-500",
-  abbyGreeting: "Speaking is the fastest path to authority and premium clients. Let's build your professional speaking profile.",
-  abbyPublishMessage: "Your speaking profile is live! Submit it to speaker bureaus and start pitching to conferences.",
+  customRenderer: "keynotes",
+  abbyGreeting: "Your book naturally supports 3 keynote topics. I recommend starting with the broadest topic for maximum booking potential, then adding niche topics as you build your speaking reputation.",
+  abbyPublishMessage: "Your speaking materials are live! Submit to speaker bureaus and start pitching to conferences.",
   steps: [
-    { id: "topics", label: "Speaking Topics", description: "Create signature talk topics", abbyTip: "Create 2-3 signature talks. One keynote (45min), one workshop (2hr), one panel topic." },
-    { id: "bio", label: "Speaker Bio", description: "Generate professional speaker bio", abbyTip: "Lead with outcomes and credibility markers. Include media appearances and audience sizes." },
-    { id: "media-kit", label: "Media Kit", description: "Create speaker media kit", abbyTip: "Include professional photos, testimonials from event organizers, and a sizzle reel link." },
-    { id: "pricing", label: "Fee Structure", description: "Set speaking fees and packages", abbyTip: "Start at $2,500-$5,000 for keynotes. Bundle with book sales for event organizers." },
-    { id: "preview", label: "Preview & Publish", description: "Review and publish your profile", abbyTip: "List on SpeakerHub and reach out directly to 10 conferences in your niche this month." },
+    { id: "setup", label: "Keynote Setup", description: "Set number of keynote topics, titles, durations, audiences, and speaker fee range", abbyTip: "Your book naturally supports 3 keynote topics. I recommend starting with the broadest topic for maximum booking potential." },
+    { id: "talks", label: "Talk Builder", description: "AI generates talk outlines with time markers, hooks, key points, and interactive elements", abbyTip: "Great talks follow: Opening Hook → 3-5 Key Points with Stories → Interactive Element → Closing CTA. I've structured yours this way." },
+    { id: "materials", label: "Speaker Materials", description: "Speaker one-sheet, bio versions, intro script, tech requirements, and travel rider", abbyTip: "A professional speaker one-sheet is your calling card. Include your photo, topics, testimonials, and contact info." },
+    { id: "booking", label: "Booking System", description: "Speaker inquiry form, response emails, confirmation template, pre-event questionnaire", abbyTip: "A free 15-minute discovery call qualifies event organizers and builds trust. Follow up with a testimonial request after every gig." },
+    { id: "preview", label: "Preview & Publish", description: "Preview speaker one-sheet, profile page, and revenue projection", abbyTip: "Speaking is the highest-ROI activity for authors. One $5,000 keynote often leads to $10,000+ in back-of-room book sales and coaching inquiries." },
   ],
 };
 
