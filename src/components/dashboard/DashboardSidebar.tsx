@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, User, BookOpen, Sparkles,
   ChevronLeft, ChevronRight, Crown, ExternalLink, PenLine, BookMarked,
-  Megaphone, Contact, DollarSign, Radio, Award,
+  Lock, Globe, BarChart3, Contact, DollarSign, Radio, Award,
 } from "lucide-react";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
 import logoIcon from "@/assets/logo-icon.png";
@@ -14,35 +14,129 @@ interface Props {
   collapsed: boolean;
   onToggleCollapse: () => void;
   isPremium: boolean;
+  tier?: "free" | "starter" | "pro" | "enterprise";
+  hasBooks?: boolean;
+  hasAnalysis?: boolean;
+  hasMicrosite?: boolean;
+  buildUnlocked?: number;
+  bridgeUnlocked?: number;
+  yieldUnlocked?: number;
 }
 
 interface NavItem {
   id: DashboardSection;
   label: string;
   icon: typeof LayoutDashboard;
-  premiumOnly?: boolean;
+  badge?: string;
+  lockMessage?: string;
+  hidden?: boolean;
   color?: string;
 }
-
-const navItems: NavItem[] = [
-  { id: "overview", label: "ABBY Framework", icon: LayoutDashboard },
-  { id: "my-books", label: "My Books Hub", icon: BookOpen },
-  { id: "build-business", label: "Analyze with Abby", icon: Sparkles },
-  { id: "revenue-streams", label: "Build Authority", icon: DollarSign, premiumOnly: true, color: "text-emerald-500" },
-  { id: "marketing-channels", label: "Bridge Channels", icon: Radio, premiumOnly: true, color: "text-violet-500" },
-  { id: "authority-builders", label: "Yield Revenue", icon: Award, premiumOnly: true, color: "text-sky-500" },
-  { id: "profile", label: "Author Profile", icon: User },
-];
 
 const sisterLinks = [
   { label: "AI Writing Studio", icon: PenLine, path: "/writing" },
   { label: "AI Publishing Studio", icon: BookMarked, path: "/publishing" },
 ];
 
-export default function DashboardSidebar({ activeSection, onSectionChange, collapsed, onToggleCollapse, isPremium }: Props) {
-  const handleNav = (id: DashboardSection) => {
-    onSectionChange(id);
+export default function DashboardSidebar({
+  activeSection, onSectionChange, collapsed, onToggleCollapse,
+  isPremium, tier = "free", hasBooks = true, hasAnalysis = true, hasMicrosite = true,
+  buildUnlocked = 0, bridgeUnlocked = 0, yieldUnlocked = 0,
+}: Props) {
+
+  const tierAccess = (required: "starter" | "pro" | "enterprise") => {
+    const order = ["free", "starter", "pro", "enterprise"];
+    return order.indexOf(tier) >= order.indexOf(required);
   };
+
+  // Section 1: Your Journey
+  const journeyItems: NavItem[] = [
+    { id: "overview", label: "Dashboard", icon: LayoutDashboard },
+    { id: "my-books", label: "My Books Hub", icon: BookOpen },
+    { id: "build-business", label: "Analyze with Abby", icon: Sparkles },
+  ];
+
+  // Section 2: Build Your Business
+  const businessItems: NavItem[] = [
+    {
+      id: "revenue-streams", label: "Build Authority (11)", icon: DollarSign,
+      color: "text-emerald-500",
+      badge: hasAnalysis ? `${buildUnlocked} of 11` : undefined,
+      lockMessage: !hasAnalysis ? "Analyze a book first" : (!tierAccess("starter") ? "Requires Starter" : undefined),
+    },
+    {
+      id: "marketing-channels", label: "Bridge Channels (8)", icon: Radio,
+      color: "text-violet-500",
+      badge: tierAccess("pro") ? `${bridgeUnlocked} of 8` : undefined,
+      lockMessage: !tierAccess("pro") ? "Requires Pro Plan" : undefined,
+    },
+    {
+      id: "authority-builders", label: "Yield Revenue (8)", icon: Award,
+      color: "text-amber-500",
+      badge: tierAccess("enterprise") ? `${yieldUnlocked} of 8` : undefined,
+      lockMessage: !tierAccess("enterprise") ? "Requires Enterprise" : undefined,
+    },
+  ];
+
+  // Section 3: Your Brand
+  const brandItems: NavItem[] = [
+    { id: "profile", label: "Author Profile", icon: User },
+    {
+      id: "profile" as DashboardSection, label: "My Microsite", icon: Globe,
+      // We'll handle this specially — navigates to microsite
+    },
+    {
+      id: "crm" as DashboardSection, label: "My Contacts", icon: Contact,
+      lockMessage: !tierAccess("pro") ? "Requires Pro" : undefined,
+      hidden: !hasBooks,
+    },
+  ];
+
+  const renderSection = (title: string, items: NavItem[]) => (
+    <div className="space-y-0.5">
+      {!collapsed && (
+        <p className="px-3 mb-1.5 text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground/40">
+          {title}
+        </p>
+      )}
+      {items.filter(i => !i.hidden).map((item, idx) => {
+        const isLocked = !!item.lockMessage;
+        const isActive = activeSection === item.id && !isLocked;
+
+        return (
+          <button
+            key={`${item.id}-${idx}`}
+            onClick={() => {
+              if (isLocked) {
+                toast({ title: "Locked", description: item.lockMessage });
+                return;
+              }
+              onSectionChange(item.id);
+            }}
+            className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-medium transition-colors ${
+              isActive
+                ? "bg-primary text-primary-foreground"
+                : isLocked
+                ? "text-muted-foreground/35 cursor-default"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            }`}
+            title={isLocked ? item.lockMessage : item.label}
+          >
+            <item.icon className={`h-4 w-4 shrink-0 ${!isActive && item.color ? item.color : ""}`} />
+            {!collapsed && (
+              <>
+                <span className="truncate flex-1 text-left">{item.label}</span>
+                {isLocked && <Lock className="h-3 w-3 text-muted-foreground/30" />}
+                {item.badge && !isLocked && (
+                  <span className="text-[10px] text-muted-foreground/60 font-normal">{item.badge}</span>
+                )}
+              </>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
 
   return (
     <aside
@@ -66,43 +160,15 @@ export default function DashboardSidebar({ activeSection, onSectionChange, colla
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-4 space-y-1 px-2">
-        {navItems.map((item) => {
-          const isLocked = item.premiumOnly && !isPremium;
-          const isActive = activeSection === item.id;
-
-          return (
-            <button
-              key={item.id}
-              onClick={() => {
-                if (isLocked) return;
-                handleNav(item.id);
-              }}
-              disabled={isLocked}
-              className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
-                isActive
-                  ? "bg-primary text-primary-foreground"
-                  : isLocked
-                  ? "text-muted-foreground/40 cursor-not-allowed"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
-              title={isLocked ? "Premium feature" : item.label}
-            >
-              <item.icon className={`h-4 w-4 shrink-0 ${!isActive && item.color ? item.color : ""}`} />
-              {!collapsed && (
-                <>
-                  <span className="truncate">{item.label}</span>
-                  {isLocked && <Crown className="ml-auto h-3 w-3 text-secondary" />}
-                </>
-              )}
-            </button>
-          );
-        })}
+      <nav className="flex-1 overflow-y-auto py-3 space-y-4 px-2">
+        {renderSection("Your Journey", journeyItems)}
+        {renderSection("Build Your Business", businessItems)}
+        {renderSection("Your Brand", brandItems)}
 
         {/* Sister platform links */}
         {!collapsed && (
-          <div className="mt-6 pt-4 border-t border-border space-y-1">
-            <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">
+          <div className="space-y-0.5">
+            <p className="px-3 mb-1.5 text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground/40">
               Writing & Publishing
             </p>
             {sisterLinks.map((link) => (
@@ -127,12 +193,12 @@ export default function DashboardSidebar({ activeSection, onSectionChange, colla
                     }
                   });
                 }}
-                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground/70 hover:bg-muted hover:text-foreground transition-colors"
+                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-muted-foreground/60 hover:bg-muted hover:text-foreground transition-colors"
                 title={link.label}
               >
                 <link.icon className="h-4 w-4 shrink-0" />
                 <span className="truncate text-[13px]">{link.label}</span>
-                <ExternalLink className="ml-auto h-3 w-3 text-muted-foreground/40" />
+                <ExternalLink className="ml-auto h-3 w-3 text-muted-foreground/30" />
               </button>
             ))}
           </div>

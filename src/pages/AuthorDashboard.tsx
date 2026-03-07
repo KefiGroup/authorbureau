@@ -4,6 +4,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import JourneyBreadcrumb from "@/components/dashboard/JourneyBreadcrumb";
+import type { JourneyStep } from "@/components/dashboard/JourneyBreadcrumb";
 import ProfileEditor from "@/components/dashboard/ProfileEditor";
 import CourseBuilder from "@/components/dashboard/CourseBuilder";
 import SpeakingProfile from "@/components/dashboard/SpeakingProfile";
@@ -22,6 +24,7 @@ import BuildMyBusiness from "@/components/dashboard/BuildMyBusiness";
 import PremiumGate from "@/components/dashboard/PremiumGate";
 import EmailMarketing from "@/components/dashboard/EmailMarketing";
 import { Loader2, Rocket, FileText, Video, Share2, CreditCard, Users, Trophy, Podcast, Building2, Bookmark, Award } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 export type DashboardSection =
   | "overview" | "profile" | "my-books"
@@ -36,71 +39,32 @@ export type DashboardSection =
   | "marketing" | "crm";
 
 const comingSoonSections: Record<string, { title: string; description: string; icon: typeof Rocket }> = {
-  memberships: {
-    title: "Monthly Memberships",
-    description: "Tiered membership programs with content drip schedules, member-only resources, and recurring billing via Stripe.",
-    icon: CreditCard,
-  },
-  "group-coaching": {
-    title: "Group Coaching",
-    description: "AI-generated 8-week group coaching curriculum with session agendas, participant workbooks, and cohort management.",
-    icon: Users,
-  },
-  "big-ticket": {
-    title: "Big Ticket Packages",
-    description: "Premium consulting packages ($5K–$25K) with application forms, sales pages, and VIP delivery tracking.",
-    icon: Trophy,
-  },
-  "corporate-training": {
-    title: "Corporate Training",
-    description: "Half-day and full-day corporate training curricula derived from your book, with facilitator guides and participant handbooks.",
-    icon: Building2,
-  },
-  retreats: {
-    title: "Retreats & Bootcamps",
-    description: "2-3 day retreat programs with detailed agendas, participant materials, registration systems, and early-bird pricing.",
-    icon: Bookmark,
-  },
-  certification: {
-    title: "Certification Programs",
-    description: "Professional certification programs with multi-module curricula, exam question banks, grading rubrics, and digital certificates.",
-    icon: Award,
-  },
-  masterminds: {
-    title: "Masterminds",
-    description: "Structured mastermind group programs with quarterly agendas, hot-seat formats, accountability frameworks, and member applications.",
-    icon: Trophy,
-  },
-  crm: {
-    title: "CRM & Contacts",
-    description: "Your unified customer relationship management hub — track every lead, client, and attendee across all categories.",
-    icon: Users,
-  },
-  marketing: {
-    title: "Marketing Package",
-    description: "AI-driven marketing suite — email flows, social media calendars, affiliate dashboard, and upsell/downsell automation.",
-    icon: Rocket,
-  },
+  memberships: { title: "Monthly Memberships", description: "Tiered membership programs with content drip schedules and recurring billing.", icon: CreditCard },
+  "group-coaching": { title: "Group Coaching", description: "AI-generated 8-week group coaching curriculum with session agendas and workbooks.", icon: Users },
+  "big-ticket": { title: "Big Ticket Packages", description: "Premium consulting packages ($5K–$25K) with application forms and sales pages.", icon: Trophy },
+  "corporate-training": { title: "Corporate Training", description: "Half-day and full-day corporate training curricula derived from your book.", icon: Building2 },
+  retreats: { title: "Retreats & Bootcamps", description: "2-3 day retreat programs with detailed agendas and registration systems.", icon: Bookmark },
+  certification: { title: "Certification Programs", description: "Professional certification programs with multi-module curricula and digital certificates.", icon: Award },
+  masterminds: { title: "Masterminds", description: "Structured mastermind group programs with quarterly agendas and member applications.", icon: Trophy },
+  crm: { title: "CRM & Contacts", description: "Your unified customer relationship management hub.", icon: Users },
+  marketing: { title: "Marketing Package", description: "AI-driven marketing suite — email flows, social media, affiliate dashboard.", icon: Rocket },
 };
 
 function ComingSoonPlaceholder({ sectionId }: { sectionId: string }) {
   const info = comingSoonSections[sectionId];
   if (!info) return null;
   const Icon = info.icon;
-
   return (
     <div className="max-w-2xl mx-auto py-16 text-center">
       <div className="w-16 h-16 rounded-2xl bg-secondary/10 flex items-center justify-center mx-auto mb-6">
         <Icon className="h-8 w-8 text-secondary" />
       </div>
       <h2 className="font-heading text-2xl font-bold mb-3">{info.title}</h2>
-      <p className="text-muted-foreground text-sm leading-relaxed max-w-lg mx-auto mb-6">
-        {info.description}
-      </p>
+      <p className="text-muted-foreground text-sm leading-relaxed max-w-lg mx-auto mb-6">{info.description}</p>
       <div className="inline-flex items-center gap-2 rounded-full bg-muted px-4 py-2 text-sm font-medium text-muted-foreground">
         <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75" />
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary" />
         </span>
         Coming Soon
       </div>
@@ -119,11 +83,18 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
   );
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  // Sync section from query param
+  // Journey state
+  const [journeyMicrosite, setJourneyMicrosite] = useState<JourneyStep>("current");
+  const [journeyPlan, setJourneyPlan] = useState<JourneyStep>("upcoming");
+  const [journeyBuild, setJourneyBuild] = useState<JourneyStep>("upcoming");
+  const [journeySell, setJourneySell] = useState<JourneyStep>("upcoming");
+  const [booksAnalyzed, setBooksAnalyzed] = useState(0);
+  const [hasBooks, setHasBooks] = useState(false);
+  const [hasMicrosite, setHasMicrosite] = useState(false);
+  const [hasAnalysis, setHasAnalysis] = useState(false);
+
   useEffect(() => {
-    if (sectionParam && sectionParam !== activeSection) {
-      setActiveSection(sectionParam);
-    }
+    if (sectionParam && sectionParam !== activeSection) setActiveSection(sectionParam);
   }, [sectionParam]);
 
   useEffect(() => {
@@ -135,6 +106,46 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       toast({ title: "Checkout cancelled", variant: "destructive" });
     }
   }, [searchParams]);
+
+  // Fetch journey state
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      try {
+        // Check profile
+        const { data: profile } = await supabase
+          .from("author_profiles")
+          .select("directory_status, pen_name, photo_url, bio_short")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        const isLive = profile && ["listed", "verified", "featured"].includes(profile.directory_status || "") && !!profile.pen_name && !!profile.photo_url;
+        setHasMicrosite(!!isLive);
+        setJourneyMicrosite(isLive ? "done" : "current");
+
+        // Check books
+        const { data: books } = await supabase
+          .from("books")
+          .select("id")
+          .eq("author_id", user.id);
+        setHasBooks((books || []).length > 0);
+
+        // Check analyzed books
+        const { data: plans } = await supabase
+          .from("generated_assets")
+          .select("book_id")
+          .eq("author_id", user.id)
+          .eq("asset_type", "business_plan");
+
+        const analyzed = new Set((plans || []).map((p: any) => p.book_id)).size;
+        setBooksAnalyzed(analyzed);
+        setHasAnalysis(analyzed > 0);
+        setJourneyPlan(analyzed > 0 ? "done" : (isLive ? "current" : "upcoming"));
+        setJourneyBuild(analyzed > 0 && isPremium ? "current" : "upcoming");
+        setJourneySell("upcoming");
+      } catch {}
+    })();
+  }, [user, isPremium]);
 
   if (loading) {
     return (
@@ -180,13 +191,10 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "subscribers":
       case "email-templates":
         return gate("Email Marketing", <EmailMarketing activeTab={activeSection} onTabChange={(s) => setActiveSection(s as DashboardSection)} />);
-      
-      // 3-category views
       case "revenue-streams":
       case "marketing-channels":
       case "authority-builders":
         return <PortfolioStepView categoryId={activeSection} />;
-
       case "overview":
         return (
           <ABBYFrameworkDashboard
@@ -194,9 +202,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
             isPremium={isPremium || isAdmin}
           />
         );
-
       default:
-        // All coming-soon sections
         if (comingSoonSections[activeSection]) {
           return gate(comingSoonSections[activeSection].title, <ComingSoonPlaceholder sectionId={activeSection} />);
         }
@@ -217,6 +223,10 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         isPremium={isPremium || isAdmin}
+        tier={tier}
+        hasBooks={hasBooks}
+        hasAnalysis={hasAnalysis}
+        hasMicrosite={hasMicrosite}
       />
       <div className="flex flex-1 flex-col min-w-0">
         <DashboardHeader
@@ -227,6 +237,16 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           onSignOut={signOut}
           onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
+        {/* Journey Breadcrumb */}
+        <div className="border-b border-border px-6 lg:px-8 bg-card">
+          <JourneyBreadcrumb
+            micrositeState={journeyMicrosite}
+            booksAnalyzed={booksAnalyzed}
+            planState={journeyPlan}
+            buildState={journeyBuild}
+            sellState={journeySell}
+          />
+        </div>
         <main className="flex-1 overflow-y-auto p-6 lg:p-8">
           {renderSection()}
         </main>
