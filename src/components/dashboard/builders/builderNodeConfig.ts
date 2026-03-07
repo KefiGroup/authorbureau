@@ -150,14 +150,17 @@ const audiobookBuilder: BuilderNodeConfig = {
   dbTable: "audiobooks",
   icon: "Headphones",
   color: "text-emerald-500",
+  customRenderer: "audiobook",
   abbyGreeting: "Audiobooks are the fastest-growing format. Let's create a professional narration from your manuscript.",
-  abbyPublishMessage: "Your audiobook script is ready! Generate audio with ElevenLabs or record it yourself. Consider your Podcast next.",
+  abbyPublishMessage: "Your audiobook is ready! Distribute it on your platform, Audible, or Google Play. Consider your Podcast next.",
   steps: [
-    { id: "configure", label: "Configure", description: "Set narrator type and voice preferences", abbyTip: "Author-narrated audiobooks feel more authentic. Consider TTS for a polished alternative." },
-    { id: "script", label: "AI Script", description: "Generate audiobook script from manuscript", abbyTip: "I'll optimize your text for audio — converting visual references and adding natural pauses." },
-    { id: "edit", label: "Edit Script", description: "Review and polish the narration script", abbyTip: "Read sections aloud to catch awkward phrasing. Audio is unforgiving of clunky sentences." },
-    { id: "audio", label: "Generate Audio", description: "Record or generate TTS audio", abbyTip: "ElevenLabs produces professional quality. Choose a voice that matches your author brand." },
-    { id: "preview", label: "Preview & Publish", description: "Listen to preview and publish", abbyTip: "Price audiobooks at $14.99-$24.99. They have excellent margins with zero shipping costs." },
+    { id: "setup", label: "Audiobook Setup", description: "Set title, narration style, distribution, and pricing", abbyTip: "Audiobooks generate passive income with zero ongoing effort. Author-narrated audiobooks convert 40% better for non-fiction." },
+    { id: "optimize", label: "Manuscript Optimization", description: "AI creates an audio-optimized version of your text", abbyTip: "I found passages that reference visual elements. I've rewritten them for audio. Review each one — some may need your personal touch." },
+    { id: "voice", label: "Voice Selection", description: "Choose AI voice, get recording tips, or find a narrator", abbyTip: "For self-help books, warm and conversational voices perform best. Listen to how each sounds with your Chapter 1 opening." },
+    { id: "production", label: "Chapter Production", description: "Generate or upload audio chapter-by-chapter", abbyTip: "Generate chapters sequentially for consistent audio quality. Review each one before moving to the next." },
+    { id: "publish", label: "Preview & Publish", description: "Full audiobook player preview and distribution", abbyTip: "Price audiobooks at $14.99-$24.99. They have excellent margins with zero shipping costs." },
+  ],
+};
   ],
 };
 
