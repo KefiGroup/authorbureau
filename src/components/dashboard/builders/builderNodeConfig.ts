@@ -367,20 +367,20 @@ const affiliateBuilder: BuilderNodeConfig = {
 
 const partnershipBuilder: BuilderNodeConfig = {
   id: "partnerships",
-  label: "JV Partnerships",
+  label: "Revenue Sharing / JV",
   category: "bridge",
   requiredTier: "pro",
   dbTable: "generated_assets",
   icon: "Handshake",
   color: "text-violet-500",
-  abbyGreeting: "Strategic partnerships multiply your reach exponentially. Let's identify and structure the right collaborations.",
+  customRenderer: "jv-partnerships",
+  abbyGreeting: "JV partnerships are the fastest way to reach new audiences. I recommend starting with cross-promotions (free) before moving to revenue shares.",
   abbyPublishMessage: "Your partnership playbook is ready! Reach out to your top 5 potential partners this week.",
   steps: [
-    { id: "identify", label: "Identify Partners", description: "Find ideal JV partners", abbyTip: "Look for complementary (not competing) authors in adjacent niches with similar audience sizes." },
-    { id: "proposal", label: "Partnership Proposals", description: "Create collaboration proposals", abbyTip: "Lead with what you can offer them. Always propose a specific, low-risk first collaboration." },
-    { id: "structure", label: "Deal Structure", description: "Design revenue sharing models", abbyTip: "50/50 splits are standard for co-created products. Guest expert spots = affiliate commission." },
-    { id: "materials", label: "Co-Marketing Plan", description: "Plan joint marketing activities", abbyTip: "Start with a joint webinar or podcast episode. Low effort, high exposure for both parties." },
-    { id: "preview", label: "Review & Execute", description: "Finalize partnership playbook", abbyTip: "Always formalize agreements in writing, even with friends. It protects both parties." },
+    { id: "setup", label: "Partnership Setup", description: "Set partnership type, revenue split, partner criteria, and products available", abbyTip: "JV partnerships are the fastest way to reach new audiences. I recommend starting with cross-promotions (free) before moving to revenue shares." },
+    { id: "materials", label: "Partner Materials", description: "Proposal template, revenue sharing agreement, co-promotion swipe copy, and social templates", abbyTip: "Lead with what you can offer them. Always propose a specific, low-risk first collaboration." },
+    { id: "onboarding", label: "Partner Onboarding", description: "Welcome sequence, resource page, reporting template, and communication cadence", abbyTip: "Transparent tracking builds trust. Share dashboards with partners monthly." },
+    { id: "preview", label: "Preview & Publish", description: "Preview partner proposal, resource page, and revenue projection", abbyTip: "A single JV partner with a 10,000-person email list could generate significant sales with the right conversion rate." },
   ],
 };
 
