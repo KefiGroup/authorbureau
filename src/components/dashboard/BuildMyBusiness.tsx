@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { motion, AnimatePresence } from "framer-motion";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import BusinessPlanActions, { isBusinessPlanMessage } from "@/components/dashboard/BusinessPlanActions";
+import BuildAuthorBusinessButton from "@/components/dashboard/BuildAuthorBusinessButton";
 import SavedBusinessPlan from "@/components/dashboard/SavedBusinessPlan";
 import FrameworkInterviewModal, { type BuildMode } from "@/components/dashboard/FrameworkInterviewModal";
 import ManuscriptUpload from "@/components/dashboard/ManuscriptUpload";
@@ -684,6 +685,31 @@ export default function BuildMyBusiness() {
                 })}
               </div>
             </div>
+
+            {/* Build My Author Business CTA */}
+            {analyzedBooks.length > 0 && totalStreams > 0 && (
+              <BuildAuthorBusinessButton
+                bookId={analyzedBooks[0].id}
+                bookTitle={analyzedBooks[0].title}
+                recommendedProducts={
+                  Object.entries(planSummaries).flatMap(([bookId, plan]: [string, any]) =>
+                    (plan?.packages?.starter?.products || [])
+                      .concat(plan?.packages?.pro?.products || [])
+                      .concat(plan?.packages?.enterprise?.products || [])
+                      .map((p: any) => ({
+                        nodeId: p.node || "",
+                        title: p.title || "",
+                        type: p.node || "workbook",
+                        description: p.reasoning || "",
+                      }))
+                  ).slice(0, 12)
+                }
+                annualProjectionLow={Object.values(planSummaries)[0]?.annual_projection_low || "$10,000"}
+                annualProjectionHigh={Object.values(planSummaries)[0]?.annual_projection_high || "$50,000"}
+                onComplete={() => toast({ title: "All products built! 🎉" })}
+                onNavigateReview={() => navigate("/dashboard?section=review-products")}
+              />
+            )}
 
             {/* Not Yet Analyzed */}
             {unanalyzedBooks.length > 0 && (

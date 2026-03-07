@@ -28,6 +28,7 @@ import MicrositeManager from "@/components/dashboard/MicrositeManager";
 import UniversalBuilderStudio from "@/components/dashboard/builders/UniversalBuilderStudio";
 import { BUILDER_NODE_MAP } from "@/components/dashboard/builders/builderNodeConfig";
 import ConnectStripePage from "@/components/dashboard/ConnectStripePage";
+import ReviewProductsPage from "@/components/dashboard/ReviewProductsPage";
 import { Loader2, Rocket, FileText, Video, Share2, CreditCard, Users, Trophy, Podcast, Building2, Bookmark, Award } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -46,7 +47,7 @@ export type DashboardSection =
   | "revenue-streams" | "marketing-channels" | "authority-builders"
   | "marketing" | "crm"
   | "analytics" | "microsite-manager"
-  | "connect-stripe"
+  | "connect-stripe" | "review-products"
   // Universal builder nodes
   | "builder";
 
@@ -252,29 +253,31 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
             onAnalyze={() => setActiveSection("build-business")}
           />;
         }
-        return <PortfolioStepView categoryId={activeSection} />;
+        return <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} />;
       case "marketing-channels":
         if (!hasAnalysis) {
           return <SectionGatePage
             sectionTitle="B · Bridge Channels"
             sectionSubtitle="Marketing channels & audience connections."
             gateMessage="Abby needs to understand your audience before she can recommend which marketing channels to activate."
-            productNames={["Social Media", "Webinars", "Podcasts", "Website / Microsite", "Affiliates", "Email Marketing"]}
+            productNames={["Social Media", "Webinars", "Podcasts", "Website / Microsite", "Affiliates", "Email Marketing", "PR / Media", "Strategic Partnerships"]}
             onAnalyze={() => setActiveSection("build-business")}
           />;
         }
-        return <PortfolioStepView categoryId={activeSection} />;
+        return <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} />;
       case "authority-builders":
         if (!hasAnalysis) {
           return <SectionGatePage
             sectionTitle="Y · Yield Revenue"
             sectionSubtitle="Premium revenue streams & monetization."
             gateMessage="Abby needs to understand your business model before she can recommend which revenue streams to pursue."
-            productNames={["Conventions", "Fund Raising", "Exhibitors / JV", "Retreats", "Certification", "Masterminds", "Special Editions", "Book Sales"]}
+            productNames={["Book Sales", "Course Sales", "Coaching Fees", "Speaking Fees", "Licensing", "Sponsorships", "Events", "Affiliate Income"]}
             onAnalyze={() => setActiveSection("build-business")}
           />;
         }
-        return <PortfolioStepView categoryId={activeSection} />;
+        return <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} />;
+      case "review-products":
+        return <ReviewProductsPage onNavigate={handleNavigate} />;
       case "connect-stripe":
         return <ConnectStripePage />;
       case "overview":
