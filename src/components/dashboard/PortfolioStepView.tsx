@@ -14,6 +14,8 @@ import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import SmartProductCard, { type ProductCardState, BASELINE_REVENUE } from "@/components/dashboard/SmartProductCard";
+import { toast } from "@/hooks/use-toast";
 
 interface Node {
   id: string;
@@ -21,6 +23,7 @@ interface Node {
   icon: typeof BookOpen;
   description: string;
   status: "live" | "coming-soon" | "planned";
+  tierRequired?: string;
 }
 
 interface CategoryConfig {
@@ -42,24 +45,24 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     gradientFrom: "from-emerald-500", gradientTo: "to-emerald-600",
     headerIcon: DollarSign,
     nodes: [
-      { id: "courses", label: "Online Courses", icon: GraduationCap, description: "8-12 module structured courses", status: "coming-soon" },
-      { id: "home-study", label: "Home Study Courses", icon: BookMarked, description: "Self-paced study guide", status: "coming-soon" },
-      { id: "workbooks", label: "Workbook", icon: FileText, description: "Companion workbook PDFs", status: "live" },
-      { id: "audiobook", label: "Audiobook", icon: Headphones, description: "AI-narrated audiobook", status: "coming-soon" },
-      { id: "memberships", label: "Monthly Memberships", icon: CreditCard, description: "3-tier membership system", status: "planned" },
-      { id: "upsells", label: "Upsells / Downsells", icon: TrendingUp, description: "Conversion sequences", status: "planned" },
-      { id: "coaching-1on1", label: "1-on-1 Coaching", icon: UserCheck, description: "6/12-session coaching programs", status: "live" },
-      { id: "group-coaching", label: "Group Coaching", icon: Users, description: "8-week group curriculum", status: "coming-soon" },
-      { id: "big-ticket", label: "Big Ticket Consulting", icon: Trophy, description: "Premium packages ($5K–$25K)", status: "planned" },
-      { id: "revenue-sharing", label: "Revenue Sharing / JV", icon: Handshake, description: "Partnership matching", status: "planned" },
+      { id: "courses", label: "Online Courses", icon: GraduationCap, description: "8-12 module structured courses from your book content", status: "coming-soon" },
+      { id: "home-study", label: "Home Study Courses", icon: BookMarked, description: "Self-paced study guide with daily exercises", status: "coming-soon" },
+      { id: "workbooks", label: "Workbook", icon: FileText, description: "Companion workbook PDFs with exercises and templates", status: "live" },
+      { id: "audiobook", label: "Audiobook", icon: Headphones, description: "AI-narrated audiobook from your manuscript", status: "coming-soon" },
+      { id: "memberships", label: "Monthly Memberships", icon: CreditCard, description: "3-tier membership system with recurring revenue", status: "planned", tierRequired: "Pro" },
+      { id: "upsells", label: "Upsells / Downsells", icon: TrendingUp, description: "Conversion sequences and funnel optimization", status: "planned", tierRequired: "Pro" },
+      { id: "coaching-1on1", label: "1-on-1 Coaching", icon: UserCheck, description: "6/12-session coaching programs based on your framework", status: "live" },
+      { id: "group-coaching", label: "Group Coaching", icon: Users, description: "8-week group coaching curriculum", status: "coming-soon", tierRequired: "Pro" },
+      { id: "big-ticket", label: "Big Ticket Consulting", icon: Trophy, description: "Premium consulting packages ($5K–$25K)", status: "planned", tierRequired: "Pro" },
+      { id: "revenue-sharing", label: "Revenue Sharing / JV", icon: Handshake, description: "Partnership matching and revenue sharing", status: "planned", tierRequired: "Enterprise" },
       { id: "keynotes", label: "Keynotes", icon: Mic, description: "3-5 keynote topics + slide decks", status: "live" },
-      { id: "in-house-speaker", label: "In-House Speaker", icon: Presentation, description: "Speaker profile + booking", status: "planned" },
-      { id: "training", label: "Training Programs", icon: Building2, description: "Corporate training programs", status: "planned" },
-      { id: "retreats", label: "Retreats & Bootcamps", icon: Bookmark, description: "2-3 day retreat programs", status: "planned" },
-      { id: "certification", label: "Certification", icon: ShieldCheck, description: "Curriculum + exam + certificates", status: "planned" },
-      { id: "masterminds", label: "Masterminds", icon: BarChart3, description: "Quarterly mastermind groups", status: "planned" },
-      { id: "special-editions", label: "Special Editions", icon: Sparkles, description: "Signed copies, bundles", status: "planned" },
-      { id: "book-sales-events", label: "Book Sales (Events)", icon: BookOpen, description: "QR code order pages", status: "planned" },
+      { id: "in-house-speaker", label: "In-House Speaker", icon: Presentation, description: "Speaker profile + booking system", status: "planned", tierRequired: "Enterprise" },
+      { id: "training", label: "Training Programs", icon: Building2, description: "Corporate training programs", status: "planned", tierRequired: "Enterprise" },
+      { id: "retreats", label: "Retreats & Bootcamps", icon: Bookmark, description: "2-3 day retreat programs", status: "planned", tierRequired: "Enterprise" },
+      { id: "certification", label: "Certification", icon: ShieldCheck, description: "Curriculum + exam + certificates", status: "planned", tierRequired: "Enterprise" },
+      { id: "masterminds", label: "Masterminds", icon: BarChart3, description: "Quarterly mastermind groups", status: "planned", tierRequired: "Enterprise" },
+      { id: "special-editions", label: "Special Editions", icon: Sparkles, description: "Signed copies, bundles, limited editions", status: "planned", tierRequired: "Enterprise" },
+      { id: "book-sales-events", label: "Book Sales (Events)", icon: BookOpen, description: "QR code order pages for events", status: "planned", tierRequired: "Enterprise" },
     ],
   },
   "marketing-channels": {
@@ -68,14 +71,14 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     gradientFrom: "from-violet-500", gradientTo: "to-violet-600",
     headerIcon: Radio,
     nodes: [
-      { id: "social-media", label: "Social Media Marketing", icon: Share2, description: "90-day AI content calendar", status: "live" },
-      { id: "webinars", label: "Webinars", icon: Video, description: "Webinar scripts + slide decks", status: "live" },
-      { id: "podcast-guest", label: "Podcasts (Guest Appearances)", icon: Podcast, description: "Get booked as a guest", status: "planned" },
-      { id: "microsite", label: "Website / Microsite", icon: BookOpen, description: "Built-in book landing page", status: "live" },
-      { id: "affiliates", label: "Affiliates / Referral Partners", icon: Link2, description: "Affiliate tracking links", status: "planned" },
-      { id: "email-marketing", label: "Email Marketing", icon: Megaphone, description: "AI nurture sequences", status: "coming-soon" },
-      { id: "pr-media", label: "PR / Media Outreach", icon: Megaphone, description: "Press releases & media pitches", status: "planned" },
-      { id: "strategic-partnerships", label: "Strategic Partnerships / JVs", icon: Handshake, description: "Joint venture matching", status: "planned" },
+      { id: "social-media", label: "Social Media Marketing", icon: Share2, description: "90-day AI content calendar for all platforms", status: "live" },
+      { id: "webinars", label: "Webinars", icon: Video, description: "Webinar scripts + slide decks + registration", status: "live" },
+      { id: "podcast-guest", label: "Podcasts (Guest Appearances)", icon: Podcast, description: "Pitch kit to get booked as a guest", status: "planned", tierRequired: "Pro" },
+      { id: "microsite", label: "Website / Microsite", icon: BookOpen, description: "Built-in book landing page & author site", status: "live" },
+      { id: "affiliates", label: "Affiliates / Referral Partners", icon: Link2, description: "Affiliate tracking links and commission setup", status: "planned", tierRequired: "Pro" },
+      { id: "email-marketing", label: "Email Marketing", icon: Megaphone, description: "AI nurture sequences and drip campaigns", status: "coming-soon" },
+      { id: "pr-media", label: "PR / Media Outreach", icon: Megaphone, description: "Press releases & media pitch templates", status: "planned", tierRequired: "Pro" },
+      { id: "strategic-partnerships", label: "Strategic Partnerships / JVs", icon: Handshake, description: "Joint venture matching and partner outreach", status: "planned", tierRequired: "Enterprise" },
     ],
   },
   "authority-builders": {
@@ -85,13 +88,13 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     headerIcon: Award,
     nodes: [
       { id: "book-sales", label: "Book Sales (Direct & Amazon)", icon: BookOpen, description: "Direct sales pages & Amazon optimization", status: "planned" },
-      { id: "course-sales", label: "Course / Program Sales", icon: GraduationCap, description: "Online course revenue", status: "planned" },
+      { id: "course-sales", label: "Course / Program Sales", icon: GraduationCap, description: "Online course revenue tracking", status: "planned" },
       { id: "coaching-fees", label: "Coaching / Consulting Fees", icon: UserCheck, description: "1-on-1 and group coaching income", status: "planned" },
-      { id: "speaking-fees", label: "Speaking Engagement Fees", icon: Mic, description: "Keynotes & conference speaking", status: "planned" },
-      { id: "licensing", label: "Licensing / Royalties", icon: ShieldCheck, description: "Content licensing & royalty streams", status: "planned" },
-      { id: "sponsorships", label: "Sponsorships", icon: HandCoins, description: "Brand partnerships & sponsors", status: "planned" },
-      { id: "events-conventions", label: "Events / Conventions / Conferences", icon: Calendar, description: "Conference & event revenue", status: "planned" },
-      { id: "affiliate-income", label: "Affiliate / Referral Income", icon: Link2, description: "Commission-based referral revenue", status: "planned" },
+      { id: "speaking-fees", label: "Speaking Engagement Fees", icon: Mic, description: "Keynotes & conference speaking fees", status: "planned" },
+      { id: "licensing", label: "Licensing / Royalties", icon: ShieldCheck, description: "Content licensing & royalty streams", status: "planned", tierRequired: "Enterprise" },
+      { id: "sponsorships", label: "Sponsorships", icon: HandCoins, description: "Brand partnerships & sponsors", status: "planned", tierRequired: "Enterprise" },
+      { id: "events-conventions", label: "Events / Conventions / Conferences", icon: Calendar, description: "Conference & event revenue", status: "planned", tierRequired: "Enterprise" },
+      { id: "affiliate-income", label: "Affiliate / Referral Income", icon: Link2, description: "Commission-based referral revenue", status: "planned", tierRequired: "Enterprise" },
     ],
   },
 };
@@ -101,6 +104,7 @@ interface BookSummary {
   title: string;
   cover_image_url: string | null;
   slug: string;
+  genre?: string | null;
 }
 
 async function getActiveToken(): Promise<string | null> {
@@ -112,17 +116,28 @@ async function getActiveToken(): Promise<string | null> {
 
 interface Props {
   categoryId: string;
+  tier?: string;
+  onNavigate?: (section: string) => void;
 }
 
-export default function PortfolioStepView({ categoryId }: Props) {
+interface AbbyRecommendation {
+  nodeId: string;
+  personalizedDescription?: string;
+  estimatedRevenue?: number;
+}
+
+export default function PortfolioStepView({ categoryId, tier = "free", onNavigate }: Props) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [books, setBooks] = useState<BookSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [recommendations, setRecommendations] = useState<AbbyRecommendation[]>([]);
+  const [builtProducts, setBuiltProducts] = useState<Set<string>>(new Set());
+  const [publishedProducts, setPublishedProducts] = useState<Set<string>>(new Set());
   const category = categoryConfigs[categoryId];
 
   useEffect(() => {
-    async function fetchBooks() {
+    async function fetchData() {
       if (!user) return;
       setLoading(true);
       try {
@@ -133,22 +148,117 @@ export default function PortfolioStepView({ categoryId }: Props) {
           { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } }
         );
         const result = await response.json();
-        if (!response.ok) throw new Error(result.error);
-        setBooks(result.books || []);
+        if (response.ok) setBooks(result.books || []);
+
+        // Fetch Abby recommendations from business plans
+        const { data: plans } = await cloudSupabase
+          .from("generated_assets")
+          .select("content")
+          .eq("author_id", user.id)
+          .eq("asset_type", "business_plan");
+
+        const recs: AbbyRecommendation[] = [];
+        (plans || []).forEach((p: any) => {
+          try {
+            const parsed = JSON.parse(p.content);
+            const allProducts = [
+              ...(parsed.packages?.starter?.products || []),
+              ...(parsed.packages?.pro?.products || []),
+              ...(parsed.packages?.enterprise?.products || []),
+            ];
+            allProducts.forEach((prod: any) => {
+              const nodeId = prod.node?.toLowerCase().replace(/\s+/g, "-") || "";
+              if (nodeId) {
+                recs.push({
+                  nodeId,
+                  personalizedDescription: prod.reasoning,
+                  estimatedRevenue: parseInt(prod.monthly_revenue_high?.replace(/[^0-9]/g, "") || "0") * 12,
+                });
+              }
+            });
+          } catch {}
+        });
+        setRecommendations(recs);
+
+        // Check built/published products
+        const built = new Set<string>();
+        const published = new Set<string>();
+        const assetTypes = ["workbook", "course", "social", "email", "speaker"];
+        const { data: assets } = await cloudSupabase
+          .from("generated_assets")
+          .select("asset_type")
+          .eq("author_id", user.id)
+          .in("asset_type", assetTypes);
+        (assets || []).forEach((a: any) => built.add(a.asset_type));
+        setBuiltProducts(built);
+
+        // Check published statuses
+        const tables = ["courses", "home_study_courses", "webinars", "audiobooks", "podcasts"] as const;
+        for (const table of tables) {
+          const { count } = await cloudSupabase
+            .from(table)
+            .select("id", { count: "exact", head: true })
+            .eq("author_id", user.id)
+            .eq("status", "published");
+          if ((count || 0) > 0) published.add(table);
+        }
+        setPublishedProducts(published);
       } catch (err) {
-        console.error("Failed to fetch books:", err);
+        console.error("Failed to fetch data:", err);
       }
       setLoading(false);
     }
-    fetchBooks();
+    fetchData();
   }, [user]);
 
   if (!category) return null;
 
+  const tierOrder = ["free", "starter", "pro", "enterprise"];
+  const hasTierAccess = (required?: string) => {
+    if (!required) return true;
+    return tierOrder.indexOf(tier) >= tierOrder.indexOf(required.toLowerCase());
+  };
+
+  const getNodeState = (node: Node): ProductCardState => {
+    const nodeIdMap: Record<string, string> = {
+      "courses": "courses", "home-study": "home_study_courses", "webinars": "webinars",
+      "audiobook": "audiobooks", "workbooks": "workbook",
+    };
+    if (publishedProducts.has(nodeIdMap[node.id] || "")) return "published";
+    if (builtProducts.has(node.id) || builtProducts.has(nodeIdMap[node.id] || "")) return "in-progress";
+    if (node.tierRequired && !hasTierAccess(node.tierRequired)) return "locked";
+    const isRecommended = recommendations.some(r => r.nodeId === node.id || r.nodeId.includes(node.id.split("-")[0]));
+    if (isRecommended) return "recommended";
+    return "available";
+  };
+
+  const getRec = (nodeId: string) => recommendations.find(r => r.nodeId === nodeId || r.nodeId.includes(nodeId.split("-")[0]));
+
+  // Sort: recommended first, then available, in-progress, published, locked
+  const stateOrder: Record<ProductCardState, number> = { recommended: 0, available: 1, "in-progress": 2, published: 3, locked: 4 };
+  const sortedNodes = [...category.nodes].sort((a, b) => {
+    const stateA = getNodeState(a);
+    const stateB = getNodeState(b);
+    if (stateOrder[stateA] !== stateOrder[stateB]) return stateOrder[stateA] - stateOrder[stateB];
+    const revA = getRec(a.id)?.estimatedRevenue || BASELINE_REVENUE[a.id]?.annual || 0;
+    const revB = getRec(b.id)?.estimatedRevenue || BASELINE_REVENUE[b.id]?.annual || 0;
+    return revB - revA;
+  });
+
   const HeaderIcon = category.headerIcon;
+  const recommendedCount = sortedNodes.filter(n => getNodeState(n) === "recommended").length;
+  const genre = books[0]?.genre || undefined;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16 text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading...
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-6xl space-y-8">
+    <div className="max-w-6xl space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${category.gradientFrom} ${category.gradientTo} flex items-center justify-center text-white shadow-md`}>
@@ -157,105 +267,59 @@ export default function PortfolioStepView({ categoryId }: Props) {
         <div>
           <h1 className="font-heading text-2xl md:text-3xl font-bold">{category.label}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {category.subtitle} — portfolio view across all your books
+            {category.subtitle}
+            {recommendedCount > 0 && (
+              <span className="ml-2 text-secondary font-medium">· {recommendedCount} recommended by Abby</span>
+            )}
           </p>
         </div>
         <div className="ml-auto">
           <span className={`text-xs font-medium rounded-full px-3 py-1.5 ${category.bgColor} ${category.color}`}>
-            {category.nodes.length} product types
+            {category.nodes.length} products
           </span>
         </div>
       </div>
 
-      {/* Product Type Overview */}
-      <div className="rounded-2xl border border-border bg-card p-5">
-        <h3 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Available Products</h3>
-        <div className="flex flex-wrap gap-2">
-          {category.nodes.map((node) => {
-            const Icon = node.icon;
-            const statusColor = node.status === "live"
-              ? "bg-green-500/10 text-green-700 border-green-500/20"
-              : node.status === "coming-soon"
-              ? "bg-amber-500/10 text-amber-700 border-amber-500/20"
-              : "bg-muted text-muted-foreground border-border";
-            return (
-              <span key={node.id} className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium ${statusColor}`}>
-                <Icon className="h-3.5 w-3.5" />
-                {node.label}
-                {node.status === "live" && <span className="ml-1 w-1.5 h-1.5 rounded-full bg-green-500" />}
-              </span>
-            );
-          })}
-        </div>
+      {/* Product Cards Grid */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {sortedNodes.map((node) => {
+          const state = getNodeState(node);
+          const rec = getRec(node.id);
+          return (
+            <SmartProductCard
+              key={node.id}
+              id={node.id}
+              label={node.label}
+              icon={node.icon}
+              description={node.description}
+              personalizedDescription={rec?.personalizedDescription}
+              state={state}
+              tierRequired={node.tierRequired}
+              revenue={rec?.estimatedRevenue ? {
+                annual: rec.estimatedRevenue,
+                timeToBuild: BASELINE_REVENUE[node.id]?.timeToBuild || "~2 hours",
+                difficulty: BASELINE_REVENUE[node.id]?.difficulty || 2,
+              } : undefined}
+              genre={genre || undefined}
+              onBuild={() => navigate(`/dashboard/book/${books[0]?.id || ""}?tab=${categoryId}`)}
+              onContinue={() => navigate(`/dashboard/book/${books[0]?.id || ""}?tab=${categoryId}`)}
+              onView={() => {
+                const profile = books[0]?.slug;
+                if (profile) window.open(`/books/${profile}`, "_blank");
+              }}
+              onUpgrade={() => onNavigate?.("overview")}
+            />
+          );
+        })}
       </div>
 
-      {/* Per-Book Breakdown */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-heading text-lg font-bold">By Book</h3>
-          <p className="text-xs text-muted-foreground">
-            Click a book to manage its products
-          </p>
-        </div>
-
-        {loading ? (
-          <div className="flex items-center justify-center py-16 text-muted-foreground">
-            <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading books...
-          </div>
-        ) : books.length === 0 ? (
-          <Card className="flex flex-col items-center justify-center py-16 px-8 text-center border-dashed">
-            <BookOpen className="h-10 w-10 text-muted-foreground/30 mb-4" />
-            <h3 className="font-heading text-lg font-semibold mb-2">No books yet</h3>
-            <p className="text-sm text-muted-foreground max-w-sm mb-4">
-              Add a book first, then come back to manage your {category.label.toLowerCase()}.
-            </p>
-            <Button onClick={() => navigate("/dashboard?section=my-books")} variant="outline">
-              <Plus className="h-4 w-4 mr-1.5" /> Add Your First Book
-            </Button>
-          </Card>
-        ) : (
-          <div className="grid gap-4">
-            {books.map((book) => (
-              <motion.div
-                key={book.id}
-                className="group rounded-2xl border border-border bg-card p-5 hover:shadow-md hover:border-muted-foreground/20 transition-all cursor-pointer"
-                onClick={() => navigate(`/dashboard/book/${book.id}?tab=${categoryId}`)}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                whileHover={{ y: -2 }}
-              >
-                <div className="flex items-center gap-4">
-                  <div className="h-16 w-12 rounded-lg overflow-hidden bg-muted flex items-center justify-center shrink-0 shadow-sm border border-border">
-                    {book.cover_image_url ? (
-                      <img src={book.cover_image_url} alt={book.title} className="h-full w-full object-cover" />
-                    ) : (
-                      <BookOpen className="h-5 w-5 text-muted-foreground/30" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-heading font-bold text-base truncate">{book.title}</h4>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      No {category.label.toLowerCase()} products yet — click to start building
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Button size="sm" variant="outline" className="gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
-                      Manage
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Help Text */}
+      {/* Info */}
       <div className="rounded-xl bg-muted/50 border border-border p-4 text-center">
         <p className="text-xs text-muted-foreground leading-relaxed max-w-lg mx-auto">
-          <strong>All Books View:</strong> This shows {category.label.toLowerCase()} across all your books.
-          To build or manage products for a specific book, go to <strong>My Books Hub</strong> and click into it.
+          {recommendations.length > 0
+            ? "Products are ranked by Abby's recommendations and estimated revenue. Click into any product to start building."
+            : "Analyze a book with Abby to get personalized recommendations and revenue estimates for each product."
+          }
         </p>
       </div>
     </div>
