@@ -280,6 +280,10 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         return <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} />;
       case "review-products":
         return <ReviewProductsPage onNavigate={handleNavigate} />;
+      case "author-crm":
+        return gate("My Contacts", <AuthorCRMPage onNavigate={handleNavigate} />, "pro");
+      case "reading-club":
+        return <AuthorReadingClub onNavigate={handleNavigate} />;
       case "connect-stripe":
         return <ConnectStripePage />;
       case "overview":
