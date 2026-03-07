@@ -23,6 +23,7 @@ import UpsellStepRenderer from "./upsell/UpsellStepRenderer";
 import SocialMediaStepRenderer from "./social-media/SocialMediaStepRenderer";
 import WebinarStepRenderer from "./webinar/WebinarStepRenderer";
 import PodcastScriptsStepRenderer from "./podcast-scripts/PodcastScriptsStepRenderer";
+import EmailMarketingStepRenderer from "./email-marketing/EmailMarketingStepRenderer";
 import type { BuilderNodeConfig, BuilderStep } from "./builderNodeConfig";
 
 interface Props {
@@ -545,6 +546,19 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
                   />
                 ) : nodeConfig.customRenderer === "podcast-scripts" ? (
                   <PodcastScriptsStepRenderer
+                    stepId={currentStepConfig.id}
+                    stepData={stepData}
+                    setStepData={setStepData}
+                    onMarkEdited={(id) => setEditedSteps(prev => new Set([...prev, id]))}
+                    bookId={bookId}
+                    bookTitle={bookTitle}
+                    plan={plan}
+                    generationState={generationState}
+                    setGenerationState={setGenerationState}
+                    userId={user?.id || ""}
+                  />
+                ) : nodeConfig.customRenderer === "email-marketing" ? (
+                  <EmailMarketingStepRenderer
                     stepId={currentStepConfig.id}
                     stepData={stepData}
                     setStepData={setStepData}
