@@ -55,45 +55,40 @@ export default function AdminDashboard() {
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
     try {
-      // Use admin-books edge function for accurate counts (bypasses RLS)
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
 
-      // Fetch books count + pending counts via edge function
-      const [pendingRes, authorsRes] = await Promise.all([
+      // Parallel: get books list (with totalCount), pending-counts, authors count
+      const [listRes, countsRes, authorsRes] = await Promise.all([
         fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-books`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ action: "list", page: 1, filter: "all" }),
+        }),
+        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-books`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ action: "pending-counts" }),
         }),
         supabase.from("author_profiles").select("id", { count: "exact", head: true }),
       ]);
 
       let totalBooks = 0;
       let pendingBooks = 0;
-      if (pendingRes.ok) {
-        const booksData = await pendingRes.json();
-        totalBooks = booksData.books?.length ?? 0;
-        pendingBooks = booksData.pendingCount ?? 0;
-        // Fetch all books count by also getting a count-only request
-        // The list returns up to 20, so use pending-counts for accurate total
+      if (listRes.ok) {
+        const listData = await listRes.json();
+        totalBooks = listData.totalCount ?? listData.books?.length ?? 0;
+        pendingBooks = listData.pendingCount ?? 0;
       }
 
-      // Get accurate total books count
-      const countRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-books`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ action: "pending-counts" }),
-      });
-      let totalBooksCount = totalBooks;
       let pendingAuthorsCount = 0;
-      if (countRes.ok) {
-        const countData = await countRes.json();
+      if (countsRes.ok) {
+        const countData = await countsRes.json();
         pendingBooks = countData.pendingBooks ?? pendingBooks;
         pendingAuthorsCount = countData.pendingAuthors ?? 0;
       }
 
-      // Get admins count via edge function too
+      // Get admins count
       let adminsCount = 0;
       try {
         const adminsData = await adminApi.listAdmins();
