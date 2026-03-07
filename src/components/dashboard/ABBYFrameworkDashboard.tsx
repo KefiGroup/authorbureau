@@ -172,11 +172,38 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
     );
   }
 
-  // Determine journey states
-  const micrositeStep = profileState === "live" ? "done" as const : profileState === "incomplete" ? "current" as const : "current" as const;
-  const planStep = hasPlan ? "done" as const : profileState === "live" ? "current" as const : "upcoming" as const;
-  const buildStep = builtProducts.length > 0 ? "done" as const : hasPlan && isPremium ? "current" as const : "upcoming" as const;
-  const sellStep = builtProducts.length > 2 ? "current" as const : "upcoming" as const;
+  // Determine journey states - sequential logic
+  const step1Done = profileState === "live" && bookCount > 0;
+  const step2Done = hasPlan;
+  const step3Done = builtProducts.length > 0;
+  const step4Done = false; // No sales tracking yet
+
+  const micrositeStep = step1Done ? "done" as const : "current" as const;
+  const planStep = step2Done ? "done" as const : step1Done ? "current" as const : "upcoming" as const;
+  const buildStep = step3Done ? "done" as const : step2Done ? "current" as const : "upcoming" as const;
+  const sellStep = step4Done ? "done" as const : step3Done ? "current" as const : "upcoming" as const;
+
+  // Current journey step for dynamic CTAs
+  const currentJourneyStep = !step1Done ? "microsite" as const
+    : !step2Done ? "analyze" as const
+    : !isPremium ? "payments" as const
+    : !step3Done ? "build" as const
+    : "earn" as const;
+
+  const handleJourneyAction = (action: string) => {
+    switch (action) {
+      case "add-book": onNavigate("my-books"); break;
+      case "profile": onNavigate("profile"); break;
+      case "analyze": onNavigate("build-business"); break;
+      case "view-microsite":
+        if (authorSlug) window.open(`/authors/${authorSlug}`, "_blank");
+        else onNavigate("profile");
+        break;
+      case "connect-stripe": onNavigate("connect-stripe"); break;
+      case "build": onNavigate("revenue-streams"); break;
+      case "analytics": onNavigate("analytics"); break;
+    }
+  };
 
   return (
     <div className="max-w-6xl space-y-8">
@@ -231,8 +258,8 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
         planState={planStep}
         buildState={buildStep}
         sellState={sellStep}
-        onMicrosite={() => onNavigate(profileState === "none" ? "profile" : "my-books")}
-        onTalkToAbby={() => onNavigate("build-business")}
+        currentJourneyStep={currentJourneyStep}
+        onAction={handleJourneyAction}
       />
     </div>
   );

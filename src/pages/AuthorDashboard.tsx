@@ -6,6 +6,7 @@ import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import JourneyBreadcrumb from "@/components/dashboard/JourneyBreadcrumb";
 import type { JourneyStep } from "@/components/dashboard/JourneyBreadcrumb";
+import SectionGatePage from "@/components/dashboard/SectionGatePage";
 import ProfileEditor from "@/components/dashboard/ProfileEditor";
 import CourseBuilder from "@/components/dashboard/CourseBuilder";
 import SpeakingProfile from "@/components/dashboard/SpeakingProfile";
