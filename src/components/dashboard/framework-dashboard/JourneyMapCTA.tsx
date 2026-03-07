@@ -17,7 +17,7 @@ const steps = [
   { key: "microsite", label: "Your Microsite", sub: "FREE", icon: Globe },
   { key: "plan", label: "Abby Business Plan", sub: "FREE", icon: Sparkles },
   { key: "build", label: "Build Products", sub: "From $47/mo", icon: Wrench },
-  { key: "sell", label: "Sell & Grow", sub: "Keep 92%", icon: TrendingUp },
+  { key: "sell", label: "Sell & Grow", sub: "Keep ~92%", icon: TrendingUp },
 ];
 
 export default function JourneyMapCTA({ micrositeState, planState, buildState, sellState, onMicrosite, onTalkToAbby }: Props) {
@@ -89,8 +89,8 @@ export default function JourneyMapCTA({ micrositeState, planState, buildState, s
 
         {/* Final CTA */}
         <div className="text-center space-y-4">
-          <p className="font-heading text-xl md:text-2xl font-bold text-gray-900">
-            Your book is not the business. Your book is the <span className="text-amber-600">HOOK</span>.
+          <p className="font-heading text-xl md:text-2xl font-bold text-gray-900 italic">
+            "Your book is not the business. Your book is the <span className="text-amber-600">HOOK</span>."
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Button onClick={onMicrosite} size="lg" className="bg-amber-600 hover:bg-amber-700 text-white shadow-lg">
@@ -102,6 +102,9 @@ export default function JourneyMapCTA({ micrositeState, planState, buildState, s
               Talk to Abby →
             </Button>
           </div>
+          <p className="text-xs text-gray-500">
+            Join 500+ authors who are turning their books into thriving businesses on Authors Bureau.
+          </p>
         </div>
       </div>
     </motion.section>

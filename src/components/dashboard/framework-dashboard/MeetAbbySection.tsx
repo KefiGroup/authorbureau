@@ -20,7 +20,6 @@ interface Props {
 
 export default function MeetAbbySection({ hasPlan, planSummary, hasBook, onStartConsultation, onViewPlan, onChatAbby }: Props) {
   if (hasPlan && planSummary) {
-    // Plan summary view
     return (
       <motion.section
         className="rounded-2xl border border-border bg-card p-6 md:p-10"
@@ -31,15 +30,15 @@ export default function MeetAbbySection({ hasPlan, planSummary, hasBook, onStart
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-7 space-y-4">
             <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-green-700 bg-green-100 rounded-full px-3 py-1 w-fit">
-              <Sparkles className="h-3 w-3" /> Business Plan Ready
+              <Sparkles className="h-3 w-3" /> Your Abby Business Plan Is Ready
             </span>
             <h2 className="font-heading text-2xl md:text-3xl font-bold">
-              Your Business Plan for <span className="text-amber-600">"{planSummary.bookTitle}"</span>
+              Your Monetization Plan for <span className="text-amber-600">"{planSummary.bookTitle}"</span>
             </h2>
             <div className="grid grid-cols-3 gap-3">
               <div className="rounded-xl bg-muted/50 border border-border p-3 text-center">
                 <p className="text-2xl font-bold text-foreground">{planSummary.streamsMapped}</p>
-                <p className="text-[10px] text-muted-foreground font-medium">of 27 Streams</p>
+                <p className="text-[10px] text-muted-foreground font-medium">of 27 Streams Mapped</p>
               </div>
               <div className="rounded-xl bg-muted/50 border border-border p-3 text-center">
                 <p className="text-2xl font-bold text-green-600">{planSummary.projectedRevenue}</p>
@@ -67,7 +66,6 @@ export default function MeetAbbySection({ hasPlan, planSummary, hasBook, onStart
     );
   }
 
-  // No plan — introduction
   return (
     <motion.section
       className="rounded-2xl border border-border bg-card p-6 md:p-10"
@@ -86,12 +84,12 @@ export default function MeetAbbySection({ hasPlan, planSummary, hasBook, onStart
           </h2>
 
           <p className="text-sm md:text-base text-muted-foreground leading-relaxed max-w-lg">
-            Abby analyzes your book and creates a personalized business plan with up to <strong className="text-foreground">27 revenue streams</strong>, 
+            Your microsite is your storefront. But what will you sell? Abby analyzes your book and creates a personalized business plan with up to <strong className="text-foreground">27 revenue streams</strong> — 
             branded products, pricing recommendations, and revenue projections tailored to your expertise.
           </p>
 
-          <p className="text-sm font-semibold text-foreground italic">
-            "Your microsite is your storefront. But what will you sell?"
+          <p className="text-xs text-muted-foreground italic max-w-lg">
+            Most authors leave $50,000–$200,000/year on the table because they don't know how to monetize beyond book sales.
           </p>
 
           <div className="flex gap-4">
@@ -112,10 +110,13 @@ export default function MeetAbbySection({ hasPlan, planSummary, hasBook, onStart
           </div>
 
           {hasBook ? (
-            <Button onClick={onStartConsultation} size="lg" className="w-fit bg-amber-600 hover:bg-amber-700 text-white shadow-lg">
-              <Sparkles className="h-4 w-4 mr-2" />
-              Start Your Free Consultation with Abby →
-            </Button>
+            <div className="space-y-2">
+              <Button onClick={onStartConsultation} size="lg" className="w-fit bg-amber-600 hover:bg-amber-700 text-white shadow-lg">
+                <Sparkles className="h-4 w-4 mr-2" />
+                Start Your Free Consultation with Abby →
+              </Button>
+              <p className="text-[10px] text-muted-foreground">Takes 5 minutes. Your business plan is saved forever.</p>
+            </div>
           ) : (
             <p className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-3 border border-border">
               📘 Set up your microsite and add a book first — then Abby can analyze it and build your business plan.
@@ -142,21 +143,20 @@ function AbbyMockChat() {
       </div>
       <div className="p-4 space-y-3 text-xs">
         <div className="bg-muted rounded-lg rounded-tl-none p-3 max-w-[85%]">
-          <p className="text-foreground">Great — I've analyzed your book! Based on your expertise, I see strong potential in <strong>3 key areas</strong>.</p>
+          <p className="text-foreground">Hi! I've read your book and I can see strong potential. What's your primary goal?</p>
         </div>
         <div className="bg-muted rounded-lg rounded-tl-none p-3 max-w-[85%]">
-          <p className="text-foreground mb-2">Which resonates most?</p>
           <div className="space-y-1">
-            {["A) Online courses", "B) Coaching programs", "C) Speaking events", "D) All of the above"].map((opt) => (
+            {["A) Build online courses", "B) Launch coaching programs", "C) Book speaking gigs", "D) All of the above"].map((opt) => (
               <div key={opt} className="rounded bg-background border border-border px-2 py-1 text-[10px]">{opt}</div>
             ))}
           </div>
         </div>
         <div className="bg-amber-100 dark:bg-amber-900/30 rounded-lg rounded-tr-none p-3 max-w-[75%] ml-auto">
-          <p className="text-foreground">D — All of the above!</p>
+          <p className="text-foreground">B — Coaching programs!</p>
         </div>
         <div className="bg-muted rounded-lg rounded-tl-none p-3 max-w-[85%]">
-          <p className="text-foreground">Perfect! I've mapped <strong>12 revenue streams</strong> for you. Let me build your business plan... ✨</p>
+          <p className="text-foreground">Great choice! I've mapped <strong>14 revenue streams</strong> for your book. Let me build your plan... ✨</p>
         </div>
       </div>
     </div>

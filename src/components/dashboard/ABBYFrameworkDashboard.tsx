@@ -222,6 +222,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
         onSubscribe={handleSubscribe}
         onManage={handleManage}
         loading={checkoutLoading || portalLoading}
+        abbyRecommendedTier={hasPlan ? (planSummary?.streamsMapped > 19 ? "enterprise" : planSummary?.streamsMapped > 11 ? "pro" : "starter") : undefined}
       />
 
       {/* SECTION 5 — Journey Map */}
