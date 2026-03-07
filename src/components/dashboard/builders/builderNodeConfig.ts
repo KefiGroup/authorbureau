@@ -275,14 +275,15 @@ const coachingBuilder: BuilderNodeConfig = {
   dbTable: "coaching_packages",
   icon: "UserCheck",
   color: "text-violet-500",
-  abbyGreeting: "1-on-1 coaching is your highest-value offer. Let's design packages that reflect your expertise.",
+  customRenderer: "coaching",
+  abbyGreeting: "1-on-1 coaching is your highest-value offer. Let's design a complete coaching package — session structure, client materials, pricing, and booking system.",
   abbyPublishMessage: "Your coaching packages are live! Share them on your microsite and start booking discovery calls.",
   steps: [
-    { id: "packages", label: "Design Packages", description: "Create coaching packages and pricing", abbyTip: "Offer 3 tiers: Single Session ($297), 4-Pack ($997), VIP Quarter ($2,497)." },
-    { id: "intake", label: "Intake Form", description: "Create client intake questionnaire", abbyTip: "Ask about goals, timeline, budget, and previous attempts. This qualifies leads." },
-    { id: "curriculum", label: "Session Framework", description: "Design your coaching methodology", abbyTip: "Structure sessions: 10min check-in, 30min deep work, 10min action items, 10min Q&A." },
-    { id: "sales-page", label: "Sales Page", description: "Generate coaching sales copy", abbyTip: "Include testimonials and specific outcomes. 'My clients achieve X in Y weeks.'" },
-    { id: "preview", label: "Preview & Publish", description: "Review and launch coaching", abbyTip: "Start with 3-5 clients max. Refine your process before scaling." },
+    { id: "packages", label: "Package Setup", description: "Set package name, structure, duration, pricing, and delivery method", abbyTip: "Your book's transformation maps perfectly to a 12-week coaching program. I recommend packaging it at $1,997–$2,997 — that's the sweet spot for author-coaches in your genre." },
+    { id: "intake", label: "Session Framework", description: "AI generates a session-by-session framework mapped to your book chapters", abbyTip: "Each session maps to a chapter in your book with objectives, discussion questions, exercises, and homework." },
+    { id: "curriculum", label: "Client Materials", description: "Generate intake form, welcome packet, session notes, progress tracker, agreement, and certificate", abbyTip: "Professional client materials set the tone for your coaching relationship. I'll generate all 6 documents customized to your book's methodology." },
+    { id: "sales-page", label: "Booking & Sales", description: "Booking page, discovery call script, sales page, application form, and follow-up emails", abbyTip: "A free 15-minute discovery call qualifies leads and builds trust. High-ticket packages should require an application form." },
+    { id: "preview", label: "Preview & Publish", description: "Preview booking page, sales page, and publish your coaching package", abbyTip: "Start with 3-5 clients max. Refine your process before scaling. At your price point, even 2 clients/month generates significant revenue." },
   ],
 };
 

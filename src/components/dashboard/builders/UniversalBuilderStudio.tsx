@@ -25,6 +25,7 @@ import WebinarStepRenderer from "./webinar/WebinarStepRenderer";
 import PodcastScriptsStepRenderer from "./podcast-scripts/PodcastScriptsStepRenderer";
 import EmailMarketingStepRenderer from "./email-marketing/EmailMarketingStepRenderer";
 import WebsiteStepRenderer from "./website/WebsiteStepRenderer";
+import CoachingStepRenderer from "./coaching/CoachingStepRenderer";
 import type { BuilderNodeConfig, BuilderStep } from "./builderNodeConfig";
 
 interface Props {
