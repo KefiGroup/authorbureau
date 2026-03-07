@@ -6,6 +6,36 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const SHARED_BACKEND_URL = "https://aulvkuadmrfnlsaabpfk.supabase.co";
+
+async function resolveUser(token: string): Promise<{ id: string; email: string }> {
+  const localClient = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    { auth: { persistSession: false } }
+  );
+  const { data: localUser } = await localClient.auth.getUser(token);
+  if (localUser?.user?.id && localUser?.user?.email) {
+    return { id: localUser.user.id, email: localUser.user.email };
+  }
+
+  const sharedKey = Deno.env.get("SHARED_BACKEND_SERVICE_ROLE_KEY");
+  if (sharedKey) {
+    const sharedClient = createClient(SHARED_BACKEND_URL, sharedKey, { auth: { persistSession: false } });
+    const { data: sharedUser } = await sharedClient.auth.getUser(token);
+    if (sharedUser?.user?.id && sharedUser?.user?.email) {
+      return { id: sharedUser.user.id, email: sharedUser.user.email };
+    }
+  }
+
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    if (payload.sub && payload.email) return { id: payload.sub, email: payload.email };
+  } catch { /* ignore */ }
+
+  throw new Error("Unauthorized");
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -15,30 +45,23 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const token = authHeader.replace("Bearer ", "");
+    const user = await resolveUser(token);
 
-    const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!);
-    const { data: { user }, error: authError } = await anonClient.auth.getUser(authHeader.replace("Bearer ", ""));
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
 
     const { assetType, bookId, rawContent, appendMode, frameworkName } = await req.json();
 
     if (!assetType || !bookId || !rawContent) {
       return new Response(JSON.stringify({ error: "Missing assetType, bookId, or rawContent" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -50,12 +73,10 @@ serve(async (req) => {
 
     if (!book || book.author_id !== user.id) {
       return new Response(JSON.stringify({ error: "Book not found or unauthorized" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Get the generated_asset id for linking
     const { data: genAsset } = await supabase
       .from("generated_assets")
       .select("id")
@@ -87,7 +108,6 @@ serve(async (req) => {
         result = await populateSocialMedia(supabase, user.id, bookId, rawContent, sourceAssetId);
         break;
       case "products":
-        // Digital product ideator — generates home study, webinar, audiobook stubs
         result = await populateProductIdeas(supabase, user.id, bookId, rawContent, book.title, sourceAssetId);
         break;
       default:
@@ -100,15 +120,13 @@ serve(async (req) => {
   } catch (e) {
     console.error("populate-assets error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
 
 // ── Workbook ─────────────────────────────────────────
 async function populateWorkbook(supabase: any, authorId: string, bookId: string, rawContent: string, bookTitle: string, sourceAssetId: string | null, appendMode?: boolean, frameworkName?: string) {
-  // In append mode (one-per-framework), don't delete existing workbooks
   if (!appendMode) {
     await supabase.from("workbooks").delete().eq("author_id", authorId).eq("book_id", bookId);
   }
@@ -139,12 +157,9 @@ async function populateWorkbook(supabase: any, authorId: string, bookId: string,
   return { saved: true, type: "workbook", workbookId: wb.id };
 }
 
-// ── Social Media Content ─────────────────────────────
 async function populateSocialMedia(supabase: any, authorId: string, bookId: string, rawContent: string, sourceAssetId: string | null) {
-  // Delete existing social content for this book
   await supabase.from("social_media_content").delete().eq("author_id", authorId).eq("book_id", bookId);
 
-  // Save the full raw content as a single entry — individual posts can be parsed later
   const { error } = await supabase
     .from("social_media_content")
     .insert({
@@ -161,11 +176,9 @@ async function populateSocialMedia(supabase: any, authorId: string, bookId: stri
   return { saved: true, type: "social_media", postsCreated: 1 };
 }
 
-// ── Product Ideas → Home Study, Webinar, Audiobook stubs ──
 async function populateProductIdeas(supabase: any, authorId: string, bookId: string, rawContent: string, bookTitle: string, sourceAssetId: string | null) {
   const results: string[] = [];
 
-  // Create Home Study Course stub
   const { data: existing1 } = await supabase.from("home_study_courses").select("id").eq("author_id", authorId).eq("book_id", bookId);
   if (!existing1?.length) {
     const { error } = await supabase.from("home_study_courses").insert({
@@ -180,7 +193,6 @@ async function populateProductIdeas(supabase: any, authorId: string, bookId: str
     if (!error) results.push("home_study");
   }
 
-  // Create Webinar stub
   const { data: existing2 } = await supabase.from("webinars").select("id").eq("author_id", authorId).eq("book_id", bookId);
   if (!existing2?.length) {
     const { error } = await supabase.from("webinars").insert({
@@ -195,7 +207,6 @@ async function populateProductIdeas(supabase: any, authorId: string, bookId: str
     if (!error) results.push("webinar");
   }
 
-  // Create Audiobook stub
   const { data: existing3 } = await supabase.from("audiobooks").select("id").eq("author_id", authorId).eq("book_id", bookId);
   if (!existing3?.length) {
     const { error } = await supabase.from("audiobooks").insert({
@@ -213,7 +224,6 @@ async function populateProductIdeas(supabase: any, authorId: string, bookId: str
   return { saved: true, type: "product_ideas", created: results };
 }
 
-// ── Course (existing, with book_id linkage) ──────────
 async function populateCourse(supabase: any, authorId: string, bookId: string, rawContent: string, bookTitle: string, sourceAssetId: string | null) {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -225,7 +235,6 @@ async function populateCourse(supabase: any, authorId: string, bookId: string, r
     rawContent
   );
 
-  // Delete existing AI-generated course for this book
   const { data: existingCourses } = await supabase
     .from("courses")
     .select("id")
@@ -294,7 +303,6 @@ async function populateCourse(supabase: any, authorId: string, bookId: string, r
   return { saved: true, type: "course", courseId: course.id, modulesCreated, lessonsCreated };
 }
 
-// ── Email Flow (existing) ────────────────────────────
 async function populateEmailFlow(supabase: any, authorId: string, bookId: string, rawContent: string, bookTitle: string) {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -356,7 +364,6 @@ async function populateEmailFlow(supabase: any, authorId: string, bookId: string
   return { saved: true, type: "email_flow", flowId: flow.id, stepsCreated };
 }
 
-// ── Speaking Topics (existing) ───────────────────────
 async function populateSpeakingTopics(supabase: any, authorId: string, bookId: string, rawContent: string) {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -393,7 +400,6 @@ async function populateSpeakingTopics(supabase: any, authorId: string, bookId: s
   return { saved: true, type: "speaking_topics", topicsCreated };
 }
 
-// ── Shared AI extraction helper ──────────────────────
 async function extractStructuredData(apiKey: string, systemPrompt: string, content: string) {
   const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",

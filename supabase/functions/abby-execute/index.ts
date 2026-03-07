@@ -7,17 +7,36 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-/*
-  Abby Execute — the Manus-like agent engine.
-
-  Modes:
-    1. "plan"   — decompose a product build into executable steps
-    2. "step"   — execute a single step (generate content, save, configure, etc.)
-    3. "status" — return current execution state for a book
-    4. "update-plan" — re-evaluate and update the business plan after product completion
-*/
-
+const SHARED_BACKEND_URL = "https://aulvkuadmrfnlsaabpfk.supabase.co";
 const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
+
+async function resolveUser(token: string): Promise<{ id: string; email: string }> {
+  const localClient = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    { auth: { persistSession: false } }
+  );
+  const { data: localUser } = await localClient.auth.getUser(token);
+  if (localUser?.user?.id && localUser?.user?.email) {
+    return { id: localUser.user.id, email: localUser.user.email };
+  }
+
+  const sharedKey = Deno.env.get("SHARED_BACKEND_SERVICE_ROLE_KEY");
+  if (sharedKey) {
+    const sharedClient = createClient(SHARED_BACKEND_URL, sharedKey, { auth: { persistSession: false } });
+    const { data: sharedUser } = await sharedClient.auth.getUser(token);
+    if (sharedUser?.user?.id && sharedUser?.user?.email) {
+      return { id: sharedUser.user.id, email: sharedUser.user.email };
+    }
+  }
+
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    if (payload.sub && payload.email) return { id: payload.sub, email: payload.email };
+  } catch { /* ignore */ }
+
+  throw new Error("Unauthorized");
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -26,19 +45,15 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
 
     // Auth
     const authHeader = req.headers.get("Authorization") || "";
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const user = await resolveUser(token);
 
     let body: any;
     try {
@@ -51,7 +66,7 @@ serve(async (req) => {
     }
     const { action, bookId, productNode, businessPlan, completedProducts } = body;
 
-    // ─── ACTION: PLAN — Decompose a product into executable steps ───
+    // ─── ACTION: PLAN ───
     if (action === "plan") {
       const steps = getProductSteps(productNode, businessPlan);
       return new Response(JSON.stringify({ steps }), {
@@ -59,12 +74,11 @@ serve(async (req) => {
       });
     }
 
-    // ─── ACTION: STEP — Execute a single step ───
+    // ─── ACTION: STEP ───
     if (action === "step") {
       const { stepId, stepType, context } = body;
 
       if (stepType === "generate") {
-        // Stream AI generation
         const systemPrompt = buildGenerationPrompt(productNode, context);
         const response = await fetch(AI_GATEWAY, {
           method: "POST",
@@ -95,7 +109,6 @@ serve(async (req) => {
       }
 
       if (stepType === "save") {
-        // Save generated content to generated_assets
         const { content, assetType } = context;
         const { error } = await supabase.from("generated_assets").upsert({
           book_id: bookId,
@@ -112,7 +125,6 @@ serve(async (req) => {
       }
 
       if (stepType === "configure") {
-        // Auto-configure product settings (pricing, metadata) with author approval
         const configPrompt = `Based on this business plan, suggest optimal settings for the "${productNode}" product:
         
 Business Plan: ${JSON.stringify(businessPlan)}
@@ -172,7 +184,6 @@ Return a JSON object with:
       }
 
       if (stepType === "connectors") {
-        // Return recommended connectors for the product
         const connectorMap: Record<string, any[]> = {
           workbook: [
             { name: "Amazon KDP", type: "free", url: "https://kdp.amazon.com", description: "Publish workbook as paperback or ebook" },
@@ -222,7 +233,7 @@ Return a JSON object with:
       });
     }
 
-    // ─── ACTION: UPDATE-PLAN — Re-evaluate business plan after completion ───
+    // ─── ACTION: UPDATE-PLAN ───
     if (action === "update-plan") {
       if (!businessPlan || !completedProducts) {
         return new Response(JSON.stringify({ error: "Missing businessPlan or completedProducts" }), {
@@ -273,7 +284,6 @@ Return the updated plan in the same JSON structure as the original, with these a
         console.error("Failed to parse updated plan:", e);
       }
 
-      // Save updated plan
       await supabase.from("generated_assets").upsert({
         book_id: bookId,
         author_id: user.id,
@@ -287,7 +297,7 @@ Return the updated plan in the same JSON structure as the original, with these a
       });
     }
 
-    // ─── ACTION: STATUS — Get current execution state ───
+    // ─── ACTION: STATUS ───
     if (action === "status") {
       const { data: plan } = await supabase
         .from("generated_assets")
@@ -308,7 +318,6 @@ Return the updated plan in the same JSON structure as the original, with these a
         try {
           parsedPlan = JSON.parse(plan.content);
         } catch {
-          // Content is not valid JSON (e.g. plain text from AI) — try extracting JSON
           const jsonMatch = plan.content.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
             try { parsedPlan = JSON.parse(jsonMatch[0]); } catch { /* ignore */ }
@@ -336,61 +345,18 @@ Return the updated plan in the same JSON structure as the original, with these a
   }
 });
 
-// ─── Step Decomposition ──────────────────────────────────
 function getProductSteps(productNode: string, plan: any): any[] {
   const planProduct = findProductInPlan(productNode, plan);
   const pricing = planProduct?.pricing || "TBD";
   const title = planProduct?.title || productNode;
 
   return [
-    {
-      id: "analyze",
-      label: "📖 Analyzing manuscript",
-      description: "Abby is reading your book and identifying the best content for this product.",
-      type: "generate",
-      status: "pending",
-      duration: "~30s",
-    },
-    {
-      id: "generate",
-      label: `✍️ Generating ${title}`,
-      description: `Creating your ${productNode} content from your book's frameworks and key insights.`,
-      type: "generate",
-      status: "pending",
-      duration: "~2min",
-    },
-    {
-      id: "save",
-      label: "💾 Saving to your library",
-      description: "Storing the generated content in your book's product library.",
-      type: "save",
-      status: "pending",
-      duration: "~5s",
-    },
-    {
-      id: "configure",
-      label: `⚙️ Configuring ${title}`,
-      description: `Setting up pricing (${pricing}), metadata, and product settings for your approval.`,
-      type: "configure",
-      status: "pending",
-      duration: "~10s",
-    },
-    {
-      id: "connectors",
-      label: "🔗 Preparing distribution",
-      description: "Identifying the best platforms to distribute and sell this product.",
-      type: "connectors",
-      status: "pending",
-      duration: "~5s",
-    },
-    {
-      id: "update-plan",
-      label: "📋 Updating business plan",
-      description: "Marking this product complete and recalculating your revenue projections.",
-      type: "update-plan",
-      status: "pending",
-      duration: "~10s",
-    },
+    { id: "analyze", label: "📖 Analyzing manuscript", description: "Abby is reading your book and identifying the best content for this product.", type: "generate", status: "pending", duration: "~30s" },
+    { id: "generate", label: `✍️ Generating ${title}`, description: `Creating your ${productNode} content from your book's frameworks and key insights.`, type: "generate", status: "pending", duration: "~2min" },
+    { id: "save", label: "💾 Saving to your library", description: "Storing the generated content in your book's product library.", type: "save", status: "pending", duration: "~5s" },
+    { id: "configure", label: `⚙️ Configuring ${title}`, description: `Setting up pricing (${pricing}), metadata, and product settings for your approval.`, type: "configure", status: "pending", duration: "~10s" },
+    { id: "connectors", label: "🔗 Preparing distribution", description: "Identifying the best platforms to distribute and sell this product.", type: "connectors", status: "pending", duration: "~5s" },
+    { id: "update-plan", label: "📋 Updating business plan", description: "Marking this product complete and recalculating your revenue projections.", type: "update-plan", status: "pending", duration: "~10s" },
   ];
 }
 
@@ -408,7 +374,7 @@ function findProductInPlan(node: string, plan: any): any {
 }
 
 function buildGenerationPrompt(productNode: string, context: any): string {
-  const base = `You are an expert content creator for authors. Generate professional, comprehensive content for a "${productNode}" product.
+  return `You are an expert content creator for authors. Generate professional, comprehensive content for a "${productNode}" product.
 
 Book Title: ${context.bookTitle || "Unknown"}
 Book Description: ${context.bookDescription || "No description"}
@@ -418,6 +384,4 @@ ${context.frameworks ? `\nKey Frameworks: ${JSON.stringify(context.frameworks)}`
 ${context.businessPlan ? `\nBusiness Plan Context: ${JSON.stringify(context.businessPlan)}` : ""}
 
 Generate high-quality, actionable content that an author can review, customize, and publish.`;
-
-  return base;
 }
