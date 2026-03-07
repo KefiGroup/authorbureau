@@ -329,20 +329,20 @@ const speakingBuilder: BuilderNodeConfig = {
 
 const corporateTrainingBuilder: BuilderNodeConfig = {
   id: "corporate-training",
-  label: "Corporate Training",
+  label: "In-House Speaker",
   category: "bridge",
   requiredTier: "enterprise",
-  dbTable: "courses",
+  dbTable: "generated_assets",
   icon: "Building2",
   color: "text-violet-500",
-  abbyGreeting: "Corporate training commands premium fees. Let's design programs that HR departments will love.",
+  customRenderer: "in-house-speaker",
+  abbyGreeting: "Corporate workshops are your highest per-hour revenue. A full-day workshop at $10,000 often leads to repeat bookings and training program contracts.",
   abbyPublishMessage: "Your corporate training program is ready! Create proposals for 3-5 target companies this month.",
   steps: [
-    { id: "configure", label: "Configure", description: "Set program type and audience", abbyTip: "Half-day workshops ($3K-$8K) are easiest to sell. Full-day programs ($8K-$15K) for established clients." },
-    { id: "curriculum", label: "AI Curriculum", description: "Generate training curriculum", abbyTip: "Include interactive exercises, case studies, and takeaway materials. Corporate buyers value engagement." },
-    { id: "materials", label: "Participant Materials", description: "Create handouts and worksheets", abbyTip: "Brand everything professionally. Include pre-work and post-training action plans." },
-    { id: "proposal", label: "Proposal Template", description: "Generate corporate proposal", abbyTip: "Quantify ROI. 'Teams that complete this training show 30% improvement in X metric.'" },
-    { id: "preview", label: "Preview & Publish", description: "Review and finalize", abbyTip: "Start by offering a free lunch-and-learn to build relationships with HR decision makers." },
+    { id: "setup", label: "Corporate Package Setup", description: "Set package types, topics, target organizations, and pricing", abbyTip: "Corporate workshops are your highest per-hour revenue. A full-day workshop at $10,000 often leads to repeat bookings and training program contracts." },
+    { id: "workshop", label: "Workshop Builder", description: "AI generates detailed agendas, participant workbooks, facilitator guides, and exercises", abbyTip: "Include interactive exercises, case studies, and takeaway materials. Corporate buyers value engagement." },
+    { id: "proposal", label: "Corporate Proposal", description: "Proposal template, case study, ROI calculator, and follow-up program options", abbyTip: "Quantify ROI. 'Teams that complete this training show 30% improvement in X metric.'" },
+    { id: "preview", label: "Preview & Publish", description: "Preview all materials and finalize", abbyTip: "Start by offering a free lunch-and-learn to build relationships with HR decision makers." },
   ],
 };
 
