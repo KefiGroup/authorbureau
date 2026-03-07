@@ -146,6 +146,7 @@ export default function BookHub() {
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         isPremium={isPremium || isAdmin}
+        tier={(isPremium || isAdmin) ? "pro" : "free"}
       />
       <div className="flex flex-1 flex-col min-w-0">
         <DashboardHeader
