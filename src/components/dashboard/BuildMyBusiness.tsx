@@ -937,7 +937,7 @@ export default function BuildMyBusiness() {
               )}
               <div className={`max-w-[85%] ${msg.role === "user"
                 ? "bg-primary text-primary-foreground rounded-2xl rounded-br-md px-4 py-3"
-                : "rounded-2xl rounded-bl-md px-5 py-4"
+                : `rounded-2xl rounded-bl-md px-5 py-4 ${displayContent.includes("This is your complete ABBY Business Plan") ? "border-l-4 border-secondary bg-secondary/5" : ""}`
               }`}>
                 {msg.role === "assistant" ? (
                 <div>
