@@ -180,6 +180,8 @@ export type Database = {
           photo_url: string | null
           photo_zoom: number | null
           speaker_fee_range: string | null
+          stripe_account_id: string | null
+          stripe_onboarding_complete: boolean | null
           tagline: string | null
           twitter_url: string | null
           updated_at: string
@@ -211,6 +213,8 @@ export type Database = {
           photo_url?: string | null
           photo_zoom?: number | null
           speaker_fee_range?: string | null
+          stripe_account_id?: string | null
+          stripe_onboarding_complete?: boolean | null
           tagline?: string | null
           twitter_url?: string | null
           updated_at?: string
@@ -242,6 +246,8 @@ export type Database = {
           photo_url?: string | null
           photo_zoom?: number | null
           speaker_fee_range?: string | null
+          stripe_account_id?: string | null
+          stripe_onboarding_complete?: boolean | null
           tagline?: string | null
           twitter_url?: string | null
           updated_at?: string
