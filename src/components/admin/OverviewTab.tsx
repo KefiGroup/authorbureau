@@ -146,8 +146,8 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
               Review {pendingCount} Pending Submission{pendingCount !== 1 ? "s" : ""}
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={() => onNavigate("users")}>
-            <Users className="h-4 w-4 mr-1.5" /> View All Users
+          <Button variant="outline" size="sm" onClick={() => onNavigate("authors")}>
+            <UserCheck className="h-4 w-4 mr-1.5" /> View All Authors
           </Button>
         </div>
       </div>
