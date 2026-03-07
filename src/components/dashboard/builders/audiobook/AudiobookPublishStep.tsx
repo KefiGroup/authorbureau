@@ -1,0 +1,115 @@
+import { useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Play, Pause, SkipBack, SkipForward, Download, ExternalLink, Headphones, Clock, BarChart3, BookOpen } from "lucide-react";
+import type { AudiobookStepProps, AudioChapter } from "./types";
+import AbbyCoachingTip from "@/components/dashboard/social-media/AbbyCoachingTip";
+
+export default function AudiobookPublishStep({ stepData, bookTitle }: AudiobookStepProps) {
+  const chapters: AudioChapter[] = stepData.chapters || [];
+  const setup = stepData.setup || {};
+  const [playing, setPlaying] = useState(false);
+  const [activeChapter, setActiveChapter] = useState(0);
+
+  const totalMinutes = chapters.reduce((sum, ch) => sum + (ch.estimatedMinutes || 5), 0);
+  const totalHours = Math.round(totalMinutes / 60 * 10) / 10;
+  const readyChapters = chapters.filter(ch => ch.status === "audio-generated" || ch.status === "reviewed").length;
+
+  return (
+    <div className="space-y-6">
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-3">
+        <Card className="p-4 text-center">
+          <Headphones className="h-5 w-5 text-secondary mx-auto mb-1.5" />
+          <p className="text-lg font-bold">{totalHours}h</p>
+          <p className="text-[10px] text-muted-foreground">Total Length</p>
+        </Card>
+        <Card className="p-4 text-center">
+          <BookOpen className="h-5 w-5 text-accent mx-auto mb-1.5" />
+          <p className="text-lg font-bold">{readyChapters}/{chapters.length}</p>
+          <p className="text-[10px] text-muted-foreground">Chapters Ready</p>
+        </Card>
+        <Card className="p-4 text-center">
+          <BarChart3 className="h-5 w-5 text-primary mx-auto mb-1.5" />
+          <p className="text-lg font-bold">${setup.price || "14.99"}</p>
+          <p className="text-[10px] text-muted-foreground">Price</p>
+        </Card>
+      </div>
+
+      {/* Abby review */}
+      <AbbyCoachingTip
+        title="Abby's Final Review"
+        expandedByDefault
+        customContent={
+          <div className="space-y-2 text-xs text-muted-foreground">
+            <p>Your audiobook is <strong>~{totalHours} hours</strong> across <strong>{chapters.length} chapters</strong>.</p>
+            <p>Audiobooks on this platform earn an average of <strong>$300-$1,200/month</strong> in passive revenue.</p>
+            <p>At <strong>${setup.price || "14.99"}</strong>, you'd need about 20-80 sales/month to hit that target — very achievable with your existing audience.</p>
+            {readyChapters < chapters.length && (
+              <p className="text-amber-700">⚠ {chapters.length - readyChapters} chapters still need audio. Complete them before publishing.</p>
+            )}
+          </div>
+        }
+      />
+
+      {/* Mini player preview */}
+      <Card className="overflow-hidden">
+        <div className="p-4 bg-muted/30 border-b border-border">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Audiobook Preview</p>
+          <h3 className="font-heading text-lg font-bold">{setup.title || bookTitle}</h3>
+        </div>
+
+        {/* Player controls */}
+        <div className="p-4 flex items-center gap-4">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setActiveChapter(Math.max(0, activeChapter - 1))}>
+            <SkipBack className="h-4 w-4" />
+          </Button>
+          <Button
+            size="icon"
+            className="h-12 w-12 rounded-full"
+            onClick={() => setPlaying(!playing)}
+          >
+            {playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setActiveChapter(Math.min(chapters.length - 1, activeChapter + 1))}>
+            <SkipForward className="h-4 w-4" />
+          </Button>
+          <div className="flex-1">
+            <p className="text-sm font-medium">{chapters[activeChapter]?.title || "Chapter 1"}</p>
+            <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+              <Clock className="h-2.5 w-2.5" /> {chapters[activeChapter]?.estimatedMinutes || 5} min
+            </p>
+          </div>
+        </div>
+
+        {/* Chapter list */}
+        <div className="border-t border-border max-h-48 overflow-y-auto">
+          {chapters.map((ch, idx) => (
+            <button
+              key={ch.id}
+              className={`w-full px-4 py-2.5 text-left flex items-center gap-3 hover:bg-muted/30 text-xs ${activeChapter === idx ? "bg-secondary/5" : ""}`}
+              onClick={() => setActiveChapter(idx)}
+            >
+              <span className="text-muted-foreground w-5 shrink-0">{idx + 1}</span>
+              <span className="flex-1 truncate font-medium">{ch.title}</span>
+              <Badge variant={ch.status === "reviewed" || ch.status === "audio-generated" ? "default" : "secondary"} className="text-[8px]">
+                {ch.status === "reviewed" ? "✓" : ch.status === "audio-generated" ? "Ready" : "—"}
+              </Badge>
+            </button>
+          ))}
+        </div>
+      </Card>
+
+      {/* Actions */}
+      <div className="flex gap-3">
+        <Button variant="outline">
+          <Download className="h-4 w-4 mr-2" /> Export Audio Files
+        </Button>
+        <Button disabled={readyChapters < chapters.length}>
+          <ExternalLink className="h-4 w-4 mr-2" /> Publish Audiobook
+        </Button>
+      </div>
+    </div>
+  );
+}
