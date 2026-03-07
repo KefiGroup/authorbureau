@@ -86,7 +86,6 @@ export default function BookHubOverview({ book, onConsultAbby, onNavigateTab }: 
         .from("generated_assets")
         .select("content")
         .eq("book_id", book.id)
-        .eq("author_id", userId)
         .eq("asset_type", "source_material")
         .limit(1);
       if (assets && assets.length > 0 && assets[0].content) {

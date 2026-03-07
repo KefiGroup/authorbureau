@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import JSZip from "https://esm.sh/jszip@3.10.1";
 
 const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
 const SHARED_ANON_KEY =
@@ -23,13 +24,11 @@ async function resolveUser(
   adminClient: ReturnType<typeof createClient>,
   token: string
 ): Promise<{ userId: string; userEmail: string | null } | null> {
-  // Try Cloud auth first
   const { data: { user: cloudUser } } = await adminClient.auth.getUser(token);
   if (cloudUser) {
     return { userId: cloudUser.id, userEmail: cloudUser.email ?? null };
   }
 
-  // Fallback: shared backend (SSO sessions)
   const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
   const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
   if (!sharedUser) return null;
@@ -37,7 +36,6 @@ async function resolveUser(
   let userId = sharedUser.id;
   const userEmail = sharedUser.email ?? null;
 
-  // Map shared user to local Cloud user by email
   if (sharedUser.email) {
     const { data: { users } } = await adminClient.auth.admin.listUsers();
     const localMatch = users?.find(
@@ -70,6 +68,111 @@ async function verifyBookAccess(
   return null;
 }
 
+/** Strip HTML tags from XHTML content */
+function stripHtml(html: string): string {
+  return html
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#\d+;/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Parse EPUB (ZIP of XHTML) and extract text natively */
+async function parseEpubText(fileData: Blob): Promise<string> {
+  const arrayBuffer = await fileData.arrayBuffer();
+  const zip = await JSZip.loadAsync(arrayBuffer);
+
+  // Find container.xml to get rootfile path
+  const containerFile = zip.file("META-INF/container.xml");
+  if (!containerFile) throw new Error("Invalid EPUB: missing container.xml");
+  const containerXml = await containerFile.async("string");
+
+  // Extract rootfile path (content.opf)
+  const rootfileMatch = containerXml.match(/full-path="([^"]+)"/);
+  if (!rootfileMatch) throw new Error("Invalid EPUB: no rootfile path");
+  const opfPath = rootfileMatch[1];
+  const opfDir = opfPath.includes("/") ? opfPath.substring(0, opfPath.lastIndexOf("/") + 1) : "";
+
+  const opfFile = zip.file(opfPath);
+  if (!opfFile) throw new Error("Invalid EPUB: missing OPF file");
+  const opfXml = await opfFile.async("string");
+
+  // Extract manifest items (id -> href mapping)
+  const manifest = new Map<string, string>();
+  const manifestRegex = /<item\s+[^>]*id="([^"]+)"[^>]*href="([^"]+)"[^>]*(?:media-type="([^"]+)")?[^>]*\/?>/g;
+  let m;
+  while ((m = manifestRegex.exec(opfXml)) !== null) {
+    manifest.set(m[1], m[2]);
+  }
+
+  // Extract spine itemrefs (ordered reading sequence)
+  const spineIds: string[] = [];
+  const spineRegex = /<itemref\s+[^>]*idref="([^"]+)"[^>]*\/?>/g;
+  while ((m = spineRegex.exec(opfXml)) !== null) {
+    spineIds.push(m[1]);
+  }
+
+  // Read chapters in spine order
+  const chapters: string[] = [];
+  for (const id of spineIds) {
+    const href = manifest.get(id);
+    if (!href) continue;
+
+    const filePath = opfDir + decodeURIComponent(href);
+    const chapterFile = zip.file(filePath);
+    if (!chapterFile) continue;
+
+    const xhtml = await chapterFile.async("string");
+    const text = stripHtml(xhtml);
+    if (text.length > 10) chapters.push(text);
+  }
+
+  // Fallback: if spine didn't yield much, try all xhtml/html files
+  if (chapters.join("").length < 200) {
+    const allFiles = Object.keys(zip.files).filter(f =>
+      f.endsWith(".xhtml") || f.endsWith(".html") || f.endsWith(".htm")
+    ).sort();
+    for (const f of allFiles) {
+      const content = await zip.file(f)!.async("string");
+      const text = stripHtml(content);
+      if (text.length > 10) chapters.push(text);
+    }
+  }
+
+  return chapters.join("\n\n");
+}
+
+/** Upsert source_material in generated_assets */
+async function upsertSourceMaterial(
+  adminClient: ReturnType<typeof createClient>,
+  bookId: string,
+  authorId: string,
+  text: string
+) {
+  const { data: existing } = await adminClient
+    .from("generated_assets").select("id")
+    .eq("book_id", bookId).eq("author_id", authorId)
+    .eq("asset_type", "source_material").maybeSingle();
+
+  if (existing) {
+    await adminClient.from("generated_assets")
+      .update({ content: text, updated_at: new Date().toISOString() })
+      .eq("id", existing.id);
+  } else {
+    await adminClient.from("generated_assets").insert({
+      book_id: bookId, author_id: authorId,
+      asset_type: "source_material", content: text,
+    });
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -89,17 +192,15 @@ serve(async (req) => {
     const { userId, userEmail } = resolved;
     console.log("[parse-manuscript] Resolved userId:", userId, "email:", userEmail);
 
-    // Determine request type: FormData (file upload) or JSON (action)
     const contentType = req.headers.get("content-type") || "";
 
-    // ─── JSON actions: check / remove ───
+    // ─── JSON actions: check / remove / upload-text ───
     if (contentType.includes("application/json")) {
       const body = await req.json();
       const { action, bookId } = body;
 
       if (action === "check") {
         if (!bookId) return jsonResp({ error: "bookId required" }, 400);
-        // Find book to get author_id
         const book = await verifyBookAccess(adminClient, bookId, userId, userEmail);
         if (!book) return jsonResp({ exists: false });
 
@@ -124,7 +225,6 @@ serve(async (req) => {
           .eq("book_id", bookId).eq("author_id", book.author_id)
           .eq("asset_type", "source_material");
 
-        // Clean up storage files
         const { data: files } = await adminClient.storage
           .from("manuscripts").list(`${book.author_id}/${bookId}`);
         if (files && files.length > 0) {
@@ -135,11 +235,32 @@ serve(async (req) => {
         return jsonResp({ success: true });
       }
 
-      // Legacy JSON mode: { bookId, storagePath, fileName }
-      return await handleParse(adminClient, userId, userEmail, body.bookId, body.storagePath, body.fileName);
+      // ─── NEW: upload-text — accepts pre-extracted text from client ───
+      if (action === "upload-text") {
+        const { text, fileName } = body;
+        if (!bookId || !text) return jsonResp({ error: "bookId and text are required" }, 400);
+
+        const book = await verifyBookAccess(adminClient, bookId, userId, userEmail);
+        if (!book) return jsonResp({ error: "Book not found or access denied" }, 403);
+
+        if (text.trim().length < 50) {
+          return jsonResp({ error: "Text too short — could not extract enough content." }, 400);
+        }
+
+        console.log("[parse-manuscript] upload-text: storing", text.length, "chars for book", bookId);
+        await upsertSourceMaterial(adminClient, bookId, book.author_id, text);
+
+        return jsonResp({
+          success: true,
+          characterCount: text.length,
+          preview: text.slice(0, 300) + "...",
+        });
+      }
+
+      return jsonResp({ error: "Unknown action" }, 400);
     }
 
-    // ─── FormData mode: file upload ───
+    // ─── FormData mode: EPUB file upload with native parsing ───
     if (contentType.includes("multipart/form-data")) {
       const formData = await req.formData();
       const file = formData.get("file") as File | null;
@@ -148,13 +269,13 @@ serve(async (req) => {
 
       if (!file || !bookId) return jsonResp({ error: "file and bookId are required" }, 400);
 
-      // Verify book access
       const book = await verifyBookAccess(adminClient, bookId, userId, userEmail);
       if (!book) return jsonResp({ error: "Book not found or access denied" }, 403);
 
       const authorId = book.author_id;
+      const lowerName = (fileName || "").toLowerCase();
 
-      // Upload to storage using admin client (bypasses RLS)
+      // Upload to storage
       const safeName = fileName.replace(/[[\]{}()|\\^$*+?#]/g, "_");
       const storagePath = `${authorId}/${bookId}/${safeName}`;
       const fileBytes = await file.arrayBuffer();
@@ -171,7 +292,31 @@ serve(async (req) => {
         return jsonResp({ error: "Failed to upload file to storage" }, 500);
       }
 
-      return await handleParse(adminClient, userId, userEmail, bookId, storagePath, safeName);
+      // Extract text based on format
+      let extractedText = "";
+
+      if (lowerName.endsWith(".epub")) {
+        console.log("[parse-manuscript] Native EPUB parsing for", fileName);
+        extractedText = await parseEpubText(file);
+      } else if (lowerName.endsWith(".txt")) {
+        extractedText = await file.text();
+      } else {
+        // Fallback: shouldn't reach here since client handles PDF/DOCX
+        return jsonResp({ error: "Please use a supported format (PDF, DOCX, TXT, EPUB). PDF and DOCX are processed in your browser automatically." }, 400);
+      }
+
+      if (!extractedText || extractedText.trim().length < 50) {
+        return jsonResp({ error: "Could not extract enough text from this file. Please try a different format." }, 400);
+      }
+
+      console.log("[parse-manuscript] Extracted", extractedText.length, "chars from", fileName);
+      await upsertSourceMaterial(adminClient, bookId, authorId, extractedText);
+
+      return jsonResp({
+        success: true,
+        characterCount: extractedText.length,
+        preview: extractedText.slice(0, 300) + "...",
+      });
     }
 
     return jsonResp({ error: "Unsupported content type" }, 400);
@@ -180,113 +325,3 @@ serve(async (req) => {
     return jsonResp({ error: e instanceof Error ? e.message : "Unknown error" }, 500);
   }
 });
-
-/** Core parse logic – downloads from storage, extracts text, saves to generated_assets */
-async function handleParse(
-  adminClient: ReturnType<typeof createClient>,
-  userId: string,
-  userEmail: string | null,
-  bookId: string,
-  storagePath: string,
-  fileName: string
-) {
-  if (!bookId || !storagePath) return jsonResp({ error: "bookId and storagePath are required" }, 400);
-
-  const book = await verifyBookAccess(adminClient, bookId, userId, userEmail);
-  if (!book) return jsonResp({ error: "Book not found or access denied" }, 403);
-  const authorId = book.author_id;
-
-  // Download file from storage
-  const { data: fileData, error: downloadErr } = await adminClient.storage
-    .from("manuscripts").download(storagePath);
-  if (downloadErr || !fileData) {
-    console.error("Download error:", downloadErr);
-    return jsonResp({ error: "Failed to download manuscript file" }, 500);
-  }
-
-  // Extract text
-  const lowerName = (fileName || storagePath).toLowerCase();
-  let extractedText = "";
-
-  if (lowerName.endsWith(".txt")) {
-    extractedText = await fileData.text();
-  } else if (lowerName.endsWith(".pdf") || lowerName.endsWith(".docx") || lowerName.endsWith(".doc") || lowerName.endsWith(".epub")) {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
-
-    const arrayBuffer = await fileData.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
-    const CHUNK = 8192;
-    const chunks: string[] = [];
-    for (let i = 0; i < uint8Array.length; i += CHUNK) {
-      chunks.push(String.fromCharCode(...uint8Array.subarray(i, i + CHUNK)));
-    }
-    const base64Content = btoa(chunks.join(""));
-
-    if (base64Content.length > 20_000_000) {
-      return jsonResp({ error: "File is too large for AI extraction. Please upload a smaller file or use .txt format." }, 400);
-    }
-
-    console.log("[parse-manuscript] Base64 size:", base64Content.length, "bytes");
-
-    let mimeType = "application/octet-stream";
-    if (lowerName.endsWith(".pdf")) mimeType = "application/pdf";
-    else if (lowerName.endsWith(".docx")) mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-    else if (lowerName.endsWith(".doc")) mimeType = "application/msword";
-    else if (lowerName.endsWith(".epub")) mimeType = "application/epub+zip";
-
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        max_tokens: 100000,
-        messages: [
-          { role: "system", content: "You are a document text extractor. Your ONLY job is to extract ALL text content from the uploaded document and return it exactly as written. Preserve chapter titles, headings, paragraphs, and formatting structure using markdown. Do NOT summarize, do NOT add commentary, do NOT skip any content. Extract EVERY word from cover to cover." },
-          { role: "user", content: [
-            { type: "text", text: `Extract ALL text from this ${lowerName.split('.').pop()?.toUpperCase()} document. Return the complete text content preserving structure with markdown headings and paragraphs. Do not summarize or skip anything.` },
-            { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64Content}` } },
-          ]},
-        ],
-      }),
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error("AI extraction error:", response.status, errText);
-      return jsonResp({ error: "Failed to extract text from document. Please try a .txt file instead." }, 500);
-    }
-
-    const aiResult = await response.json();
-    extractedText = aiResult.choices?.[0]?.message?.content || "";
-  } else {
-    return jsonResp({ error: "Unsupported file format. Please upload PDF, DOCX, TXT, or EPUB." }, 400);
-  }
-
-  if (!extractedText || extractedText.trim().length < 50) {
-    return jsonResp({ error: "Could not extract enough text from this file. Please try a different format." }, 400);
-  }
-
-  // Upsert source_material
-  const { data: existing } = await adminClient
-    .from("generated_assets").select("id")
-    .eq("book_id", bookId).eq("author_id", authorId)
-    .eq("asset_type", "source_material").maybeSingle();
-
-  if (existing) {
-    await adminClient.from("generated_assets")
-      .update({ content: extractedText, updated_at: new Date().toISOString() })
-      .eq("id", existing.id);
-  } else {
-    await adminClient.from("generated_assets").insert({
-      book_id: bookId, author_id: authorId,
-      asset_type: "source_material", content: extractedText,
-    });
-  }
-
-  return jsonResp({
-    success: true,
-    characterCount: extractedText.length,
-    preview: extractedText.slice(0, 300) + "...",
-  });
-}
