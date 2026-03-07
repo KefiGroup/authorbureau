@@ -123,11 +123,24 @@ serve(async (req) => {
 
       const arrayBuffer = await fileData.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
-      let binaryStr = "";
-      for (let i = 0; i < uint8Array.length; i++) {
-        binaryStr += String.fromCharCode(uint8Array[i]);
+
+      // Fast base64 encoding using chunks (avoids O(n²) string concat)
+      const CHUNK = 8192;
+      const chunks: string[] = [];
+      for (let i = 0; i < uint8Array.length; i += CHUNK) {
+        chunks.push(String.fromCharCode(...uint8Array.subarray(i, i + CHUNK)));
       }
-      const base64Content = btoa(binaryStr);
+      const base64Content = btoa(chunks.join(""));
+
+      // Guard: skip AI extraction for files > 15MB base64 (likely to timeout)
+      if (base64Content.length > 20_000_000) {
+        return new Response(JSON.stringify({ error: "File is too large for AI extraction. Please upload a smaller file or use .txt format." }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      console.log("[parse-manuscript] Base64 size:", base64Content.length, "bytes");
 
       let mimeType = "application/octet-stream";
       if (lowerName.endsWith(".pdf")) mimeType = "application/pdf";
@@ -143,6 +156,7 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",
+          max_tokens: 100000,
           messages: [
             {
               role: "system",
