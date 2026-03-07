@@ -243,8 +243,37 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "email-templates":
         return gate("Email Marketing", <EmailMarketing activeTab={activeSection} onTabChange={(s) => setActiveSection(s as DashboardSection)} />);
       case "revenue-streams":
+        if (!hasAnalysis) {
+          return <SectionGatePage
+            sectionTitle="B · Build Authority"
+            sectionSubtitle="Create digital products that establish you as the expert in your field."
+            gateMessage="Abby needs to understand your book before she can recommend which authority products to build."
+            productNames={["Online Courses", "Home Study", "Workbook", "Audiobook", "Memberships", "Upsells", "1-on-1 Coaching", "Group Coaching", "Big Ticket Consulting", "Revenue Sharing", "Keynotes"]}
+            onAnalyze={() => setActiveSection("build-business")}
+          />;
+        }
+        return <PortfolioStepView categoryId={activeSection} />;
       case "marketing-channels":
+        if (!hasAnalysis) {
+          return <SectionGatePage
+            sectionTitle="B · Bridge Channels"
+            sectionSubtitle="Marketing channels & audience connections."
+            gateMessage="Abby needs to understand your audience before she can recommend which marketing channels to activate."
+            productNames={["Social Media", "Webinars", "Podcasts", "Website / Microsite", "Affiliates", "Email Marketing"]}
+            onAnalyze={() => setActiveSection("build-business")}
+          />;
+        }
+        return <PortfolioStepView categoryId={activeSection} />;
       case "authority-builders":
+        if (!hasAnalysis) {
+          return <SectionGatePage
+            sectionTitle="Y · Yield Revenue"
+            sectionSubtitle="Premium revenue streams & monetization."
+            gateMessage="Abby needs to understand your business model before she can recommend which revenue streams to pursue."
+            productNames={["Conventions", "Fund Raising", "Exhibitors / JV", "Retreats", "Certification", "Masterminds", "Special Editions", "Book Sales"]}
+            onAnalyze={() => setActiveSection("build-business")}
+          />;
+        }
         return <PortfolioStepView categoryId={activeSection} />;
       case "connect-stripe":
         return <ConnectStripePage />;
