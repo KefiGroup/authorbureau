@@ -1,0 +1,2 @@
+DELETE FROM consultation_sessions WHERE book_id IN ('906afd39-b1ae-4a9c-a890-fb21d1dfa88b', 'c81d1184-5dc8-422b-9b1f-8fcf203c84eb');
+DELETE FROM generated_assets WHERE asset_type = 'business_plan' AND book_id IN ('906afd39-b1ae-4a9c-a890-fb21d1dfa88b', 'c81d1184-5dc8-422b-9b1f-8fcf203c84eb');
