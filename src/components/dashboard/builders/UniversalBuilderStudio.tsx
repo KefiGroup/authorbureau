@@ -26,7 +26,53 @@ import PodcastScriptsStepRenderer from "./podcast-scripts/PodcastScriptsStepRend
 import EmailMarketingStepRenderer from "./email-marketing/EmailMarketingStepRenderer";
 import WebsiteStepRenderer from "./website/WebsiteStepRenderer";
 import CoachingStepRenderer from "./coaching/CoachingStepRenderer";
+import GroupCoachingStepRenderer from "./group-coaching/GroupCoachingStepRenderer";
+import KeynotesStepRenderer from "./keynotes/KeynotesStepRenderer";
+import InHouseSpeakerStepRenderer from "./in-house-speaker/InHouseSpeakerStepRenderer";
+import TrainingProgramsStepRenderer from "./training-programs/TrainingProgramsStepRenderer";
+import AffiliatesStepRenderer from "./affiliates/AffiliatesStepRenderer";
+import JVPartnershipsStepRenderer from "./jv-partnerships/JVPartnershipsStepRenderer";
+import BigTicketStepRenderer from "./big-ticket/BigTicketStepRenderer";
+import RetreatsStepRenderer from "./retreats/RetreatsStepRenderer";
+import CertificationStepRenderer from "./certification/CertificationStepRenderer";
+import MastermindsStepRenderer from "./masterminds/MastermindsStepRenderer";
+import SpecialEditionsStepRenderer from "./special-editions/SpecialEditionsStepRenderer";
+import BookSalesStepRenderer from "./book-sales/BookSalesStepRenderer";
+import ConventionsStepRenderer from "./conventions/ConventionsStepRenderer";
+import FundraisingStepRenderer from "./fundraising/FundraisingStepRenderer";
+import ExhibitorsStepRenderer from "./exhibitors/ExhibitorsStepRenderer";
 import type { BuilderNodeConfig, BuilderStep } from "./builderNodeConfig";
+
+// Map of customRenderer key → component
+const RENDERER_MAP: Record<string, React.ComponentType<any>> = {
+  "course": CourseStepRenderer,
+  "home-study": HomeStudyStepRenderer,
+  "workbook": WorkbookStepRenderer,
+  "audiobook": AudiobookStepRenderer,
+  "membership": MembershipStepRenderer,
+  "upsell": UpsellStepRenderer,
+  "social-media": SocialMediaStepRenderer,
+  "webinar": WebinarStepRenderer,
+  "podcast-scripts": PodcastScriptsStepRenderer,
+  "email-marketing": EmailMarketingStepRenderer,
+  "website": WebsiteStepRenderer,
+  "coaching": CoachingStepRenderer,
+  "group-coaching": GroupCoachingStepRenderer,
+  "keynotes": KeynotesStepRenderer,
+  "in-house-speaker": InHouseSpeakerStepRenderer,
+  "training-programs": TrainingProgramsStepRenderer,
+  "affiliates": AffiliatesStepRenderer,
+  "jv-partnerships": JVPartnershipsStepRenderer,
+  "big-ticket": BigTicketStepRenderer,
+  "retreats": RetreatsStepRenderer,
+  "certification": CertificationStepRenderer,
+  "masterminds": MastermindsStepRenderer,
+  "special-editions": SpecialEditionsStepRenderer,
+  "book-sales": BookSalesStepRenderer,
+  "conventions": ConventionsStepRenderer,
+  "fundraising": FundraisingStepRenderer,
+  "exhibitors": ExhibitorsStepRenderer,
+};
 
 interface Props {
   nodeConfig: BuilderNodeConfig;
