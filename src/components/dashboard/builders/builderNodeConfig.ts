@@ -99,7 +99,6 @@ const homeStudyCourseBuilder: BuilderNodeConfig = {
     { id: "preview", label: "Preview & Publish", description: "Flip through the guide and publish", abbyTip: "Offer a 'Day 1 Preview' as a lead magnet to build your email list before launching." },
   ],
 };
-};
 
 const bookSalesBuilder: BuilderNodeConfig = {
   id: "book-sales",
