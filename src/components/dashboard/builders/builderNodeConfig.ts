@@ -111,14 +111,14 @@ const bookSalesBuilder: BuilderNodeConfig = {
   dbTable: "books",
   icon: "ShoppingBag",
   color: "text-emerald-500",
+  customRenderer: "book-sales",
   abbyGreeting: "Selling books at events can be highly profitable with the right setup. Let's create your event sales kit.",
-  abbyPublishMessage: "Your event sales kit is ready! Print your materials and start booking speaking gigs. Consider your Speaking Profile next.",
+  abbyPublishMessage: "Your event sales kit is ready! Print your materials and start booking speaking gigs.",
   steps: [
-    { id: "configure", label: "Configure", description: "Set event type and sales goals", abbyTip: "Back-of-room sales convert at 20-40% when tied to your talk content." },
-    { id: "materials", label: "Sales Materials", description: "Generate sales sheets and QR codes", abbyTip: "A one-page sell sheet with testimonials and a QR code to purchase is essential." },
-    { id: "bundles", label: "Bundle Offers", description: "Create book + product bundles", abbyTip: "Bundle your book + workbook at a slight discount — average order value jumps 60%." },
-    { id: "tracking", label: "Order Tracking", description: "Set up inventory and order management", abbyTip: "Track which events convert best so you can prioritize future appearances." },
-    { id: "preview", label: "Preview & Export", description: "Review materials and export", abbyTip: "Print test copies and practice your pitch. First impressions matter at events." },
+    { id: "setup", label: "Event Sales Setup", description: "Set event type, attendance, books to bring, pricing, and payment methods", abbyTip: "Back-of-room book sales after a keynote convert at 30-50% of the audience. For a 200-person event, bring 60-100 books." },
+    { id: "materials", label: "Sales Materials", description: "Table display, QR codes, business cards, bundle offers, and email capture cards", abbyTip: "A one-page sell sheet with testimonials and a QR code to purchase is essential." },
+    { id: "logistics", label: "Logistics", description: "Inventory tracker, shipping calculator, packing checklist, and post-event follow-up", abbyTip: "Track which events convert best so you can prioritize future appearances." },
+    { id: "preview", label: "Preview & Publish", description: "Review all materials and revenue projection", abbyTip: "At a 200-person event with 40% conversion, you'd sell 80 books — plus capture emails for your funnel." },
   ],
 };
 
