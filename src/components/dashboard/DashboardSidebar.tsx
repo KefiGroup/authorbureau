@@ -2,6 +2,7 @@ import {
   LayoutDashboard, User, BookOpen, Sparkles,
   ChevronLeft, ChevronRight, Crown, ExternalLink, PenLine, BookMarked,
   Lock, Globe, BarChart3, Contact, DollarSign, Radio, Award, CreditCard, Package,
+  BookHeart,
 } from "lucide-react";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
 import logoIcon from "@/assets/logo-icon.png";
@@ -80,12 +81,20 @@ export default function DashboardSidebar({
       badge: tierAccess("enterprise") ? `${yieldUnlocked} of 8` : undefined,
       lockMessage: !tierAccess("enterprise") ? "Requires Enterprise" : undefined,
     },
+    {
+      id: "reading-club" as DashboardSection, label: "Reading Club", icon: BookHeart,
+    },
   ];
 
   // Section 3: Your Brand
   const brandItems: NavItem[] = [
     { id: "profile", label: "Author Profile", icon: User },
     { id: "microsite-manager" as DashboardSection, label: "My Microsite", icon: Globe },
+    {
+      id: "author-crm" as DashboardSection, label: "My Contacts",
+      icon: Contact,
+      lockMessage: !tierAccess("pro") ? "Upgrade to Pro to access your CRM" : undefined,
+    },
     {
       id: "review-products" as DashboardSection, label: "Review Products", icon: Package,
       notificationCount: pendingReviewCount,
@@ -94,11 +103,6 @@ export default function DashboardSidebar({
     {
       id: "analytics" as DashboardSection, label: "Revenue Dashboard", icon: BarChart3,
       hidden: !hasMicrosite && !isPremium,
-    },
-    {
-      id: "crm" as DashboardSection, label: "My Contacts", icon: Contact,
-      lockMessage: !tierAccess("pro") ? "Requires Pro" : undefined,
-      hidden: !hasBooks,
     },
   ];
 
