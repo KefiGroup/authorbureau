@@ -332,6 +332,26 @@ export default function BuildMyBusiness() {
     return requests;
   };
 
+  // Parse ===NAV:xxx=== markers from assistant messages
+  const NAV_CONFIG: Record<string, { label: string; icon: string; section: string }> = {
+    build: { label: "B · Build Authority", icon: "🏗️", section: "build-authority" },
+    bridge: { label: "B · Bridge Channels", icon: "🌉", section: "bridge-channels" },
+    yield: { label: "Y · Yield Revenue", icon: "💰", section: "yield-revenue" },
+    profile: { label: "Author Profile", icon: "👤", section: "profile" },
+  };
+
+  const parseNavMarkers = (content: string): string[] => {
+    const regex = /===NAV:(\w+)===/g;
+    const markers: string[] = [];
+    let match;
+    while ((match = regex.exec(content)) !== null) {
+      if (NAV_CONFIG[match[1]] && !markers.includes(match[1])) {
+        markers.push(match[1]);
+      }
+    }
+    return markers;
+  };
+
   // Business plan is now rendered as clean markdown in the chat — no JSON parsing needed
 
   // Map product type to dashboard navigation
@@ -922,10 +942,12 @@ export default function BuildMyBusiness() {
 
           const buildRequests = msg.role === "assistant" ? parseBuildRequests(msg.content) : [];
           const hasSubscribeCta = msg.role === "assistant" && msg.content.includes("===SUBSCRIBE_CTA===");
-          // Clean BUILD_REQUEST and SUBSCRIBE_CTA blocks from displayed content
+          const navMarkers = msg.role === "assistant" ? parseNavMarkers(msg.content) : [];
+          // Clean BUILD_REQUEST, SUBSCRIBE_CTA, and NAV markers from displayed content
           const displayContent = msg.content
             .replace(/===BUILD_REQUEST===[\s\S]*?===END_BUILD_REQUEST===/g, "")
             .replace(/===SUBSCRIBE_CTA===/g, "")
+            .replace(/===NAV:\w+===/g, "")
             .trim();
 
           return (
@@ -1062,7 +1084,27 @@ export default function BuildMyBusiness() {
                   />
                 )}
 
-                {/* Business plan is now rendered as clean markdown inline */}
+                {/* Dynamic Navigation Buttons from ===NAV:xxx=== markers */}
+                {msg.role === "assistant" && !isStreaming && navMarkers.length > 0 && (
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    {navMarkers.map((key) => {
+                      const cfg = NAV_CONFIG[key];
+                      if (!cfg) return null;
+                      return (
+                        <Button
+                          key={key}
+                          size="sm"
+                          className="gap-2 rounded-full"
+                          variant={key === navMarkers[0] ? "default" : "outline"}
+                          onClick={() => navigate(`/dashboard?section=${cfg.section}`)}
+                        >
+                          <span>{cfg.icon}</span>
+                          {cfg.label}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
               {msg.role === "user" && (
                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
