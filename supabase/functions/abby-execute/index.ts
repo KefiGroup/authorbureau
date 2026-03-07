@@ -303,8 +303,21 @@ Return the updated plan in the same JSON structure as the original, with these a
         .eq("book_id", bookId)
         .eq("author_id", user.id);
 
+      let parsedPlan = null;
+      if (plan?.content) {
+        try {
+          parsedPlan = JSON.parse(plan.content);
+        } catch {
+          // Content is not valid JSON (e.g. plain text from AI) — try extracting JSON
+          const jsonMatch = plan.content.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            try { parsedPlan = JSON.parse(jsonMatch[0]); } catch { /* ignore */ }
+          }
+        }
+      }
+
       return new Response(JSON.stringify({
-        plan: plan ? JSON.parse(plan.content) : null,
+        plan: parsedPlan,
         completedAssets: (assets || []).map(a => a.asset_type),
         lastUpdated: plan?.updated_at,
       }), {

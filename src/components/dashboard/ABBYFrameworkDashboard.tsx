@@ -90,14 +90,14 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
         const booksData = await booksRes.json();
         if (booksData.books) {
           setBookCovers(booksData.books.filter((b: any) => b.cover_image_url).map((b: any) => b.cover_image_url).slice(0, 3));
-          // Get author slug from profile
-          const profileRes = await fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-author-profile`,
-            { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } }
-          );
-          const profileData = await profileRes.json();
-          if (profileData?.profile?.author_slug) {
-            setAuthorSlug(profileData.profile.author_slug);
+          // Get author slug from profile directly via database
+          const { data: profileRow } = await cloudSupabase
+            .from("author_profiles")
+            .select("author_slug")
+            .eq("user_id", user.id)
+            .maybeSingle();
+          if (profileRow?.author_slug) {
+            setAuthorSlug(profileRow.author_slug);
           }
 
           // Check for business plans (generated_assets with type business_plan)
