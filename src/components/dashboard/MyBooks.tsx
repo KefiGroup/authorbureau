@@ -49,11 +49,12 @@ async function getActiveToken(): Promise<string | null> {
 interface MyBooksProps {
   isPremium?: boolean;
   onNavigate?: (section: string) => void;
+  stripeConnected?: boolean;
 }
 
 type JourneyDot = "done" | "current" | "upcoming";
 
-export default function MyBooks({ isPremium = false, onNavigate }: MyBooksProps) {
+export default function MyBooks({ isPremium = false, onNavigate, stripeConnected = false }: MyBooksProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
