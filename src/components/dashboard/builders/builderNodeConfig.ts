@@ -71,14 +71,15 @@ const emailMarketingBuilder: BuilderNodeConfig = {
   dbTable: "email_flows",
   icon: "Mail",
   color: "text-emerald-500",
-  abbyGreeting: "Email is where the money is. Let's build an automated sequence that nurtures readers into customers.",
-  abbyPublishMessage: "Your email sequence is ready! Connect it to your email provider to start automating. Next: build your Home Study Course.",
+  customRenderer: "email-marketing",
+  abbyGreeting: "Email is where the money is. Let's build a complete email marketing system that nurtures readers into customers — all derived from your book content.",
+  abbyPublishMessage: "Your email marketing system is live! Welcome sequences, nurture campaigns, and automation rules are all ready. Next: build your Home Study Course.",
   steps: [
-    { id: "configure", label: "Configure", description: "Set flow type, audience, and goals", abbyTip: "A welcome sequence of 5-7 emails converts 3x better than a single newsletter." },
-    { id: "generate", label: "AI Generate", description: "Generate email sequence from your book", abbyTip: "I'll create emails that give value first, then naturally introduce your products." },
-    { id: "edit", label: "Edit Emails", description: "Customize subject lines and content", abbyTip: "Subject lines under 50 characters get 12% higher open rates. Make them curiosity-driven." },
-    { id: "schedule", label: "Timing & Triggers", description: "Set delays and automation triggers", abbyTip: "Space emails 2-3 days apart. Too frequent = unsubscribes, too sparse = forgotten." },
-    { id: "preview", label: "Preview & Activate", description: "Test and launch your email flow", abbyTip: "Always send yourself a test email first. Check it looks good on mobile." },
+    { id: "setup", label: "Email Strategy", description: "Set list name, lead magnet, frequency, tone, and primary goal", abbyTip: "Your workbook is the perfect lead magnet. I'll create a welcome sequence that warms subscribers up to your Online Course over 14 days." },
+    { id: "sequences", label: "Sequence Builder", description: "AI generates welcome, nurture, launch, and re-engagement sequences", abbyTip: "I'll create 4 interconnected sequences from your book. Each serves a different purpose in your reader-to-buyer journey." },
+    { id: "content", label: "Email Content", description: "Edit subject lines, body, CTAs, and timing for each email", abbyTip: "Subject lines under 50 characters get 12% higher open rates. Make them curiosity-driven. Every email needs a clear single CTA." },
+    { id: "automation", label: "Automation Rules", description: "Visual flowchart of triggers, conditions, and actions", abbyTip: "Automations turn your email system into a 24/7 sales machine. Connect sequences so subscribers flow naturally through your funnel." },
+    { id: "publish", label: "Preview & Publish", description: "Preview emails, test send, and publish", abbyTip: "A well-crafted welcome sequence converts 5-10% of subscribers to buyers. With consistent list building, this system pays for itself." },
   ],
 };
 
