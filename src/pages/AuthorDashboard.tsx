@@ -189,7 +189,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
 
       case "overview":
         return (
-          <BusinessFramework
+          <ABBYFrameworkDashboard
             onNavigate={(s) => setActiveSection(s as DashboardSection)}
             isPremium={isPremium || isAdmin}
           />
@@ -201,7 +201,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           return gate(comingSoonSections[activeSection].title, <ComingSoonPlaceholder sectionId={activeSection} />);
         }
         return (
-          <BusinessFramework
+          <ABBYFrameworkDashboard
             onNavigate={(s) => setActiveSection(s as DashboardSection)}
             isPremium={isPremium || isAdmin}
           />
