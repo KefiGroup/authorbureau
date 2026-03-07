@@ -6,6 +6,7 @@ import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import JourneyBreadcrumb from "@/components/dashboard/JourneyBreadcrumb";
 import type { JourneyStep } from "@/components/dashboard/JourneyBreadcrumb";
+import SectionGatePage from "@/components/dashboard/SectionGatePage";
 import ProfileEditor from "@/components/dashboard/ProfileEditor";
 import CourseBuilder from "@/components/dashboard/CourseBuilder";
 import SpeakingProfile from "@/components/dashboard/SpeakingProfile";
@@ -125,20 +126,27 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       try {
         const { data: profile } = await supabase
           .from("author_profiles")
-          .select("directory_status, pen_name, photo_url, bio_short, stripe_onboarding_complete")
+          .select("directory_status, pen_name, photo_url, bio_short, bio_long, stripe_onboarding_complete")
           .eq("user_id", user.id)
           .maybeSingle();
 
-        const isLive = profile && ["listed", "verified", "featured"].includes(profile.directory_status || "") && !!profile.pen_name && !!profile.photo_url;
-        setHasMicrosite(!!isLive);
-        setJourneyMicrosite(isLive ? "done" : "current");
+        const hasName = !!profile?.pen_name?.trim();
+        const hasPhoto = !!profile?.photo_url?.trim();
+        const hasBio = !!(profile?.bio_long?.trim() || profile?.bio_short?.trim());
+        const isListed = profile && ["listed", "verified", "featured"].includes(profile.directory_status || "");
+        const profileComplete = isListed && hasName && hasPhoto && hasBio;
         setStripeConnected(!!(profile as any)?.stripe_onboarding_complete);
 
         const { data: books } = await supabase
           .from("books")
           .select("id")
           .eq("author_id", user.id);
-        setHasBooks((books || []).length > 0);
+        const bookCount = (books || []).length;
+        setHasBooks(bookCount > 0);
+
+        // Step 1 done = profile complete + has books
+        const step1Done = !!profileComplete && bookCount > 0;
+        setHasMicrosite(step1Done);
 
         const { data: plans } = await supabase
           .from("generated_assets")
@@ -148,9 +156,13 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
 
         const analyzed = new Set((plans || []).map((p: any) => p.book_id)).size;
         setBooksAnalyzed(analyzed);
-        setHasAnalysis(analyzed > 0);
-        setJourneyPlan(analyzed > 0 ? "done" : (isLive ? "current" : "upcoming"));
-        setJourneyBuild(analyzed > 0 && isPremium ? "current" : "upcoming");
+        const step2Done = analyzed > 0;
+        setHasAnalysis(step2Done);
+
+        // Sequential journey logic
+        setJourneyMicrosite(step1Done ? "done" : "current");
+        setJourneyPlan(step2Done ? "done" : step1Done ? "current" : "upcoming");
+        setJourneyBuild(step2Done ? (isPremium ? "current" : "upcoming") : "upcoming");
         setJourneySell("upcoming");
 
         // Count pending review products
@@ -231,8 +243,37 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "email-templates":
         return gate("Email Marketing", <EmailMarketing activeTab={activeSection} onTabChange={(s) => setActiveSection(s as DashboardSection)} />);
       case "revenue-streams":
+        if (!hasAnalysis) {
+          return <SectionGatePage
+            sectionTitle="B · Build Authority"
+            sectionSubtitle="Create digital products that establish you as the expert in your field."
+            gateMessage="Abby needs to understand your book before she can recommend which authority products to build."
+            productNames={["Online Courses", "Home Study", "Workbook", "Audiobook", "Memberships", "Upsells", "1-on-1 Coaching", "Group Coaching", "Big Ticket Consulting", "Revenue Sharing", "Keynotes"]}
+            onAnalyze={() => setActiveSection("build-business")}
+          />;
+        }
+        return <PortfolioStepView categoryId={activeSection} />;
       case "marketing-channels":
+        if (!hasAnalysis) {
+          return <SectionGatePage
+            sectionTitle="B · Bridge Channels"
+            sectionSubtitle="Marketing channels & audience connections."
+            gateMessage="Abby needs to understand your audience before she can recommend which marketing channels to activate."
+            productNames={["Social Media", "Webinars", "Podcasts", "Website / Microsite", "Affiliates", "Email Marketing"]}
+            onAnalyze={() => setActiveSection("build-business")}
+          />;
+        }
+        return <PortfolioStepView categoryId={activeSection} />;
       case "authority-builders":
+        if (!hasAnalysis) {
+          return <SectionGatePage
+            sectionTitle="Y · Yield Revenue"
+            sectionSubtitle="Premium revenue streams & monetization."
+            gateMessage="Abby needs to understand your business model before she can recommend which revenue streams to pursue."
+            productNames={["Conventions", "Fund Raising", "Exhibitors / JV", "Retreats", "Certification", "Masterminds", "Special Editions", "Book Sales"]}
+            onAnalyze={() => setActiveSection("build-business")}
+          />;
+        }
         return <PortfolioStepView categoryId={activeSection} />;
       case "connect-stripe":
         return <ConnectStripePage />;
@@ -282,12 +323,33 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         />
         <div className="border-b border-border px-6 lg:px-8 bg-card">
           <JourneyBreadcrumb
-            micrositeState={journeyMicrosite}
-            booksAnalyzed={booksAnalyzed}
-            planState={journeyPlan}
-            buildState={journeyBuild}
-            sellState={journeySell}
-            showPayments={isPremium && !stripeConnected}
+            steps={[
+              {
+                label: journeyMicrosite === "done" ? "Microsite Live" : "Set Up Microsite",
+                state: journeyMicrosite,
+                onClick: () => setActiveSection("my-books"),
+              },
+              {
+                label: booksAnalyzed > 0 ? `${booksAnalyzed} Book${booksAnalyzed !== 1 ? "s" : ""} Analyzed` : "Analyze Books",
+                state: journeyPlan,
+                onClick: () => setActiveSection("build-business"),
+              },
+              ...(isPremium && !stripeConnected ? [{
+                label: "Connect Payments" as string,
+                state: (journeyPlan === "done" && !stripeConnected ? "current" : journeyPlan === "done" ? "done" : "upcoming") as JourneyStep,
+                onClick: () => setActiveSection("connect-stripe" as DashboardSection),
+              }] : []),
+              {
+                label: "Building Products",
+                state: journeyBuild,
+                onClick: () => setActiveSection("revenue-streams"),
+              },
+              {
+                label: "Earning Revenue",
+                state: journeySell,
+                onClick: () => setActiveSection("analytics" as DashboardSection),
+              },
+            ]}
           />
         </div>
         <main className="flex-1 overflow-y-auto p-6 lg:p-8">
