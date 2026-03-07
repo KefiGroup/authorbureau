@@ -501,6 +501,19 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
                     setGenerationState={setGenerationState}
                     userId={user?.id || ""}
                   />
+                ) : nodeConfig.customRenderer === "upsell" ? (
+                  <UpsellStepRenderer
+                    stepId={currentStepConfig.id}
+                    stepData={stepData}
+                    setStepData={setStepData}
+                    onMarkEdited={(id) => setEditedSteps(prev => new Set([...prev, id]))}
+                    bookId={bookId}
+                    bookTitle={bookTitle}
+                    plan={plan}
+                    generationState={generationState}
+                    setGenerationState={setGenerationState}
+                    userId={user?.id || ""}
+                  />
                 ) : (generationState === "idle" || generationState === "complete") ? (
                   <Card className="p-6 min-h-[300px] border-dashed border-2">
                     <div className="text-center py-12">
