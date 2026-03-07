@@ -28,6 +28,7 @@ import MicrositeManager from "@/components/dashboard/MicrositeManager";
 import UniversalBuilderStudio from "@/components/dashboard/builders/UniversalBuilderStudio";
 import { BUILDER_NODE_MAP } from "@/components/dashboard/builders/builderNodeConfig";
 import ConnectStripePage from "@/components/dashboard/ConnectStripePage";
+import ReviewProductsPage from "@/components/dashboard/ReviewProductsPage";
 import { Loader2, Rocket, FileText, Video, Share2, CreditCard, Users, Trophy, Podcast, Building2, Bookmark, Award } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
