@@ -16,6 +16,7 @@ import { useAbbyPlan } from "@/hooks/useAbbyPlan";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import CourseStepRenderer from "./course/CourseStepRenderer";
 import HomeStudyStepRenderer from "./home-study/HomeStudyStepRenderer";
+import WorkbookStepRenderer from "./workbook/WorkbookStepRenderer";
 import type { BuilderNodeConfig, BuilderStep } from "./builderNodeConfig";
 
 interface Props {
