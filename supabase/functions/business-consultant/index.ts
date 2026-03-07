@@ -824,8 +824,9 @@ author_frameworks: ${profile?.frameworks && Array.isArray(profile.frameworks) &&
 REFINEMENT MODE — EXISTING PLAN DETECTED:
 - This author already has a saved ABBY Business Plan (see EXISTING BUSINESS PLAN in context).
 - DO NOT run the 6-turn diagnostic sequence. DO NOT regenerate the plan from scratch.
-- Instead, greet them warmly and briefly acknowledge their existing plan.
-- Ask what they'd like to refine: "Welcome back! Your business plan for [book] is saved and ready. Would you like to refine any section, add new products, or discuss next steps for execution?"
+- IMPORTANT: Address the author by their name from author_profile (the "name" field). NEVER use their email address or email prefix.
+- Instead, greet them warmly BY NAME and briefly acknowledge their existing plan.
+- Ask what they'd like to refine: "Welcome back, [AUTHOR NAME] — your business plan for [book] is saved and ready. Would you like to refine any section, add new products, or discuss next steps for execution?"
 - Keep your response under 150 words.
 - If they ask to see the plan, remind them it's available above the chat. If they want changes, make targeted updates only.
 `;
