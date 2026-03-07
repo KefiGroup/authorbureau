@@ -226,6 +226,26 @@ const membershipBuilder: BuilderNodeConfig = {
   ],
 };
 
+const websiteBuilder: BuilderNodeConfig = {
+  id: "website",
+  label: "Website / Microsite",
+  category: "build",
+  requiredTier: "starter",
+  dbTable: "generated_assets",
+  icon: "Globe",
+  color: "text-emerald-500",
+  customRenderer: "website",
+  abbyGreeting: "Your microsite is the hub that connects all your products. Let's build a beautiful, conversion-optimized author website.",
+  abbyPublishMessage: "Your website is live! Share the URL everywhere — social profiles, email signature, book bio. Next: drive traffic with Social Media.",
+  steps: [
+    { id: "setup", label: "Site Setup", description: "Choose site type, template, colors, and fonts", abbyTip: "Your microsite is the hub that connects all your products. I recommend starting with a landing page that captures emails, then expanding to a full site as you add products." },
+    { id: "pages", label: "Page Builder", description: "AI generates pages from your book and business plan", abbyTip: "I'll create pages with pre-built sections: Hero, About, Products, Testimonials, and Email Capture. Drag and drop to reorder." },
+    { id: "products", label: "Product Integration", description: "Auto-populate product cards from all built products", abbyTip: "Products are organized by ABBY category. Each card shows image, title, price, and a buy/enroll button." },
+    { id: "seo", label: "SEO & Analytics", description: "AI-generated meta titles, descriptions, and tracking", abbyTip: "Good SEO means your site shows up when readers search for topics in your book. Meta titles under 60 characters perform best." },
+    { id: "publish", label: "Preview & Publish", description: "Full site preview and publish", abbyTip: "Check your site on desktop, tablet, and mobile. Make sure email capture is above the fold on every page." },
+  ],
+};
+
 const leadMagnetBuilder: BuilderNodeConfig = {
   id: "lead-magnet",
   label: "Lead Magnet Builder",
