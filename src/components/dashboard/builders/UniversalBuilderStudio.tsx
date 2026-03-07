@@ -23,6 +23,7 @@ import UpsellStepRenderer from "./upsell/UpsellStepRenderer";
 import SocialMediaStepRenderer from "./social-media/SocialMediaStepRenderer";
 import WebinarStepRenderer from "./webinar/WebinarStepRenderer";
 import PodcastScriptsStepRenderer from "./podcast-scripts/PodcastScriptsStepRenderer";
+import EmailMarketingStepRenderer from "./email-marketing/EmailMarketingStepRenderer";
 import type { BuilderNodeConfig, BuilderStep } from "./builderNodeConfig";
 
 interface Props {
