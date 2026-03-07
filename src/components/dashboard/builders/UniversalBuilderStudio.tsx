@@ -488,197 +488,63 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
                 )}
 
                 {/* Step content — custom renderer or generic placeholder */}
-                {nodeConfig.customRenderer === "course" ? (
-                  <CourseStepRenderer
-                    stepId={currentStepConfig.id}
-                    stepData={stepData}
-                    setStepData={setStepData}
-                    onMarkEdited={(id) => setEditedSteps(prev => new Set([...prev, id]))}
-                    bookId={bookId}
-                    bookTitle={bookTitle}
-                    plan={plan}
-                    generationState={generationState}
-                    setGenerationState={setGenerationState}
-                    userId={user?.id || ""}
-                  />
-                ) : nodeConfig.customRenderer === "home-study" ? (
-                  <HomeStudyStepRenderer
-                    stepId={currentStepConfig.id}
-                    stepData={stepData}
-                    setStepData={setStepData}
-                    onMarkEdited={(id) => setEditedSteps(prev => new Set([...prev, id]))}
-                    bookId={bookId}
-                    bookTitle={bookTitle}
-                    plan={plan}
-                    generationState={generationState}
-                    setGenerationState={setGenerationState}
-                    userId={user?.id || ""}
-                  />
-                ) : nodeConfig.customRenderer === "workbook" ? (
-                  <WorkbookStepRenderer
-                    stepId={currentStepConfig.id}
-                    stepData={stepData}
-                    setStepData={setStepData}
-                    onMarkEdited={(id) => setEditedSteps(prev => new Set([...prev, id]))}
-                    bookId={bookId}
-                    bookTitle={bookTitle}
-                    plan={plan}
-                    generationState={generationState}
-                    setGenerationState={setGenerationState}
-                    userId={user?.id || ""}
-                  />
-                ) : nodeConfig.customRenderer === "audiobook" ? (
-                  <AudiobookStepRenderer
-                    stepId={currentStepConfig.id}
-                    stepData={stepData}
-                    setStepData={setStepData}
-                    onMarkEdited={(id) => setEditedSteps(prev => new Set([...prev, id]))}
-                    bookId={bookId}
-                    bookTitle={bookTitle}
-                    plan={plan}
-                    generationState={generationState}
-                    setGenerationState={setGenerationState}
-                    userId={user?.id || ""}
-                  />
-                ) : nodeConfig.customRenderer === "membership" ? (
-                  <MembershipStepRenderer
-                    stepId={currentStepConfig.id}
-                    stepData={stepData}
-                    setStepData={setStepData}
-                    onMarkEdited={(id) => setEditedSteps(prev => new Set([...prev, id]))}
-                    bookId={bookId}
-                    bookTitle={bookTitle}
-                    plan={plan}
-                    generationState={generationState}
-                    setGenerationState={setGenerationState}
-                    userId={user?.id || ""}
-                  />
-                ) : nodeConfig.customRenderer === "upsell" ? (
-                  <UpsellStepRenderer
-                    stepId={currentStepConfig.id}
-                    stepData={stepData}
-                    setStepData={setStepData}
-                    onMarkEdited={(id) => setEditedSteps(prev => new Set([...prev, id]))}
-                    bookId={bookId}
-                    bookTitle={bookTitle}
-                    plan={plan}
-                    generationState={generationState}
-                    setGenerationState={setGenerationState}
-                    userId={user?.id || ""}
-                  />
-                ) : nodeConfig.customRenderer === "social-media" ? (
-                  <SocialMediaStepRenderer
-                    stepId={currentStepConfig.id}
-                    stepData={stepData}
-                    setStepData={setStepData}
-                    onMarkEdited={(id) => setEditedSteps(prev => new Set([...prev, id]))}
-                    bookId={bookId}
-                    bookTitle={bookTitle}
-                    plan={plan}
-                    generationState={generationState}
-                    setGenerationState={setGenerationState}
-                    userId={user?.id || ""}
-                  />
-                ) : nodeConfig.customRenderer === "webinar" ? (
-                  <WebinarStepRenderer
-                    stepId={currentStepConfig.id}
-                    stepData={stepData}
-                    setStepData={setStepData}
-                    onMarkEdited={(id) => setEditedSteps(prev => new Set([...prev, id]))}
-                    bookId={bookId}
-                    bookTitle={bookTitle}
-                    plan={plan}
-                    generationState={generationState}
-                    setGenerationState={setGenerationState}
-                    userId={user?.id || ""}
-                  />
-                ) : nodeConfig.customRenderer === "podcast-scripts" ? (
-                  <PodcastScriptsStepRenderer
-                    stepId={currentStepConfig.id}
-                    stepData={stepData}
-                    setStepData={setStepData}
-                    onMarkEdited={(id) => setEditedSteps(prev => new Set([...prev, id]))}
-                    bookId={bookId}
-                    bookTitle={bookTitle}
-                    plan={plan}
-                    generationState={generationState}
-                    setGenerationState={setGenerationState}
-                    userId={user?.id || ""}
-                  />
-                ) : nodeConfig.customRenderer === "email-marketing" ? (
-                  <EmailMarketingStepRenderer
-                    stepId={currentStepConfig.id}
-                    stepData={stepData}
-                    setStepData={setStepData}
-                    onMarkEdited={(id) => setEditedSteps(prev => new Set([...prev, id]))}
-                    bookId={bookId}
-                    bookTitle={bookTitle}
-                    plan={plan}
-                    generationState={generationState}
-                    setGenerationState={setGenerationState}
-                    userId={user?.id || ""}
-                  />
-                ) : nodeConfig.customRenderer === "website" ? (
-                  <WebsiteStepRenderer
-                    stepId={currentStepConfig.id}
-                    stepData={stepData}
-                    setStepData={setStepData}
-                    onMarkEdited={(id) => setEditedSteps(prev => new Set([...prev, id]))}
-                    bookId={bookId}
-                    bookTitle={bookTitle}
-                    plan={plan}
-                    generationState={generationState}
-                    setGenerationState={setGenerationState}
-                    userId={user?.id || ""}
-                  />
-                ) : nodeConfig.customRenderer === "coaching" ? (
-                  <CoachingStepRenderer
-                    stepId={currentStepConfig.id}
-                    stepData={stepData}
-                    setStepData={setStepData}
-                    onMarkEdited={(id) => setEditedSteps(prev => new Set([...prev, id]))}
-                    bookId={bookId}
-                    bookTitle={bookTitle}
-                    plan={plan}
-                    generationState={generationState}
-                    setGenerationState={setGenerationState}
-                    userId={user?.id || ""}
-                  />
-                ) : (generationState === "idle" || generationState === "complete") ? (
-                  <Card className="p-6 min-h-[300px] border-dashed border-2">
-                    <div className="text-center py-12">
-                      <Wand2 className="h-10 w-10 text-muted-foreground/30 mx-auto mb-4" />
-                      <h3 className="font-heading text-lg font-semibold mb-2">{currentStepConfig.label}</h3>
-                      <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
-                        {currentStepConfig.description}
-                      </p>
-                      {currentStepConfig.id === "generate" || currentStepConfig.id === "script" || currentStepConfig.id === "curriculum" ? (
-                        <Button
-                          className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90"
-                          onClick={() => {
-                            setGenerationState("queued");
-                            setTimeout(() => setGenerationState("analyzing"), 2000);
-                            setTimeout(() => setGenerationState("generating"), 5000);
-                            setTimeout(() => {
-                              setGenerationState("complete");
-                              setStepData(prev => ({
-                                ...prev,
-                                [currentStepConfig.id]: { generated: true, timestamp: new Date().toISOString() },
-                              }));
-                              toast({ title: "Content generated!", description: "Review and edit below." });
-                            }, 8000);
-                          }}
-                        >
-                          <Sparkles className="h-4 w-4 mr-2" /> Generate with AI
-                        </Button>
-                      ) : (
-                        <p className="text-xs text-muted-foreground/50">
-                          Builder step content will be populated by AI generation
-                        </p>
-                      )}
-                    </div>
-                  </Card>
-                ) : null}
+                {(() => {
+                  const RendererComponent = nodeConfig.customRenderer ? RENDERER_MAP[nodeConfig.customRenderer] : null;
+                  if (RendererComponent) {
+                    return (
+                      <RendererComponent
+                        stepId={currentStepConfig.id}
+                        stepData={stepData}
+                        setStepData={setStepData}
+                        onMarkEdited={(id: string) => setEditedSteps(prev => new Set([...prev, id]))}
+                        bookId={bookId}
+                        bookTitle={bookTitle}
+                        plan={plan}
+                        generationState={generationState}
+                        setGenerationState={setGenerationState}
+                        userId={user?.id || ""}
+                      />
+                    );
+                  }
+                  if (generationState === "idle" || generationState === "complete") {
+                    return (
+                      <Card className="p-6 min-h-[300px] border-dashed border-2">
+                        <div className="text-center py-12">
+                          <Wand2 className="h-10 w-10 text-muted-foreground/30 mx-auto mb-4" />
+                          <h3 className="font-heading text-lg font-semibold mb-2">{currentStepConfig.label}</h3>
+                          <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+                            {currentStepConfig.description}
+                          </p>
+                          {currentStepConfig.id === "generate" || currentStepConfig.id === "script" || currentStepConfig.id === "curriculum" ? (
+                            <Button
+                              className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                              onClick={() => {
+                                setGenerationState("queued");
+                                setTimeout(() => setGenerationState("analyzing"), 2000);
+                                setTimeout(() => setGenerationState("generating"), 5000);
+                                setTimeout(() => {
+                                  setGenerationState("complete");
+                                  setStepData(prev => ({
+                                    ...prev,
+                                    [currentStepConfig.id]: { generated: true, timestamp: new Date().toISOString() },
+                                  }));
+                                  toast({ title: "Content generated!", description: "Review and edit below." });
+                                }, 8000);
+                              }}
+                            >
+                              <Sparkles className="h-4 w-4 mr-2" /> Generate with AI
+                            </Button>
+                          ) : (
+                            <p className="text-xs text-muted-foreground/50">
+                              Builder step content will be populated by AI generation
+                            </p>
+                          )}
+                        </div>
+                      </Card>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
             </motion.div>
           </AnimatePresence>
