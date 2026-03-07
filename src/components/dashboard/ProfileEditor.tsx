@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Loader2, ExternalLink, Download, MapPin, Globe, Linkedin,
   Twitter, Instagram, Youtube, BookOpen, RefreshCw, KeyRound,
+  PlusCircle, Pencil, Trash2, Briefcase,
 } from "lucide-react";
 import { supabase as sharedSupabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
 import { redirectToPublishNow } from "@/lib/publishnow-redirect";
