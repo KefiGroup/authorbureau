@@ -163,9 +163,14 @@ Deno.serve(async (req) => {
         .select("id", { count: "exact", head: true })
         .eq("directory_status", "unlisted");
 
+      const { count: totalBooks } = await adminClient
+        .from("books")
+        .select("id", { count: "exact", head: true });
+
       return new Response(JSON.stringify({
         pendingBooks: pendingBooks || 0,
         pendingAuthors: pendingAuthors || 0,
+        totalBooks: totalBooks || 0,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
