@@ -187,6 +187,22 @@ export default function MicrositeManager({ onNavigate }: Props) {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {allPages.map((page) => {
           const isLocked = page.status === "locked";
+          const tierBadge = (() => {
+            switch (page.requiredTier) {
+              case "free": return { label: "FREE", color: "bg-accent/15 text-accent border-accent/20" };
+              case "starter": return { label: "STARTER", color: "bg-blue-500/15 text-blue-700 border-blue-500/20" };
+              case "pro": return { label: "PRO", color: "bg-violet-500/15 text-violet-700 border-violet-500/20" };
+              case "enterprise": return { label: "ENTERPRISE", color: "bg-amber-500/15 text-amber-700 border-amber-500/20" };
+              default: return null;
+            }
+          })();
+
+          const actionLabel = (() => {
+            if (page.id === "custom-domain") return "Set Up";
+            if (page.id === "white-label") return "Configure";
+            return "Create";
+          })();
+
           return (
             <Card
               key={page.id}
@@ -199,7 +215,14 @@ export default function MicrositeManager({ onNavigate }: Props) {
                   {isLocked ? <Lock className="h-4 w-4 text-muted-foreground" /> : <page.icon className="h-4 w-4 text-secondary" />}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h3 className="font-heading font-semibold text-sm">{page.name}</h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-heading font-semibold text-sm">{page.name}</h3>
+                    {tierBadge && (
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${tierBadge.color}`}>
+                        {tierBadge.label}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{page.description}</p>
                 </div>
               </div>
@@ -242,7 +265,7 @@ export default function MicrositeManager({ onNavigate }: Props) {
                 )}
                 {page.status === "not_created" && (
                   <Button size="sm" className="w-full text-xs bg-secondary text-secondary-foreground hover:bg-secondary/90">
-                    <PlusCircle className="h-3 w-3 mr-1" /> Create
+                    <PlusCircle className="h-3 w-3 mr-1" /> {actionLabel}
                   </Button>
                 )}
                 {page.status === "locked" && (

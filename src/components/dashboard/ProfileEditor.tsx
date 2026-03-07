@@ -313,6 +313,9 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
         </section>
       )}
 
+      {/* Services & Expertise */}
+      <ServicesSection />
+
       {/* Frameworks & Theories */}
       {profileExists && (
         <section className="rounded-xl border border-border bg-card p-6">

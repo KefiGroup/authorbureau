@@ -96,6 +96,8 @@ export default function MonetizationUniverse({ activatedCount, builtProducts, re
   const getNodeStatus = (node: StreamNode): StreamNode["status"] => {
     if (builtProducts.includes(node.label)) return "built";
     if (recommendedByAbby.includes(node.label)) return "recommended";
+    // If no books analyzed (no recommendations at all), everything stays locked
+    if (recommendedByAbby.length === 0 && node.requiredTier) return "locked";
     if (!node.requiredTier) return "unlocked";
     const tierOrder = ["free", "starter", "pro", "enterprise"];
     const userIdx = tierOrder.indexOf(subscribedTier.toLowerCase());
