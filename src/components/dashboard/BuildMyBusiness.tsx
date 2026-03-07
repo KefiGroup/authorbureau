@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { motion, AnimatePresence } from "framer-motion";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import BusinessPlanActions, { isBusinessPlanMessage } from "@/components/dashboard/BusinessPlanActions";
+import BuildAuthorBusinessButton from "@/components/dashboard/BuildAuthorBusinessButton";
 import SavedBusinessPlan from "@/components/dashboard/SavedBusinessPlan";
 import FrameworkInterviewModal, { type BuildMode } from "@/components/dashboard/FrameworkInterviewModal";
 import ManuscriptUpload from "@/components/dashboard/ManuscriptUpload";
