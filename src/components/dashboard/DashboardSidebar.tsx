@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, User, BookOpen, Sparkles,
   ChevronLeft, ChevronRight, Crown, ExternalLink, PenLine, BookMarked,
-  Lock, Globe, BarChart3, Contact, DollarSign, Radio, Award,
+  Lock, Globe, BarChart3, Contact, DollarSign, Radio, Award, CreditCard, Package,
 } from "lucide-react";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
 import logoIcon from "@/assets/logo-icon.png";
@@ -21,6 +21,8 @@ interface Props {
   buildUnlocked?: number;
   bridgeUnlocked?: number;
   yieldUnlocked?: number;
+  stripeConnected?: boolean;
+  pendingReviewCount?: number;
 }
 
 interface NavItem {
@@ -31,6 +33,7 @@ interface NavItem {
   lockMessage?: string;
   hidden?: boolean;
   color?: string;
+  notificationCount?: number;
 }
 
 const sisterLinks = [
@@ -42,6 +45,7 @@ export default function DashboardSidebar({
   activeSection, onSectionChange, collapsed, onToggleCollapse,
   isPremium, tier = "free", hasBooks = true, hasAnalysis = true, hasMicrosite = true,
   buildUnlocked = 0, bridgeUnlocked = 0, yieldUnlocked = 0,
+  stripeConnected = false, pendingReviewCount = 0,
 }: Props) {
 
   const tierAccess = (required: "starter" | "pro" | "enterprise") => {
@@ -52,7 +56,7 @@ export default function DashboardSidebar({
   // Section 1: Your Journey
   const journeyItems: NavItem[] = [
     { id: "overview", label: "Dashboard", icon: LayoutDashboard },
-    { id: "my-books", label: "My Books Hub", icon: BookOpen },
+    { id: "my-books", label: "My Books Hub", icon: BookOpen, notificationCount: pendingReviewCount },
     { id: "build-business", label: "Analyze with Abby", icon: Sparkles },
   ];
 
@@ -81,9 +85,10 @@ export default function DashboardSidebar({
   // Section 3: Your Brand
   const brandItems: NavItem[] = [
     { id: "profile", label: "Author Profile", icon: User },
+    { id: "microsite-manager" as DashboardSection, label: "My Microsite", icon: Globe },
     {
-      id: "profile" as DashboardSection, label: "My Microsite", icon: Globe,
-      // We'll handle this specially — navigates to microsite
+      id: "analytics" as DashboardSection, label: "Analytics", icon: BarChart3,
+      hidden: !hasMicrosite && !isPremium,
     },
     {
       id: "crm" as DashboardSection, label: "My Contacts", icon: Contact,
@@ -130,6 +135,11 @@ export default function DashboardSidebar({
                 {item.badge && !isLocked && (
                   <span className="text-[10px] text-muted-foreground/60 font-normal">{item.badge}</span>
                 )}
+                {(item.notificationCount ?? 0) > 0 && !isLocked && (
+                  <span className="inline-flex items-center justify-center rounded-full bg-secondary text-secondary-foreground w-4 h-4 text-[9px] font-bold">
+                    {item.notificationCount}
+                  </span>
+                )}
               </>
             )}
           </button>
@@ -164,6 +174,24 @@ export default function DashboardSidebar({
         {renderSection("Your Journey", journeyItems)}
         {renderSection("Build Your Business", businessItems)}
         {renderSection("Your Brand", brandItems)}
+
+        {/* Stripe Connect status badge */}
+        {!collapsed && isPremium && (
+          <div className="px-3">
+            {stripeConnected ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/15 text-accent px-2.5 py-1 text-[10px] font-semibold">
+                <CreditCard className="h-3 w-3" /> Payments Active
+              </span>
+            ) : (
+              <button
+                onClick={() => onSectionChange("overview")}
+                className="inline-flex items-center gap-1.5 rounded-full bg-secondary/15 text-secondary px-2.5 py-1 text-[10px] font-semibold hover:bg-secondary/25 transition-colors"
+              >
+                <CreditCard className="h-3 w-3" /> Connect Stripe
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Sister platform links */}
         {!collapsed && (

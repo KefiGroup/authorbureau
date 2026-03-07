@@ -9,6 +9,8 @@ import {
   Pencil, Sparkles, ArrowRight, CheckCircle2, Circle,
 } from "lucide-react";
 import ManuscriptUpload from "./ManuscriptUpload";
+import StripeConnectBanner from "./StripeConnectBanner";
+import ProductReviewQueue from "./ProductReviewQueue";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import DualModeBookForm from "@/components/DualModeBookForm";
@@ -49,11 +51,12 @@ async function getActiveToken(): Promise<string | null> {
 interface MyBooksProps {
   isPremium?: boolean;
   onNavigate?: (section: string) => void;
+  stripeConnected?: boolean;
 }
 
 type JourneyDot = "done" | "current" | "upcoming";
 
-export default function MyBooks({ isPremium = false, onNavigate }: MyBooksProps) {
+export default function MyBooks({ isPremium = false, onNavigate, stripeConnected = false }: MyBooksProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -273,6 +276,12 @@ export default function MyBooks({ isPremium = false, onNavigate }: MyBooksProps)
         </Card>
       ) : (
         <>
+          {/* Stripe Connect Banner */}
+          {isPremium && !stripeConnected && <StripeConnectBanner />}
+
+          {/* Products Pending Review */}
+          <ProductReviewQueue onNavigate={onNavigate} />
+
           {/* Quick Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
