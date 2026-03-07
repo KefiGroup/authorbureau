@@ -161,8 +161,6 @@ const audiobookBuilder: BuilderNodeConfig = {
     { id: "publish", label: "Preview & Publish", description: "Full audiobook player preview and distribution", abbyTip: "Price audiobooks at $14.99-$24.99. They have excellent margins with zero shipping costs." },
   ],
 };
-  ],
-};
 
 const podcastBuilder: BuilderNodeConfig = {
   id: "podcast",
