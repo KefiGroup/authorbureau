@@ -208,14 +208,15 @@ const membershipBuilder: BuilderNodeConfig = {
   dbTable: "courses", // reuse courses with membership type
   icon: "CreditCard",
   color: "text-emerald-500",
+  customRenderer: "membership",
   abbyGreeting: "Recurring revenue through memberships is the holy grail. Let's design a membership program your readers will love.",
   abbyPublishMessage: "Your membership program is designed! Connect payment processing and start enrolling founding members.",
   steps: [
-    { id: "configure", label: "Configure", description: "Set tiers, pricing, and benefits", abbyTip: "Start with one tier at $27-$47/month. You can add premium tiers later." },
-    { id: "content-plan", label: "Content Calendar", description: "Generate monthly content plan", abbyTip: "Members stay for community and fresh content. Plan 2 live sessions + 4 resources per month." },
-    { id: "community", label: "Community Setup", description: "Design community structure and rules", abbyTip: "A private Facebook or Circle group works great. Weekly Q&A threads boost engagement." },
-    { id: "sales-page", label: "Sales Page", description: "Generate membership sales copy", abbyTip: "Emphasize the community aspect — 'Join 500+ authors building their business together.'" },
-    { id: "preview", label: "Preview & Launch", description: "Review and launch membership", abbyTip: "Launch with a founding member discount (50% off first 3 months) to build critical mass." },
+    { id: "setup", label: "Membership Setup", description: "Set name, tagline, and number of tiers", abbyTip: "3 tiers is the sweet spot. Your Reader Circle (free/low-cost) builds the community, Pro ($27-$47/mo) delivers ongoing value, and VIP ($97-$197/mo) gives access to you personally." },
+    { id: "tiers", label: "Tier Builder", description: "Configure tier names, pricing, and benefits", abbyTip: "Make the middle tier the obvious choice by giving it 80% of the VIP value at 40% of the price. This is the decoy pricing strategy." },
+    { id: "content-calendar", label: "Content Calendar", description: "AI generates a 3-month content calendar per tier", abbyTip: "Members stay for consistency — aim for 2 live sessions + 4 content drops per month. Recurring content builds habits." },
+    { id: "sales-onboarding", label: "Sales & Onboarding", description: "Sales page, welcome emails, onboarding checklist, and cancellation prevention", abbyTip: "A strong sales page + onboarding flow reduces churn by 40%. Welcome sequences per tier are essential." },
+    { id: "publish", label: "Preview & Publish", description: "Preview the membership experience and publish", abbyTip: "Launch with a founding member discount (50% off first 3 months) to build critical mass." },
   ],
 };
 
