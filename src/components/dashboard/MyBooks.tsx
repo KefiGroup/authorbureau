@@ -9,6 +9,8 @@ import {
   Pencil, Sparkles, ArrowRight, CheckCircle2, Circle,
 } from "lucide-react";
 import ManuscriptUpload from "./ManuscriptUpload";
+import StripeConnectBanner from "./StripeConnectBanner";
+import ProductReviewQueue from "./ProductReviewQueue";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import DualModeBookForm from "@/components/DualModeBookForm";
