@@ -183,6 +183,17 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
   const handleNavigate = (s: string) => setActiveSection(s as DashboardSection);
 
   const renderSection = () => {
+    // Check if this is a universal builder node
+    const builderNodeId = searchParams.get("builder");
+    if (builderNodeId && BUILDER_NODE_MAP[builderNodeId]) {
+      return (
+        <UniversalBuilderStudio
+          nodeConfig={BUILDER_NODE_MAP[builderNodeId]}
+          onNavigate={handleNavigate}
+        />
+      );
+    }
+
     switch (activeSection) {
       case "profile":
         return <ProfileEditor onNavigate={handleNavigate} />;
