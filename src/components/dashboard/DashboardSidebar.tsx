@@ -87,6 +87,11 @@ export default function DashboardSidebar({
     { id: "profile", label: "Author Profile", icon: User },
     { id: "microsite-manager" as DashboardSection, label: "My Microsite", icon: Globe },
     {
+      id: "review-products" as DashboardSection, label: "Review Products", icon: Package,
+      notificationCount: pendingReviewCount,
+      hidden: !hasBooks,
+    },
+    {
       id: "analytics" as DashboardSection, label: "Revenue Dashboard", icon: BarChart3,
       hidden: !hasMicrosite && !isPremium,
     },
