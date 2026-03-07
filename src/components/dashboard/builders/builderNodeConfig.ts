@@ -591,6 +591,7 @@ export const ALL_BUILDER_NODES: BuilderNodeConfig[] = [
   licensingBuilder,
   communityBuilder,
   upsellBuilder,
+  // Y·Yield (8)
   retreatBuilder,
   certificationBuilder,
   mastermindBuilder,
