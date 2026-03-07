@@ -68,7 +68,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
       for (const table of tables) {
         const { data } = await supabase
           .from(table)
-          .select("id, title, book_id, created_at, status, description, price")
+          .select("id, title, book_id, created_at, status, description")
           .eq("author_id", user.id)
           .in("status", ["draft", "ready_for_review"]);
 
