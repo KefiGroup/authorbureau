@@ -452,14 +452,15 @@ const certificationBuilder: BuilderNodeConfig = {
   dbTable: "courses",
   icon: "Award",
   color: "text-amber-500",
-  abbyGreeting: "A certification program establishes you as THE authority in your field. Let's design a professional credential.",
+  customRenderer: "certification",
+  abbyGreeting: "Certification is the ultimate authority builder. Certified practitioners become your ambassadors AND a recurring revenue stream through renewal fees.",
   abbyPublishMessage: "Your certification program is designed! This is a premium offering that builds your legacy.",
   steps: [
-    { id: "configure", label: "Configure", description: "Set levels, requirements, and pricing", abbyTip: "Start with one certification level at $2,997-$9,997. Add advanced levels later." },
-    { id: "curriculum", label: "AI Curriculum", description: "Generate multi-module curriculum", abbyTip: "8-12 modules with assessments at each stage. Include a capstone project for credibility." },
-    { id: "assessment", label: "Assessment Design", description: "Create exams and practical assessments", abbyTip: "Mix knowledge tests (60%) with practical application (40%). Include peer review components." },
-    { id: "credentials", label: "Credential Design", description: "Design certificates and digital badges", abbyTip: "Professional certificates increase perceived value. Include verifiable digital badges." },
-    { id: "preview", label: "Preview & Launch", description: "Review and open enrollment", abbyTip: "Launch to your coaching alumni first. They're already invested in your methodology." },
+    { id: "setup", label: "Certification Setup", description: "Set name, levels, duration, delivery, pricing, and renewal terms", abbyTip: "Certification is the ultimate authority builder. Certified practitioners become your ambassadors AND a recurring revenue stream." },
+    { id: "curriculum", label: "Curriculum Builder", description: "AI generates module-by-module breakdown with theory, practice, and assessments", abbyTip: "8-12 modules with assessments at each stage. Include a capstone project for credibility." },
+    { id: "assessment", label: "Assessment & Licensing", description: "Knowledge exams, practical rubrics, case studies, agreement, and renewal requirements", abbyTip: "Mix knowledge tests (60%) with practical application (40%). Include peer review components." },
+    { id: "directory", label: "Certified Directory", description: "Practitioner profile template, public directory, badge, and referral system", abbyTip: "Professional certificates increase perceived value. Include verifiable digital badges." },
+    { id: "preview", label: "Preview & Publish", description: "Preview sales page, curriculum, and revenue projection", abbyTip: "10 certified practitioners at $5,000 each = $50,000. Plus $500/year renewal fees = $5,000/year recurring." },
   ],
 };
 
