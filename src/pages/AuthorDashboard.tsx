@@ -29,6 +29,8 @@ import UniversalBuilderStudio from "@/components/dashboard/builders/UniversalBui
 import { BUILDER_NODE_MAP } from "@/components/dashboard/builders/builderNodeConfig";
 import ConnectStripePage from "@/components/dashboard/ConnectStripePage";
 import ReviewProductsPage from "@/components/dashboard/ReviewProductsPage";
+import AuthorCRMPage from "@/components/dashboard/AuthorCRMPage";
+import AuthorReadingClub from "@/components/dashboard/AuthorReadingClub";
 import { Loader2, Rocket, FileText, Video, Share2, CreditCard, Users, Trophy, Podcast, Building2, Bookmark, Award } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -45,7 +47,7 @@ export type DashboardSection =
   | "retreats" | "certification" | "masterminds"
   | "email-marketing" | "subscribers" | "email-templates"
   | "revenue-streams" | "marketing-channels" | "authority-builders"
-  | "marketing" | "crm"
+  | "marketing" | "crm" | "author-crm" | "reading-club"
   | "analytics" | "microsite-manager"
   | "connect-stripe" | "review-products"
   // Universal builder nodes
@@ -278,6 +280,10 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         return <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} />;
       case "review-products":
         return <ReviewProductsPage onNavigate={handleNavigate} />;
+      case "author-crm":
+        return gate("My Contacts", <AuthorCRMPage onNavigate={handleNavigate} />, "pro");
+      case "reading-club":
+        return <AuthorReadingClub onNavigate={handleNavigate} />;
       case "connect-stripe":
         return <ConnectStripePage />;
       case "overview":
