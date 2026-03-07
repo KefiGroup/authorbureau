@@ -1084,7 +1084,27 @@ export default function BuildMyBusiness() {
                   />
                 )}
 
-                {/* Business plan is now rendered as clean markdown inline */}
+                {/* Dynamic Navigation Buttons from ===NAV:xxx=== markers */}
+                {msg.role === "assistant" && !isStreaming && navMarkers.length > 0 && (
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    {navMarkers.map((key) => {
+                      const cfg = NAV_CONFIG[key];
+                      if (!cfg) return null;
+                      return (
+                        <Button
+                          key={key}
+                          size="sm"
+                          className="gap-2 rounded-full"
+                          variant={key === navMarkers[0] ? "default" : "outline"}
+                          onClick={() => navigate(`/dashboard?section=${cfg.section}`)}
+                        >
+                          <span>{cfg.icon}</span>
+                          {cfg.label}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
               {msg.role === "user" && (
                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
