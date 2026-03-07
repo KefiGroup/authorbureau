@@ -430,8 +430,21 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
                   </Card>
                 )}
 
-                {/* Step content placeholder — each step shows a form/editor */}
-                {generationState === "idle" || generationState === "complete" ? (
+                {/* Step content — custom renderer or generic placeholder */}
+                {nodeConfig.customRenderer === "course" ? (
+                  <CourseStepRenderer
+                    stepId={currentStepConfig.id}
+                    stepData={stepData}
+                    setStepData={setStepData}
+                    onMarkEdited={(id) => setEditedSteps(prev => new Set([...prev, id]))}
+                    bookId={bookId}
+                    bookTitle={bookTitle}
+                    plan={plan}
+                    generationState={generationState}
+                    setGenerationState={setGenerationState}
+                    userId={user?.id || ""}
+                  />
+                ) : (generationState === "idle" || generationState === "complete") ? (
                   <Card className="p-6 min-h-[300px] border-dashed border-2">
                     <div className="text-center py-12">
                       <Wand2 className="h-10 w-10 text-muted-foreground/30 mx-auto mb-4" />
