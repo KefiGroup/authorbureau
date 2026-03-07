@@ -547,6 +547,25 @@ const franchiseBuilder: BuilderNodeConfig = {
   ],
 };
 
+const upsellBuilder: BuilderNodeConfig = {
+  id: "upsell-downsell",
+  label: "Upsells / Downsells",
+  category: "bridge",
+  requiredTier: "pro",
+  dbTable: "generated_assets",
+  icon: "ArrowUpDown",
+  color: "text-violet-500",
+  customRenderer: "upsell",
+  abbyGreeting: "Upsells and downsells are the easiest way to increase revenue without more traffic. Let's build conversion sequences for your checkout flow.",
+  abbyPublishMessage: "Your upsell funnel is live! Every purchase now has a chance to generate additional revenue automatically.",
+  steps: [
+    { id: "setup", label: "Funnel Setup", description: "Select primary product and funnel type", abbyTip: "Your workbook buyers are the perfect audience for an upsell to the Online Course. I recommend a 'Special offer: Get the full course for 40% off — only available now' upsell." },
+    { id: "offer", label: "Offer Builder", description: "AI generates the upsell/downsell offer with pricing and urgency", abbyTip: "The best upsells feel like a natural extension of what was just purchased. Connect your primary product to a logical next step." },
+    { id: "design", label: "Page Design", description: "Design upsell, downsell, and order bump pages", abbyTip: "One CTA, clear pricing, and urgency. Remove all navigation — the only choices should be 'Yes' or 'No thanks.'" },
+    { id: "publish", label: "Preview & Publish", description: "Walk through the funnel and publish", abbyTip: "Based on a 15-25% upsell conversion rate, this could add significant monthly revenue with zero additional traffic." },
+  ],
+};
+
 // ─── EXPORT ALL 27 NODES ─────────────────────────────────────────────
 
 export const ALL_BUILDER_NODES: BuilderNodeConfig[] = [
@@ -562,7 +581,7 @@ export const ALL_BUILDER_NODES: BuilderNodeConfig[] = [
   podcastBuilder,
   webinarBuilder,
   membershipBuilder,
-  // B·Bridge (8)
+  // B·Bridge (8+1)
   coachingBuilder,
   groupCoachingBuilder,
   speakingBuilder,
@@ -571,6 +590,7 @@ export const ALL_BUILDER_NODES: BuilderNodeConfig[] = [
   partnershipBuilder,
   licensingBuilder,
   communityBuilder,
+  upsellBuilder,
   // Y·Yield (8)
   retreatBuilder,
   certificationBuilder,
