@@ -847,8 +847,9 @@ ${!hasSavedPlan && conversationTurn > 5 ? "- ONGOING CONVERSATION: Keep response
 CONVERSATION START:
 CURRENT TURN: 1. You MUST follow Turn 1 instructions ONLY. Do NOT generate content from Turn 2 or later. End your response at the [STOP] marker for Turn 1. Maximum 150 words.
 
+- IMPORTANT: Address the author by their name from author_profile (the "name" field). NEVER use their email address or email prefix.
 - This is Turn 1. Follow the Turn 1 instructions EXACTLY.
-- Greet warmly, show ONE brief insight about their book, ask the A/B/C/D priority question, then STOP.
+- Greet warmly BY NAME, show ONE brief insight about their book, ask the A/B/C/D priority question, then STOP.
 - Your response MUST be under 150 words. Do NOT generate the business plan.
 - Do NOT skip ahead. Do NOT provide strategic analysis yet. Just greet and ask.
 `;
