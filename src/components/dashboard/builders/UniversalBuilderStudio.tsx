@@ -17,6 +17,7 @@ import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import CourseStepRenderer from "./course/CourseStepRenderer";
 import HomeStudyStepRenderer from "./home-study/HomeStudyStepRenderer";
 import WorkbookStepRenderer from "./workbook/WorkbookStepRenderer";
+import AudiobookStepRenderer from "./audiobook/AudiobookStepRenderer";
 import type { BuilderNodeConfig, BuilderStep } from "./builderNodeConfig";
 
 interface Props {
