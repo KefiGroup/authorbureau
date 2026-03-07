@@ -31,14 +31,15 @@ const workbookBuilder: BuilderNodeConfig = {
   dbTable: "workbooks",
   icon: "FileText",
   color: "text-emerald-500",
+  customRenderer: "workbook",
   abbyGreeting: "Your business plan recommends this workbook as your first product — it's a quick win that builds your email list. Let's make it great.",
   abbyPublishMessage: "Great work! Your workbook is live. Next up in your plan: the Online Course. Want to start building it?",
   steps: [
-    { id: "configure", label: "Configure", description: "Set title, audience, and pricing", abbyTip: "Name it after a specific outcome. '5-Day Action Plan for X' converts better than generic titles." },
-    { id: "generate", label: "AI Generate", description: "Generate workbook content from your manuscript", abbyTip: "I'll pull key exercises and reflection prompts from your strongest chapters." },
-    { id: "edit", label: "Edit Content", description: "Review and customize AI-generated content", abbyTip: "Add personal stories — they increase completion rates by 40%." },
-    { id: "design", label: "Design & Layout", description: "Choose design template and cover", abbyTip: "Clean, minimal designs with plenty of writing space perform best." },
-    { id: "preview", label: "Preview & Publish", description: "Review final product and publish", abbyTip: "Double-check your call-to-action on the last page — it should lead to your online course." },
+    { id: "setup", label: "Workbook Setup", description: "Set title, purpose, pricing, and design template", abbyTip: "Your business plan positions this workbook as a free lead magnet. Free workbooks with a strong CTA on the last page convert 15-25% of readers to your email list." },
+    { id: "mapping", label: "Chapter Mapping", description: "Map book chapters to workbook sections", abbyTip: "I've mapped your chapters into workbook sections. Chapters with practical advice get more exercises; reflective chapters get more journal prompts." },
+    { id: "content", label: "Content Generator", description: "Generate exercises, prompts, and checklists per section", abbyTip: "Each element should connect back to a specific chapter concept. Mix content types for variety — reflection → exercise → checklist keeps engagement high." },
+    { id: "design", label: "Design Preview", description: "Preview pages and switch design templates", abbyTip: "Clean, minimal designs with plenty of writing space perform best. Make sure your cover matches your book's visual identity." },
+    { id: "publish", label: "Preview & Publish", description: "Final review, download PDF, and publish", abbyTip: "Double-check your call-to-action on the last page — it should lead to your online course or website." },
   ],
 };
 
