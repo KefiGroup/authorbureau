@@ -45,7 +45,7 @@ export type DashboardSection =
   | "retreats" | "certification" | "masterminds"
   | "email-marketing" | "subscribers" | "email-templates"
   | "revenue-streams" | "marketing-channels" | "authority-builders"
-  | "marketing" | "crm"
+  | "marketing" | "crm" | "author-crm" | "reading-club"
   | "analytics" | "microsite-manager"
   | "connect-stripe" | "review-products"
   // Universal builder nodes
