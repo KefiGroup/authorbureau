@@ -201,7 +201,8 @@ const webinarBuilder: BuilderNodeConfig = {
     { id: "preview", label: "Preview & Publish", description: "Preview everything and publish your webinar package", abbyTip: "Tuesdays and Wednesdays at 12pm or 7pm get the highest attendance rates." },
   ],
 };
-};
+
+
 
 const membershipBuilder: BuilderNodeConfig = {
   id: "membership",
