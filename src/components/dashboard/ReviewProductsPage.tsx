@@ -74,17 +74,16 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
 
         if (!data) continue;
 
-        for (const item of data) {
+        for (const item of (data || []) as any[]) {
           drafts.push({
             id: item.id,
             title: item.title,
             type: typeLabels[table] || table,
-            bookTitle: "", // filled below
+            bookTitle: "",
             bookId: item.book_id,
             table,
             status: item.status,
-            description: (item as any).description || undefined,
-            price: (item as any).price || undefined,
+            description: item.description || undefined,
             createdAt: item.created_at,
           });
         }
