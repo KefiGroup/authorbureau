@@ -333,11 +333,11 @@ export default function BuildMyBusiness() {
   };
 
   // Parse ===NAV:xxx=== markers from assistant messages
-  const NAV_CONFIG: Record<string, { label: string; icon: string; section: string }> = {
-    build: { label: "B · Build Authority", icon: "🏗️", section: "build-authority" },
-    bridge: { label: "B · Bridge Channels", icon: "🌉", section: "bridge-channels" },
-    yield: { label: "Y · Yield Revenue", icon: "💰", section: "yield-revenue" },
-    profile: { label: "Author Profile", icon: "👤", section: "profile" },
+  const NAV_CONFIG: Record<string, { label: string; icon: string; tab: string }> = {
+    build: { label: "B · Build Authority", icon: "🏗️", tab: "revenue-streams" },
+    bridge: { label: "B · Bridge Channels", icon: "🌉", tab: "marketing-channels" },
+    yield: { label: "Y · Yield Revenue", icon: "💰", tab: "authority-builders" },
+    profile: { label: "Author Profile", icon: "👤", tab: "profile" },
   };
 
   const parseNavMarkers = (content: string): string[] => {
@@ -1096,7 +1096,13 @@ export default function BuildMyBusiness() {
                           size="sm"
                           className="gap-2 rounded-full"
                           variant={key === navMarkers[0] ? "default" : "outline"}
-                          onClick={() => navigate(`/dashboard?section=${cfg.section}`)}
+                          onClick={() => {
+                            if (key === "profile") {
+                              navigate("/dashboard?section=profile");
+                            } else if (selectedBook) {
+                              navigate(`/dashboard/book/${selectedBook.id}?tab=${cfg.tab}`);
+                            }
+                          }}
                         >
                           <span>{cfg.icon}</span>
                           {cfg.label}
