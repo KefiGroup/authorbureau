@@ -491,14 +491,14 @@ const bigTicketBuilder: BuilderNodeConfig = {
   dbTable: "coaching_packages",
   icon: "Gem",
   color: "text-amber-500",
-  abbyGreeting: "Premium consulting packages can generate $5K-$25K per client. Let's design your VIP offering.",
+  customRenderer: "big-ticket",
+  abbyGreeting: "Big ticket offers are where your expertise commands premium pricing. A VIP Day at $5,000 with 2 clients per month is $10,000/month — and it positions you as the expert.",
   abbyPublishMessage: "Your consulting packages are designed! Start with a free strategy session funnel to attract qualified leads.",
   steps: [
-    { id: "packages", label: "Design Packages", description: "Create premium consulting packages", abbyTip: "Offer a VIP Day ($5K), Quarter Intensive ($10K), and Year-Long Partnership ($25K)." },
-    { id: "process", label: "Delivery Process", description: "Map out the client journey", abbyTip: "Include a kickoff session, regular check-ins, async support, and a final review." },
-    { id: "application", label: "Application Funnel", description: "Create application and qualification", abbyTip: "Use a 'Free Strategy Session' to qualify leads and pitch the paid engagement." },
-    { id: "sales-page", label: "Sales Materials", description: "Generate premium sales copy", abbyTip: "Focus on ROI. 'Clients typically see a 10x return on their investment within 6 months.'" },
-    { id: "preview", label: "Preview & Publish", description: "Review and launch", abbyTip: "Start by converting your best coaching clients. They already trust your expertise." },
+    { id: "setup", label: "Offer Setup", description: "Set offer type, name, target client, deliverables, and pricing", abbyTip: "Big ticket offers are where your expertise commands premium pricing. A VIP Day at $5,000 with 2 clients per month is $10,000/month." },
+    { id: "package", label: "Package Builder", description: "AI generates pre-engagement, during, and post-engagement materials", abbyTip: "Include a kickoff session, regular check-ins, async support, and a final review." },
+    { id: "proposal", label: "Proposal & Sales", description: "Proposal template, application page, sales page, discovery call script, and follow-up sequence", abbyTip: "Focus on ROI. 'Clients typically see a 10x return on their investment within 6 months.'" },
+    { id: "preview", label: "Preview & Publish", description: "Preview all materials and revenue projection", abbyTip: "Start by converting your best coaching clients. They already trust your expertise." },
   ],
 };
 
