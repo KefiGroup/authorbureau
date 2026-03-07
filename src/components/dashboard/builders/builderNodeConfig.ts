@@ -432,14 +432,15 @@ const retreatBuilder: BuilderNodeConfig = {
   dbTable: "generated_assets",
   icon: "Mountain",
   color: "text-amber-500",
-  abbyGreeting: "Retreats create transformative experiences and premium revenue. Let's design an unforgettable 2-3 day program.",
+  customRenderer: "retreats",
+  abbyGreeting: "Retreats are your highest per-person revenue product. A 3-day retreat at $2,997 with 20 participants is $59,940 — minus venue costs, you could net $30,000-$40,000.",
   abbyPublishMessage: "Your retreat program is designed! Start scouting venues and promoting to your VIP list.",
   steps: [
-    { id: "configure", label: "Configure", description: "Set format, dates, and pricing", abbyTip: "2-day retreats at $1,997-$4,997 with 15-20 attendees are the sweet spot." },
-    { id: "agenda", label: "AI Agenda", description: "Generate detailed retreat agenda", abbyTip: "I'll create a transformative arc: Day 1 = Awareness, Day 2 = Action, Day 3 = Accountability." },
-    { id: "logistics", label: "Logistics Plan", description: "Venue, catering, and materials planning", abbyTip: "All-inclusive pricing simplifies the decision for attendees and increases perceived value." },
-    { id: "sales-page", label: "Sales Page", description: "Generate retreat sales copy", abbyTip: "Sell the transformation, not the schedule. 'Leave with a complete business plan' > 'Day 1: Introduction.'" },
-    { id: "preview", label: "Preview & Launch", description: "Review and open registration", abbyTip: "Offer a $500 early-bird discount and a payment plan option to maximize enrollment." },
+    { id: "setup", label: "Event Setup", description: "Set event type, name, capacity, pricing, and location type", abbyTip: "Retreats are your highest per-person revenue product. A 3-day retreat at $2,997 with 20 participants is $59,940." },
+    { id: "itinerary", label: "Itinerary Builder", description: "AI generates day-by-day schedule with sessions, activities, and ceremonies", abbyTip: "I'll create a transformative arc: Day 1 = Awareness, Day 2 = Action, Day 3 = Accountability." },
+    { id: "marketing", label: "Marketing Materials", description: "Sales page, brochure, email sequence, social posts, and pricing strategy", abbyTip: "Sell the transformation, not the schedule. 'Leave with a complete business plan' > 'Day 1: Introduction.'" },
+    { id: "logistics", label: "Logistics Planning", description: "Venue requirements, equipment, welcome packet, travel info, and waivers", abbyTip: "All-inclusive pricing simplifies the decision for attendees and increases perceived value." },
+    { id: "preview", label: "Preview & Publish", description: "Preview sales page, itinerary, and break-even analysis", abbyTip: "Offer a $500 early-bird discount and a payment plan option to maximize enrollment." },
   ],
 };
 
