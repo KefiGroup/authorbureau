@@ -602,6 +602,7 @@ export const ALL_BUILDER_NODES: BuilderNodeConfig[] = [
   homeStudyCourseBuilder,
   bookSalesBuilder,
   leadMagnetBuilder,
+  websiteBuilder,
   onlineCourseBuilder,
   audiobookBuilder,
   podcastBuilder,
