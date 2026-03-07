@@ -597,7 +597,105 @@ const upsellBuilder: BuilderNodeConfig = {
   ],
 };
 
-// ─── EXPORT ALL 27 NODES ─────────────────────────────────────────────
+// ─── NEW BUILDERS (from spec) ────────────────────────────────────────
+
+const trainingProgramsBuilder: BuilderNodeConfig = {
+  id: "training-programs",
+  label: "Training Programs",
+  category: "bridge",
+  requiredTier: "enterprise",
+  dbTable: "courses",
+  icon: "BookMarked",
+  color: "text-violet-500",
+  customRenderer: "training-programs",
+  abbyGreeting: "Training programs create recurring revenue through licensing. One organization paying $25,000/year for your program license is worth 50 individual course sales.",
+  abbyPublishMessage: "Your training program is ready! Start pitching to organizations in your niche.",
+  steps: [
+    { id: "setup", label: "Program Setup", description: "Set program name, duration, frequency, delivery, capacity, and pricing model", abbyTip: "Training programs create recurring revenue through licensing. One organization paying $25,000/year for your program license is worth 50 individual course sales." },
+    { id: "curriculum", label: "Curriculum Builder", description: "AI generates session-by-session curriculum with assessments and manager briefings", abbyTip: "Include pre-program and post-program assessments to measure results. Organizations love data." },
+    { id: "materials", label: "Training Materials", description: "Participant handbook, facilitator guide, slide decks, exercises, case studies, and rubrics", abbyTip: "A detailed facilitator guide makes your program licensable — others can deliver it without you." },
+    { id: "licensing", label: "Licensing & Sales", description: "Brochure, licensing agreement, train-the-trainer guide, ROI case study, and proposal template", abbyTip: "A licensed training program creates passive income. One enterprise license at $25,000/year requires zero additional effort." },
+    { id: "preview", label: "Preview & Publish", description: "Preview all materials and revenue projection", abbyTip: "Approach industry associations and HR departments first — they have training budgets." },
+  ],
+};
+
+const specialEditionsBuilder: BuilderNodeConfig = {
+  id: "special-editions",
+  label: "Special Editions",
+  category: "yield",
+  requiredTier: "pro",
+  dbTable: "generated_assets",
+  icon: "BookHeart",
+  color: "text-amber-500",
+  customRenderer: "special-editions",
+  abbyGreeting: "Special editions create urgency and premium positioning. A limited run of 100 signed copies at $49.99 sells out fast and generates $4,999 in a single launch.",
+  abbyPublishMessage: "Your special edition is designed! Launch it to your email list for maximum impact.",
+  steps: [
+    { id: "setup", label: "Edition Setup", description: "Set edition type, print run, pricing, and extras", abbyTip: "Special editions create urgency and premium positioning. A limited run of 100 signed copies at $49.99 sells out fast." },
+    { id: "content", label: "Edition Content", description: "AI generates foreword, bonus chapter, discussion guide, and packaging description", abbyTip: "New exclusive content makes the special edition feel truly special. An author's letter adds a personal touch." },
+    { id: "sales", label: "Sales & Fulfillment", description: "Pre-order page, numbering system, fulfillment checklist, launch emails, and social posts", abbyTip: "Pre-orders with a countdown create urgency. Limited edition numbering adds collector value." },
+    { id: "preview", label: "Preview & Publish", description: "Preview sales page, edition content, and revenue projection", abbyTip: "Launch to your email list first for maximum conversion. Special editions reward your most loyal readers." },
+  ],
+};
+
+const conventionsBuilder: BuilderNodeConfig = {
+  id: "conventions",
+  label: "Conventions & Conferences",
+  category: "yield",
+  requiredTier: "enterprise",
+  dbTable: "generated_assets",
+  icon: "Landmark",
+  color: "text-amber-500",
+  customRenderer: "conventions",
+  abbyGreeting: "Conferences are where you build your professional network. I recommend submitting speaker proposals to 5-10 conferences per year in your niche.",
+  abbyPublishMessage: "Your conference materials are ready! Start submitting proposals and planning your conference strategy.",
+  steps: [
+    { id: "setup", label: "Conference Setup", description: "Set participation type, niche, goals, and budget", abbyTip: "Conferences are where you build your professional network. I recommend submitting speaker proposals to 5-10 conferences per year." },
+    { id: "submissions", label: "Submission Materials", description: "Speaker proposal, session descriptions, exhibitor booth plan, and sponsorship proposal", abbyTip: "Strong speaker proposals focus on attendee takeaways, not your credentials. What will they learn?" },
+    { id: "kit", label: "Conference Kit", description: "Networking strategy, elevator pitches, business cards, follow-up templates, and lead capture", abbyTip: "Prepare 30-second, 60-second, and 2-minute elevator pitches. Different situations need different lengths." },
+    { id: "preview", label: "Preview & Publish", description: "Preview all materials and lead generation projection", abbyTip: "One conference typically generates 20-50 qualified leads. At a 10% conversion rate, that's 2-5 new clients." },
+  ],
+};
+
+const fundraisingBuilder: BuilderNodeConfig = {
+  id: "fundraising",
+  label: "Fund Raising",
+  category: "yield",
+  requiredTier: "pro",
+  dbTable: "generated_assets",
+  icon: "Heart",
+  color: "text-amber-500",
+  customRenderer: "fundraising",
+  abbyGreeting: "Cause-aligned fundraising builds incredible goodwill and media coverage. Donating $1 per book sold to a relevant cause creates a compelling story.",
+  abbyPublishMessage: "Your fundraising campaign is designed! Launch it and watch the community rally around your cause.",
+  steps: [
+    { id: "setup", label: "Campaign Setup", description: "Set campaign type, cause alignment, fundraising goal, and duration", abbyTip: "Cause-aligned fundraising builds incredible goodwill and media coverage. Donating $1 per book sold creates a compelling story." },
+    { id: "materials", label: "Campaign Materials", description: "Campaign page, donation tiers, press release, social posts, email sequence, and partner outreach", abbyTip: "Donation tiers with tangible rewards (signed book, coaching call, VIP access) dramatically increase average donation." },
+    { id: "event", label: "Event Component", description: "Fundraising event plan, sponsorship packages, volunteer coordination, and thank-you materials", abbyTip: "A live fundraising event (even virtual) creates urgency and community. Pair it with your campaign for maximum impact." },
+    { id: "preview", label: "Preview & Publish", description: "Preview campaign page and fundraising projection", abbyTip: "Fundraising campaigns with author involvement raise 3-5x more than standard campaigns." },
+  ],
+};
+
+const exhibitorsBuilder: BuilderNodeConfig = {
+  id: "exhibitors",
+  label: "Exhibitors / JV",
+  category: "yield",
+  requiredTier: "enterprise",
+  dbTable: "generated_assets",
+  icon: "Store",
+  color: "text-amber-500",
+  customRenderer: "exhibitors",
+  abbyGreeting: "The best JV partnerships are where both parties bring something the other doesn't have. You bring expertise and content; they bring audience and distribution.",
+  abbyPublishMessage: "Your exhibitor and JV materials are ready! Start reaching out to potential partners and event organizers.",
+  steps: [
+    { id: "setup", label: "Partnership Setup", description: "Set partnership type, partner profile, what you bring, and what you want", abbyTip: "The best JV partnerships are where both parties bring something the other doesn't have." },
+    { id: "materials", label: "Partnership Materials", description: "Partnership proposal, co-marketing plan, revenue sharing agreement, and co-branded templates", abbyTip: "Lead with what you can offer them. Always propose a specific, low-risk first collaboration." },
+    { id: "kit", label: "Exhibitor Kit", description: "Booth design, product display, lead capture system, giveaway materials, and follow-up sequence", abbyTip: "A well-designed booth with clear messaging and a lead capture system maximizes your ROI at events." },
+    { id: "preview", label: "Preview & Publish", description: "Preview all materials and partnership projection", abbyTip: "Start with one partnership, prove the model works, then scale to 5-10 active partnerships." },
+  ],
+};
+
+// ─── EXPORT ALL NODES ────────────────────────────────────────────────
 
 export const ALL_BUILDER_NODES: BuilderNodeConfig[] = [
   // B·Build (11)
@@ -613,21 +711,26 @@ export const ALL_BUILDER_NODES: BuilderNodeConfig[] = [
   podcastBuilder,
   webinarBuilder,
   membershipBuilder,
-  // B·Bridge (8+1)
+  // B·Bridge (9)
   coachingBuilder,
   groupCoachingBuilder,
   speakingBuilder,
   corporateTrainingBuilder,
+  trainingProgramsBuilder,
   affiliateBuilder,
   partnershipBuilder,
+  upsellBuilder,
   licensingBuilder,
   communityBuilder,
-  upsellBuilder,
-  // Y·Yield (8)
+  // Y·Yield (8+5)
   retreatBuilder,
   certificationBuilder,
   mastermindBuilder,
   bigTicketBuilder,
+  specialEditionsBuilder,
+  conventionsBuilder,
+  fundraisingBuilder,
+  exhibitorsBuilder,
   revenueShareBuilder,
   whitelabelBuilder,
   eventsBuilder,
