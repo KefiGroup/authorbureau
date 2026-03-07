@@ -94,7 +94,7 @@ export default function WebinarsManager({ onNavigate }: { onNavigate?: (section:
         <p className="text-muted-foreground text-sm leading-relaxed max-w-lg mx-auto mb-6">
           AI-generated webinar scripts and slide decks appear here after running "Build My Author Business." Includes registration pages and follow-up sequences.
         </p>
-        <Badge variant="secondary">Generate from AI Engine → Build My Business</Badge>
+        <Button variant="secondary" onClick={() => onNavigate?.("build-business")}>Generate from AI Engine → Build My Business</Button>
       </div>
     );
   }
