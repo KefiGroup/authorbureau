@@ -190,15 +190,17 @@ const webinarBuilder: BuilderNodeConfig = {
   dbTable: "webinars",
   icon: "Video",
   color: "text-emerald-500",
-  abbyGreeting: "Webinars are the #1 conversion tool for authors. Let's create a high-converting presentation from your book.",
-  abbyPublishMessage: "Your webinar is ready! Schedule it and promote to your email list. Each webinar can generate $1K-$10K.",
+  customRenderer: "webinar",
+  abbyGreeting: "Webinars are the #1 conversion tool for authors. Let's create a complete webinar package from your book.",
+  abbyPublishMessage: "Your webinar package is ready! Schedule it and promote to your email list. Each webinar can generate $1K-$10K.",
   steps: [
-    { id: "configure", label: "Configure", description: "Set topic, duration, and offer", abbyTip: "45-60 minute webinars with a 15-minute pitch convert best. Free webinars build your list." },
-    { id: "script", label: "AI Script", description: "Generate webinar presentation script", abbyTip: "I'll create a 3-act structure: Problem → Solution → Offer with engagement questions throughout." },
-    { id: "slides", label: "Slide Deck", description: "Generate slide deck outline", abbyTip: "Aim for 30-40 slides. One key point per slide. Use your book quotes as visual breaks." },
-    { id: "registration", label: "Registration Page", description: "Create registration page copy", abbyTip: "Include 3 bullet points of what they'll learn and a countdown timer for urgency." },
-    { id: "preview", label: "Preview & Schedule", description: "Review and schedule your webinar", abbyTip: "Tuesdays and Wednesdays at 12pm or 7pm get the highest attendance rates." },
+    { id: "configure", label: "Webinar Setup", description: "Set title, type, duration, format, and primary CTA", abbyTip: "Free webinars are the #1 lead generation tool for authors. I recommend a 60-minute format: 40 minutes of value, 15 minutes of pitch, 5 minutes of Q&A." },
+    { id: "script", label: "Script Generator", description: "AI generates a structured webinar script with time markers", abbyTip: "I'll create a script with Hook → Story → Content → Transition → Offer → Close structure with engagement prompts throughout." },
+    { id: "slides", label: "Slide Deck", description: "Generate slides matching your script sections", abbyTip: "Aim for 30-40 slides. One key point per slide. Use your book quotes as visual breaks." },
+    { id: "registration", label: "Registration & Follow-up", description: "Build registration page and email sequences", abbyTip: "Include 3 bullet points of what they'll learn. Reminder + follow-up sequences boost attendance by 40%." },
+    { id: "preview", label: "Preview & Publish", description: "Preview everything and publish your webinar package", abbyTip: "Tuesdays and Wednesdays at 12pm or 7pm get the highest attendance rates." },
   ],
+};
 };
 
 const membershipBuilder: BuilderNodeConfig = {
