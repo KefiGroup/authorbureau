@@ -17,6 +17,7 @@ import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import CourseStepRenderer from "./course/CourseStepRenderer";
 import HomeStudyStepRenderer from "./home-study/HomeStudyStepRenderer";
 import WorkbookStepRenderer from "./workbook/WorkbookStepRenderer";
+import AudiobookStepRenderer from "./audiobook/AudiobookStepRenderer";
 import type { BuilderNodeConfig, BuilderStep } from "./builderNodeConfig";
 
 interface Props {
@@ -461,6 +462,19 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
                   />
                 ) : nodeConfig.customRenderer === "workbook" ? (
                   <WorkbookStepRenderer
+                    stepId={currentStepConfig.id}
+                    stepData={stepData}
+                    setStepData={setStepData}
+                    onMarkEdited={(id) => setEditedSteps(prev => new Set([...prev, id]))}
+                    bookId={bookId}
+                    bookTitle={bookTitle}
+                    plan={plan}
+                    generationState={generationState}
+                    setGenerationState={setGenerationState}
+                    userId={user?.id || ""}
+                  />
+                ) : nodeConfig.customRenderer === "audiobook" ? (
+                  <AudiobookStepRenderer
                     stepId={currentStepConfig.id}
                     stepData={stepData}
                     setStepData={setStepData}
