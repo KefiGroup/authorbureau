@@ -59,8 +59,8 @@ export default function WebsitePublishStep({ stepData, setStepData, onMarkEdited
   if (published) {
     return (
       <Card className="p-8 text-center">
-        <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-4">
-          <CheckCircle2 className="h-8 w-8 text-green-500" />
+        <div className="w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-4">
+          <CheckCircle2 className="h-8 w-8 text-accent" />
         </div>
         <h3 className="font-heading text-xl font-bold mb-2">Website Published! 🎉</h3>
         <p className="text-sm text-muted-foreground max-w-md mx-auto mb-4">

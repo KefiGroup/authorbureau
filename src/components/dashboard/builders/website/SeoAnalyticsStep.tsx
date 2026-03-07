@@ -115,8 +115,8 @@ export default function SeoAnalyticsStep({ stepData, setStepData, onMarkEdited, 
             {/* Search preview */}
             <div className="rounded-lg bg-muted/30 p-3">
               <p className="text-[10px] text-muted-foreground mb-1">Search Preview</p>
-              <p className="text-sm text-blue-600 font-medium truncate">{entry.metaTitle || "Page Title"}</p>
-              <p className="text-[10px] text-green-700 truncate">authorname.authorsbureau.com/{entry.pageId}</p>
+              <p className="text-sm text-primary font-medium truncate">{entry.metaTitle || "Page Title"}</p>
+              <p className="text-[10px] text-accent truncate">authorname.authorsbureau.com/{entry.pageId}</p>
               <p className="text-[10px] text-muted-foreground line-clamp-2 mt-0.5">{entry.metaDescription || "Page description..."}</p>
             </div>
           </div>
