@@ -487,6 +487,7 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
                     userId={user?.id || ""}
                   />
                 ) : (generationState === "idle" || generationState === "complete") ? (
+                  <Card className="p-6 min-h-[300px] border-dashed border-2">
                     <div className="text-center py-12">
                       <Wand2 className="h-10 w-10 text-muted-foreground/30 mx-auto mb-4" />
                       <h3 className="font-heading text-lg font-semibold mb-2">{currentStepConfig.label}</h3>
