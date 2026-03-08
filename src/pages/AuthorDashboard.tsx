@@ -98,6 +98,10 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
     } else {
       searchParams.set("section", section);
     }
+    // Clear builder param when navigating to a non-builder section
+    if (section !== "builder") {
+      searchParams.delete("builder");
+    }
     setSearchParams(searchParams, { replace: true });
   };
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
