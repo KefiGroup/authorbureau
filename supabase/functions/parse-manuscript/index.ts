@@ -264,10 +264,16 @@ serve(async (req) => {
               // Plan is stored as markdown text — extract summary data from it
               const content = a.content || "";
               const products: Array<{ name: string; node: string; price: string }> = [];
-              // Match numbered product lines like "1. **Product Name** — description ($price)"
-              const productMatches = content.matchAll(/\d+\.\s+\*\*([^*]+)\*\*[^$]*?\$([0-9,.]+(?:\s*[-–]\s*\$[0-9,.]+)?)/g);
+              // Match numbered product lines like "1) **Product Name**" or "1. **Product Name**"
+              const productMatches = content.matchAll(/\d+[.)]\s*\*\*([^*]+)\*\*/g);
               for (const m of productMatches) {
-                products.push({ name: m[1].trim(), node: m[1].trim().toLowerCase(), price: `$${m[2]}` });
+                const name = m[1].trim();
+                // Skip section headers and non-product lines
+                if (name.length > 100 || /section|estimated|projected|goal/i.test(name)) continue;
+                // Try to find a price nearby
+                const afterMatch = content.slice((m.index || 0), (m.index || 0) + 300);
+                const priceMatch = afterMatch.match(/\$([0-9,.]+)/);
+                products.push({ name, node: name.toLowerCase(), price: priceMatch ? `$${priceMatch[1]}` : "Free" });
               }
               // Extract revenue range
               const revenueMatch = content.match(/\$([0-9,]+)\s*[-–—]\s*\$([0-9,]+)\s*\/?\s*(?:mo|month)/i);
