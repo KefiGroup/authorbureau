@@ -86,16 +86,20 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     gradientFrom: "from-sky-500", gradientTo: "to-sky-600",
     headerIcon: Award,
     nodes: [
-      { id: "big-ticket", label: "Big Ticket Consulting", icon: Trophy, description: "Premium consulting packages ($5K–$25K)", status: "planned", tierRequired: "Enterprise" },
-      { id: "in-house-speaker", label: "In-House Speaker", icon: Presentation, description: "Speaker profile + booking system", status: "planned", tierRequired: "Enterprise" },
-      { id: "training", label: "Corporate Trainer", icon: Building2, description: "Corporate training programs", status: "planned", tierRequired: "Enterprise" },
-      { id: "keynotes", label: "Keynotes", icon: Mic, description: "3-5 keynote topics + slide decks", status: "live" },
-      { id: "retreats", label: "Retreats & Bootcamps", icon: Bookmark, description: "2-3 day retreat programs", status: "planned", tierRequired: "Enterprise" },
-      { id: "certification", label: "Certification", icon: ShieldCheck, description: "Curriculum + exam + certificates", status: "planned", tierRequired: "Enterprise" },
-      { id: "revenue-sharing", label: "Revenue Sharing / JV", icon: Handshake, description: "Partnership matching and revenue sharing", status: "planned", tierRequired: "Enterprise" },
-      { id: "events-conventions", label: "Events / Conventions / Conferences", icon: Calendar, description: "Conference & event revenue", status: "planned", tierRequired: "Enterprise" },
-      { id: "sponsorships", label: "Sponsorships", icon: HandCoins, description: "Brand partnerships & sponsors", status: "planned", tierRequired: "Enterprise" },
-      { id: "licensing", label: "Licensing / Royalties", icon: ShieldCheck, description: "Content licensing & royalty streams", status: "planned", tierRequired: "Enterprise" },
+      // Corporate (sequence 1-4)
+      { id: "training", label: "Corporate Training", icon: Building2, description: "Corporate training programs", status: "planned", tierRequired: "Enterprise", subCategory: "Corporate", sequence: 1 },
+      { id: "in-house-speaker", label: "In-House Speaker", icon: Presentation, description: "Speaker profile + booking system", status: "planned", tierRequired: "Enterprise", subCategory: "Corporate", sequence: 2 },
+      { id: "keynotes", label: "Keynotes", icon: Mic, description: "3-5 keynote topics + slide decks", status: "live", subCategory: "Corporate", sequence: 3 },
+      { id: "retreats", label: "Retreats & Bootcamps", icon: Bookmark, description: "2-3 day retreat programs", status: "planned", tierRequired: "Enterprise", subCategory: "Corporate", sequence: 4 },
+      // Consulting (sequence 5)
+      { id: "big-ticket", label: "High Ticket Consulting", icon: Trophy, description: "Premium consulting packages ($5K–$25K)", status: "planned", tierRequired: "Enterprise", subCategory: "Consulting", sequence: 5 },
+      // Events (sequence 6-8)
+      { id: "events-conventions", label: "Events / Conventions / Conferences", icon: Calendar, description: "Conference & event revenue", status: "planned", tierRequired: "Enterprise", subCategory: "Events", sequence: 6 },
+      { id: "sponsorships", label: "Sponsorships", icon: HandCoins, description: "Brand partnerships & sponsors", status: "planned", tierRequired: "Enterprise", subCategory: "Events", sequence: 7 },
+      { id: "revenue-sharing", label: "3rd Party Revenue", icon: Handshake, description: "Partnership matching and revenue sharing", status: "planned", tierRequired: "Enterprise", subCategory: "Events", sequence: 8 },
+      // High Yield Passive Income (sequence 9-10)
+      { id: "licensing", label: "Royalties & Licensing", icon: ShieldCheck, description: "Content licensing & royalty streams", status: "planned", tierRequired: "Enterprise", subCategory: "High Yield Passive Income", sequence: 9 },
+      { id: "certification", label: "Certification", icon: ShieldCheck, description: "Curriculum + exam + certificates", status: "planned", tierRequired: "Enterprise", subCategory: "High Yield Passive Income", sequence: 10 },
     ],
   },
 };
