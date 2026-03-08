@@ -118,6 +118,7 @@ interface Props {
   categoryId: string;
   tier?: string;
   onNavigate?: (section: string) => void;
+  analyzedBooks?: Array<{ id: string; title: string }>;
 }
 
 interface AbbyRecommendation {
