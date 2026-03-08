@@ -44,9 +44,13 @@ export default function DashboardHeader({ user, isPremium, isAdmin, tier, onSign
           <h1 className="font-heading text-lg font-bold">AI Marketing Studio</h1>
           <p className="text-xs text-muted-foreground flex items-center gap-1.5">
             {displayName}
-            {isPremium && (
+            {tier && tier !== "free" ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-secondary/15 px-2 py-0.5 text-[10px] font-semibold text-secondary">
-                <Crown className="h-2.5 w-2.5" /> Premium
+                <Crown className="h-2.5 w-2.5" /> {tier.charAt(0).toUpperCase() + tier.slice(1)}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                Free
               </span>
             )}
           </p>
