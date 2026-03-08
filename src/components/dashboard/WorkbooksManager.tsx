@@ -233,9 +233,9 @@ export default function WorkbooksManager({ onNavigate }: { onNavigate?: (section
               loading={checkoutLoading}
             />
           </div>
-        )}
-
-  // Detail view
+      </div>
+    );
+  }
   if (selected) {
     return (
       <div className="max-w-4xl space-y-6">
