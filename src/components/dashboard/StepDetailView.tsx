@@ -89,6 +89,11 @@ const categories: CategoryDef[] = [
     gradientTo: "to-sky-600",
     headerIcon: Award,
     nodes: [
+      { id: "keynotes", label: "Keynotes", icon: Mic, section: "speaking", description: "3-5 keynote topics + slide decks.", status: "live" },
+      { id: "masterminds", label: "Masterminds", icon: BarChart3, section: "masterminds", description: "Quarterly mastermind group programs.", status: "planned" },
+      { id: "retreats", label: "Retreats & Bootcamps", icon: Bookmark, description: "2-3 day retreat programs.", status: "planned" },
+      { id: "certification", label: "Certification", icon: ShieldCheck, section: "certification", description: "Curriculum + exam + digital certificates.", status: "planned" },
+      { id: "revenue-sharing", label: "Revenue Sharing / JV", icon: Handshake, description: "Partnership matching + revenue sharing.", status: "planned" },
       { id: "conventions", label: "Conventions / Conferences", icon: Calendar, description: "Conference submission generator.", status: "planned" },
       { id: "fundraising", label: "Fund Raising", icon: HandCoins, description: "Fundraising event templates.", status: "planned" },
       { id: "exhibitors", label: "Exhibitors / JV", icon: Megaphone, description: "Exhibitor prospectus + partnership matching.", status: "planned" },
