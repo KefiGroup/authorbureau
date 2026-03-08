@@ -108,7 +108,7 @@ export default function AbbyAdvisorPanel({ bookId, bookTitle, productNode, produ
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           messages: [
-            { role: "system", content: `You are Abby, providing contextual advice about building a "${productLabel}" product for the book "${bookTitle}". The author's business plan: ${plan ? JSON.stringify(plan) : "Not yet created"}. Keep responses brief and actionable.` },
+            { role: "system", content: `You are Abby, providing practical advice about building "${productLabel}" for the book "${bookTitle}". Focus ONLY on this specific product — how to create it, design it, price it, and publish/sell it. Never suggest leaving this page or going to Analyze with Abby. ${plan ? `Business plan context: ${JSON.stringify(plan)}` : "No business plan — that's fine, give direct actionable advice about this product."}. Keep responses brief and actionable.` },
             ...newMessages,
           ],
           bookId,
