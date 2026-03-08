@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Download, Loader2, FileText, Check } from "lucide-react";
+import { Download, Loader2, Check, Crown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { asBlob } from "html-docx-js-typescript";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
+import { TIERS, useAuth } from "@/hooks/useAuth";
 
 interface BusinessPlanActionsProps {
   content: string;
@@ -51,7 +52,7 @@ function markdownToHtml(md: string): string {
   return html;
 }
 
-function generateDocxHtml(content: string, bookTitle: string): string {
+function generateDocxHtml(content: string): string {
   const now = new Date().toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
@@ -90,7 +91,9 @@ export default function BusinessPlanActions({
 }: BusinessPlanActionsProps) {
   const [downloading, setDownloading] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [checkoutTierLoading, setCheckoutTierLoading] = useState<keyof typeof TIERS | null>(null);
   const { toast } = useToast();
+  const { isPremium, isAdmin } = useAuth();
   const savedRef = useRef(false);
 
   // Auto-save the business plan via edge function (bypasses RLS)
@@ -117,10 +120,29 @@ export default function BusinessPlanActions({
     })();
   }, [bookId, authorId, content]);
 
+  const handleSubscribe = async (tier: keyof typeof TIERS) => {
+    setCheckoutTierLoading(tier);
+    try {
+      const { data, error } = await sharedSupabase.functions.invoke("create-checkout", {
+        body: { priceId: TIERS[tier].price_id, source_platform: "authorsbureau" },
+      });
+      if (error) throw error;
+      if (data?.url) window.open(data.url, "_blank");
+    } catch (err: any) {
+      toast({
+        title: "Could not start checkout",
+        description: err?.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setCheckoutTierLoading(null);
+    }
+  };
+
   const handleDownload = async () => {
     setDownloading(true);
     try {
-      const html = generateDocxHtml(content, bookTitle);
+      const html = generateDocxHtml(content);
       const blob = (await asBlob(html, { orientation: "portrait" })) as Blob;
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -145,28 +167,57 @@ export default function BusinessPlanActions({
   };
 
   return (
-    <div className="mt-4 flex items-center gap-3">
-      <Button
-        onClick={handleDownload}
-        disabled={downloading}
-        variant="outline"
-        size="sm"
-        className="gap-2"
-      >
-        {downloading ? (
-          <>
-            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating…
-          </>
-        ) : (
-          <>
-            <Download className="h-3.5 w-3.5" /> Download .docx
-          </>
+    <div className="mt-4 space-y-3">
+      <div className="flex items-center gap-3 flex-wrap">
+        <Button
+          onClick={handleDownload}
+          disabled={downloading}
+          variant="outline"
+          size="sm"
+          className="gap-2"
+        >
+          {downloading ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating…
+            </>
+          ) : (
+            <>
+              <Download className="h-3.5 w-3.5" /> Download .docx
+            </>
+          )}
+        </Button>
+        {saved && (
+          <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+            <Check className="h-3 w-3 text-accent" /> Plan saved
+          </span>
         )}
-      </Button>
-      {saved && (
-        <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-          <Check className="h-3 w-3 text-green-500" /> Plan saved
-        </span>
+      </div>
+
+      {!(isPremium || isAdmin) && (
+        <div className="rounded-lg border border-border bg-muted/30 p-3">
+          <p className="text-xs font-medium text-foreground mb-2 flex items-center gap-1.5">
+            <Crown className="h-3.5 w-3.5 text-secondary" /> Subscribe to start building now
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {(["starter", "pro", "enterprise"] as const).map((tierKey) => (
+              <Button
+                key={tierKey}
+                size="sm"
+                variant={tierKey === "starter" ? "default" : "outline"}
+                className="gap-1.5"
+                onClick={() => handleSubscribe(tierKey)}
+                disabled={checkoutTierLoading !== null}
+              >
+                {checkoutTierLoading === tierKey ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Crown className="h-3.5 w-3.5" />
+                )}
+                {TIERS[tierKey].label} (${TIERS[tierKey].monthlyPrice}/mo)
+              </Button>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );
