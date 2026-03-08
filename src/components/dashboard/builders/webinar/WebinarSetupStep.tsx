@@ -3,7 +3,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Video, Sparkles } from "lucide-react";
+import { Video } from "lucide-react";
+import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 import type { WebinarConfig } from "./types";
 import { WEBINAR_TYPE_LABELS, FORMAT_LABELS } from "./types";
 
