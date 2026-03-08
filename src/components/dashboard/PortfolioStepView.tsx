@@ -241,16 +241,20 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
 
   const getRec = (nodeId: string) => recommendations.find(r => r.nodeId === nodeId || r.nodeId.includes(nodeId.split("-")[0]));
 
-  // Sort: recommended first, then available, in-progress, published, locked
-  const stateOrder: Record<ProductCardState, number> = { recommended: 0, available: 1, "in-progress": 2, published: 3, locked: 4 };
-  const sortedNodes = [...category.nodes].sort((a, b) => {
-    const stateA = getNodeState(a);
-    const stateB = getNodeState(b);
-    if (stateOrder[stateA] !== stateOrder[stateB]) return stateOrder[stateA] - stateOrder[stateB];
-    const revA = getRec(a.id)?.estimatedRevenue || BASELINE_REVENUE[a.id]?.annual || 0;
-    const revB = getRec(b.id)?.estimatedRevenue || BASELINE_REVENUE[b.id]?.annual || 0;
-    return revB - revA;
-  });
+  // Group nodes by subCategory, preserving sequence order
+  const sortedNodes = [...category.nodes].sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
+  
+  // Build sub-category groups for rendering
+  const subCategories: { name: string; nodes: Node[] }[] = [];
+  const seen = new Set<string>();
+  for (const node of sortedNodes) {
+    const sub = node.subCategory || "Other";
+    if (!seen.has(sub)) {
+      seen.add(sub);
+      subCategories.push({ name: sub, nodes: [] });
+    }
+    subCategories.find(s => s.name === sub)!.nodes.push(node);
+  }
 
   const HeaderIcon = category.headerIcon;
   const recommendedCount = sortedNodes.filter(n => getNodeState(n) === "recommended").length;
