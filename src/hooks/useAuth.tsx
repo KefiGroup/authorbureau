@@ -92,8 +92,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSubscription((prev) => ({ ...prev, loading: false }));
     }, 8000);
     try {
+      // Get the shared backend session token to pass to the local Cloud function
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      
       const { data, error } = await cloudSupabase.functions.invoke("check-subscription", {
         body: { source_platform: "authorsbureau" },
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
       clearTimeout(timeout);
       if (error) throw error;
