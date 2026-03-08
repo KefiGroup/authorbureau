@@ -214,10 +214,10 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         const step2Done = analyzed > 0;
         setHasAnalysis(step2Done);
 
-        // Sequential journey logic
+        // Independent journey logic — each step reflects its own completion
         setJourneyMicrosite(step1Done ? "done" : "current");
-        setJourneyPlan(step2Done ? "done" : step1Done ? "current" : "upcoming");
-        setJourneyBuild(step2Done ? (isPremium ? "current" : "upcoming") : "upcoming");
+        setJourneyPlan(step2Done ? "done" : "current");
+        setJourneyBuild(step2Done && (isPremium || isAdmin) ? "current" : step2Done ? "upcoming" : "upcoming");
         setJourneySell("upcoming");
 
         // Count pending review products
