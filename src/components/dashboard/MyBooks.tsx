@@ -160,7 +160,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
 
   // Journey dot helpers
   const getBookJourney = (book: Book): [JourneyDot, JourneyDot, JourneyDot, JourneyDot] => {
-    const microsite: JourneyDot = book.published_at ? "done" : "current";
+    const microsite: JourneyDot = book.published_at ? "done" : "upcoming"; // pending approval
     const analyzed: JourneyDot = analyzedBooks.has(book.id) ? "done" : (microsite === "done" ? "current" : "upcoming");
     const building: JourneyDot = analyzed === "done" && isPremium ? "current" : (analyzed === "done" ? "upcoming" : "upcoming");
     const earning: JourneyDot = "upcoming";
