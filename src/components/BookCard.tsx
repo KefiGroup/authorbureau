@@ -23,7 +23,7 @@ const coverMap: Record<string, string> = {
 };
 
 interface BookCardProps {
-  book: Book;
+  book: Book & { cover_image_url?: string | null };
   showAuthor?: boolean;
   authorName?: string;
 }
