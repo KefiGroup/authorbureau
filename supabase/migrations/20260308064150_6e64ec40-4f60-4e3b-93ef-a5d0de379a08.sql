@@ -1,0 +1,1 @@
+UPDATE public.author_profiles SET user_id = '5fd84779-8ac5-49f6-9524-0d7f1dcd4f33' WHERE id = 'b50d414e-aa4f-4099-8c77-e9b96d472621';
