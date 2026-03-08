@@ -86,8 +86,10 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     gradientFrom: "from-sky-500", gradientTo: "to-sky-600",
     headerIcon: Award,
     nodes: [
+      { id: "big-ticket", label: "Big Ticket Consulting", icon: Trophy, description: "Premium consulting packages ($5K–$25K)", status: "planned", tierRequired: "Enterprise" },
+      { id: "in-house-speaker", label: "In-House Speaker", icon: Presentation, description: "Speaker profile + booking system", status: "planned", tierRequired: "Enterprise" },
+      { id: "training", label: "Corporate Trainer", icon: Building2, description: "Corporate training programs", status: "planned", tierRequired: "Enterprise" },
       { id: "keynotes", label: "Keynotes", icon: Mic, description: "3-5 keynote topics + slide decks", status: "live" },
-      { id: "masterminds", label: "Masterminds", icon: BarChart3, description: "Quarterly mastermind groups", status: "planned", tierRequired: "Enterprise" },
       { id: "retreats", label: "Retreats & Bootcamps", icon: Bookmark, description: "2-3 day retreat programs", status: "planned", tierRequired: "Enterprise" },
       { id: "certification", label: "Certification", icon: ShieldCheck, description: "Curriculum + exam + certificates", status: "planned", tierRequired: "Enterprise" },
       { id: "revenue-sharing", label: "Revenue Sharing / JV", icon: Handshake, description: "Partnership matching and revenue sharing", status: "planned", tierRequired: "Enterprise" },
