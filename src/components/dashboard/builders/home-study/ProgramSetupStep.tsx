@@ -3,6 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Wand2 } from "lucide-react";
+import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 import type { HomeStudyStepProps } from "./types";
 
 const DURATIONS = [
