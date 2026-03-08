@@ -328,9 +328,9 @@ export default function SubscriptionSalesPitch({
             You're already earning with {plans.find(p => p.id === currentTier)?.name}.
           </p>
           <p className="text-xs text-muted-foreground max-w-md mx-auto">
-            Upgrade to {currentTier === "starter" ? "Pro to unlock coaching, courses, and webinars" : "Enterprise for retreats, certification, and a 1-on-1 session with Pauline Teo"}.
+          Upgrade to {currentTier === "starter" ? "Pro to unlock coaching, courses, and webinars" : "Enterprise for retreats, certification, and a 1-on-1 session with Pauline Teo"}.
           </p>
-          <Button onClick={() => onSubscribe(currentTier === "starter" ? "pro" : "enterprise")} disabled={loading}>
+          <Button onClick={() => onSubscribe(currentTier === "starter" ? "pro" : "enterprise" as const)} disabled={loading}>
             <ArrowUpRight className="h-4 w-4 mr-2" />
             Upgrade to {currentTier === "starter" ? "Pro" : "Enterprise"}
           </Button>
