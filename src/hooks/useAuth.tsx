@@ -177,8 +177,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(interval);
   }, [user, checkSubscription]);
 
-  const tier: SubscriptionTier = isAdmin ? "enterprise" : getTierFromProductId(subscription.productId);
-  const isPremium = isAdmin || tier !== "free";
+  const tier: SubscriptionTier = getTierFromProductId(subscription.productId);
+  const isPremium = tier !== "free";
 
   const signOut = async () => {
     sessionStorage.removeItem(ADMIN_AUTH_KEY);
