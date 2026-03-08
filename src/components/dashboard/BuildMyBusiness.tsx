@@ -978,14 +978,15 @@ export default function BuildMyBusiness() {
                   </div>
                 )}
 
-                {/* Show full 3-tier pricing after SUBSCRIBE_CTA or after business plan */}
-                {((hasSubscribeCta || (msg.role === "assistant" && !isStreaming && isBusinessPlanMessage(displayContent))) && !(isPremium || isAdmin)) && (
+                {/* Show full subscription sales pitch after SUBSCRIBE_CTA or after business plan */}
+                {((hasSubscribeCta || (msg.role === "assistant" && !isStreaming && isBusinessPlanMessage(displayContent)))) && (
                   <div className="mt-5">
-                    <SubscriptionPricing
+                    <SubscriptionSalesPitch
                       currentTier={tier}
                       onSubscribe={handleSubscribeTier}
                       onManage={handleManageSubscription}
                       loading={checkoutLoading || portalLoading}
+                      analysisData={parseAnalysisData(displayContent, selectedBook?.title || "")}
                     />
                   </div>
                 )}
