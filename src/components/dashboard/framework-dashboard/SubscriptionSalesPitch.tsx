@@ -431,7 +431,7 @@ function RevenueHookBanner({
             </p>
 
             <p className="text-xs text-amber-700 font-semibold animate-bounce">
-              ↓ Choose your plan below ↓
+              ↓ Subscribe below ↓
             </p>
           </>
         )}
