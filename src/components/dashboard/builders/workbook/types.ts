@@ -8,6 +8,8 @@ export interface WorkbookStepProps {
   generationState: "idle" | "queued" | "analyzing" | "generating" | "complete" | "error";
   setGenerationState: (s: "idle" | "queued" | "analyzing" | "generating" | "complete" | "error") => void;
   userId: string;
+  manuscriptSummary?: string;
+  frameworks?: string;
 }
 
 export interface WorkbookSection {

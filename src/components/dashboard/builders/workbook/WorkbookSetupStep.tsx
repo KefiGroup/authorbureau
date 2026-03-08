@@ -1,11 +1,15 @@
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Wand2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Wand2, Sparkles, Loader2, Check } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { DESIGN_TEMPLATES } from "./types";
 import type { WorkbookStepProps } from "./types";
+
+const AI_GATEWAY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/business-consultant`;
 
 const PURPOSE_OPTIONS = [
   { label: "Lead Magnet (Free)", value: "lead-magnet", price: "0", desc: "Free download to build your email list" },
@@ -20,8 +24,16 @@ const PAGE_COUNT_OPTIONS = [
   { label: "80–100 pages", value: "80-100", desc: "Premium workbook" },
 ];
 
-export default function WorkbookSetupStep({ stepData, setStepData, onMarkEdited, plan }: WorkbookStepProps) {
+interface TitleSuggestion {
+  title: string;
+  subtitle: string;
+  reason: string;
+}
+
+export default function WorkbookSetupStep({ stepData, setStepData, onMarkEdited, plan, bookId, bookTitle, manuscriptSummary, frameworks }: WorkbookStepProps) {
   const data = stepData.setup || {};
+  const [suggestingTitles, setSuggestingTitles] = useState(false);
+  const [titleSuggestions, setTitleSuggestions] = useState<TitleSuggestion[]>([]);
 
   const update = (field: string, value: any) => {
     setStepData(prev => ({
@@ -33,32 +45,189 @@ export default function WorkbookSetupStep({ stepData, setStepData, onMarkEdited,
 
   const planTitle = plan?.products?.workbook?.title || "";
 
+  const suggestTitles = async () => {
+    setSuggestingTitles(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+      // If we don't have manuscript in props, load it
+      let manuscript = manuscriptSummary || "";
+      let fw = frameworks || "";
+      if (!manuscript && bookId) {
+        const { data: ms } = await supabase
+          .from("generated_assets")
+          .select("content")
+          .eq("book_id", bookId)
+          .eq("asset_type", "source_material")
+          .maybeSingle();
+        if (ms?.content) manuscript = ms.content.slice(0, 3000);
+      }
+      if (!fw && bookId) {
+        const { data: fwData } = await supabase
+          .from("generated_assets")
+          .select("content")
+          .eq("book_id", bookId)
+          .eq("asset_type", "frameworks")
+          .maybeSingle();
+        if (fwData?.content) fw = fwData.content.slice(0, 2000);
+      }
+
+      const resp = await fetch(AI_GATEWAY_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: "system",
+              content: `You are Abby, business advisor for Authors Bureau. Based on the manuscript and frameworks below, suggest exactly 3 workbook titles with subtitles. Each should be based on a different framework or theme from the book.
+
+RESPOND IN THIS EXACT FORMAT (no other text):
+TITLE1: [title]
+SUBTITLE1: [subtitle]
+REASON1: [one-sentence reason based on framework]
+TITLE2: [title]
+SUBTITLE2: [subtitle]
+REASON2: [one-sentence reason based on framework]
+TITLE3: [title]
+SUBTITLE3: [subtitle]
+REASON3: [one-sentence reason based on framework]
+
+BOOK: "${bookTitle}"
+${manuscript ? `\nMANUSCRIPT EXCERPT:\n${manuscript.slice(0, 2000)}` : ""}
+${fw ? `\nFRAMEWORKS:\n${fw}` : ""}
+${plan ? `\nBUSINESS PLAN WORKBOOK INFO: ${JSON.stringify(plan.products?.workbook || {}).slice(0, 500)}` : ""}`
+            },
+            { role: "user", content: "Suggest 3 workbook titles based on my book's frameworks and key themes." }
+          ],
+          bookId,
+          isPremium: true,
+        }),
+      });
+
+      if (!resp.ok || !resp.body) throw new Error("Failed to get suggestions");
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = "";
+      let textBuffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        textBuffer += decoder.decode(value, { stream: true });
+        let nlIdx: number;
+        while ((nlIdx = textBuffer.indexOf("\n")) !== -1) {
+          let line = textBuffer.slice(0, nlIdx);
+          textBuffer = textBuffer.slice(nlIdx + 1);
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (!line.startsWith("data: ")) continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") break;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const delta = parsed.choices?.[0]?.delta?.content;
+            if (delta) fullText += delta;
+          } catch { break; }
+        }
+      }
+
+      // Parse the structured response
+      const suggestions: TitleSuggestion[] = [];
+      for (let i = 1; i <= 3; i++) {
+        const titleMatch = fullText.match(new RegExp(`TITLE${i}:\\s*(.+)`));
+        const subtitleMatch = fullText.match(new RegExp(`SUBTITLE${i}:\\s*(.+)`));
+        const reasonMatch = fullText.match(new RegExp(`REASON${i}:\\s*(.+)`));
+        if (titleMatch) {
+          suggestions.push({
+            title: titleMatch[1].trim(),
+            subtitle: subtitleMatch?.[1]?.trim() || "",
+            reason: reasonMatch?.[1]?.trim() || "",
+          });
+        }
+      }
+
+      setTitleSuggestions(suggestions.length > 0 ? suggestions : [
+        { title: `${bookTitle} Workbook`, subtitle: `A practical companion guide`, reason: "Based on your book title" },
+      ]);
+    } catch (err) {
+      console.error("Title suggestion failed:", err);
+    }
+    setSuggestingTitles(false);
+  };
+
   return (
     <div className="space-y-6">
       {/* Title & Subtitle */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
           <Label className="text-sm font-medium">Workbook Title</Label>
-          <Input
-            value={data.title ?? planTitle}
-            onChange={e => update("title", e.target.value)}
-            placeholder="e.g. The 30-Day Action Plan Workbook"
-            className="mt-1.5"
-          />
-          {planTitle && !data.title && (
-            <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
-              <Wand2 className="h-2.5 w-2.5" /> Pre-filled from your business plan
-            </p>
-          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={suggestTitles}
+            disabled={suggestingTitles}
+            className="text-secondary border-secondary/30 hover:bg-secondary/5 h-7 text-xs gap-1.5"
+          >
+            {suggestingTitles ? (
+              <><Loader2 className="h-3 w-3 animate-spin" /> Reading manuscript...</>
+            ) : (
+              <><Sparkles className="h-3 w-3" /> Suggest Titles from Manuscript</>
+            )}
+          </Button>
         </div>
-        <div>
-          <Label className="text-sm font-medium">Subtitle</Label>
-          <Input
-            value={data.subtitle ?? ""}
-            onChange={e => update("subtitle", e.target.value)}
-            placeholder="A companion guide to..."
-            className="mt-1.5"
-          />
+
+        {/* Title suggestions */}
+        {titleSuggestions.length > 0 && (
+          <div className="grid gap-2 sm:grid-cols-3">
+            {titleSuggestions.map((s, i) => {
+              const isSelected = data.title === s.title;
+              return (
+                <Card
+                  key={i}
+                  className={`p-3 cursor-pointer transition-all hover:shadow-md ${
+                    isSelected ? "ring-2 ring-secondary border-secondary" : "border-border"
+                  }`}
+                  onClick={() => {
+                    update("title", s.title);
+                    update("subtitle", s.subtitle);
+                  }}
+                >
+                  <div className="flex items-start justify-between gap-1">
+                    <p className="font-semibold text-xs leading-snug">{s.title}</p>
+                    {isSelected && <Check className="h-3.5 w-3.5 text-secondary shrink-0" />}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1 italic">{s.subtitle}</p>
+                  <p className="text-[10px] text-secondary/80 mt-1.5 flex items-start gap-1">
+                    <Sparkles className="h-2.5 w-2.5 shrink-0 mt-0.5" />
+                    {s.reason}
+                  </p>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <Input
+              value={data.title ?? planTitle}
+              onChange={e => update("title", e.target.value)}
+              placeholder="e.g. The 30-Day Action Plan Workbook"
+            />
+            {planTitle && !data.title && (
+              <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                <Wand2 className="h-2.5 w-2.5" /> Pre-filled from your business plan
+              </p>
+            )}
+          </div>
+          <div>
+            <Input
+              value={data.subtitle ?? ""}
+              onChange={e => update("subtitle", e.target.value)}
+              placeholder="A companion guide to..."
+            />
+          </div>
         </div>
       </div>
 

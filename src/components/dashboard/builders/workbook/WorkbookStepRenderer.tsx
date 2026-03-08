@@ -16,6 +16,8 @@ interface Props {
   generationState: "idle" | "queued" | "analyzing" | "generating" | "complete" | "error";
   setGenerationState: (s: "idle" | "queued" | "analyzing" | "generating" | "complete" | "error") => void;
   userId: string;
+  manuscriptSummary?: string;
+  frameworks?: string;
 }
 
 export default function WorkbookStepRenderer(props: Props) {
@@ -29,6 +31,8 @@ export default function WorkbookStepRenderer(props: Props) {
     generationState: props.generationState,
     setGenerationState: props.setGenerationState,
     userId: props.userId,
+    manuscriptSummary: props.manuscriptSummary,
+    frameworks: props.frameworks,
   };
 
   switch (props.stepId) {
