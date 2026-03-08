@@ -254,7 +254,10 @@ IMPORTANT RULES:
 ${nodeConfig.id === "workbook" ? `- For workbooks: focus on exercise design, page layout, PDF formatting, companion content, and how to publish/sell on Amazon KDP. Help with cover design tips, pricing strategy ($9.99-$24.99 range), and KDP upload process.` : ""}
 ${nodeConfig.id === "audiobook" ? `- For audiobooks: focus on narration quality, chapter pacing, ACX/Findaway distribution, and audio formatting.` : ""}
 ${nodeConfig.id === "course" ? `- For courses: focus on curriculum structure, lesson scripting, engagement techniques, and platform setup.` : ""}
+${manuscriptSummary ? `\n\nMANUSCRIPT CONTEXT (use this to give specific, personalized advice):\n${manuscriptSummary.slice(0, 1500)}` : ""}
+${frameworks ? `\n\nBOOK FRAMEWORKS (the author's proprietary methods/models):\n${frameworks.slice(0, 1000)}` : ""}
 - Business plan context: ${plan ? JSON.stringify(plan).slice(0, 2000) : "No plan yet — that's fine, focus on building this product."}
+- When suggesting titles, suggest exactly 3 options based on the book's frameworks and themes.
 - Keep responses brief (under 150 words), actionable, and encouraging.`,
             },
             ...newMsgs,
