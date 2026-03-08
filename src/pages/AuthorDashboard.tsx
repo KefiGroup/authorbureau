@@ -197,7 +197,13 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
             );
             const statusResult = await statusResp.json();
             if (statusResp.ok) {
-              analyzed = (statusResult.analyzed || []).length;
+              const analyzedIds: string[] = statusResult.analyzed || [];
+              analyzed = analyzedIds.length;
+              // Store analyzed book info for navigation
+              const analyzedBooks = fetchedBooks
+                .filter((b: any) => analyzedIds.includes(b.id))
+                .map((b: any) => ({ id: b.id, title: b.title }));
+              setAnalyzedBookList(analyzedBooks);
             }
           } catch (err) {
             console.error("Failed to fetch analysis status:", err);
