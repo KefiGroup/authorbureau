@@ -5,8 +5,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
-  BookOpen, Plus, ExternalLink, Loader2, ImagePlus, EyeOff, Clock,
-  Pencil, Sparkles, ArrowRight, CheckCircle2, Circle,
+  BookOpen, Plus, ExternalLink, Loader2, ImagePlus, Clock,
+  Pencil, Sparkles, ArrowRight, CheckCircle2, Circle, ShieldCheck,
 } from "lucide-react";
 import ManuscriptUpload from "./ManuscriptUpload";
 import StripeConnectBanner from "./StripeConnectBanner";
