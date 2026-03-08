@@ -110,6 +110,33 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
   // Plan context
   const { plan, loading: planLoading } = useAbbyPlan(bookId);
 
+  // Manuscript & frameworks context
+  const [manuscriptSummary, setManuscriptSummary] = useState<string>("");
+  const [frameworks, setFrameworks] = useState<string>("");
+
+  useEffect(() => {
+    if (!user || !bookId) return;
+    (async () => {
+      // Load manuscript summary (first 3000 chars)
+      const { data: ms } = await supabase
+        .from("generated_assets")
+        .select("content")
+        .eq("book_id", bookId)
+        .eq("asset_type", "source_material")
+        .maybeSingle();
+      if (ms?.content) setManuscriptSummary(ms.content.slice(0, 3000));
+
+      // Load frameworks
+      const { data: fw } = await supabase
+        .from("generated_assets")
+        .select("content")
+        .eq("book_id", bookId)
+        .eq("asset_type", "frameworks")
+        .maybeSingle();
+      if (fw?.content) setFrameworks(fw.content.slice(0, 2000));
+    })();
+  }, [user, bookId]);
+
   // Check tier access
   const hasAccess = isPremium || isAdmin || hasTierAccess(tier, nodeConfig.requiredTier);
 
