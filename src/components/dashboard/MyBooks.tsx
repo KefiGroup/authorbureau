@@ -417,17 +417,17 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
                     </div>
 
                     {/* 5. Microsite status + publish action */}
-                    <div className="flex items-center gap-2">
-                      <p className="text-[11px] text-muted-foreground flex-1">
+                    <div className="flex flex-col gap-1.5">
+                      <p className="text-[11px] text-muted-foreground">
                         {book.published_at ? "Microsite live ✅" : "Microsite not yet active"}
                       </p>
                       {!book.published_at ? (
                         <Button
-                          variant="outline" size="sm" className="text-[10px] h-6 px-2 border-accent text-accent hover:bg-accent/10"
+                          size="sm" className="w-full h-8 text-xs font-semibold bg-accent text-accent-foreground hover:bg-accent/90"
                           disabled={publishing === book.id}
                           onClick={(e) => { e.stopPropagation(); handlePublish(book.id); }}
                         >
-                          {publishing === book.id ? <><Loader2 className="h-3 w-3 animate-spin mr-1" />Publishing...</> : "Publish →"}
+                          {publishing === book.id ? <><Loader2 className="h-3 w-3 animate-spin mr-1" />Publishing...</> : "🚀 Publish Microsite"}
                         </Button>
                       ) : (
                         <AlertDialog>
