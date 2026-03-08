@@ -978,26 +978,15 @@ export default function BuildMyBusiness() {
                   </div>
                 )}
 
-                {hasSubscribeCta && !(isPremium || isAdmin) && (
+                {/* Show full 3-tier pricing after SUBSCRIBE_CTA or after business plan */}
+                {((hasSubscribeCta || (msg.role === "assistant" && !isStreaming && isBusinessPlanMessage(displayContent))) && !(isPremium || isAdmin)) && (
                   <div className="mt-5">
-                    <Card className="border-2 border-secondary/40 bg-gradient-to-br from-secondary/5 via-secondary/10 to-accent/10 shadow-lg">
-                      <CardContent className="p-5">
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center"><Crown className="h-4 w-4 text-secondary" /></div>
-                          <div>
-                            <span className="font-heading font-bold text-sm block">🚀 Activate ABBY Premium</span>
-                            <span className="text-[11px] text-muted-foreground">Turn this plan into real products</span>
-                          </div>
-                        </div>
-                        <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
-                          Your business plan is ready. Subscribe to unlock <strong>all 27 AI-powered builders</strong>.
-                        </p>
-                        <Button className="w-full gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold rounded-full h-10" onClick={handleSubscribe} disabled={checkoutLoading}>
-                          {checkoutLoading ? <><Loader2 className="h-4 w-4 animate-spin" /> Opening…</> : <><Crown className="h-4 w-4" /> Subscribe & Start Building →</>}
-                        </Button>
-                        <p className="text-[10px] text-muted-foreground mt-2 text-center">Cancel anytime • Your plan is saved</p>
-                      </CardContent>
-                    </Card>
+                    <SubscriptionPricing
+                      currentTier={tier}
+                      onSubscribe={handleSubscribeTier}
+                      onManage={handleManageSubscription}
+                      loading={checkoutLoading || portalLoading}
+                    />
                   </div>
                 )}
 
