@@ -203,7 +203,8 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
     // Check if this is a universal builder node
     const builderNodeId = searchParams.get("builder");
     if (builderNodeId && BUILDER_NODE_MAP[builderNodeId]) {
-      return (
+      return gate(
+        BUILDER_NODE_MAP[builderNodeId].label,
         <UniversalBuilderStudio
           nodeConfig={BUILDER_NODE_MAP[builderNodeId]}
           onNavigate={handleNavigate}
