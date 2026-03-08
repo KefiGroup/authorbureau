@@ -4,7 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Mic, ArrowRight } from "lucide-react";
+import { Mic, ArrowRight } from "lucide-react";
+import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 import type { PodcastScriptsConfig, EpisodeFormat, EpisodeLength, PublishSchedule } from "./types";
 import { FORMAT_LABELS, LENGTH_LABELS, SCHEDULE_LABELS } from "./types";
 
