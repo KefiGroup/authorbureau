@@ -1,5 +1,6 @@
 import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from "react";
 import { supabase } from "@/lib/shared-backend";
+import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
 // Admin status key for sessionStorage (set by AdminAuth page on successful admin-auth login)
