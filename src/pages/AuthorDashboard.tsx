@@ -1,4 +1,4 @@
-import { Navigate, useSearchParams, useLocation } from "react-router-dom";
+import { Navigate, useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
@@ -83,12 +83,23 @@ function ComingSoonPlaceholder({ sectionId }: { sectionId: string }) {
 export default function AuthorDashboard({ initialSection }: { initialSection?: DashboardSection }) {
   const { user, loading, isAdmin, isPremium, tier, subscription, checkSubscription, signOut } = useAuth();
   const { toast } = useToast();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const sectionParam = searchParams.get("section") as DashboardSection | null;
-  const [activeSection, setActiveSection] = useState<DashboardSection>(
+  const [activeSection, setActiveSectionState] = useState<DashboardSection>(
     sectionParam || initialSection || (location.pathname === "/my-books" ? "my-books" : "overview")
   );
+
+  // Sync section to URL so refresh preserves the active section
+  const setActiveSection = (section: DashboardSection) => {
+    setActiveSectionState(section);
+    if (section === "overview") {
+      searchParams.delete("section");
+    } else {
+      searchParams.set("section", section);
+    }
+    setSearchParams(searchParams, { replace: true });
+  };
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Journey state
