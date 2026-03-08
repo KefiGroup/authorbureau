@@ -261,7 +261,21 @@ serve(async (req) => {
             try {
               summaries[a.book_id] = JSON.parse(a.content);
             } catch {
-              summaries[a.book_id] = { products: [] };
+              // Plan is stored as markdown text — extract summary data from it
+              const content = a.content || "";
+              const products: Array<{ name: string; node: string; price: string }> = [];
+              // Match numbered product lines like "1. **Product Name** — description ($price)"
+              const productMatches = content.matchAll(/\d+\.\s+\*\*([^*]+)\*\*[^$]*?\$([0-9,.]+(?:\s*[-–]\s*\$[0-9,.]+)?)/g);
+              for (const m of productMatches) {
+                products.push({ name: m[1].trim(), node: m[1].trim().toLowerCase(), price: `$${m[2]}` });
+              }
+              // Extract revenue range
+              const revenueMatch = content.match(/\$([0-9,]+)\s*[-–—]\s*\$([0-9,]+)\s*\/?\s*(?:mo|month)/i);
+              summaries[a.book_id] = {
+                products,
+                annual_projection_low: revenueMatch ? `$${revenueMatch[1]}` : undefined,
+                annual_projection_high: revenueMatch ? `$${revenueMatch[2]}` : undefined,
+              };
             }
           }
         });
