@@ -308,6 +308,9 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
             onAnalyze={() => setActiveSection("build-business")}
           />;
         }
+        if (analyzedBookList.length > 0) {
+          return gate("Build Authority", <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />);
+        }
         return gate("Build Authority", <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} />);
       case "marketing-channels":
         if (!hasAnalysis) {
@@ -319,7 +322,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
             onAnalyze={() => setActiveSection("build-business")}
           />;
         }
-        return gate("Bridge Channels", <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} />, "pro");
+        return gate("Bridge Channels", <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />, "pro");
       case "authority-builders":
         if (!hasAnalysis) {
           return <SectionGatePage
@@ -330,7 +333,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
             onAnalyze={() => setActiveSection("build-business")}
           />;
         }
-        return gate("Yield Revenue", <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} />, "enterprise");
+        return gate("Yield Revenue", <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />, "enterprise");
       case "review-products":
         return <ReviewProductsPage onNavigate={handleNavigate} />;
       case "author-crm":
