@@ -20,6 +20,7 @@ export interface AdminUser {
 export interface AdminBook {
   id: string;
   title: string;
+  subtitle?: string | null;
   author_name?: string;
   genre?: string;
   cover_image_url?: string;
@@ -27,6 +28,17 @@ export interface AdminBook {
   published_at?: string | null;
   created_at?: string;
   entry_mode?: string;
+  description?: string | null;
+  amazon_url?: string | null;
+  price?: string | null;
+  currency?: string | null;
+  kindle_price?: string | null;
+  paperback_price?: string | null;
+  pages?: number | null;
+  rating?: number | null;
+  badges?: string[] | null;
+  bestseller_proof_url?: string | null;
+  owner_email?: string | null;
 }
 
 export interface AdminInfo {
