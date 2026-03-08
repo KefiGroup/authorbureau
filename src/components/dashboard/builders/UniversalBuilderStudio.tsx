@@ -307,7 +307,7 @@ ${frameworks ? `\n\nBOOK FRAMEWORKS (the author's proprietary methods/models):\n
     } finally {
       setAbbyStreaming(false);
     }
-  }, [abbyInput, abbyMessages, abbyStreaming, bookId, bookTitle, nodeConfig, currentStep, plan]);
+  }, [abbyInput, abbyMessages, abbyStreaming, bookId, bookTitle, nodeConfig, currentStep, plan, manuscriptSummary, frameworks]);
 
   const goNext = () => {
     handleSaveDraft(true);
