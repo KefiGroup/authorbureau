@@ -299,7 +299,8 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "email-templates":
         return gate("Email Marketing", <EmailMarketing activeTab={activeSection} onTabChange={(s) => setActiveSection(s as DashboardSection)} />);
       case "revenue-streams":
-        if (!hasAnalysis) {
+        // Subscribers can always access product sections; only gate for free users without analysis
+        if (!hasAnalysis && !isPremium && !isAdmin) {
           return <SectionGatePage
             sectionTitle="B · Build Authority"
             sectionSubtitle="Create digital products that establish you as the expert in your field."
@@ -308,12 +309,9 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
             onAnalyze={() => setActiveSection("build-business")}
           />;
         }
-        if (analyzedBookList.length > 0) {
-          return gate("Build Authority", <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />);
-        }
-        return gate("Build Authority", <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} />);
+        return <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />;
       case "marketing-channels":
-        if (!hasAnalysis) {
+        if (!hasAnalysis && !isPremium && !isAdmin) {
           return <SectionGatePage
             sectionTitle="B · Bridge Channels"
             sectionSubtitle="Marketing channels & audience connections."
@@ -322,9 +320,9 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
             onAnalyze={() => setActiveSection("build-business")}
           />;
         }
-        return gate("Bridge Channels", <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />, "pro");
+        return <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />;
       case "authority-builders":
-        if (!hasAnalysis) {
+        if (!hasAnalysis && !isPremium && !isAdmin) {
           return <SectionGatePage
             sectionTitle="Y · Yield Revenue"
             sectionSubtitle="Premium revenue streams & monetization."
@@ -333,7 +331,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
             onAnalyze={() => setActiveSection("build-business")}
           />;
         }
-        return gate("Yield Revenue", <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />, "enterprise");
+        return <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />;
       case "review-products":
         return <ReviewProductsPage onNavigate={handleNavigate} />;
       case "author-crm":
