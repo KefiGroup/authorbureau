@@ -33,6 +33,14 @@ import AuthorCRMPage from "@/components/dashboard/AuthorCRMPage";
 import AuthorReadingClub from "@/components/dashboard/AuthorReadingClub";
 import { Loader2, Rocket, FileText, Video, Share2, CreditCard, Users, Trophy, Podcast, Building2, Bookmark, Award } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { supabase as sharedSupabase } from "@/lib/shared-backend";
+
+async function getActiveToken(): Promise<string | null> {
+  const { data: cloudSession } = await supabase.auth.getSession();
+  if (cloudSession?.session?.access_token) return cloudSession.session.access_token;
+  const { data: sharedSession } = await sharedSupabase.auth.getSession();
+  return sharedSession?.session?.access_token || null;
+}
 
 // All builder node IDs for the type union
 const BUILDER_NODE_IDS = Object.keys(BUILDER_NODE_MAP) as Array<keyof typeof BUILDER_NODE_MAP>;
@@ -117,6 +125,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
   const [hasAnalysis, setHasAnalysis] = useState(false);
   const [stripeConnected, setStripeConnected] = useState(false);
   const [pendingReviewCount, setPendingReviewCount] = useState(0);
+  const [analyzedBookList, setAnalyzedBookList] = useState<Array<{ id: string; title: string }>>([]);
 
   useEffect(() => {
     if (sectionParam && sectionParam !== activeSection) setActiveSection(sectionParam);
@@ -137,11 +146,15 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
     }
   }, [searchParams]);
 
-  // Fetch journey state
+  // Fetch journey state using edge functions to bypass RLS issues
   useEffect(() => {
     if (!user) return;
     (async () => {
       try {
+        const token = await getActiveToken();
+        if (!token) return;
+
+        // Fetch profile info
         const { data: profile } = await supabase
           .from("author_profiles")
           .select("directory_status, pen_name, photo_url, bio_short, bio_long, stripe_onboarding_complete")
@@ -155,24 +168,48 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         const profileComplete = isListed && hasName && hasPhoto && hasBio;
         setStripeConnected(!!(profile as any)?.stripe_onboarding_complete);
 
-        const { data: books } = await supabase
-          .from("books")
-          .select("id")
-          .eq("author_id", user.id);
-        const bookCount = (books || []).length;
+        // Fetch books via edge function (bypasses RLS mismatch)
+        const booksResp = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`,
+          { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } }
+        );
+        const booksResult = await booksResp.json();
+        const fetchedBooks = booksResult.books || [];
+        const bookCount = fetchedBooks.length;
         setHasBooks(bookCount > 0);
 
         // Step 1 done = profile complete + has books
         const step1Done = !!profileComplete && bookCount > 0;
         setHasMicrosite(step1Done);
 
-        const { data: plans } = await supabase
-          .from("generated_assets")
-          .select("book_id")
-          .eq("author_id", user.id)
-          .eq("asset_type", "business_plan");
+        // Check analysis status via edge function (bypasses RLS mismatch)
+        let analyzed = 0;
+        if (bookCount > 0) {
+          try {
+            const bookIds = fetchedBooks.map((b: any) => b.id);
+            const statusResp = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-manuscript`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ action: "batch-status", bookIds }),
+              }
+            );
+            const statusResult = await statusResp.json();
+            if (statusResp.ok) {
+              const analyzedIds: string[] = statusResult.analyzed || [];
+              analyzed = analyzedIds.length;
+              // Store analyzed book info for navigation
+              const analyzedBooks = fetchedBooks
+                .filter((b: any) => analyzedIds.includes(b.id))
+                .map((b: any) => ({ id: b.id, title: b.title }));
+              setAnalyzedBookList(analyzedBooks);
+            }
+          } catch (err) {
+            console.error("Failed to fetch analysis status:", err);
+          }
+        }
 
-        const analyzed = new Set((plans || []).map((p: any) => p.book_id)).size;
         setBooksAnalyzed(analyzed);
         const step2Done = analyzed > 0;
         setHasAnalysis(step2Done);
@@ -271,6 +308,9 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
             onAnalyze={() => setActiveSection("build-business")}
           />;
         }
+        if (analyzedBookList.length > 0) {
+          return gate("Build Authority", <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />);
+        }
         return gate("Build Authority", <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} />);
       case "marketing-channels":
         if (!hasAnalysis) {
@@ -282,7 +322,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
             onAnalyze={() => setActiveSection("build-business")}
           />;
         }
-        return gate("Bridge Channels", <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} />, "pro");
+        return gate("Bridge Channels", <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />, "pro");
       case "authority-builders":
         if (!hasAnalysis) {
           return <SectionGatePage
@@ -293,7 +333,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
             onAnalyze={() => setActiveSection("build-business")}
           />;
         }
-        return gate("Yield Revenue", <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} />, "enterprise");
+        return gate("Yield Revenue", <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />, "enterprise");
       case "review-products":
         return <ReviewProductsPage onNavigate={handleNavigate} />;
       case "author-crm":
