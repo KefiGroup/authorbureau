@@ -274,7 +274,7 @@ export default function SubscriptionSalesPitch({
                     </Button>
                   ) : (
                     <Button
-                      className={`w-full mt-auto ${
+                      className={`w-full mt-auto text-xs sm:text-sm whitespace-nowrap ${
                         plan.popular
                           ? "bg-amber-500 hover:bg-amber-600 text-white"
                           : "bg-[hsl(var(--primary))] text-primary-foreground hover:bg-[hsl(var(--primary))]/90"
@@ -283,13 +283,13 @@ export default function SubscriptionSalesPitch({
                       disabled={loading}
                     >
                       {loading ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        <Loader2 className="h-4 w-4 mr-2 shrink-0 animate-spin" />
                       ) : isSubscribed ? (
-                        <ArrowUpRight className="h-4 w-4 mr-2" />
+                        <ArrowUpRight className="h-4 w-4 mr-2 shrink-0" />
                       ) : (
-                        <Crown className="h-4 w-4 mr-2" />
+                        <Crown className="h-4 w-4 mr-2 shrink-0" />
                       )}
-                      {isSubscribed ? `Upgrade to ${plan.name}` : `Get Started with ${plan.name}`}
+                      <span className="truncate">{isSubscribed ? `Upgrade to ${plan.name}` : `Get ${plan.name}`}</span>
                     </Button>
                   )}
                 </div>
