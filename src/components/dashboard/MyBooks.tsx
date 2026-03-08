@@ -66,6 +66,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
   const [editingBook, setEditingBook] = useState<Book | null>(null);
   const [uploadingCover, setUploadingCover] = useState<string | null>(null);
   const [unpublishing, setUnpublishing] = useState<string | null>(null);
+  const [publishing, setPublishing] = useState<string | null>(null);
   const [analyzedBooks, setAnalyzedBooks] = useState<Set<string>>(new Set());
   const [manuscriptBooks, setManuscriptBooks] = useState<Set<string>>(new Set());
 
@@ -157,6 +158,30 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
       toast({ title: "Unpublish failed", description: err instanceof Error ? err.message : "Please try again", variant: "destructive" });
     } finally {
       setUnpublishing(null);
+    }
+  };
+
+  const handlePublish = async (bookId: string) => {
+    setPublishing(bookId);
+    try {
+      const token = await getActiveToken();
+      if (!token) { toast({ title: "Not signed in", variant: "destructive" }); return; }
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ action: "publish", bookId }),
+        }
+      );
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+      toast({ title: "Microsite is now live! 🎉" });
+      fetchBooks();
+    } catch (err) {
+      toast({ title: "Publish failed", description: err instanceof Error ? err.message : "Please try again", variant: "destructive" });
+    } finally {
+      setPublishing(null);
     }
   };
 
@@ -391,10 +416,43 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
                       </span>
                     </div>
 
-                    {/* 5. Microsite stats */}
-                    <p className="text-[11px] text-muted-foreground">
-                      {book.published_at ? "Microsite live" : "Microsite not yet active"}
-                    </p>
+                    {/* 5. Microsite status + publish action */}
+                    <div className="flex items-center gap-2">
+                      <p className="text-[11px] text-muted-foreground flex-1">
+                        {book.published_at ? "Microsite live ✅" : "Microsite not yet active"}
+                      </p>
+                      {!book.published_at ? (
+                        <Button
+                          variant="outline" size="sm" className="text-[10px] h-6 px-2 border-accent text-accent hover:bg-accent/10"
+                          disabled={publishing === book.id}
+                          onClick={(e) => { e.stopPropagation(); handlePublish(book.id); }}
+                        >
+                          {publishing === book.id ? <><Loader2 className="h-3 w-3 animate-spin mr-1" />Publishing...</> : "Publish →"}
+                        </Button>
+                      ) : (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="sm" className="text-[10px] h-6 px-2 text-muted-foreground hover:text-destructive">
+                              <EyeOff className="h-3 w-3 mr-1" /> Unpublish
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Take down microsite?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will remove the public page for "{book.title}". You can republish anytime.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleUnpublish(book.id)}>
+                                {unpublishing === book.id ? "Removing..." : "Unpublish"}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
+                    </div>
 
                     {/* Manuscript upload compact */}
                     {!hasManuscript && (
@@ -411,7 +469,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
                         onClick={(e) => {
                           e.stopPropagation();
                           if (book.published_at) window.open(`/books/${book.slug}`, "_blank");
-                          else toast({ title: "Microsite not live yet" });
+                          else toast({ title: "Publish the microsite first to view it." });
                         }}
                       >
                         <ExternalLink className="h-3 w-3 mr-1" /> View

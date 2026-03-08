@@ -159,6 +159,41 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Handle publish action
+    if (action === "publish" && bookId) {
+      const { data: owned } = await cloudAdmin
+        .from("books")
+        .select("id")
+        .eq("id", bookId)
+        .or(ownershipFilter)
+        .maybeSingle();
+
+      if (!owned) {
+        return new Response(JSON.stringify({ error: "Book not found or not owned" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { error: publishError } = await cloudAdmin
+        .from("books")
+        .update({ published_at: new Date().toISOString() })
+        .eq("id", bookId);
+
+      if (publishError) {
+        console.error("Publish error:", publishError);
+        return new Response(JSON.stringify({ error: publishError.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(
+        JSON.stringify({ success: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Handle unpublish action
     if (action === "unpublish") {
       if (!bookId) {
