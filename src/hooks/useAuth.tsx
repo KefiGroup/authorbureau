@@ -181,6 +181,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isPremium = isAdmin || tier !== "free";
 
   const signOut = async () => {
+    sessionStorage.removeItem(ADMIN_AUTH_KEY);
+    setIsAdmin(false);
     await supabase.auth.signOut();
   };
 
