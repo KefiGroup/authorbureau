@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Wand2, Mic, Bot, UserRound, Clock } from "lucide-react";
+import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 import type { AudiobookStepProps, NarrationType } from "./types";
 
 const NARRATION_STYLES: { value: NarrationType; label: string; desc: string; icon: React.ReactNode }[] = [
