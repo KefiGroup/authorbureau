@@ -1,4 +1,4 @@
-import { Navigate, useSearchParams, useLocation } from "react-router-dom";
+import { Navigate, useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
