@@ -2,7 +2,8 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Mail } from "lucide-react";
+import { Mail } from "lucide-react";
+import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 import type { EmailMarketingConfig, EmailGoal, EmailTone, EmailFrequency } from "./types";
 import { GOAL_LABELS, TONE_LABELS, FREQUENCY_LABELS } from "./types";
 
