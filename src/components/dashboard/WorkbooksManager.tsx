@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, TIERS } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
+import SubscriptionPricing from "@/components/dashboard/framework-dashboard/SubscriptionPricing";
 import { FileText, Loader2, Edit3, Eye, Download, Save, X, ExternalLink, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { redirectToPublishNow } from "@/lib/publishnow-redirect";
@@ -15,6 +16,7 @@ import BookBuilderContextBar from "./BookBuilderContextBar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { supabase as sharedSupabase } from "@/lib/shared-backend";
 
 interface Workbook {
   id: string;
