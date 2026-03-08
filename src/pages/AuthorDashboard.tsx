@@ -125,6 +125,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
   const [hasAnalysis, setHasAnalysis] = useState(false);
   const [stripeConnected, setStripeConnected] = useState(false);
   const [pendingReviewCount, setPendingReviewCount] = useState(0);
+  const [analyzedBookList, setAnalyzedBookList] = useState<Array<{ id: string; title: string }>>([]);
 
   useEffect(() => {
     if (sectionParam && sectionParam !== activeSection) setActiveSection(sectionParam);
