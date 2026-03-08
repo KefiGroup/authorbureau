@@ -31,15 +31,11 @@ export default function WebsiteSetupStep({ stepData, setStepData, onMarkEdited, 
 
   return (
     <div className="space-y-6">
-      {/* Abby tip */}
-      <Card className="p-4 border-secondary/20 bg-secondary/5">
-        <div className="flex items-start gap-3">
-          <Sparkles className="h-4 w-4 text-secondary mt-0.5 shrink-0" />
-          <p className="text-xs text-muted-foreground">
-            <span className="font-semibold text-foreground">Abby's tip:</span> Your microsite is the hub that connects all your products. I recommend starting with a landing page that captures emails, then expanding to a full site as you add products.
-          </p>
-        </div>
-      </Card>
+      <AbbyRecommendationCard>
+        <p className="text-sm text-foreground leading-relaxed">
+          Your microsite is the hub that connects all your products. I recommend starting with a <strong>landing page that captures emails</strong>, then expanding to a full site as you add products.
+        </p>
+      </AbbyRecommendationCard>
 
       {/* Site Type */}
       <Card className="p-5">

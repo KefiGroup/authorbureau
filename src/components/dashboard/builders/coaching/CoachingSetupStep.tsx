@@ -40,20 +40,11 @@ export default function CoachingSetupStep({ stepData, setStepData, onMarkEdited,
 
   return (
     <div className="space-y-6">
-      {/* Abby Tip */}
-      <Card className="p-4 border-secondary/20 bg-secondary/5">
-        <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center shrink-0">
-            <Sparkles className="h-4 w-4 text-secondary" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-secondary mb-1">Abby's Recommendation</p>
-            <p className="text-sm text-muted-foreground">
-              Your book's transformation maps perfectly to a 12-week coaching program. I recommend packaging it at $1,997–$2,997 — that's the sweet spot for author-coaches in your genre.
-            </p>
-          </div>
-        </div>
-      </Card>
+      <AbbyRecommendationCard>
+        <p className="text-sm text-foreground leading-relaxed">
+          Your book's transformation maps perfectly to a 12-week coaching program. I recommend packaging it at <strong>$1,997–$2,997</strong> — that's the sweet spot for author-coaches in your genre.
+        </p>
+      </AbbyRecommendationCard>
 
       {/* Package Name & Focus */}
       <div className="grid gap-4 sm:grid-cols-2">

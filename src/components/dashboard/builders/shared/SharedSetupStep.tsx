@@ -39,18 +39,9 @@ export default function SharedSetupStep({
 
   return (
     <div className="space-y-6">
-      {/* Abby Tip */}
-      <Card className="p-4 border-secondary/20 bg-secondary/5">
-        <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center shrink-0">
-            <Sparkles className="h-4 w-4 text-secondary" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-secondary mb-1">Abby's Recommendation</p>
-            <p className="text-sm text-muted-foreground">{abbyTip}</p>
-          </div>
-        </div>
-      </Card>
+      <AbbyRecommendationCard>
+        <p className="text-sm text-foreground leading-relaxed">{abbyTip}</p>
+      </AbbyRecommendationCard>
 
       {/* Fields */}
       {fields.map(field => (

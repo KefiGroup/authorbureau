@@ -31,19 +31,11 @@ export default function EmailStrategySetupStep({ stepData, setStepData, onMarkEd
 
   return (
     <div className="space-y-6">
-      <Card className="p-4 border-secondary/20 bg-secondary/5">
-        <div className="flex gap-3">
-          <div className="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center shrink-0">
-            <Sparkles className="h-4 w-4 text-secondary" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-secondary mb-1">Abby's Recommendation</p>
-            <p className="text-sm text-muted-foreground">
-              Your workbook is the perfect lead magnet. I'll create a welcome sequence that warms subscribers up to your Online Course over 14 days, then a nurture sequence that builds authority over 6 weeks.
-            </p>
-          </div>
-        </div>
-      </Card>
+      <AbbyRecommendationCard>
+        <p className="text-sm text-foreground leading-relaxed">
+          Your workbook is the perfect lead magnet. I'll create a welcome sequence that warms subscribers up to your Online Course over <strong>14 days</strong>, then a nurture sequence that builds authority over <strong>6 weeks</strong>.
+        </p>
+      </AbbyRecommendationCard>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">

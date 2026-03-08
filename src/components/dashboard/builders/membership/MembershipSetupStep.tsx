@@ -31,21 +31,12 @@ export default function MembershipSetupStep({ stepData, setStepData, onMarkEdite
 
   return (
     <div className="space-y-6">
-      {/* Abby tip */}
-      <Card className="p-4 border-secondary/20 bg-secondary/5">
-        <div className="flex gap-3">
-          <div className="h-8 w-8 rounded-full bg-secondary/20 flex items-center justify-center shrink-0">
-            <Sparkles className="h-4 w-4 text-secondary" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-secondary mb-1">Abby's Recommendation</p>
-            <p className="text-sm text-muted-foreground">
-              3 tiers is the sweet spot. Your Reader Circle (free/low-cost) builds the community, 
-              Pro ($27-$47/mo) delivers ongoing value, and VIP ($97-$197/mo) gives access to you personally.
-            </p>
-          </div>
-        </div>
-      </Card>
+      <AbbyRecommendationCard>
+        <p className="text-sm text-foreground leading-relaxed">
+          3 tiers is the sweet spot. Your Reader Circle (free/low-cost) builds the community, 
+          Pro (<strong>$27-$47/mo</strong>) delivers ongoing value, and VIP (<strong>$97-$197/mo</strong>) gives access to you personally.
+        </p>
+      </AbbyRecommendationCard>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
