@@ -258,6 +258,9 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
     );
   }
 
+  // Determine the best book to navigate to for building
+  const primaryBookId = analyzedBooks?.[0]?.id || books[0]?.id || "";
+
   return (
     <div className="max-w-6xl space-y-6">
       {/* Header */}
@@ -302,8 +305,16 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
                 difficulty: BASELINE_REVENUE[node.id]?.difficulty || 2,
               } : undefined}
               genre={genre || undefined}
-              onBuild={() => navigate(`/dashboard/book/${books[0]?.id || ""}?tab=${categoryId}`)}
-              onContinue={() => navigate(`/dashboard/book/${books[0]?.id || ""}?tab=${categoryId}`)}
+              onBuild={() => {
+                if (primaryBookId) {
+                  navigate(`/dashboard/book/${primaryBookId}?tab=${categoryId}`);
+                }
+              }}
+              onContinue={() => {
+                if (primaryBookId) {
+                  navigate(`/dashboard/book/${primaryBookId}?tab=${categoryId}`);
+                }
+              }}
               onView={() => {
                 const profile = books[0]?.slug;
                 if (profile) window.open(`/books/${profile}`, "_blank");
