@@ -87,7 +87,7 @@ export default function AbbyAdvisorPanel({ bookId, bookTitle, productNode, produ
         `💡 *Tip: Ask me anything about building this product — I have your full plan context!*`
       );
     } else {
-      setAdvice(`I have your business plan loaded! While "${productLabel}" isn't specifically in your current plan, I can help you think through how it fits your overall strategy. Just ask!`);
+      setAdvice(`I'm ready to help with **${productLabel}**! Ask me about creating content, design tips, pricing, or publishing strategy. Just type below!`);
     }
   }, [productNode, productLabel]);
 
