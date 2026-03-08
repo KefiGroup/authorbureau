@@ -127,7 +127,7 @@ interface AbbyRecommendation {
   estimatedRevenue?: number;
 }
 
-export default function PortfolioStepView({ categoryId, tier = "free", onNavigate }: Props) {
+export default function PortfolioStepView({ categoryId, tier = "free", onNavigate, analyzedBooks }: Props) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [books, setBooks] = useState<BookSummary[]>([]);
