@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sparkles } from "lucide-react";
+import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 import type { SocialMediaConfig } from "./types";
 import { PLATFORM_CONFIG, TONE_OPTIONS, SUGGESTED_PILLARS } from "./types";
 
