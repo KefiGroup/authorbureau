@@ -2,7 +2,8 @@ import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Globe, Sparkles, Lock } from "lucide-react";
+import { Globe, Lock } from "lucide-react";
+import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 import type { WebsiteConfig } from "./types";
 import { SITE_TYPE_LABELS, TEMPLATE_OPTIONS, FONT_PAIRINGS, COLOR_SCHEMES } from "./types";
 
