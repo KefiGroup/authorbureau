@@ -355,7 +355,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                         book.published_at ? "bg-accent/15 text-accent" : "bg-muted text-muted-foreground"
                       }`}>
-                        {book.published_at ? "Published" : "Draft"}
+                        {book.published_at ? "Published" : "Under Review"}
                       </span>
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
                         hasManuscript ? "bg-accent/10 text-accent" : "bg-amber-100 text-amber-700"
