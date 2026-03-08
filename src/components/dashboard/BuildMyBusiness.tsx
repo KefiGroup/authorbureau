@@ -12,6 +12,7 @@ import BusinessPlanActions, { isBusinessPlanMessage } from "@/components/dashboa
 import BuildAuthorBusinessButton from "@/components/dashboard/BuildAuthorBusinessButton";
 import SavedBusinessPlan from "@/components/dashboard/SavedBusinessPlan";
 import FrameworkInterviewModal, { type BuildMode } from "@/components/dashboard/FrameworkInterviewModal";
+import SubscriptionPricing from "@/components/dashboard/framework-dashboard/SubscriptionPricing";
 import ManuscriptUpload from "@/components/dashboard/ManuscriptUpload";
 import type { AuthorFramework } from "@/components/dashboard/FrameworksEditor";
 import {
