@@ -462,14 +462,15 @@ export default function BuildMyBusiness() {
   };
 
   const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const handleSubscribe = async () => {
+  const [portalLoading, setPortalLoading] = useState(false);
+  const handleSubscribeTier = async (tierKey: "starter" | "pro" | "enterprise") => {
     setCheckoutLoading(true);
     try {
       const token = await getActiveToken();
       const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-        body: JSON.stringify({ priceId: TIERS.starter.price_id }),
+        body: JSON.stringify({ priceId: TIERS[tierKey].price_id, source_platform: "authorsbureau" }),
       });
       const result = await resp.json();
       if (!resp.ok) throw new Error(result.error);
@@ -479,6 +480,20 @@ export default function BuildMyBusiness() {
     } finally {
       setCheckoutLoading(false);
     }
+  };
+  const handleSubscribe = () => handleSubscribeTier("starter");
+  const handleManageSubscription = async () => {
+    setPortalLoading(true);
+    try {
+      const { data, error } = await cloudSupabase.functions.invoke("customer-portal", {
+        body: { source_platform: "authorsbureau" },
+      });
+      if (error) throw error;
+      if (data?.url) window.open(data.url, "_blank");
+    } catch (err: any) {
+      toast({ title: "Portal error", description: err.message, variant: "destructive" });
+    }
+    setPortalLoading(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
