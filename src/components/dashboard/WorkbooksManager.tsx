@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, TIERS } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
+import SubscriptionPricing from "@/components/dashboard/framework-dashboard/SubscriptionPricing";
 import { FileText, Loader2, Edit3, Eye, Download, Save, X, ExternalLink, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { redirectToPublishNow } from "@/lib/publishnow-redirect";
@@ -15,6 +16,7 @@ import BookBuilderContextBar from "./BookBuilderContextBar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { supabase as sharedSupabase } from "@/lib/shared-backend";
 
 interface Workbook {
   id: string;
@@ -29,7 +31,36 @@ interface Workbook {
 }
 
 export default function WorkbooksManager({ onNavigate }: { onNavigate?: (section: string) => void }) {
-  const { user } = useAuth();
+  const { user, isPremium, isAdmin, tier } = useAuth();
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+
+  const handleSubscribeTier = async (tierKey: "starter" | "pro" | "enterprise") => {
+    setCheckoutLoading(true);
+    try {
+      const { data, error } = await sharedSupabase.functions.invoke("create-checkout", {
+        body: { priceId: TIERS[tierKey].price_id, source_platform: "authorsbureau" },
+      });
+      if (error) throw error;
+      if (data?.url) window.open(data.url, "_blank");
+    } catch (err: any) {
+      toast.error(err?.message || "Could not start checkout");
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    setCheckoutLoading(true);
+    try {
+      const { data, error } = await sharedSupabase.functions.invoke("customer-portal");
+      if (error) throw error;
+      if (data?.url) window.open(data.url, "_blank");
+    } catch (err: any) {
+      toast.error(err?.message || "Could not open portal");
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
   const [searchParams] = useSearchParams();
   const bookFilterId = searchParams.get("bookId");
   const [workbooks, setWorkbooks] = useState<Workbook[]>([]);
@@ -191,12 +222,21 @@ export default function WorkbooksManager({ onNavigate }: { onNavigate?: (section
         <p className="text-muted-foreground text-sm leading-relaxed max-w-lg mx-auto mb-6">
           AI-generated companion workbooks appear here after you run "Build My Author Business" for a book. Each workbook contains exercises, reflection questions, and action plans from your book chapters.
         </p>
-        <Button variant="secondary" onClick={() => onNavigate?.("build-business")}>Generate from AI Engine → Build My Business</Button>
+        {(isPremium || isAdmin) ? (
+          <Button variant="secondary" onClick={() => onNavigate?.("build-business")}>Generate from AI Engine → Build My Business</Button>
+        ) : (
+          <div className="mt-4 max-w-3xl mx-auto">
+            <SubscriptionPricing
+              currentTier={tier}
+              onSubscribe={handleSubscribeTier}
+              onManage={handleManageSubscription}
+              loading={checkoutLoading}
+            />
+          </div>
+        )}
       </div>
     );
   }
-
-  // Detail view
   if (selected) {
     return (
       <div className="max-w-4xl space-y-6">
