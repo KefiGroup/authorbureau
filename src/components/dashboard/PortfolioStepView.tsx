@@ -24,6 +24,8 @@ interface Node {
   description: string;
   status: "live" | "coming-soon" | "planned";
   tierRequired?: string;
+  subCategory?: string;
+  sequence?: number;
 }
 
 interface CategoryConfig {
