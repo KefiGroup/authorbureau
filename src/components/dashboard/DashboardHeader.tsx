@@ -16,7 +16,7 @@ interface Props {
   onToggleSidebar: () => void;
 }
 
-export default function DashboardHeader({ user, isPremium, isAdmin, onSignOut, onToggleSidebar }: Props) {
+export default function DashboardHeader({ user, isPremium, isAdmin, tier, onSignOut, onToggleSidebar }: Props) {
   const [penName, setPenName] = useState<string | null>(null);
 
   useEffect(() => {
