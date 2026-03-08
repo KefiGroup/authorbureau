@@ -370,43 +370,32 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
                       </span>
                     </div>
 
-                    {/* 5. Microsite status + publish action */}
-                    <div className="flex flex-col gap-1.5">
-                      <p className="text-[11px] text-muted-foreground">
-                        {book.published_at ? "Microsite live ✅" : "Microsite not yet active"}
-                      </p>
-                      {!book.published_at ? (
-                        <Button
-                          size="sm" className="w-full h-8 text-xs font-semibold bg-accent text-accent-foreground hover:bg-accent/90"
-                          disabled={publishing === book.id}
-                          onClick={(e) => { e.stopPropagation(); handlePublish(book.id); }}
-                        >
-                          {publishing === book.id ? <><Loader2 className="h-3 w-3 animate-spin mr-1" />Publishing...</> : "🚀 Publish Microsite"}
-                        </Button>
-                      ) : (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="sm" className="text-[10px] h-6 px-2 text-muted-foreground hover:text-destructive">
-                              <EyeOff className="h-3 w-3 mr-1" /> Unpublish
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Take down microsite?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This will remove the public page for "{book.title}". You can republish anytime.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleUnpublish(book.id)}>
-                                {unpublishing === book.id ? "Removing..." : "Unpublish"}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      )}
-                    </div>
+                     {/* 5. Microsite status */}
+                     <div className="flex flex-col gap-1.5">
+                       {book.published_at ? (
+                         <>
+                           <div className="flex items-center gap-1.5 text-accent">
+                             <CheckCircle2 className="h-3.5 w-3.5" />
+                             <p className="text-[11px] font-semibold">Microsite Live</p>
+                           </div>
+                           <p className="text-[10px] text-muted-foreground">
+                             Approved & published by Admin
+                           </p>
+                         </>
+                       ) : (
+                         <>
+                           <div className="flex items-center gap-1.5 text-amber-600">
+                             <Clock className="h-3.5 w-3.5" />
+                             <p className="text-[11px] font-semibold">Pending Admin Approval</p>
+                           </div>
+                           <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
+                             <p className="text-[10px] text-amber-800 leading-relaxed">
+                               Your book has been submitted for review. An admin will review and approve your microsite within <strong>48 hours</strong>.
+                             </p>
+                           </div>
+                         </>
+                       )}
+                     </div>
 
                     {/* Manuscript upload compact */}
                     {!hasManuscript && (
