@@ -185,6 +185,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
     }
   };
 
+  const handleEdit = async (book: Book) => {
     try {
       const token = await getActiveToken();
       if (!token) return;
