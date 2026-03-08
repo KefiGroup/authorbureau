@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Check, Crown, Loader2, ArrowUpRight, Shield, Sparkles,
-  TrendingUp, Star, Lock, ChevronUp, X, Quote,
+  TrendingUp, Star, Lock, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -339,9 +339,15 @@ export default function SubscriptionSalesPitch({
         </div>
       )}
 
-      {/* ─── Part 4: Social Proof ─── */}
+      {/* ─── Trust badges ─── */}
       {!isSubscribed && (
-        <SocialProofSection onScrollToPricing={scrollToPricing} />
+        <div className="flex items-center justify-center gap-4 text-[11px] text-muted-foreground py-4">
+          <span className="flex items-center gap-1"><Lock className="h-3 w-3" /> 30-day money-back guarantee</span>
+          <span>·</span>
+          <span>Cancel anytime</span>
+          <span>·</span>
+          <span>No lock-in</span>
+        </div>
       )}
 
       {/* ─── Sticky Banner (free users only) ─── */}
@@ -425,7 +431,7 @@ function RevenueHookBanner({
             </p>
 
             <p className="text-xs text-amber-700 font-semibold animate-bounce">
-              ↓ Choose your plan below ↓
+              ↓ Subscribe below ↓
             </p>
           </>
         )}
@@ -509,87 +515,3 @@ function ROICalculator({
   );
 }
 
-function SocialProofSection({ onScrollToPricing }: { onScrollToPricing: () => void }) {
-  // TODO: Replace with real testimonials when available
-  const testimonials = [
-    {
-      quote: "I went from selling just my book to earning $3,200/month from courses and coaching in 90 days",
-      author: "Sarah M.",
-      genre: "Self-Help",
-    },
-    {
-      quote: "The AI built my entire course in 20 minutes. I would have spent weeks doing this manually",
-      author: "David L.",
-      genre: "Business",
-    },
-  ];
-
-  // TODO: Replace with real platform stats when available
-  const stats = [
-    { label: "Authors", value: "500+" },
-    { label: "Products Built", value: "2,400+" },
-    { label: "Earned", value: "$1.2M+" },
-  ];
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.3 }}
-      className="rounded-2xl bg-[hsl(40,30%,97%)] dark:bg-muted/30 p-6 md:p-8 space-y-8"
-    >
-      {/* Testimonials */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {testimonials.map((t, i) => (
-          <Card key={i} className="p-5 border-border bg-card">
-            <Quote className="h-5 w-5 text-amber-400 mb-2" />
-            <p className="text-sm italic text-foreground leading-relaxed">"{t.quote}"</p>
-            <div className="mt-3 text-xs text-muted-foreground">
-              <p className="font-semibold text-foreground">— {t.author}</p>
-              <p>Genre: {t.genre}</p>
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      {/* Platform Stats */}
-      <div className="text-center space-y-4">
-        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center justify-center gap-2">
-          📊 Authors Bureau by the Numbers
-        </p>
-        <div className="flex justify-center gap-6 md:gap-10">
-          {stats.map((s) => (
-            <div key={s.label} className="text-center">
-              <p className="text-2xl md:text-3xl font-bold text-foreground">{s.value}</p>
-              <p className="text-xs text-muted-foreground">{s.label}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Final CTA */}
-      <div className="text-center space-y-4">
-        <Button
-          onClick={onScrollToPricing}
-          size="lg"
-          className="bg-amber-500 hover:bg-amber-600 text-white text-base px-10 py-6 rounded-xl shadow-lg"
-        >
-          <Sparkles className="h-5 w-5 mr-2" />
-          START BUILDING YOUR AUTHOR BUSINESS →
-        </Button>
-        <p className="text-xs text-muted-foreground">
-          Choose your plan above or start with Starter at just $47/month
-        </p>
-      </div>
-
-      {/* Trust badges */}
-      <div className="flex items-center justify-center gap-4 text-[11px] text-muted-foreground">
-        <span className="flex items-center gap-1"><Lock className="h-3 w-3" /> 30-day money-back guarantee</span>
-        <span>·</span>
-        <span>Cancel anytime</span>
-        <span>·</span>
-        <span>No lock-in</span>
-      </div>
-    </motion.div>
-  );
-}
