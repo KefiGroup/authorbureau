@@ -233,6 +233,7 @@ export default function WorkbooksManager({ onNavigate }: { onNavigate?: (section
               loading={checkoutLoading}
             />
           </div>
+        )}
       </div>
     );
   }
