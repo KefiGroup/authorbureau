@@ -59,6 +59,12 @@ export default function SocialMediaSetupStep({ stepData, setStepData, onMarkEdit
 
   return (
     <div className="space-y-6">
+      <AbbyRecommendationCard>
+        <p className="text-sm text-foreground leading-relaxed">
+          Start with <strong>LinkedIn + Instagram</strong> — they're the highest-converting platforms for non-fiction authors. Post <strong>3x per week</strong> with a mix of insights, behind-the-scenes, and direct calls to action.
+        </p>
+      </AbbyRecommendationCard>
+
       {/* Platforms */}
       <Card className="p-5">
         <Label className="text-sm font-semibold mb-3 block">Platforms (select 2-3)</Label>

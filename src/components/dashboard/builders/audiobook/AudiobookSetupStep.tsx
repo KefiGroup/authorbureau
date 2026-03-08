@@ -32,6 +32,12 @@ export default function AudiobookSetupStep({ stepData, setStepData, onMarkEdited
 
   return (
     <div className="space-y-6">
+      <AbbyRecommendationCard>
+        <p className="text-sm text-foreground leading-relaxed">
+          Audiobooks are the fastest-growing format — <strong>$4.5B market</strong>. With AI narration, you can have a professional-sounding audiobook ready in days, not months. I recommend starting with <strong>AI Voice</strong> to test demand.
+        </p>
+      </AbbyRecommendationCard>
+
       {/* Title */}
       <div>
         <Label className="text-sm font-medium">Audiobook Title</Label>
