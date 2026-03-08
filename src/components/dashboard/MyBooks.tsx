@@ -406,7 +406,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
                         onClick={(e) => {
                           e.stopPropagation();
                           if (book.published_at) window.open(`/books/${book.slug}`, "_blank");
-                          else toast({ title: "Publish the microsite first to view it." });
+                          else toast({ title: "Your microsite is under review. It will be available once approved by an admin." });
                         }}
                       >
                         <ExternalLink className="h-3 w-3 mr-1" /> View
