@@ -66,6 +66,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
   const [editingBook, setEditingBook] = useState<Book | null>(null);
   const [uploadingCover, setUploadingCover] = useState<string | null>(null);
   const [unpublishing, setUnpublishing] = useState<string | null>(null);
+  const [publishing, setPublishing] = useState<string | null>(null);
   const [analyzedBooks, setAnalyzedBooks] = useState<Set<string>>(new Set());
   const [manuscriptBooks, setManuscriptBooks] = useState<Set<string>>(new Set());
 
