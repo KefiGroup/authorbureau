@@ -181,13 +181,13 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
                   ))}
                 </ul>
 
-                <Button
-                  className={`w-full mt-auto ${plan.popular ? "bg-amber-500 hover:bg-amber-600 text-white" : ""}`}
+              <Button
+                  className={`w-full mt-auto text-xs sm:text-sm whitespace-nowrap ${plan.popular ? "bg-amber-500 hover:bg-amber-600 text-white" : ""}`}
                   onClick={() => onSubscribe(plan.id)}
                   disabled={loading}
                 >
-                  {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Crown className="h-4 w-4 mr-2" />}
-                  Get Started with {plan.name}
+                  {loading ? <Loader2 className="h-4 w-4 mr-2 shrink-0 animate-spin" /> : <Crown className="h-4 w-4 mr-2 shrink-0" />}
+                  <span className="truncate">Get {plan.name}</span>
                 </Button>
               </div>
             </div>
