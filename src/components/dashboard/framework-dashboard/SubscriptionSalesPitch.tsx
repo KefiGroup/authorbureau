@@ -339,9 +339,15 @@ export default function SubscriptionSalesPitch({
         </div>
       )}
 
-      {/* ─── Part 4: Social Proof ─── */}
+      {/* ─── Trust badges ─── */}
       {!isSubscribed && (
-        <SocialProofSection onScrollToPricing={scrollToPricing} />
+        <div className="flex items-center justify-center gap-4 text-[11px] text-muted-foreground py-4">
+          <span className="flex items-center gap-1"><Lock className="h-3 w-3" /> 30-day money-back guarantee</span>
+          <span>·</span>
+          <span>Cancel anytime</span>
+          <span>·</span>
+          <span>No lock-in</span>
+        </div>
       )}
 
       {/* ─── Sticky Banner (free users only) ─── */}
