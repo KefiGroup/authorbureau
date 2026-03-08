@@ -294,46 +294,74 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
         </div>
       </div>
 
-      {/* Product Cards Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {sortedNodes.map((node) => {
-          const state = getNodeState(node);
-          const rec = getRec(node.id);
-          return (
-            <SmartProductCard
-              key={node.id}
-              id={node.id}
-              label={node.label}
-              icon={node.icon}
-              description={node.description}
-              personalizedDescription={rec?.personalizedDescription}
-              state={state}
-              tierRequired={node.tierRequired}
-              revenue={rec?.estimatedRevenue ? {
-                annual: rec.estimatedRevenue,
-                timeToBuild: BASELINE_REVENUE[node.id]?.timeToBuild || "~2 hours",
-                difficulty: BASELINE_REVENUE[node.id]?.difficulty || 2,
-              } : undefined}
-              genre={genre || undefined}
-              onBuild={() => {
-                if (primaryBookId) {
-                  navigate(`/dashboard/book/${primaryBookId}?tab=${categoryId}`);
-                }
-              }}
-              onContinue={() => {
-                if (primaryBookId) {
-                  navigate(`/dashboard/book/${primaryBookId}?tab=${categoryId}`);
-                }
-              }}
-              onView={() => {
-                const profile = books[0]?.slug;
-                if (profile) window.open(`/books/${profile}`, "_blank");
-              }}
-              onUpgrade={() => onNavigate?.("overview")}
-            />
-          );
-        })}
-      </div>
+      {/* Product Cards Grid – grouped by sub-category */}
+      {categoryId === "revenue-streams" && subCategories.length > 1
+        ? subCategories.map((group) => (
+            <div key={group.name} className="space-y-3">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-1">
+                {group.name}
+              </h3>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {group.nodes.map((node) => {
+                  const state = getNodeState(node);
+                  const rec = getRec(node.id);
+                  return (
+                    <SmartProductCard
+                      key={node.id}
+                      id={node.id}
+                      label={node.label}
+                      icon={node.icon}
+                      description={node.description}
+                      personalizedDescription={rec?.personalizedDescription}
+                      state={state}
+                      tierRequired={node.tierRequired}
+                      revenue={rec?.estimatedRevenue ? {
+                        annual: rec.estimatedRevenue,
+                        timeToBuild: BASELINE_REVENUE[node.id]?.timeToBuild || "~2 hours",
+                        difficulty: BASELINE_REVENUE[node.id]?.difficulty || 2,
+                      } : undefined}
+                      genre={genre || undefined}
+                      onBuild={() => { if (primaryBookId) navigate(`/dashboard/book/${primaryBookId}?tab=${categoryId}`); }}
+                      onContinue={() => { if (primaryBookId) navigate(`/dashboard/book/${primaryBookId}?tab=${categoryId}`); }}
+                      onView={() => { const profile = books[0]?.slug; if (profile) window.open(`/books/${profile}`, "_blank"); }}
+                      onUpgrade={() => onNavigate?.("overview")}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          ))
+        : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {sortedNodes.map((node) => {
+              const state = getNodeState(node);
+              const rec = getRec(node.id);
+              return (
+                <SmartProductCard
+                  key={node.id}
+                  id={node.id}
+                  label={node.label}
+                  icon={node.icon}
+                  description={node.description}
+                  personalizedDescription={rec?.personalizedDescription}
+                  state={state}
+                  tierRequired={node.tierRequired}
+                  revenue={rec?.estimatedRevenue ? {
+                    annual: rec.estimatedRevenue,
+                    timeToBuild: BASELINE_REVENUE[node.id]?.timeToBuild || "~2 hours",
+                    difficulty: BASELINE_REVENUE[node.id]?.difficulty || 2,
+                  } : undefined}
+                  genre={genre || undefined}
+                  onBuild={() => { if (primaryBookId) navigate(`/dashboard/book/${primaryBookId}?tab=${categoryId}`); }}
+                  onContinue={() => { if (primaryBookId) navigate(`/dashboard/book/${primaryBookId}?tab=${categoryId}`); }}
+                  onView={() => { const profile = books[0]?.slug; if (profile) window.open(`/books/${profile}`, "_blank"); }}
+                  onUpgrade={() => onNavigate?.("overview")}
+                />
+              );
+            })}
+          </div>
+        )
+      }
 
       {/* Info */}
       <div className="rounded-xl bg-muted/50 border border-border p-4 text-center">
