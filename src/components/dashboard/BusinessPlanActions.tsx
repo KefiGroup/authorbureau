@@ -15,17 +15,27 @@ interface BusinessPlanActionsProps {
 
 /** Detect if a message contains an ABBY Business Plan */
 export function isBusinessPlanMessage(content: string): boolean {
+  const normalized = content.toLowerCase();
+
+  // Legacy + current plan formats
   const markers = [
-    "ABBY Business Plan",
-    "YOUR TRANSFORMATION PROMISE",
-    "STARTER PACKAGE",
-    "PRO PACKAGE",
-    "ENTERPRISE PACKAGE",
-    "MONETIZATION MAP",
+    "abby business plan",
+    "your transformation promise",
+    "starter package",
+    "pro package",
+    "enterprise package",
+    "monetization map",
+    "unlock your plan",
+    "section 6 — next steps",
+    "section 6 - next steps",
+    "subscribe to the recommended plan",
+    "roi:",
   ];
-  // Must contain at least 3 of these markers
-  const matches = markers.filter((m) => content.includes(m));
-  return matches.length >= 3;
+
+  const matchCount = markers.filter((m) => normalized.includes(m)).length;
+
+  // Accept either rich legacy plans or current concise plan format
+  return matchCount >= 2;
 }
 
 function markdownToHtml(md: string): string {
