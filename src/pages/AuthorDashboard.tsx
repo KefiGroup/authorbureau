@@ -255,7 +255,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
             onAnalyze={() => setActiveSection("build-business")}
           />;
         }
-        return <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} />;
+        return gate("Build Authority", <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} />);
       case "marketing-channels":
         if (!hasAnalysis) {
           return <SectionGatePage
@@ -266,7 +266,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
             onAnalyze={() => setActiveSection("build-business")}
           />;
         }
-        return <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} />;
+        return gate("Bridge Channels", <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} />, "pro");
       case "authority-builders":
         if (!hasAnalysis) {
           return <SectionGatePage
@@ -277,7 +277,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
             onAnalyze={() => setActiveSection("build-business")}
           />;
         }
-        return <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} />;
+        return gate("Yield Revenue", <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} />, "enterprise");
       case "review-products":
         return <ReviewProductsPage onNavigate={handleNavigate} />;
       case "author-crm":
