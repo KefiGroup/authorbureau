@@ -342,6 +342,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           user={user}
           isPremium={isPremium}
           isAdmin={isAdmin}
+          tier={tier}
           subscription={subscription}
           onSignOut={signOut}
           onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}

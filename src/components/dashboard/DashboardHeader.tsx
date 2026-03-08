@@ -4,17 +4,19 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
+import type { SubscriptionTier } from "@/hooks/useAuth";
 
 interface Props {
   user: User;
   isPremium: boolean;
   isAdmin?: boolean;
+  tier?: SubscriptionTier;
   subscription: { subscribed: boolean; loading: boolean };
   onSignOut: () => void;
   onToggleSidebar: () => void;
 }
 
-export default function DashboardHeader({ user, isPremium, isAdmin, onSignOut, onToggleSidebar }: Props) {
+export default function DashboardHeader({ user, isPremium, isAdmin, tier, onSignOut, onToggleSidebar }: Props) {
   const [penName, setPenName] = useState<string | null>(null);
 
   useEffect(() => {
@@ -42,9 +44,13 @@ export default function DashboardHeader({ user, isPremium, isAdmin, onSignOut, o
           <h1 className="font-heading text-lg font-bold">AI Marketing Studio</h1>
           <p className="text-xs text-muted-foreground flex items-center gap-1.5">
             {displayName}
-            {isPremium && (
+            {tier && tier !== "free" ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-secondary/15 px-2 py-0.5 text-[10px] font-semibold text-secondary">
-                <Crown className="h-2.5 w-2.5" /> Premium
+                <Crown className="h-2.5 w-2.5" /> {tier.charAt(0).toUpperCase() + tier.slice(1)}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                Free
               </span>
             )}
           </p>

@@ -1,5 +1,6 @@
 import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from "react";
 import { supabase } from "@/lib/shared-backend";
+import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
 // Admin status key for sessionStorage (set by AdminAuth page on successful admin-auth login)
@@ -91,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSubscription((prev) => ({ ...prev, loading: false }));
     }, 8000);
     try {
-      const { data, error } = await supabase.functions.invoke("check-subscription", {
+      const { data, error } = await cloudSupabase.functions.invoke("check-subscription", {
         body: { source_platform: "authorsbureau" },
       });
       clearTimeout(timeout);
