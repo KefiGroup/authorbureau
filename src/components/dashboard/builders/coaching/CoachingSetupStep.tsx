@@ -3,7 +3,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, UserCheck, Video, Phone, MapPin, Layers } from "lucide-react";
+import { UserCheck, Video, Phone, MapPin, Layers } from "lucide-react";
+import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 import type { CoachingConfig, PackageStructure, SessionDuration, DeliveryMode } from "./types";
 import { STRUCTURE_LABELS, DURATION_LABELS, DELIVERY_LABELS } from "./types";
 
