@@ -5,8 +5,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
-  BookOpen, Plus, ExternalLink, Loader2, ImagePlus, EyeOff, Clock,
-  Pencil, Sparkles, ArrowRight, CheckCircle2, Circle,
+  BookOpen, Plus, ExternalLink, Loader2, ImagePlus, Clock,
+  Pencil, Sparkles, ArrowRight, CheckCircle2, Circle, ShieldCheck,
 } from "lucide-react";
 import ManuscriptUpload from "./ManuscriptUpload";
 import StripeConnectBanner from "./StripeConnectBanner";
@@ -14,10 +14,6 @@ import ProductReviewQueue from "./ProductReviewQueue";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import DualModeBookForm from "@/components/DualModeBookForm";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 
 interface Book {
   id: string;
@@ -65,8 +61,6 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
   const [showForm, setShowForm] = useState(false);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
   const [uploadingCover, setUploadingCover] = useState<string | null>(null);
-  const [unpublishing, setUnpublishing] = useState<string | null>(null);
-  const [publishing, setPublishing] = useState<string | null>(null);
   const [analyzedBooks, setAnalyzedBooks] = useState<Set<string>>(new Set());
   const [manuscriptBooks, setManuscriptBooks] = useState<Set<string>>(new Set());
 
@@ -137,53 +131,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
     }
   };
 
-  const handleUnpublish = async (bookId: string) => {
-    setUnpublishing(bookId);
-    try {
-      const token = await getActiveToken();
-      if (!token) { toast({ title: "Not signed in", variant: "destructive" }); return; }
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ action: "unpublish", bookId }),
-        }
-      );
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error);
-      toast({ title: "Microsite taken down 🔒" });
-      fetchBooks();
-    } catch (err) {
-      toast({ title: "Unpublish failed", description: err instanceof Error ? err.message : "Please try again", variant: "destructive" });
-    } finally {
-      setUnpublishing(null);
-    }
-  };
-
-  const handlePublish = async (bookId: string) => {
-    setPublishing(bookId);
-    try {
-      const token = await getActiveToken();
-      if (!token) { toast({ title: "Not signed in", variant: "destructive" }); return; }
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ action: "publish", bookId }),
-        }
-      );
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error);
-      toast({ title: "Microsite is now live! 🎉" });
-      fetchBooks();
-    } catch (err) {
-      toast({ title: "Publish failed", description: err instanceof Error ? err.message : "Please try again", variant: "destructive" });
-    } finally {
-      setPublishing(null);
-    }
-  };
+  // No more self-publish or unpublish — admin controls this
 
   const handleEdit = async (book: Book) => {
     try {
@@ -208,7 +156,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
 
   // Journey dot helpers
   const getBookJourney = (book: Book): [JourneyDot, JourneyDot, JourneyDot, JourneyDot] => {
-    const microsite: JourneyDot = book.published_at ? "done" : "current";
+    const microsite: JourneyDot = book.published_at ? "done" : "upcoming"; // pending approval
     const analyzed: JourneyDot = analyzedBooks.has(book.id) ? "done" : (microsite === "done" ? "current" : "upcoming");
     const building: JourneyDot = analyzed === "done" && isPremium ? "current" : (analyzed === "done" ? "upcoming" : "upcoming");
     const earning: JourneyDot = "upcoming";
@@ -416,43 +364,32 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
                       </span>
                     </div>
 
-                    {/* 5. Microsite status + publish action */}
-                    <div className="flex flex-col gap-1.5">
-                      <p className="text-[11px] text-muted-foreground">
-                        {book.published_at ? "Microsite live ✅" : "Microsite not yet active"}
-                      </p>
-                      {!book.published_at ? (
-                        <Button
-                          size="sm" className="w-full h-8 text-xs font-semibold bg-accent text-accent-foreground hover:bg-accent/90"
-                          disabled={publishing === book.id}
-                          onClick={(e) => { e.stopPropagation(); handlePublish(book.id); }}
-                        >
-                          {publishing === book.id ? <><Loader2 className="h-3 w-3 animate-spin mr-1" />Publishing...</> : "🚀 Publish Microsite"}
-                        </Button>
-                      ) : (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="sm" className="text-[10px] h-6 px-2 text-muted-foreground hover:text-destructive">
-                              <EyeOff className="h-3 w-3 mr-1" /> Unpublish
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Take down microsite?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This will remove the public page for "{book.title}". You can republish anytime.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleUnpublish(book.id)}>
-                                {unpublishing === book.id ? "Removing..." : "Unpublish"}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      )}
-                    </div>
+                     {/* 5. Microsite status */}
+                     <div className="flex flex-col gap-1.5">
+                       {book.published_at ? (
+                         <>
+                           <div className="flex items-center gap-1.5 text-accent">
+                             <CheckCircle2 className="h-3.5 w-3.5" />
+                             <p className="text-[11px] font-semibold">Microsite Live</p>
+                           </div>
+                           <p className="text-[10px] text-muted-foreground">
+                             Approved & published by Admin
+                           </p>
+                         </>
+                       ) : (
+                         <>
+                           <div className="flex items-center gap-1.5 text-amber-600">
+                             <Clock className="h-3.5 w-3.5" />
+                             <p className="text-[11px] font-semibold">Pending Admin Approval</p>
+                           </div>
+                           <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
+                             <p className="text-[10px] text-amber-800 leading-relaxed">
+                               Your book has been submitted for review. An admin will review and approve your microsite within <strong>48 hours</strong>.
+                             </p>
+                           </div>
+                         </>
+                       )}
+                     </div>
 
                     {/* Manuscript upload compact */}
                     {!hasManuscript && (
