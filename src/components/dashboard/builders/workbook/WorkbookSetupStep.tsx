@@ -234,9 +234,7 @@ ${plan ? `\nBUSINESS PLAN WORKBOOK INFO: ${JSON.stringify(plan.products?.workboo
                 </Button>
               </div>
             )}
-          </div>
-        </div>
-      </Card>
+      </AbbyRecommendationCard>
 
       {/* ─── TITLE & SUBTITLE ──────────────────────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-2">
