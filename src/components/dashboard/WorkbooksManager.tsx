@@ -223,7 +223,17 @@ export default function WorkbooksManager({ onNavigate }: { onNavigate?: (section
           AI-generated companion workbooks appear here after you run "Build My Author Business" for a book. Each workbook contains exercises, reflection questions, and action plans from your book chapters.
         </p>
         {(isPremium || isAdmin) ? (
-          <Button variant="secondary" onClick={() => onNavigate?.("build-business")}>Generate from AI Engine → Build My Business</Button>
+          bookFilterId ? (
+            <Button variant="secondary" onClick={() => {
+              const titleParam = searchParams.get("bookTitle");
+              const qs = titleParam ? `&bookTitle=${titleParam}` : "";
+              window.location.href = `/dashboard?section=builder&builder=workbook&bookId=${bookFilterId}${qs}`;
+            }}>
+              Open Workbook Builder →
+            </Button>
+          ) : (
+            <Button variant="secondary" onClick={() => onNavigate?.("build-business")}>Generate from AI Engine → Build My Business</Button>
+          )
         ) : (
           <div className="mt-4 max-w-3xl mx-auto">
             <SubscriptionPricing
