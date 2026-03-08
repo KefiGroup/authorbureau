@@ -33,6 +33,14 @@ import AuthorCRMPage from "@/components/dashboard/AuthorCRMPage";
 import AuthorReadingClub from "@/components/dashboard/AuthorReadingClub";
 import { Loader2, Rocket, FileText, Video, Share2, CreditCard, Users, Trophy, Podcast, Building2, Bookmark, Award } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { supabase as sharedSupabase } from "@/lib/shared-backend";
+
+async function getActiveToken(): Promise<string | null> {
+  const { data: cloudSession } = await supabase.auth.getSession();
+  if (cloudSession?.session?.access_token) return cloudSession.session.access_token;
+  const { data: sharedSession } = await sharedSupabase.auth.getSession();
+  return sharedSession?.session?.access_token || null;
+}
 
 // All builder node IDs for the type union
 const BUILDER_NODE_IDS = Object.keys(BUILDER_NODE_MAP) as Array<keyof typeof BUILDER_NODE_MAP>;
