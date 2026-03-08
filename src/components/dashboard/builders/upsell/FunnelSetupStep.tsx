@@ -4,7 +4,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sparkles, ShoppingCart, ArrowRight, Gift, Timer, Package } from "lucide-react";
+import { ShoppingCart, ArrowRight, Gift, Timer, Package } from "lucide-react";
+import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 import type { UpsellStepProps, FunnelType, FUNNEL_TYPE_LABELS, FUNNEL_TYPE_DESCRIPTIONS } from "./types";
 
 const FUNNEL_ICONS: Record<FunnelType, typeof ShoppingCart> = {
@@ -45,21 +46,12 @@ export default function FunnelSetupStep({ stepData, setStepData, onMarkEdited, b
 
   return (
     <div className="space-y-6">
-      {/* Abby tip */}
-      <Card className="p-4 border-secondary/20 bg-secondary/5">
-        <div className="flex gap-3">
-          <div className="h-8 w-8 rounded-full bg-secondary/20 flex items-center justify-center shrink-0">
-            <Sparkles className="h-4 w-4 text-secondary" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-secondary mb-1">Abby's Recommendation</p>
-            <p className="text-sm text-muted-foreground">
-              Your workbook buyers are the perfect audience for an upsell to the Online Course. 
-              I recommend a <strong>"Special offer: Get the full course for 40% off — only available now"</strong> upsell.
-            </p>
-          </div>
-        </div>
-      </Card>
+      <AbbyRecommendationCard>
+        <p className="text-sm text-foreground leading-relaxed">
+          Your workbook buyers are the perfect audience for an upsell to the Online Course. 
+          I recommend a <strong>"Special offer: Get the full course for 40% off — only available now"</strong> upsell.
+        </p>
+      </AbbyRecommendationCard>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">

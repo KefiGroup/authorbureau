@@ -3,6 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Wand2 } from "lucide-react";
+import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 import type { HomeStudyStepProps } from "./types";
 
 const DURATIONS = [
@@ -41,6 +42,12 @@ export default function ProgramSetupStep({ stepData, setStepData, onMarkEdited, 
 
   return (
     <div className="space-y-6">
+      <AbbyRecommendationCard>
+        <p className="text-sm text-foreground leading-relaxed">
+          A <strong>21-day home study program</strong> is the sweet spot — long enough for transformation, short enough to complete. Pair it with daily audio prompts for <strong>3x higher completion rates</strong>.
+        </p>
+      </AbbyRecommendationCard>
+
       {/* Title */}
       <div className="space-y-2">
         <Label className="text-sm font-semibold">Program Title</Label>

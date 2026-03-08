@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Wand2, Sparkles, Loader2, Check, BookOpen, RefreshCw } from "lucide-react";
+import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 import { supabase } from "@/integrations/supabase/client";
 import { DESIGN_TEMPLATES } from "./types";
 import type { WorkbookStepProps } from "./types";
@@ -173,14 +174,7 @@ ${plan ? `\nBUSINESS PLAN WORKBOOK INFO: ${JSON.stringify(plan.products?.workboo
   return (
     <div className="space-y-6">
       {/* ─── ABBY PROACTIVE GUIDE ──────────────────────────────────── */}
-      <Card className="p-4 border-secondary/25 bg-secondary/5 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-secondary/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-        <div className="relative flex items-start gap-3">
-          <div className="w-9 h-9 rounded-lg bg-secondary/20 flex items-center justify-center shrink-0">
-            <Sparkles className="h-4.5 w-4.5 text-secondary" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-secondary uppercase tracking-widest mb-1">Abby's Recommendation</p>
+      <AbbyRecommendationCard>
             {suggestingTitles ? (
               <div className="flex items-center gap-2 py-2">
                 <Loader2 className="h-4 w-4 animate-spin text-secondary" />
@@ -241,9 +235,7 @@ ${plan ? `\nBUSINESS PLAN WORKBOOK INFO: ${JSON.stringify(plan.products?.workboo
                 </Button>
               </div>
             )}
-          </div>
-        </div>
-      </Card>
+      </AbbyRecommendationCard>
 
       {/* ─── TITLE & SUBTITLE ──────────────────────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-2">

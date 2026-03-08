@@ -3,7 +3,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Video, Sparkles } from "lucide-react";
+import { Video } from "lucide-react";
+import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 import type { WebinarConfig } from "./types";
 import { WEBINAR_TYPE_LABELS, FORMAT_LABELS } from "./types";
 
@@ -32,6 +33,12 @@ export default function WebinarSetupStep({ stepData, setStepData, onMarkEdited, 
 
   return (
     <div className="space-y-6">
+      <AbbyRecommendationCard>
+        <p className="text-sm text-foreground leading-relaxed">
+          A <strong>60-minute lead-magnet webinar</strong> converts at 20-40% to your paid products. Use the "3 Secrets" framework — share value for 45 min, then pitch for 15 min.
+        </p>
+      </AbbyRecommendationCard>
+
       {/* Title */}
       <Card className="p-5">
         <Label className="text-sm font-semibold mb-2 block">Webinar Title</Label>

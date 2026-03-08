@@ -4,7 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Mic, ArrowRight } from "lucide-react";
+import { Mic, ArrowRight } from "lucide-react";
+import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 import type { PodcastScriptsConfig, EpisodeFormat, EpisodeLength, PublishSchedule } from "./types";
 import { FORMAT_LABELS, LENGTH_LABELS, SCHEDULE_LABELS } from "./types";
 
@@ -36,20 +37,11 @@ export default function PodcastScriptsSetupStep({ stepData, setStepData, onMarkE
 
   return (
     <div className="space-y-6">
-      {/* Abby tip */}
-      <Card className="p-4 border-secondary/20 bg-secondary/5">
-        <div className="flex gap-3">
-          <div className="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center shrink-0">
-            <Sparkles className="h-4 w-4 text-secondary" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-secondary mb-1">Abby's Recommendation</p>
-            <p className="text-sm text-muted-foreground">
-              Your book has multiple chapters — that's a perfect multi-episode season. I recommend 20-30 minute solo episodes for non-fiction. Launch with 3 episodes, then weekly.
-            </p>
-          </div>
-        </div>
-      </Card>
+      <AbbyRecommendationCard>
+        <p className="text-sm text-foreground leading-relaxed">
+          Your book has multiple chapters — that's a perfect multi-episode season. I recommend <strong>20-30 minute solo episodes</strong> for non-fiction. Launch with 3 episodes, then weekly.
+        </p>
+      </AbbyRecommendationCard>
 
       {/* Podcast Name & Tagline */}
       <div className="grid gap-4 sm:grid-cols-2">

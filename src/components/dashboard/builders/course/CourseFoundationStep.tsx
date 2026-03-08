@@ -4,6 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Wand2 } from "lucide-react";
+import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 import type { CourseStepProps } from "./types";
 
 const PRICE_TIERS = [
@@ -32,6 +33,12 @@ export default function CourseFoundationStep({ stepData, setStepData, onMarkEdit
 
   return (
     <div className="space-y-6">
+      <AbbyRecommendationCard>
+        <p className="text-sm text-foreground leading-relaxed">
+          Online courses are the <strong>#1 revenue stream</strong> for non-fiction authors. Your book's framework is perfect for a structured learning experience. I recommend the <strong>$97–$197 price point</strong> for your first course.
+        </p>
+      </AbbyRecommendationCard>
+
       {/* Title */}
       <div className="space-y-2">
         <Label className="text-sm font-semibold">Course Title</Label>
