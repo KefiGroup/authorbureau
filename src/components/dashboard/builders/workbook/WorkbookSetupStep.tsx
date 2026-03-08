@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Wand2, Sparkles, Loader2, Check } from "lucide-react";
+import { Wand2, Sparkles, Loader2, Check, BookOpen, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DESIGN_TEMPLATES } from "./types";
 import type { WorkbookStepProps } from "./types";
@@ -34,6 +34,7 @@ export default function WorkbookSetupStep({ stepData, setStepData, onMarkEdited,
   const data = stepData.setup || {};
   const [suggestingTitles, setSuggestingTitles] = useState(false);
   const [titleSuggestions, setTitleSuggestions] = useState<TitleSuggestion[]>([]);
+  const hasSuggestedRef = useRef(false);
 
   const update = (field: string, value: any) => {
     setStepData(prev => ({
@@ -45,13 +46,27 @@ export default function WorkbookSetupStep({ stepData, setStepData, onMarkEdited,
 
   const planTitle = plan?.products?.workbook?.title || "";
 
+  // Auto-suggest titles on mount if no title set
+  useEffect(() => {
+    if (hasSuggestedRef.current) return;
+    if (data.title) return; // already has a title
+    if (!bookId) return;
+    // Wait for manuscript to load (give it a moment)
+    const timer = setTimeout(() => {
+      if (!hasSuggestedRef.current) {
+        hasSuggestedRef.current = true;
+        suggestTitles();
+      }
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [bookId, manuscriptSummary, frameworks]);
+
   const suggestTitles = async () => {
     setSuggestingTitles(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-      // If we don't have manuscript in props, load it
       let manuscript = manuscriptSummary || "";
       let fw = frameworks || "";
       if (!manuscript && bookId) {
@@ -132,7 +147,6 @@ ${plan ? `\nBUSINESS PLAN WORKBOOK INFO: ${JSON.stringify(plan.products?.workboo
         }
       }
 
-      // Parse the structured response
       const suggestions: TitleSuggestion[] = [];
       for (let i = 1; i <= 3; i++) {
         const titleMatch = fullText.match(new RegExp(`TITLE${i}:\\s*(.+)`));
@@ -158,80 +172,107 @@ ${plan ? `\nBUSINESS PLAN WORKBOOK INFO: ${JSON.stringify(plan.products?.workboo
 
   return (
     <div className="space-y-6">
-      {/* Title & Subtitle */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium">Workbook Title</Label>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={suggestTitles}
-            disabled={suggestingTitles}
-            className="text-secondary border-secondary/30 hover:bg-secondary/5 h-7 text-xs gap-1.5"
-          >
+      {/* ─── ABBY PROACTIVE GUIDE ──────────────────────────────────── */}
+      <Card className="p-4 border-secondary/25 bg-secondary/5 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-secondary/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+        <div className="relative flex items-start gap-3">
+          <div className="w-9 h-9 rounded-lg bg-secondary/20 flex items-center justify-center shrink-0">
+            <Sparkles className="h-4.5 w-4.5 text-secondary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-secondary uppercase tracking-widest mb-1">Abby's Recommendation</p>
             {suggestingTitles ? (
-              <><Loader2 className="h-3 w-3 animate-spin" /> Reading manuscript...</>
-            ) : (
-              <><Sparkles className="h-3 w-3" /> Suggest Titles from Manuscript</>
-            )}
-          </Button>
-        </div>
-
-        {/* Title suggestions */}
-        {titleSuggestions.length > 0 && (
-          <div className="grid gap-2 sm:grid-cols-3">
-            {titleSuggestions.map((s, i) => {
-              const isSelected = data.title === s.title;
-              return (
-                <Card
-                  key={i}
-                  className={`p-3 cursor-pointer transition-all hover:shadow-md ${
-                    isSelected ? "ring-2 ring-secondary border-secondary" : "border-border"
-                  }`}
-                  onClick={() => {
-                    update("title", s.title);
-                    update("subtitle", s.subtitle);
-                  }}
+              <div className="flex items-center gap-2 py-2">
+                <Loader2 className="h-4 w-4 animate-spin text-secondary" />
+                <p className="text-sm text-muted-foreground">Reading your manuscript and frameworks to suggest workbook titles…</p>
+              </div>
+            ) : titleSuggestions.length > 0 ? (
+              <div className="space-y-3">
+                <p className="text-sm text-foreground leading-relaxed">
+                  I've analyzed your manuscript for <strong>{bookTitle}</strong> and found {titleSuggestions.length} workbook opportunities based on your frameworks. Pick one to get started:
+                </p>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {titleSuggestions.map((s, i) => {
+                    const isSelected = data.title === s.title;
+                    return (
+                      <Card
+                        key={i}
+                        className={`p-3 cursor-pointer transition-all hover:shadow-md bg-card ${
+                          isSelected ? "ring-2 ring-secondary border-secondary" : "border-border"
+                        }`}
+                        onClick={() => {
+                          update("title", s.title);
+                          update("subtitle", s.subtitle);
+                        }}
+                      >
+                        <div className="flex items-start justify-between gap-1">
+                          <p className="font-semibold text-xs leading-snug">{s.title}</p>
+                          {isSelected && <Check className="h-3.5 w-3.5 text-secondary shrink-0" />}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-1 italic">{s.subtitle}</p>
+                        <p className="text-[10px] text-secondary/80 mt-1.5 flex items-start gap-1">
+                          <BookOpen className="h-2.5 w-2.5 shrink-0 mt-0.5" />
+                          {s.reason}
+                        </p>
+                      </Card>
+                    );
+                  })}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={suggestTitles}
+                  className="text-xs text-muted-foreground h-6 px-2 gap-1"
                 >
-                  <div className="flex items-start justify-between gap-1">
-                    <p className="font-semibold text-xs leading-snug">{s.title}</p>
-                    {isSelected && <Check className="h-3.5 w-3.5 text-secondary shrink-0" />}
-                  </div>
-                  <p className="text-[10px] text-muted-foreground mt-1 italic">{s.subtitle}</p>
-                  <p className="text-[10px] text-secondary/80 mt-1.5 flex items-start gap-1">
-                    <Sparkles className="h-2.5 w-2.5 shrink-0 mt-0.5" />
-                    {s.reason}
-                  </p>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <Input
-              value={data.title ?? planTitle}
-              onChange={e => update("title", e.target.value)}
-              placeholder="e.g. The 30-Day Action Plan Workbook"
-            />
-            {planTitle && !data.title && (
-              <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
-                <Wand2 className="h-2.5 w-2.5" /> Pre-filled from your business plan
-              </p>
+                  <RefreshCw className="h-3 w-3" /> Regenerate suggestions
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-sm text-foreground leading-relaxed">
+                  Let me read your manuscript and suggest the best workbook titles based on your book's unique frameworks and themes.
+                </p>
+                <Button
+                  size="sm"
+                  onClick={suggestTitles}
+                  className="bg-secondary text-secondary-foreground hover:bg-secondary/90 h-8 text-xs gap-1.5"
+                >
+                  <Sparkles className="h-3 w-3" /> Suggest Titles from My Manuscript
+                </Button>
+              </div>
             )}
           </div>
-          <div>
-            <Input
-              value={data.subtitle ?? ""}
-              onChange={e => update("subtitle", e.target.value)}
-              placeholder="A companion guide to..."
-            />
-          </div>
+        </div>
+      </Card>
+
+      {/* ─── TITLE & SUBTITLE ──────────────────────────────────────── */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <Label className="text-sm font-medium">Workbook Title</Label>
+          <Input
+            value={data.title ?? planTitle}
+            onChange={e => update("title", e.target.value)}
+            placeholder="e.g. The 30-Day Action Plan Workbook"
+            className="mt-1.5"
+          />
+          {planTitle && !data.title && (
+            <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+              <Wand2 className="h-2.5 w-2.5" /> Pre-filled from your business plan
+            </p>
+          )}
+        </div>
+        <div>
+          <Label className="text-sm font-medium">Subtitle</Label>
+          <Input
+            value={data.subtitle ?? ""}
+            onChange={e => update("subtitle", e.target.value)}
+            placeholder="A companion guide to..."
+            className="mt-1.5"
+          />
         </div>
       </div>
 
-      {/* Purpose */}
+      {/* ─── PURPOSE & PRICING ─────────────────────────────────────── */}
       <div>
         <Label className="text-sm font-medium mb-2 block">Purpose & Pricing</Label>
         <div className="grid gap-3 sm:grid-cols-3">
@@ -268,7 +309,7 @@ ${plan ? `\nBUSINESS PLAN WORKBOOK INFO: ${JSON.stringify(plan.products?.workboo
         </div>
       )}
 
-      {/* Page count */}
+      {/* ─── PAGE COUNT ────────────────────────────────────────────── */}
       <div>
         <Label className="text-sm font-medium mb-2 block">Page Count Target</Label>
         <div className="grid gap-3 sm:grid-cols-4">
@@ -287,7 +328,7 @@ ${plan ? `\nBUSINESS PLAN WORKBOOK INFO: ${JSON.stringify(plan.products?.workboo
         </div>
       </div>
 
-      {/* Design template */}
+      {/* ─── DESIGN TEMPLATE ───────────────────────────────────────── */}
       <div>
         <Label className="text-sm font-medium mb-2 block">Design Template</Label>
         <div className="grid gap-3 sm:grid-cols-3">
@@ -309,7 +350,7 @@ ${plan ? `\nBUSINESS PLAN WORKBOOK INFO: ${JSON.stringify(plan.products?.workboo
         </div>
       </div>
 
-      {/* Color scheme */}
+      {/* ─── COLOR SCHEME ──────────────────────────────────────────── */}
       <div>
         <Label className="text-sm font-medium mb-2 block">Color Scheme</Label>
         <div className="flex gap-3">
