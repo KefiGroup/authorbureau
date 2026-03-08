@@ -212,14 +212,14 @@ export default function AbbyAdvisorPanel({ bookId, bookTitle, productNode, produ
                 </Card>
               )}
 
-              {!plan && (
-                <Card className="p-3 border-amber-500/20 bg-amber-500/5">
+              {!plan && !advice && (
+                <Card className="p-3 border-secondary/20 bg-secondary/5">
                   <div className="flex items-start gap-2">
-                    <BookOpen className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                    <Sparkles className="h-4 w-4 text-secondary shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-xs font-semibold text-amber-700">No business plan yet</p>
+                      <p className="text-xs font-semibold">Ask me anything about {productLabel}</p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        Visit "Analyze with Abby" to create your business plan first — it'll give you strategic guidance here.
+                        I can help with content creation, design, pricing, and publishing strategy. Just type below!
                       </p>
                     </div>
                   </div>
