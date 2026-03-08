@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
+import type { SubscriptionTier } from "@/hooks/useAuth";
 
 interface Props {
   user: User;
   isPremium: boolean;
   isAdmin?: boolean;
+  tier?: SubscriptionTier;
   subscription: { subscribed: boolean; loading: boolean };
   onSignOut: () => void;
   onToggleSidebar: () => void;
