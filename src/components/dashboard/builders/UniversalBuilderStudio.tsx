@@ -539,6 +539,8 @@ ${nodeConfig.id === "course" ? `- For courses: focus on curriculum structure, le
                         generationState={generationState}
                         setGenerationState={setGenerationState}
                         userId={user?.id || ""}
+                        manuscriptSummary={manuscriptSummary}
+                        frameworks={frameworks}
                       />
                     );
                   }
