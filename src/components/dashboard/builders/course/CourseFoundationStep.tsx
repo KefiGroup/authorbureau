@@ -4,6 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Wand2 } from "lucide-react";
+import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 import type { CourseStepProps } from "./types";
 
 const PRICE_TIERS = [
