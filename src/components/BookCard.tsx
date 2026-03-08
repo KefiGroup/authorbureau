@@ -23,7 +23,7 @@ const coverMap: Record<string, string> = {
 };
 
 interface BookCardProps {
-  book: Book;
+  book: Book & { cover_image_url?: string | null };
   showAuthor?: boolean;
   authorName?: string;
 }
@@ -35,9 +35,9 @@ export default function BookCard({ book, showAuthor = false, authorName }: BookC
         <CardContent className="p-0">
           {/* Book Cover */}
           <div className="relative aspect-[2/3] bg-muted/50 overflow-hidden">
-            {coverMap[book.slug] ? (
+            {(coverMap[book.slug] || book.coverImage || book.cover_image_url) ? (
               <img
-                src={coverMap[book.slug]}
+                src={coverMap[book.slug] || book.coverImage || book.cover_image_url!}
                 alt={book.title}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
