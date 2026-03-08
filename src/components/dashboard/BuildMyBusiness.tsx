@@ -310,6 +310,56 @@ export default function BuildMyBusiness() {
     return requests;
   };
 
+  /** Extract dynamic revenue/product data from Abby's business plan for the sales pitch */
+  const parseAnalysisData = (content: string, bookTitle: string) => {
+    const data: {
+      bookTitle: string;
+      revenueStreamsCount?: number;
+      revenueLow?: string;
+      revenueHigh?: string;
+      recommendedTier?: "starter" | "pro" | "enterprise";
+      products?: Array<{ name: string; price: number; type: string }>;
+    } = { bookTitle };
+
+    // Count revenue streams (look for numbered product lines)
+    const productLines = content.match(/\d+\.\s+\*\*[^*]+\*\*/g);
+    if (productLines) data.revenueStreamsCount = productLines.length;
+
+    // Extract revenue range from common patterns like "$8,000–$30,000/month"
+    const revenueMatch = content.match(/\$([0-9,]+)\s*[-–—]\s*\$([0-9,]+)\s*\/?\s*(?:mo|month)/i);
+    if (revenueMatch) {
+      data.revenueLow = `$${revenueMatch[1]}`;
+      data.revenueHigh = `$${revenueMatch[2]}`;
+    }
+
+    // Detect recommended tier
+    const normalized = content.toLowerCase();
+    if (normalized.includes("recommend") && normalized.includes("starter")) data.recommendedTier = "starter";
+    else if (normalized.includes("recommend") && normalized.includes("enterprise")) data.recommendedTier = "enterprise";
+    else if (normalized.includes("recommend") && normalized.includes("pro")) data.recommendedTier = "pro";
+    else data.recommendedTier = "starter";
+
+    // Extract product prices for ROI calc (patterns like "$27 workbook", "workbook at $27", "$197 course")
+    const products: Array<{ name: string; price: number; type: string }> = [];
+    const pricePatterns = [
+      /\$(\d+(?:\.\d+)?)\s+(workbook|course|coaching|home.?study|audiobook|webinar|ebook|guide)/gi,
+      /(workbook|course|coaching|home.?study|audiobook|webinar|ebook|guide)\s+(?:at\s+)?\$(\d+(?:\.\d+)?)/gi,
+    ];
+    for (const pattern of pricePatterns) {
+      let m;
+      while ((m = pattern.exec(content)) !== null) {
+        const price = pattern === pricePatterns[0] ? parseFloat(m[1]) : parseFloat(m[2]);
+        const name = pattern === pricePatterns[0] ? m[2] : m[1];
+        if (price > 0 && !products.find(p => p.name.toLowerCase() === name.toLowerCase())) {
+          products.push({ name, price, type: name.toLowerCase() });
+        }
+      }
+    }
+    if (products.length > 0) data.products = products;
+
+    return data;
+  };
+
   const NAV_CONFIG: Record<string, { label: string; icon: string; tab: string }> = {
     build: { label: "B · Build Authority", icon: "🏗️", tab: "revenue-streams" },
     bridge: { label: "B · Bridge Channels", icon: "🌉", tab: "marketing-channels" },
