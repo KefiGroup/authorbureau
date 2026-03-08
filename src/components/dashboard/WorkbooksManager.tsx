@@ -31,7 +31,36 @@ interface Workbook {
 }
 
 export default function WorkbooksManager({ onNavigate }: { onNavigate?: (section: string) => void }) {
-  const { user } = useAuth();
+  const { user, isPremium, isAdmin, tier } = useAuth();
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+
+  const handleSubscribeTier = async (tierKey: "starter" | "pro" | "enterprise") => {
+    setCheckoutLoading(true);
+    try {
+      const { data, error } = await sharedSupabase.functions.invoke("create-checkout", {
+        body: { priceId: TIERS[tierKey].price_id, source_platform: "authorsbureau" },
+      });
+      if (error) throw error;
+      if (data?.url) window.open(data.url, "_blank");
+    } catch (err: any) {
+      toast.error(err?.message || "Could not start checkout");
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    setCheckoutLoading(true);
+    try {
+      const { data, error } = await sharedSupabase.functions.invoke("customer-portal");
+      if (error) throw error;
+      if (data?.url) window.open(data.url, "_blank");
+    } catch (err: any) {
+      toast.error(err?.message || "Could not open portal");
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
   const [searchParams] = useSearchParams();
   const bookFilterId = searchParams.get("bookId");
   const [workbooks, setWorkbooks] = useState<Workbook[]>([]);
