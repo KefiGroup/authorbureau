@@ -161,7 +161,30 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
     }
   };
 
-  const handleEdit = async (book: Book) => {
+  const handlePublish = async (bookId: string) => {
+    setPublishing(bookId);
+    try {
+      const token = await getActiveToken();
+      if (!token) { toast({ title: "Not signed in", variant: "destructive" }); return; }
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ action: "publish", bookId }),
+        }
+      );
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+      toast({ title: "Microsite is now live! 🎉" });
+      fetchBooks();
+    } catch (err) {
+      toast({ title: "Publish failed", description: err instanceof Error ? err.message : "Please try again", variant: "destructive" });
+    } finally {
+      setPublishing(null);
+    }
+  };
+
     try {
       const token = await getActiveToken();
       if (!token) return;
