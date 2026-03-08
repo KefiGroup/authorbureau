@@ -42,8 +42,6 @@ export default function PodcastScriptsSetupStep({ stepData, setStepData, onMarkE
           Your book has multiple chapters — that's a perfect multi-episode season. I recommend <strong>20-30 minute solo episodes</strong> for non-fiction. Launch with 3 episodes, then weekly.
         </p>
       </AbbyRecommendationCard>
-        </div>
-      </Card>
 
       {/* Podcast Name & Tagline */}
       <div className="grid gap-4 sm:grid-cols-2">
