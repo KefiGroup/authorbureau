@@ -87,7 +87,7 @@ export default function AbbyAdvisorPanel({ bookId, bookTitle, productNode, produ
         `💡 *Tip: Ask me anything about building this product — I have your full plan context!*`
       );
     } else {
-      setAdvice(`I have your business plan loaded! While "${productLabel}" isn't specifically in your current plan, I can help you think through how it fits your overall strategy. Just ask!`);
+      setAdvice(`I'm ready to help with **${productLabel}**! Ask me about creating content, design tips, pricing, or publishing strategy. Just type below!`);
     }
   }, [productNode, productLabel]);
 
@@ -108,7 +108,7 @@ export default function AbbyAdvisorPanel({ bookId, bookTitle, productNode, produ
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           messages: [
-            { role: "system", content: `You are Abby, providing contextual advice about building a "${productLabel}" product for the book "${bookTitle}". The author's business plan: ${plan ? JSON.stringify(plan) : "Not yet created"}. Keep responses brief and actionable.` },
+            { role: "system", content: `You are Abby, providing practical advice about building "${productLabel}" for the book "${bookTitle}". Focus ONLY on this specific product — how to create it, design it, price it, and publish/sell it. Never suggest leaving this page or going to Analyze with Abby. ${plan ? `Business plan context: ${JSON.stringify(plan)}` : "No business plan — that's fine, give direct actionable advice about this product."}. Keep responses brief and actionable.` },
             ...newMessages,
           ],
           bookId,
@@ -212,14 +212,14 @@ export default function AbbyAdvisorPanel({ bookId, bookTitle, productNode, produ
                 </Card>
               )}
 
-              {!plan && (
-                <Card className="p-3 border-amber-500/20 bg-amber-500/5">
+              {!plan && !advice && (
+                <Card className="p-3 border-secondary/20 bg-secondary/5">
                   <div className="flex items-start gap-2">
-                    <BookOpen className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                    <Sparkles className="h-4 w-4 text-secondary shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-xs font-semibold text-amber-700">No business plan yet</p>
+                      <p className="text-xs font-semibold">Ask me anything about {productLabel}</p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        Visit "Analyze with Abby" to create your business plan first — it'll give you strategic guidance here.
+                        I can help with content creation, design, pricing, and publishing strategy. Just type below!
                       </p>
                     </div>
                   </div>
