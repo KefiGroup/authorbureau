@@ -659,7 +659,8 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                       />
                     );
                   }
-                  if (generationState === "idle" || generationState === "complete") {
+                  // Generic fallback with real AI generation
+                  if (builderGen.act === "idle" || builderGen.act === "act3_complete") {
                     return (
                       <Card className="p-6 min-h-[300px] border-dashed border-2">
                         <div className="text-center py-12">
@@ -668,30 +669,18 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                           <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
                             {currentStepConfig.description}
                           </p>
-                          {currentStepConfig.id === "generate" || currentStepConfig.id === "script" || currentStepConfig.id === "curriculum" ? (
+                          {builderGen.act === "idle" && (currentStepConfig.id === "generate" || currentStepConfig.id === "script" || currentStepConfig.id === "curriculum" || currentStepConfig.id === "foundation") ? (
                             <Button
                               className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90"
-                              onClick={() => {
-                                setGenerationState("queued");
-                                setTimeout(() => setGenerationState("analyzing"), 2000);
-                                setTimeout(() => setGenerationState("generating"), 5000);
-                                setTimeout(() => {
-                                  setGenerationState("complete");
-                                  setStepData(prev => ({
-                                    ...prev,
-                                    [currentStepConfig.id]: { generated: true, timestamp: new Date().toISOString() },
-                                  }));
-                                  toast({ title: "Content generated!", description: "Review and edit below." });
-                                }, 8000);
-                              }}
+                              onClick={() => builderGen.startAct1(bookId)}
                             >
                               <Sparkles className="h-4 w-4 mr-2" /> Generate with AI
                             </Button>
-                          ) : (
+                          ) : builderGen.act === "idle" ? (
                             <p className="text-xs text-muted-foreground/50">
                               Builder step content will be populated by AI generation
                             </p>
-                          )}
+                          ) : null}
                         </div>
                       </Card>
                     );
