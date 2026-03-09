@@ -77,3 +77,5 @@ project_id = "tubpbslfrxyfhldkcyyq"
     verify_jwt = false
   [functions.abby-help-chat]
     verify_jwt = false
+  [functions.abby-builder-generate]
+    verify_jwt = false

@@ -110,10 +110,22 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
   const [stepData, setStepData] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [generationState, setGenerationState] = useState<"idle" | "queued" | "analyzing" | "generating" | "complete" | "error">("idle");
   
-  // 3-Act generation engine
+  // 3-Act generation engine (replaces old mock generationState)
   const builderGen = useBuilderGeneration(nodeConfig.id, nodeConfig.label);
+  // Derive legacy generationState for child renderers that still use it
+  const generationState = (() => {
+    switch (builderGen.act) {
+      case "idle": return "idle" as const;
+      case "act1_loading": return "analyzing" as const;
+      case "act2_proposal": return "idle" as const; // proposal review is a separate UI
+      case "act3_generating": return "generating" as const;
+      case "act3_complete": return "complete" as const;
+      case "error": return "error" as const;
+      default: return "idle" as const;
+    }
+  })();
+  const setGenerationState = (_s: string) => {}; // no-op — legacy compat
   const [editedSteps, setEditedSteps] = useState<Set<string>>(new Set());
   const [resolvedBookCoverUrl, setResolvedBookCoverUrl] = useState<string | null>(bookCoverUrl);
 
@@ -539,8 +551,10 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                   ) : null}
                 </div>
 
-                {/* Generation states */}
-                {generationState !== "idle" && generationState !== "complete" && (
+                {/* ═══ 3-ACT GENERATION ENGINE ═══ */}
+
+                {/* Act 1: Abby Analyzing */}
+                {builderGen.act === "act1_loading" && (
                   <Card className="p-6 mb-6">
                     <AbbyNarrativeLoading
                       messages={nodeConfig.loadingMessages}
@@ -550,14 +564,75 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                   </Card>
                 )}
 
-                {generationState === "error" && (
+                {/* Act 2: Proposal Review */}
+                {builderGen.act === "act2_proposal" && builderGen.proposal && (
+                  <div className="mb-6">
+                    <AbbyProposal
+                      proposal={builderGen.proposal}
+                      builderLabel={nodeConfig.label}
+                      bookTitle={bookTitle || "your book"}
+                      onApprove={(approved) => builderGen.startAct3(bookId, approved)}
+                      onEdit={(updates) => builderGen.updateProposal(updates)}
+                    />
+                  </div>
+                )}
+
+                {/* Act 3: Streaming Generation */}
+                {builderGen.act === "act3_generating" && (
+                  <Card className="p-6 mb-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <motion.div
+                        className="w-10 h-10 rounded-xl bg-secondary/15 flex items-center justify-center"
+                        animate={{ scale: [1, 1.05, 1] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      >
+                        <Sparkles className="h-5 w-5 text-secondary" />
+                      </motion.div>
+                      <div>
+                        <p className="text-sm font-bold">Abby is generating your {nodeConfig.label.toLowerCase()}...</p>
+                        <p className="text-xs text-muted-foreground">This may take 30-60 seconds. Don't navigate away.</p>
+                      </div>
+                    </div>
+                    {builderGen.generatedContent && (
+                      <div className="max-h-[400px] overflow-y-auto border rounded-lg p-4 bg-muted/30">
+                        <MarkdownRenderer content={builderGen.generatedContent} />
+                      </div>
+                    )}
+                  </Card>
+                )}
+
+                {/* Act 3 Complete: Show generated content */}
+                {builderGen.act === "act3_complete" && builderGen.generatedContent && (
+                  <Card className="p-6 mb-6 border-accent/30 bg-accent/5">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Check className="h-5 w-5 text-accent" />
+                      <p className="text-sm font-bold text-accent">Content generated successfully! 🎉</p>
+                    </div>
+                    <div className="max-h-[500px] overflow-y-auto border rounded-lg p-4 bg-background">
+                      <MarkdownRenderer content={builderGen.generatedContent} />
+                    </div>
+                    <div className="flex gap-2 mt-4">
+                      <Button size="sm" variant="outline" onClick={() => builderGen.reset()}>
+                        Start Over
+                      </Button>
+                      <Button size="sm" className="bg-secondary text-secondary-foreground" onClick={goNext}>
+                        Continue to Next Step <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                      </Button>
+                    </div>
+                  </Card>
+                )}
+
+                {/* Error state */}
+                {builderGen.act === "error" && (
                   <Card className="p-4 mb-6 border-destructive/30 bg-destructive/5">
                     <div className="flex items-center gap-2">
                       <AlertCircle className="h-4 w-4 text-destructive" />
-                      <p className="text-sm font-medium text-destructive">Something went wrong.</p>
+                      <p className="text-sm font-medium text-destructive">
+                        {builderGen.error || "Something went wrong."}
+                      </p>
                     </div>
                     <div className="flex gap-2 mt-3">
-                      <Button size="sm" variant="outline" onClick={() => setGenerationState("idle")}>Retry</Button>
+                      <Button size="sm" variant="outline" onClick={() => builderGen.retry(bookId)}>Retry</Button>
                       <Button size="sm" variant="ghost" onClick={() => setAbbyOpen(true)}>Ask Abby for help</Button>
                     </div>
                   </Card>
@@ -584,7 +659,8 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                       />
                     );
                   }
-                  if (generationState === "idle" || generationState === "complete") {
+                  // Generic fallback with real AI generation
+                  if (builderGen.act === "idle" || builderGen.act === "act3_complete") {
                     return (
                       <Card className="p-6 min-h-[300px] border-dashed border-2">
                         <div className="text-center py-12">
@@ -593,30 +669,18 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                           <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
                             {currentStepConfig.description}
                           </p>
-                          {currentStepConfig.id === "generate" || currentStepConfig.id === "script" || currentStepConfig.id === "curriculum" ? (
+                          {builderGen.act === "idle" && (currentStepConfig.id === "generate" || currentStepConfig.id === "script" || currentStepConfig.id === "curriculum" || currentStepConfig.id === "foundation") ? (
                             <Button
                               className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90"
-                              onClick={() => {
-                                setGenerationState("queued");
-                                setTimeout(() => setGenerationState("analyzing"), 2000);
-                                setTimeout(() => setGenerationState("generating"), 5000);
-                                setTimeout(() => {
-                                  setGenerationState("complete");
-                                  setStepData(prev => ({
-                                    ...prev,
-                                    [currentStepConfig.id]: { generated: true, timestamp: new Date().toISOString() },
-                                  }));
-                                  toast({ title: "Content generated!", description: "Review and edit below." });
-                                }, 8000);
-                              }}
+                              onClick={() => builderGen.startAct1(bookId)}
                             >
                               <Sparkles className="h-4 w-4 mr-2" /> Generate with AI
                             </Button>
-                          ) : (
+                          ) : builderGen.act === "idle" ? (
                             <p className="text-xs text-muted-foreground/50">
                               Builder step content will be populated by AI generation
                             </p>
-                          )}
+                          ) : null}
                         </div>
                       </Card>
                     );
