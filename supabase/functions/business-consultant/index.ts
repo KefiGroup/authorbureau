@@ -655,7 +655,7 @@ serve(async (req) => {
     }
 
     // --- CONSULTATION ACTION (streaming) ---
-    const { messages, bookId, isPremium, subscriptionTier, subscriptionStatus } = body;
+    const { messages, bookId, isPremium, subscriptionTier, subscriptionStatus, builderMode, builderId, builderLabel, builderStep } = body;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
