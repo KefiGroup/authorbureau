@@ -12,17 +12,15 @@ export interface BuilderNodeConfig {
   label: string;
   category: "build" | "bridge" | "yield";
   requiredTier: SubscriptionTier;
-  dbTable: string; // The table this product writes to
+  dbTable: string;
   steps: BuilderStep[];
   abbyGreeting: string;
   abbyPublishMessage: string;
-  icon: string; // lucide icon name
-  color: string; // tailwind color class
-  customRenderer?: string; // Optional: use a custom step renderer instead of the generic placeholder
-  loadingMessages: string[]; // Narrative loading messages for the 3-Act flow
+  icon: string;
+  color: string;
+  customRenderer?: string;
+  loadingMessages: string[];
 }
-
-// ─── B·BUILD (11 nodes) ───────────────────────────────────────────────
 
 const workbookBuilder: BuilderNodeConfig = {
   id: "workbook",
@@ -35,6 +33,14 @@ const workbookBuilder: BuilderNodeConfig = {
   customRenderer: "workbook",
   abbyGreeting: "Your business plan recommends this workbook as your first product — it's a quick win that builds your email list. Let's make it great.",
   abbyPublishMessage: "Great work! Your workbook is live. Next up in your plan: the Online Course. Want to start building it?",
+  loadingMessages: [
+    "Reading your manuscript",
+    "Identifying practical exercises in your chapters",
+    "Mapping chapter themes to workbook sections",
+    "Designing reflection prompts and action items",
+    "Creating your Workbook Blueprint",
+    "Preparing your Workbook Proposal",
+  ],
   steps: [
     { id: "setup", label: "Workbook Setup", description: "Set title, purpose, pricing, and design template", abbyTip: "Your business plan positions this workbook as a free lead magnet. Free workbooks with a strong CTA on the last page convert 15-25% of readers to your email list." },
     { id: "mapping", label: "Chapter Mapping", description: "Map book chapters to workbook sections", abbyTip: "I've mapped your chapters into workbook sections. Chapters with practical advice get more exercises; reflective chapters get more journal prompts." },
@@ -55,6 +61,14 @@ const socialMediaBuilder: BuilderNodeConfig = {
   customRenderer: "social-media",
   abbyGreeting: "A consistent social media presence is key to building your author brand. Let's create a 90-day content calendar from your book.",
   abbyPublishMessage: "Your social media calendar is ready! Export it to Buffer or schedule manually. Consider building your Email Marketing next.",
+  loadingMessages: [
+    "Reading your manuscript",
+    "Extracting quotable insights and key themes",
+    "Analyzing your target audience and best platforms",
+    "Designing content pillars from your book's themes",
+    "Creating a 90-day posting calendar",
+    "Preparing your Social Media Strategy",
+  ],
   steps: [
     { id: "setup", label: "Social Media Setup", description: "Select platforms, frequency, content pillars, tone, and duration", abbyTip: "For non-fiction authors, LinkedIn and Instagram drive the most course sales. I recommend 3x/week on each. Your book's themes naturally create 4 content pillars." },
     { id: "generate", label: "Content Generation", description: "AI generates the full calendar with platform-specific posts", abbyTip: "I'm pulling key quotes, insights, and talking points from your strongest chapters. Each post is optimized for its platform." },
@@ -75,6 +89,14 @@ const emailMarketingBuilder: BuilderNodeConfig = {
   customRenderer: "email-marketing",
   abbyGreeting: "Email is where the money is. Let's build a complete email marketing system that nurtures readers into customers — all derived from your book content.",
   abbyPublishMessage: "Your email marketing system is live! Welcome sequences, nurture campaigns, and automation rules are all ready. Next: build your Home Study Course.",
+  loadingMessages: [
+    "Reading your manuscript",
+    "Mapping your reader-to-buyer journey",
+    "Designing email sequences from your book's key insights",
+    "Creating automation triggers and segmentation rules",
+    "Writing subject lines and email copy in your voice",
+    "Preparing your Email Marketing Strategy",
+  ],
   steps: [
     { id: "setup", label: "Email Strategy", description: "Set list name, lead magnet, frequency, tone, and primary goal", abbyTip: "Your workbook is the perfect lead magnet. I'll create a welcome sequence that warms subscribers up to your Online Course over 14 days." },
     { id: "sequences", label: "Sequence Builder", description: "AI generates welcome, nurture, launch, and re-engagement sequences", abbyTip: "I'll create 4 interconnected sequences from your book. Each serves a different purpose in your reader-to-buyer journey." },
@@ -95,6 +117,14 @@ const homeStudyCourseBuilder: BuilderNodeConfig = {
   customRenderer: "home-study",
   abbyGreeting: "A self-paced course is perfect for readers who want to go deeper. Let's turn your book into a structured learning experience.",
   abbyPublishMessage: "Your home study course is ready! This is a great passive income product. Consider adding a Workbook companion next.",
+  loadingMessages: [
+    "Analyzing your book for a self-paced study program",
+    "Designing a daily reading and exercise schedule",
+    "Mapping chapters to daily themes and lessons",
+    "Creating practical exercises and reflection prompts",
+    "Designing your Value Ladder positioning",
+    "Preparing your Home Study Program Proposal",
+  ],
   steps: [
     { id: "setup", label: "Program Setup", description: "Set title, duration, commitment, and pricing", abbyTip: "A 30-day program at 30 minutes/day has the highest completion rate for self-help books. I recommend this format for your audience." },
     { id: "schedule", label: "Daily Schedule", description: "AI generates a day-by-day plan from your manuscript", abbyTip: "I've grouped your days into weeks, each building on the last. Week 1 is awareness, Week 2 is skills, Week 3 is practice, Week 4 is mastery." },
@@ -115,6 +145,13 @@ const bookSalesBuilder: BuilderNodeConfig = {
   customRenderer: "book-sales",
   abbyGreeting: "Selling books at events can be highly profitable with the right setup. Let's create your event sales kit.",
   abbyPublishMessage: "Your event sales kit is ready! Print your materials and start booking speaking gigs.",
+  loadingMessages: [
+    "Reading your manuscript",
+    "Analyzing your book's target audience and events",
+    "Designing your event sales kit and materials",
+    "Creating QR codes and lead capture strategy",
+    "Preparing your Event Sales Plan",
+  ],
   steps: [
     { id: "setup", label: "Event Sales Setup", description: "Set event type, attendance, books to bring, pricing, and payment methods", abbyTip: "Back-of-room book sales after a keynote convert at 30-50% of the audience. For a 200-person event, bring 60-100 books." },
     { id: "materials", label: "Sales Materials", description: "Table display, QR codes, business cards, bundle offers, and email capture cards", abbyTip: "A one-page sell sheet with testimonials and a QR code to purchase is essential." },
@@ -134,6 +171,14 @@ const onlineCourseBuilder: BuilderNodeConfig = {
   customRenderer: "course",
   abbyGreeting: "Online courses are where authors build real recurring revenue. Let's transform your expertise into a structured learning experience.",
   abbyPublishMessage: "Your course is ready to launch! Connect it to Teachable or host it on your microsite. Next: consider your Audiobook.",
+  loadingMessages: [
+    "Reading your manuscript",
+    "Identifying teachable frameworks in your book",
+    "Researching competing courses in your topic market",
+    "Analyzing price points and market gaps",
+    "Designing your curriculum and Value Ladder",
+    "Preparing your Course Proposal",
+  ],
   steps: [
     { id: "foundation", label: "Course Foundation", description: "Set title, audience, pricing, and format", abbyTip: "Your business plan positions this as your flagship digital product. I recommend pricing based on your audience and genre." },
     { id: "curriculum", label: "Curriculum Builder", description: "AI generates a module-lesson tree from your manuscript", abbyTip: "I've mapped your chapters into modules. Chapters that naturally combine are grouped together. Does this structure feel right?" },
@@ -156,6 +201,14 @@ const audiobookBuilder: BuilderNodeConfig = {
   customRenderer: "audiobook",
   abbyGreeting: "Audiobooks are the fastest-growing format. Let's create a professional narration from your manuscript.",
   abbyPublishMessage: "Your audiobook is ready! Distribute it on your platform, Audible, or Google Play. Consider your Podcast next.",
+  loadingMessages: [
+    "Reading your manuscript",
+    "Identifying text that needs audio adaptation",
+    "Converting visual references to verbal descriptions",
+    "Optimizing tables and charts for spoken format",
+    "Designing chapter production plan and voice notes",
+    "Preparing your Audiobook Production Plan",
+  ],
   steps: [
     { id: "setup", label: "Audiobook Setup", description: "Set title, narration style, distribution, and pricing", abbyTip: "Audiobooks generate passive income with zero ongoing effort. Author-narrated audiobooks convert 40% better for non-fiction." },
     { id: "optimize", label: "Manuscript Optimization", description: "AI creates an audio-optimized version of your text", abbyTip: "I found passages that reference visual elements. I've rewritten them for audio. Review each one — some may need your personal touch." },
@@ -176,6 +229,14 @@ const podcastBuilder: BuilderNodeConfig = {
   customRenderer: "podcast-scripts",
   abbyGreeting: "Podcasts build authority and audience like nothing else. Let's create production-ready scripts, show notes, and guest guides from your book.",
   abbyPublishMessage: "Your podcast scripts are ready! A consistent podcast builds authority faster than any other channel. Consider your Webinar next.",
+  loadingMessages: [
+    "Reading your manuscript",
+    "Mapping chapters to episode topics",
+    "Identifying key quotes and stories for each episode",
+    "Designing your episode roadmap with CTAs",
+    "Researching potential guests for interview episodes",
+    "Preparing your Podcast Strategy",
+  ],
   steps: [
     { id: "setup", label: "Podcast Setup", description: "Set name, tagline, format, episode length, and schedule", abbyTip: "Your book has multiple chapters — that's a perfect multi-episode season. I recommend 20-30 minute solo episodes for non-fiction. Launch with 3 episodes, then weekly." },
     { id: "roadmap", label: "Episode Roadmap", description: "AI generates an episode plan with titles, topics, and special episodes", abbyTip: "I'll map your chapters to episodes with a launch trailer, mid-season recap, and season finale with CTA." },
@@ -196,6 +257,14 @@ const webinarBuilder: BuilderNodeConfig = {
   customRenderer: "webinar",
   abbyGreeting: "Webinars are the #1 conversion tool for authors. Let's create a complete webinar package from your book.",
   abbyPublishMessage: "Your webinar package is ready! Schedule it and promote to your email list. Each webinar can generate $1K-$10K.",
+  loadingMessages: [
+    "Reading your manuscript",
+    "Identifying your strongest teachable frameworks",
+    "Designing the Perfect Webinar structure",
+    "Creating the offer stack and Value Ladder",
+    "Writing registration page and follow-up emails",
+    "Preparing your Webinar Package",
+  ],
   steps: [
     { id: "configure", label: "Webinar Setup", description: "Set title, type, duration, format, and primary CTA", abbyTip: "Free webinars are the #1 lead generation tool for authors. I recommend a 60-minute format: 40 minutes of value, 15 minutes of pitch, 5 minutes of Q&A." },
     { id: "script", label: "Script Generator", description: "AI generates a structured webinar script with time markers", abbyTip: "I'll create a script with Hook → Story → Content → Transition → Offer → Close structure with engagement prompts throughout." },
@@ -205,19 +274,25 @@ const webinarBuilder: BuilderNodeConfig = {
   ],
 };
 
-
-
 const membershipBuilder: BuilderNodeConfig = {
   id: "membership",
   label: "Monthly Membership",
   category: "build",
   requiredTier: "pro",
-  dbTable: "courses", // reuse courses with membership type
+  dbTable: "courses",
   icon: "CreditCard",
   color: "text-emerald-500",
   customRenderer: "membership",
   abbyGreeting: "Recurring revenue through memberships is the holy grail. Let's design a membership program your readers will love.",
   abbyPublishMessage: "Your membership program is designed! Connect payment processing and start enrolling founding members.",
+  loadingMessages: [
+    "Reading your manuscript",
+    "Analyzing your reader community potential",
+    "Designing membership tiers and benefits",
+    "Creating a 3-month content calendar per tier",
+    "Writing onboarding and retention sequences",
+    "Preparing your Membership Program Proposal",
+  ],
   steps: [
     { id: "setup", label: "Membership Setup", description: "Set name, tagline, and number of tiers", abbyTip: "3 tiers is the sweet spot. Your Reader Circle (free/low-cost) builds the community, Pro ($27-$47/mo) delivers ongoing value, and VIP ($97-$197/mo) gives access to you personally." },
     { id: "tiers", label: "Tier Builder", description: "Configure tier names, pricing, and benefits", abbyTip: "Make the middle tier the obvious choice by giving it 80% of the VIP value at 40% of the price. This is the decoy pricing strategy." },
@@ -238,6 +313,14 @@ const websiteBuilder: BuilderNodeConfig = {
   customRenderer: "website",
   abbyGreeting: "Your microsite is the hub that connects all your products. Let's build a beautiful, conversion-optimized author website.",
   abbyPublishMessage: "Your website is live! Share the URL everywhere — social profiles, email signature, book bio. Next: drive traffic with Social Media.",
+  loadingMessages: [
+    "Reading your manuscript",
+    "Analyzing your author brand and positioning",
+    "Designing site structure and page hierarchy",
+    "Auto-populating product catalog from existing products",
+    "Generating SEO-optimized page content",
+    "Preparing your Website Blueprint",
+  ],
   steps: [
     { id: "setup", label: "Site Setup", description: "Choose site type, template, colors, and fonts", abbyTip: "Your microsite is the hub that connects all your products. I recommend starting with a landing page that captures emails, then expanding to a full site as you add products." },
     { id: "pages", label: "Page Builder", description: "AI generates pages from your book and business plan", abbyTip: "I'll create pages with pre-built sections: Hero, About, Products, Testimonials, and Email Capture. Drag and drop to reorder." },
@@ -257,6 +340,13 @@ const leadMagnetBuilder: BuilderNodeConfig = {
   color: "text-emerald-500",
   abbyGreeting: "A compelling lead magnet is the foundation of your email list. Let's create one that converts visitors into subscribers.",
   abbyPublishMessage: "Your lead magnet is ready! Add it to your microsite and start building your email list.",
+  loadingMessages: [
+    "Reading your manuscript",
+    "Identifying your most actionable advice",
+    "Designing a high-value free resource",
+    "Creating opt-in page copy",
+    "Preparing your Lead Magnet",
+  ],
   steps: [
     { id: "configure", label: "Configure", description: "Choose type and target audience", abbyTip: "Checklists and cheat sheets convert best. They promise a quick win with minimal effort." },
     { id: "generate", label: "AI Generate", description: "Generate lead magnet content", abbyTip: "I'll pull your book's most actionable advice into a compact, high-value format." },
@@ -266,7 +356,7 @@ const leadMagnetBuilder: BuilderNodeConfig = {
   ],
 };
 
-// ─── B·BRIDGE (8 nodes) ──────────────────────────────────────────────
+// ─── B·BRIDGE (9 nodes) ──────────────────────────────────────────────
 
 const coachingBuilder: BuilderNodeConfig = {
   id: "coaching-1on1",
@@ -279,6 +369,14 @@ const coachingBuilder: BuilderNodeConfig = {
   customRenderer: "coaching",
   abbyGreeting: "1-on-1 coaching is your highest-value offer. Let's design a complete coaching package — session structure, client materials, pricing, and booking system.",
   abbyPublishMessage: "Your coaching packages are live! Share them on your microsite and start booking discovery calls.",
+  loadingMessages: [
+    "Reading your manuscript",
+    "Identifying coachable frameworks and methodologies",
+    "Designing session-by-session program structure",
+    "Creating client intake and onboarding materials",
+    "Analyzing premium pricing for your niche",
+    "Preparing your Coaching Program Proposal",
+  ],
   steps: [
     { id: "packages", label: "Package Setup", description: "Set package name, structure, duration, pricing, and delivery method", abbyTip: "Your book's transformation maps perfectly to a 12-week coaching program. I recommend packaging it at $1,997–$2,997 — that's the sweet spot for author-coaches in your genre." },
     { id: "intake", label: "Session Framework", description: "AI generates a session-by-session framework mapped to your book chapters", abbyTip: "Each session maps to a chapter in your book with objectives, discussion questions, exercises, and homework." },
@@ -299,6 +397,14 @@ const groupCoachingBuilder: BuilderNodeConfig = {
   customRenderer: "group-coaching",
   abbyGreeting: "Group coaching is your highest-leverage coaching product. At $497 per person with 20 participants, that's $9,940 per cohort — and you only run it once.",
   abbyPublishMessage: "Your group coaching program is designed! Start promoting to your email list for the next cohort.",
+  loadingMessages: [
+    "Reading your manuscript",
+    "Designing cohort structure and group dynamics",
+    "Creating week-by-week curriculum from your book",
+    "Building community engagement prompts and exercises",
+    "Designing enrollment and facilitation guides",
+    "Preparing your Group Coaching Program",
+  ],
   steps: [
     { id: "setup", label: "Group Program Setup", description: "Set program name, cohort size, duration, frequency, format, and pricing", abbyTip: "Group coaching is your highest-leverage coaching product. At $497 per person with 20 participants, that's $9,940 per cohort — and you only run it once." },
     { id: "curriculum", label: "Curriculum Builder", description: "AI generates week-by-week curriculum with themes, exercises, and accountability", abbyTip: "I'll create weekly themes from your book with group exercises, community prompts, and accountability partner pairing." },
@@ -319,6 +425,14 @@ const speakingBuilder: BuilderNodeConfig = {
   customRenderer: "keynotes",
   abbyGreeting: "Your book naturally supports 3 keynote topics. I recommend starting with the broadest topic for maximum booking potential, then adding niche topics as you build your speaking reputation.",
   abbyPublishMessage: "Your speaking materials are live! Submit to speaker bureaus and start pitching to conferences.",
+  loadingMessages: [
+    "Reading your manuscript",
+    "Identifying your 3 strongest keynote topics",
+    "Designing signature talk outlines with stories and frameworks",
+    "Creating speaker positioning and bio versions",
+    "Building speaker one-sheet and booking materials",
+    "Preparing your Keynote Speaker Package",
+  ],
   steps: [
     { id: "setup", label: "Keynote Setup", description: "Set number of keynote topics, titles, durations, audiences, and speaker fee range", abbyTip: "Your book naturally supports 3 keynote topics. I recommend starting with the broadest topic for maximum booking potential." },
     { id: "talks", label: "Talk Builder", description: "AI generates talk outlines with time markers, hooks, key points, and interactive elements", abbyTip: "Great talks follow: Opening Hook → 3-5 Key Points with Stories → Interactive Element → Closing CTA. I've structured yours this way." },
@@ -339,6 +453,14 @@ const corporateTrainingBuilder: BuilderNodeConfig = {
   customRenderer: "in-house-speaker",
   abbyGreeting: "Corporate workshops are your highest per-hour revenue. A full-day workshop at $10,000 often leads to repeat bookings and training program contracts.",
   abbyPublishMessage: "Your corporate training program is ready! Create proposals for 3-5 target companies this month.",
+  loadingMessages: [
+    "Reading your manuscript",
+    "Analyzing how your content solves corporate problems",
+    "Identifying target industry verticals",
+    "Designing corporate programs (Lunch & Learn, Half-Day, Full-Day)",
+    "Creating corporate proposal and ROI calculator",
+    "Preparing your Corporate Speaking Package",
+  ],
   steps: [
     { id: "setup", label: "Corporate Package Setup", description: "Set package types, topics, target organizations, and pricing", abbyTip: "Corporate workshops are your highest per-hour revenue. A full-day workshop at $10,000 often leads to repeat bookings and training program contracts." },
     { id: "workshop", label: "Workshop Builder", description: "AI generates detailed agendas, participant workbooks, facilitator guides, and exercises", abbyTip: "Include interactive exercises, case studies, and takeaway materials. Corporate buyers value engagement." },
@@ -358,6 +480,14 @@ const affiliateBuilder: BuilderNodeConfig = {
   customRenderer: "affiliates",
   abbyGreeting: "Affiliates are your unpaid sales team. I recommend 30-40% commission on digital products — it's generous enough to motivate promotion and you still profit.",
   abbyPublishMessage: "Your affiliate program is designed! Start recruiting your first 10 affiliates from your email list.",
+  loadingMessages: [
+    "Analyzing your product registry",
+    "Designing commission structure per product tier",
+    "Creating affiliate swipe copy and email templates",
+    "Building social media templates for affiliates",
+    "Designing affiliate recruitment strategy",
+    "Preparing your Affiliate Program",
+  ],
   steps: [
     { id: "setup", label: "Affiliate Program Setup", description: "Set program name, products, commission structure, cookie duration, payout schedule", abbyTip: "Affiliates are your unpaid sales team. I recommend 30-40% commission on digital products — it's generous enough to motivate promotion and you still profit." },
     { id: "materials", label: "Affiliate Materials", description: "Signup page, email swipe copy, social posts, banners, review templates", abbyTip: "Provide ready-to-use email templates, social posts, and banner ads for your affiliates." },
@@ -377,11 +507,46 @@ const partnershipBuilder: BuilderNodeConfig = {
   customRenderer: "jv-partnerships",
   abbyGreeting: "JV partnerships are the fastest way to reach new audiences. I recommend starting with cross-promotions (free) before moving to revenue shares.",
   abbyPublishMessage: "Your partnership playbook is ready! Reach out to your top 5 potential partners this week.",
+  loadingMessages: [
+    "Analyzing your product ecosystem",
+    "Identifying ideal partner profiles and audience overlap",
+    "Designing JV models (affiliate, co-created, bundle, licensing)",
+    "Creating partner outreach email templates",
+    "Building partnership proposal and agreement templates",
+    "Preparing your JV Partnership Strategy",
+  ],
   steps: [
     { id: "setup", label: "Partnership Setup", description: "Set partnership type, revenue split, partner criteria, and products available", abbyTip: "JV partnerships are the fastest way to reach new audiences. I recommend starting with cross-promotions (free) before moving to revenue shares." },
     { id: "materials", label: "Partner Materials", description: "Proposal template, revenue sharing agreement, co-promotion swipe copy, and social templates", abbyTip: "Lead with what you can offer them. Always propose a specific, low-risk first collaboration." },
     { id: "onboarding", label: "Partner Onboarding", description: "Welcome sequence, resource page, reporting template, and communication cadence", abbyTip: "Transparent tracking builds trust. Share dashboards with partners monthly." },
     { id: "preview", label: "Preview & Publish", description: "Preview partner proposal, resource page, and revenue projection", abbyTip: "A single JV partner with a 10,000-person email list could generate significant sales with the right conversion rate." },
+  ],
+};
+
+const upsellBuilder: BuilderNodeConfig = {
+  id: "upsell-downsell",
+  label: "Upsells / Downsells",
+  category: "bridge",
+  requiredTier: "pro",
+  dbTable: "generated_assets",
+  icon: "ArrowUpDown",
+  color: "text-violet-500",
+  customRenderer: "upsell",
+  abbyGreeting: "Upsells and downsells are the easiest way to increase revenue without more traffic. Let's build conversion sequences for your checkout flow.",
+  abbyPublishMessage: "Your upsell funnel is live! Every purchase now has a chance to generate additional revenue automatically.",
+  loadingMessages: [
+    "Analyzing your existing product registry",
+    "Mapping your Value Ladder and conversion paths",
+    "Designing order bumps, upsells, and downsells per product",
+    "Calculating revenue per customer projections",
+    "Creating funnel page copy and email follow-ups",
+    "Preparing your Funnel Strategy",
+  ],
+  steps: [
+    { id: "setup", label: "Funnel Setup", description: "Select primary product and funnel type", abbyTip: "Your workbook buyers are the perfect audience for an upsell to the Online Course. I recommend a 'Special offer: Get the full course for 40% off — only available now' upsell." },
+    { id: "offer", label: "Offer Builder", description: "AI generates the upsell/downsell offer with pricing and urgency", abbyTip: "The best upsells feel like a natural extension of what was just purchased. Connect your primary product to a logical next step." },
+    { id: "design", label: "Page Design", description: "Design upsell, downsell, and order bump pages", abbyTip: "One CTA, clear pricing, and urgency. Remove all navigation — the only choices should be 'Yes' or 'No thanks.'" },
+    { id: "publish", label: "Preview & Publish", description: "Walk through the funnel and publish", abbyTip: "Based on a 15-25% upsell conversion rate, this could add significant monthly revenue with zero additional traffic." },
   ],
 };
 
@@ -395,6 +560,13 @@ const licensingBuilder: BuilderNodeConfig = {
   color: "text-violet-500",
   abbyGreeting: "Licensing your content creates passive income from work you've already done. Let's structure your licensing offerings.",
   abbyPublishMessage: "Your licensing packages are ready! Start approaching organizations in your niche.",
+  loadingMessages: [
+    "Cataloging your licensable content",
+    "Designing licensing tiers and pricing",
+    "Creating license agreement templates",
+    "Building sales materials for licensing",
+    "Preparing your Licensing Strategy",
+  ],
   steps: [
     { id: "inventory", label: "Content Inventory", description: "Catalog licensable content", abbyTip: "Your frameworks, assessments, and training materials are your most licensable assets." },
     { id: "packages", label: "License Packages", description: "Create licensing tiers", abbyTip: "Offer Individual ($297/yr), Team ($997/yr), and Enterprise ($4,997/yr) licenses." },
@@ -414,6 +586,13 @@ const communityBuilder: BuilderNodeConfig = {
   color: "text-violet-500",
   abbyGreeting: "A community turns readers into lifelong advocates. Let's design an engaging community experience.",
   abbyPublishMessage: "Your community blueprint is ready! Launch on Circle, Discord, or Facebook Groups.",
+  loadingMessages: [
+    "Analyzing your reader community potential",
+    "Designing channels and categories",
+    "Creating engagement and content calendar",
+    "Building community guidelines",
+    "Preparing your Community Blueprint",
+  ],
   steps: [
     { id: "configure", label: "Configure", description: "Set community type and platform", abbyTip: "Circle or Discord for premium communities. Facebook Groups for free communities." },
     { id: "structure", label: "Community Structure", description: "Design channels and categories", abbyTip: "Keep it simple: General, Wins, Q&A, Resources, and one topic-specific channel." },
@@ -423,7 +602,7 @@ const communityBuilder: BuilderNodeConfig = {
   ],
 };
 
-// ─── Y·YIELD (8 nodes) ──────────────────────────────────────────────
+// ─── Y·YIELD (8+ nodes) ──────────────────────────────────────────────
 
 const retreatBuilder: BuilderNodeConfig = {
   id: "retreat",
@@ -436,6 +615,14 @@ const retreatBuilder: BuilderNodeConfig = {
   customRenderer: "retreats",
   abbyGreeting: "Retreats are your highest per-person revenue product. A 3-day retreat at $2,997 with 20 participants is $59,940 — minus venue costs, you could net $30,000-$40,000.",
   abbyPublishMessage: "Your retreat program is designed! Start scouting venues and promoting to your VIP list.",
+  loadingMessages: [
+    "Reading your manuscript",
+    "Designing transformational retreat experience",
+    "Creating day-by-day, hour-by-hour agenda",
+    "Building pricing tiers and logistics checklist",
+    "Designing 12-week marketing countdown",
+    "Preparing your Retreat Program",
+  ],
   steps: [
     { id: "setup", label: "Event Setup", description: "Set event type, name, capacity, pricing, and location type", abbyTip: "Retreats are your highest per-person revenue product. A 3-day retreat at $2,997 with 20 participants is $59,940." },
     { id: "itinerary", label: "Itinerary Builder", description: "AI generates day-by-day schedule with sessions, activities, and ceremonies", abbyTip: "I'll create a transformative arc: Day 1 = Awareness, Day 2 = Action, Day 3 = Accountability." },
@@ -456,6 +643,14 @@ const certificationBuilder: BuilderNodeConfig = {
   customRenderer: "certification",
   abbyGreeting: "Certification is the ultimate authority builder. Certified practitioners become your ambassadors AND a recurring revenue stream through renewal fees.",
   abbyPublishMessage: "Your certification program is designed! This is a premium offering that builds your legacy.",
+  loadingMessages: [
+    "Reading your manuscript",
+    "Identifying certifiable methodologies and frameworks",
+    "Designing 3-level certification structure",
+    "Creating assessment systems and rubrics",
+    "Building certified practitioner ecosystem",
+    "Preparing your Certification Program",
+  ],
   steps: [
     { id: "setup", label: "Certification Setup", description: "Set name, levels, duration, delivery, pricing, and renewal terms", abbyTip: "Certification is the ultimate authority builder. Certified practitioners become your ambassadors AND a recurring revenue stream." },
     { id: "curriculum", label: "Curriculum Builder", description: "AI generates module-by-module breakdown with theory, practice, and assessments", abbyTip: "8-12 modules with assessments at each stage. Include a capstone project for credibility." },
@@ -476,6 +671,14 @@ const mastermindBuilder: BuilderNodeConfig = {
   customRenderer: "masterminds",
   abbyGreeting: "Masterminds are your highest-value recurring product. 8 members at $10,000/year = $80,000 — and the community creates its own retention.",
   abbyPublishMessage: "Your mastermind program is designed! Start with an application process to curate the right group.",
+  loadingMessages: [
+    "Reading your manuscript",
+    "Designing exclusive mastermind experience",
+    "Creating monthly meeting structure and hot seat format",
+    "Building application and selection process",
+    "Designing retention and renewal strategy",
+    "Preparing your Mastermind Program",
+  ],
   steps: [
     { id: "setup", label: "Mastermind Setup", description: "Set name, group size, duration, frequency, format, and pricing", abbyTip: "Masterminds are your highest-value recurring product. 8 members at $10,000/year = $80,000 — and the community creates its own retention." },
     { id: "structure", label: "Structure & Framework", description: "Meeting agenda template, intake, onboarding, quarterly planning, and retreat component", abbyTip: "Monthly 2-hour meetings: Hot seats (30min each), guest expert (30min), accountability check." },
@@ -495,128 +698,19 @@ const bigTicketBuilder: BuilderNodeConfig = {
   customRenderer: "big-ticket",
   abbyGreeting: "Big ticket offers are where your expertise commands premium pricing. A VIP Day at $5,000 with 2 clients per month is $10,000/month — and it positions you as the expert.",
   abbyPublishMessage: "Your consulting packages are designed! Start with a free strategy session funnel to attract qualified leads.",
+  loadingMessages: [
+    "Reading your manuscript",
+    "Designing high-ticket consulting packages",
+    "Creating proposal system and ROI calculator",
+    "Building discovery questionnaire and intake process",
+    "Designing delivery frameworks from your book",
+    "Preparing your Consulting Practice Blueprint",
+  ],
   steps: [
     { id: "setup", label: "Offer Setup", description: "Set offer type, name, target client, deliverables, and pricing", abbyTip: "Big ticket offers are where your expertise commands premium pricing. A VIP Day at $5,000 with 2 clients per month is $10,000/month." },
     { id: "package", label: "Package Builder", description: "AI generates pre-engagement, during, and post-engagement materials", abbyTip: "Include a kickoff session, regular check-ins, async support, and a final review." },
     { id: "proposal", label: "Proposal & Sales", description: "Proposal template, application page, sales page, discovery call script, and follow-up sequence", abbyTip: "Focus on ROI. 'Clients typically see a 10x return on their investment within 6 months.'" },
     { id: "preview", label: "Preview & Publish", description: "Preview all materials and revenue projection", abbyTip: "Start by converting your best coaching clients. They already trust your expertise." },
-  ],
-};
-
-const revenueShareBuilder: BuilderNodeConfig = {
-  id: "revenue-share",
-  label: "Revenue Sharing",
-  category: "yield",
-  requiredTier: "enterprise",
-  dbTable: "generated_assets",
-  icon: "TrendingUp",
-  color: "text-amber-500",
-  abbyGreeting: "Revenue sharing aligns incentives and creates win-win partnerships. Let's structure your offers.",
-  abbyPublishMessage: "Your revenue sharing framework is ready! Approach potential partners with a clear value proposition.",
-  steps: [
-    { id: "identify", label: "Opportunity Mapping", description: "Identify revenue share opportunities", abbyTip: "Look for partners with distribution but no content, or content but no audience." },
-    { id: "structure", label: "Deal Structure", description: "Design revenue sharing models", abbyTip: "Standard splits: 60/40 (content creator/distributor) for digital, 70/30 for licensing." },
-    { id: "agreements", label: "Agreement Templates", description: "Create partnership agreements", abbyTip: "Include performance benchmarks, reporting cadence, and clear termination clauses." },
-    { id: "tracking", label: "Revenue Tracking", description: "Set up revenue tracking dashboards", abbyTip: "Transparent tracking builds trust. Share dashboards with partners monthly." },
-    { id: "preview", label: "Review & Execute", description: "Finalize and start outreach", abbyTip: "Start with a small pilot project before committing to long-term revenue shares." },
-  ],
-};
-
-const whitelabelBuilder: BuilderNodeConfig = {
-  id: "white-label",
-  label: "White-Label Products",
-  category: "yield",
-  requiredTier: "enterprise",
-  dbTable: "generated_assets",
-  icon: "Layers",
-  color: "text-amber-500",
-  abbyGreeting: "White-labeling your content lets others sell it under their brand — pure passive income for you.",
-  abbyPublishMessage: "Your white-label packages are designed! Target coaching companies and training organizations.",
-  steps: [
-    { id: "inventory", label: "Product Inventory", description: "Select products for white-labeling", abbyTip: "Workbooks, courses, and assessments are the easiest to white-label." },
-    { id: "customize", label: "Customization Options", description: "Define what can be customized", abbyTip: "Allow branding changes but not content changes. Protect your methodology's integrity." },
-    { id: "pricing", label: "License Pricing", description: "Set white-label pricing tiers", abbyTip: "Per-seat licensing ($50-$200/user) for courses, flat rate ($2K-$10K) for standalone products." },
-    { id: "delivery", label: "Delivery System", description: "Create white-label package delivery", abbyTip: "Provide Canva templates, editable files, and a brand customization guide." },
-    { id: "preview", label: "Preview & Launch", description: "Review and make available", abbyTip: "Approach companies that serve the same audience but in a different capacity." },
-  ],
-};
-
-const eventsBuilder: BuilderNodeConfig = {
-  id: "events",
-  label: "Events & Summits",
-  category: "yield",
-  requiredTier: "enterprise",
-  dbTable: "generated_assets",
-  icon: "Calendar",
-  color: "text-amber-500",
-  abbyGreeting: "Hosting events positions you as a leader in your space. Let's plan a summit or conference.",
-  abbyPublishMessage: "Your event blueprint is ready! Start with a virtual summit to test your concept before going live.",
-  steps: [
-    { id: "configure", label: "Configure", description: "Set event type, format, and dates", abbyTip: "Virtual summits are low-risk, high-reward. 3-5 days, 15-25 speakers, free with VIP pass upsell." },
-    { id: "speakers", label: "Speaker Lineup", description: "Plan speaker outreach and content", abbyTip: "Each speaker promotes to their audience. 20 speakers × 5,000 each = 100,000 potential attendees." },
-    { id: "content", label: "Event Content", description: "Design sessions and workshops", abbyTip: "Mix keynotes (30min), panels (45min), and workshops (60min) for variety." },
-    { id: "monetization", label: "Monetization Plan", description: "Design ticket tiers and sponsorships", abbyTip: "Free access + VIP pass ($97-$197) + Sponsorships ($2K-$10K each). Multiple revenue streams." },
-    { id: "preview", label: "Preview & Launch", description: "Review and start promotion", abbyTip: "Start promoting 8-12 weeks before the event. Speaker promotion begins 4 weeks out." },
-  ],
-};
-
-const franchiseBuilder: BuilderNodeConfig = {
-  id: "franchise",
-  label: "Franchise Model",
-  category: "yield",
-  requiredTier: "enterprise",
-  dbTable: "generated_assets",
-  icon: "Network",
-  color: "text-amber-500",
-  abbyGreeting: "A franchise model scales your methodology through trained practitioners. This is legacy-building territory.",
-  abbyPublishMessage: "Your franchise blueprint is designed! This is a long-term play that builds your legacy and impact.",
-  steps: [
-    { id: "model", label: "Franchise Model", description: "Design your franchise/license model", abbyTip: "Start with a 'licensed practitioner' model before full franchise. Lower barrier to entry." },
-    { id: "training", label: "Practitioner Training", description: "Create facilitator training program", abbyTip: "Include initial certification (40hrs), ongoing development (quarterly), and quality standards." },
-    { id: "operations", label: "Operations Manual", description: "Create franchise operations guide", abbyTip: "Document everything: branding, delivery, pricing, marketing, and customer service standards." },
-    { id: "financials", label: "Financial Model", description: "Design pricing and revenue model", abbyTip: "License fee ($5K-$25K upfront) + ongoing royalties (10-15% of revenue) is standard." },
-    { id: "preview", label: "Review & Plan", description: "Finalize franchise blueprint", abbyTip: "Pilot with 3-5 practitioners before scaling. Their feedback shapes the final model." },
-  ],
-};
-
-const upsellBuilder: BuilderNodeConfig = {
-  id: "upsell-downsell",
-  label: "Upsells / Downsells",
-  category: "bridge",
-  requiredTier: "pro",
-  dbTable: "generated_assets",
-  icon: "ArrowUpDown",
-  color: "text-violet-500",
-  customRenderer: "upsell",
-  abbyGreeting: "Upsells and downsells are the easiest way to increase revenue without more traffic. Let's build conversion sequences for your checkout flow.",
-  abbyPublishMessage: "Your upsell funnel is live! Every purchase now has a chance to generate additional revenue automatically.",
-  steps: [
-    { id: "setup", label: "Funnel Setup", description: "Select primary product and funnel type", abbyTip: "Your workbook buyers are the perfect audience for an upsell to the Online Course. I recommend a 'Special offer: Get the full course for 40% off — only available now' upsell." },
-    { id: "offer", label: "Offer Builder", description: "AI generates the upsell/downsell offer with pricing and urgency", abbyTip: "The best upsells feel like a natural extension of what was just purchased. Connect your primary product to a logical next step." },
-    { id: "design", label: "Page Design", description: "Design upsell, downsell, and order bump pages", abbyTip: "One CTA, clear pricing, and urgency. Remove all navigation — the only choices should be 'Yes' or 'No thanks.'" },
-    { id: "publish", label: "Preview & Publish", description: "Walk through the funnel and publish", abbyTip: "Based on a 15-25% upsell conversion rate, this could add significant monthly revenue with zero additional traffic." },
-  ],
-};
-
-// ─── NEW BUILDERS (from spec) ────────────────────────────────────────
-
-const trainingProgramsBuilder: BuilderNodeConfig = {
-  id: "training-programs",
-  label: "Training Programs",
-  category: "bridge",
-  requiredTier: "enterprise",
-  dbTable: "courses",
-  icon: "BookMarked",
-  color: "text-violet-500",
-  customRenderer: "training-programs",
-  abbyGreeting: "Training programs create recurring revenue through licensing. One organization paying $25,000/year for your program license is worth 50 individual course sales.",
-  abbyPublishMessage: "Your training program is ready! Start pitching to organizations in your niche.",
-  steps: [
-    { id: "setup", label: "Program Setup", description: "Set program name, duration, frequency, delivery, capacity, and pricing model", abbyTip: "Training programs create recurring revenue through licensing. One organization paying $25,000/year for your program license is worth 50 individual course sales." },
-    { id: "curriculum", label: "Curriculum Builder", description: "AI generates session-by-session curriculum with assessments and manager briefings", abbyTip: "Include pre-program and post-program assessments to measure results. Organizations love data." },
-    { id: "materials", label: "Training Materials", description: "Participant handbook, facilitator guide, slide decks, exercises, case studies, and rubrics", abbyTip: "A detailed facilitator guide makes your program licensable — others can deliver it without you." },
-    { id: "licensing", label: "Licensing & Sales", description: "Brochure, licensing agreement, train-the-trainer guide, ROI case study, and proposal template", abbyTip: "A licensed training program creates passive income. One enterprise license at $25,000/year requires zero additional effort." },
-    { id: "preview", label: "Preview & Publish", description: "Preview all materials and revenue projection", abbyTip: "Approach industry associations and HR departments first — they have training budgets." },
   ],
 };
 
@@ -631,6 +725,14 @@ const specialEditionsBuilder: BuilderNodeConfig = {
   customRenderer: "special-editions",
   abbyGreeting: "Special editions create urgency and premium positioning. A limited run of 100 signed copies at $49.99 sells out fast and generates $4,999 in a single launch.",
   abbyPublishMessage: "Your special edition is designed! Launch it to your email list for maximum impact.",
+  loadingMessages: [
+    "Reading your manuscript",
+    "Designing special edition content and extras",
+    "Creating bonus chapters and author's letter",
+    "Building pre-order page and numbering system",
+    "Designing launch email campaign",
+    "Preparing your Special Edition",
+  ],
   steps: [
     { id: "setup", label: "Edition Setup", description: "Set edition type, print run, pricing, and extras", abbyTip: "Special editions create urgency and premium positioning. A limited run of 100 signed copies at $49.99 sells out fast." },
     { id: "content", label: "Edition Content", description: "AI generates foreword, bonus chapter, discussion guide, and packaging description", abbyTip: "New exclusive content makes the special edition feel truly special. An author's letter adds a personal touch." },
@@ -650,6 +752,13 @@ const conventionsBuilder: BuilderNodeConfig = {
   customRenderer: "conventions",
   abbyGreeting: "Conferences are where you build your professional network. I recommend submitting speaker proposals to 5-10 conferences per year in your niche.",
   abbyPublishMessage: "Your conference materials are ready! Start submitting proposals and planning your conference strategy.",
+  loadingMessages: [
+    "Analyzing your niche conference landscape",
+    "Designing speaker proposals and session descriptions",
+    "Creating networking strategy and elevator pitches",
+    "Building lead capture and follow-up system",
+    "Preparing your Conference Strategy Kit",
+  ],
   steps: [
     { id: "setup", label: "Conference Setup", description: "Set participation type, niche, goals, and budget", abbyTip: "Conferences are where you build your professional network. I recommend submitting speaker proposals to 5-10 conferences per year." },
     { id: "submissions", label: "Submission Materials", description: "Speaker proposal, session descriptions, exhibitor booth plan, and sponsorship proposal", abbyTip: "Strong speaker proposals focus on attendee takeaways, not your credentials. What will they learn?" },
@@ -669,6 +778,13 @@ const fundraisingBuilder: BuilderNodeConfig = {
   customRenderer: "fundraising",
   abbyGreeting: "Cause-aligned fundraising builds incredible goodwill and media coverage. Donating $1 per book sold to a relevant cause creates a compelling story.",
   abbyPublishMessage: "Your fundraising campaign is designed! Launch it and watch the community rally around your cause.",
+  loadingMessages: [
+    "Analyzing cause alignment with your book's message",
+    "Designing donation tiers and reward structure",
+    "Creating campaign page and press release",
+    "Building email outreach and social campaign",
+    "Preparing your Fundraising Campaign",
+  ],
   steps: [
     { id: "setup", label: "Campaign Setup", description: "Set campaign type, cause alignment, fundraising goal, and duration", abbyTip: "Cause-aligned fundraising builds incredible goodwill and media coverage. Donating $1 per book sold creates a compelling story." },
     { id: "materials", label: "Campaign Materials", description: "Campaign page, donation tiers, press release, social posts, email sequence, and partner outreach", abbyTip: "Donation tiers with tangible rewards (signed book, coaching call, VIP access) dramatically increase average donation." },
@@ -688,11 +804,153 @@ const exhibitorsBuilder: BuilderNodeConfig = {
   customRenderer: "exhibitors",
   abbyGreeting: "The best JV partnerships are where both parties bring something the other doesn't have. You bring expertise and content; they bring audience and distribution.",
   abbyPublishMessage: "Your exhibitor and JV materials are ready! Start reaching out to potential partners and event organizers.",
+  loadingMessages: [
+    "Analyzing your partnership potential",
+    "Designing partnership proposals and co-marketing plans",
+    "Creating booth design and lead capture system",
+    "Building partnership agreement templates",
+    "Preparing your Exhibitor & JV Kit",
+  ],
   steps: [
     { id: "setup", label: "Partnership Setup", description: "Set partnership type, partner profile, what you bring, and what you want", abbyTip: "The best JV partnerships are where both parties bring something the other doesn't have." },
     { id: "materials", label: "Partnership Materials", description: "Partnership proposal, co-marketing plan, revenue sharing agreement, and co-branded templates", abbyTip: "Lead with what you can offer them. Always propose a specific, low-risk first collaboration." },
     { id: "kit", label: "Exhibitor Kit", description: "Booth design, product display, lead capture system, giveaway materials, and follow-up sequence", abbyTip: "A well-designed booth with clear messaging and a lead capture system maximizes your ROI at events." },
     { id: "preview", label: "Preview & Publish", description: "Preview all materials and partnership projection", abbyTip: "Start with one partnership, prove the model works, then scale to 5-10 active partnerships." },
+  ],
+};
+
+const revenueShareBuilder: BuilderNodeConfig = {
+  id: "revenue-share",
+  label: "Revenue Sharing",
+  category: "yield",
+  requiredTier: "enterprise",
+  dbTable: "generated_assets",
+  icon: "TrendingUp",
+  color: "text-amber-500",
+  abbyGreeting: "Revenue sharing aligns incentives and creates win-win partnerships. Let's structure your offers.",
+  abbyPublishMessage: "Your revenue sharing framework is ready! Approach potential partners with a clear value proposition.",
+  loadingMessages: [
+    "Mapping revenue sharing opportunities",
+    "Designing deal structures and splits",
+    "Creating partnership agreements",
+    "Building revenue tracking dashboards",
+    "Preparing your Revenue Sharing Strategy",
+  ],
+  steps: [
+    { id: "identify", label: "Opportunity Mapping", description: "Identify revenue share opportunities", abbyTip: "Look for partners with distribution but no content, or content but no audience." },
+    { id: "structure", label: "Deal Structure", description: "Design revenue sharing models", abbyTip: "Standard splits: 60/40 (content creator/distributor) for digital, 70/30 for licensing." },
+    { id: "agreements", label: "Agreement Templates", description: "Create partnership agreements", abbyTip: "Include performance benchmarks, reporting cadence, and clear termination clauses." },
+    { id: "tracking", label: "Revenue Tracking", description: "Set up revenue tracking dashboards", abbyTip: "Transparent tracking builds trust. Share dashboards with partners monthly." },
+    { id: "preview", label: "Review & Execute", description: "Finalize and start outreach", abbyTip: "Start with a small pilot project before committing to long-term revenue shares." },
+  ],
+};
+
+const whitelabelBuilder: BuilderNodeConfig = {
+  id: "white-label",
+  label: "White-Label Products",
+  category: "yield",
+  requiredTier: "enterprise",
+  dbTable: "generated_assets",
+  icon: "Layers",
+  color: "text-amber-500",
+  abbyGreeting: "White-labeling your content lets others sell it under their brand — pure passive income for you.",
+  abbyPublishMessage: "Your white-label packages are designed! Target coaching companies and training organizations.",
+  loadingMessages: [
+    "Inventorying your white-labelable products",
+    "Designing customization options and branding",
+    "Creating per-seat licensing tiers",
+    "Building delivery packages and templates",
+    "Preparing your White-Label Strategy",
+  ],
+  steps: [
+    { id: "inventory", label: "Product Inventory", description: "Select products for white-labeling", abbyTip: "Workbooks, courses, and assessments are the easiest to white-label." },
+    { id: "customize", label: "Customization Options", description: "Define what can be customized", abbyTip: "Allow branding changes but not content changes. Protect your methodology's integrity." },
+    { id: "pricing", label: "License Pricing", description: "Set white-label pricing tiers", abbyTip: "Per-seat licensing ($50-$200/user) for courses, flat rate ($2K-$10K) for standalone products." },
+    { id: "delivery", label: "Delivery System", description: "Create white-label package delivery", abbyTip: "Provide Canva templates, editable files, and a brand customization guide." },
+    { id: "preview", label: "Preview & Launch", description: "Review and make available", abbyTip: "Approach companies that serve the same audience but in a different capacity." },
+  ],
+};
+
+const eventsBuilder: BuilderNodeConfig = {
+  id: "events",
+  label: "Events & Summits",
+  category: "yield",
+  requiredTier: "enterprise",
+  dbTable: "generated_assets",
+  icon: "Calendar",
+  color: "text-amber-500",
+  abbyGreeting: "Hosting events positions you as a leader in your space. Let's plan a summit or conference.",
+  abbyPublishMessage: "Your event blueprint is ready! Start with a virtual summit to test your concept before going live.",
+  loadingMessages: [
+    "Analyzing your event hosting potential",
+    "Designing speaker lineup and session format",
+    "Creating ticket tiers and sponsorship packages",
+    "Building event marketing timeline",
+    "Preparing your Event Blueprint",
+  ],
+  steps: [
+    { id: "configure", label: "Configure", description: "Set event type, format, and dates", abbyTip: "Virtual summits are low-risk, high-reward. 3-5 days, 15-25 speakers, free with VIP pass upsell." },
+    { id: "speakers", label: "Speaker Lineup", description: "Plan speaker outreach and content", abbyTip: "Each speaker promotes to their audience. 20 speakers × 5,000 each = 100,000 potential attendees." },
+    { id: "content", label: "Event Content", description: "Design sessions and workshops", abbyTip: "Mix keynotes (30min), panels (45min), and workshops (60min) for variety." },
+    { id: "monetization", label: "Monetization Plan", description: "Design ticket tiers and sponsorships", abbyTip: "Free access + VIP pass ($97-$197) + Sponsorships ($2K-$10K each). Multiple revenue streams." },
+    { id: "preview", label: "Preview & Launch", description: "Review and start promotion", abbyTip: "Start promoting 8-12 weeks before the event. Speaker promotion begins 4 weeks out." },
+  ],
+};
+
+const franchiseBuilder: BuilderNodeConfig = {
+  id: "franchise",
+  label: "Franchise Model",
+  category: "yield",
+  requiredTier: "enterprise",
+  dbTable: "generated_assets",
+  icon: "Network",
+  color: "text-amber-500",
+  abbyGreeting: "A franchise model scales your methodology through trained practitioners. This is legacy-building territory.",
+  abbyPublishMessage: "Your franchise blueprint is designed! This is a long-term play that builds your legacy and impact.",
+  loadingMessages: [
+    "Analyzing your methodology for franchisability",
+    "Designing franchise/license model structure",
+    "Creating practitioner training program",
+    "Building operations manual and brand standards",
+    "Designing financial model and royalty structure",
+    "Preparing your Franchise Blueprint",
+  ],
+  steps: [
+    { id: "model", label: "Franchise Model", description: "Design your franchise/license model", abbyTip: "Start with a 'licensed practitioner' model before full franchise. Lower barrier to entry." },
+    { id: "training", label: "Practitioner Training", description: "Create facilitator training program", abbyTip: "Include initial certification (40hrs), ongoing development (quarterly), and quality standards." },
+    { id: "operations", label: "Operations Manual", description: "Create franchise operations guide", abbyTip: "Document everything: branding, delivery, pricing, marketing, and customer service standards." },
+    { id: "financials", label: "Financial Model", description: "Design pricing and revenue model", abbyTip: "License fee ($5K-$25K upfront) + ongoing royalties (10-15% of revenue) is standard." },
+    { id: "preview", label: "Review & Plan", description: "Finalize franchise blueprint", abbyTip: "Pilot with 3-5 practitioners before scaling. Their feedback shapes the final model." },
+  ],
+};
+
+// ─── NEW BUILDERS (from spec) ────────────────────────────────────────
+
+const trainingProgramsBuilder: BuilderNodeConfig = {
+  id: "training-programs",
+  label: "Training Programs",
+  category: "bridge",
+  requiredTier: "enterprise",
+  dbTable: "courses",
+  icon: "BookMarked",
+  color: "text-violet-500",
+  customRenderer: "training-programs",
+  abbyGreeting: "Training programs create recurring revenue through licensing. One organization paying $25,000/year for your program license is worth 50 individual course sales.",
+  abbyPublishMessage: "Your training program is ready! Start pitching to organizations in your niche.",
+  loadingMessages: [
+    "Reading your manuscript",
+    "Designing scalable training program structure",
+    "Creating facilitator guides and participant materials",
+    "Building train-the-trainer certification pathway",
+    "Designing B2B pricing models and ROI calculators",
+    "Preparing your Training Program",
+  ],
+  steps: [
+    { id: "setup", label: "Program Setup", description: "Set program name, duration, frequency, delivery, capacity, and pricing model", abbyTip: "Training programs create recurring revenue through licensing. One organization paying $25,000/year for your program license is worth 50 individual course sales." },
+    { id: "curriculum", label: "Curriculum Builder", description: "AI generates session-by-session curriculum with assessments and manager briefings", abbyTip: "Include pre-program and post-program assessments to measure results. Organizations love data." },
+    { id: "materials", label: "Training Materials", description: "Participant handbook, facilitator guide, slide decks, exercises, case studies, and rubrics", abbyTip: "A detailed facilitator guide makes your program licensable — others can deliver it without you." },
+    { id: "licensing", label: "Licensing & Sales", description: "Brochure, licensing agreement, train-the-trainer guide, ROI case study, and proposal template", abbyTip: "A licensed training program creates passive income. One enterprise license at $25,000/year requires zero additional effort." },
+    { id: "preview", label: "Preview & Publish", description: "Preview all materials and revenue projection", abbyTip: "Approach industry associations and HR departments first — they have training budgets." },
   ],
 };
 
