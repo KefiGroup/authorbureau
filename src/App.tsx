@@ -82,6 +82,7 @@ const App = () => (
         <AuthProvider>
           <ScrollToTop />
           <AppRoutes />
+          <AbbyHelpChatbot />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
