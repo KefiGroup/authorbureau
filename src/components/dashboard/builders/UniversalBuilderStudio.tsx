@@ -109,6 +109,9 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [generationState, setGenerationState] = useState<"idle" | "queued" | "analyzing" | "generating" | "complete" | "error">("idle");
+  
+  // 3-Act generation engine
+  const builderGen = useBuilderGeneration(nodeConfig.id, nodeConfig.label);
   const [editedSteps, setEditedSteps] = useState<Set<string>>(new Set());
   const [resolvedBookCoverUrl, setResolvedBookCoverUrl] = useState<string | null>(bookCoverUrl);
 
