@@ -556,27 +556,32 @@ IMPORTANT: Return ONLY the JSON object. No markdown, no code fences, no explanat
       }
 
       const result = await response.json();
-      const toolCall = result.choices?.[0]?.message?.tool_calls?.[0];
-
-      if (!toolCall?.function?.arguments) {
-        // Fallback: try to parse from content
-        const content = result.choices?.[0]?.message?.content || "";
-        console.error("No tool call in Act 1 response, content:", content.slice(0, 200));
-        return new Response(JSON.stringify({ error: "Failed to generate proposal. Please try again." }), {
-          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
+      
+      // Extract JSON from content (no tool calling)
+      const content = result.choices?.[0]?.message?.content || "";
+      
       let proposal: any;
       try {
-        proposal = typeof toolCall.function.arguments === "string"
-          ? JSON.parse(toolCall.function.arguments)
-          : toolCall.function.arguments;
-      } catch (e) {
-        console.error("Failed to parse proposal JSON:", e);
-        return new Response(JSON.stringify({ error: "Failed to parse proposal. Please try again." }), {
-          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        // Try direct JSON parse first
+        const cleaned = content.replace(/^```json?\s*/i, "").replace(/```\s*$/, "").trim();
+        proposal = JSON.parse(cleaned);
+      } catch {
+        // Fallback: find JSON object in content
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          console.error("No JSON found in Act 1 response:", content.slice(0, 500));
+          return new Response(JSON.stringify({ error: "Failed to generate proposal. Please try again." }), {
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        try {
+          proposal = JSON.parse(jsonMatch[0]);
+        } catch (e) {
+          console.error("Failed to parse extracted JSON:", e, jsonMatch[0].slice(0, 300));
+          return new Response(JSON.stringify({ error: "Failed to parse proposal. Please try again." }), {
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
       }
 
       // Save proposal as draft (non-blocking)
