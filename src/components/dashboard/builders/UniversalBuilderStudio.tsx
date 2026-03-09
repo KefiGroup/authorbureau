@@ -110,10 +110,22 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
   const [stepData, setStepData] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [generationState, setGenerationState] = useState<"idle" | "queued" | "analyzing" | "generating" | "complete" | "error">("idle");
   
-  // 3-Act generation engine
+  // 3-Act generation engine (replaces old mock generationState)
   const builderGen = useBuilderGeneration(nodeConfig.id, nodeConfig.label);
+  // Derive legacy generationState for child renderers that still use it
+  const generationState = (() => {
+    switch (builderGen.act) {
+      case "idle": return "idle" as const;
+      case "act1_loading": return "analyzing" as const;
+      case "act2_proposal": return "idle" as const; // proposal review is a separate UI
+      case "act3_generating": return "generating" as const;
+      case "act3_complete": return "complete" as const;
+      case "error": return "error" as const;
+      default: return "idle" as const;
+    }
+  })();
+  const setGenerationState = (_s: string) => {}; // no-op — legacy compat
   const [editedSteps, setEditedSteps] = useState<Set<string>>(new Set());
   const [resolvedBookCoverUrl, setResolvedBookCoverUrl] = useState<string | null>(bookCoverUrl);
 
