@@ -132,9 +132,9 @@ export default function MicrositeManager({ onNavigate }: Props) {
 
   const tierLabel = (t: SubscriptionTier) => {
     if (t === "free") return "Free";
-    if (t === "starter") return "Starter ($47/mo)";
-    if (t === "pro") return "Pro ($197/mo)";
-    return "Enterprise ($497/mo)";
+    if (t === "starter") return "Starter ($49/mo)";
+    if (t === "pro") return "Pro ($199/mo)";
+    return "Enterprise ($499/mo)";
   };
 
   const handleCopyUrl = () => {

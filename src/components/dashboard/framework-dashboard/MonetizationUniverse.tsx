@@ -25,7 +25,7 @@ const STREAMS: StreamGroup[] = [
     letter: "B",
     title: "BUILD",
     subtitle: "Build Authority & Digital Assets",
-    tierLabel: "From $47/mo",
+    tierLabel: "From $49/mo",
     color: "#22C55E",
     nodes: [
       { label: "Online Courses", price: "$97–$497", status: "locked", requiredTier: "Pro" },
@@ -46,7 +46,7 @@ const STREAMS: StreamGroup[] = [
     letter: "B",
     title: "BRIDGE",
     subtitle: "Bridge Channels & Connections",
-    tierLabel: "Pro $197/mo",
+    tierLabel: "Pro $199/mo",
     color: "#8B5CF6",
     nodes: [
       { label: "1-on-1 Coaching", price: "$150–$500/session", status: "locked", requiredTier: "Pro" },
@@ -64,7 +64,7 @@ const STREAMS: StreamGroup[] = [
     letter: "Y",
     title: "YIELD",
     subtitle: "Yield Revenue & Monetize",
-    tierLabel: "Enterprise $497/mo",
+    tierLabel: "Enterprise $499/mo",
     color: "#F59E0B",
     nodes: [
       { label: "Retreats & Bootcamps", price: "$997–$5,000", status: "locked", requiredTier: "Enterprise" },

@@ -14,7 +14,7 @@ const plans = [
   {
     id: "starter" as const,
     name: "Starter",
-    price: "$47",
+    price: "$49",
     period: "/mo",
     tagline: "Test the waters.",
     description: "Start building with 3 core AI builders",
@@ -31,7 +31,7 @@ const plans = [
   {
     id: "pro" as const,
     name: "Pro",
-    price: "$197",
+    price: "$199",
     period: "/mo",
     tagline: "Build a real business.",
     description: "Full Build + Bridge — everything to monetize",
@@ -52,7 +52,7 @@ const plans = [
   {
     id: "enterprise" as const,
     name: "Enterprise",
-    price: "$497",
+    price: "$499",
     period: "/mo",
     tagline: "Build an empire.",
     description: "Complete monetization empire — all 27 streams",

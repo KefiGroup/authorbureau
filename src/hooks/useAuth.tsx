@@ -12,19 +12,19 @@ export const TIERS = {
     price_id: "price_1T7zieL6NAuEbKmpgIPawb4z",
     product_id: "prod_U6C6uH8lxNdHGT",
     label: "Starter",
-    monthlyPrice: 47,
+    monthlyPrice: 49,
   },
   pro: {
     price_id: "price_1T7zmSL6NAuEbKmph7f5bCoH",
     product_id: "prod_U6CAjp8iwbIoFj",
     label: "Pro",
-    monthlyPrice: 197,
+    monthlyPrice: 199,
   },
   enterprise: {
     price_id: "price_1T7zpUL6NAuEbKmp5onvSShB",
     product_id: "prod_U6CDXjFWRuHmsb",
     label: "Enterprise",
-    monthlyPrice: 497,
+    monthlyPrice: 499,
   },
 } as const;
 
