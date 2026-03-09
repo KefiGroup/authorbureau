@@ -56,6 +56,7 @@ interface Props {
 // Top 3 recommendations mock — in real implementation these come from the business plan
 interface Recommendation {
   name: string;
+  nodeId: string;
   category: "build" | "bridge" | "yield";
   revenue: string;
   requiredTier: SubscriptionTier;
@@ -64,9 +65,9 @@ interface Recommendation {
 function getRecommendationsFromPlan(planContent: string | null): Recommendation[] {
   // Default recommendations when plan parsing isn't available
   return [
-    { name: "Quick-Start Workbook", category: "build", revenue: "Potential Revenue: $270 - $1,500 per month", requiredTier: "starter" },
-    { name: "Online Course", category: "build", revenue: "Potential Revenue: $500 - $3,000 per month", requiredTier: "pro" },
-    { name: "1-on-1 Coaching Program", category: "bridge", revenue: "Potential Revenue: $1,000 - $5,000 per month", requiredTier: "pro" },
+    { name: "Quick-Start Workbook", nodeId: "workbooks", category: "build", revenue: "Potential Revenue: $270 - $1,500 per month", requiredTier: "starter" },
+    { name: "Online Course", nodeId: "courses", category: "build", revenue: "Potential Revenue: $500 - $3,000 per month", requiredTier: "pro" },
+    { name: "1-on-1 Coaching Program", nodeId: "coaching-1on1", category: "bridge", revenue: "Potential Revenue: $1,000 - $5,000 per month", requiredTier: "pro" },
   ];
 }
 
