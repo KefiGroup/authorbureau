@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import ManuscriptUpload from "./ManuscriptUpload";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
-import { supabase as cloudSupabase } from "@/integrations/supabase/client";
+// cloudSupabase queries now use REST API with shared backend token
 import DualModeBookForm from "@/components/DualModeBookForm";
 import JourneyTracker, { getBookStage, type JourneyStage } from "./my-books/JourneyTracker";
 import PortfolioSummaryBar from "./my-books/PortfolioSummaryBar";
@@ -44,8 +44,6 @@ interface Book {
 }
 
 async function getActiveToken(): Promise<string | null> {
-  const { data: cloudSession } = await cloudSupabase.auth.getSession();
-  if (cloudSession?.session?.access_token) return cloudSession.session.access_token;
   const { data: sharedSession } = await sharedSupabase.auth.getSession();
   return sharedSession?.session?.access_token || null;
 }
@@ -92,34 +90,49 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
       setBooks(fetchedBooks);
 
       if (fetchedBooks.length > 0) {
-        const { data: assets } = await cloudSupabase
-          .from("generated_assets")
-          .select("book_id, asset_type")
-          .eq("author_id", user.id)
-          .in("asset_type", ["business_plan", "source_material"]);
+        // Use REST API with auth token since cloudSupabase has no session
+        // (auth lives on sharedSupabase)
+        const baseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const apiKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+        const headers = {
+          apikey: apiKey,
+          Authorization: `Bearer ${token}`,
+        };
 
-        const analyzed = new Set<string>();
-        const manuscripts = new Set<string>();
-        (assets || []).forEach((a: any) => {
-          if (a.asset_type === "business_plan") analyzed.add(a.book_id);
-          if (a.asset_type === "source_material") manuscripts.add(a.book_id);
-        });
-        setAnalyzedBooks(analyzed);
-        setManuscriptBooks(manuscripts);
+        // Fetch generated assets (business plans + manuscripts)
+        try {
+          const assetsResp = await fetch(
+            `${baseUrl}/rest/v1/generated_assets?select=book_id,asset_type&author_id=eq.${user.id}&asset_type=in.(business_plan,source_material)`,
+            { headers }
+          );
+          const assets = assetsResp.ok ? await assetsResp.json() : [];
+          const analyzed = new Set<string>();
+          const manuscripts = new Set<string>();
+          (assets || []).forEach((a: any) => {
+            if (a.asset_type === "business_plan") analyzed.add(a.book_id);
+            if (a.asset_type === "source_material") manuscripts.add(a.book_id);
+          });
+          setAnalyzedBooks(analyzed);
+          setManuscriptBooks(manuscripts);
+        } catch (err) {
+          console.error("Failed to fetch assets:", err);
+        }
 
-        // Count products per book (courses, audiobooks, workbooks, etc.)
+        // Count products per book
         const bookIds = fetchedBooks.map((b: Book) => b.id);
         const counts: Record<string, number> = {};
-        const tables = ["courses", "audiobooks", "home_study_courses"] as const;
+        const tables = ["courses", "audiobooks", "home_study_courses"];
         for (const table of tables) {
-          const { data } = await cloudSupabase
-            .from(table)
-            .select("book_id")
-            .eq("author_id", user.id)
-            .in("book_id", bookIds);
-          (data || []).forEach((row: any) => {
-            counts[row.book_id] = (counts[row.book_id] || 0) + 1;
-          });
+          try {
+            const resp = await fetch(
+              `${baseUrl}/rest/v1/${table}?select=book_id&author_id=eq.${user.id}&book_id=in.(${bookIds.join(",")})`,
+              { headers }
+            );
+            const data = resp.ok ? await resp.json() : [];
+            (data || []).forEach((row: any) => {
+              counts[row.book_id] = (counts[row.book_id] || 0) + 1;
+            });
+          } catch {}
         }
         setProductCounts(counts);
       }
@@ -487,6 +500,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
                     <AbbyNudge
                       stage={stage}
                       bookTitle={book.title}
+                      tier={tier}
                       revenueStreams={12}
                       productsBuilt={builtCount}
                       totalProducts={12}
