@@ -31,19 +31,49 @@ export default function ChapterMappingStep({ stepData, setStepData, onMarkEdited
             Authorization: `Bearer ${session?.session?.access_token}`,
           },
           body: JSON.stringify({
-            prompt: `You are an expert workbook designer. Given a book titled "${bookTitle}" (book_id: ${bookId}), generate a workbook chapter mapping. Return a JSON array of sections, each with: id, chapterRef (which book chapter it maps to), title, position, contentTypes (array from: reflection, exercise, checklist, action-plan, template, self-assessment, goal-setting). Generate 12-15 sections mapping to the book chapters. Return ONLY the JSON array.`,
-            stream: false,
+            messages: [
+              {
+                role: "user",
+                content: `You are an expert workbook designer. Given a book titled "${bookTitle}" (book_id: ${bookId}), generate a workbook chapter mapping. Return a JSON array of sections, each with: id, chapterRef (which book chapter it maps to), title, position, contentTypes (array from: reflection, exercise, checklist, action-plan, template, self-assessment, goal-setting). Generate 12-15 sections mapping to the book chapters. Return ONLY the JSON array, no other text.`,
+              },
+            ],
+            bookId,
           }),
         }
       );
 
       setGenerationState("generating");
-      const result = await res.json();
+
+      // The edge function returns SSE stream — collect all chunks
+      let fullText = "";
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) throw new Error("No response body");
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split("\n");
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const data = line.slice(6).trim();
+            if (data === "[DONE]") continue;
+            try {
+              const parsed = JSON.parse(data);
+              const delta = parsed.choices?.[0]?.delta?.content;
+              if (delta) fullText += delta;
+            } catch {
+              // skip malformed chunks
+            }
+          }
+        }
+      }
 
       let parsed: WorkbookSection[] = [];
       try {
-        const text = result.response || result.content || JSON.stringify(result);
-        const match = text.match(/\[[\s\S]*\]/);
+        const match = fullText.match(/\[[\s\S]*\]/);
         if (match) parsed = JSON.parse(match[0]);
       } catch {
         // Generate default sections
