@@ -452,16 +452,16 @@ EXISTING PRODUCTS: ${existingProducts || "None built yet."}`;
 - recommended_price: number (USD)
 - price_justification: string
 - value_ladder_position: one of "bait", "tripwire", "core", "premium", "high_ticket"
-- structure: array of objects with { title, description, source_chapters, items: [{ title, description }] }
+- structure: array of objects with { title, description, source_chapters, items: [{ title, description }] }. KEEP THIS CONCISE — max 8 modules with 3-4 items each. Use short descriptions (1 sentence).
 - cross_builder_outputs: array of { builder, label, description }
-- abby_commentary: string (your personal note about why this will work)
-- revenue_projection: string
+- abby_commentary: string (your personal note about why this will work — 2-3 sentences max)
+- revenue_projection: string (1 sentence)
 
-IMPORTANT: Return ONLY the JSON object. No markdown, no code fences, no explanation before or after. Just the raw JSON.` },
-            { role: "user", content: `Analyze my book "${book?.title}" and design the complete ${builderLabel || builderId} product. Return your proposal as JSON only.` },
+CRITICAL: Return ONLY valid JSON. No markdown, no code fences, no text before or after. Keep descriptions short to fit within token limits. The entire response must be a single valid JSON object.` },
+            { role: "user", content: `Analyze my book "${book?.title}" and design the complete ${builderLabel || builderId} product. Return ONLY a JSON object.` },
           ],
-          temperature: 0.8,
-          max_completion_tokens: 4096,
+          temperature: 0.7,
+          max_completion_tokens: 8192,
         }),
       });
 
