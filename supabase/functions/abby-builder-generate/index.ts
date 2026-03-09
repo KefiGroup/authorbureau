@@ -334,78 +334,7 @@ DESIGN:
 5. CROSS_BUILDER_PREVIEW: Proposal→Website, co-marketing→Email+Social`,
 };
 
-// ── Proposal schema for tool calling ──────────────────────────────────
-const PROPOSAL_TOOL = {
-  type: "function" as const,
-  function: {
-    name: "present_proposal",
-    description: "Present a complete product proposal to the author for review",
-    parameters: {
-      type: "object",
-      properties: {
-        title_options: {
-          type: "array",
-          items: { type: "string" },
-          description: "3 title options for the product",
-        },
-        recommended_title: { type: "string", description: "Which title Abby recommends" },
-        subtitle: { type: "string", description: "Compelling subtitle" },
-        description: { type: "string", description: "2-3 paragraph product description" },
-        target_audience: { type: "string", description: "Who this product is for" },
-        transformation_promises: {
-          type: "array",
-          items: { type: "string" },
-          description: "5 specific outcomes",
-        },
-        recommended_price: { type: "number", description: "Recommended price in USD" },
-        price_justification: { type: "string", description: "Why this price" },
-        value_ladder_position: {
-          type: "string",
-          enum: ["bait", "tripwire", "core", "premium", "high_ticket"],
-        },
-        structure: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              title: { type: "string" },
-              description: { type: "string" },
-              source_chapters: { type: "string" },
-              items: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    title: { type: "string" },
-                    description: { type: "string" },
-                  },
-                  required: ["title"],
-                },
-              },
-            },
-            required: ["title"],
-          },
-          description: "Modules/sections/episodes — the main structural breakdown",
-        },
-        cross_builder_outputs: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              builder: { type: "string", description: "Destination builder ID" },
-              label: { type: "string", description: "Human-readable label" },
-              description: { type: "string", description: "What gets pushed" },
-            },
-            required: ["builder", "label"],
-          },
-        },
-        abby_commentary: { type: "string", description: "Abby's personal note about why this product will work for this specific book" },
-        revenue_projection: { type: "string", description: "Monthly revenue estimate with calculation" },
-      },
-      required: ["title_options", "recommended_title", "description", "target_audience", "recommended_price", "structure", "cross_builder_outputs", "abby_commentary"],
-    },
-  },
-};
+// Tool calling schema removed — using direct JSON response for better model compatibility
 
 // ── Resolve user from JWT ────────────────────────────────────────────
 async function resolveUser(req: Request): Promise<{ id: string; email: string } | null> {
@@ -513,13 +442,26 @@ EXISTING PRODUCTS: ${existingProducts || "None built yet."}`;
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",
           messages: [
-            { role: "system", content: `${builderPrompt}\n\n${contextBlock}\n\nUse the present_proposal tool to return your complete product design. Be specific, reference the book's actual content, and use the book's branded language in titles and descriptions.` },
-            { role: "user", content: `Analyze my book "${book?.title}" and design the complete ${builderLabel || builderId} product. Use the tool to present your proposal.` },
+            { role: "system", content: `${builderPrompt}\n\n${contextBlock}\n\nReturn your complete product design as a JSON object with these fields:
+- title_options: array of 3 title strings
+- recommended_title: string (which title you recommend)
+- subtitle: string
+- description: string (2-3 paragraphs)
+- target_audience: string
+- transformation_promises: array of 5 strings
+- recommended_price: number (USD)
+- price_justification: string
+- value_ladder_position: one of "bait", "tripwire", "core", "premium", "high_ticket"
+- structure: array of objects with { title, description, source_chapters, items: [{ title, description }] }. KEEP THIS CONCISE — max 8 modules with 3-4 items each. Use short descriptions (1 sentence).
+- cross_builder_outputs: array of { builder, label, description }
+- abby_commentary: string (your personal note about why this will work — 2-3 sentences max)
+- revenue_projection: string (1 sentence)
+
+CRITICAL: Return ONLY valid JSON. No markdown, no code fences, no text before or after. Keep descriptions short to fit within token limits. The entire response must be a single valid JSON object.` },
+            { role: "user", content: `Analyze my book "${book?.title}" and design the complete ${builderLabel || builderId} product. Return ONLY a JSON object.` },
           ],
-          tools: [PROPOSAL_TOOL],
-          tool_choice: { type: "function", function: { name: "present_proposal" } },
-          temperature: 0.8,
-          max_completion_tokens: 4096,
+          temperature: 0.7,
+          max_completion_tokens: 8192,
         }),
       });
 
@@ -543,46 +485,86 @@ EXISTING PRODUCTS: ${existingProducts || "None built yet."}`;
       }
 
       const result = await response.json();
-      const toolCall = result.choices?.[0]?.message?.tool_calls?.[0];
-
-      if (!toolCall?.function?.arguments) {
-        // Fallback: try to parse from content
-        const content = result.choices?.[0]?.message?.content || "";
-        console.error("No tool call in Act 1 response, content:", content.slice(0, 200));
-        return new Response(JSON.stringify({ error: "Failed to generate proposal. Please try again." }), {
-          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
+      
+      // Extract JSON from content (no tool calling)
+      const content = result.choices?.[0]?.message?.content || "";
+      
       let proposal: any;
       try {
-        proposal = typeof toolCall.function.arguments === "string"
-          ? JSON.parse(toolCall.function.arguments)
-          : toolCall.function.arguments;
-      } catch (e) {
-        console.error("Failed to parse proposal JSON:", e);
-        return new Response(JSON.stringify({ error: "Failed to parse proposal. Please try again." }), {
-          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        // Try direct JSON parse first
+        const cleaned = content.replace(/^```json?\s*/i, "").replace(/```\s*$/, "").trim();
+        proposal = JSON.parse(cleaned);
+      } catch {
+        // Fallback: find JSON object in content and try to repair truncated JSON
+        const jsonMatch = content.match(/\{[\s\S]*/);
+        if (!jsonMatch) {
+          console.error("No JSON found in Act 1 response:", content.slice(0, 500));
+          return new Response(JSON.stringify({ error: "Failed to generate proposal. Please try again." }), {
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        
+        let jsonStr = jsonMatch[0];
+        // Try to repair truncated JSON by closing open brackets/braces
+        const repairJson = (s: string): string => {
+          let openBraces = 0, openBrackets = 0;
+          let inString = false, escaped = false;
+          for (const c of s) {
+            if (escaped) { escaped = false; continue; }
+            if (c === '\\') { escaped = true; continue; }
+            if (c === '"') { inString = !inString; continue; }
+            if (inString) continue;
+            if (c === '{') openBraces++;
+            else if (c === '}') openBraces--;
+            else if (c === '[') openBrackets++;
+            else if (c === ']') openBrackets--;
+          }
+          // If we're inside a string, close it
+          if (inString) s += '"';
+          // Close any open brackets then braces
+          for (let i = 0; i < openBrackets; i++) s += ']';
+          for (let i = 0; i < openBraces; i++) s += '}';
+          return s;
+        };
+        
+        try {
+          proposal = JSON.parse(jsonStr);
+        } catch {
+          try {
+            // Remove trailing comma before closing
+            const repaired = repairJson(jsonStr).replace(/,\s*([}\]])/g, '$1');
+            proposal = JSON.parse(repaired);
+            console.log("Repaired truncated JSON successfully");
+          } catch (e) {
+            console.error("Failed to parse/repair JSON:", e);
+            return new Response(JSON.stringify({ error: "Failed to parse proposal. Please try again." }), {
+              status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        }
       }
 
-      // Save proposal as draft
-      await adminClient.from("generated_assets").upsert({
-        book_id: bookId,
-        author_id: user.id,
-        asset_type: `builder_proposal_${builderId}`,
-        content: JSON.stringify(proposal),
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "book_id,asset_type" }).catch(err => {
-        // Non-blocking — try insert if upsert fails
-        console.warn("Proposal upsert failed, trying insert:", err);
-        adminClient.from("generated_assets").insert({
+      // Save proposal as draft (non-blocking)
+      try {
+        const { error: upsertErr } = await adminClient.from("generated_assets").upsert({
           book_id: bookId,
           author_id: user.id,
           asset_type: `builder_proposal_${builderId}`,
           content: JSON.stringify(proposal),
-        }).catch(() => {});
-      });
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "book_id,asset_type" });
+        if (upsertErr) {
+          console.warn("Proposal upsert failed, trying insert:", upsertErr);
+          await adminClient.from("generated_assets").insert({
+            book_id: bookId,
+            author_id: user.id,
+            asset_type: `builder_proposal_${builderId}`,
+            content: JSON.stringify(proposal),
+          });
+        }
+      } catch (e) {
+        console.warn("Proposal save failed:", e);
+      }
 
       return new Response(JSON.stringify({ proposal }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
