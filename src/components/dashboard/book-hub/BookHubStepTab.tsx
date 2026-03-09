@@ -63,7 +63,7 @@ export const categoryConfigs: CategoryConfig[] = [
       { id: "workbooks", label: "Workbook", iconName: "FileText", description: "Companion workbook PDFs with exercises & action plans.", status: "live", group: "Digital Products", requiredTier: "starter" },
       { id: "audiobook", label: "Audiobook", iconName: "Headphones", description: "AI-narrated audiobook from your manuscript.", status: "coming-soon", group: "Digital Products", requiredTier: "pro" },
       { id: "book-sales-events", label: "Book Sales (Events)", iconName: "BookOpen", description: "QR code order pages for live event sales.", status: "planned", group: "Digital Products", requiredTier: "enterprise" },
-      { id: "home-study", label: "Home Study Courses", iconName: "BookMarked", description: "Self-paced study guide with daily schedules.", status: "coming-soon", group: "Digital Products", requiredTier: "pro" },
+      { id: "home-study", label: "Home Study Courses", iconName: "BookMarked", description: "Self-paced study guide with daily schedules.", status: "live", group: "Digital Products", requiredTier: "pro" },
       { id: "courses", label: "Online Courses", iconName: "GraduationCap", description: "8-12 module structured courses from your manuscript.", status: "coming-soon", group: "Digital Products", requiredTier: "pro" },
       { id: "special-editions", label: "Special Editions", iconName: "Sparkles", description: "Signed copies, bundles, collector's editions.", status: "planned", group: "Digital Products", requiredTier: "enterprise" },
       { id: "memberships", label: "Monthly Memberships", iconName: "CreditCard", description: "3-tier membership with gated content drip.", status: "planned", group: "Digital Products", requiredTier: "pro" },
@@ -181,6 +181,11 @@ export default function BookHubStepTab({ categoryId, bookId, bookTitle, isPremiu
       "coaching-1on1": `/dashboard?section=coaching&bookId=${bookId}${titleParam}`,
       keynotes: `/dashboard?section=speaking&bookId=${bookId}${titleParam}`,
       courses: `/dashboard?section=courses&bookId=${bookId}${titleParam}`,
+      "home-study": `/dashboard?section=home-study&bookId=${bookId}${titleParam}`,
+      "email-marketing": `/dashboard?section=email-marketing&bookId=${bookId}${titleParam}`,
+      "podcast-guest": `/dashboard?section=podcast&bookId=${bookId}${titleParam}`,
+      memberships: `/dashboard?section=memberships&bookId=${bookId}${titleParam}`,
+      "group-coaching": `/dashboard?section=group-coaching&bookId=${bookId}${titleParam}`,
     };
     return map[nodeId] || null;
   };
