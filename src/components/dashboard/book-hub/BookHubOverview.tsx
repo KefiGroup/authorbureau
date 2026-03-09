@@ -412,6 +412,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
         hasConsultation={isAnalyzed}
         tier={tier}
         completedAssets={completedAssets}
+        recommendedNodes={recommendedNodes}
         onConsultAbby={onConsultAbby}
         onNavigateTab={onNavigateTab}
       />
