@@ -25,7 +25,7 @@ const STREAMS: StreamGroup[] = [
     letter: "B",
     title: "BUILD",
     subtitle: "Build Authority & Digital Assets",
-    tierLabel: "From $47/mo",
+    tierLabel: "From $49/mo",
     color: "#22C55E",
     nodes: [
       { label: "Online Courses", price: "$97–$497", status: "locked", requiredTier: "Pro" },
