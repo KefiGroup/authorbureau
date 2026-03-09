@@ -134,6 +134,11 @@ export default function AbbyBuildAdvisor({ categoryId, bookId, bookTitle }: Prop
       "coaching-1on1": `/dashboard?section=coaching&bookId=${bookId}${titleParam}`,
       keynotes: `/dashboard?section=speaking&bookId=${bookId}${titleParam}`,
       courses: `/dashboard?section=courses&bookId=${bookId}${titleParam}`,
+      "home-study": `/dashboard?section=home-study&bookId=${bookId}${titleParam}`,
+      "email-marketing": `/dashboard?section=email-marketing&bookId=${bookId}${titleParam}`,
+      "podcast-guest": `/dashboard?section=podcast&bookId=${bookId}${titleParam}`,
+      memberships: `/dashboard?section=memberships&bookId=${bookId}${titleParam}`,
+      "group-coaching": `/dashboard?section=group-coaching&bookId=${bookId}${titleParam}`,
     };
     return map[nodeId] || null;
   };
