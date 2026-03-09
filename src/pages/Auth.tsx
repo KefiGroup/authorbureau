@@ -332,7 +332,7 @@ export default function Auth() {
           <div className="rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-card)] space-y-6">
             <div className="text-center">
               <h1 className="font-heading text-2xl font-bold">Sign In to Authors Bureau</h1>
-              <p className="text-sm text-muted-foreground mt-1">Choose how you'd like to sign in.</p>
+              <p className="text-sm text-muted-foreground mt-1">New here? Just enter your email — we'll create your account automatically.</p>
             </div>
 
             {/* Mode toggle — only show when not in a sub-flow */}
