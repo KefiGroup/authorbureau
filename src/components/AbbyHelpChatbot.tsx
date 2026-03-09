@@ -303,6 +303,7 @@ export default function AbbyHelpChatbot() {
             <span className="absolute inset-0 rounded-full animate-ping" style={{ background: "rgba(212,168,67,0.3)", animationDuration: "5s" }} />
           )}
           <button
+            data-abby-trigger
             onClick={openChat}
             className="relative rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
             style={{
