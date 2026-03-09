@@ -14,8 +14,8 @@ interface AbbyNudgeProps {
 
 const stageStyles: Record<number, { bg: string; border: string }> = {
   1: { bg: "#FDF6E9", border: "#E8D5A8" },
-  2: { bg: "#EEF2FF", border: "#C7D2FE" },
-  3: { bg: "#CCFBF1", border: "#99F6E4" },
+  2: { bg: "#FDF6E9", border: "#E8D5A8" },
+  3: { bg: "#EEF2FF", border: "#C7D2FE" },
   4: { bg: "#CCFBF1", border: "#99F6E4" },
   5: { bg: "#D1FAE5", border: "#A7F3D0" },
 };
