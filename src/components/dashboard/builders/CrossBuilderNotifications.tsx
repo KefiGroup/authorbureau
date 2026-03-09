@@ -83,13 +83,11 @@ export default function CrossBuilderNotifications({
   if (loading || pushes.length === 0) return null;
 
   const getSourceLabel = (sourceId: string) => {
-    const config = Object.values(BUILDER_NODE_CONFIGS).find(c => c.id === sourceId);
-    return config?.label || sourceId;
+    return BUILDER_NODE_MAP[sourceId]?.label || sourceId;
   };
 
   const getSourceIcon = (sourceId: string) => {
-    const config = Object.values(BUILDER_NODE_CONFIGS).find(c => c.id === sourceId);
-    return config?.icon || "📦";
+    return BUILDER_NODE_MAP[sourceId]?.icon || "📦";
   };
 
   return (

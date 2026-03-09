@@ -50,13 +50,11 @@ export default function CrossBuilderPushSummary({
   if (loading || pushes.length === 0) return null;
 
   const getDestLabel = (destId: string) => {
-    const config = Object.values(BUILDER_NODE_CONFIGS).find(c => c.id === destId);
-    return config?.label || destId;
+    return BUILDER_NODE_MAP[destId]?.label || destId;
   };
 
   const getDestIcon = (destId: string) => {
-    const config = Object.values(BUILDER_NODE_CONFIGS).find(c => c.id === destId);
-    return config?.icon || "📦";
+    return BUILDER_NODE_MAP[destId]?.icon || "📦";
   };
 
   // Group by destination builder
