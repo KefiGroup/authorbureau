@@ -853,6 +853,78 @@ export type Database = {
         }
         Relationships: []
       }
+      cross_builder_pushes: {
+        Row: {
+          author_id: string
+          book_id: string
+          content_json: Json
+          created_at: string
+          description: string | null
+          destination_builder: string
+          destination_record_id: string | null
+          destination_table: string | null
+          dismissed_at: string | null
+          id: string
+          imported_at: string | null
+          push_type: string
+          source_asset_id: string | null
+          source_builder: string
+          status: string
+          title: string
+        }
+        Insert: {
+          author_id: string
+          book_id: string
+          content_json?: Json
+          created_at?: string
+          description?: string | null
+          destination_builder: string
+          destination_record_id?: string | null
+          destination_table?: string | null
+          dismissed_at?: string | null
+          id?: string
+          imported_at?: string | null
+          push_type: string
+          source_asset_id?: string | null
+          source_builder: string
+          status?: string
+          title: string
+        }
+        Update: {
+          author_id?: string
+          book_id?: string
+          content_json?: Json
+          created_at?: string
+          description?: string | null
+          destination_builder?: string
+          destination_record_id?: string | null
+          destination_table?: string | null
+          dismissed_at?: string | null
+          id?: string
+          imported_at?: string | null
+          push_type?: string
+          source_asset_id?: string | null
+          source_builder?: string
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cross_builder_pushes_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cross_builder_pushes_source_asset_id_fkey"
+            columns: ["source_asset_id"]
+            isOneToOne: false
+            referencedRelation: "generated_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_campaigns: {
         Row: {
           author_id: string
