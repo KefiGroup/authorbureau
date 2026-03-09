@@ -1,6 +1,8 @@
+import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Reusable book context bar for all product builders.
@@ -11,7 +13,17 @@ export function useBookContext() {
   const [searchParams] = useSearchParams();
   const bookId = searchParams.get("bookId") || "";
   const bookTitle = searchParams.get("bookTitle") || "";
-  const bookCoverUrl = searchParams.get("bookCoverUrl") || null;
+  const rawBookCoverUrl = searchParams.get("bookCoverUrl");
+  const bookCoverUrl = rawBookCoverUrl
+    ? (() => {
+        try {
+          return decodeURIComponent(rawBookCoverUrl);
+        } catch {
+          return rawBookCoverUrl;
+        }
+      })()
+    : null;
+
   return { bookId, bookTitle, bookCoverUrl };
 }
 
@@ -22,7 +34,30 @@ interface Props {
 
 export default function BookBuilderContextBar({ backTab = "automate" }: Props) {
   const navigate = useNavigate();
-  const { bookId, bookTitle } = useBookContext();
+  const { bookId, bookTitle, bookCoverUrl } = useBookContext();
+  const [resolvedBookCoverUrl, setResolvedBookCoverUrl] = useState<string | null>(bookCoverUrl);
+
+  useEffect(() => {
+    setResolvedBookCoverUrl(bookCoverUrl);
+    if (bookCoverUrl || !bookId) return;
+
+    let isMounted = true;
+    (async () => {
+      const { data } = await supabase
+        .from("books")
+        .select("cover_image_url")
+        .eq("id", bookId)
+        .maybeSingle();
+
+      if (isMounted && data?.cover_image_url) {
+        setResolvedBookCoverUrl(data.cover_image_url);
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [bookCoverUrl, bookId]);
 
   if (!bookId) return null;
 
@@ -41,7 +76,11 @@ export default function BookBuilderContextBar({ backTab = "automate" }: Props) {
       <div className="w-px h-8 bg-border" />
 
       <div className="h-10 w-7 rounded-md overflow-hidden bg-muted flex items-center justify-center shrink-0 shadow-sm border border-border">
-        <BookOpen className="h-3.5 w-3.5 text-muted-foreground/40" />
+        {resolvedBookCoverUrl ? (
+          <img src={resolvedBookCoverUrl} alt={decodeURIComponent(bookTitle)} className="h-full w-full object-cover" />
+        ) : (
+          <BookOpen className="h-3.5 w-3.5 text-muted-foreground/40" />
+        )}
       </div>
 
       <div className="min-w-0 flex-1">
