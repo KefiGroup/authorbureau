@@ -16,6 +16,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminAuth from "./pages/AdminAuth";
 import AuthorDashboard from "./pages/AuthorDashboard";
 import Contact from "./pages/Contact";
+import FAQ from "./pages/FAQ";
 import ReadingClub from "./pages/ReadingClub";
 import SSO from "./pages/SSO";
 import NotFound from "./pages/NotFound";
