@@ -44,8 +44,6 @@ interface Book {
 }
 
 async function getActiveToken(): Promise<string | null> {
-  const { data: cloudSession } = await cloudSupabase.auth.getSession();
-  if (cloudSession?.session?.access_token) return cloudSession.session.access_token;
   const { data: sharedSession } = await sharedSupabase.auth.getSession();
   return sharedSession?.session?.access_token || null;
 }
