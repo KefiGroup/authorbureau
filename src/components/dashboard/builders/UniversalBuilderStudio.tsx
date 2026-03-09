@@ -527,21 +527,12 @@ ${frameworks ? `\n\nBOOK FRAMEWORKS (the author's proprietary methods/models):\n
 
                 {/* Generation states */}
                 {generationState !== "idle" && generationState !== "complete" && (
-                  <Card className="p-6 mb-6 text-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-secondary mx-auto mb-3" />
-                    <p className="text-sm font-medium">
-                      {generationState === "queued" && "Preparing to analyze your manuscript..."}
-                      {generationState === "analyzing" && "Reading chapters and extracting key concepts..."}
-                      {generationState === "generating" && `Creating your ${nodeConfig.label.toLowerCase()}...`}
-                    </p>
-                    <div className="w-48 h-1.5 bg-muted rounded-full mx-auto mt-3 overflow-hidden">
-                      <motion.div
-                        className="h-full bg-secondary rounded-full"
-                        initial={{ width: "0%" }}
-                        animate={{ width: generationState === "queued" ? "20%" : generationState === "analyzing" ? "60%" : "90%" }}
-                        transition={{ duration: 2 }}
-                      />
-                    </div>
+                  <Card className="p-6 mb-6">
+                    <AbbyNarrativeLoading
+                      messages={nodeConfig.loadingMessages}
+                      builderLabel={nodeConfig.label.toLowerCase()}
+                      bookTitle={bookTitle || "your book"}
+                    />
                   </Card>
                 )}
 
