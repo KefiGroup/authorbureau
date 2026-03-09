@@ -46,7 +46,7 @@ const STREAMS: StreamGroup[] = [
     letter: "B",
     title: "BRIDGE",
     subtitle: "Bridge Channels & Connections",
-    tierLabel: "Pro $197/mo",
+    tierLabel: "Pro $199/mo",
     color: "#8B5CF6",
     nodes: [
       { label: "1-on-1 Coaching", price: "$150–$500/session", status: "locked", requiredTier: "Pro" },
