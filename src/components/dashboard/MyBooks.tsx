@@ -502,6 +502,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
                     <AbbyNudge
                       stage={stage}
                       bookTitle={book.title}
+                      tier={tier}
                       revenueStreams={12}
                       productsBuilt={builtCount}
                       totalProducts={12}
