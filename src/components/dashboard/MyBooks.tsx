@@ -1,19 +1,25 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, TIERS, type SubscriptionTier } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
-  BookOpen, Plus, ExternalLink, Loader2, ImagePlus, Clock,
-  Pencil, Sparkles, ArrowRight, CheckCircle2, Circle, ShieldCheck,
+  BookOpen, Plus, ExternalLink, Loader2, ImagePlus, Sparkles, Eye,
+  CreditCard, Rocket, Hammer, ChartLine, CheckCircle2, Upload,
 } from "lucide-react";
 import ManuscriptUpload from "./ManuscriptUpload";
-import StripeConnectBanner from "./StripeConnectBanner";
-import ProductReviewQueue from "./ProductReviewQueue";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import DualModeBookForm from "@/components/DualModeBookForm";
+import JourneyTracker, { getBookStage, type JourneyStage } from "./my-books/JourneyTracker";
+import PortfolioSummaryBar from "./my-books/PortfolioSummaryBar";
+import ContextualBanner from "./my-books/ContextualBanner";
+import AbbyNudge from "./my-books/AbbyNudge";
+import RevenueProjectionCard from "./my-books/RevenueProjectionCard";
+import BookActionMenu from "./my-books/BookActionMenu";
+import PortfolioStrategyCard from "./my-books/PortfolioStrategyCard";
+import BuildMyBusinessSection from "./my-books/BuildMyBusinessSection";
 
 interface Book {
   id: string;
@@ -50,10 +56,8 @@ interface MyBooksProps {
   stripeConnected?: boolean;
 }
 
-type JourneyDot = "done" | "current" | "upcoming";
-
 export default function MyBooks({ isPremium = false, onNavigate, stripeConnected = false }: MyBooksProps) {
-  const { user } = useAuth();
+  const { user, tier, isAdmin } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [books, setBooks] = useState<Book[]>([]);
@@ -63,6 +67,10 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
   const [uploadingCover, setUploadingCover] = useState<string | null>(null);
   const [analyzedBooks, setAnalyzedBooks] = useState<Set<string>>(new Set());
   const [manuscriptBooks, setManuscriptBooks] = useState<Set<string>>(new Set());
+  const [showManuscriptUpload, setShowManuscriptUpload] = useState<string | null>(null);
+  const [productCounts, setProductCounts] = useState<Record<string, number>>({});
+
+  const isSubscribed = isPremium || isAdmin;
 
   const fetchBooks = async () => {
     if (!user) return;
@@ -83,7 +91,6 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
       const fetchedBooks = result.books || [];
       setBooks(fetchedBooks);
 
-      // Check which books have been analyzed (have business_plan asset) and have manuscripts
       if (fetchedBooks.length > 0) {
         const { data: assets } = await cloudSupabase
           .from("generated_assets")
@@ -99,6 +106,22 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
         });
         setAnalyzedBooks(analyzed);
         setManuscriptBooks(manuscripts);
+
+        // Count products per book (courses, audiobooks, workbooks, etc.)
+        const bookIds = fetchedBooks.map((b: Book) => b.id);
+        const counts: Record<string, number> = {};
+        const tables = ["courses", "audiobooks", "home_study_courses"] as const;
+        for (const table of tables) {
+          const { data } = await cloudSupabase
+            .from(table)
+            .select("book_id")
+            .eq("author_id", user.id)
+            .in("book_id", bookIds);
+          (data || []).forEach((row: any) => {
+            counts[row.book_id] = (counts[row.book_id] || 0) + 1;
+          });
+        }
+        setProductCounts(counts);
       }
     } catch (err) {
       console.error("Failed to fetch books:", err);
@@ -131,8 +154,6 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
     }
   };
 
-  // No more self-publish or unpublish — admin controls this
-
   const handleEdit = async (book: Book) => {
     try {
       const token = await getActiveToken();
@@ -154,31 +175,96 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
     }
   };
 
-  // Journey dot helpers
-  const getBookJourney = (book: Book): [JourneyDot, JourneyDot, JourneyDot, JourneyDot] => {
-    const microsite: JourneyDot = book.published_at ? "done" : "upcoming"; // pending approval
-    const analyzed: JourneyDot = analyzedBooks.has(book.id) ? "done" : (microsite === "done" ? "current" : "upcoming");
-    const building: JourneyDot = analyzed === "done" && isPremium ? "current" : (analyzed === "done" ? "upcoming" : "upcoming");
-    const earning: JourneyDot = "upcoming";
-    return [microsite, analyzed, building, earning];
+  const handleDeleteBook = async (bookId: string) => {
+    try {
+      const token = await getActiveToken();
+      if (!token) return;
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ action: "delete", bookId }),
+        }
+      );
+      if (!response.ok) {
+        const result = await response.json();
+        throw new Error(result.error);
+      }
+      toast({ title: "Book deleted" });
+      fetchBooks();
+    } catch (err) {
+      toast({ title: "Failed to delete book", variant: "destructive" });
+    }
   };
 
-  const dotLabels = ["Microsite", "Analyzed", "Building", "Earning"];
+  // Journey stage per book
+  const getStage = (book: Book): JourneyStage => {
+    return getBookStage({
+      hasMicrosite: !!book.published_at,
+      isAnalyzed: analyzedBooks.has(book.id),
+      isSubscribed,
+      productsBuilt: productCounts[book.id] || 0,
+      hasRevenue: false, // TODO: integrate real revenue data
+    });
+  };
 
-  const getContextualCTA = (book: Book) => {
+  // Primary CTA per book
+  const getPrimaryCTA = (book: Book) => {
+    const stage = getStage(book);
     const isAnalyzed = analyzedBooks.has(book.id);
-    if (!isAnalyzed) return { label: "Analyze with Abby →", variant: "default" as const, action: () => onNavigate?.("build-business") };
-    if (!isPremium) return { label: "Start Building →", variant: "default" as const, action: () => onNavigate?.("revenue-streams") };
-    return { label: "Continue Building →", variant: "default" as const, action: () => navigate(`/dashboard/book/${book.id}`) };
+
+    if (!isAnalyzed) return {
+      label: "Analyze with Abby — Free", icon: Sparkles, bg: "bg-[#C4973B] hover:bg-[#D4A843]",
+      action: () => onNavigate?.("build-business"),
+    };
+    if (!isSubscribed) return {
+      label: "Subscribe to Start Building", icon: CreditCard, bg: "bg-[#6366F1] hover:bg-[#6366F1]/90",
+      action: () => onNavigate?.("build-business"),
+    };
+    if ((productCounts[book.id] || 0) === 0) return {
+      label: "Start Building", icon: Rocket, bg: "bg-[#0D9488] hover:bg-[#0D9488]/90",
+      action: () => navigate(`/dashboard/book/${book.id}`),
+    };
+    return {
+      label: "Continue Building", icon: Hammer, bg: "bg-[#0D9488] hover:bg-[#0D9488]/90",
+      action: () => navigate(`/dashboard/book/${book.id}`),
+    };
   };
 
-  const getNextStepPrompt = (book: Book) => {
-    const isAnalyzed = analyzedBooks.has(book.id);
-    if (!isAnalyzed) return "Let Abby map revenue streams for this book — it's free →";
-    if (!isPremium) return "Abby found revenue streams. Subscribe to start building →";
-    return "Continue building products from your book →";
+  // Banner priority
+  const getBannerPriority = (): { priority: 1 | 2 | 3 | 4 | 5; bookTitle?: string } | null => {
+    const hasAnalyzedNotSubscribed = books.some(b => analyzedBooks.has(b.id)) && !isSubscribed;
+    if (hasAnalyzedNotSubscribed) return { priority: 1 };
+    if (isSubscribed && !stripeConnected) return { priority: 2 };
+    const unanalyzedBook = books.find(b => !analyzedBooks.has(b.id));
+    if (unanalyzedBook) return { priority: 3, bookTitle: unanalyzedBook.title };
+    // Default progress banner
+    if (books.length > 0) return { priority: 5 };
+    return null;
   };
 
+  const handleBannerAction = (priority: number) => {
+    switch (priority) {
+      case 1: onNavigate?.("build-business"); break;
+      case 2: navigate("/dashboard/connect-stripe"); break;
+      case 3: onNavigate?.("build-business"); break;
+      case 4: onNavigate?.("review-products"); break;
+      case 5: {
+        const firstAnalyzed = books.find(b => analyzedBooks.has(b.id));
+        if (firstAnalyzed) navigate(`/dashboard/book/${firstAnalyzed.id}`);
+        break;
+      }
+    }
+  };
+
+  // Stats
+  const liveCount = books.filter(b => b.published_at).length;
+  const analyzedCount = analyzedBooks.size;
+  const totalProductsBuilt = Object.values(productCounts).reduce((s, c) => s + c, 0);
+  const totalRecommended = analyzedCount * 12; // estimated, ideally from Abby
+
+  // Form view
   if (showForm && user) {
     const initialData = editingBook ? {
       title: editingBook.title || "", subtitle: editingBook.subtitle || "",
@@ -201,31 +287,19 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
     );
   }
 
-  // Stats
-  const liveCount = books.filter(b => b.published_at).length;
-  const analyzedCount = analyzedBooks.size;
-
-  // Bottom banner
-  const getBottomBanner = () => {
-    if (analyzedCount === 0 && books.length > 0)
-      return `You have ${books.length} book${books.length !== 1 ? "s" : ""} ready for Abby. She'll map up to 27 revenue streams per book — for free. Start with your best-seller →`;
-    if (analyzedCount > 0 && !isPremium)
-      return `Abby found revenue streams across your books. Unlock the AI builders to start creating products →`;
-    if (isPremium)
-      return `You're building products for your books. Continue where you left off →`;
-    return null;
-  };
+  const banner = getBannerPriority();
 
   return (
     <div className="max-w-6xl space-y-6">
+      {/* 1. Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="font-heading text-2xl font-bold">My Books Hub</h2>
+          <h2 className="font-heading text-[28px] font-bold">My Books Hub</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage your books, microsites, and track your monetization journey.
+            Your books, your journey, your revenue — all in one place.
           </p>
         </div>
-        <Button onClick={() => setShowForm(true)} className="bg-secondary text-secondary-foreground hover:bg-secondary/90 w-fit">
+        <Button onClick={() => setShowForm(true)} className="bg-[#C4973B] hover:bg-[#D4A843] text-white w-fit">
           <Plus className="h-4 w-4 mr-1.5" /> Add Book
         </Button>
       </div>
@@ -243,64 +317,79 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
           <p className="text-sm text-muted-foreground max-w-sm mb-6">
             Add your first book to create a professional microsite and start your author business.
           </p>
-          <Button onClick={() => setShowForm(true)} className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
+          <Button onClick={() => setShowForm(true)} className="bg-[#C4973B] hover:bg-[#D4A843] text-white">
             <Plus className="h-4 w-4 mr-1.5" /> Add Your First Book
           </Button>
         </Card>
       ) : (
         <>
-          {/* Stripe Connect Banner */}
-          {isPremium && !stripeConnected && <StripeConnectBanner />}
+          {/* 2. Portfolio Summary Bar */}
+          <PortfolioSummaryBar
+            bookCount={books.length}
+            liveMicrosites={liveCount}
+            analyzedCount={analyzedCount}
+            productsBuilt={totalProductsBuilt}
+            totalRecommended={totalRecommended}
+            revenueThisMonth={0}
+            tier={tier}
+            onSubscribe={() => onNavigate?.("build-business")}
+          />
 
-          {/* Products Pending Review */}
-          <ProductReviewQueue onNavigate={onNavigate} />
+          {/* 3. Contextual Action Banner */}
+          {banner && (
+            <ContextualBanner
+              priority={banner.priority}
+              bookTitle={banner.bookTitle}
+              revenueRange="$8,000–$30,000/month"
+              productsBuilt={totalProductsBuilt}
+              totalProducts={totalRecommended}
+              onAction={() => handleBannerAction(banner.priority)}
+            />
+          )}
 
-          {/* Quick Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {[
-              { emoji: "📚", label: "Books Listed", value: books.length },
-              { emoji: "🌐", label: "Live Microsites", value: liveCount },
-              { emoji: "🤖", label: "Analyzed by Abby", value: analyzedCount },
-              { emoji: "💰", label: "Revenue This Month", value: "$0" },
-            ].map((stat) => (
-              <div key={stat.label} className="rounded-xl border border-border bg-card p-3 flex items-center gap-3">
-                <span className="text-xl">{stat.emoji}</span>
-                <div>
-                  <p className="text-lg font-bold font-heading leading-tight">{stat.value}</p>
-                  <p className="text-[11px] text-muted-foreground">{stat.label}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+          {/* Portfolio Strategy Card (2+ analyzed books) */}
+          <PortfolioStrategyCard
+            analyzedBookCount={analyzedCount}
+            totalStreams={analyzedCount * 12}
+            onViewStrategy={() => onNavigate?.("build-business")}
+          />
 
-          {/* Book Cards */}
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {/* 4. Book Cards Grid */}
+          <div className="grid gap-5 lg:grid-cols-2">
             {books.map((book) => {
-              const journey = getBookJourney(book);
-              const cta = getContextualCTA(book);
-              const nextStep = getNextStepPrompt(book);
+              const stage = getStage(book);
+              const isAnalyzed = analyzedBooks.has(book.id);
               const hasManuscript = manuscriptBooks.has(book.id);
+              const cta = getPrimaryCTA(book);
+              const CTAIcon = cta.icon;
+              const builtCount = productCounts[book.id] || 0;
+              const isBestseller = book.badges?.some(b => b.toLowerCase().includes("bestseller"));
 
               return (
                 <Card key={book.id} className="overflow-hidden group flex flex-col">
-                  {/* 1. Cover Image */}
-                  <div className="h-[200px] bg-muted flex items-center justify-center overflow-hidden relative">
+                  {/* A. Cover Image */}
+                  <div className="h-[220px] bg-muted flex items-center justify-center overflow-hidden relative">
                     {book.cover_image_url ? (
                       <img src={book.cover_image_url} alt={book.title} className="h-full w-full object-cover" />
                     ) : (
-                      <BookOpen className="h-10 w-10 text-muted-foreground/30" />
+                      <div className="w-full h-full flex flex-col items-center justify-center bg-primary">
+                        <span className="text-primary-foreground/60 text-xs uppercase tracking-wider mb-2">Book</span>
+                        <span className="text-primary-foreground text-center font-heading font-semibold text-sm leading-snug px-4">
+                          {book.title}
+                        </span>
+                      </div>
                     )}
+                    {/* Bottom gradient overlay */}
+                    <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/60 to-transparent" />
                     <label
-                      className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-colors cursor-pointer"
+                      className="absolute bottom-2 left-2 flex items-center gap-1.5 text-white text-[11px] font-medium bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 cursor-pointer hover:bg-white/30 transition-colors"
                       htmlFor={`cover-upload-${book.id}`}
                     >
-                      <span className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 text-white text-xs font-medium bg-black/60 rounded-full px-3 py-1.5">
-                        {uploadingCover === book.id ? (
-                          <><Loader2 className="h-3.5 w-3.5 animate-spin" />Uploading...</>
-                        ) : (
-                          <><ImagePlus className="h-3.5 w-3.5" />{book.cover_image_url ? "Change Cover" : "Add Cover"}</>
-                        )}
-                      </span>
+                      {uploadingCover === book.id ? (
+                        <><Loader2 className="h-3 w-3 animate-spin" />Uploading...</>
+                      ) : (
+                        <><ImagePlus className="h-3 w-3" />Change Cover</>
+                      )}
                     </label>
                     <input
                       id={`cover-upload-${book.id}`} type="file" accept="image/*" className="hidden"
@@ -311,126 +400,139 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
                         e.target.value = "";
                       }}
                     />
+                    {isBestseller && (
+                      <div className="absolute top-3 right-3 h-12 w-12 rounded-full bg-[#C4973B] flex items-center justify-center text-white text-[8px] font-bold text-center leading-tight shadow-lg">
+                        AMAZON<br />#1
+                      </div>
+                    )}
                   </div>
 
-                  {/* 2. Journey Progress Dots */}
-                  <div className="px-4 pt-3 pb-1">
-                    <div className="flex items-center gap-0">
-                      {journey.map((dot, i) => (
-                        <div key={i} className="flex items-center flex-1">
-                          <div className="flex flex-col items-center flex-1">
-                            <div className={`h-3 w-3 rounded-full border-2 ${
-                              dot === "done" ? "bg-accent border-accent" :
-                              dot === "current" ? "bg-secondary/30 border-secondary" :
-                              "bg-muted border-border"
-                            }`}>
-                              {dot === "done" && <CheckCircle2 className="h-3 w-3 text-accent-foreground" />}
-                            </div>
-                            <span className="text-[9px] text-muted-foreground mt-0.5">{dotLabels[i]}</span>
-                          </div>
-                          {i < 3 && <div className={`h-[2px] flex-1 -mt-3 ${
-                            journey[i + 1] === "done" || dot === "done" ? "bg-accent" : "bg-border"
-                          }`} />}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  {/* B. Journey Tracker */}
+                  <JourneyTracker currentStage={stage} isSubscribed={isSubscribed} />
 
-                  <div className="p-4 pt-2 space-y-2.5 flex-1 flex flex-col">
-                    {/* 3. Title */}
+                  <div className="p-4 pt-1 space-y-3 flex-1 flex flex-col">
+                    {/* C. Book Information */}
                     <div>
-                      <h3 className="font-heading font-semibold text-base line-clamp-1">{book.title}</h3>
-                      <p className="text-xs text-muted-foreground line-clamp-1 italic">
-                        {book.subtitle || book.genre || ""}
-                      </p>
+                      <h3 className="font-heading font-bold text-lg line-clamp-2">{book.title}</h3>
+                      {book.subtitle && (
+                        <p className="text-[13px] text-muted-foreground italic line-clamp-1 mt-0.5">{book.subtitle}</p>
+                      )}
                     </div>
 
-                    {/* 4. Tags */}
+                    {/* Tags */}
                     <div className="flex flex-wrap gap-1.5">
                       {book.genre && (
-                        <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        <span className="inline-flex items-center rounded-full bg-[#F3F4F6] px-2 py-0.5 text-[10px] font-medium text-[#6B7280]">
                           {book.genre}
                         </span>
                       )}
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                        book.published_at ? "bg-accent/15 text-accent" : "bg-muted text-muted-foreground"
-                      }`}>
-                        {book.published_at ? "Published" : "Under Review"}
-                      </span>
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                        hasManuscript ? "bg-accent/10 text-accent" : "bg-amber-100 text-amber-700"
-                      }`}>
-                        {hasManuscript ? "Manuscript ✅" : "Upload Manuscript"}
-                      </span>
+                      {book.published_at && (
+                        <span className="inline-flex items-center rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[10px] font-semibold text-[#92400E]">
+                          Published
+                        </span>
+                      )}
+                      {hasManuscript ? (
+                        <span className="inline-flex items-center rounded-full bg-[#D1FAE5] px-2 py-0.5 text-[10px] font-medium text-[#065F46] gap-1">
+                          <CheckCircle2 className="h-2.5 w-2.5" /> Manuscript
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => setShowManuscriptUpload(book.id)}
+                          className="inline-flex items-center rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[10px] font-medium text-[#92400E] gap-1 hover:bg-[#FDE68A] transition-colors cursor-pointer"
+                        >
+                          <Upload className="h-2.5 w-2.5" /> Upload Manuscript
+                        </button>
+                      )}
                     </div>
 
-                     {/* 5. Microsite status */}
-                     <div className="flex flex-col gap-1.5">
-                       {book.published_at ? (
-                         <>
-                           <div className="flex items-center gap-1.5 text-accent">
-                             <CheckCircle2 className="h-3.5 w-3.5" />
-                             <p className="text-[11px] font-semibold">Microsite Live</p>
-                           </div>
-                           <p className="text-[10px] text-muted-foreground">
-                             Approved & published by Admin
-                           </p>
-                         </>
-                       ) : (
-                         <>
-                           <div className="flex items-center gap-1.5 text-amber-600">
-                             <Clock className="h-3.5 w-3.5" />
-                             <p className="text-[11px] font-semibold">Pending Admin Approval</p>
-                           </div>
-                           <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
-                             <p className="text-[10px] text-amber-800 leading-relaxed">
-                               Your book has been submitted for review. An admin will review and approve your microsite within <strong>48 hours</strong>.
-                             </p>
-                           </div>
-                         </>
-                       )}
-                     </div>
+                    {/* Status indicators */}
+                    <div className="flex flex-col gap-1">
+                      {book.published_at && (
+                        <div className="flex items-center gap-1.5">
+                          <div className="h-1.5 w-1.5 rounded-full bg-[#059669]" />
+                          <span className="text-[11px] text-muted-foreground">Microsite Live</span>
+                        </div>
+                      )}
+                      {isAnalyzed && (
+                        <div className="flex items-center gap-1.5">
+                          <div className="h-1.5 w-1.5 rounded-full bg-[#059669]" />
+                          <span className="text-[11px] text-muted-foreground">Business Plan Ready</span>
+                        </div>
+                      )}
+                      {!isAnalyzed && (
+                        <div className="flex items-center gap-1.5">
+                          <div className="h-1.5 w-1.5 rounded-full bg-[#F59E0B]" />
+                          <span className="text-[11px] text-muted-foreground">Awaiting Analysis</span>
+                        </div>
+                      )}
+                      {builtCount > 0 && (
+                        <div className="flex items-center gap-1.5">
+                          <div className="h-1.5 w-1.5 rounded-full bg-[#059669]" />
+                          <span className="text-[11px] text-muted-foreground">{builtCount} Products Built</span>
+                        </div>
+                      )}
+                    </div>
 
-                    {/* Manuscript upload compact */}
-                    {!hasManuscript && (
+                    {/* D. Revenue Projection (analyzed only) */}
+                    {isAnalyzed && (
+                      <RevenueProjectionCard
+                        revenueRange="$8,000–$30,000/month"
+                        totalStreams={12}
+                        built={builtCount}
+                        remaining={12 - builtCount}
+                      />
+                    )}
+
+                    {/* E. Abby Nudge */}
+                    <AbbyNudge
+                      stage={stage}
+                      bookTitle={book.title}
+                      revenueStreams={12}
+                      productsBuilt={builtCount}
+                      totalProducts={12}
+                    />
+
+                    {/* Manuscript upload dialog */}
+                    {showManuscriptUpload === book.id && !hasManuscript && (
                       <ManuscriptUpload bookId={book.id} bookTitle={book.title} compact />
                     )}
 
                     {/* Spacer */}
                     <div className="flex-1" />
 
-                    {/* 6. Action Buttons */}
-                    <div className="grid grid-cols-3 gap-1.5 pt-1">
+                    {/* G. Action Section */}
+                    <div className="flex items-center gap-2 pt-1">
                       <Button
-                        variant="outline" size="sm" className="text-[11px] h-8 px-2"
-                        onClick={(e) => {
-                          e.stopPropagation();
+                        className={`flex-1 text-sm h-10 text-white ${cta.bg}`}
+                        onClick={cta.action}
+                      >
+                        <CTAIcon className="h-4 w-4 mr-1.5" />
+                        {cta.label}
+                      </Button>
+
+                      {/* View button */}
+                      <Button
+                        variant="outline" size="icon" className="h-9 w-9 shrink-0"
+                        onClick={() => {
                           if (book.published_at) window.open(`/books/${book.slug}`, "_blank");
-                          else toast({ title: "Your microsite is under review. It will be available once approved by an admin." });
+                          else toast({ title: "Microsite is under review" });
                         }}
                       >
-                        <ExternalLink className="h-3 w-3 mr-1" /> View
+                        <Eye className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="outline" size="sm" className="text-[11px] h-8 px-2"
-                        onClick={(e) => { e.stopPropagation(); handleEdit(book); }}
-                      >
-                        <Pencil className="h-3 w-3 mr-1" /> Edit
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="text-[11px] h-8 px-2 bg-secondary text-secondary-foreground hover:bg-secondary/90"
-                        onClick={(e) => { e.stopPropagation(); cta.action(); }}
-                      >
-                        <Sparkles className="h-3 w-3 mr-1" />
-                        {analyzedBooks.has(book.id) ? "Build" : "Analyze"}
-                      </Button>
-                    </div>
 
-                    {/* 7. Next step prompt */}
-                    <div className="rounded-lg bg-[hsl(var(--secondary)/0.08)] px-3 py-2 flex items-center gap-2">
-                      <p className="text-[11px] text-secondary flex-1 leading-snug">{nextStep}</p>
-                      <ArrowRight className="h-3.5 w-3.5 text-secondary shrink-0" />
+                      {/* Overflow menu */}
+                      <BookActionMenu
+                        isAnalyzed={isAnalyzed}
+                        hasManuscript={hasManuscript}
+                        hasMicrosite={!!book.published_at}
+                        onEdit={() => handleEdit(book)}
+                        onUploadManuscript={() => setShowManuscriptUpload(book.id)}
+                        onViewBusinessPlan={() => navigate(`/dashboard/book/${book.id}`)}
+                        onReAnalyze={() => onNavigate?.("build-business")}
+                        onViewMicrosite={() => window.open(`/books/${book.slug}`, "_blank")}
+                        onDelete={() => handleDeleteBook(book.id)}
+                      />
                     </div>
                   </div>
                 </Card>
@@ -438,26 +540,20 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
             })}
           </div>
 
-          {/* Bottom Banner */}
-          {getBottomBanner() && (
-            <Card className="border-secondary/20 bg-gradient-to-r from-secondary/5 to-secondary/10 p-5">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-secondary/15 flex items-center justify-center flex-shrink-0 text-lg">
-                  👩‍💼
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-foreground leading-relaxed">{getBottomBanner()}</p>
-                </div>
-                <Button
-                  size="sm"
-                  className="bg-secondary text-secondary-foreground hover:bg-secondary/90 whitespace-nowrap"
-                  onClick={() => onNavigate?.("build-business")}
-                >
-                  <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-                  {analyzedCount === 0 ? "Analyze with Abby" : "Continue Building"}
-                </Button>
-              </div>
-            </Card>
+          {/* 5. Build My Author Business Section */}
+          {isSubscribed && analyzedCount > 0 && (
+            <BuildMyBusinessSection
+              bookTitle={books.find(b => analyzedBooks.has(b.id))?.title || "Your Book"}
+              recommendedCount={12}
+              tier={tier}
+              buildBuilt={totalProductsBuilt}
+              bridgeBuilt={0}
+              yieldBuilt={0}
+              onBuild={() => {
+                const firstAnalyzed = books.find(b => analyzedBooks.has(b.id));
+                if (firstAnalyzed) navigate(`/dashboard/book/${firstAnalyzed.id}?tab=revenue-streams`);
+              }}
+            />
           )}
         </>
       )}
