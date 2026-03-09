@@ -513,11 +513,24 @@ EXISTING PRODUCTS: ${existingProducts || "None built yet."}`;
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",
           messages: [
-            { role: "system", content: `${builderPrompt}\n\n${contextBlock}\n\nUse the present_proposal tool to return your complete product design. Be specific, reference the book's actual content, and use the book's branded language in titles and descriptions.` },
-            { role: "user", content: `Analyze my book "${book?.title}" and design the complete ${builderLabel || builderId} product. Use the tool to present your proposal.` },
+            { role: "system", content: `${builderPrompt}\n\n${contextBlock}\n\nReturn your complete product design as a JSON object with these fields:
+- title_options: array of 3 title strings
+- recommended_title: string (which title you recommend)
+- subtitle: string
+- description: string (2-3 paragraphs)
+- target_audience: string
+- transformation_promises: array of 5 strings
+- recommended_price: number (USD)
+- price_justification: string
+- value_ladder_position: one of "bait", "tripwire", "core", "premium", "high_ticket"
+- structure: array of objects with { title, description, source_chapters, items: [{ title, description }] }
+- cross_builder_outputs: array of { builder, label, description }
+- abby_commentary: string (your personal note about why this will work)
+- revenue_projection: string
+
+IMPORTANT: Return ONLY the JSON object. No markdown, no code fences, no explanation before or after. Just the raw JSON.` },
+            { role: "user", content: `Analyze my book "${book?.title}" and design the complete ${builderLabel || builderId} product. Return your proposal as JSON only.` },
           ],
-          tools: [PROPOSAL_TOOL],
-          tool_choice: { type: "function", function: { name: "present_proposal" } },
           temperature: 0.8,
           max_completion_tokens: 4096,
         }),
