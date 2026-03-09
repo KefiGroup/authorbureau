@@ -16,6 +16,7 @@ import PlatformAccessTab from "@/components/admin/PlatformAccessTab";
 import AuthorsTab from "@/components/admin/AuthorsTab";
 import CRMDashboard from "@/components/dashboard/CRMDashboard";
 import ReadingClubTab from "@/components/admin/ReadingClubTab";
+import SupportTab from "@/components/admin/SupportTab";
 
 import type { AdminStats, Submission, AdminUser, AdminBook, AdminInfo } from "@/types/admin";
 
