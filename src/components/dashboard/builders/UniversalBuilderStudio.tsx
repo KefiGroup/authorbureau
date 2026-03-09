@@ -90,7 +90,16 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
   // Book context from URL params
   const bookId = searchParams.get("bookId") || "";
   const bookTitle = searchParams.get("bookTitle") ? decodeURIComponent(searchParams.get("bookTitle")!) : "";
-  const bookCoverUrl = searchParams.get("bookCoverUrl") || null;
+  const rawBookCoverUrl = searchParams.get("bookCoverUrl");
+  const bookCoverUrl = rawBookCoverUrl
+    ? (() => {
+        try {
+          return decodeURIComponent(rawBookCoverUrl);
+        } catch {
+          return rawBookCoverUrl;
+        }
+      })()
+    : null;
 
   // Builder state
   const [currentStep, setCurrentStep] = useState(0);
@@ -99,6 +108,7 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [generationState, setGenerationState] = useState<"idle" | "queued" | "analyzing" | "generating" | "complete" | "error">("idle");
   const [editedSteps, setEditedSteps] = useState<Set<string>>(new Set());
+  const [resolvedBookCoverUrl, setResolvedBookCoverUrl] = useState<string | null>(bookCoverUrl);
 
   // Abby advisor panel
   const [abbyOpen, setAbbyOpen] = useState(false);
@@ -116,26 +126,47 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
 
   useEffect(() => {
     if (!user || !bookId) return;
-    (async () => {
-      // Load manuscript summary (first 3000 chars)
-      const { data: ms } = await supabase
-        .from("generated_assets")
-        .select("content")
-        .eq("book_id", bookId)
-        .eq("asset_type", "source_material")
-        .maybeSingle();
-      if (ms?.content) setManuscriptSummary(ms.content.slice(0, 3000));
+    setResolvedBookCoverUrl(bookCoverUrl);
 
-      // Load frameworks
-      const { data: fw } = await supabase
-        .from("generated_assets")
-        .select("content")
-        .eq("book_id", bookId)
-        .eq("asset_type", "frameworks")
-        .maybeSingle();
-      if (fw?.content) setFrameworks(fw.content.slice(0, 2000));
+    let isMounted = true;
+    (async () => {
+      const coverPromise = bookCoverUrl
+        ? Promise.resolve({ data: null as { cover_image_url: string | null } | null })
+        : supabase
+            .from("books")
+            .select("cover_image_url")
+            .eq("id", bookId)
+            .maybeSingle();
+
+      const [msRes, fwRes, coverRes] = await Promise.all([
+        supabase
+          .from("generated_assets")
+          .select("content")
+          .eq("book_id", bookId)
+          .eq("asset_type", "source_material")
+          .maybeSingle(),
+        supabase
+          .from("generated_assets")
+          .select("content")
+          .eq("book_id", bookId)
+          .eq("asset_type", "frameworks")
+          .maybeSingle(),
+        coverPromise,
+      ]);
+
+      if (!isMounted) return;
+
+      if (msRes.data?.content) setManuscriptSummary(msRes.data.content.slice(0, 3000));
+      if (fwRes.data?.content) setFrameworks(fwRes.data.content.slice(0, 2000));
+      if (!bookCoverUrl && coverRes.data?.cover_image_url) {
+        setResolvedBookCoverUrl(coverRes.data.cover_image_url);
+      }
     })();
-  }, [user, bookId]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user, bookId, bookCoverUrl]);
 
   // Check tier access
   const hasAccess = isPremium || isAdmin || hasTierAccess(tier, nodeConfig.requiredTier);
@@ -454,8 +485,8 @@ ${frameworks ? `\n\nBOOK FRAMEWORKS (the author's proprietary methods/models):\n
         {/* Book context bar */}
         <div className="flex items-center gap-3 px-6 py-2.5 border-b border-border bg-muted/30">
           <div className="h-8 w-6 rounded overflow-hidden bg-muted flex items-center justify-center shrink-0 border border-border">
-            {bookCoverUrl ? (
-              <img src={bookCoverUrl} alt="" className="h-full w-full object-cover" />
+            {resolvedBookCoverUrl ? (
+              <img src={resolvedBookCoverUrl} alt={`${bookTitle || "Book"} cover`} className="h-full w-full object-cover" />
             ) : (
               <BookOpen className="h-3 w-3 text-muted-foreground/40" />
             )}
