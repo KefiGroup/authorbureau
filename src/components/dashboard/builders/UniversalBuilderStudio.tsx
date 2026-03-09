@@ -485,8 +485,8 @@ ${frameworks ? `\n\nBOOK FRAMEWORKS (the author's proprietary methods/models):\n
         {/* Book context bar */}
         <div className="flex items-center gap-3 px-6 py-2.5 border-b border-border bg-muted/30">
           <div className="h-8 w-6 rounded overflow-hidden bg-muted flex items-center justify-center shrink-0 border border-border">
-            {bookCoverUrl ? (
-              <img src={bookCoverUrl} alt="" className="h-full w-full object-cover" />
+            {resolvedBookCoverUrl ? (
+              <img src={resolvedBookCoverUrl} alt={`${bookTitle || "Book"} cover`} className="h-full w-full object-cover" />
             ) : (
               <BookOpen className="h-3 w-3 text-muted-foreground/40" />
             )}
