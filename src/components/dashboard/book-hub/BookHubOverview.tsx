@@ -64,9 +64,9 @@ interface Recommendation {
 function getRecommendationsFromPlan(planContent: string | null): Recommendation[] {
   // Default recommendations when plan parsing isn't available
   return [
-    { name: "Quick-Start Workbook", category: "build", revenue: "$270–$1,500/mo", requiredTier: "starter" },
-    { name: "Online Course", category: "build", revenue: "$500–$3,000/mo", requiredTier: "pro" },
-    { name: "1-on-1 Coaching Program", category: "bridge", revenue: "$1,000–$5,000/mo", requiredTier: "pro" },
+    { name: "Quick-Start Workbook", category: "build", revenue: "Potential Revenue: $270 - $1,500 per month", requiredTier: "starter" },
+    { name: "Online Course", category: "build", revenue: "Potential Revenue: $500 - $3,000 per month", requiredTier: "pro" },
+    { name: "1-on-1 Coaching Program", category: "bridge", revenue: "Potential Revenue: $1,000 - $5,000 per month", requiredTier: "pro" },
   ];
 }
 
