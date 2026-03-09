@@ -5,6 +5,7 @@ import {
   ArrowLeft, ArrowRight, BookOpen, Check, Loader2, Save,
   Sparkles, X, Send, ChevronLeft, Lock, AlertCircle, Wand2,
 } from "lucide-react";
+import AbbyNarrativeLoading from "./AbbyNarrativeLoading";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
