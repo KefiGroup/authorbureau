@@ -300,6 +300,18 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         return gate("Speaking Profile", <SpeakingProfile />, "enterprise");
       case "coaching":
         return gate("Coaching CRM", <CoachingCRM />, "pro");
+      case "group-coaching":
+        return gate("Group Coaching", 
+          <UniversalBuilderStudio 
+            nodeConfig={BUILDER_NODE_MAP["group-coaching"]} 
+            onNavigate={handleNavigate} 
+          />, "pro");
+      case "memberships":
+        return gate("Monthly Membership", 
+          <UniversalBuilderStudio 
+            nodeConfig={BUILDER_NODE_MAP["membership"]} 
+            onNavigate={handleNavigate} 
+          />, "pro");
       case "email-marketing":
       case "subscribers":
       case "email-templates":
