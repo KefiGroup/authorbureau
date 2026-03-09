@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Sparkles, Zap, FileText, Upload, Download, Loader2, Lock, ArrowRight, CheckCircle2 } from "lucide-react";
+import BookHubSkeleton from "./BookHubSkeleton";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ManuscriptUpload from "@/components/dashboard/ManuscriptUpload";
@@ -86,6 +87,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
   const [planContent, setPlanContent] = useState<string | null>(null);
   const [planSections, setPlanSections] = useState<PlanSection[]>([]);
   const [downloading, setDownloading] = useState(false);
+  const [dataReady, setDataReady] = useState(false);
   const { toast } = useToast();
   const { plan, completedAssets } = useAbbyPlan(book.id);
 
@@ -118,7 +120,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
       const { data: { session } } = await sharedSupabase.auth.getSession();
       const token = session?.access_token;
       const userId = session?.user?.id;
-      if (!userId) return;
+      if (!userId) { setDataReady(true); return; }
 
       try {
         const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/consultation-session`, {
@@ -165,9 +167,14 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
       } catch {
         console.error("Failed to fetch business plan");
       }
+      setDataReady(true);
     }
     checkData();
   }, [book.id]);
+
+  if (!dataReady) {
+    return <BookHubSkeleton />;
+  }
 
   const handleDownloadPlan = async () => {
     if (!planContent) return;
