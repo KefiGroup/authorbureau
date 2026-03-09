@@ -6,6 +6,7 @@ import {
   Sparkles, X, Send, ChevronLeft, Lock, AlertCircle, Wand2,
 } from "lucide-react";
 import AbbyNarrativeLoading from "./AbbyNarrativeLoading";
+import { BUILDER_SYSTEM_PROMPTS } from "./builderSystemPrompts";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
