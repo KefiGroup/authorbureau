@@ -216,6 +216,8 @@ export default function BusinessFramework({ onNavigate, isPremium, focusStep }: 
 
         <ABBYFrameworkVisual
           hasConsultation={true}
+          tier="free"
+          completedAssets={[]}
           onConsultAbby={() => onNavigate("build-business")}
           onNavigateTab={(tab) => {
             setActiveCategory(tab);
