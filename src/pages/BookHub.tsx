@@ -108,6 +108,8 @@ export default function BookHub() {
     return null;
   }
 
+  if (!user) return null;
+
   const showSkeleton = authLoading || loading;
 
   const renderTab = () => {
