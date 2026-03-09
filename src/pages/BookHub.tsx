@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth, SubscriptionTier, hasTierAccess } from "@/hooks/useAuth";
-import { Loader2 } from "lucide-react";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
@@ -10,6 +9,7 @@ import BookHubContextBar from "@/components/dashboard/book-hub/BookHubContextBar
 import BookHubOverview from "@/components/dashboard/book-hub/BookHubOverview";
 import BookHubStepTab from "@/components/dashboard/book-hub/BookHubStepTab";
 import BookHubAnalytics from "@/components/dashboard/book-hub/BookHubAnalytics";
+import BookHubSkeleton from "@/components/dashboard/book-hub/BookHubSkeleton";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
 
 type BookHubTab = "overview" | "revenue-streams" | "marketing-channels" | "authority-builders" | "analytics";
@@ -46,6 +46,9 @@ const tabColors: Record<string, string> = {
   "authority-builders": "text-sky-600 border-sky-500",
 };
 
+// Simple in-memory cache so returning to the page doesn't flash skeleton
+const bookCache = new Map<string, BookData>();
+
 export default function BookHub() {
   const { bookId } = useParams<{ bookId: string }>();
   const navigate = useNavigate();
@@ -59,22 +62,27 @@ export default function BookHub() {
 
   const [searchParams] = useSearchParams();
   const initialTab = (searchParams.get("tab") as BookHubTab) || "overview";
-  const [book, setBook] = useState<BookData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cachedBook = bookId ? bookCache.get(bookId) : undefined;
+  const [book, setBook] = useState<BookData | null>(cachedBook || null);
+  const [loading, setLoading] = useState(!cachedBook);
   const [activeTab, setActiveTab] = useState<BookHubTab>(initialTab);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  // Effective tier: admins get enterprise access
   const effectiveTier: SubscriptionTier = isAdmin ? "enterprise" : tier;
 
   useEffect(() => {
     async function fetchBook() {
       if (!user || !bookId) return;
+      // If cached, don't show loading
+      if (bookCache.has(bookId)) {
+        setBook(bookCache.get(bookId)!);
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       try {
         const token = await getActiveToken();
         if (!token) { setLoading(false); return; }
-
         const response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`,
           {
@@ -86,6 +94,7 @@ export default function BookHub() {
         const result = await response.json();
         if (!response.ok) throw new Error(result.error);
         setBook(result.book);
+        if (result.book) bookCache.set(bookId, result.book);
       } catch (err) {
         console.error("Failed to fetch book:", err);
       }
@@ -94,33 +103,15 @@ export default function BookHub() {
     fetchBook();
   }, [user, bookId]);
 
-  if (authLoading || loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  if (!user) {
+  if (!authLoading && !user) {
     navigate("/auth", { replace: true });
     return null;
   }
 
-  if (!book) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="text-center">
-          <h2 className="font-heading text-xl font-bold mb-2">Book not found</h2>
-          <button onClick={() => navigate("/dashboard")} className="text-sm text-secondary hover:underline">
-            Back to Dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const showSkeleton = authLoading || loading;
 
   const renderTab = () => {
+    if (!book) return null;
     switch (activeTab) {
       case "overview":
         return (
@@ -162,7 +153,7 @@ export default function BookHub() {
       />
       <div className="flex flex-1 flex-col min-w-0">
         <DashboardHeader
-          user={user}
+          user={user!}
           isPremium={isPremium}
           isAdmin={isAdmin}
           subscription={subscription}
@@ -170,30 +161,47 @@ export default function BookHub() {
           onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
         <main className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-6">
-          <BookHubContextBar book={book} tier={effectiveTier} onBack={() => navigate("/dashboard?section=my-books")} />
-
-          {/* Tab Navigation */}
-          <div className="flex items-center gap-1 border-b border-border overflow-x-auto">
-            {tabs.map((tab) => {
-              const isActive = activeTab === tab.id;
-              const colorClass = tabColors[tab.id] || "";
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-                    isActive
-                      ? `${colorClass || "text-foreground border-primary"}`
-                      : "text-muted-foreground border-transparent hover:text-foreground hover:border-muted-foreground/20"
-                  }`}
-                >
-                  {tab.label}
+          {showSkeleton ? (
+            <BookHubSkeleton />
+          ) : !book ? (
+            <div className="flex min-h-[400px] items-center justify-center">
+              <div className="text-center">
+                <h2 className="font-heading text-xl font-bold mb-2">Book not found</h2>
+                <button onClick={() => navigate("/dashboard")} className="text-sm text-secondary hover:underline">
+                  Back to Dashboard
                 </button>
-              );
-            })}
-          </div>
+              </div>
+            </div>
+          ) : (
+            <div className="transition-opacity duration-300 animate-in fade-in">
+              <BookHubContextBar book={book} tier={effectiveTier} onBack={() => navigate("/dashboard?section=my-books")} />
 
-          {renderTab()}
+              {/* Tab Navigation */}
+              <div className="flex items-center gap-1 border-b border-border overflow-x-auto mt-6">
+                {tabs.map((tab) => {
+                  const isActive = activeTab === tab.id;
+                  const colorClass = tabColors[tab.id] || "";
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                        isActive
+                          ? `${colorClass || "text-foreground border-primary"}`
+                          : "text-muted-foreground border-transparent hover:text-foreground hover:border-muted-foreground/20"
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-6">
+                {renderTab()}
+              </div>
+            </div>
+          )}
         </main>
       </div>
     </div>

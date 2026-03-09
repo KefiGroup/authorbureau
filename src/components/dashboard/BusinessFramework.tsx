@@ -218,6 +218,7 @@ export default function BusinessFramework({ onNavigate, isPremium, focusStep }: 
           hasConsultation={true}
           tier="free"
           completedAssets={[]}
+          recommendedNodes={[]}
           onConsultAbby={() => onNavigate("build-business")}
           onNavigateTab={(tab) => {
             setActiveCategory(tab);

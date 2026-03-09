@@ -92,6 +92,19 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
   const recommendations = getRecommendationsFromPlan(planContent);
   const builtCount = completedAssets.length;
 
+  // Extract recommended node IDs from the plan's packages
+  const recommendedNodes: string[] = (() => {
+    if (!plan?.packages) return [];
+    const nodes = new Set<string>();
+    for (const pkg of Object.values(plan.packages)) {
+      if (pkg && typeof pkg === "object" && "products" in pkg) {
+        const p = pkg as { products: Array<{ node: string }> };
+        p.products?.forEach((prod) => { if (prod.node) nodes.add(prod.node); });
+      }
+    }
+    return Array.from(nodes);
+  })();
+
   useEffect(() => {
     async function checkData() {
       const { data: { session } } = await sharedSupabase.auth.getSession();
