@@ -5,6 +5,8 @@ import AbbyBuildAdvisor from "./AbbyBuildAdvisor";
 import AbbyExecutionDashboard from "@/components/dashboard/AbbyExecutionDashboard";
 import AbbyAdvisorPanel from "@/components/dashboard/AbbyAdvisorPanel";
 import { useAbbyPlan } from "@/hooks/useAbbyPlan";
+import { hasTierAccess } from "@/hooks/useAuth";
+import type { SubscriptionTier } from "@/hooks/useAuth";
 import {
   BookOpen, Mic, Podcast, GraduationCap, FileText, Video,
   Share2, CreditCard, Users, Trophy, Building2,
@@ -30,6 +32,7 @@ interface ProductNode {
   description: string;
   status: "live" | "coming-soon" | "planned";
   group?: string;
+  requiredTier: SubscriptionTier;
 }
 
 interface CategoryConfig {
@@ -57,24 +60,24 @@ export const categoryConfigs: CategoryConfig[] = [
     gradientFrom: "from-emerald-500", gradientTo: "to-emerald-600",
     headerIconName: "DollarSign",
     nodes: [
-      { id: "workbooks", label: "Workbook", iconName: "FileText", description: "Companion workbook PDFs with exercises & action plans.", status: "live", group: "Digital Products" },
-      { id: "audiobook", label: "Audiobook", iconName: "Headphones", description: "AI-narrated audiobook from your manuscript.", status: "coming-soon", group: "Digital Products" },
-      { id: "book-sales-events", label: "Book Sales (Events)", iconName: "BookOpen", description: "QR code order pages for live event sales.", status: "planned", group: "Digital Products" },
-      { id: "home-study", label: "Home Study Courses", iconName: "BookMarked", description: "Self-paced study guide with daily schedules.", status: "coming-soon", group: "Digital Products" },
-      { id: "courses", label: "Online Courses", iconName: "GraduationCap", description: "8-12 module structured courses from your manuscript.", status: "coming-soon", group: "Digital Products" },
-      { id: "special-editions", label: "Special Editions", iconName: "Sparkles", description: "Signed copies, bundles, collector's editions.", status: "planned", group: "Digital Products" },
-      { id: "memberships", label: "Monthly Memberships", iconName: "CreditCard", description: "3-tier membership with gated content drip.", status: "planned", group: "Digital Products" },
-      { id: "group-coaching", label: "Group Coaching", iconName: "Users", description: "8-week group coaching curriculum.", status: "coming-soon", group: "Coaching" },
-      { id: "coaching-1on1", label: "1-on-1 Coaching", iconName: "UserCheck", description: "6/12-session coaching programs with session outlines.", status: "live", group: "Coaching" },
-      { id: "in-house-speaker", label: "In-House Speaker", iconName: "Presentation", description: "Corporate speaker profile + booking.", status: "planned", group: "Speaking" },
-      { id: "training", label: "Training Programs", iconName: "Building2", description: "Half/full-day corporate training programs.", status: "planned", group: "Speaking" },
-      { id: "retreats", label: "Retreats & Bootcamps", iconName: "Bookmark", description: "2-3 day retreat programs.", status: "planned", group: "Speaking" },
-      { id: "masterminds", label: "Masterminds", iconName: "BarChart3", description: "Quarterly mastermind group programs.", status: "planned", group: "Speaking" },
-      { id: "certification", label: "Certification", iconName: "ShieldCheck", description: "Curriculum + exam + digital certificates.", status: "planned", group: "Speaking" },
-      { id: "keynotes", label: "Keynotes", iconName: "Mic", description: "3-5 keynote topics with slide decks.", status: "live", group: "Speaking" },
-      { id: "big-ticket", label: "Big Ticket Consulting", iconName: "Trophy", description: "Premium consulting packages ($5K–$25K).", status: "planned", group: "Speaking" },
-      { id: "upsells", label: "Upsells / Downsells / Cross Sells", iconName: "TrendingUp", description: "AI-generated conversion sequences.", status: "planned", group: "Partnerships" },
-      { id: "revenue-sharing", label: "Revenue Sharing", iconName: "Handshake", description: "Partnership matching + contract templates.", status: "planned", group: "Partnerships" },
+      { id: "workbooks", label: "Workbook", iconName: "FileText", description: "Companion workbook PDFs with exercises & action plans.", status: "live", group: "Digital Products", requiredTier: "starter" },
+      { id: "audiobook", label: "Audiobook", iconName: "Headphones", description: "AI-narrated audiobook from your manuscript.", status: "coming-soon", group: "Digital Products", requiredTier: "pro" },
+      { id: "book-sales-events", label: "Book Sales (Events)", iconName: "BookOpen", description: "QR code order pages for live event sales.", status: "planned", group: "Digital Products", requiredTier: "enterprise" },
+      { id: "home-study", label: "Home Study Courses", iconName: "BookMarked", description: "Self-paced study guide with daily schedules.", status: "coming-soon", group: "Digital Products", requiredTier: "pro" },
+      { id: "courses", label: "Online Courses", iconName: "GraduationCap", description: "8-12 module structured courses from your manuscript.", status: "coming-soon", group: "Digital Products", requiredTier: "pro" },
+      { id: "special-editions", label: "Special Editions", iconName: "Sparkles", description: "Signed copies, bundles, collector's editions.", status: "planned", group: "Digital Products", requiredTier: "enterprise" },
+      { id: "memberships", label: "Monthly Memberships", iconName: "CreditCard", description: "3-tier membership with gated content drip.", status: "planned", group: "Digital Products", requiredTier: "pro" },
+      { id: "group-coaching", label: "Group Coaching", iconName: "Users", description: "8-week group coaching curriculum.", status: "coming-soon", group: "Coaching", requiredTier: "pro" },
+      { id: "coaching-1on1", label: "1-on-1 Coaching", iconName: "UserCheck", description: "6/12-session coaching programs with session outlines.", status: "live", group: "Coaching", requiredTier: "pro" },
+      { id: "in-house-speaker", label: "In-House Speaker", iconName: "Presentation", description: "Corporate speaker profile + booking.", status: "planned", group: "Speaking", requiredTier: "pro" },
+      { id: "training", label: "Training Programs", iconName: "Building2", description: "Half/full-day corporate training programs.", status: "planned", group: "Speaking", requiredTier: "enterprise" },
+      { id: "retreats", label: "Retreats & Bootcamps", iconName: "Bookmark", description: "2-3 day retreat programs.", status: "planned", group: "Speaking", requiredTier: "enterprise" },
+      { id: "masterminds", label: "Masterminds", iconName: "BarChart3", description: "Quarterly mastermind group programs.", status: "planned", group: "Speaking", requiredTier: "enterprise" },
+      { id: "certification", label: "Certification", iconName: "ShieldCheck", description: "Curriculum + exam + digital certificates.", status: "planned", group: "Speaking", requiredTier: "enterprise" },
+      { id: "keynotes", label: "Keynotes", iconName: "Mic", description: "3-5 keynote topics with slide decks.", status: "live", group: "Speaking", requiredTier: "pro" },
+      { id: "big-ticket", label: "Big Ticket Consulting", iconName: "Trophy", description: "Premium consulting packages ($5K–$25K).", status: "planned", group: "Speaking", requiredTier: "pro" },
+      { id: "upsells", label: "Upsells / Downsells / Cross Sells", iconName: "TrendingUp", description: "AI-generated conversion sequences.", status: "planned", group: "Partnerships", requiredTier: "pro" },
+      { id: "revenue-sharing", label: "Revenue Sharing", iconName: "Handshake", description: "Partnership matching + contract templates.", status: "planned", group: "Partnerships", requiredTier: "pro" },
     ],
   },
   {
@@ -83,12 +86,12 @@ export const categoryConfigs: CategoryConfig[] = [
     gradientFrom: "from-violet-500", gradientTo: "to-violet-600",
     headerIconName: "Radio",
     nodes: [
-      { id: "social-media", label: "Social Media", iconName: "Share2", description: "90-day AI content calendar from your book.", status: "live" },
-      { id: "webinars", label: "Webinars", iconName: "Video", description: "Webinar scripts + slide decks + registration pages.", status: "live" },
-      { id: "podcast-guest", label: "Podcasts (Guest)", iconName: "Podcast", description: "Pitch kit to get booked as a guest expert.", status: "planned" },
-      { id: "microsite", label: "Website / Microsite", iconName: "BookOpen", description: "Your book's landing page (built-in).", status: "live" },
-      { id: "affiliates", label: "Affiliates", iconName: "Link2", description: "Affiliate tracking links + commission structures.", status: "planned" },
-      { id: "email-marketing", label: "Email Marketing", iconName: "Megaphone", description: "AI-driven nurture sequences from book content.", status: "coming-soon" },
+      { id: "social-media", label: "Social Media", iconName: "Share2", description: "90-day AI content calendar from your book.", status: "live", requiredTier: "starter" },
+      { id: "webinars", label: "Webinars", iconName: "Video", description: "Webinar scripts + slide decks + registration pages.", status: "live", requiredTier: "pro" },
+      { id: "podcast-guest", label: "Podcasts (Guest)", iconName: "Podcast", description: "Pitch kit to get booked as a guest expert.", status: "planned", requiredTier: "pro" },
+      { id: "microsite", label: "Website / Microsite", iconName: "BookOpen", description: "Your book's landing page (built-in).", status: "live", requiredTier: "starter" },
+      { id: "affiliates", label: "Affiliates", iconName: "Link2", description: "Affiliate tracking links + commission structures.", status: "planned", requiredTier: "pro" },
+      { id: "email-marketing", label: "Email Marketing", iconName: "Megaphone", description: "AI-driven nurture sequences from book content.", status: "coming-soon", requiredTier: "starter" },
     ],
   },
   {
@@ -97,21 +100,69 @@ export const categoryConfigs: CategoryConfig[] = [
     gradientFrom: "from-sky-500", gradientTo: "to-sky-600",
     headerIconName: "Award",
     nodes: [
-      { id: "conventions", label: "Conventions / Conferences", iconName: "Calendar", description: "Conference submission generator.", status: "planned" },
-      { id: "fundraising", label: "Fund Raising", iconName: "HandCoins", description: "Fundraising event templates.", status: "planned" },
-      { id: "exhibitors", label: "Exhibitors / JV", iconName: "Megaphone", description: "Exhibitor prospectus + partnership matching.", status: "planned" },
+      { id: "conventions", label: "Conventions / Conferences", iconName: "Calendar", description: "Conference submission generator.", status: "planned", requiredTier: "enterprise" },
+      { id: "fundraising", label: "Fund Raising", iconName: "HandCoins", description: "Fundraising event templates.", status: "planned", requiredTier: "enterprise" },
+      { id: "exhibitors", label: "Exhibitors / JV", iconName: "Megaphone", description: "Exhibitor prospectus + partnership matching.", status: "planned", requiredTier: "enterprise" },
     ],
   },
 ];
+
+// Tier-specific upgrade banner config
+function getUpgradeBanner(tier: SubscriptionTier, categoryId: string): { message: string; cta: string; link: string } | null {
+  if (tier === "enterprise") return null;
+
+  if (tier === "free") {
+    return {
+      message: "Subscribe to unlock the AI builders and start creating products from your book.",
+      cta: "View Plans →",
+      link: "/dashboard?section=build-business",
+    };
+  }
+
+  if (tier === "starter") {
+    if (categoryId === "revenue-streams") {
+      return {
+        message: "You're building great momentum! Upgrade to Pro ($199/mo) to unlock 8 more Build products: Online Courses, Audiobooks, Memberships, Coaching, and more.",
+        cta: "Upgrade to Pro →",
+        link: "/dashboard?section=build-business",
+      };
+    }
+    if (categoryId === "marketing-channels") {
+      return {
+        message: "Ready to reach your audience? The Bridge builders help you create coaching programs, speaking kits, webinar frameworks, and podcast pitches. Upgrade to Pro ($199/mo) to unlock all Bridge builders.",
+        cta: "Upgrade to Pro →",
+        link: "/dashboard?section=build-business",
+      };
+    }
+    if (categoryId === "authority-builders") {
+      return {
+        message: "Yield builders create retreats, certification programs, masterminds, and more. Upgrade to Enterprise ($499/mo) to unlock all Yield builders.",
+        cta: "Upgrade to Enterprise →",
+        link: "/dashboard?section=build-business",
+      };
+    }
+  }
+
+  if (tier === "pro" && categoryId === "authority-builders") {
+    return {
+      message: "Scale to the next level. Upgrade to Enterprise ($499/mo) to unlock retreats, certification, masterminds, corporate training, and a 1-on-1 strategy session with Pauline Teo.",
+      cta: "Upgrade to Enterprise →",
+      link: "/dashboard?section=build-business",
+    };
+  }
+
+  return null;
+}
 
 interface Props {
   categoryId: string;
   bookId: string;
   bookTitle?: string;
   isPremium: boolean;
+  tier: SubscriptionTier;
 }
 
-export default function BookHubStepTab({ categoryId, bookId, bookTitle, isPremium }: Props) {
+export default function BookHubStepTab({ categoryId, bookId, bookTitle, isPremium, tier }: Props) {
   const navigate = useNavigate();
   const { plan, completedAssets } = useAbbyPlan(bookId);
   const [executingNode, setExecutingNode] = useState<ProductNode | null>(null);
@@ -134,19 +185,43 @@ export default function BookHubStepTab({ categoryId, bookId, bookTitle, isPremiu
     return map[nodeId] || null;
   };
 
-  // Check if a product node is completed
   const isNodeCompleted = (nodeId: string): boolean => {
     return completedAssets.includes(nodeId) || completedAssets.includes(nodeId.replace(/-/g, "_"));
   };
 
   const handleBuildWithAbby = (node: ProductNode, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!isPremium) return;
+    if (!hasTierAccess(tier, node.requiredTier)) return;
     setExecutingNode(node);
   };
 
+  const builtCount = catData.nodes.filter(n => isNodeCompleted(n.id)).length;
+  const upgradeBanner = getUpgradeBanner(tier, categoryId);
+
+  // Enterprise empty-state banner
+  const showEnterpriseEmptyBanner = tier === "enterprise" && builtCount === 0;
+
   return (
     <div className="space-y-6">
+      {/* Upgrade banner */}
+      {upgradeBanner && (
+        <div className="rounded-lg border border-secondary/30 bg-secondary/5 p-4">
+          <p className="text-sm text-foreground">{upgradeBanner.message}</p>
+          <a href={upgradeBanner.link} className="inline-block mt-2 text-sm font-semibold text-secondary hover:underline">
+            {upgradeBanner.cta}
+          </a>
+        </div>
+      )}
+
+      {showEnterpriseEmptyBanner && (
+        <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4">
+          <p className="text-sm text-emerald-800">
+            <CheckCircle2 className="h-4 w-4 inline mr-1" />
+            All builders are unlocked! Click "Build Now" on any product to get started, or use the "Build My Author Business" button on the Overview tab to create everything at once.
+          </p>
+        </div>
+      )}
+
       {/* Abby Build Advisor */}
       <AbbyBuildAdvisor categoryId={categoryId} bookId={bookId} bookTitle={bookTitle} />
 
@@ -157,15 +232,15 @@ export default function BookHubStepTab({ categoryId, bookId, bookTitle, isPremiu
         </div>
         <div>
           <h2 className="font-heading text-xl font-bold">{catData.label}</h2>
-          <p className="text-xs text-muted-foreground">{catData.subtitle}</p>
+          <p className="text-xs text-muted-foreground">{builtCount} of {catData.nodes.length} built</p>
         </div>
         <div className="ml-auto flex items-center gap-2">
           <span className={`text-xs font-medium rounded-full px-3 py-1 ${catData.bgColor} ${catData.color}`}>
             {catData.nodes.length} products
           </span>
-          {catData.nodes.filter(n => n.status === "live").length > 0 && (
+          {builtCount > 0 && (
             <span className="text-xs font-medium rounded-full px-3 py-1 bg-green-500/15 text-green-700">
-              {catData.nodes.filter(n => n.status === "live").length} live
+              {builtCount} built
             </span>
           )}
         </div>
@@ -192,9 +267,19 @@ export default function BookHubStepTab({ categoryId, bookId, bookTitle, isPremiu
                   const Icon = iconMap[node.iconName] || BookOpen;
                   const canOpen = node.status === "live";
                   const studioPath = getStudioPath(node.id);
-                  const isClickable = canOpen && Boolean(studioPath);
                   const isCompleted = isNodeCompleted(node.id);
-                  const canBuild = (node.status === "live" || node.status === "coming-soon") && isPremium && plan;
+                  const nodeAccessible = hasTierAccess(tier, node.requiredTier);
+                  const isClickable = canOpen && Boolean(studioPath) && nodeAccessible;
+                  const canBuild = (node.status === "live" || node.status === "coming-soon") && nodeAccessible && plan;
+
+                  // Lock info for inaccessible nodes
+                  const lockLabel = !nodeAccessible
+                    ? node.requiredTier === "enterprise"
+                      ? "Upgrade to Enterprise"
+                      : node.requiredTier === "pro"
+                        ? "Upgrade to Pro"
+                        : "Subscribe to unlock"
+                    : null;
 
                   return (
                     <motion.div
@@ -202,18 +287,20 @@ export default function BookHubStepTab({ categoryId, bookId, bookTitle, isPremiu
                       className={`group relative rounded-xl border p-4 transition-all ${
                         isCompleted
                           ? "border-green-500/30 bg-green-500/5"
-                          : isClickable
-                            ? "border-border hover:border-muted-foreground/30 hover:shadow-md cursor-pointer"
-                            : "border-border/50 opacity-75"
+                          : !nodeAccessible
+                            ? "border-border/50 bg-muted/30"
+                            : isClickable
+                              ? "border-border hover:border-muted-foreground/30 hover:shadow-md cursor-pointer"
+                              : "border-border/50 opacity-75"
                       }`}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       whileHover={isClickable ? { y: -2 } : {}}
-                      onClick={() => { if (studioPath) navigate(studioPath); }}
+                      onClick={() => { if (isClickable && studioPath) navigate(studioPath); }}
                       role={isClickable ? "button" : undefined}
                       tabIndex={isClickable ? 0 : -1}
                       onKeyDown={(e) => {
-                        if (!studioPath) return;
+                        if (!isClickable || !studioPath) return;
                         if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(studioPath); }
                       }}
                     >
@@ -224,9 +311,16 @@ export default function BookHubStepTab({ categoryId, bookId, bookTitle, isPremiu
                         </div>
                       )}
 
+                      {/* Lock badge for inaccessible */}
+                      {!nodeAccessible && !isCompleted && (
+                        <div className="absolute top-2 right-2">
+                          <Lock className="h-4 w-4 text-muted-foreground/40" />
+                        </div>
+                      )}
+
                       <div className="flex items-start gap-3">
-                        <div className={`w-9 h-9 rounded-lg ${catData.bgColor} flex items-center justify-center shrink-0`}>
-                          <Icon className={`h-4 w-4 ${catData.color}`} />
+                        <div className={`w-9 h-9 rounded-lg ${nodeAccessible ? catData.bgColor : "bg-muted"} flex items-center justify-center shrink-0`}>
+                          <Icon className={`h-4 w-4 ${nodeAccessible ? catData.color : "text-muted-foreground"}`} />
                         </div>
                         <div className="min-w-0 flex-1">
                           <h4 className="font-semibold text-sm truncate">{node.label}</h4>
@@ -240,22 +334,39 @@ export default function BookHubStepTab({ categoryId, bookId, bookTitle, isPremiu
                                 Open Studio <ArrowRight className="h-3 w-3" />
                               </span>
                             )}
-                            {!isPremium && (
-                              <Lock className="h-3 w-3 text-muted-foreground/40 ml-auto" />
+                            {lockLabel && (
+                              <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                                <Lock className="h-2.5 w-2.5" />
+                                {lockLabel}
+                              </span>
                             )}
                           </div>
 
-                          {/* Build with Abby button */}
+                          {/* Build with Abby button — only for accessible nodes */}
                           {canBuild && !isCompleted && (
                             <Button
                               variant="outline"
                               size="sm"
-                              className="mt-2 text-[11px] gap-1.5 h-7"
+                              className="mt-2 text-[11px] gap-1.5 h-7 text-teal-700 border-teal-300 hover:bg-teal-50"
                               onClick={(e) => handleBuildWithAbby(node, e)}
                             >
                               <Zap className="h-3 w-3 text-secondary" />
-                              Build with Abby
+                              Build Now
                             </Button>
+                          )}
+
+                          {/* View/Edit buttons for completed nodes */}
+                          {isCompleted && studioPath && (
+                            <div className="flex gap-1.5 mt-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-[11px] h-7 gap-1 text-teal-700 border-teal-300"
+                                onClick={(e) => { e.stopPropagation(); navigate(studioPath); }}
+                              >
+                                View Product
+                              </Button>
+                            </div>
                           )}
                         </div>
                       </div>

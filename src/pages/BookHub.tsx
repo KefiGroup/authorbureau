@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, SubscriptionTier, hasTierAccess } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
@@ -49,7 +49,7 @@ const tabColors: Record<string, string> = {
 export default function BookHub() {
   const { bookId } = useParams<{ bookId: string }>();
   const navigate = useNavigate();
-  const { user, loading: authLoading, isAdmin, isPremium, subscription, signOut } = useAuth();
+  const { user, loading: authLoading, isAdmin, isPremium, subscription, tier, signOut } = useAuth();
 
   useEffect(() => {
     if (!authLoading && bookId && (bookId === ":bookId" || !/^[0-9a-f-]{36}$/i.test(bookId))) {
@@ -63,6 +63,9 @@ export default function BookHub() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<BookHubTab>(initialTab);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Effective tier: admins get enterprise access
+  const effectiveTier: SubscriptionTier = isAdmin ? "enterprise" : tier;
 
   useEffect(() => {
     async function fetchBook() {
@@ -123,6 +126,7 @@ export default function BookHub() {
         return (
           <BookHubOverview
             book={book}
+            tier={effectiveTier}
             onConsultAbby={() => navigate("/dashboard?section=build-business")}
             onNavigateTab={(tab) => setActiveTab(tab as BookHubTab)}
           />
@@ -130,9 +134,17 @@ export default function BookHub() {
       case "revenue-streams":
       case "marketing-channels":
       case "authority-builders":
-        return <BookHubStepTab categoryId={activeTab} bookId={book.id} bookTitle={book.title} isPremium={isPremium || isAdmin} />;
+        return (
+          <BookHubStepTab
+            categoryId={activeTab}
+            bookId={book.id}
+            bookTitle={book.title}
+            isPremium={isPremium || isAdmin}
+            tier={effectiveTier}
+          />
+        );
       case "analytics":
-        return <BookHubAnalytics bookId={book.id} />;
+        return <BookHubAnalytics bookId={book.id} tier={effectiveTier} />;
       default:
         return null;
     }
@@ -146,7 +158,7 @@ export default function BookHub() {
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         isPremium={isPremium || isAdmin}
-        tier={(isPremium || isAdmin) ? "pro" : "free"}
+        tier={effectiveTier}
       />
       <div className="flex flex-1 flex-col min-w-0">
         <DashboardHeader
@@ -158,7 +170,7 @@ export default function BookHub() {
           onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
         <main className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-6">
-          <BookHubContextBar book={book} onBack={() => navigate("/dashboard?section=my-books")} />
+          <BookHubContextBar book={book} tier={effectiveTier} onBack={() => navigate("/dashboard?section=my-books")} />
 
           {/* Tab Navigation */}
           <div className="flex items-center gap-1 border-b border-border overflow-x-auto">
