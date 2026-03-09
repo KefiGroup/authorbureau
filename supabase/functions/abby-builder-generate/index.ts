@@ -334,78 +334,7 @@ DESIGN:
 5. CROSS_BUILDER_PREVIEW: Proposal→Website, co-marketing→Email+Social`,
 };
 
-// ── Proposal schema for tool calling ──────────────────────────────────
-const PROPOSAL_TOOL = {
-  type: "function" as const,
-  function: {
-    name: "present_proposal",
-    description: "Present a complete product proposal to the author for review",
-    parameters: {
-      type: "object",
-      properties: {
-        title_options: {
-          type: "array",
-          items: { type: "string" },
-          description: "3 title options for the product",
-        },
-        recommended_title: { type: "string", description: "Which title Abby recommends" },
-        subtitle: { type: "string", description: "Compelling subtitle" },
-        description: { type: "string", description: "2-3 paragraph product description" },
-        target_audience: { type: "string", description: "Who this product is for" },
-        transformation_promises: {
-          type: "array",
-          items: { type: "string" },
-          description: "5 specific outcomes",
-        },
-        recommended_price: { type: "number", description: "Recommended price in USD" },
-        price_justification: { type: "string", description: "Why this price" },
-        value_ladder_position: {
-          type: "string",
-          enum: ["bait", "tripwire", "core", "premium", "high_ticket"],
-        },
-        structure: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              title: { type: "string" },
-              description: { type: "string" },
-              source_chapters: { type: "string" },
-              items: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    title: { type: "string" },
-                    description: { type: "string" },
-                  },
-                  required: ["title"],
-                },
-              },
-            },
-            required: ["title"],
-          },
-          description: "Modules/sections/episodes — the main structural breakdown",
-        },
-        cross_builder_outputs: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              builder: { type: "string", description: "Destination builder ID" },
-              label: { type: "string", description: "Human-readable label" },
-              description: { type: "string", description: "What gets pushed" },
-            },
-            required: ["builder", "label"],
-          },
-        },
-        abby_commentary: { type: "string", description: "Abby's personal note about why this product will work for this specific book" },
-        revenue_projection: { type: "string", description: "Monthly revenue estimate with calculation" },
-      },
-      required: ["title_options", "recommended_title", "description", "target_audience", "recommended_price", "structure", "cross_builder_outputs", "abby_commentary"],
-    },
-  },
-};
+// Tool calling schema removed — using direct JSON response for better model compatibility
 
 // ── Resolve user from JWT ────────────────────────────────────────────
 async function resolveUser(req: Request): Promise<{ id: string; email: string } | null> {
