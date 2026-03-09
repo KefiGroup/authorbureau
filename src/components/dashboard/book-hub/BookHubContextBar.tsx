@@ -1,5 +1,6 @@
-import { ArrowLeft, BookOpen, ExternalLink } from "lucide-react";
+import { ArrowLeft, BookOpen, ExternalLink, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import type { SubscriptionTier } from "@/hooks/useAuth";
 
 interface Book {
   id: string;
@@ -14,10 +15,20 @@ interface Book {
 
 interface Props {
   book: Book;
+  tier: SubscriptionTier;
   onBack: () => void;
 }
 
-export default function BookHubContextBar({ book, onBack }: Props) {
+const tierBadgeConfig: Record<SubscriptionTier, { label: string; bg: string; text: string; icon?: boolean }> = {
+  free: { label: "Free", bg: "bg-[hsl(220,13%,95%)]", text: "text-[hsl(220,9%,46%)]" },
+  starter: { label: "Starter", bg: "bg-[hsl(152,76%,96%)]", text: "text-[hsl(160,84%,39%)]" },
+  pro: { label: "Pro", bg: "bg-[hsl(214,95%,93%)]", text: "text-[hsl(217,91%,60%)]" },
+  enterprise: { label: "Enterprise", bg: "bg-[hsl(48,96%,89%)]", text: "text-secondary", icon: true },
+};
+
+export default function BookHubContextBar({ book, tier, onBack }: Props) {
+  const badge = tierBadgeConfig[tier];
+
   return (
     <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4 shadow-sm">
       {/* Back */}
@@ -44,10 +55,18 @@ export default function BookHubContextBar({ book, onBack }: Props) {
 
       {/* Book info */}
       <div className="min-w-0 flex-1">
-        <h2 className="font-heading text-lg font-bold truncate leading-tight">{book.title}</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="font-heading text-lg font-bold truncate leading-tight">{book.title}</h2>
+          <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide rounded-full px-2.5 py-0.5 shrink-0 ${badge.bg} ${badge.text}`}>
+            {badge.icon && <Sparkles className="h-3 w-3" />}
+            {badge.label}
+          </span>
+        </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          {book.author_name && <span>{book.author_name}</span>}
+          {book.author_name && book.genre && <span>·</span>}
           {book.genre && <span>{book.genre}</span>}
-          {book.genre && book.published_at && <span>·</span>}
+          {(book.author_name || book.genre) && book.published_at && <span>·</span>}
           {book.published_at && (
             <span>Published {new Date(book.published_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</span>
           )}
