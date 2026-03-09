@@ -120,7 +120,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
       const { data: { session } } = await sharedSupabase.auth.getSession();
       const token = session?.access_token;
       const userId = session?.user?.id;
-      if (!userId) return;
+      if (!userId) { setDataReady(true); return; }
 
       try {
         const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/consultation-session`, {
