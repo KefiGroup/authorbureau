@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/shared-backend";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, GraduationCap, Sparkles, Trash2, Edit } from "lucide-react";
+import { Loader2, Plus, GraduationCap, Sparkles, Trash2, Edit, Wand2, ArrowRight } from "lucide-react";
+import UniversalBuilderStudio from "@/components/dashboard/builders/UniversalBuilderStudio";
+import { BUILDER_NODE_MAP } from "@/components/dashboard/builders/builderNodeConfig";
 
 interface Course {
   id: string;
@@ -20,11 +23,17 @@ interface Course {
 export default function CourseBuilder() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
-  const [showForm, setShowForm] = useState(false);
+  const [showManualForm, setShowManualForm] = useState(false);
   const [newCourse, setNewCourse] = useState({ title: "", description: "", price: "0" });
+
+  // Check if we should show the AI wizard
+  const showAIWizard = searchParams.get("wizard") === "ai";
+  const bookId = searchParams.get("bookId") || "";
+  const bookTitle = searchParams.get("bookTitle") || "";
 
   useEffect(() => {
     if (user) fetchCourses();
@@ -57,7 +66,7 @@ export default function CourseBuilder() {
     } else {
       toast({ title: "Course created!" });
       setNewCourse({ title: "", description: "", price: "0" });
-      setShowForm(false);
+      setShowManualForm(false);
       fetchCourses();
     }
     setCreating(false);
@@ -72,6 +81,26 @@ export default function CourseBuilder() {
       toast({ title: "Course deleted" });
     }
   };
+
+  const launchAIWizard = () => {
+    const params = new URLSearchParams(searchParams);
+    params.set("wizard", "ai");
+    setSearchParams(params);
+  };
+
+  // ─── AI WIZARD MODE ─────────────────────────────────────────────
+  if (showAIWizard && BUILDER_NODE_MAP["online-course"]) {
+    return (
+      <UniversalBuilderStudio
+        nodeConfig={BUILDER_NODE_MAP["online-course"]}
+        onNavigate={() => {
+          const params = new URLSearchParams(searchParams);
+          params.delete("wizard");
+          setSearchParams(params);
+        }}
+      />
+    );
+  }
 
   if (loading) {
     return (
@@ -90,20 +119,24 @@ export default function CourseBuilder() {
             Create and manage online courses derived from your book content.
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" disabled>
-            <Sparkles className="mr-2 h-4 w-4" /> AI Generate (Coming Soon)
+        <div className="flex flex-col items-end gap-1">
+          <Button onClick={launchAIWizard} className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
+            <Sparkles className="mr-2 h-4 w-4" /> AI Generate Course
+            <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
-          <Button onClick={() => setShowForm(true)}>
-            <Plus className="mr-2 h-4 w-4" /> New Course
-          </Button>
+          <button
+            onClick={() => setShowManualForm(true)}
+            className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
+          >
+            or create manually
+          </button>
         </div>
       </div>
 
-      {/* Create Form */}
-      {showForm && (
+      {/* Manual Create Form */}
+      {showManualForm && (
         <div className="rounded-xl border border-border bg-card p-6 space-y-4">
-          <h3 className="font-heading text-lg font-semibold">Create New Course</h3>
+          <h3 className="font-heading text-lg font-semibold">Create New Course (Manual)</h3>
           <div className="space-y-2">
             <Label>Course Title</Label>
             <Input
@@ -135,22 +168,31 @@ export default function CourseBuilder() {
               {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Create Course
             </Button>
-            <Button variant="ghost" onClick={() => setShowForm(false)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setShowManualForm(false)}>Cancel</Button>
           </div>
         </div>
       )}
 
       {/* Course List */}
-      {courses.length === 0 && !showForm ? (
+      {courses.length === 0 && !showManualForm ? (
         <div className="rounded-xl border border-dashed border-border bg-muted/30 p-12 text-center">
           <GraduationCap className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
           <h3 className="font-heading text-lg font-semibold mb-2">No courses yet</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Transform your book chapters into structured online courses.
+          <p className="text-sm text-muted-foreground mb-6">
+            Transform your book chapters into structured online courses with AI, or build one from scratch.
           </p>
-          <Button onClick={() => setShowForm(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Create Your First Course
-          </Button>
+          <div className="flex flex-col items-center gap-2">
+            <Button onClick={launchAIWizard} className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
+              <Sparkles className="mr-2 h-4 w-4" /> AI Generate Course
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+            <button
+              onClick={() => setShowManualForm(true)}
+              className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
+            >
+              or create manually
+            </button>
+          </div>
         </div>
       ) : (
         <div className="space-y-3">
