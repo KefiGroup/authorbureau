@@ -167,9 +167,14 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
       } catch {
         console.error("Failed to fetch business plan");
       }
+      setDataReady(true);
     }
     checkData();
   }, [book.id]);
+
+  if (!dataReady) {
+    return <BookHubSkeleton />;
+  }
 
   const handleDownloadPlan = async () => {
     if (!planContent) return;
