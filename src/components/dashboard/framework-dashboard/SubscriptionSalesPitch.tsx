@@ -79,8 +79,8 @@ const plans = [
   {
     id: "enterprise" as const,
     name: "Enterprise",
-    price: "$497",
-    priceNum: 497,
+    price: "$499",
+    priceNum: 499,
     period: "/mo",
     tagline: "Build an empire.",
     description: "Complete monetization empire — all 27 streams",

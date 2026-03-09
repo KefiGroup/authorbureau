@@ -64,7 +64,7 @@ const STREAMS: StreamGroup[] = [
     letter: "Y",
     title: "YIELD",
     subtitle: "Yield Revenue & Monetize",
-    tierLabel: "Enterprise $497/mo",
+    tierLabel: "Enterprise $499/mo",
     color: "#F59E0B",
     nodes: [
       { label: "Retreats & Bootcamps", price: "$997–$5,000", status: "locked", requiredTier: "Enterprise" },
