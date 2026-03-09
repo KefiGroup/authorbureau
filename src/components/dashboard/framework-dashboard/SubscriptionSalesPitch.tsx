@@ -37,8 +37,8 @@ const plans = [
   {
     id: "starter" as const,
     name: "Starter",
-    price: "$47",
-    priceNum: 47,
+    price: "$49",
+    priceNum: 49,
     period: "/mo",
     tagline: "Test the waters.",
     description: "Start building with 3 core AI builders",
