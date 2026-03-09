@@ -4,7 +4,7 @@ import { ArrowRight, Check, Package, ExternalLink } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { fetchOutgoingPushes } from "@/lib/cross-builder-push";
-import { BUILDER_NODE_CONFIGS } from "./builderNodeConfig";
+import { BUILDER_NODE_MAP } from "./builderNodeConfig";
 
 interface CrossBuilderPushSummaryProps {
   /** Source builder ID */
