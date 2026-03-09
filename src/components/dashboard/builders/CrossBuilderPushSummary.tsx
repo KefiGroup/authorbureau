@@ -104,11 +104,11 @@ export default function CrossBuilderPushSummary({
                 </div>
                 <div className="flex items-center gap-1">
                   {destPushes.every(p => p.status === "imported") ? (
-                    <Badge variant="outline" className="text-xs text-green-600 border-green-300">
+                    <Badge variant="outline" className="text-xs text-primary border-primary/30">
                       <Check className="w-3 h-3 mr-1" /> Imported
                     </Badge>
                   ) : (
-                    <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">
+                    <Badge variant="outline" className="text-xs text-accent-foreground border-accent">
                       Pending
                     </Badge>
                   )}
