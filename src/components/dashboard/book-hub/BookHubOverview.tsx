@@ -56,6 +56,7 @@ interface Props {
 // Top 3 recommendations mock — in real implementation these come from the business plan
 interface Recommendation {
   name: string;
+  nodeId: string;
   category: "build" | "bridge" | "yield";
   revenue: string;
   requiredTier: SubscriptionTier;
@@ -64,9 +65,9 @@ interface Recommendation {
 function getRecommendationsFromPlan(planContent: string | null): Recommendation[] {
   // Default recommendations when plan parsing isn't available
   return [
-    { name: "Quick-Start Workbook", category: "build", revenue: "Potential Revenue: $270 - $1,500 per month", requiredTier: "starter" },
-    { name: "Online Course", category: "build", revenue: "Potential Revenue: $500 - $3,000 per month", requiredTier: "pro" },
-    { name: "1-on-1 Coaching Program", category: "bridge", revenue: "Potential Revenue: $1,000 - $5,000 per month", requiredTier: "pro" },
+    { name: "Quick-Start Workbook", nodeId: "workbooks", category: "build", revenue: "Potential Revenue: $270 - $1,500 per month", requiredTier: "starter" },
+    { name: "Online Course", nodeId: "courses", category: "build", revenue: "Potential Revenue: $500 - $3,000 per month", requiredTier: "pro" },
+    { name: "1-on-1 Coaching Program", nodeId: "coaching-1on1", category: "bridge", revenue: "Potential Revenue: $1,000 - $5,000 per month", requiredTier: "pro" },
   ];
 }
 
@@ -92,17 +93,24 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
   const recommendations = getRecommendationsFromPlan(planContent);
   const builtCount = completedAssets.length;
 
-  // Extract recommended node IDs from the plan's packages
+  // Extract recommended node IDs from structured plan OR fallback to recommendation nodeIds
   const recommendedNodes: string[] = (() => {
-    if (!plan?.packages) return [];
-    const nodes = new Set<string>();
-    for (const pkg of Object.values(plan.packages)) {
-      if (pkg && typeof pkg === "object" && "products" in pkg) {
-        const p = pkg as { products: Array<{ node: string }> };
-        p.products?.forEach((prod) => { if (prod.node) nodes.add(prod.node); });
+    // Source 1: structured plan packages
+    if (plan?.packages) {
+      const nodes = new Set<string>();
+      for (const pkg of Object.values(plan.packages)) {
+        if (pkg && typeof pkg === "object" && "products" in pkg) {
+          const p = pkg as { products: Array<{ node: string }> };
+          p.products?.forEach((prod) => { if (prod.node) nodes.add(prod.node); });
+        }
       }
+      if (nodes.size > 0) return Array.from(nodes);
     }
-    return Array.from(nodes);
+    // Source 2: if book is analyzed, use recommendation nodeIds as fallback
+    if (isAnalyzed) {
+      return recommendations.map(r => r.nodeId);
+    }
+    return [];
   })();
 
   useEffect(() => {
