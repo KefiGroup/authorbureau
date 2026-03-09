@@ -13,6 +13,7 @@ const navLinks = [
   { label: "Featured Authors", to: "/", hash: "#featured-authors" },
   { label: "Authors Directory", to: "/directory", hash: "" },
   { label: "Reading Club", to: "/reading-club", hash: "" },
+  { label: "Help", to: "/faq", hash: "" },
 ];
 
 export default function Navbar() {

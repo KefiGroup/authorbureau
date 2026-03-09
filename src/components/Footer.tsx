@@ -40,6 +40,7 @@ export default function Footer() {
             </h4>
             <ul className="space-y-2 text-sm text-primary-foreground/70">
               <li><Link to="/contact" className="hover:text-secondary transition-colors">Contact Us</Link></li>
+              <li><Link to="/faq" className="hover:text-secondary transition-colors">Help Center</Link></li>
             </ul>
           </div>
         </div>

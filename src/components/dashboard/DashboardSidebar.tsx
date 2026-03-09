@@ -240,6 +240,22 @@ export default function DashboardSidebar({
             ))}
           </div>
         )}
+
+        {/* Support link */}
+        {!collapsed && (
+          <div className="space-y-0.5">
+            <p className="px-3 mb-1.5 text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground/40">
+              Support
+            </p>
+            <a
+              href="/faq"
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-muted-foreground/60 hover:bg-muted hover:text-foreground transition-colors"
+            >
+              <HelpCircle className="h-4 w-4 shrink-0" />
+              <span className="truncate text-[13px]">Help &amp; FAQ</span>
+            </a>
+          </div>
+        )}
       </nav>
 
       {/* Collapse toggle */}

@@ -67,6 +67,7 @@ const AppRoutes = () => (
       <Route path="/dashboard/book/:bookId" element={<BookHub />} />
       <Route path="/my-books" element={<AuthorDashboard initialSection="my-books" />} />
       <Route path="/contact" element={<Contact />} />
+      <Route path="/faq" element={<FAQ />} />
       <Route path="/reading-club" element={<ReadingClub />} />
       <Route path="/sso" element={<SSO />} />
       <Route path="*" element={<NotFound />} />
