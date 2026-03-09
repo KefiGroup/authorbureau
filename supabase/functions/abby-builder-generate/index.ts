@@ -495,21 +495,52 @@ CRITICAL: Return ONLY valid JSON. No markdown, no code fences, no text before or
         const cleaned = content.replace(/^```json?\s*/i, "").replace(/```\s*$/, "").trim();
         proposal = JSON.parse(cleaned);
       } catch {
-        // Fallback: find JSON object in content
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        // Fallback: find JSON object in content and try to repair truncated JSON
+        const jsonMatch = content.match(/\{[\s\S]*/);
         if (!jsonMatch) {
           console.error("No JSON found in Act 1 response:", content.slice(0, 500));
           return new Response(JSON.stringify({ error: "Failed to generate proposal. Please try again." }), {
             status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
+        
+        let jsonStr = jsonMatch[0];
+        // Try to repair truncated JSON by closing open brackets/braces
+        const repairJson = (s: string): string => {
+          let openBraces = 0, openBrackets = 0;
+          let inString = false, escaped = false;
+          for (const c of s) {
+            if (escaped) { escaped = false; continue; }
+            if (c === '\\') { escaped = true; continue; }
+            if (c === '"') { inString = !inString; continue; }
+            if (inString) continue;
+            if (c === '{') openBraces++;
+            else if (c === '}') openBraces--;
+            else if (c === '[') openBrackets++;
+            else if (c === ']') openBrackets--;
+          }
+          // If we're inside a string, close it
+          if (inString) s += '"';
+          // Close any open brackets then braces
+          for (let i = 0; i < openBrackets; i++) s += ']';
+          for (let i = 0; i < openBraces; i++) s += '}';
+          return s;
+        };
+        
         try {
-          proposal = JSON.parse(jsonMatch[0]);
-        } catch (e) {
-          console.error("Failed to parse extracted JSON:", e, jsonMatch[0].slice(0, 300));
-          return new Response(JSON.stringify({ error: "Failed to parse proposal. Please try again." }), {
-            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+          proposal = JSON.parse(jsonStr);
+        } catch {
+          try {
+            // Remove trailing comma before closing
+            const repaired = repairJson(jsonStr).replace(/,\s*([}\]])/g, '$1');
+            proposal = JSON.parse(repaired);
+            console.log("Repaired truncated JSON successfully");
+          } catch (e) {
+            console.error("Failed to parse/repair JSON:", e);
+            return new Response(JSON.stringify({ error: "Failed to parse proposal. Please try again." }), {
+              status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
         }
       }
 
