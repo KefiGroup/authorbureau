@@ -48,7 +48,7 @@ const BUILDER_NODE_IDS = Object.keys(BUILDER_NODE_MAP) as Array<keyof typeof BUI
 export type DashboardSection =
   | "overview" | "profile" | "my-books"
   | "build-business"
-  | "courses" | "workbooks" | "webinars" | "social-media" | "memberships"
+  | "courses" | "workbooks" | "webinars" | "social-media" | "memberships" | "home-study"
   | "audiobook-studio"
   | "coaching" | "group-coaching" | "big-ticket"
   | "speaking" | "podcast" | "corporate-training"
@@ -277,6 +277,12 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         return <MicrositeManager onNavigate={handleNavigate} />;
       case "courses":
         return gate("Course Builder", <CourseBuilder />, "pro");
+      case "home-study":
+        return gate("Home Study Course", 
+          <UniversalBuilderStudio 
+            nodeConfig={BUILDER_NODE_MAP["home-study-course"]} 
+            onNavigate={handleNavigate} 
+          />, "starter");
       case "workbooks":
         return gate("Workbooks", <WorkbooksManager onNavigate={handleNavigate} />);
       case "webinars":
