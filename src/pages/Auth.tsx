@@ -134,13 +134,20 @@ export default function Auth() {
         setFlow("otp");
         setResendCooldown(60);
       } catch (networkErr: any) {
-        if ((networkErr?.message || "").toLowerCase().includes("failed to fetch")) {
+        const msg = (networkErr?.message || "").toLowerCase();
+        if (msg.includes("failed to fetch")) {
           const { error } = await supabase.auth.signInWithOtp({
             email: email.trim(),
             options: { emailRedirectTo: `${window.location.origin}/auth` },
           });
           if (error) throw error;
           toast({ title: "Code service is temporarily unavailable. We sent you a magic link instead." });
+          setResendCooldown(60);
+        } else if (msg.includes("no account") || msg.includes("sign up")) {
+          // Auto-register then retry code request
+          await authFetch({ action: "register", email: email.trim() });
+          await authFetch({ action: "request_code", email: email.trim() });
+          setFlow("otp");
           setResendCooldown(60);
         } else {
           throw networkErr;
