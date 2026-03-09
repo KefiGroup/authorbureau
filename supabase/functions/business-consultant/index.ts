@@ -862,22 +862,54 @@ CURRENT TURN: 1. You MUST follow Turn 1 instructions ONLY. Do NOT generate conte
 `;
     }
 
-    const fullSystemPrompt = `${SYSTEM_PROMPT}\n\n${progressionBlock}\n${contextBlock}\nrequest_meta: ${JSON.stringify({
-      request_id: crypto.randomUUID(),
-      generated_at: new Date().toISOString(),
-      assistant_turns: assistantTurns,
-    })}`;
+    let fullSystemPrompt: string;
+    let maxTokens: number;
+
+    if (builderMode && builderId) {
+      // ─── BUILDER MODE: Use builder-specific prompt ─────────────
+      const builderPrompt = BUILDER_PROMPTS[builderId] || `You are Abby, the AI business advisor for Authors Bureau. You're helping an author build a "${builderLabel || builderId}" product.`;
+
+      fullSystemPrompt = `${builderPrompt}
+
+CONTEXT:
+- Book: "${selectedBook?.title || "Unknown"}"
+${builderStep ? `- Current step: "${builderStep}"` : ""}
+
+IMPORTANT RULES:
+- Stay focused ONLY on building this specific ${builderLabel || builderId}. Never suggest leaving this page or going to another section.
+- Give practical, step-by-step advice about creating, designing, and publishing this product.
+- When suggesting titles, suggest exactly 3 options based on the book's frameworks and themes.
+- Keep responses brief (under 150 words), actionable, and encouraging.
+- Reference specific chapters, frameworks, and concepts from the manuscript when giving advice.
+- Use the book's own language and terminology in product names.
+- IMPORTANT: Address the author by their name from author_profile (the "name" field). NEVER use their email address or email prefix.
+
+${manuscriptContent ? `MANUSCRIPT CONTEXT:\n${manuscriptContent.slice(0, 3000)}` : ""}
+${profile?.frameworks ? `BOOK FRAMEWORKS:\n${JSON.stringify(profile.frameworks).slice(0, 1500)}` : ""}
+${existingBusinessPlan ? `BUSINESS PLAN CONTEXT:\n${existingBusinessPlan.slice(0, 2000)}` : ""}
+
+AUTHOR: ${JSON.stringify({ name: profile?.pen_name || selectedBook?.author_name || user.email?.split("@")[0] })}
+ALREADY BUILT: ${builtSummary.length > 0 ? builtSummary.join("; ") : "Nothing yet."}`;
+
+      maxTokens = 500;
+    } else {
+      // ─── CONSULTATION MODE: Full ABBY system prompt ────────────
+      fullSystemPrompt = `${SYSTEM_PROMPT}\n\n${progressionBlock}\n${contextBlock}\nrequest_meta: ${JSON.stringify({
+        request_id: crypto.randomUUID(),
+        generated_at: new Date().toISOString(),
+        assistant_turns: assistantTurns,
+      })}`;
+
+      const isEarlyTurn = !hasSavedPlan && conversationTurn <= 3;
+      const isPostPlan = !hasSavedPlan && conversationTurn >= 5;
+      const isRefinementGreeting = hasSavedPlan && assistantTurns === 0;
+      maxTokens = (isEarlyTurn || isRefinementGreeting || isPostPlan) ? 300 : 4096;
+    }
 
     const aiMessages = [
       { role: "system", content: fullSystemPrompt },
-      ...(messages || []).map((m: any) => ({ role: m.role, content: m.content })),
+      ...(messages || []).filter((m: any) => m?.role !== "system").map((m: any) => ({ role: m.role, content: m.content })),
     ];
-
-    // Enforce max_tokens based on conversation turn to prevent info-dumping
-    const isEarlyTurn = !hasSavedPlan && conversationTurn <= 3;
-    const isPostPlan = !hasSavedPlan && conversationTurn >= 5;
-    const isRefinementGreeting = hasSavedPlan && assistantTurns === 0;
-    const maxTokens = (isEarlyTurn || isRefinementGreeting || isPostPlan) ? 300 : 4096;
 
     const aiRequestBody = JSON.stringify({
       model: "openai/gpt-5.2",
