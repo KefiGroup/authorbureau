@@ -389,6 +389,69 @@ export type Database = {
         }
         Relationships: []
       }
+      bug_reports: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          description: string
+          id: string
+          page_url: string
+          priority: string
+          resolved_at: string | null
+          screenshot_url: string | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          page_url: string
+          priority?: string
+          resolved_at?: string | null
+          screenshot_url?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          page_url?: string
+          priority?: string
+          resolved_at?: string | null
+          screenshot_url?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      chat_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          messages: Json
+          page_url: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          messages?: Json
+          page_url?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          messages?: Json
+          page_url?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       coaching_packages: {
         Row: {
           author_id: string
@@ -1078,6 +1141,39 @@ export type Database = {
           subject?: string
           thumbnail_url?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      feedback: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          description: string
+          id: string
+          importance: string
+          status: string
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          importance?: string
+          status?: string
+          type?: string
+          user_id?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          importance?: string
+          status?: string
+          type?: string
+          user_id?: string | null
         }
         Relationships: []
       }

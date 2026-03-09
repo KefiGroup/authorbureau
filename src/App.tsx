@@ -21,6 +21,7 @@ import SSO from "./pages/SSO";
 import NotFound from "./pages/NotFound";
 import BookHub from "./pages/BookHub";
 import ScrollToTop from "./components/ScrollToTop";
+import AbbyHelpChatbot from "./components/AbbyHelpChatbot";
 
 const queryClient = new QueryClient();
 
@@ -81,6 +82,7 @@ const App = () => (
         <AuthProvider>
           <ScrollToTop />
           <AppRoutes />
+          <AbbyHelpChatbot />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

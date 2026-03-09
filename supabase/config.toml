@@ -75,3 +75,5 @@ project_id = "tubpbslfrxyfhldkcyyq"
     verify_jwt = false
   [functions.stripe-connect]
     verify_jwt = false
+  [functions.abby-help-chat]
+    verify_jwt = false
