@@ -16,6 +16,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminAuth from "./pages/AdminAuth";
 import AuthorDashboard from "./pages/AuthorDashboard";
 import Contact from "./pages/Contact";
+import FAQ from "./pages/FAQ";
 import ReadingClub from "./pages/ReadingClub";
 import SSO from "./pages/SSO";
 import NotFound from "./pages/NotFound";
@@ -66,6 +67,7 @@ const AppRoutes = () => (
       <Route path="/dashboard/book/:bookId" element={<BookHub />} />
       <Route path="/my-books" element={<AuthorDashboard initialSection="my-books" />} />
       <Route path="/contact" element={<Contact />} />
+      <Route path="/faq" element={<FAQ />} />
       <Route path="/reading-club" element={<ReadingClub />} />
       <Route path="/sso" element={<SSO />} />
       <Route path="*" element={<NotFound />} />
