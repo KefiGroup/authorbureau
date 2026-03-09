@@ -48,7 +48,7 @@ const BUILDER_NODE_IDS = Object.keys(BUILDER_NODE_MAP) as Array<keyof typeof BUI
 export type DashboardSection =
   | "overview" | "profile" | "my-books"
   | "build-business"
-  | "courses" | "workbooks" | "webinars" | "social-media" | "memberships"
+  | "courses" | "workbooks" | "webinars" | "social-media" | "memberships" | "home-study"
   | "audiobook-studio"
   | "coaching" | "group-coaching" | "big-ticket"
   | "speaking" | "podcast" | "corporate-training"
