@@ -56,8 +56,8 @@ const plans = [
   {
     id: "pro" as const,
     name: "Pro",
-    price: "$197",
-    priceNum: 197,
+    price: "$199",
+    priceNum: 199,
     period: "/mo",
     tagline: "Build a real business.",
     description: "Full Build + Bridge — everything to monetize",
