@@ -301,6 +301,10 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
           ],
           bookId,
           isPremium: true,
+          builderMode: true,
+          builderId: nodeConfig.id,
+          builderLabel: nodeConfig.label,
+          builderStep: currentStepConfig?.label,
         }),
       });
 
