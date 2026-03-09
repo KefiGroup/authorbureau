@@ -6,6 +6,7 @@ import {
   Sparkles, X, Send, ChevronLeft, Lock, AlertCircle, Wand2,
 } from "lucide-react";
 import AbbyNarrativeLoading from "./AbbyNarrativeLoading";
+import { BUILDER_SYSTEM_PROMPTS } from "./builderSystemPrompts";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -278,19 +279,23 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
           messages: [
             {
               role: "system",
-              content: `You are Abby, the AI business advisor for Authors Bureau. You're helping an author build a "${nodeConfig.label}" product for their book "${bookTitle}". Current step: "${currentStepConfig?.label}".
+              content: `${BUILDER_SYSTEM_PROMPTS[nodeConfig.id] || `You are Abby, the AI business advisor for Authors Bureau. You're helping an author build a "${nodeConfig.label}" product.`}
+
+CONTEXT:
+- Book: "${bookTitle}"
+- Current step: "${currentStepConfig?.label}" — ${currentStepConfig?.description}
+- Step tip: ${currentStepConfig?.abbyTip}
 
 IMPORTANT RULES:
 - Stay focused ONLY on building this specific ${nodeConfig.label}. Never suggest leaving this page or going to another section.
 - Give practical, step-by-step advice about creating, designing, and publishing this product.
-${nodeConfig.id === "workbook" ? `- For workbooks: focus on exercise design, page layout, PDF formatting, companion content, and how to publish/sell on Amazon KDP. Help with cover design tips, pricing strategy ($9.99-$24.99 range), and KDP upload process.` : ""}
-${nodeConfig.id === "audiobook" ? `- For audiobooks: focus on narration quality, chapter pacing, ACX/Findaway distribution, and audio formatting.` : ""}
-${nodeConfig.id === "course" ? `- For courses: focus on curriculum structure, lesson scripting, engagement techniques, and platform setup.` : ""}
-${manuscriptSummary ? `\n\nMANUSCRIPT CONTEXT (use this to give specific, personalized advice):\n${manuscriptSummary.slice(0, 1500)}` : ""}
-${frameworks ? `\n\nBOOK FRAMEWORKS (the author's proprietary methods/models):\n${frameworks.slice(0, 1000)}` : ""}
-- Business plan context: ${plan ? JSON.stringify(plan).slice(0, 2000) : "No plan yet — that's fine, focus on building this product."}
 - When suggesting titles, suggest exactly 3 options based on the book's frameworks and themes.
-- Keep responses brief (under 150 words), actionable, and encouraging.`,
+- Keep responses brief (under 150 words), actionable, and encouraging.
+- Reference specific chapters, frameworks, and concepts from the manuscript when giving advice.
+- Use the book's own language and terminology in product names.
+${manuscriptSummary ? `\nMANUSCRIPT CONTEXT:\n${manuscriptSummary.slice(0, 1500)}` : ""}
+${frameworks ? `\nBOOK FRAMEWORKS:\n${frameworks.slice(0, 1000)}` : ""}
+${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""}`,
             },
             ...newMsgs,
           ],
