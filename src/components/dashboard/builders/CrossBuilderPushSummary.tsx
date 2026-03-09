@@ -65,8 +65,8 @@ export default function CrossBuilderPushSummary({
   }, {});
 
   const statusIcon = (status: string) => {
-    if (status === "imported") return <Check className="w-3 h-3 text-green-500" />;
-    if (status === "pending") return <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />;
+    if (status === "imported") return <Check className="w-3 h-3 text-primary" />;
+    if (status === "pending") return <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />;
     return null;
   };
 
