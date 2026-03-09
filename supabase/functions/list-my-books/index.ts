@@ -218,8 +218,44 @@ Deno.serve(async (req) => {
       return true;
     });
 
+    const bookIds = uniqueBooks.map(b => b.id);
+
+    // Fetch generated_assets for these books (business plans + manuscripts)
+    const analyzedBookIds: string[] = [];
+    const manuscriptBookIds: string[] = [];
+    if (bookIds.length > 0) {
+      const { data: assets } = await cloudAdmin
+        .from("generated_assets")
+        .select("book_id, asset_type")
+        .in("book_id", bookIds)
+        .in("asset_type", ["business_plan", "source_material"]);
+
+      for (const a of assets || []) {
+        if (a.asset_type === "business_plan" && !analyzedBookIds.includes(a.book_id)) {
+          analyzedBookIds.push(a.book_id);
+        }
+        if (a.asset_type === "source_material" && !manuscriptBookIds.includes(a.book_id)) {
+          manuscriptBookIds.push(a.book_id);
+        }
+      }
+    }
+
+    // Count products per book
+    const productCounts: Record<string, number> = {};
+    if (bookIds.length > 0) {
+      for (const table of ["courses", "audiobooks", "home_study_courses"]) {
+        const { data: rows } = await cloudAdmin
+          .from(table)
+          .select("book_id")
+          .in("book_id", bookIds);
+        for (const row of rows || []) {
+          productCounts[row.book_id] = (productCounts[row.book_id] || 0) + 1;
+        }
+      }
+    }
+
     return new Response(
-      JSON.stringify({ books: uniqueBooks }),
+      JSON.stringify({ books: uniqueBooks, analyzedBookIds, manuscriptBookIds, productCounts }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
