@@ -566,23 +566,27 @@ EXISTING PRODUCTS: ${existingProducts || "None built yet."}`;
         });
       }
 
-      // Save proposal as draft
-      await adminClient.from("generated_assets").upsert({
-        book_id: bookId,
-        author_id: user.id,
-        asset_type: `builder_proposal_${builderId}`,
-        content: JSON.stringify(proposal),
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "book_id,asset_type" }).catch(err => {
-        // Non-blocking — try insert if upsert fails
-        console.warn("Proposal upsert failed, trying insert:", err);
-        adminClient.from("generated_assets").insert({
+      // Save proposal as draft (non-blocking)
+      try {
+        const { error: upsertErr } = await adminClient.from("generated_assets").upsert({
           book_id: bookId,
           author_id: user.id,
           asset_type: `builder_proposal_${builderId}`,
           content: JSON.stringify(proposal),
-        }).catch(() => {});
-      });
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "book_id,asset_type" });
+        if (upsertErr) {
+          console.warn("Proposal upsert failed, trying insert:", upsertErr);
+          await adminClient.from("generated_assets").insert({
+            book_id: bookId,
+            author_id: user.id,
+            asset_type: `builder_proposal_${builderId}`,
+            content: JSON.stringify(proposal),
+          });
+        }
+      } catch (e) {
+        console.warn("Proposal save failed:", e);
+      }
 
       return new Response(JSON.stringify({ proposal }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
