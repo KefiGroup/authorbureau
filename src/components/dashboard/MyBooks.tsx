@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import ManuscriptUpload from "./ManuscriptUpload";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
-import { supabase as cloudSupabase } from "@/integrations/supabase/client";
+// cloudSupabase queries now use REST API with shared backend token
 import DualModeBookForm from "@/components/DualModeBookForm";
 import JourneyTracker, { getBookStage, type JourneyStage } from "./my-books/JourneyTracker";
 import PortfolioSummaryBar from "./my-books/PortfolioSummaryBar";
