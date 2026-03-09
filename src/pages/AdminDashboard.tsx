@@ -20,7 +20,7 @@ import SupportTab from "@/components/admin/SupportTab";
 
 import type { AdminStats, Submission, AdminUser, AdminBook, AdminInfo } from "@/types/admin";
 
-type Tab = "overview" | "books" | "authors" | "admins" | "platforms" | "crm" | "reading-club";
+type Tab = "overview" | "books" | "authors" | "admins" | "platforms" | "crm" | "reading-club" | "support";
 
 export default function AdminDashboard() {
   const { user, loading, isAdmin, signOut } = useAuth();
