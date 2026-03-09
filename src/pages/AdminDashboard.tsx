@@ -370,6 +370,7 @@ export default function AdminDashboard() {
           )}
           {tab === "crm" && <CRMDashboard />}
           {tab === "reading-club" && <ReadingClubTab />}
+          {tab === "support" && <SupportTab />}
           {tab === "platforms" && <PlatformAccessTab />}
           {tab === "admins" && (
             <AdminsTab
