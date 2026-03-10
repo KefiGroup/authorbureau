@@ -220,7 +220,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "profile":
         return <ProfileEditor onNavigate={handleNavigate} />;
       case "my-books":
-        return <MyBooks isPremium={isPremium || isAdmin} onNavigate={handleNavigate} stripeConnected={stripeConnected} />;
+        return <MyBooks isPremium={isPremium || isAdmin} onNavigate={handleNavigate} stripeConnected={stripeConnected} centralStats={stats} />;
       case "build-business":
         return <BuildMyBusiness />;
       case "analytics":
