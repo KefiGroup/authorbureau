@@ -32,6 +32,10 @@ const typeIcons: Record<string, React.ElementType> = {
   webinars: Video,
   audiobooks: Headphones,
   podcasts: Podcast,
+  workbooks: FileText,
+  social_media_content: FileText,
+  email_flows: FileText,
+  coaching_packages: FileText,
 };
 
 const typeLabels: Record<string, string> = {
@@ -40,6 +44,10 @@ const typeLabels: Record<string, string> = {
   webinars: "Webinar",
   audiobooks: "Audiobook",
   podcasts: "Podcast",
+  workbooks: "Workbook",
+  social_media_content: "Social Media Calendar",
+  email_flows: "Email Marketing",
+  coaching_packages: "Coaching Package",
 };
 
 interface Props {
@@ -66,7 +74,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
     const drafts: DraftProduct[] = [];
 
     try {
-      const tables = ["courses", "home_study_courses", "webinars", "audiobooks", "podcasts"] as const;
+      const tables = ["courses", "home_study_courses", "webinars", "audiobooks", "podcasts", "workbooks", "social_media_content", "email_flows", "coaching_packages"] as const;
 
       for (const table of tables) {
         const { data } = await supabase
@@ -319,7 +327,7 @@ export function useReviewProductCount() {
     if (!user) return;
     (async () => {
       let total = 0;
-      const tables = ["courses", "home_study_courses", "webinars", "audiobooks", "podcasts"] as const;
+      const tables = ["courses", "home_study_courses", "webinars", "audiobooks", "podcasts", "workbooks", "social_media_content", "email_flows", "coaching_packages"] as const;
       for (const table of tables) {
         const { count: c } = await supabase
           .from(table)

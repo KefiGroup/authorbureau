@@ -222,7 +222,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
 
         // Count pending review products
         let reviewCount = 0;
-        const tables = ["courses", "home_study_courses", "webinars", "audiobooks", "podcasts"] as const;
+        const tables = ["courses", "home_study_courses", "webinars", "audiobooks", "podcasts", "workbooks", "social_media_content", "email_flows", "coaching_packages"] as const;
         for (const table of tables) {
           const { count } = await supabase
             .from(table)
@@ -386,6 +386,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         isPremium={isPremium || isAdmin}
+        isAdmin={isAdmin}
         tier={tier}
         hasBooks={hasBooks}
         hasAnalysis={hasAnalysis}

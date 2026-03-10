@@ -15,6 +15,7 @@ interface Props {
   collapsed: boolean;
   onToggleCollapse: () => void;
   isPremium: boolean;
+  isAdmin?: boolean;
   tier?: "free" | "starter" | "pro" | "enterprise";
   hasBooks?: boolean;
   hasAnalysis?: boolean;
@@ -44,12 +45,16 @@ const sisterLinks = [
 
 export default function DashboardSidebar({
   activeSection, onSectionChange, collapsed, onToggleCollapse,
-  isPremium, tier = "free", hasBooks = true, hasAnalysis = true, hasMicrosite = true,
+  isPremium, isAdmin = false, tier = "free", hasBooks = true, hasAnalysis = true, hasMicrosite = true,
   buildUnlocked = 0, bridgeUnlocked = 0, yieldUnlocked = 0,
   stripeConnected = false, pendingReviewCount = 0,
 }: Props) {
 
+  // Admin and premium users bypass all tier locks
+  const bypassLocks = isPremium || isAdmin;
+
   const tierAccess = (required: "starter" | "pro" | "enterprise") => {
+    if (bypassLocks) return true;
     const order = ["free", "starter", "pro", "enterprise"];
     return order.indexOf(tier) >= order.indexOf(required);
   };
@@ -64,19 +69,19 @@ export default function DashboardSidebar({
   // Section 2: Build Your Business
   const businessItems: NavItem[] = [
     {
-      id: "revenue-streams", label: "Build Authority (11)", icon: DollarSign,
+      id: "revenue-streams", label: "B·Build — Digital Products (11)", icon: DollarSign,
       color: "text-emerald-500",
-      badge: hasAnalysis ? `${buildUnlocked} of 11` : undefined,
-      lockMessage: (!hasAnalysis && !tierAccess("starter")) ? "Analyze a book first" : (!tierAccess("starter") ? "Requires Starter" : undefined),
+      badge: hasAnalysis || bypassLocks ? `${buildUnlocked} of 11` : undefined,
+      lockMessage: (!hasAnalysis && !bypassLocks) ? "Analyze a book first" : (!tierAccess("starter") ? "Requires Starter" : undefined),
     },
     {
-      id: "marketing-channels", label: "Bridge Channels (8)", icon: Radio,
+      id: "marketing-channels", label: "B·Bridge — Audience (8)", icon: Radio,
       color: "text-violet-500",
       badge: tierAccess("pro") ? `${bridgeUnlocked} of 8` : undefined,
       lockMessage: !tierAccess("pro") ? "Requires Pro Plan" : undefined,
     },
     {
-      id: "authority-builders", label: "Yield Revenue (8)", icon: Award,
+      id: "authority-builders", label: "Y·Yield — Revenue (8)", icon: Award,
       color: "text-amber-500",
       badge: tierAccess("enterprise") ? `${yieldUnlocked} of 8` : undefined,
       lockMessage: !tierAccess("enterprise") ? "Requires Enterprise" : undefined,
