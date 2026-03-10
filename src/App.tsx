@@ -59,6 +59,8 @@ const AppRoutes = () => (
     <Routes>
       <Route path="/" element={<Index />} />
       <Route path="/directory" element={<Directory />} />
+      <Route path="/authors" element={<Navigate to="/directory" replace />} />
+      <Route path="/get-featured" element={<GetFeatured />} />
       <Route path="/authors/:slug" element={<AuthorProfile />} />
       <Route path="/books/:slug" element={<DynamicBookMicrosite />} />
       <Route path="/create-microsite" element={<CreateMicrosite />} />
