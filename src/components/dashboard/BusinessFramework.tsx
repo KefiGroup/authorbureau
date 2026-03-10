@@ -111,7 +111,7 @@ const categories: Category[] = [
 ];
 
 const statusStyles = {
-  live: { badge: "Live", className: "bg-green-500/15 text-green-700 dark:text-green-400" },
+  available: { badge: "Available", className: "bg-accent/15 text-accent border-accent/30" },
   "coming-soon": { badge: "Building", className: "bg-amber-500/15 text-amber-700 dark:text-amber-400" },
   planned: { badge: "Planned", className: "bg-muted text-muted-foreground" },
 };
