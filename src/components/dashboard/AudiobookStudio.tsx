@@ -180,7 +180,56 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
     return chunks;
   };
 
-  // Generate all chapters sequentially, chunk by chunk
+  // Generate a single chapter by index
+  const generateChapter = async (i: number, authToken: string) => {
+    setCurrentChapter(i);
+    setChapters(prev => prev.map((ch, idx) => idx === i ? { ...ch, status: "generating", error: undefined } : ch));
+
+    const chunks = splitTextIntoChunks(chapters[i].text);
+    const chunkUrls: string[] = [];
+
+    for (let c = 0; c < chunks.length; c++) {
+      setChapters(prev => prev.map((ch, idx) =>
+        idx === i ? { ...ch, error: `Generating chunk ${c + 1} of ${chunks.length}...` } : ch
+      ));
+
+      const previousContext = c > 0 ? chunks[c - 1].slice(-200) : undefined;
+      const nextContext = c < chunks.length - 1 ? chunks[c + 1].slice(0, 200) : undefined;
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts-audiobook`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authToken}`,
+          },
+          body: JSON.stringify({
+            action: "generate-chunk",
+            bookId,
+            voiceKey: selectedVoice,
+            chunkText: chunks[c],
+            chapterIndex: i,
+            chunkIndex: c,
+            previousContext,
+            nextContext,
+          }),
+        }
+      );
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+        throw new Error(err.error || "Generation failed");
+      }
+      const result = await response.json();
+      chunkUrls.push(result.audioUrl);
+    }
+
+    setChapters(prev => prev.map((ch, idx) =>
+      idx === i ? { ...ch, status: "done", audioUrl: chunkUrls[0], error: undefined } : ch
+    ));
+  };
+
+  // Generate all chapters sequentially
   const handleGenerateAll = async () => {
     if (chapters.length === 0) {
       toast({ title: "No chapters", description: "Parse chapters first.", variant: "destructive" });
@@ -188,57 +237,11 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
     }
     setIsGenerating(true);
     const session = (await supabase.auth.getSession()).data.session;
-    const authToken = session?.access_token;
+    const authToken = session?.access_token || "";
 
     for (let i = 0; i < chapters.length; i++) {
-      setCurrentChapter(i);
-      setChapters(prev => prev.map((ch, idx) => idx === i ? { ...ch, status: "generating", error: undefined } : ch));
-      
       try {
-        const chunks = splitTextIntoChunks(chapters[i].text);
-        const chunkUrls: string[] = [];
-
-        for (let c = 0; c < chunks.length; c++) {
-          // Update status with chunk progress
-          setChapters(prev => prev.map((ch, idx) => 
-            idx === i ? { ...ch, error: `Generating chunk ${c + 1} of ${chunks.length}...` } : ch
-          ));
-
-          const previousContext = c > 0 ? chunks[c - 1].slice(-200) : undefined;
-          const nextContext = c < chunks.length - 1 ? chunks[c + 1].slice(0, 200) : undefined;
-
-          const response = await fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts-audiobook`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${authToken}`,
-              },
-              body: JSON.stringify({
-                action: "generate-chunk",
-                bookId,
-                voiceKey: selectedVoice,
-                chunkText: chunks[c],
-                chapterIndex: i,
-                chunkIndex: c,
-                previousContext,
-                nextContext,
-              }),
-            }
-          );
-          if (!response.ok) {
-            const err = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
-            throw new Error(err.error || "Generation failed");
-          }
-          const result = await response.json();
-          chunkUrls.push(result.audioUrl);
-        }
-
-        // Use first chunk URL as primary (chapters play sequentially)
-        setChapters(prev => prev.map((ch, idx) => 
-          idx === i ? { ...ch, status: "done", audioUrl: chunkUrls[0], error: undefined } : ch
-        ));
+        await generateChapter(i, authToken);
       } catch (e: any) {
         setChapters(prev => prev.map((ch, idx) => idx === i ? { ...ch, status: "error", error: e.message } : ch));
         toast({ title: `Chapter ${i + 1} failed`, description: e.message, variant: "destructive" });
@@ -247,6 +250,22 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
     setIsGenerating(false);
     setCurrentChapter(-1);
     toast({ title: "Audiobook generation complete!" });
+  };
+
+  // Generate a single chapter
+  const handleGenerateSingle = async (i: number) => {
+    setIsGenerating(true);
+    const session = (await supabase.auth.getSession()).data.session;
+    const authToken = session?.access_token || "";
+    try {
+      await generateChapter(i, authToken);
+      toast({ title: `${chapters[i].title} generated!` });
+    } catch (e: any) {
+      setChapters(prev => prev.map((ch, idx) => idx === i ? { ...ch, status: "error", error: e.message } : ch));
+      toast({ title: `${chapters[i].title} failed`, description: e.message, variant: "destructive" });
+    }
+    setIsGenerating(false);
+    setCurrentChapter(-1);
   };
 
   // Play a chapter
@@ -433,6 +452,16 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
                         </Button>
                       </a>
                     </div>
+                  )}
+                  {ch.status === "pending" && !isGenerating && (
+                    <Button size="sm" variant="outline" className="shrink-0 text-xs" onClick={() => handleGenerateSingle(i)}>
+                      <Sparkles className="h-3 w-3 mr-1" />Generate
+                    </Button>
+                  )}
+                  {ch.status === "error" && !isGenerating && (
+                    <Button size="sm" variant="outline" className="shrink-0 text-xs" onClick={() => handleGenerateSingle(i)}>
+                      <Sparkles className="h-3 w-3 mr-1" />Retry
+                    </Button>
                   )}
                   {ch.status === "generating" && (
                     <Badge variant="outline" className="text-xs shrink-0">Generating…</Badge>
