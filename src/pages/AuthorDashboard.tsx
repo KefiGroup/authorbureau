@@ -403,6 +403,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           subscription={subscription}
           onSignOut={signOut}
           onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
+          onNavigate={handleNavigate}
         />
         <div className="border-b border-border px-6 lg:px-8 bg-card">
           <JourneyBreadcrumb
