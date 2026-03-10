@@ -178,11 +178,12 @@ export const ADVISOR_CONTENT: Record<AbbyCategory, AdvisorContent> = {
     heading: "Which channels should you activate first?",
     intro: "Bridge products connect your book to a wider audience. Here's the priority order:",
     recommendations: [
+      { label: "Audiobook", reason: "AI-narrated from your manuscript. No recording studio needed. Expands your reach to listeners who prefer audio.", priceRange: "$9.99 – $14.99", difficulty: "Easy", nodeId: "audiobook" },
       { label: "Podcast Tour", reason: "AI generates guest pitches, talking points, and media one-sheets. The fastest way to reach new audiences.", difficulty: "Easy", nodeId: "podcast-guest" },
       { label: "Webinars", reason: "AI generates scripts, slide decks, and registration pages. Great for selling coaching and courses.", priceRange: "$47 – $197", difficulty: "Medium", nodeId: "webinars" },
       { label: "Lead Magnet Funnel", reason: "Free PDF downloads that capture emails and feed your nurture sequences. Essential for list building.", difficulty: "Easy", nodeId: "lead-magnet" },
     ],
-    closingNote: "Start with Podcast Tour + Lead Magnet to grow your audience, then add Webinars to convert them.",
+    closingNote: "Start with Audiobook + Podcast Tour to grow your audience, then add Webinars to convert them.",
   },
   "authority-builders": {
     heading: "When should you pursue premium revenue?",
