@@ -76,7 +76,7 @@ export default function FreeMicrositeHero({
           {profileState === "incomplete" && (
             <Button onClick={onCompleteProfile} size="lg" className="w-fit bg-amber-600 hover:bg-amber-700 text-white shadow-lg">
               <User className="h-4 w-4 mr-2" />
-              Complete Your Profile to Go Live →
+              Update Your Profile on PublishNow →
             </Button>
           )}
           {profileState === "live" && (
