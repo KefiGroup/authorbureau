@@ -7,7 +7,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import {
   CheckCircle2, Eye, Edit, Loader2, Package, GraduationCap,
   BookOpen, Headphones, Video, Podcast, FileText, AlertTriangle,
+  Download, Printer,
 } from "lucide-react";
+import HomeStudyExportModal from "./HomeStudyExportModal";
 import { toast } from "@/hooks/use-toast";
 
 interface DraftProduct {
