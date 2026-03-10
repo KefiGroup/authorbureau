@@ -221,13 +221,13 @@ export default function BookHubStepTab({ categoryId, bookId, bookTitle, bookGenr
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {group.nodes.map((node) => {
                   const status = statusStyles[node.status];
-                  const Icon = iconMap[node.iconName] || BookOpen;
-                  const canOpen = node.status === "live";
+                  const Icon = node.icon;
+                  const canOpen = node.status === "available";
                   const studioPath = getStudioPath(node.id);
                   const isCompleted = isNodeCompleted(node.id);
                   const nodeAccessible = hasTierAccess(tier, node.requiredTier);
                   const isClickable = canOpen && Boolean(studioPath) && nodeAccessible;
-                  const canBuild = (node.status === "live" || node.status === "coming-soon") && nodeAccessible && plan;
+                  const canBuild = (node.status === "available" || node.status === "coming-soon") && nodeAccessible && plan;
 
                   // Lock info for inaccessible nodes
                   const lockLabel = !nodeAccessible
