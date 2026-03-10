@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Globe, ExternalLink, Copy, Lock, CheckCircle2, FileText,
   PlusCircle, Edit, ShoppingBag, Megaphone, Calendar, BookOpen,
-  Palette, User, ArrowRight,
+  Palette, User, ArrowRight, Eye,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
@@ -25,9 +25,12 @@ interface Props {
 }
 
 export default function MicrositeManager({ onNavigate }: Props) {
-  const { user, tier, isPremium } = useAuth();
+  const { user, tier, isPremium, isAdmin } = useAuth();
   const [authorSlug, setAuthorSlug] = useState<string | null>(null);
   const [directoryStatus, setDirectoryStatus] = useState<string>("unlisted");
+  const [profileExists, setProfileExists] = useState(false);
+
+  const effectiveTier: SubscriptionTier = isAdmin ? "enterprise" : tier;
 
   useEffect(() => {
     if (!user) return;
@@ -38,6 +41,7 @@ export default function MicrositeManager({ onNavigate }: Props) {
         .eq("user_id", user.id)
         .maybeSingle();
       if (data) {
+        setProfileExists(true);
         setAuthorSlug(data.author_slug);
         setDirectoryStatus(data.directory_status || "unlisted");
       }
@@ -47,6 +51,13 @@ export default function MicrositeManager({ onNavigate }: Props) {
   const isLive = ["listed", "verified", "featured"].includes(directoryStatus);
   const micrositeUrl = authorSlug ? `${window.location.origin}/authors/${authorSlug}` : null;
 
+  // Derive Author Profile Page status from real data
+  const profilePageStatus = (() => {
+    if (!profileExists) return "not_created" as const;
+    if (isLive) return "live" as const;
+    return "draft" as const;
+  })();
+
   const allPages: MicrositePage[] = [
     {
       id: "author-profile",
@@ -54,7 +65,7 @@ export default function MicrositeManager({ onNavigate }: Props) {
       description: "Your public author page with photo, bio, books, and social links.",
       icon: User,
       requiredTier: "free",
-      status: isLive ? "live" : (authorSlug ? "draft" : "not_created"),
+      status: profilePageStatus,
     },
     {
       id: "product-page-1",
@@ -62,7 +73,7 @@ export default function MicrositeManager({ onNavigate }: Props) {
       description: "A dedicated sales page for one of your digital products.",
       icon: ShoppingBag,
       requiredTier: "starter",
-      status: hasTierAccess(tier, "starter") ? "not_created" : "locked",
+      status: hasTierAccess(effectiveTier, "starter") ? "not_created" : "locked",
     },
     {
       id: "landing-page",
@@ -70,7 +81,7 @@ export default function MicrositeManager({ onNavigate }: Props) {
       description: "A custom landing page with hero section, featured products, and lead capture.",
       icon: Globe,
       requiredTier: "pro",
-      status: hasTierAccess(tier, "pro") ? "not_created" : "locked",
+      status: hasTierAccess(effectiveTier, "pro") ? "not_created" : "locked",
     },
     {
       id: "product-pages-unlimited",
@@ -78,7 +89,7 @@ export default function MicrositeManager({ onNavigate }: Props) {
       description: "Create as many sales pages as you need for all your products.",
       icon: ShoppingBag,
       requiredTier: "pro",
-      status: hasTierAccess(tier, "pro") ? "not_created" : "locked",
+      status: hasTierAccess(effectiveTier, "pro") ? "not_created" : "locked",
     },
     {
       id: "lead-magnet",
@@ -86,7 +97,7 @@ export default function MicrositeManager({ onNavigate }: Props) {
       description: "Offer free downloads to capture email leads.",
       icon: Megaphone,
       requiredTier: "pro",
-      status: hasTierAccess(tier, "pro") ? "not_created" : "locked",
+      status: hasTierAccess(effectiveTier, "pro") ? "not_created" : "locked",
     },
     {
       id: "coaching-services",
@@ -94,7 +105,7 @@ export default function MicrositeManager({ onNavigate }: Props) {
       description: "Showcase your coaching packages and consulting services.",
       icon: FileText,
       requiredTier: "pro",
-      status: hasTierAccess(tier, "pro") ? "not_created" : "locked",
+      status: hasTierAccess(effectiveTier, "pro") ? "not_created" : "locked",
     },
     {
       id: "events-page",
@@ -102,7 +113,7 @@ export default function MicrositeManager({ onNavigate }: Props) {
       description: "Manage and promote your retreats, webinars, and speaking events.",
       icon: Calendar,
       requiredTier: "enterprise",
-      status: hasTierAccess(tier, "enterprise") ? "not_created" : "locked",
+      status: hasTierAccess(effectiveTier, "enterprise") ? "not_created" : "locked",
     },
     {
       id: "content-hub",
@@ -110,7 +121,7 @@ export default function MicrositeManager({ onNavigate }: Props) {
       description: "Publish articles and book excerpts to build authority.",
       icon: BookOpen,
       requiredTier: "enterprise",
-      status: hasTierAccess(tier, "enterprise") ? "not_created" : "locked",
+      status: hasTierAccess(effectiveTier, "enterprise") ? "not_created" : "locked",
     },
     {
       id: "custom-domain",
@@ -118,7 +129,7 @@ export default function MicrositeManager({ onNavigate }: Props) {
       description: "Use your own domain (e.g., yourname.com) for your microsite.",
       icon: Globe,
       requiredTier: "enterprise",
-      status: hasTierAccess(tier, "enterprise") ? "not_created" : "locked",
+      status: hasTierAccess(effectiveTier, "enterprise") ? "not_created" : "locked",
     },
     {
       id: "white-label",
@@ -126,7 +137,7 @@ export default function MicrositeManager({ onNavigate }: Props) {
       description: "Remove Authors Bureau branding from your microsite.",
       icon: Palette,
       requiredTier: "enterprise",
-      status: hasTierAccess(tier, "enterprise") ? "not_created" : "locked",
+      status: hasTierAccess(effectiveTier, "enterprise") ? "not_created" : "locked",
     },
   ];
 
@@ -152,25 +163,28 @@ export default function MicrositeManager({ onNavigate }: Props) {
           <h2 className="font-heading text-2xl font-bold">Your Author Microsite</h2>
           {micrositeUrl ? (
             <div className="flex items-center gap-2 mt-1">
-              <a
-                href={micrositeUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-secondary hover:underline flex items-center gap-1"
-              >
-                {micrositeUrl} <ExternalLink className="h-3 w-3" />
-              </a>
-              <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={handleCopyUrl}>
-                <Copy className="h-3 w-3" /> Share
-              </Button>
+              <p className="text-sm text-muted-foreground">
+                {isLive ? "Manage your live author microsite." : "Your microsite is in draft mode."}
+              </p>
             </div>
           ) : (
             <p className="text-sm text-muted-foreground mt-1">Set up your author profile to get your microsite URL.</p>
           )}
         </div>
-        {!isLive && (
+        {micrositeUrl && (
+          <div className="flex items-center gap-2">
+            <a href={micrositeUrl} target="_blank" rel="noopener noreferrer"
+              className="text-sm text-secondary hover:underline flex items-center gap-1">
+              {micrositeUrl} <ExternalLink className="h-3 w-3" />
+            </a>
+            <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={handleCopyUrl}>
+              <Copy className="h-3 w-3" /> Share
+            </Button>
+          </div>
+        )}
+        {!profileExists && (
           <Button className="bg-secondary text-secondary-foreground hover:bg-secondary/90 w-fit" onClick={() => onNavigate?.("profile")}>
-            {authorSlug ? "Complete Your Profile" : "Set Up Your Microsite"} <ArrowRight className="h-4 w-4 ml-1" />
+            Set Up Your Microsite <ArrowRight className="h-4 w-4 ml-1" />
           </Button>
         )}
       </div>
@@ -188,6 +202,8 @@ export default function MicrositeManager({ onNavigate }: Props) {
         {allPages.map((page) => {
           const isLocked = page.status === "locked";
           const tierBadge = (() => {
+            // Don't show tier badge if user already has access
+            if (hasTierAccess(effectiveTier, page.requiredTier) && page.requiredTier !== "free") return null;
             switch (page.requiredTier) {
               case "free": return { label: "FREE", color: "bg-accent/15 text-accent border-accent/20" };
               case "starter": return { label: "STARTER", color: "bg-blue-500/15 text-blue-700 border-blue-500/20" };
@@ -204,23 +220,16 @@ export default function MicrositeManager({ onNavigate }: Props) {
           })();
 
           return (
-            <Card
-              key={page.id}
-              className={`p-4 flex flex-col gap-3 transition-opacity ${isLocked ? "opacity-50" : ""}`}
-            >
+            <Card key={page.id} className={`p-4 flex flex-col gap-3 transition-opacity ${isLocked ? "opacity-50" : ""}`}>
               <div className="flex items-start gap-3">
-                <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                  isLocked ? "bg-muted" : "bg-secondary/10"
-                }`}>
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${isLocked ? "bg-muted" : "bg-secondary/10"}`}>
                   {isLocked ? <Lock className="h-4 w-4 text-muted-foreground" /> : <page.icon className="h-4 w-4 text-secondary" />}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-heading font-semibold text-sm">{page.name}</h3>
                     {tierBadge && (
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${tierBadge.color}`}>
-                        {tierBadge.label}
-                      </span>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${tierBadge.color}`}>{tierBadge.label}</span>
                     )}
                   </div>
                   <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{page.description}</p>
@@ -254,9 +263,18 @@ export default function MicrositeManager({ onNavigate }: Props) {
               {/* Action */}
               <div className="mt-auto pt-1">
                 {page.status === "live" && (
-                  <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => onNavigate?.("profile")}>
-                    <Edit className="h-3 w-3 mr-1" /> Edit
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => onNavigate?.("profile")}>
+                      <Edit className="h-3 w-3 mr-1" /> Edit
+                    </Button>
+                    {page.id === "author-profile" && micrositeUrl && (
+                      <Button variant="outline" size="sm" className="text-xs" asChild>
+                        <a href={micrositeUrl} target="_blank" rel="noopener noreferrer">
+                          <Eye className="h-3 w-3 mr-1" /> View <ExternalLink className="h-3 w-3 ml-1" />
+                        </a>
+                      </Button>
+                    )}
+                  </div>
                 )}
                 {page.status === "draft" && (
                   <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => onNavigate?.("profile")}>
@@ -279,7 +297,7 @@ export default function MicrositeManager({ onNavigate }: Props) {
         })}
       </div>
 
-      {/* Microsite Stats Footer */}
+      {/* Footer */}
       <Card className="p-4 border-border">
         <p className="text-sm text-muted-foreground">
           {isLive

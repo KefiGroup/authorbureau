@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import FrameworksEditor, { type AuthorFramework } from "@/components/dashboard/FrameworksEditor";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, hasTierAccess } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,43 +8,26 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Loader2, ExternalLink, Download, MapPin, Globe, Linkedin,
+  Loader2, ExternalLink, MapPin, Globe, Linkedin,
   Twitter, Instagram, Youtube, BookOpen, RefreshCw, KeyRound,
-  PlusCircle, Pencil, Trash2, Briefcase,
+  PlusCircle, Pencil, Trash2, Briefcase, Save, Camera, X, Download,
 } from "lucide-react";
-import { supabase as sharedSupabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
+import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { redirectToPublishNow } from "@/lib/publishnow-redirect";
 
-function SetPasswordSection() {
-  const handleManagePassword = () => {
-    redirectToPublishNow("/settings");
-  };
+// ── Genre options ──
+const GENRE_OPTIONS = [
+  "Business", "Self-Help", "Leadership", "Finance", "Marketing",
+  "Spirituality", "Health & Wellness", "Parenting", "Education",
+  "Technology", "Science", "Psychology", "Memoir", "Fiction",
+  "Children's", "Poetry", "History", "Philosophy", "Other",
+];
 
-  return (
-    <section className="rounded-xl border border-border bg-card p-6 space-y-4">
-      <div className="flex items-center gap-2">
-        <KeyRound className="h-5 w-5 text-muted-foreground" />
-        <h3 className="font-heading text-lg font-semibold">Password & Security</h3>
-      </div>
-      <p className="text-sm text-muted-foreground">
-        Password management is handled on PublishNow for security. You can set or change your password there.
-      </p>
-      <Button variant="outline" size="sm" onClick={handleManagePassword} className="border-secondary/30 text-secondary hover:bg-secondary/10">
-        <ExternalLink className="h-4 w-4 mr-1" /> Manage Password on PublishNow
-      </Button>
-    </section>
-  );
-}
-
+// ── Services Section (unchanged) ──
 const SERVICE_TYPES = ["Speaking", "Coaching", "Consulting", "Workshops", "Mentoring", "Other"] as const;
 
 interface AuthorService {
-  id: string;
-  type: string;
-  title: string;
-  description: string;
-  rate: string;
-  bookingLink: string;
+  id: string; type: string; title: string; description: string; rate: string; bookingLink: string;
 }
 
 function ServicesSection() {
@@ -65,16 +48,6 @@ function ServicesSection() {
     setShowForm(false);
   };
 
-  const handleEdit = (s: AuthorService) => {
-    setForm({ type: s.type, title: s.title, description: s.description, rate: s.rate, bookingLink: s.bookingLink });
-    setEditing(s);
-    setShowForm(true);
-  };
-
-  const handleDelete = (id: string) => {
-    setServices(prev => prev.filter(s => s.id !== id));
-  };
-
   return (
     <section className="rounded-xl border border-border bg-card p-6 space-y-4">
       <div className="flex items-center justify-between">
@@ -92,11 +65,7 @@ function ServicesSection() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs">Service Type</Label>
-              <select
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors"
-                value={form.type}
-                onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
-              >
+              <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm" value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
                 {SERVICE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
@@ -120,18 +89,14 @@ function ServicesSection() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" onClick={handleSave} disabled={!form.title.trim()}>
-              {editing ? "Update" : "Add"} Service
-            </Button>
+            <Button size="sm" onClick={handleSave} disabled={!form.title.trim()}>{editing ? "Update" : "Add"} Service</Button>
             <Button size="sm" variant="ghost" onClick={() => { setShowForm(false); setEditing(null); }}>Cancel</Button>
           </div>
         </div>
       )}
 
       {services.length === 0 && !showForm && (
-        <p className="text-sm text-muted-foreground text-center py-4">
-          No services added yet. Add your speaking, coaching, or consulting offerings.
-        </p>
+        <p className="text-sm text-muted-foreground text-center py-4">No services added yet. Add your speaking, coaching, or consulting offerings.</p>
       )}
 
       {services.length > 0 && (
@@ -147,10 +112,10 @@ function ServicesSection() {
                 {s.rate && <p className="text-xs font-medium mt-1">{s.rate}</p>}
               </div>
               <div className="flex gap-1 shrink-0">
-                <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleEdit(s)}>
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setForm({ type: s.type, title: s.title, description: s.description, rate: s.rate, bookingLink: s.bookingLink }); setEditing(s); setShowForm(true); }}>
                   <Pencil className="h-3.5 w-3.5" />
                 </Button>
-                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => handleDelete(s.id)}>
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => setServices(prev => prev.filter(x => x.id !== s.id))}>
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>
@@ -162,6 +127,7 @@ function ServicesSection() {
   );
 }
 
+// ── Profile data shape ──
 interface AuthorProfile {
   pen_name: string;
   bio_short: string;
@@ -178,13 +144,14 @@ interface AuthorProfile {
   amazon_author_profile_url: string;
   genres: string[];
   directory_status: string;
+  author_slug: string;
 }
 
 const EMPTY_PROFILE: AuthorProfile = {
   pen_name: "", bio_short: "", bio_long: "", tagline: "", photo_url: "",
   location_city: "", location_country: "", website_url: "", linkedin_url: "",
   twitter_url: "", instagram_url: "", youtube_url: "", amazon_author_profile_url: "",
-  genres: [], directory_status: "unlisted",
+  genres: [], directory_status: "unlisted", author_slug: "",
 };
 
 interface ProfileEditorProps {
@@ -192,13 +159,17 @@ interface ProfileEditorProps {
 }
 
 export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
-  const { user } = useAuth();
+  const { user, tier } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [profile, setProfile] = useState<AuthorProfile>(EMPTY_PROFILE);
   const [profileExists, setProfileExists] = useState(false);
+  const [editMode, setEditMode] = useState(false);
   const [frameworks, setFrameworks] = useState<AuthorFramework[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
@@ -234,6 +205,7 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
           amazon_author_profile_url: (data as any).amazon_author_profile_url || "",
           genres: (data.genres as string[]) || [],
           directory_status: data.directory_status || "unlisted",
+          author_slug: data.author_slug || "",
         });
         setFrameworks(Array.isArray((data as any).frameworks) ? (data as any).frameworks : []);
       }
@@ -244,6 +216,58 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
     }
   };
 
+  // ── Save profile natively ──
+  const handleSave = async () => {
+    if (!user) return;
+    setSaving(true);
+    try {
+      // Generate slug from pen_name if not set
+      const slug = profile.author_slug || profile.pen_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+      const payload = {
+        pen_name: profile.pen_name.trim(),
+        bio_short: profile.bio_short.trim(),
+        bio_long: profile.bio_long.trim(),
+        tagline: profile.tagline.trim(),
+        photo_url: profile.photo_url,
+        location_city: profile.location_city.trim(),
+        location_country: profile.location_country.trim(),
+        website_url: profile.website_url.trim(),
+        linkedin_url: profile.linkedin_url.trim(),
+        twitter_url: profile.twitter_url.trim(),
+        instagram_url: profile.instagram_url.trim(),
+        youtube_url: profile.youtube_url.trim(),
+        amazon_author_profile_url: profile.amazon_author_profile_url.trim(),
+        genres: profile.genres,
+        author_slug: slug,
+        frameworks: frameworks as any,
+      };
+
+      if (profileExists) {
+        const { error } = await supabase
+          .from("author_profiles")
+          .update(payload)
+          .eq("user_id", user.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("author_profiles")
+          .insert({ ...payload, user_id: user.id });
+        if (error) throw error;
+        setProfileExists(true);
+      }
+
+      setProfile(prev => ({ ...prev, author_slug: slug }));
+      setEditMode(false);
+      toast({ title: "Profile saved! ✅" });
+    } catch (err: any) {
+      toast({ title: "Save failed", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ── Sync from PublishNow (legacy, with feedback) ──
   const handleSync = async () => {
     setSyncing(true);
     try {
@@ -259,27 +283,46 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
 
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-author-profile`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        }
+        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } }
       );
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || "Sync failed");
 
-      toast({ title: "Profile synced ✅" });
+      toast({ title: "Profile synced successfully! ✅", description: "Your PublishNow data has been imported." });
       await fetchProfile();
     } catch (err: any) {
-      toast({ title: "Sync failed", description: err.message, variant: "destructive" });
+      toast({ title: "Sync failed", description: err.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setSyncing(false);
     }
-    setSyncing(false);
   };
 
-  const handleEditOnPublishNow = async () => {
-    const result = await redirectToPublishNow("/dashboard");
-    if (result.error) {
-      window.open("https://publishnow.io/dashboard", "_blank");
+  // ── Photo upload ──
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${user.id}/profile.${ext}`;
+      const { error: uploadError } = await supabase.storage.from("author-photos").upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from("author-photos").getPublicUrl(path);
+      setProfile(prev => ({ ...prev, photo_url: publicUrl }));
+      toast({ title: "Photo uploaded! 📸" });
+    } catch (err: any) {
+      toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
     }
+  };
+
+  // ── Genre toggle ──
+  const toggleGenre = (genre: string) => {
+    setProfile(prev => ({
+      ...prev,
+      genres: prev.genres.includes(genre) ? prev.genres.filter(g => g !== genre) : [...prev.genres, genre],
+    }));
   };
 
   if (loading) {
@@ -290,25 +333,26 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
     );
   }
 
-  if (!profileExists) {
+  // ── New profile: show creation form directly ──
+  if (!profileExists && !editMode) {
     return (
       <div className="max-w-xl mx-auto text-center py-16 space-y-6">
-        <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
-          <Download className="h-8 w-8 text-primary" />
+        <div className="w-16 h-16 rounded-2xl bg-secondary/10 flex items-center justify-center mx-auto">
+          <Pencil className="h-8 w-8 text-secondary" />
         </div>
         <div>
-          <h2 className="font-heading text-2xl font-bold">No Profile Synced Yet</h2>
+          <h2 className="font-heading text-2xl font-bold">Set Up Your Author Profile</h2>
           <p className="text-muted-foreground text-sm mt-2 max-w-md mx-auto">
-            Your author profile is managed on PublishNow. Click below to sync it to Authors Bureau, or set up your profile on PublishNow first.
+            Create your profile to get started. This powers your public author page and microsite.
           </p>
         </div>
         <div className="flex gap-3 justify-center">
-          <Button onClick={handleSync} disabled={syncing} className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
-            {syncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
-            Sync Now
+          <Button onClick={() => setEditMode(true)} className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
+            <PlusCircle className="h-4 w-4 mr-2" /> Create Profile
           </Button>
-          <Button variant="outline" onClick={handleEditOnPublishNow}>
-            <ExternalLink className="h-4 w-4 mr-2" /> Set Up on PublishNow
+          <Button variant="outline" onClick={handleSync} disabled={syncing}>
+            {syncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+            {syncing ? "Syncing..." : "Import from PublishNow"}
           </Button>
         </div>
       </div>
@@ -324,6 +368,160 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
     ? profile.directory_status === "featured" ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"
     : "bg-muted text-muted-foreground";
 
+  // ── Edit mode (also used for new profiles) ──
+  if (editMode || !profileExists) {
+    return (
+      <div className="max-w-3xl space-y-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 className="font-heading text-2xl font-bold">{profileExists ? "Edit Profile" : "Create Your Profile"}</h2>
+            <p className="text-sm text-muted-foreground mt-1">Fill in your author details below.</p>
+          </div>
+          <div className="flex gap-2">
+            {profileExists && (
+              <Button variant="outline" size="sm" onClick={() => { setEditMode(false); fetchProfile(); }}>
+                <X className="h-4 w-4 mr-1" /> Cancel
+              </Button>
+            )}
+            <Button size="sm" onClick={handleSave} disabled={saving || !profile.pen_name.trim()} className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
+              {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+              {saving ? "Saving..." : "Save Profile"}
+            </Button>
+          </div>
+        </div>
+
+        {/* Photo */}
+        <section className="rounded-xl border border-border bg-card p-6 space-y-4">
+          <h3 className="font-heading text-lg font-semibold">Profile Photo</h3>
+          <div className="flex items-center gap-4">
+            {profile.photo_url ? (
+              <img src={profile.photo_url} alt="Profile" className="h-24 w-24 rounded-full object-cover border-2 border-border" />
+            ) : (
+              <div className="h-24 w-24 rounded-full border-2 border-dashed border-border flex items-center justify-center bg-muted">
+                <Camera className="h-8 w-8 text-muted-foreground" />
+              </div>
+            )}
+            <div>
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+              <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+                {uploading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Camera className="h-4 w-4 mr-1" />}
+                {uploading ? "Uploading..." : "Upload Photo"}
+              </Button>
+              {profile.photo_url && (
+                <Button variant="ghost" size="sm" className="ml-2 text-destructive" onClick={() => setProfile(prev => ({ ...prev, photo_url: "" }))}>
+                  Remove
+                </Button>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Basic Info */}
+        <section className="rounded-xl border border-border bg-card p-6 space-y-4">
+          <h3 className="font-heading text-lg font-semibold">Basic Information</h3>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label className="text-xs">Author / Pen Name *</Label>
+              <Input value={profile.pen_name} onChange={e => setProfile(prev => ({ ...prev, pen_name: e.target.value }))} placeholder="Your author name" />
+            </div>
+            <div>
+              <Label className="text-xs">Tagline</Label>
+              <Input value={profile.tagline} onChange={e => setProfile(prev => ({ ...prev, tagline: e.target.value }))} placeholder="e.g. Bestselling author of..." />
+            </div>
+            <div>
+              <Label className="text-xs">City</Label>
+              <Input value={profile.location_city} onChange={e => setProfile(prev => ({ ...prev, location_city: e.target.value }))} placeholder="City" />
+            </div>
+            <div>
+              <Label className="text-xs">Country</Label>
+              <Input value={profile.location_country} onChange={e => setProfile(prev => ({ ...prev, location_country: e.target.value }))} placeholder="Country" />
+            </div>
+          </div>
+        </section>
+
+        {/* Bio */}
+        <section className="rounded-xl border border-border bg-card p-6 space-y-4">
+          <h3 className="font-heading text-lg font-semibold">About You</h3>
+          <div>
+            <Label className="text-xs">Short Bio (1-2 sentences)</Label>
+            <Textarea value={profile.bio_short} onChange={e => setProfile(prev => ({ ...prev, bio_short: e.target.value }))} placeholder="A brief introduction..." rows={2} />
+          </div>
+          <div>
+            <Label className="text-xs">Full Bio</Label>
+            <Textarea value={profile.bio_long} onChange={e => setProfile(prev => ({ ...prev, bio_long: e.target.value }))} placeholder="Tell your story in detail..." rows={5} />
+          </div>
+        </section>
+
+        {/* Genres */}
+        <section className="rounded-xl border border-border bg-card p-6 space-y-4">
+          <h3 className="font-heading text-lg font-semibold">Genres & Expertise</h3>
+          <p className="text-xs text-muted-foreground">Select all that apply.</p>
+          <div className="flex flex-wrap gap-2">
+            {GENRE_OPTIONS.map(genre => (
+              <button
+                key={genre}
+                type="button"
+                onClick={() => toggleGenre(genre)}
+                className={`rounded-full px-3 py-1.5 text-sm font-medium border transition-colors ${
+                  profile.genres.includes(genre)
+                    ? "bg-secondary/15 text-secondary border-secondary/30"
+                    : "bg-background text-muted-foreground border-border hover:border-secondary/30"
+                }`}
+              >
+                {genre}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Social Links */}
+        <section className="rounded-xl border border-border bg-card p-6 space-y-4">
+          <h3 className="font-heading text-lg font-semibold">Social Links</h3>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label className="text-xs flex items-center gap-1"><Globe className="h-3 w-3" /> Website</Label>
+              <Input value={profile.website_url} onChange={e => setProfile(prev => ({ ...prev, website_url: e.target.value }))} placeholder="https://yoursite.com" />
+            </div>
+            <div>
+              <Label className="text-xs flex items-center gap-1"><Linkedin className="h-3 w-3" /> LinkedIn</Label>
+              <Input value={profile.linkedin_url} onChange={e => setProfile(prev => ({ ...prev, linkedin_url: e.target.value }))} placeholder="https://linkedin.com/in/..." />
+            </div>
+            <div>
+              <Label className="text-xs flex items-center gap-1"><Twitter className="h-3 w-3" /> X / Twitter</Label>
+              <Input value={profile.twitter_url} onChange={e => setProfile(prev => ({ ...prev, twitter_url: e.target.value }))} placeholder="https://x.com/..." />
+            </div>
+            <div>
+              <Label className="text-xs flex items-center gap-1"><Instagram className="h-3 w-3" /> Instagram</Label>
+              <Input value={profile.instagram_url} onChange={e => setProfile(prev => ({ ...prev, instagram_url: e.target.value }))} placeholder="https://instagram.com/..." />
+            </div>
+            <div>
+              <Label className="text-xs flex items-center gap-1"><Youtube className="h-3 w-3" /> YouTube</Label>
+              <Input value={profile.youtube_url} onChange={e => setProfile(prev => ({ ...prev, youtube_url: e.target.value }))} placeholder="https://youtube.com/@..." />
+            </div>
+            <div>
+              <Label className="text-xs flex items-center gap-1"><BookOpen className="h-3 w-3" /> Amazon Author Page</Label>
+              <Input value={profile.amazon_author_profile_url} onChange={e => setProfile(prev => ({ ...prev, amazon_author_profile_url: e.target.value }))} placeholder="https://amazon.com/author/..." />
+            </div>
+          </div>
+        </section>
+
+        {/* Frameworks */}
+        <section className="rounded-xl border border-border bg-card p-6">
+          <FrameworksEditor frameworks={frameworks} onChange={setFrameworks} />
+        </section>
+
+        {/* Save button at bottom */}
+        <div className="flex justify-end pb-8">
+          <Button onClick={handleSave} disabled={saving || !profile.pen_name.trim()} className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
+            {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+            {saving ? "Saving..." : "Save Profile"}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── View mode (profile exists, not editing) ──
   const socialLinks = [
     { url: profile.website_url, icon: Globe, label: "Website" },
     { url: profile.linkedin_url, icon: Linkedin, label: "LinkedIn" },
@@ -331,7 +529,7 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
     { url: profile.instagram_url, icon: Instagram, label: "Instagram" },
     { url: profile.youtube_url, icon: Youtube, label: "YouTube" },
     { url: profile.amazon_author_profile_url, icon: BookOpen, label: "Amazon Author" },
-  ].filter((l) => l.url);
+  ].filter(l => l.url);
 
   return (
     <div className="max-w-3xl space-y-8">
@@ -340,16 +538,16 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
         <div>
           <h2 className="font-heading text-2xl font-bold">Author Profile</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Your profile is managed on PublishNow and synced here automatically.
+            Manage your public author profile and microsite details.
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing}>
             {syncing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
-            Sync
+            {syncing ? "Syncing..." : "Sync"}
           </Button>
-          <Button size="sm" onClick={handleEditOnPublishNow} className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
-            <ExternalLink className="h-4 w-4 mr-1" /> Edit on PublishNow
+          <Button size="sm" onClick={() => setEditMode(true)} className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
+            <Pencil className="h-4 w-4 mr-1" /> Edit Profile
           </Button>
         </div>
       </div>
@@ -361,21 +559,15 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
             <img src={profile.photo_url} alt={profile.pen_name} className="h-24 w-24 rounded-full object-cover border-2 border-border shrink-0" />
           ) : (
             <div className="h-24 w-24 rounded-full border-2 border-dashed border-border flex items-center justify-center bg-muted shrink-0">
-              <span className="text-2xl font-bold text-muted-foreground">
-                {profile.pen_name?.[0]?.toUpperCase() || "?"}
-              </span>
+              <span className="text-2xl font-bold text-muted-foreground">{profile.pen_name?.[0]?.toUpperCase() || "?"}</span>
             </div>
           )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 flex-wrap">
               <h3 className="font-heading text-xl font-bold">{profile.pen_name || "No name set"}</h3>
-              <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${statusColor}`}>
-                {statusLabel}
-              </span>
+              <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${statusColor}`}>{statusLabel}</span>
             </div>
-            {profile.tagline && (
-              <p className="text-muted-foreground text-sm mt-1">{profile.tagline}</p>
-            )}
+            {profile.tagline && <p className="text-muted-foreground text-sm mt-1">{profile.tagline}</p>}
             {(profile.location_city || profile.location_country) && (
               <p className="text-muted-foreground text-xs mt-2 flex items-center gap-1">
                 <MapPin className="h-3 w-3" />
@@ -410,10 +602,8 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
         <section className="rounded-xl border border-border bg-card p-6 space-y-3">
           <h3 className="font-heading text-lg font-semibold">Genres & Expertise</h3>
           <div className="flex flex-wrap gap-2">
-            {profile.genres.map((genre) => (
-              <span key={genre} className="rounded-full px-3 py-1.5 text-sm font-medium bg-primary/10 text-primary border border-primary/20">
-                {genre}
-              </span>
+            {profile.genres.map(genre => (
+              <span key={genre} className="rounded-full px-3 py-1.5 text-sm font-medium bg-primary/10 text-primary border border-primary/20">{genre}</span>
             ))}
           </div>
         </section>
@@ -424,14 +614,9 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
         <section className="rounded-xl border border-border bg-card p-6 space-y-3">
           <h3 className="font-heading text-lg font-semibold">Links & Social</h3>
           <div className="grid gap-2 sm:grid-cols-2">
-            {socialLinks.map((link) => (
-              <a
-                key={link.label}
-                href={link.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 rounded-lg border border-border p-3 text-sm hover:bg-muted/50 transition-colors"
-              >
+            {socialLinks.map(link => (
+              <a key={link.label} href={link.url} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-2 rounded-lg border border-border p-3 text-sm hover:bg-muted/50 transition-colors">
                 <link.icon className="h-4 w-4 text-muted-foreground shrink-0" />
                 <span className="font-medium">{link.label}</span>
                 <ExternalLink className="h-3 w-3 text-muted-foreground ml-auto" />
@@ -441,28 +626,15 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
         </section>
       )}
 
-      {/* Services & Expertise */}
+      {/* Services */}
       <ServicesSection />
 
-      {/* Frameworks & Theories */}
+      {/* Frameworks */}
       {profileExists && (
         <section className="rounded-xl border border-border bg-card p-6">
           <FrameworksEditor frameworks={frameworks} onChange={setFrameworks} />
         </section>
       )}
-
-      {/* Set Password */}
-      <SetPasswordSection />
-
-      {/* Edit reminder */}
-      <div className="rounded-xl border border-dashed border-secondary/40 bg-secondary/5 p-5 text-center">
-        <p className="text-sm text-muted-foreground">
-          Need to update your profile? All changes are made on <strong>PublishNow</strong> and synced here automatically.
-        </p>
-        <Button variant="outline" size="sm" onClick={handleEditOnPublishNow} className="mt-3 border-secondary/30 text-secondary hover:bg-secondary/10">
-          <ExternalLink className="h-4 w-4 mr-1" /> Edit Profile on PublishNow
-        </Button>
-      </div>
     </div>
   );
 }
