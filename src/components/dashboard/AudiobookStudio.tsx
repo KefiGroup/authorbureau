@@ -597,6 +597,83 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
           </CardContent>
         </Card>
       )}
+
+      {/* Distribution CTA — shown when all chapters are done */}
+      {doneCount > 0 && doneCount === chapters.length && distributionStatus === "idle" && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="py-6">
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <Send className="h-6 w-6 text-primary" />
+              </div>
+              <div className="flex-1 text-center sm:text-left">
+                <p className="text-sm font-semibold">All chapters generated! Ready to distribute.</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Package your audiobook and send it to PublishNow for distribution on Audible, Spotify & Apple Books.
+                </p>
+              </div>
+              {hasTierAccess(tier, "enterprise") ? (
+                <Button onClick={() => setShowDistributeModal(true)} className="gap-1.5 shrink-0">
+                  <Send className="h-4 w-4" />
+                  Save & Distribute Audiobook
+                </Button>
+              ) : (
+                <Button variant="outline" className="gap-1.5 shrink-0 opacity-80" disabled>
+                  <Lock className="h-4 w-4" />
+                  Enterprise Only
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Distribution in Progress Banner */}
+      {distributionStatus !== "idle" && (
+        <Card className="border-green-500/30 bg-green-500/5">
+          <CardContent className="py-6">
+            <div className="flex flex-col items-center text-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
+                <PartyPopper className="h-6 w-6 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold">
+                  {distributionStatus === "distributing"
+                    ? "Your audiobook has been sent to PublishNow!"
+                    : "Your audiobook has been distributed!"}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1 max-w-md">
+                  You can track its distribution status in the AI Publishing Studio.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5"
+                onClick={() => window.open("https://publishnow.io", "_blank")}
+              >
+                Go to AI Publishing Studio <ExternalLink className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Distribute Modal */}
+      <DistributeAudiobookModal
+        open={showDistributeModal}
+        onOpenChange={setShowDistributeModal}
+        bookId={bookId}
+        bookTitle={bookTitle}
+        userId={userId}
+        chapters={chapters.filter(c => c.status === "done").map(c => ({
+          index: c.index,
+          title: c.title,
+          audioUrl: c.audioUrl,
+          audioUrls: c.audioUrls,
+        }))}
+        onDistributed={() => setDistributionStatus("distributing")}
+      />
     </div>
   );
 }
