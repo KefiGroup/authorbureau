@@ -193,11 +193,11 @@ const onlineCourseBuilder: BuilderNodeConfig = {
 const audiobookBuilder: BuilderNodeConfig = {
   id: "audiobook",
   label: "Audiobook Studio",
-  category: "build",
+  category: "bridge",
   requiredTier: "pro",
   dbTable: "audiobooks",
   icon: "Headphones",
-  color: "text-emerald-500",
+  color: "text-violet-500",
   customRenderer: "audiobook",
   abbyGreeting: "Audiobooks are the fastest-growing format. Let's create a professional narration from your manuscript.",
   abbyPublishMessage: "Your audiobook is ready! Distribute it on your platform, Audible, or Google Play. Consider your Podcast next.",
