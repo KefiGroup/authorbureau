@@ -463,6 +463,9 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
                       <Sparkles className="h-3 w-3 mr-1" />Retry
                     </Button>
                   )}
+                  {ch.status === "generating" && (
+                    <Badge variant="outline" className="text-xs shrink-0">Generating…</Badge>
+                  )}
                 </div>
               ))}
             </div>
