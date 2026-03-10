@@ -358,7 +358,7 @@ export default function AbbyHelpChatbot() {
           )}
           <button
             data-abby-trigger
-            onClick={openChat}
+            onClick={(e) => { e.stopPropagation(); openChat(); }}
             className="relative rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
             style={{
               width: isMobile ? 48 : 56,
