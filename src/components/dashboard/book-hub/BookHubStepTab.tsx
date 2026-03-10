@@ -132,28 +132,14 @@ export default function BookHubStepTab({ categoryId, bookId, bookTitle, bookGenr
   const navigate = useNavigate();
   const { plan, completedAssets } = useAbbyPlan(bookId);
   const [executingNode, setExecutingNode] = useState<ProductNode | null>(null);
-  const catData = categoryConfigs.find((c) => c.id === categoryId);
+  const catData = deriveCategoryConfig(categoryId as AbbyCategory);
   if (!catData) return null;
 
-  const HeaderIcon = iconMap[catData.headerIconName] || BookOpen;
+  const HeaderIcon = catData.headerIcon;
   const titleParam = bookTitle ? `&bookTitle=${encodeURIComponent(bookTitle)}` : "";
 
   const getStudioPath = (nodeId: string): string | null => {
-    const map: Record<string, string> = {
-      "social-media": `/dashboard?section=social-media&bookId=${bookId}${titleParam}`,
-      workbooks: `/dashboard?section=workbooks&bookId=${bookId}${titleParam}`,
-      webinars: `/dashboard?section=webinars&bookId=${bookId}${titleParam}`,
-      audiobook: `/dashboard?section=audiobook-studio&bookId=${bookId}${titleParam}`,
-      "coaching-1on1": `/dashboard?section=coaching&bookId=${bookId}${titleParam}`,
-      keynotes: `/dashboard?section=speaking&bookId=${bookId}${titleParam}`,
-      courses: `/dashboard?section=courses&bookId=${bookId}${titleParam}`,
-      "home-study": `/dashboard?section=home-study&bookId=${bookId}${titleParam}`,
-      "email-marketing": `/dashboard?section=email-marketing&bookId=${bookId}${titleParam}`,
-      "podcast-guest": `/dashboard?section=podcast&bookId=${bookId}${titleParam}`,
-      memberships: `/dashboard?section=memberships&bookId=${bookId}${titleParam}`,
-      "group-coaching": `/dashboard?section=group-coaching&bookId=${bookId}${titleParam}`,
-    };
-    return map[nodeId] || null;
+    return getStudioPathFromConfig(nodeId, bookId, titleParam);
   };
 
   const isNodeCompleted = (nodeId: string): boolean => {
