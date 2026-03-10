@@ -76,7 +76,7 @@ export default function DashboardSidebar({
       subtitle: "Create Digital Products",
       tooltip: "Turn your book into 11 digital products your audience can buy.",
       color: "text-emerald-500",
-      badge: hasAnalysis || bypassLocks ? `${buildUnlocked} of 11` : undefined,
+      badge: hasAnalysis || bypassLocks ? `${buildUnlocked} of 7` : undefined,
       lockMessage: (!hasAnalysis && !bypassLocks) ? "Analyze a book first" : (!tierAccess("starter") ? "Requires Starter" : undefined),
     },
     {
