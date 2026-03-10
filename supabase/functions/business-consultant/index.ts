@@ -831,20 +831,49 @@ serve(async (req) => {
             const parts: string[] = [];
             parts.push(`=== LIVE MARKET RESEARCH (${marketData.dataTimestamp}) ===`);
             parts.push(`Data sources: ${(marketData.dataSources || []).join(", ")}`);
-            if (marketData.marketIntelligence) {
-              parts.push(`\nMARKET INTELLIGENCE:\n${marketData.marketIntelligence.slice(0, 4000)}`);
-            }
-            if (marketData.pricingIntelligence) {
-              parts.push(`\nPRICING BENCHMARKS:\n${marketData.pricingIntelligence.slice(0, 2000)}`);
-            }
-            if (marketData.competitorProducts?.length > 0) {
-              parts.push(`\nCOMPETITOR PRODUCTS FOUND:\n${marketData.competitorProducts.map((p: any) => `- ${p.title}: ${p.snippet}`).join("\n").slice(0, 1500)}`);
-            }
-            if (marketData.amazonBestsellerContext) {
+            parts.push(`Amazon category: ${marketData.amazonCategory || marketData.genre}`);
+
+            // Structured Amazon bestseller data
+            if (marketData.amazonBestsellers?.products?.length > 0) {
+              const products = marketData.amazonBestsellers.products;
+              parts.push(`\nAMAZON BESTSELLERS IN "${marketData.amazonCategory}" (Top ${products.length}):`);
+              products.forEach((p: any) => {
+                parts.push(`  #${p.rank || "?"} "${p.title}" by ${p.author || "Unknown"} — ${p.price || "N/A"} | ${p.rating || "?"}★ (${p.review_count || "?"} reviews) | ${p.format || "Book"}`);
+              });
+
+              // Pricing analysis
+              if (marketData.amazonBestsellers.pricingAnalysis) {
+                const pa = marketData.amazonBestsellers.pricingAnalysis;
+                parts.push(`\nAMAZON PRICING ANALYSIS (${pa.sampleSize} products):`);
+                parts.push(`  Lowest: ${pa.lowest} | Highest: ${pa.highest} | Average: ${pa.average} | Median: ${pa.median}`);
+              }
+
+              // Top title keywords
+              if (marketData.amazonBestsellers.topTitleKeywords?.length > 0) {
+                parts.push(`\nTOP TITLE KEYWORDS (from bestsellers): ${marketData.amazonBestsellers.topTitleKeywords.map((k: any) => `"${k.word}" (${k.count}x)`).join(", ")}`);
+              }
+            } else if (marketData.amazonBestsellerContext) {
               parts.push(`\nAMAZON BESTSELLER CONTEXT:\n${marketData.amazonBestsellerContext.slice(0, 1500)}`);
             }
+
+            // Competitor digital products
+            if (marketData.competitorProducts?.length > 0) {
+              parts.push(`\nCOMPETITOR DIGITAL PRODUCTS FOUND (${marketData.competitorProducts.length}):`);
+              marketData.competitorProducts.forEach((p: any) => {
+                parts.push(`  - [${p.platform}] "${p.title}": ${p.snippet}`);
+              });
+            }
+
+            // Perplexity market intelligence
+            if (marketData.marketIntelligence) {
+              parts.push(`\nMARKET INTELLIGENCE (trends, demographics, gaps):\n${marketData.marketIntelligence.slice(0, 4000)}`);
+            }
+            if (marketData.pricingIntelligence) {
+              parts.push(`\nDETAILED PRICING BENCHMARKS:\n${marketData.pricingIntelligence.slice(0, 2000)}`);
+            }
+
             parts.push(`=== END MARKET RESEARCH ===`);
-            parts.push(`\nIMPORTANT: Use this real market data to make your recommendations SPECIFIC and DATA-DRIVEN. Instead of generic pricing like "$97-$497", use the actual prices competitors are charging in this niche. Reference trending topics and competitor products when recommending what to build first.`);
+            parts.push(`\nCRITICAL: You now have REAL market data. Use it in every product recommendation. Deliver the two-part recommendation: (1) "What & Why" using trends and gaps, and (2) "How Much & How to Position" using actual competitor prices and keywords. NEVER fall back to generic ranges when specific data is available above.`);
             marketResearchContext = parts.join("\n");
           }
         }
