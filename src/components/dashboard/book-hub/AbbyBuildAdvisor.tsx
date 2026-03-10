@@ -119,10 +119,11 @@ const difficultyColors: Record<string, string> = {
   Advanced: "bg-red-500/15 text-red-700",
 };
 
-export default function AbbyBuildAdvisor({ categoryId, bookId, bookTitle }: Props) {
+export default function AbbyBuildAdvisor({ categoryId, bookId, bookTitle, bookGenre }: Props) {
   const [expanded, setExpanded] = useState(true);
   const navigate = useNavigate();
   const content = advisorContent[categoryId];
+  const { data: marketData } = useMarketResearch(bookId, bookTitle, bookGenre);
   if (!content) return null;
 
   const titleParam = bookTitle ? `&bookTitle=${encodeURIComponent(bookTitle)}` : "";
