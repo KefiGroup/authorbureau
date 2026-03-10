@@ -957,7 +957,7 @@ const trainingProgramsBuilder: BuilderNodeConfig = {
 // ─── EXPORT ALL NODES ────────────────────────────────────────────────
 
 export const ALL_BUILDER_NODES: BuilderNodeConfig[] = [
-  // B·Build (11)
+  // B·Build (7)
   workbookBuilder,
   socialMediaBuilder,
   emailMarketingBuilder,
@@ -965,12 +965,12 @@ export const ALL_BUILDER_NODES: BuilderNodeConfig[] = [
   bookSalesBuilder,
   leadMagnetBuilder,
   websiteBuilder,
+  // B·Bridge (14)
   onlineCourseBuilder,
   audiobookBuilder,
   podcastBuilder,
   webinarBuilder,
   membershipBuilder,
-  // B·Bridge (9)
   coachingBuilder,
   groupCoachingBuilder,
   speakingBuilder,
