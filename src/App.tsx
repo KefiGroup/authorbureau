@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
+import GetFeatured from "./pages/GetFeatured";
 import Directory from "./pages/Directory";
 import AuthorProfile from "./pages/AuthorProfile";
 import DynamicBookMicrosite from "./pages/DynamicBookMicrosite";
@@ -58,6 +59,8 @@ const AppRoutes = () => (
     <Routes>
       <Route path="/" element={<Index />} />
       <Route path="/directory" element={<Directory />} />
+      <Route path="/authors" element={<Navigate to="/directory" replace />} />
+      <Route path="/get-featured" element={<GetFeatured />} />
       <Route path="/authors/:slug" element={<AuthorProfile />} />
       <Route path="/books/:slug" element={<DynamicBookMicrosite />} />
       <Route path="/create-microsite" element={<CreateMicrosite />} />

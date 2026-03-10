@@ -122,7 +122,7 @@ export default function Index() {
                 size="lg"
                 className="border-2 border-secondary bg-transparent text-secondary hover:bg-secondary hover:text-secondary-foreground text-base font-semibold"
               >
-                <Link to="/auth">Get Featured</Link>
+                <Link to="/get-featured">Get Featured</Link>
               </Button>
             </motion.div>
           </motion.div>
@@ -339,7 +339,7 @@ export default function Index() {
                 size="lg"
                 className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold shadow-[var(--shadow-gold)] rounded-full px-8"
               >
-                <Link to="/auth">
+                <Link to="/get-featured">
                   Apply Now <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
@@ -379,7 +379,7 @@ export default function Index() {
                   size="lg"
                   className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold shadow-[var(--shadow-gold)] rounded-full px-8"
                 >
-                  <Link to="/auth">
+                  <Link to="/get-featured">
                     Get Featured <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
@@ -450,7 +450,7 @@ export default function Index() {
         </div>
       </section>
 
-      {/* ==================== STEP 2: AUTHOR MONETISATION ==================== */}
+      {/* ==================== HOW IT WORKS — 4 Steps ==================== */}
       <section className="py-24 bg-muted/50 border-y border-border">
         <div className="container">
           <motion.div
@@ -460,22 +460,22 @@ export default function Index() {
             className="mb-16 text-center"
           >
             <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
-              Step 2 · How It Works
+              How It Works
             </motion.p>
             <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-4xl">
-              Author <span className="italic text-secondary">Monetisation</span>
+              From Book to <span className="italic text-secondary">Business</span> in 4 Steps
             </motion.h2>
-            <motion.p variants={fadeUp} custom={2} className="mt-4 text-lg text-muted-foreground">
-              Turn Your Book Into a Business — all managed in one place.
+            <motion.p variants={fadeUp} custom={2} className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
+              Your book is the foundation. Abby, your AI Business Consultant, helps you build everything else.
             </motion.p>
           </motion.div>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { step: "1", title: "Digital Products", desc: "Courses, workbooks, audiobooks, and memberships powered by your book content." },
-              { step: "2", title: "Coaching", desc: "1-on-1 and group coaching packages with built-in scheduling and payments." },
-              { step: "3", title: "Speaking", desc: "Speaker profile, keynote topics, and booking calendar for events and podcasts." },
-              { step: "4", title: "Events", desc: "Retreats, masterminds, certifications, and conferences." },
+              { step: "1", title: "Analyze Your Book", desc: "Upload your manuscript and let Abby, your AI Business Consultant, generate a comprehensive business plan tailored to your book." },
+              { step: "2", title: "Build Your Products", desc: "Use our AI-powered studios to instantly create a suite of digital products, from workbooks to online courses, all based on your book's content." },
+              { step: "3", title: "Launch Your Microsite", desc: "Activate your professional author microsite, a central hub to showcase your brand, sell your products, and connect with your audience." },
+              { step: "4", title: "Grow Your Business", desc: "Use our CRM, revenue dashboard, and marketing tools to grow your audience and build a sustainable author business." },
             ].map((item, i) => (
               <motion.div
                 key={item.step}

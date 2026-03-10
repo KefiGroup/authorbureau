@@ -91,7 +91,7 @@ export default function Navbar() {
                 Sign In
               </Link>
               <Button asChild variant="default" size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-none rounded-full">
-                <Link to="/auth">Get Featured</Link>
+                <Link to="/get-featured">Get Featured</Link>
               </Button>
             </>
           )}
@@ -141,7 +141,7 @@ export default function Navbar() {
                     Sign In
                   </Link>
                   <Link
-                    to="/auth"
+                    to="/get-featured"
                     onClick={() => setOpen(false)}
                     className="inline-flex w-fit items-center rounded-full bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground"
                   >

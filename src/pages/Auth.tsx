@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Navigate, useNavigate, useLocation } from "react-router-dom";
+import { Navigate, useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2, ArrowLeft, Mail, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -59,8 +59,8 @@ export default function Auth() {
   const location = useLocation();
   const { toast } = useToast();
 
-  const [mode, setMode] = useState<SignInMode>("code");
-  const [flow, setFlow] = useState<FlowState>("email");
+  const [mode, setMode] = useState<SignInMode>("password");
+  const [flow, setFlow] = useState<FlowState>("password-login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -569,6 +569,16 @@ export default function Auth() {
                 </Button>
               </form>
             )}
+
+            {/* Sign up link */}
+            <div className="text-center pt-2 border-t border-border/50">
+              <p className="text-sm text-muted-foreground">
+                Don't have an account?{" "}
+                <Link to="/get-featured" className="font-semibold text-secondary hover:underline">
+                  Sign Up
+                </Link>
+              </p>
+            </div>
           </div>
         </div>
       </section>

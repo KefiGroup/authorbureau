@@ -1,6 +1,6 @@
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Search, BookOpen, Mic, Loader2 } from "lucide-react";
+import { Search, BookOpen, Mic, Loader2, ArrowUpDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { authors as staticAuthors } from "@/data/authors";
 
@@ -45,8 +45,10 @@ const fadeUp = {
 };
 
 export default function Directory() {
-  const [search, setSearch] = useState("");
-  const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [search, setSearch] = useState(searchParams.get("q") || "");
+  const [selectedGenre, setSelectedGenre] = useState<string | null>(searchParams.get("genre") || null);
+  const [sortBy, setSortBy] = useState<string>(searchParams.get("sort") || "featured");
   const [dynamicAuthors, setDynamicAuthors] = useState<DirectoryAuthor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -102,13 +104,31 @@ export default function Directory() {
 
   const allGenres = [...new Set(allAuthors.flatMap((a) => a.genres))];
 
+  const handleGenreFilter = (genre: string | null) => {
+    setSelectedGenre(genre);
+    const params = new URLSearchParams(searchParams);
+    if (genre) params.set("genre", genre); else params.delete("genre");
+    setSearchParams(params, { replace: true });
+  };
+
   const filtered = allAuthors.filter((a) => {
     const matchesSearch =
       !search ||
       a.name.toLowerCase().includes(search.toLowerCase()) ||
-      a.title.toLowerCase().includes(search.toLowerCase());
+      a.title.toLowerCase().includes(search.toLowerCase()) ||
+      a.shortBio.toLowerCase().includes(search.toLowerCase());
     const matchesGenre = !selectedGenre || a.genres.includes(selectedGenre);
     return matchesSearch && matchesGenre;
+  });
+
+  // Sort
+  const sorted = [...filtered].sort((a, b) => {
+    if (sortBy === "name") return a.name.localeCompare(b.name);
+    if (sortBy === "featured") {
+      const order = { "ab-verified": 0, featured: 1, verified: 2, listed: 3 };
+      return (order[a.badge] ?? 3) - (order[b.badge] ?? 3);
+    }
+    return 0;
   });
 
   return (
@@ -131,43 +151,51 @@ export default function Directory() {
 
       <section className="py-12">
         <div className="container">
-          {/* Search and filters */}
           <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Search authors..."
+                placeholder="Search by name, title, or bio..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full rounded-full border border-border bg-card py-2.5 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-secondary/50"
               />
             </div>
-            <div className="flex flex-wrap gap-2">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="rounded-full border border-border bg-card px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-secondary/50 appearance-none cursor-pointer"
+            >
+              <option value="featured">Featured First</option>
+              <option value="name">Name (A-Z)</option>
+            </select>
+          </div>
+
+          <div className="mb-8 flex flex-wrap gap-2">
+            <button
+              onClick={() => handleGenreFilter(null)}
+              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                !selectedGenre
+                  ? "bg-secondary text-secondary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+              }`}
+            >
+              All
+            </button>
+            {allGenres.map((g) => (
               <button
-                onClick={() => setSelectedGenre(null)}
+                key={g}
+                onClick={() => handleGenreFilter(g === selectedGenre ? null : g)}
                 className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                  !selectedGenre
+                  selectedGenre === g
                     ? "bg-secondary text-secondary-foreground"
                     : "bg-muted text-muted-foreground hover:bg-muted/80"
                 }`}
               >
-                All
+                {g}
               </button>
-              {allGenres.map((g) => (
-                <button
-                  key={g}
-                  onClick={() => setSelectedGenre(g === selectedGenre ? null : g)}
-                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                    selectedGenre === g
-                      ? "bg-secondary text-secondary-foreground"
-                      : "bg-muted text-muted-foreground hover:bg-muted/80"
-                  }`}
-                >
-                  {g}
-                </button>
-              ))}
-            </div>
+            ))}
           </div>
 
           {isLoading && (
@@ -177,9 +205,8 @@ export default function Directory() {
             </div>
           )}
 
-          {/* Results */}
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {filtered.map((author, i) => (
+            {sorted.map((author, i) => (
               <motion.div
                 key={author.slug}
                 initial="hidden"
@@ -231,12 +258,17 @@ export default function Directory() {
 
                       <div className="flex flex-wrap gap-1 mt-2">
                         {author.genres.slice(0, 3).map((genre) => (
-                          <span
+                          <button
                             key={genre}
-                            className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted/60 text-muted-foreground"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleGenreFilter(genre);
+                            }}
+                            className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted/60 text-muted-foreground hover:bg-secondary/20 hover:text-secondary transition-colors"
                           >
                             {genre}
-                          </span>
+                          </button>
                         ))}
                       </div>
                     </CardContent>
