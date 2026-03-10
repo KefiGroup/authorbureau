@@ -548,7 +548,6 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
               />
             );
           })()}
-          )}
         </>
       )}
     </div>
