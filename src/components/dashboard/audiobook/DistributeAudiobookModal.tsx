@@ -1,0 +1,279 @@
+import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "@/hooks/use-toast";
+import { Loader2, ArrowLeft, ArrowRight, Send, CheckCircle2, Image as ImageIcon, Upload } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+
+interface Chapter {
+  index: number;
+  title: string;
+  audioUrl?: string;
+  audioUrls?: string[];
+}
+
+interface DistributeAudiobookModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  bookId: string;
+  bookTitle: string;
+  userId: string;
+  chapters: Chapter[];
+  onDistributed: () => void;
+}
+
+export default function DistributeAudiobookModal({
+  open,
+  onOpenChange,
+  bookId,
+  bookTitle,
+  userId,
+  chapters,
+  onDistributed,
+}: DistributeAudiobookModalProps) {
+  const [step, setStep] = useState(1);
+  const [narratorCredit, setNarratorCredit] = useState("Narrated by a digital voice using ElevenLabs technology");
+  const [previewChapterIndex, setPreviewChapterIndex] = useState("0");
+  const [description, setDescription] = useState("");
+  const [authorName, setAuthorName] = useState("");
+  const [coverImageUrl, setCoverImageUrl] = useState("");
+  const [confirmed, setConfirmed] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [loadingMeta, setLoadingMeta] = useState(false);
+
+  // Load book metadata when modal opens
+  useEffect(() => {
+    if (!open) {
+      setStep(1);
+      setConfirmed(false);
+      return;
+    }
+    (async () => {
+      setLoadingMeta(true);
+      try {
+        const { data } = await supabase
+          .from("books")
+          .select("description, author_name, cover_image_url")
+          .eq("id", bookId)
+          .single();
+        if (data) {
+          setDescription(data.description || "");
+          setAuthorName(data.author_name || "");
+          setCoverImageUrl(data.cover_image_url || "");
+        }
+      } catch { /* ignore */ }
+      setLoadingMeta(false);
+    })();
+  }, [open, bookId]);
+
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const ext = file.name.split(".").pop();
+    const path = `${userId}/${bookId}/cover-audiobook.${ext}`;
+    const { error } = await supabase.storage.from("book-covers").upload(path, file, { upsert: true });
+    if (error) {
+      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    const { data: urlData } = supabase.storage.from("book-covers").getPublicUrl(path);
+    setCoverImageUrl(urlData.publicUrl);
+    toast({ title: "Cover updated" });
+  };
+
+  const handleSend = async () => {
+    setSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("distribute-audiobook", {
+        body: {
+          bookId,
+          narratorCredit: narratorCredit.trim(),
+          previewChapterIndex: parseInt(previewChapterIndex),
+          description: description.trim(),
+          coverImageUrl,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({ title: "Audiobook sent to PublishNow!", description: "You can track distribution status in the AI Publishing Studio." });
+      onOpenChange(false);
+      onDistributed();
+    } catch (e: any) {
+      toast({ title: "Distribution failed", description: e.message || "Please try again.", variant: "destructive" });
+    }
+    setSending(false);
+  };
+
+  const doneChapters = chapters.filter(c => c.audioUrl || (c.audioUrls && c.audioUrls.length > 0));
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        {/* Step indicator */}
+        <div className="flex items-center gap-2 mb-2">
+          {[1, 2, 3].map(s => (
+            <div key={s} className={`h-1.5 flex-1 rounded-full transition-colors ${s <= step ? "bg-primary" : "bg-muted"}`} />
+          ))}
+        </div>
+
+        {step === 1 && (
+          <>
+            <DialogHeader>
+              <DialogTitle>Prepare Your Audiobook for Distribution</DialogTitle>
+              <DialogDescription>Set narrator credits and select a preview chapter for storefronts.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Narrator Name for Credits</label>
+                <Input
+                  value={narratorCredit}
+                  onChange={e => setNarratorCredit(e.target.value)}
+                  maxLength={200}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Select Chapter for Audio Preview</label>
+                <Select value={previewChapterIndex} onValueChange={setPreviewChapterIndex}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {chapters.map(ch => (
+                      <SelectItem key={ch.index} value={String(ch.index)}>
+                        {ch.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1.5">
+                  A 5-minute preview of this chapter will be used on storefronts like Audible and Spotify.
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+              <Button onClick={() => setStep(2)} disabled={!narratorCredit.trim()}>
+                Next: Review Metadata <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          </>
+        )}
+
+        {step === 2 && (
+          <>
+            <DialogHeader>
+              <DialogTitle>Review Your Audiobook Details</DialogTitle>
+              <DialogDescription>Confirm the metadata that will be sent to distribution platforms.</DialogDescription>
+            </DialogHeader>
+            {loadingMeta ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <div className="space-y-4 mt-4">
+                {/* Cover Art */}
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">Cover Art</label>
+                  <div className="flex items-center gap-4">
+                    {coverImageUrl ? (
+                      <img src={coverImageUrl} alt="Cover" className="w-20 h-28 object-cover rounded-md border border-border shadow-sm" />
+                    ) : (
+                      <div className="w-20 h-28 rounded-md border border-dashed border-muted-foreground/30 flex items-center justify-center">
+                        <ImageIcon className="h-6 w-6 text-muted-foreground/40" />
+                      </div>
+                    )}
+                    <label className="cursor-pointer">
+                      <Button variant="outline" size="sm" asChild>
+                        <span><Upload className="h-3.5 w-3.5 mr-1.5" />Upload New Cover</span>
+                      </Button>
+                      <input type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
+                    </label>
+                  </div>
+                </div>
+                {/* Title */}
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Book Title</label>
+                  <p className="text-sm text-muted-foreground bg-muted/50 rounded-md px-3 py-2">{bookTitle}</p>
+                </div>
+                {/* Author */}
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Author Name</label>
+                  <p className="text-sm text-muted-foreground bg-muted/50 rounded-md px-3 py-2">{authorName || "—"}</p>
+                </div>
+                {/* Description */}
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">Book Description</label>
+                  <Textarea
+                    value={description}
+                    onChange={e => setDescription(e.target.value)}
+                    rows={4}
+                    maxLength={4000}
+                  />
+                </div>
+              </div>
+            )}
+            <div className="flex justify-between mt-6">
+              <Button variant="outline" onClick={() => setStep(1)}>
+                <ArrowLeft className="h-4 w-4 mr-1" /> Back
+              </Button>
+              <Button onClick={() => setStep(3)}>
+                Next: Confirm & Send <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          </>
+        )}
+
+        {step === 3 && (
+          <>
+            <DialogHeader>
+              <DialogTitle>Ready to Distribute?</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2 text-sm">
+                <p>
+                  Your audiobook, <span className="font-semibold">{bookTitle}</span>, is ready to be sent to
+                  PublishNow for distribution to all major platforms, including Amazon Audible, Spotify, and Apple Books.
+                </p>
+                <p className="text-muted-foreground">
+                  We have packaged your <span className="font-semibold">{doneChapters.length}</span> audio
+                  file{doneChapters.length !== 1 ? "s" : ""} (one for each chapter), your cover art, and all the necessary metadata.
+                </p>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-lg border border-border">
+                <Checkbox
+                  id="confirm-rights"
+                  checked={confirmed}
+                  onCheckedChange={(v) => setConfirmed(v === true)}
+                  className="mt-0.5"
+                />
+                <label htmlFor="confirm-rights" className="text-sm leading-snug cursor-pointer">
+                  I confirm that I have the rights to publish this audiobook and that it complies with the terms of
+                  service of all distribution platforms.
+                </label>
+              </div>
+            </div>
+
+            <div className="flex justify-between mt-6">
+              <Button variant="outline" onClick={() => setStep(2)}>
+                <ArrowLeft className="h-4 w-4 mr-1" /> Back
+              </Button>
+              <Button onClick={handleSend} disabled={!confirmed || sending}>
+                {sending ? (
+                  <><Loader2 className="h-4 w-4 animate-spin mr-1.5" />Sending…</>
+                ) : (
+                  <><Send className="h-4 w-4 mr-1.5" />Send to PublishNow</>
+                )}
+              </Button>
+            </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}

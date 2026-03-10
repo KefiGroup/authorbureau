@@ -5,10 +5,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Headphones, Play, Pause, Download, Sparkles, Volume2, Loader2, CheckCircle2, AlertCircle, Upload, ArrowLeft, FileText, FolderDown } from "lucide-react";
+import { Headphones, Play, Pause, Download, Sparkles, Volume2, Loader2, CheckCircle2, AlertCircle, Upload, ArrowLeft, FileText, FolderDown, Send, Lock, PartyPopper, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ManuscriptUpload from "@/components/dashboard/ManuscriptUpload";
 import { useNavigate } from "react-router-dom";
+import { useAuth, hasTierAccess } from "@/hooks/useAuth";
+import DistributeAudiobookModal from "@/components/dashboard/audiobook/DistributeAudiobookModal";
 
 interface Voice {
   key: string;
@@ -34,6 +36,7 @@ interface Props {
 
 export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
   const navigate = useNavigate();
+  const { tier } = useAuth();
   const [voices, setVoices] = useState<Voice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState("sarah");
   const [previewAudio, setPreviewAudio] = useState<HTMLAudioElement | null>(null);
@@ -47,6 +50,8 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
   const [showUploadFallback, setShowUploadFallback] = useState(false);
   const playerRef = useRef<HTMLAudioElement | null>(null);
   const [playingIndex, setPlayingIndex] = useState(-1);
+  const [distributionStatus, setDistributionStatus] = useState<"idle" | "distributing" | "distributed">("idle");
+  const [showDistributeModal, setShowDistributeModal] = useState(false);
 
   // Load voices
   useEffect(() => {
@@ -88,6 +93,25 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
   }, [bookId]);
 
   useEffect(() => { loadManuscript(); }, [loadManuscript]);
+
+  // Check if audiobook is already distributed
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("audiobooks")
+          .select("status")
+          .eq("book_id", bookId)
+          .eq("author_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (data?.status === "distributing" || data?.status === "distributed") {
+          setDistributionStatus(data.status === "distributed" ? "distributed" : "distributing");
+        }
+      } catch { /* ignore */ }
+    })();
+  }, [bookId, userId]);
 
   // Split manuscript into chapters
   const parseChapters = useCallback(() => {
@@ -573,6 +597,83 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
           </CardContent>
         </Card>
       )}
+
+      {/* Distribution CTA — shown when all chapters are done */}
+      {doneCount > 0 && doneCount === chapters.length && distributionStatus === "idle" && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="py-6">
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <Send className="h-6 w-6 text-primary" />
+              </div>
+              <div className="flex-1 text-center sm:text-left">
+                <p className="text-sm font-semibold">All chapters generated! Ready to distribute.</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Package your audiobook and send it to PublishNow for distribution on Audible, Spotify & Apple Books.
+                </p>
+              </div>
+              {hasTierAccess(tier, "enterprise") ? (
+                <Button onClick={() => setShowDistributeModal(true)} className="gap-1.5 shrink-0">
+                  <Send className="h-4 w-4" />
+                  Save & Distribute Audiobook
+                </Button>
+              ) : (
+                <Button variant="outline" className="gap-1.5 shrink-0 opacity-80" disabled>
+                  <Lock className="h-4 w-4" />
+                  Enterprise Only
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Distribution in Progress Banner */}
+      {distributionStatus !== "idle" && (
+        <Card className="border-green-500/30 bg-green-500/5">
+          <CardContent className="py-6">
+            <div className="flex flex-col items-center text-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
+                <PartyPopper className="h-6 w-6 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold">
+                  {distributionStatus === "distributing"
+                    ? "Your audiobook has been sent to PublishNow!"
+                    : "Your audiobook has been distributed!"}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1 max-w-md">
+                  You can track its distribution status in the AI Publishing Studio.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5"
+                onClick={() => window.open("https://publishnow.io", "_blank")}
+              >
+                Go to AI Publishing Studio <ExternalLink className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Distribute Modal */}
+      <DistributeAudiobookModal
+        open={showDistributeModal}
+        onOpenChange={setShowDistributeModal}
+        bookId={bookId}
+        bookTitle={bookTitle}
+        userId={userId}
+        chapters={chapters.filter(c => c.status === "done").map(c => ({
+          index: c.index,
+          title: c.title,
+          audioUrl: c.audioUrl,
+          audioUrls: c.audioUrls,
+        }))}
+        onDistributed={() => setDistributionStatus("distributing")}
+      />
     </div>
   );
 }
