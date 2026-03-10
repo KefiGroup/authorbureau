@@ -44,6 +44,7 @@ interface GenerationState {
   proposal: BuilderProposal | null;
   generatedContent: string;
   error: string | null;
+  pushResult: { pushed: number; errors: string[] } | null;
 }
 
 export function useBuilderGeneration(builderId: string, builderLabel: string) {
