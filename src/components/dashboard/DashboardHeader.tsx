@@ -16,6 +16,8 @@ interface Props {
   onToggleSidebar: () => void;
 }
 
+type SubscriptionLoading = { loading: boolean };
+
 export default function DashboardHeader({ user, isPremium, isAdmin, tier, onSignOut, onToggleSidebar }: Props) {
   const [penName, setPenName] = useState<string | null>(null);
 
