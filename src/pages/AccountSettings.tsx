@@ -168,6 +168,44 @@ export default function AccountSettings() {
                   </div>
                 ))}
               </div>
+
+              <div className="border-t border-border pt-6">
+                <h3 className="font-heading font-semibold text-lg mb-4">Appearance</h3>
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">Choose your preferred theme.</p>
+                  <div className="flex gap-2">
+                    {(["light", "dark", "system"] as const).map(mode => (
+                      <Button
+                        key={mode}
+                        variant={
+                          (typeof window !== "undefined" && document.documentElement.classList.contains("dark") && mode === "dark") ||
+                          (!document.documentElement.classList.contains("dark") && mode === "light")
+                            ? "default" : "outline"
+                        }
+                        size="sm"
+                        onClick={() => {
+                          if (mode === "dark") {
+                            document.documentElement.classList.add("dark");
+                            localStorage.setItem("theme", "dark");
+                          } else if (mode === "light") {
+                            document.documentElement.classList.remove("dark");
+                            localStorage.setItem("theme", "light");
+                          } else {
+                            localStorage.removeItem("theme");
+                            if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+                              document.documentElement.classList.add("dark");
+                            } else {
+                              document.documentElement.classList.remove("dark");
+                            }
+                          }
+                        }}
+                      >
+                        {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </Card>
           </TabsContent>
         </Tabs>
