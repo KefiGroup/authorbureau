@@ -86,8 +86,9 @@ export const ABBY_CATEGORIES: Record<AbbyCategory, AbbyCategoryConfig> = {
     gradientTo: "to-violet-600",
     headerIcon: Radio,
     nodes: [
-      { id: "podcast-guest", label: "Podcast Tour", icon: Podcast, section: "podcast", navigateTo: "podcast", description: "Podcast series & guest pitches from your book content.", status: "available", subCategory: "Outreach", sequence: 1, tierRequired: "Pro" },
-      { id: "webinars", label: "Webinars", icon: Video, section: "webinars", navigateTo: "webinars", description: "Webinar scripts + slide decks + registration pages.", status: "available", subCategory: "Outreach", sequence: 2, tierRequired: "Pro" },
+      { id: "audiobook", label: "Audiobook", icon: Headphones, section: "audiobook-studio", navigateTo: "audiobook-studio", description: "AI-narrated audiobook from your manuscript.", status: "available", subCategory: "Content", sequence: 1, tierRequired: "Pro" },
+      { id: "podcast-guest", label: "Podcast Tour", icon: Podcast, section: "podcast", navigateTo: "podcast", description: "Podcast series & guest pitches from your book content.", status: "available", subCategory: "Outreach", sequence: 2, tierRequired: "Pro" },
+      { id: "webinars", label: "Webinars", icon: Video, section: "webinars", navigateTo: "webinars", description: "Webinar scripts + slide decks + registration pages.", status: "available", subCategory: "Outreach", sequence: 3, tierRequired: "Pro" },
       { id: "lead-magnet", label: "Lead Magnet Funnel", icon: FileText, navigateTo: "lead-magnet", description: "Free PDF downloads to grow your email list.", status: "available", subCategory: "Growth", sequence: 3 },
       { id: "in-house-speaker", label: "Media Outreach", icon: Presentation, description: "Press kit, media pitches & speaker profile.", status: "planned", subCategory: "Outreach", sequence: 4, tierRequired: "Pro" },
       { id: "affiliates", label: "Affiliates", icon: Link2, description: "Affiliate tracking links + commission structures.", status: "planned", subCategory: "Growth", sequence: 5, tierRequired: "Pro" },
