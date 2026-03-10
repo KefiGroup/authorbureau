@@ -351,20 +351,19 @@ There are THREE subscription tiers that unlock progressively more product builde
 
 ### STARTER ($49/month)
 - Full Abby consultation with unlimited sessions
-- B·Build: Workbook Builder, Social Media Calendar, Email Marketing Flows, Author Microsite, Book Sales (Events), Home Study Courses
+- B·Build: Workbook Builder, Social Media Calendar, Email Marketing Flows, Author Microsite, Book Sales (Events), Home Study Courses, Lead Magnets
 - Best for: Authors starting out who want quick-win digital products and list building
 
 ### PRO ($199/month)
 - Everything in Starter, PLUS:
-- B·Build: Online Course Builder, Audiobook Studio, Podcast Scripts, Webinar Builder, Monthly Memberships, Upsells/Downsells
-- B·Bridge: 1-on-1 Coaching, Group Coaching
+- B·Bridge: Online Course Builder, Audiobook Studio, Podcast Scripts, Webinar Builder, Monthly Memberships, 1-on-1 Coaching, Group Coaching, Affiliate Program, Revenue Sharing / JV, Upsells/Downsells, Content Licensing
 - CRM + Subscriber Management
 - Best for: Authors ready to monetize with courses, coaching, and advanced marketing
 
 ### ENTERPRISE ($499/month)
 - Everything in Pro, PLUS:
-- B·Bridge: Big Ticket Consulting, Revenue Sharing / JV, Training Programs, Affiliates
-- Y·Yield: ALL 8 premium revenue builders (Retreats, Certification, Masterminds, Special Editions, Keynotes, In-House Speaker, Conventions, Exhibitors)
+- B·Bridge: Keynotes, In-House Speaker, Training Programs
+- Y·Yield: ALL premium revenue builders (Retreats, Certification, Masterminds, Special Editions, Conventions, Big Ticket Consulting, Exhibitors, Fundraising)
 - 1-on-1 strategic session with Pauline Teo (founder of Authors Bureau)
 - Best for: Established authors building a full-scale training empire
 
