@@ -189,7 +189,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
       hasMicrosite: !!book.published_at,
       isAnalyzed: analyzedBooks.has(book.id),
       isSubscribed,
-      productsBuilt: productCounts[book.id] || 0,
+      productsBuilt: getBookProductCount(book.id),
       hasRevenue: false, // TODO: integrate real revenue data
     });
   };
