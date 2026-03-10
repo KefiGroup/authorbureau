@@ -218,8 +218,15 @@ export default function AbbyHelpChatbot() {
   }, [addMessage]);
 
   const sendMessage = useCallback(() => {
-    const text = input.trim();
-    if (!text || isStreaming) return;
+    const text = input.trim().slice(0, MAX_INPUT_LENGTH);
+    if (!text || isStreaming || sessionExpired) return;
+
+    // Session message cap
+    if (messages.length >= MAX_SESSION_MESSAGES) {
+      addMessage("assistant", "We've reached the conversation limit. Please start a new conversation to continue.");
+      return;
+    }
+
     setInput("");
     addMessage("user", text);
 
@@ -245,7 +252,7 @@ export default function AbbyHelpChatbot() {
       .map(m => ({ role: m.role, content: m.content }));
 
     streamResponse(chatHistory);
-  }, [input, isStreaming, messages, mode, location.pathname, addMessage, streamResponse]);
+  }, [input, isStreaming, sessionExpired, messages, mode, location.pathname, addMessage, streamResponse]);
 
   // Submit actions for structured flows
   const submitAction = async (action: string, data: any) => {
