@@ -13,7 +13,7 @@ import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import MarketSnapshot from "./MarketSnapshot";
 import { supabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
-import { asBlob } from "html-docx-js-typescript";
+import { printExportHtml } from "@/lib/print-export";
 import { useToast } from "@/hooks/use-toast";
 import { useAbbyPlan } from "@/hooks/useAbbyPlan";
 import { useMarketResearch } from "@/hooks/useMarketResearch";
@@ -200,13 +200,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
         .replace(/^(?!<[hulo])((?!<).+)$/gm, "<p>$1</p>")
         .replace(/\n\n/g, "<br/>");
       const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:'Calibri',sans-serif;color:#1a1a1a;line-height:1.6;padding:40px;max-width:800px;margin:0 auto}h1{font-size:26px;color:#B8860B;border-bottom:3px solid #B8860B;padding-bottom:12px}h2{font-size:20px;color:#333;margin-top:28px}h3{font-size:16px;color:#555}p{font-size:13px}ul,ol{font-size:13px}li{margin-bottom:4px}strong{color:#222}</style></head><body>${html}</body></html>`;
-      const blob = (await asBlob(fullHtml, { orientation: "portrait" })) as Blob;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `ABBY-Business-Plan-${book.title.replace(/[^a-zA-Z0-9]/g, "-")}.docx`;
-      a.click();
-      URL.revokeObjectURL(url);
+      printExportHtml(fullHtml, `ABBY Business Plan - ${book.title}`);
       toast({ title: "Downloaded!", description: "Business plan saved as .docx" });
     } catch {
       toast({ title: "Download failed", variant: "destructive" });

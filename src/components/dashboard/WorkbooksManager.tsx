@@ -171,12 +171,10 @@ export default function WorkbooksManager({ onNavigate }: { onNavigate?: (section
   };
 
   const handleDownloadDocx = async (wb: Workbook) => {
-    toast.info("Generating DOCX…");
-    const { asBlob } = await import("html-docx-js-typescript");
+    const { printExportHtml } = await import("@/lib/print-export");
     const htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:Georgia,serif;font-size:12pt;line-height:1.6;}</style></head><body>${markdownToHtml(wb.content_markdown)}</body></html>`;
-    const blob = await asBlob(htmlContent) as Blob;
-    downloadBlob(blob, `${fileSlug(wb.title)}.docx`);
-    toast.success("DOCX downloaded!");
+    printExportHtml(htmlContent, wb.title);
+    toast.success("Print dialog opened!");
   };
 
   const downloadBlob = (blob: Blob, filename: string) => {
