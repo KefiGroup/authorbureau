@@ -204,9 +204,6 @@ export const ADVISOR_CONTENT: Record<AbbyCategory, AdvisorContent> = {
     ],
     closingNote: "Start with 1-on-1 Coaching + Memberships for recurring revenue. Add Keynotes and Group Coaching as your audience grows. Pursue Masterminds, Retreats, and Certification once you have 1,000+ engaged followers.",
   },
-    ],
-    closingNote: "Start with 1-on-1 Coaching + Memberships for recurring revenue, then pursue Keynotes and Group Coaching as your audience grows.",
-  },
 };
 
 /** Map from nodeId to its dashboard studio path (used by AbbyBuildAdvisor) */
