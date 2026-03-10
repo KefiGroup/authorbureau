@@ -84,7 +84,7 @@ export default function DashboardSidebar({
       subtitle: "Grow Your Audience",
       tooltip: "Build the marketing channels that bring readers to you.",
       color: "text-violet-500",
-      badge: tierAccess("pro") ? `${bridgeUnlocked} of 8` : undefined,
+      badge: tierAccess("pro") ? `${bridgeUnlocked} of 14` : undefined,
       lockMessage: !tierAccess("pro") ? "Requires Pro Plan" : undefined,
     },
     {
