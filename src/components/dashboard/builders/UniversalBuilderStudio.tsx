@@ -569,7 +569,23 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                       proposal={builderGen.proposal}
                       builderLabel={nodeConfig.label}
                       bookTitle={bookTitle || "your book"}
-                      onApprove={(approved) => builderGen.startAct3(bookId, approved)}
+                      onApprove={(approved) => {
+                        // Auto-populate stepData from approved proposal for builders with custom renderers
+                        if (nodeConfig.customRenderer === "home-study") {
+                          const durationMatch = approved.recommended_title?.match(/(\d+)[- ]?day/i);
+                          setStepData(prev => ({
+                            ...prev,
+                            setup: {
+                              ...prev.setup,
+                              title: approved.recommended_title || prev.setup?.title,
+                              description: approved.description || prev.setup?.description,
+                              price: approved.recommended_price || prev.setup?.price,
+                              duration: durationMatch ? parseInt(durationMatch[1]) : (prev.setup?.duration || 21),
+                            },
+                          }));
+                        }
+                        builderGen.startAct3(bookId, approved);
+                      }}
                       onEdit={(updates) => builderGen.updateProposal(updates)}
                     />
                   </div>
