@@ -680,6 +680,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                         frameworks={frameworks}
                         onStartGeneration={() => builderGen.startAct1(bookId)}
                         builderAct={builderGen.act}
+                        onNavigate={onNavigate}
                       />
                     );
                   }
