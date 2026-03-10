@@ -122,7 +122,7 @@ export default function Index() {
                 size="lg"
                 className="border-2 border-secondary bg-transparent text-secondary hover:bg-secondary hover:text-secondary-foreground text-base font-semibold"
               >
-                <Link to="/auth">Get Featured</Link>
+                <Link to="/get-featured">Get Featured</Link>
               </Button>
             </motion.div>
           </motion.div>
