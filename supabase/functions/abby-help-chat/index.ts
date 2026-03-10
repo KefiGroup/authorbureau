@@ -210,8 +210,8 @@ serve(async (req) => {
         user_id: userId,
         page_url: esc(String(data.pageUrl || "").slice(0, 500)),
         description: esc(String(data.description || "").slice(0, 5000)),
-        screenshot_url: data.screenshotUrl || null,
-        priority: data.priority || "low",
+        screenshot_url: validateUrl(data.screenshotUrl),
+        priority: validateEnum(data.priority, ["low", "medium", "high", "critical"], "low"),
       });
       if (error) throw error;
       return new Response(JSON.stringify({ success: true }), {
