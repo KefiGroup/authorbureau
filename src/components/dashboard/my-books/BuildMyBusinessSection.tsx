@@ -17,8 +17,8 @@ export default function BuildMyBusinessSection({
   bookTitle, recommendedCount, tier, buildBuilt, bridgeBuilt, yieldBuilt, onBuild,
 }: BuildMyBusinessSectionProps) {
   const categories = [
-    { label: "B·Build", total: 11, built: buildBuilt, requiredTier: "starter" as const },
-    { label: "B·Bridge", total: 8, built: bridgeBuilt, requiredTier: "pro" as const },
+    { label: "B·Build", total: 7, built: buildBuilt, requiredTier: "starter" as const },
+    { label: "B·Bridge", total: 14, built: bridgeBuilt, requiredTier: "pro" as const },
     { label: "Y·Yield", total: 8, built: yieldBuilt, requiredTier: "enterprise" as const },
   ];
 

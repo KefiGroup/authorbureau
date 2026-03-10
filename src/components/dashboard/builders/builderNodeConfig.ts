@@ -163,11 +163,11 @@ const bookSalesBuilder: BuilderNodeConfig = {
 const onlineCourseBuilder: BuilderNodeConfig = {
   id: "online-course",
   label: "Online Course Builder",
-  category: "build",
+  category: "bridge",
   requiredTier: "pro",
   dbTable: "courses",
   icon: "PlayCircle",
-  color: "text-emerald-500",
+  color: "text-violet-500",
   customRenderer: "course",
   abbyGreeting: "Online courses are where authors build real recurring revenue. Let's transform your expertise into a structured learning experience.",
   abbyPublishMessage: "Your course is ready to launch! Connect it to Teachable or host it on your microsite. Next: consider your Audiobook.",
@@ -193,11 +193,11 @@ const onlineCourseBuilder: BuilderNodeConfig = {
 const audiobookBuilder: BuilderNodeConfig = {
   id: "audiobook",
   label: "Audiobook Studio",
-  category: "build",
+  category: "bridge",
   requiredTier: "pro",
   dbTable: "audiobooks",
   icon: "Headphones",
-  color: "text-emerald-500",
+  color: "text-violet-500",
   customRenderer: "audiobook",
   abbyGreeting: "Audiobooks are the fastest-growing format. Let's create a professional narration from your manuscript.",
   abbyPublishMessage: "Your audiobook is ready! Distribute it on your platform, Audible, or Google Play. Consider your Podcast next.",
@@ -221,11 +221,11 @@ const audiobookBuilder: BuilderNodeConfig = {
 const podcastBuilder: BuilderNodeConfig = {
   id: "podcast",
   label: "Podcast Scripts",
-  category: "build",
+  category: "bridge",
   requiredTier: "pro",
   dbTable: "podcasts",
   icon: "Mic",
-  color: "text-emerald-500",
+  color: "text-violet-500",
   customRenderer: "podcast-scripts",
   abbyGreeting: "Podcasts build authority and audience like nothing else. Let's create production-ready scripts, show notes, and guest guides from your book.",
   abbyPublishMessage: "Your podcast scripts are ready! A consistent podcast builds authority faster than any other channel. Consider your Webinar next.",
@@ -249,11 +249,11 @@ const podcastBuilder: BuilderNodeConfig = {
 const webinarBuilder: BuilderNodeConfig = {
   id: "webinar",
   label: "Webinar Builder",
-  category: "build",
+  category: "bridge",
   requiredTier: "pro",
   dbTable: "webinars",
   icon: "Video",
-  color: "text-emerald-500",
+  color: "text-violet-500",
   customRenderer: "webinar",
   abbyGreeting: "Webinars are the #1 conversion tool for authors. Let's create a complete webinar package from your book.",
   abbyPublishMessage: "Your webinar package is ready! Schedule it and promote to your email list. Each webinar can generate $1K-$10K.",
@@ -277,11 +277,11 @@ const webinarBuilder: BuilderNodeConfig = {
 const membershipBuilder: BuilderNodeConfig = {
   id: "membership",
   label: "Monthly Membership",
-  category: "build",
+  category: "bridge",
   requiredTier: "pro",
   dbTable: "courses",
   icon: "CreditCard",
-  color: "text-emerald-500",
+  color: "text-violet-500",
   customRenderer: "membership",
   abbyGreeting: "Recurring revenue through memberships is the holy grail. Let's design a membership program your readers will love.",
   abbyPublishMessage: "Your membership program is designed! Connect payment processing and start enrolling founding members.",
@@ -957,7 +957,7 @@ const trainingProgramsBuilder: BuilderNodeConfig = {
 // ─── EXPORT ALL NODES ────────────────────────────────────────────────
 
 export const ALL_BUILDER_NODES: BuilderNodeConfig[] = [
-  // B·Build (11)
+  // B·Build (7)
   workbookBuilder,
   socialMediaBuilder,
   emailMarketingBuilder,
@@ -965,12 +965,12 @@ export const ALL_BUILDER_NODES: BuilderNodeConfig[] = [
   bookSalesBuilder,
   leadMagnetBuilder,
   websiteBuilder,
+  // B·Bridge (14)
   onlineCourseBuilder,
   audiobookBuilder,
   podcastBuilder,
   webinarBuilder,
   membershipBuilder,
-  // B·Bridge (9)
   coachingBuilder,
   groupCoachingBuilder,
   speakingBuilder,
