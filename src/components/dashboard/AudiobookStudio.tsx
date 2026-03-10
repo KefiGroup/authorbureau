@@ -463,19 +463,23 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
               ))}
             </div>
 
-            <Button
-              onClick={handleGenerateAll}
-              disabled={isGenerating}
-              className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
-            >
-              {isGenerating ? (
-                <><Loader2 className="h-4 w-4 animate-spin mr-2" />Generating Chapter {currentChapter + 1} of {chapters.length}…</>
-              ) : doneCount > 0 ? (
-                <><Sparkles className="h-4 w-4 mr-2" />Regenerate All Chapters</>
-              ) : (
-                <><Sparkles className="h-4 w-4 mr-2" />Generate All Chapters</>
-              )}
-            </Button>
+            {/* Regenerate confirmation dialog */}
+            {regenConfirmIndex !== null && (
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
+                <p className="text-sm font-medium">Re-generate "{chapters[regenConfirmIndex]?.title}"?</p>
+                <p className="text-xs text-muted-foreground">
+                  Re-generating a chapter costs <span className="font-semibold">$9</span>. This will replace the existing audio.
+                </p>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="destructive" onClick={confirmRegenerate}>
+                    Yes, Regenerate ($9)
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setRegenConfirmIndex(null)}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
