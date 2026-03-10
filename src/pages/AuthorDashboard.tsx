@@ -115,6 +115,9 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
   };
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
+  // Centralized stats from author-stats edge function
+  const { stats, refetch: refetchStats } = useAuthorStats(user?.id);
+
   // Journey state
   const [journeyMicrosite, setJourneyMicrosite] = useState<JourneyStep>("current");
   const [journeyPlan, setJourneyPlan] = useState<JourneyStep>("upcoming");
@@ -128,114 +131,62 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
   const [pendingReviewCount, setPendingReviewCount] = useState(0);
   const [analyzedBookList, setAnalyzedBookList] = useState<Array<{ id: string; title: string }>>([]);
 
+  // Derive journey state from centralized stats
   useEffect(() => {
-    if (sectionParam && sectionParam !== activeSection) setActiveSection(sectionParam);
-  }, [sectionParam]);
+    setHasBooks(stats.bookCount > 0);
+    setBooksAnalyzed(stats.analyzedCount);
+    setHasAnalysis(stats.analyzedCount > 0);
+    setStripeConnected(stats.stripeConnected);
+    setPendingReviewCount(stats.products.totalReadyForReview);
+    setHasMicrosite(stats.liveMicrosites > 0);
 
-  useEffect(() => {
-    const status = searchParams.get("checkout");
-    if (status === "success") {
-      toast({ title: "Welcome to Premium! 🎉", description: "Your subscription is now active." });
-      checkSubscription();
-    } else if (status === "cancelled") {
-      toast({ title: "Checkout cancelled", variant: "destructive" });
-    }
-    // Stripe Connect return
-    if (searchParams.get("stripe_connected") === "true") {
-      toast({ title: "Stripe Connected! 💳", description: "You can now accept payments from your audience." });
-      setStripeConnected(true);
-    }
-  }, [searchParams]);
+    const step1Done = stats.liveMicrosites > 0;
+    const step2Done = stats.analyzedCount > 0;
+    const step3Done = stats.products.totalBuilt > 0;
 
-  // Fetch journey state using edge functions to bypass RLS issues
+    setJourneyMicrosite(step1Done ? "done" : "current");
+    setJourneyPlan(step2Done ? "done" : "current");
+    setJourneyBuild(step3Done ? "done" : step2Done && (isPremium || isAdmin) ? "current" : "upcoming");
+    setJourneySell("upcoming");
+  }, [stats, isPremium, isAdmin]);
+
+  // Fetch analyzed book list separately (lightweight, needed for navigation)
   useEffect(() => {
     if (!user) return;
     (async () => {
       try {
         const token = await getActiveToken();
         if (!token) return;
-
-        // Fetch profile info
-        const { data: profile } = await supabase
-          .from("author_profiles")
-          .select("directory_status, pen_name, photo_url, bio_short, bio_long, stripe_onboarding_complete")
-          .eq("user_id", user.id)
-          .maybeSingle();
-
-        const hasName = !!profile?.pen_name?.trim();
-        const hasPhoto = !!profile?.photo_url?.trim();
-        const hasBio = !!(profile?.bio_long?.trim() || profile?.bio_short?.trim());
-        const isListed = profile && ["listed", "verified", "featured"].includes(profile.directory_status || "");
-        const profileComplete = isListed && hasName && hasPhoto && hasBio;
-        setStripeConnected(!!(profile as any)?.stripe_onboarding_complete);
-
-        // Fetch books via edge function (bypasses RLS mismatch)
         const booksResp = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`,
           { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } }
         );
         const booksResult = await booksResp.json();
         const fetchedBooks = booksResult.books || [];
-        const bookCount = fetchedBooks.length;
-        setHasBooks(bookCount > 0);
-
-        // Step 1 done = profile complete + has books
-        const step1Done = !!profileComplete && bookCount > 0;
-        setHasMicrosite(step1Done);
-
-        // Check analysis status via edge function (bypasses RLS mismatch)
-        let analyzed = 0;
-        if (bookCount > 0) {
-          try {
-            const bookIds = fetchedBooks.map((b: any) => b.id);
-            const statusResp = await fetch(
-              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-manuscript`,
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ action: "batch-status", bookIds }),
-              }
-            );
-            const statusResult = await statusResp.json();
-            if (statusResp.ok) {
-              const analyzedIds: string[] = statusResult.analyzed || [];
-              analyzed = analyzedIds.length;
-              // Store analyzed book info for navigation
-              const analyzedBooks = fetchedBooks
-                .filter((b: any) => analyzedIds.includes(b.id))
-                .map((b: any) => ({ id: b.id, title: b.title }));
-              setAnalyzedBookList(analyzedBooks);
+        if (fetchedBooks.length > 0) {
+          const bookIds = fetchedBooks.map((b: any) => b.id);
+          const statusResp = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-manuscript`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ action: "batch-status", bookIds }),
             }
-          } catch (err) {
-            console.error("Failed to fetch analysis status:", err);
+          );
+          const statusResult = await statusResp.json();
+          if (statusResp.ok) {
+            const analyzedIds: string[] = statusResult.analyzed || [];
+            const analyzedBooks = fetchedBooks
+              .filter((b: any) => analyzedIds.includes(b.id))
+              .map((b: any) => ({ id: b.id, title: b.title }));
+            setAnalyzedBookList(analyzedBooks);
           }
         }
-
-        setBooksAnalyzed(analyzed);
-        const step2Done = analyzed > 0;
-        setHasAnalysis(step2Done);
-
-        // Independent journey logic — each step reflects its own completion
-        setJourneyMicrosite(step1Done ? "done" : "current");
-        setJourneyPlan(step2Done ? "done" : "current");
-        setJourneyBuild(step2Done && (isPremium || isAdmin) ? "current" : step2Done ? "upcoming" : "upcoming");
-        setJourneySell("upcoming");
-
-        // Count pending review products
-        let reviewCount = 0;
-        const tables = ["courses", "home_study_courses", "webinars", "audiobooks", "podcasts", "workbooks", "social_media_content", "email_flows", "coaching_packages"] as const;
-        for (const table of tables) {
-          const { count } = await supabase
-            .from(table)
-            .select("id", { count: "exact", head: true })
-            .eq("author_id", user.id)
-            .eq("status", "ready_for_review");
-          reviewCount += count || 0;
-        }
-        setPendingReviewCount(reviewCount);
-      } catch {}
+      } catch (err) {
+        console.error("Failed to fetch analyzed book list:", err);
+      }
     })();
-  }, [user, isPremium]);
+  }, [user]);
 
   if (loading) {
     return (
