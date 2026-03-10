@@ -65,7 +65,7 @@ interface MyBooksProps {
   };
 }
 
-export default function MyBooks({ isPremium = false, onNavigate, stripeConnected = false }: MyBooksProps) {
+export default function MyBooks({ isPremium = false, onNavigate, stripeConnected = false, centralStats }: MyBooksProps) {
   const { user, tier, isAdmin } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
