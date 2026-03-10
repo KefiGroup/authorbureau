@@ -5,13 +5,15 @@ import AbbyBuildAdvisor from "./AbbyBuildAdvisor";
 import AbbyExecutionDashboard from "@/components/dashboard/AbbyExecutionDashboard";
 import AbbyAdvisorPanel from "@/components/dashboard/AbbyAdvisorPanel";
 import { useAbbyPlan } from "@/hooks/useAbbyPlan";
-import { hasTierAccess } from "@/hooks/useAuth";
+import { hasTierAccess, useAuth } from "@/hooks/useAuth";
 import type { SubscriptionTier } from "@/hooks/useAuth";
 import {
-  BookOpen, ArrowRight, Lock, Zap, CheckCircle2,
+  BookOpen, ArrowRight, Lock, Zap, CheckCircle2, Bell,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ABBY_CATEGORIES, getStudioPath as getStudioPathFromConfig, type AbbyCategory, type AbbyNode } from "@/config/abbyFrameworkConfig";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 interface ProductNode {
   id: string;
