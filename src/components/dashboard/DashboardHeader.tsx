@@ -3,7 +3,6 @@ import { LogOut, Crown, Menu, Shield, Settings, User, ChevronDown } from "lucide
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { supabase } from "@/integrations/supabase/client";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { SubscriptionTier } from "@/hooks/useAuth";
 import {
