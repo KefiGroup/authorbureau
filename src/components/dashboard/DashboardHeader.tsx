@@ -38,6 +38,7 @@ interface Props {
 
 export default function DashboardHeader({ user, isPremium, isAdmin, tier, subscription, onSignOut, onToggleSidebar, onNavigate }: Props) {
   const [penName, setPenName] = useState<string | null>(null);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   useEffect(() => {
     async function fetchPenName() {
