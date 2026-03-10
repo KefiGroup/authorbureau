@@ -1,6 +1,6 @@
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Search, BookOpen, Mic, Loader2 } from "lucide-react";
+import { Search, BookOpen, Mic, Loader2, ArrowUpDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { authors as staticAuthors } from "@/data/authors";
 
