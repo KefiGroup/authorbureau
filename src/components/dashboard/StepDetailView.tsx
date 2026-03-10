@@ -130,9 +130,9 @@ export default function StepDetailView({ categoryId, onNavigate, isPremium }: Pr
           <span className={`text-xs font-medium rounded-full px-3 py-1 ${catData.bgColor} ${catData.color}`}>
             {catData.nodes.length} products
           </span>
-          {catData.nodes.filter(n => n.status === "live").length > 0 && (
-            <span className="text-xs font-medium rounded-full px-3 py-1 bg-green-500/15 text-green-700">
-              {catData.nodes.filter(n => n.status === "live").length} live
+          {catData.nodes.filter(n => n.status === "available").length > 0 && (
+            <span className="text-xs font-medium rounded-full px-3 py-1 bg-accent/15 text-accent">
+              {catData.nodes.filter(n => n.status === "available").length} available
             </span>
           )}
         </div>
