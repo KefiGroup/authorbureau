@@ -22,6 +22,7 @@ interface ChapterAudio {
   text: string;
   status: "pending" | "generating" | "done" | "error";
   audioUrl?: string;
+  audioUrls?: string[];
   error?: string;
 }
 
