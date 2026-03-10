@@ -453,8 +453,15 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
                       </a>
                     </div>
                   )}
-                  {ch.status === "generating" && (
-                    <Badge variant="outline" className="text-xs shrink-0">Generating…</Badge>
+                  {ch.status === "pending" && !isGenerating && (
+                    <Button size="sm" variant="outline" className="shrink-0 text-xs" onClick={() => handleGenerateSingle(i)}>
+                      <Sparkles className="h-3 w-3 mr-1" />Generate
+                    </Button>
+                  )}
+                  {ch.status === "error" && !isGenerating && (
+                    <Button size="sm" variant="outline" className="shrink-0 text-xs" onClick={() => handleGenerateSingle(i)}>
+                      <Sparkles className="h-3 w-3 mr-1" />Retry
+                    </Button>
                   )}
                 </div>
               ))}
