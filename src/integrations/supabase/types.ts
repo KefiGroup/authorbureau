@@ -22,9 +22,14 @@ export type Database = {
           created_at: string
           currency: string | null
           description: string | null
+          distributed_at: string | null
+          distribution_manifest: Json | null
+          distribution_status: string | null
           duration_minutes: number | null
           id: string
+          narrator_credit: string | null
           narrator_type: string | null
+          preview_chapter_index: number | null
           price: number | null
           script_markdown: string
           source_asset_id: string | null
@@ -39,9 +44,14 @@ export type Database = {
           created_at?: string
           currency?: string | null
           description?: string | null
+          distributed_at?: string | null
+          distribution_manifest?: Json | null
+          distribution_status?: string | null
           duration_minutes?: number | null
           id?: string
+          narrator_credit?: string | null
           narrator_type?: string | null
+          preview_chapter_index?: number | null
           price?: number | null
           script_markdown?: string
           source_asset_id?: string | null
@@ -56,9 +66,14 @@ export type Database = {
           created_at?: string
           currency?: string | null
           description?: string | null
+          distributed_at?: string | null
+          distribution_manifest?: Json | null
+          distribution_status?: string | null
           duration_minutes?: number | null
           id?: string
+          narrator_credit?: string | null
           narrator_type?: string | null
+          preview_chapter_index?: number | null
           price?: number | null
           script_markdown?: string
           source_asset_id?: string | null
