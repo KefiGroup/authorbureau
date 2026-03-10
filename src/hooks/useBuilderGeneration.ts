@@ -247,7 +247,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
   // ── Reset ──────────────────────────────────────────────────────
   const reset = useCallback(() => {
     abortRef.current?.abort();
-    setState({ act: "idle", proposal: null, generatedContent: "", error: null });
+    setState({ act: "idle", proposal: null, generatedContent: "", error: null, pushResult: null });
   }, []);
 
   // ── Retry ──────────────────────────────────────────────────────
