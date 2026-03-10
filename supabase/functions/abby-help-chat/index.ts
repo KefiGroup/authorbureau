@@ -232,9 +232,9 @@ serve(async (req) => {
       const data = body.data || {};
       const { error } = await supabase.from("feedback").insert({
         user_id: userId,
-        type: data.type || "general",
+        type: validateEnum(data.type, ["feature_request", "improvement", "general"], "general"),
         description: esc(String(data.description || "").slice(0, 5000)),
-        importance: data.importance || "nice_to_have",
+        importance: validateEnum(data.importance, ["critical", "important", "nice_to_have"], "nice_to_have"),
       });
       if (error) throw error;
       return new Response(JSON.stringify({ success: true }), {
