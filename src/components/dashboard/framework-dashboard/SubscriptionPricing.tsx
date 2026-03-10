@@ -26,7 +26,7 @@ const plans = [
       "1 product sales page",
       "+ 5% platform fee on sales",
     ],
-    unlockedCategories: ["B·Build (3 of 11)"],
+    unlockedCategories: ["B·Build (3 of 7)"],
   },
   {
     id: "pro" as const,
@@ -38,8 +38,8 @@ const plans = [
     popular: true,
     features: [
       "Everything in Starter",
-      "All 11 B·Build AI builders",
-      "All 8 B·Bridge builders (Coaching, Speaking, Training)",
+      "All 7 B·Build AI builders",
+      "All 14 B·Bridge builders (Courses, Coaching, Audiobooks, Podcasts)",
       "Full microsite with unlimited sales pages",
       "Stripe Connect payment processing",
       "CRM & email automation",
@@ -47,7 +47,7 @@ const plans = [
       "Coaching booking system",
       "+ 5% platform fee on sales",
     ],
-    unlockedCategories: ["B·Build (11)", "B·Bridge (8)"],
+    unlockedCategories: ["B·Build (7)", "B·Bridge (14)"],
   },
   {
     id: "enterprise" as const,
@@ -55,7 +55,7 @@ const plans = [
     price: "$499",
     period: "/mo",
     tagline: "Build an empire.",
-    description: "Complete monetization empire — all 27 streams",
+    description: "Complete monetization empire — all 29 streams",
     popular: false,
     features: [
       "Everything in Pro",
@@ -66,7 +66,7 @@ const plans = [
       "1-on-1 strategic session with Pauline Teo",
       "+ 5% platform fee on sales",
     ],
-    unlockedCategories: ["B·Build (11)", "B·Bridge (8)", "Y·Yield (8)"],
+    unlockedCategories: ["B·Build (7)", "B·Bridge (14)", "Y·Yield (8)"],
   },
 ];
 

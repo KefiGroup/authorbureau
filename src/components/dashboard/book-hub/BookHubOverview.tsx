@@ -217,7 +217,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
       return (
         <>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            I'll analyze <strong>"{book.title}"</strong> and map your expertise to up to 27 revenue streams — from courses and coaching to speaking and retreats. The analysis is completely free and takes about 5 minutes.
+            I'll analyze <strong>"{book.title}"</strong> and map your expertise to up to 29 revenue streams — from courses and coaching to speaking and retreats. The analysis is completely free and takes about 5 minutes.
           </p>
           <div className="flex items-center gap-2 mt-3 text-xs">
             <FileText className="h-3.5 w-3.5 text-muted-foreground" />

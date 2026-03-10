@@ -50,7 +50,7 @@ const plans = [
       "1 product sales page",
       "+ 5% platform fee on sales",
     ],
-    unlockedCategories: ["B·Build (3 of 11)"],
+    unlockedCategories: ["B·Build (3 of 7)"],
     builderCount: 3,
   },
   {
@@ -64,8 +64,8 @@ const plans = [
     popular: true,
     features: [
       "Everything in Starter",
-      "All 11 B·Build AI builders",
-      "All 8 B·Bridge builders (Coaching, Speaking, Training)",
+      "All 7 B·Build AI builders",
+      "All 14 B·Bridge builders (Courses, Coaching, Audiobooks, Podcasts)",
       "Full microsite with unlimited sales pages",
       "Stripe Connect payment processing",
       "CRM & email automation",
@@ -73,8 +73,8 @@ const plans = [
       "Coaching booking system",
       "+ 5% platform fee on sales",
     ],
-    unlockedCategories: ["B·Build (11)", "B·Bridge (8)"],
-    builderCount: 19,
+    unlockedCategories: ["B·Build (7)", "B·Bridge (14)"],
+    builderCount: 21,
   },
   {
     id: "enterprise" as const,
@@ -83,7 +83,7 @@ const plans = [
     priceNum: 499,
     period: "/mo",
     tagline: "Build an empire.",
-    description: "Complete monetization empire — all 27 streams",
+    description: "Complete monetization empire — all 29 streams",
     popular: false,
     features: [
       "Everything in Pro",
@@ -94,8 +94,8 @@ const plans = [
       "1-on-1 strategic session with Pauline Teo",
       "+ 5% platform fee on sales",
     ],
-    unlockedCategories: ["B·Build (11)", "B·Bridge (8)", "Y·Yield (8)"],
-    builderCount: 27,
+    unlockedCategories: ["B·Build (7)", "B·Bridge (14)", "Y·Yield (8)"],
+    builderCount: 29,
   },
 ];
 
@@ -118,9 +118,9 @@ function getBreakEven(planPrice: number, products: PlanAnalysisData["products"])
 
 function getRevenueHookText(tier: SubscriptionTier): string {
   switch (tier) {
-    case "starter": return "You've unlocked 3 builders. Upgrade to access all 27 revenue streams.";
-    case "pro": return "You've unlocked 19 builders. Upgrade to Enterprise for retreats, certification, and a 1-on-1 session with Pauline Teo.";
-    case "enterprise": return "You have full access to all 27 builders. Start building!";
+    case "starter": return "You've unlocked 3 builders. Upgrade to access all 29 revenue streams.";
+    case "pro": return "You've unlocked 21 builders. Upgrade to Enterprise for retreats, certification, and a 1-on-1 session with Pauline Teo.";
+    case "enterprise": return "You have full access to all 29 builders. Start building!";
     default: return "";
   }
 }

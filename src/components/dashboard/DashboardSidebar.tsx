@@ -74,7 +74,7 @@ export default function DashboardSidebar({
     {
       id: "revenue-streams", label: "B·Build Authority", icon: DollarSign,
       subtitle: "Create Digital Products",
-      tooltip: "Turn your book into 11 digital products your audience can buy.",
+      tooltip: "Turn your book into 7 digital products your audience can buy.",
       color: "text-emerald-500",
       badge: hasAnalysis || bypassLocks ? `${buildUnlocked} of 7` : undefined,
       lockMessage: (!hasAnalysis && !bypassLocks) ? "Analyze a book first" : (!tierAccess("starter") ? "Requires Starter" : undefined),
