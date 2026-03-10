@@ -21,6 +21,7 @@ import ReadingClub from "./pages/ReadingClub";
 import SSO from "./pages/SSO";
 import NotFound from "./pages/NotFound";
 import BookHub from "./pages/BookHub";
+import Solutions from "./pages/Solutions";
 import ScrollToTop from "./components/ScrollToTop";
 import AbbyHelpChatbot from "./components/AbbyHelpChatbot";
 

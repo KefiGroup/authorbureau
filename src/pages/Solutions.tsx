@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Sparkles, ArrowRight, TrendingUp, Users, DollarSign, Loader2 } from "lucide-react";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
-import useDocumentMeta from "@/hooks/useDocumentMeta";
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 // Static genre configurations for SEO
 const GENRE_CONFIG: Record<string, {
