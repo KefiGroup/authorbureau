@@ -191,7 +191,28 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <div className="w-full max-w-6xl px-4">
+          <div className="flex gap-4">
+            {/* Sidebar skeleton */}
+            <div className="hidden lg:flex flex-col w-64 space-y-3">
+              <div className="h-16 rounded-xl bg-muted animate-pulse" />
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="h-9 rounded-lg bg-muted animate-pulse" />
+              ))}
+            </div>
+            {/* Main content skeleton */}
+            <div className="flex-1 space-y-4">
+              <div className="h-16 rounded-xl bg-muted animate-pulse" />
+              <div className="h-10 rounded-lg bg-muted animate-pulse w-3/4" />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="h-32 rounded-xl bg-muted animate-pulse" />
+                ))}
+              </div>
+              <div className="h-64 rounded-xl bg-muted animate-pulse" />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
