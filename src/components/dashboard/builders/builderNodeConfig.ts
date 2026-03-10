@@ -221,11 +221,11 @@ const audiobookBuilder: BuilderNodeConfig = {
 const podcastBuilder: BuilderNodeConfig = {
   id: "podcast",
   label: "Podcast Scripts",
-  category: "build",
+  category: "bridge",
   requiredTier: "pro",
   dbTable: "podcasts",
   icon: "Mic",
-  color: "text-emerald-500",
+  color: "text-violet-500",
   customRenderer: "podcast-scripts",
   abbyGreeting: "Podcasts build authority and audience like nothing else. Let's create production-ready scripts, show notes, and guest guides from your book.",
   abbyPublishMessage: "Your podcast scripts are ready! A consistent podcast builds authority faster than any other channel. Consider your Webinar next.",
