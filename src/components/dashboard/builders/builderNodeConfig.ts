@@ -249,11 +249,11 @@ const podcastBuilder: BuilderNodeConfig = {
 const webinarBuilder: BuilderNodeConfig = {
   id: "webinar",
   label: "Webinar Builder",
-  category: "build",
+  category: "bridge",
   requiredTier: "pro",
   dbTable: "webinars",
   icon: "Video",
-  color: "text-emerald-500",
+  color: "text-violet-500",
   customRenderer: "webinar",
   abbyGreeting: "Webinars are the #1 conversion tool for authors. Let's create a complete webinar package from your book.",
   abbyPublishMessage: "Your webinar package is ready! Schedule it and promote to your email list. Each webinar can generate $1K-$10K.",
