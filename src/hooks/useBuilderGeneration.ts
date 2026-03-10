@@ -176,33 +176,58 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
         }
       }
 
-      // Save generated content
-      const session = await supabase.auth.getSession();
-      const userId = session.data?.session?.user?.id;
+      // ── Cross-Builder Push Execution ──────────────────────────
+      // After content is saved, push outputs to destination builders
+      let pushResult: { pushed: number; errors: string[] } | null = null;
       if (userId && bookId) {
         try {
-          const { error: upsertErr } = await supabase.from("generated_assets" as any).upsert({
-            book_id: bookId,
-            author_id: userId,
-            asset_type: `builder_content_${builderId}`,
-            content: accumulated,
-            updated_at: new Date().toISOString(),
-          } as any, { onConflict: "book_id,asset_type" as any });
-          if (upsertErr) {
-            await supabase.from("generated_assets" as any).insert({
-              book_id: bookId,
-              author_id: userId,
-              asset_type: `builder_content_${builderId}`,
-              content: accumulated,
-            } as any);
+          const pushDefs = getPushesForBuilder(builderId);
+          if (pushDefs.length > 0) {
+            // Build outputs map from the approved proposal's cross_builder_outputs
+            const outputs: Record<string, { title: string; description?: string; content: Record<string, any> }> = {};
+            for (const def of pushDefs) {
+              outputs[def.pushType] = {
+                title: def.label,
+                description: def.description,
+                content: {
+                  source_builder: builderId,
+                  source_builder_label: builderLabel,
+                  proposal: {
+                    title: approvedProposal.recommended_title,
+                    description: approvedProposal.description,
+                    price: approvedProposal.recommended_price,
+                    target_audience: approvedProposal.target_audience,
+                    structure: approvedProposal.structure,
+                  },
+                  generated_content_preview: accumulated.slice(0, 2000),
+                },
+              };
+            }
+
+            const result = await executeCrossBuilderPushes({
+              sourceBuilder: builderId,
+              authorId: userId,
+              bookId,
+              outputs,
+            });
+
+            pushResult = { pushed: result.pushed, errors: result.errors };
+            if (result.pushed > 0) {
+              console.log(`Cross-builder: pushed ${result.pushed} outputs from ${builderId}`);
+            }
           }
-        } catch {
-          // Non-blocking save failure
+        } catch (pushErr) {
+          console.error("Cross-builder push error (non-blocking):", pushErr);
         }
       }
 
-      setState(prev => ({ ...prev, act: "act3_complete" }));
-      toast({ title: "Content generated! 🎉", description: "Review everything below." });
+      setState(prev => ({ ...prev, act: "act3_complete", pushResult }));
+      toast({ 
+        title: "Content generated! 🎉", 
+        description: pushResult?.pushed 
+          ? `Review below. ${pushResult.pushed} assets pushed to other builders.`
+          : "Review everything below." 
+      });
     } catch (err: any) {
       if (err.name === "AbortError") return;
       console.error("Act 3 error:", err);
