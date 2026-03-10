@@ -4,6 +4,7 @@ import {
   Lock, Globe, BarChart3, Contact, DollarSign, Radio, Award, CreditCard, Package,
   BookHeart, HelpCircle,
 } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
 import logoIcon from "@/assets/logo-icon.png";
 import { redirectToPublishNow } from "@/lib/publishnow-redirect";
