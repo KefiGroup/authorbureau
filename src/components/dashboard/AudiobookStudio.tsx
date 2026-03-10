@@ -417,7 +417,10 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
                     <p className="text-xs text-muted-foreground">
                       {ch.text.length.toLocaleString()} chars · ~{Math.round(ch.text.length / 15 / 60)} min
                     </p>
-                    {ch.error && <p className="text-xs text-destructive mt-0.5">{ch.error}</p>}
+                    {ch.status === "generating" && ch.error && (
+                      <p className="text-xs text-primary mt-0.5">{ch.error}</p>
+                    )}
+                    {ch.status === "error" && ch.error && <p className="text-xs text-destructive mt-0.5">{ch.error}</p>}
                   </div>
                   {ch.status === "done" && ch.audioUrl && (
                     <div className="flex items-center gap-1 shrink-0">
