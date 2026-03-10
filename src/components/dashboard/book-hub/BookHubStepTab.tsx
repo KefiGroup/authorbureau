@@ -158,11 +158,12 @@ interface Props {
   categoryId: string;
   bookId: string;
   bookTitle?: string;
+  bookGenre?: string;
   isPremium: boolean;
   tier: SubscriptionTier;
 }
 
-export default function BookHubStepTab({ categoryId, bookId, bookTitle, isPremium, tier }: Props) {
+export default function BookHubStepTab({ categoryId, bookId, bookTitle, bookGenre, isPremium, tier }: Props) {
   const navigate = useNavigate();
   const { plan, completedAssets } = useAbbyPlan(bookId);
   const [executingNode, setExecutingNode] = useState<ProductNode | null>(null);
