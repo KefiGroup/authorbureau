@@ -226,7 +226,7 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
     }
 
     setChapters(prev => prev.map((ch, idx) =>
-      idx === i ? { ...ch, status: "done", audioUrl: chunkUrls[0], error: undefined } : ch
+      idx === i ? { ...ch, status: "done", audioUrl: chunkUrls[0], audioUrls: chunkUrls, error: undefined } : ch
     ));
   };
 
