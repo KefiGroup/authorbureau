@@ -151,43 +151,51 @@ export default function Directory() {
 
       <section className="py-12">
         <div className="container">
-          {/* Search and filters */}
           <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Search authors..."
+                placeholder="Search by name, title, or bio..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full rounded-full border border-border bg-card py-2.5 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-secondary/50"
               />
             </div>
-            <div className="flex flex-wrap gap-2">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="rounded-full border border-border bg-card px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-secondary/50 appearance-none cursor-pointer"
+            >
+              <option value="featured">Featured First</option>
+              <option value="name">Name (A-Z)</option>
+            </select>
+          </div>
+
+          <div className="mb-8 flex flex-wrap gap-2">
+            <button
+              onClick={() => handleGenreFilter(null)}
+              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                !selectedGenre
+                  ? "bg-secondary text-secondary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+              }`}
+            >
+              All
+            </button>
+            {allGenres.map((g) => (
               <button
-                onClick={() => setSelectedGenre(null)}
+                key={g}
+                onClick={() => handleGenreFilter(g === selectedGenre ? null : g)}
                 className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                  !selectedGenre
+                  selectedGenre === g
                     ? "bg-secondary text-secondary-foreground"
                     : "bg-muted text-muted-foreground hover:bg-muted/80"
                 }`}
               >
-                All
+                {g}
               </button>
-              {allGenres.map((g) => (
-                <button
-                  key={g}
-                  onClick={() => setSelectedGenre(g === selectedGenre ? null : g)}
-                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                    selectedGenre === g
-                      ? "bg-secondary text-secondary-foreground"
-                      : "bg-muted text-muted-foreground hover:bg-muted/80"
-                  }`}
-                >
-                  {g}
-                </button>
-              ))}
-            </div>
+            ))}
           </div>
 
           {isLoading && (
