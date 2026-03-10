@@ -11,6 +11,7 @@ const emailSchema = z.string().trim().email("Please enter a valid email").max(25
 interface NewsletterSignupProps {
   bookId: string;
   authorName: string;
+  authorId?: string;
 }
 
 export default function NewsletterSignup({ bookId, authorName }: NewsletterSignupProps) {
