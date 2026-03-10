@@ -16,7 +16,9 @@ interface Props {
   onToggleSidebar: () => void;
 }
 
-export default function DashboardHeader({ user, isPremium, isAdmin, tier, onSignOut, onToggleSidebar }: Props) {
+type SubscriptionLoading = { loading: boolean };
+
+export default function DashboardHeader({ user, isPremium, isAdmin, tier, subscription, onSignOut, onToggleSidebar }: Props) {
   const [penName, setPenName] = useState<string | null>(null);
 
   useEffect(() => {
@@ -34,6 +36,9 @@ export default function DashboardHeader({ user, isPremium, isAdmin, tier, onSign
 
   const displayName = penName || user.email;
 
+  // Determine effective tier: admins are treated as enterprise
+  const effectiveTier = isAdmin ? "enterprise" : tier;
+
   return (
     <header className="flex h-16 items-center justify-between border-b border-border bg-card px-4 lg:px-8">
       <div className="flex items-center gap-3">
@@ -41,18 +46,18 @@ export default function DashboardHeader({ user, isPremium, isAdmin, tier, onSign
           <Menu className="h-5 w-5" />
         </button>
         <div>
-          <h1 className="font-heading text-lg font-bold">AI Marketing Studio</h1>
+          <h1 className="font-heading text-lg font-bold">Authors Bureau</h1>
           <p className="text-xs text-muted-foreground flex items-center gap-1.5">
             {displayName}
-            {tier && tier !== "free" ? (
+            {effectiveTier && effectiveTier !== "free" ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-secondary/15 px-2 py-0.5 text-[10px] font-semibold text-secondary">
-                <Crown className="h-2.5 w-2.5" /> {tier.charAt(0).toUpperCase() + tier.slice(1)}
+                <Crown className="h-2.5 w-2.5" /> {effectiveTier.charAt(0).toUpperCase() + effectiveTier.slice(1)}
               </span>
-            ) : (
+            ) : !subscription.loading ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
                 Free
               </span>
-            )}
+            ) : null}
           </p>
         </div>
       </div>

@@ -73,8 +73,8 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
     const nextStep = !isPremium
       ? { label: "Subscribe to a Plan", action: () => onNavigate?.("overview") }
       : !onboarding_complete
-      ? { label: "Connect Stripe", action: () => onNavigate?.("overview") }
-      : { label: "Build Your First Product", action: () => onNavigate?.("build-business") };
+      ? { label: "Connect Stripe", action: () => onNavigate?.("connect-stripe") }
+      : { label: "Build Your First Product", action: () => onNavigate?.("revenue-streams") };
 
     return (
       <div className="max-w-6xl space-y-6">

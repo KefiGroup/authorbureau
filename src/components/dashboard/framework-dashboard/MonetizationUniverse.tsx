@@ -168,7 +168,10 @@ export default function MonetizationUniverse({ activatedCount, builtProducts, re
                     </div>
                   </div>
                   <p className="text-gray-400 text-[10px] pl-10">{group.subtitle}</p>
-                  <p className="text-[10px] font-semibold pl-10" style={{ color: group.color }}>{group.tierLabel}</p>
+                  {/* Show tier label only for non-subscribers */}
+                  {subscribedTier === "free" && (
+                    <p className="text-[10px] font-semibold pl-10" style={{ color: group.color }}>{group.tierLabel}</p>
+                  )}
                 </div>
 
                 {/* Nodes */}
@@ -207,7 +210,15 @@ export default function MonetizationUniverse({ activatedCount, builtProducts, re
                             </span>
                           </div>
                           <span className="text-[9px] text-gray-500 shrink-0 whitespace-nowrap">
-                            {status === "locked" ? `Unlock with ${node.requiredTier}` : node.price}
+                            {status === "locked" ? (
+                              // Check if user's tier already covers this — if so, show "Included" not "Unlock with X"
+                              (() => {
+                                const tierOrder = ["free", "starter", "pro", "enterprise"];
+                                const userIdx = tierOrder.indexOf(subscribedTier.toLowerCase());
+                                const reqIdx = node.requiredTier ? tierOrder.indexOf(node.requiredTier.toLowerCase()) : 0;
+                                return userIdx >= reqIdx ? "Included in your plan" : `Unlock with ${node.requiredTier}`;
+                              })()
+                            ) : node.price}
                           </span>
                         </div>
 

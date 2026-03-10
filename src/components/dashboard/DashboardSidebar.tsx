@@ -67,7 +67,7 @@ export default function DashboardSidebar({
       id: "revenue-streams", label: "Build Authority (11)", icon: DollarSign,
       color: "text-emerald-500",
       badge: hasAnalysis ? `${buildUnlocked} of 11` : undefined,
-      lockMessage: !hasAnalysis ? "Analyze a book first" : (!tierAccess("starter") ? "Requires Starter" : undefined),
+      lockMessage: (!hasAnalysis && !tierAccess("starter")) ? "Analyze a book first" : (!tierAccess("starter") ? "Requires Starter" : undefined),
     },
     {
       id: "marketing-channels", label: "Bridge Channels (8)", icon: Radio,
@@ -93,12 +93,11 @@ export default function DashboardSidebar({
     {
       id: "author-crm" as DashboardSection, label: "My Contacts",
       icon: Contact,
-      lockMessage: !tierAccess("pro") ? "Upgrade to Pro to access your CRM" : undefined,
+      lockMessage: !tierAccess("pro") ? `Upgrade to ${tier === "starter" ? "Pro" : "Pro"} to access your CRM` : undefined,
     },
     {
       id: "review-products" as DashboardSection, label: "Review Products", icon: Package,
       notificationCount: pendingReviewCount,
-      hidden: !hasBooks,
     },
     {
       id: "analytics" as DashboardSection, label: "Revenue Dashboard", icon: BarChart3,
@@ -139,7 +138,7 @@ export default function DashboardSidebar({
             <item.icon className={`h-4 w-4 shrink-0 ${!isActive && item.color ? item.color : ""}`} />
             {!collapsed && (
               <>
-                <span className="truncate flex-1 text-left">{item.label}</span>
+                <span className="flex-1 text-left whitespace-normal leading-tight">{item.label}</span>
                 {isLocked && <Lock className="h-3 w-3 text-muted-foreground/30" />}
                 {item.badge && !isLocked && (
                   <span className="text-[10px] text-muted-foreground/60 font-normal">{item.badge}</span>
@@ -160,7 +159,7 @@ export default function DashboardSidebar({
   return (
     <aside
       className={`hidden lg:flex flex-col border-r border-border bg-card transition-all duration-200 ${
-        collapsed ? "w-16" : "w-60"
+        collapsed ? "w-16" : "w-64"
       }`}
     >
       {/* Logo */}
@@ -170,9 +169,6 @@ export default function DashboardSidebar({
           <div className="min-w-0">
             <span className="font-heading text-lg font-bold truncate block">
               Authors <span className="text-gradient-gold">Bureau</span>
-            </span>
-            <span className="text-[9px] font-medium uppercase tracking-widest text-muted-foreground/60 leading-none">
-              AI Marketing Studio
             </span>
           </div>
         )}
