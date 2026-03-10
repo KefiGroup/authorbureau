@@ -9,6 +9,8 @@
 import { useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { executeCrossBuilderPushes } from "@/lib/cross-builder-push";
+import { getPushesForBuilder } from "@/lib/cross-builder-registry";
 
 export interface BuilderProposal {
   title_options: string[];
@@ -42,6 +44,7 @@ interface GenerationState {
   proposal: BuilderProposal | null;
   generatedContent: string;
   error: string | null;
+  pushResult: { pushed: number; errors: string[] } | null;
 }
 
 export function useBuilderGeneration(builderId: string, builderLabel: string) {
@@ -51,6 +54,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
     proposal: null,
     generatedContent: "",
     error: null,
+    pushResult: null,
   });
   const abortRef = useRef<AbortController | null>(null);
 
@@ -61,7 +65,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
 
   // ── ACT 1: Analyze ─────────────────────────────────────────────
   const startAct1 = useCallback(async (bookId: string) => {
-    setState({ act: "act1_loading", proposal: null, generatedContent: "", error: null });
+    setState({ act: "act1_loading", proposal: null, generatedContent: "", error: null, pushResult: null });
 
     try {
       const token = await getToken();
@@ -90,6 +94,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
         proposal: data.proposal,
         generatedContent: "",
         error: null,
+        pushResult: null,
       });
 
       toast({ title: "Abby's proposal is ready!", description: "Review and approve to generate all content." });
@@ -171,7 +176,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
         }
       }
 
-      // Save generated content
+      // ── Save generated content + Cross-Builder Push ─────────────
       const session = await supabase.auth.getSession();
       const userId = session.data?.session?.user?.id;
       if (userId && bookId) {
@@ -196,8 +201,57 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
         }
       }
 
-      setState(prev => ({ ...prev, act: "act3_complete" }));
-      toast({ title: "Content generated! 🎉", description: "Review everything below." });
+      // Push outputs to destination builders
+      let pushResult: { pushed: number; errors: string[] } | null = null;
+      if (userId && bookId) {
+        try {
+          const pushDefs = getPushesForBuilder(builderId);
+          if (pushDefs.length > 0) {
+            // Build outputs map from the approved proposal's cross_builder_outputs
+            const outputs: Record<string, { title: string; description?: string; content: Record<string, any> }> = {};
+            for (const def of pushDefs) {
+              outputs[def.pushType] = {
+                title: def.label,
+                description: def.description,
+                content: {
+                  source_builder: builderId,
+                  source_builder_label: builderLabel,
+                  proposal: {
+                    title: approvedProposal.recommended_title,
+                    description: approvedProposal.description,
+                    price: approvedProposal.recommended_price,
+                    target_audience: approvedProposal.target_audience,
+                    structure: approvedProposal.structure,
+                  },
+                  generated_content_preview: accumulated.slice(0, 2000),
+                },
+              };
+            }
+
+            const result = await executeCrossBuilderPushes({
+              sourceBuilder: builderId,
+              authorId: userId,
+              bookId,
+              outputs,
+            });
+
+            pushResult = { pushed: result.pushed, errors: result.errors };
+            if (result.pushed > 0) {
+              console.log(`Cross-builder: pushed ${result.pushed} outputs from ${builderId}`);
+            }
+          }
+        } catch (pushErr) {
+          console.error("Cross-builder push error (non-blocking):", pushErr);
+        }
+      }
+
+      setState(prev => ({ ...prev, act: "act3_complete", pushResult }));
+      toast({ 
+        title: "Content generated! 🎉", 
+        description: pushResult?.pushed 
+          ? `Review below. ${pushResult.pushed} assets pushed to other builders.`
+          : "Review everything below." 
+      });
     } catch (err: any) {
       if (err.name === "AbortError") return;
       console.error("Act 3 error:", err);
@@ -217,7 +271,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
   // ── Reset ──────────────────────────────────────────────────────
   const reset = useCallback(() => {
     abortRef.current?.abort();
-    setState({ act: "idle", proposal: null, generatedContent: "", error: null });
+    setState({ act: "idle", proposal: null, generatedContent: "", error: null, pushResult: null });
   }, []);
 
   // ── Retry ──────────────────────────────────────────────────────

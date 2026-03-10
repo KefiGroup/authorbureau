@@ -7,6 +7,8 @@ import {
 } from "lucide-react";
 import AbbyNarrativeLoading from "./AbbyNarrativeLoading";
 import AbbyProposal from "./AbbyProposal";
+import CrossBuilderNotifications from "./CrossBuilderNotifications";
+import CrossBuilderPushSummary from "./CrossBuilderPushSummary";
 import { BUILDER_SYSTEM_PROMPTS } from "./builderSystemPrompts";
 import { useBuilderGeneration } from "@/hooks/useBuilderGeneration";
 import { Button } from "@/components/ui/button";
@@ -526,6 +528,17 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
 
         {/* Step content area */}
         <div className="flex-1 overflow-y-auto p-6 lg:p-8">
+          {/* Cross-builder incoming notifications */}
+          {user && bookId && (
+            <CrossBuilderNotifications
+              builderId={nodeConfig.id}
+              authorId={user.id}
+              bookId={bookId}
+              onImport={(pushData) => {
+                toast({ title: "Content imported!", description: "Pre-filled content is ready for editing." });
+              }}
+            />
+          )}
           <AnimatePresence mode="wait">
             <motion.div
               key={currentStepConfig.id}
@@ -619,6 +632,14 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                         Continue to Next Step <ArrowRight className="h-3.5 w-3.5 ml-1" />
                       </Button>
                     </div>
+                    {/* Cross-builder push summary */}
+                    {user && bookId && (
+                      <CrossBuilderPushSummary
+                        builderId={nodeConfig.id}
+                        authorId={user.id}
+                        bookId={bookId}
+                      />
+                    )}
                   </Card>
                 )}
 
