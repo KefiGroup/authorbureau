@@ -42,12 +42,22 @@ async function requireAuth(req: Request, supabase: any) {
   if (!authHeader?.startsWith("Bearer ")) {
     return { error: "Unauthorized", status: 401 };
   }
-  const token = authHeader.replace("Bearer ", "");
-  const { data, error } = await supabase.auth.getClaims(token);
-  if (error || !data?.claims) {
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) {
     return { error: "Unauthorized", status: 401 };
   }
-  return { claims: data.claims };
+  return { user };
+}
+
+// ── Validation helpers ────────────────────────────────────────────
+function validateEnum<T extends string>(value: unknown, allowed: T[], fallback: T): T {
+  return typeof value === "string" && (allowed as string[]).includes(value) ? value as T : fallback;
+}
+
+function validateUrl(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim().slice(0, 500);
+  return trimmed.startsWith("https://") ? trimmed : null;
 }
 
 // ── Rate limit helper ─────────────────────────────────────────────
@@ -170,8 +180,8 @@ serve(async (req) => {
       });
     }
 
-    const userId = authResult.claims.sub as string;
-    const userEmail = (authResult.claims.email as string) || "unknown";
+    const userId = authResult.user.id as string;
+    const userEmail = (authResult.user.email as string) || "unknown";
 
     // Service role client for DB ops
     const supabase = createClient(supabaseUrl, serviceRoleKey);
@@ -200,8 +210,8 @@ serve(async (req) => {
         user_id: userId,
         page_url: esc(String(data.pageUrl || "").slice(0, 500)),
         description: esc(String(data.description || "").slice(0, 5000)),
-        screenshot_url: data.screenshotUrl || null,
-        priority: data.priority || "low",
+        screenshot_url: validateUrl(data.screenshotUrl),
+        priority: validateEnum(data.priority, ["low", "medium", "high", "critical"], "low"),
       });
       if (error) throw error;
       return new Response(JSON.stringify({ success: true }), {
@@ -222,9 +232,9 @@ serve(async (req) => {
       const data = body.data || {};
       const { error } = await supabase.from("feedback").insert({
         user_id: userId,
-        type: data.type || "general",
+        type: validateEnum(data.type, ["feature_request", "improvement", "general"], "general"),
         description: esc(String(data.description || "").slice(0, 5000)),
-        importance: data.importance || "nice_to_have",
+        importance: validateEnum(data.importance, ["critical", "important", "nice_to_have"], "nice_to_have"),
       });
       if (error) throw error;
       return new Response(JSON.stringify({ success: true }), {
@@ -234,10 +244,28 @@ serve(async (req) => {
 
     // ── Handle save chat session ──────────────────────────────────
     if (action === "save_session") {
+      const sessionAllowed = await checkRateLimit(supabase, `session:${rateLimitKey}`, 3, 60);
+      if (!sessionAllowed) {
+        console.warn(`Rate limit hit (save_session): ${rateLimitKey}`);
+        return new Response(JSON.stringify({ error: "Too many submissions. Please wait a moment." }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const data = body.data || {};
+      // Sanitize stored messages
+      const rawSessionMsgs = Array.isArray(data.messages) ? data.messages : [];
+      const sanitizedSessionMsgs = rawSessionMsgs
+        .filter((m: any) => m && typeof m === "object")
+        .slice(0, 50)
+        .map((m: any) => ({
+          role: m.role === "assistant" ? "assistant" : "user",
+          content: typeof m.content === "string" ? m.content.slice(0, 3000) : "",
+        }))
+        .filter((m: any) => m.content.length > 0);
       const { error } = await supabase.from("chat_sessions").insert({
         user_id: userId,
-        messages: data.messages || [],
+        messages: sanitizedSessionMsgs,
         page_url: sanitizePage(data.pageUrl),
       });
       if (error) throw error;
@@ -335,7 +363,7 @@ serve(async (req) => {
   } catch (e) {
     const corsHeaders = getCorsHeaders(req);
     console.error("abby-help-chat error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

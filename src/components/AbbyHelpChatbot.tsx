@@ -255,15 +255,15 @@ export default function AbbyHelpChatbot() {
   }, [input, isStreaming, sessionExpired, messages, mode, location.pathname, addMessage, streamResponse]);
 
   // Submit actions for structured flows
-  const submitAction = async (action: string, data: any) => {
+  const submitAction = async (action: string, data: any): Promise<boolean> => {
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/abby-help-chat`;
     try {
       const token = await getAuthToken();
       if (!token) {
         setSessionExpired(true);
-        return;
+        return false;
       }
-      await fetch(url, {
+      const resp = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -271,7 +271,21 @@ export default function AbbyHelpChatbot() {
         },
         body: JSON.stringify({ action, data }),
       });
-    } catch { /* silent fail, message already shown */ }
+      if (resp.status === 401) {
+        setSessionExpired(true);
+        addMessage("assistant", "Your session has expired. Please sign in again.");
+        return false;
+      }
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => ({}));
+        addMessage("assistant", errData.error || "Something went wrong. Please try again.");
+        return false;
+      }
+      return true;
+    } catch {
+      addMessage("assistant", "Something went wrong. Please try again.");
+      return false;
+    }
   };
 
   const submitBugReport = () => {
