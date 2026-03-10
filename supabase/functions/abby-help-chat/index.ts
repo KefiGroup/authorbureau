@@ -88,9 +88,9 @@ Your role is to help users navigate the platform, answer questions, and provide 
 
 ### What is Authors Bureau?
 Authors Bureau helps published authors monetize their books through the ABBY Framework:
-- **A**nalyze: Abby (the AI business consultant) analyzes your book and creates a personalized business plan mapping up to 27 revenue streams
-- **B**uild Authority: Create digital products (courses, workbooks, coaching packages, audiobooks, podcasts, home study programs)
-- **B**ridge Channels: Build distribution channels (social media, email marketing, website, webinars)
+- **A**nalyze: Abby (the AI business consultant) analyzes your book and creates a personalized business plan mapping up to 29 revenue streams
+- **B**uild Authority (7 nodes): Create digital products (workbooks, home study courses, social media, email marketing, book sales, special editions, microsite)
+- **B**ridge Channels (14 nodes): Scale with courses, audiobooks, podcasts, webinars, memberships, coaching, consulting, and partnerships
 - **Y**ield Revenue: Monetize through direct sales, speaking engagements, and partnerships
 
 ### Getting Started Flow
