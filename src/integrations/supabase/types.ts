@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_usage_logs: {
+        Row: {
+          author_id: string
+          book_id: string | null
+          cost_estimate: number | null
+          created_at: string
+          feature: string
+          id: string
+          input_tokens: number
+          model: string
+          output_tokens: number
+          total_tokens: number
+        }
+        Insert: {
+          author_id: string
+          book_id?: string | null
+          cost_estimate?: number | null
+          created_at?: string
+          feature: string
+          id?: string
+          input_tokens?: number
+          model?: string
+          output_tokens?: number
+          total_tokens?: number
+        }
+        Update: {
+          author_id?: string
+          book_id?: string | null
+          cost_estimate?: number | null
+          created_at?: string
+          feature?: string
+          id?: string
+          input_tokens?: number
+          model?: string
+          output_tokens?: number
+          total_tokens?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_usage_logs_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audiobooks: {
         Row: {
           audio_url: string | null
