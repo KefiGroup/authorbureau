@@ -158,40 +158,87 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
     setLoadingPreview(false);
   };
 
-  // Generate all chapters sequentially
+  // Split text into chunks client-side (same logic as server)
+  const splitTextIntoChunks = (text: string, maxLen = 4500): string[] => {
+    if (text.length <= maxLen) return [text];
+    const chunks: string[] = [];
+    let remaining = text;
+    while (remaining.length > 0) {
+      if (remaining.length <= maxLen) {
+        chunks.push(remaining);
+        break;
+      }
+      let splitAt = remaining.lastIndexOf(". ", maxLen);
+      if (splitAt < maxLen * 0.5) splitAt = remaining.lastIndexOf("! ", maxLen);
+      if (splitAt < maxLen * 0.5) splitAt = remaining.lastIndexOf("? ", maxLen);
+      if (splitAt < maxLen * 0.5) splitAt = remaining.lastIndexOf("\n", maxLen);
+      if (splitAt < maxLen * 0.3) splitAt = maxLen;
+      else splitAt += 2;
+      chunks.push(remaining.slice(0, splitAt).trim());
+      remaining = remaining.slice(splitAt).trim();
+    }
+    return chunks;
+  };
+
+  // Generate all chapters sequentially, chunk by chunk
   const handleGenerateAll = async () => {
     if (chapters.length === 0) {
       toast({ title: "No chapters", description: "Parse chapters first.", variant: "destructive" });
       return;
     }
     setIsGenerating(true);
+    const session = (await supabase.auth.getSession()).data.session;
+    const authToken = session?.access_token;
+
     for (let i = 0; i < chapters.length; i++) {
       setCurrentChapter(i);
-      setChapters(prev => prev.map((ch, idx) => idx === i ? { ...ch, status: "generating" } : ch));
+      setChapters(prev => prev.map((ch, idx) => idx === i ? { ...ch, status: "generating", error: undefined } : ch));
+      
       try {
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts-audiobook`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-            },
-            body: JSON.stringify({
-              action: "generate-chapter",
-              bookId,
-              voiceKey: selectedVoice,
-              chapterText: chapters[i].text,
-              chapterIndex: i,
-            }),
+        const chunks = splitTextIntoChunks(chapters[i].text);
+        const chunkUrls: string[] = [];
+
+        for (let c = 0; c < chunks.length; c++) {
+          // Update status with chunk progress
+          setChapters(prev => prev.map((ch, idx) => 
+            idx === i ? { ...ch, error: `Generating chunk ${c + 1} of ${chunks.length}...` } : ch
+          ));
+
+          const previousContext = c > 0 ? chunks[c - 1].slice(-200) : undefined;
+          const nextContext = c < chunks.length - 1 ? chunks[c + 1].slice(0, 200) : undefined;
+
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts-audiobook`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${authToken}`,
+              },
+              body: JSON.stringify({
+                action: "generate-chunk",
+                bookId,
+                voiceKey: selectedVoice,
+                chunkText: chunks[c],
+                chapterIndex: i,
+                chunkIndex: c,
+                previousContext,
+                nextContext,
+              }),
+            }
+          );
+          if (!response.ok) {
+            const err = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+            throw new Error(err.error || "Generation failed");
           }
-        );
-        if (!response.ok) {
-          const err = await response.json();
-          throw new Error(err.error || "Generation failed");
+          const result = await response.json();
+          chunkUrls.push(result.audioUrl);
         }
-        const result = await response.json();
-        setChapters(prev => prev.map((ch, idx) => idx === i ? { ...ch, status: "done", audioUrl: result.audioUrl } : ch));
+
+        // Use first chunk URL as primary (chapters play sequentially)
+        setChapters(prev => prev.map((ch, idx) => 
+          idx === i ? { ...ch, status: "done", audioUrl: chunkUrls[0], error: undefined } : ch
+        ));
       } catch (e: any) {
         setChapters(prev => prev.map((ch, idx) => idx === i ? { ...ch, status: "error", error: e.message } : ch));
         toast({ title: `Chapter ${i + 1} failed`, description: e.message, variant: "destructive" });
