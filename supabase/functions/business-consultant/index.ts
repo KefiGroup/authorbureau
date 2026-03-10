@@ -891,6 +891,7 @@ subscription_note: "${
 author_frameworks: ${profile?.frameworks && Array.isArray(profile.frameworks) && profile.frameworks.length > 0
   ? JSON.stringify(profile.frameworks)
   : "none saved in profile — extract from manuscript if available, but DO NOT list them back to the author. Use them silently to inform product recommendations."}
+${marketResearchContext}
 `;
 
     const assistantTurns = Array.isArray(messages)
