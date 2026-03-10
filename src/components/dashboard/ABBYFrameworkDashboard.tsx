@@ -241,6 +241,27 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
         builtProducts={builtProducts}
         recommendedByAbby={recommendedByAbby}
         subscribedTier={tier}
+        onNavigateToStream={(label) => {
+          // Map stream labels to dashboard sections
+          const streamMap: Record<string, string> = {
+            "Online Courses": "courses", "Home Study Courses": "home-study",
+            "Workbooks": "workbooks", "Audiobook": "audiobook-studio",
+            "Monthly Memberships": "memberships", "Upsells / Downsells": "revenue-streams",
+            "Social Media Calendar": "social-media", "Webinars": "webinars",
+            "Podcasts (Guest)": "podcast", "Website / Microsite": "microsite-manager",
+            "Email Marketing": "email-marketing", "1-on-1 Coaching": "coaching",
+            "Group Coaching": "group-coaching", "Big Ticket Consulting": "big-ticket",
+            "Keynotes": "speaking", "In-House Speaker": "speaking",
+            "Training Programs": "revenue-streams", "Affiliates": "marketing-channels",
+            "Revenue Sharing / JV": "marketing-channels",
+            "Retreats & Bootcamps": "authority-builders", "Certification": "authority-builders",
+            "Masterminds": "authority-builders", "Special Editions": "authority-builders",
+            "Book Sales at Events": "authority-builders", "Conventions / Conferences": "authority-builders",
+            "Fund Raising": "authority-builders", "Exhibitors / JV": "authority-builders",
+          };
+          const section = streamMap[label] || "revenue-streams";
+          onNavigate(section);
+        }}
       />
 
       {/* SECTION 4 — Subscription Pricing */}
