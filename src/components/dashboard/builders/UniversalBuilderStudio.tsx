@@ -739,9 +739,35 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
               </Button>
             )}
             <Button
-              onClick={isLastStep ? () => {
-                handleSaveDraft(false);
-                toast({ title: "Published! 🎉", description: `Your ${nodeConfig.label.toLowerCase()} is now live.` });
+              onClick={isLastStep ? async () => {
+                await handleSaveDraft(false);
+                // Save product to its DB table with ready_for_review status
+                if (user && bookId && nodeConfig.dbTable) {
+                  try {
+                    const { data: existing } = await supabase
+                      .from(nodeConfig.dbTable as any)
+                      .select("id")
+                      .eq("author_id", user.id)
+                      .eq("book_id", bookId)
+                      .maybeSingle();
+                    const productRecord: any = {
+                      author_id: user.id,
+                      book_id: bookId,
+                      title: stepData.setup?.title || `${bookTitle} — ${nodeConfig.label}`,
+                      description: stepData.setup?.description || "",
+                      status: "ready_for_review",
+                    };
+                    if (existing) {
+                      await supabase.from(nodeConfig.dbTable as any).update(productRecord).eq("id", existing.id);
+                    } else {
+                      await supabase.from(nodeConfig.dbTable as any).insert(productRecord);
+                    }
+                  } catch (err) {
+                    console.error("Failed to save product record:", err);
+                  }
+                }
+                toast({ title: "Published! 🎉", description: `Redirecting to Review & Publish…` });
+                setTimeout(() => onNavigate?.("review-products"), 800);
               } : goNext}
               className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold px-6"
             >
