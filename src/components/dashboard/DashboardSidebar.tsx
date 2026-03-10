@@ -31,6 +31,8 @@ interface Props {
 interface NavItem {
   id: DashboardSection;
   label: string;
+  subtitle?: string;
+  tooltip?: string;
   icon: typeof LayoutDashboard;
   badge?: string;
   lockMessage?: string;
