@@ -66,7 +66,7 @@ const plans = [
       "1-on-1 strategic session with Pauline Teo",
       "+ 5% platform fee on sales",
     ],
-    unlockedCategories: ["B·Build (7)", "B·Bridge (14)", "Y·Yield (8)"],
+    unlockedCategories: ["B·Build (7)", "B·Bridge (14)", "Y·Yield (7)"],
   },
 ];
 

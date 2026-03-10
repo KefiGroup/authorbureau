@@ -92,7 +92,7 @@ export const categoryConfigs: CategoryConfig[] = [
     ],
   },
   {
-    id: "authority-builders", label: "Y · Yield Revenue", subtitle: "Premium revenue streams & monetization (8 nodes)",
+    id: "authority-builders", label: "Y · Yield Revenue", subtitle: "Premium revenue streams & monetization (7 nodes)",
     color: "text-sky-600", bgColor: "bg-sky-500/10",
     gradientFrom: "from-sky-500", gradientTo: "to-sky-600",
     headerIconName: "Award",
@@ -104,7 +104,6 @@ export const categoryConfigs: CategoryConfig[] = [
       { id: "conventions", label: "Conventions / Conferences", iconName: "Calendar", description: "Conference submission generator.", status: "planned", requiredTier: "enterprise" },
       { id: "fundraising", label: "Fund Raising", iconName: "HandCoins", description: "Fundraising event templates.", status: "planned", requiredTier: "enterprise" },
       { id: "exhibitors", label: "Exhibitors / JV", iconName: "Megaphone", description: "Exhibitor prospectus + partnership matching.", status: "planned", requiredTier: "enterprise" },
-      { id: "reading-club", label: "Reading Club", iconName: "BookOpen", description: "Community reading challenges.", status: "live", requiredTier: "starter" },
     ],
   },
 ];
