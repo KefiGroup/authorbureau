@@ -431,6 +431,11 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
         </div>
       </motion.div>
 
+      {/* Market Snapshot — shown after analysis */}
+      {isAnalyzed && (marketData || marketLoading) && (
+        <MarketSnapshot data={marketData!} loading={marketLoading} />
+      )}
+
       {/* Expandable manuscript upload */}
       {showManuscriptUpload && (
         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
