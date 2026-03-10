@@ -59,18 +59,17 @@ The builder creates courses, media, coaching, speaking, and partnership assets:
 13. **Upsells / Downsells** — Conversion sequences in checkout flows (varies)
 14. **Content Licensing** — License your content to other platforms (varies)
 
-## Y · Yield — Yield Revenue Streams & Monetize (8 nodes)
+## Y · Yield — Yield Revenue Streams & Monetize (7 nodes)
 
 The builder creates premium, high-ticket offerings:
 
-1. **Retreats & Bootcamps** — Immersive multi-day experiences ($1,500-$5,000/person)
-2. **Certification** — Train-the-trainer certification programs ($2,500-$7,500)
-3. **Masterminds** — Exclusive small-group mastermind communities ($5,000-$25,000/year)
-4. **Special Editions** — Limited, signed, or premium book editions ($49-$199)
-5. **Book Sales (Events)** — Bulk book sales at events and conferences ($10-$25/book, volume)
-6. **Conventions / Conferences** — Author-hosted events ($200-$2,000/ticket)
-7. **Fund Raising** — Book-aligned fundraising campaigns and charity partnerships (varies)
-8. **Exhibitors / JV** — Exhibition booth partnerships and joint venture events (varies)
+1. **Keynotes** — 3-5 keynote topics with slide decks ($2,500-$15,000/engagement)
+2. **Retreats & Bootcamps** — Immersive multi-day experiences ($1,500-$5,000/person)
+3. **Certification** — Train-the-trainer certification programs ($2,500-$7,500)
+4. **Masterminds** — Exclusive small-group mastermind communities ($5,000-$25,000/year)
+5. **Conventions / Conferences** — Author-hosted events ($200-$2,000/ticket)
+6. **Fund Raising** — Book-aligned fundraising campaigns and charity partnerships (varies)
+7. **Exhibitors / JV** — Exhibition booth partnerships and joint venture events (varies)
 
 # YOUR THREE ROLES
 
