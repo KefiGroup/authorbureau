@@ -1,11 +1,13 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, RefreshCw, BookOpen, Globe, ImageIcon } from "lucide-react";
+import { Loader2, RefreshCw, BookOpen, Globe, ImageIcon, Search, Upload } from "lucide-react";
 
 interface DirectoryAuthor {
   user_id: string;
@@ -34,8 +36,12 @@ export default function AuthorsTab() {
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [search, setSearch] = useState("");
   const [cropEditing, setCropEditing] = useState<string | null>(null);
   const [cropValue, setCropValue] = useState<number>(0);
+  const [uploadingPhotoFor, setUploadingPhotoFor] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const fetchAuthors = useCallback(async () => {
@@ -52,13 +58,11 @@ export default function AuthorsTab() {
         .from("books")
         .select("author_id, author_name");
 
-      // Count books by author_id
       const bookCounts = new Map<string, number>();
       (books || []).forEach((b: any) => {
         bookCounts.set(b.author_id, (bookCounts.get(b.author_id) || 0) + 1);
       });
 
-      // Also count books by author_name for pen_name fallback
       const bookCountsByName = new Map<string, number>();
       (books || []).forEach((b: any) => {
         if (b.author_name) {
@@ -70,21 +74,16 @@ export default function AuthorsTab() {
         (profiles || []).map((p: any) => {
           const byId = bookCounts.get(p.user_id) || 0;
           const byName = p.pen_name ? (bookCountsByName.get(p.pen_name) || 0) : 0;
-          return {
-            ...p,
-            book_count: Math.max(byId, byName),
-          };
+          return { ...p, book_count: Math.max(byId, byName) };
         })
       );
-    } catch (err: any) {
+    } catch {
       toast({ title: "Failed to load authors", variant: "destructive" });
     }
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    fetchAuthors();
-  }, [fetchAuthors]);
+  useEffect(() => { fetchAuthors(); }, [fetchAuthors]);
 
   const updateStatus = async (userId: string, newStatus: string) => {
     setUpdatingId(userId);
@@ -93,9 +92,7 @@ export default function AuthorsTab() {
         .from("author_profiles")
         .update({ directory_status: newStatus })
         .eq("user_id", userId);
-
       if (error) throw error;
-
       setAuthors((prev) =>
         prev.map((a) => (a.user_id === userId ? { ...a, directory_status: newStatus } : a))
       );
@@ -106,7 +103,46 @@ export default function AuthorsTab() {
     setUpdatingId(null);
   };
 
-  const filtered = filterStatus === "all" ? authors : authors.filter((a) => a.directory_status === filterStatus);
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !uploadingPhotoFor) return;
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `admin-uploads/${uploadingPhotoFor}-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from("author-photos").upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from("author-photos").getPublicUrl(path);
+      const { error: updateError } = await supabase
+        .from("author_profiles")
+        .update({ photo_url: publicUrl })
+        .eq("user_id", uploadingPhotoFor);
+      if (updateError) throw updateError;
+      setAuthors((prev) =>
+        prev.map((a) => (a.user_id === uploadingPhotoFor ? { ...a, photo_url: publicUrl } : a))
+      );
+      toast({ title: "Photo updated successfully" });
+    } catch (err: any) {
+      toast({ title: err.message || "Upload failed", variant: "destructive" });
+    }
+    setUploading(false);
+    setUploadingPhotoFor(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const filtered = useMemo(() => {
+    let list = filterStatus === "all" ? authors : authors.filter((a) => a.directory_status === filterStatus);
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter(
+        (a) =>
+          (a.pen_name?.toLowerCase().includes(q) ?? false) ||
+          (a.bio_short?.toLowerCase().includes(q) ?? false) ||
+          (a.genres?.some((g) => g.toLowerCase().includes(q)) ?? false)
+      );
+    }
+    return list;
+  }, [authors, filterStatus, search]);
 
   const startCropEdit = (author: DirectoryAuthor) => {
     setCropEditing(author.user_id);
@@ -137,6 +173,29 @@ export default function AuthorsTab() {
 
   return (
     <div>
+      {/* Hidden file input for photo upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handlePhotoUpload}
+      />
+
+      {/* Photo upload dialog */}
+      <Dialog open={!!uploadingPhotoFor && !uploading} onOpenChange={() => setUploadingPhotoFor(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Upload Author Photo</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">Select a new profile photo for this author.</p>
+          <Button
+            onClick={() => fileInputRef.current?.click()}
+            className="w-full"
+          >
+            <Upload className="h-4 w-4 mr-2" /> Choose Photo
+          </Button>
+        </DialogContent>
+      </Dialog>
+
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="font-heading text-2xl font-bold">Author Directory Management</h2>
@@ -148,6 +207,17 @@ export default function AuthorsTab() {
           <RefreshCw className={`mr-1.5 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           Refresh
         </Button>
+      </div>
+
+      {/* Search bar */}
+      <div className="relative mb-4 max-w-md">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by name, bio, or genre..."
+          className="pl-9"
+        />
       </div>
 
       {/* Status filter pills */}
@@ -172,7 +242,9 @@ export default function AuthorsTab() {
           <Loader2 className="h-6 w-6 animate-spin text-secondary" />
         </div>
       ) : filtered.length === 0 ? (
-        <p className="text-center text-muted-foreground py-12">No authors found.</p>
+        <p className="text-center text-muted-foreground py-12">
+          {search ? `No authors match "${search}"` : "No authors found."}
+        </p>
       ) : (
         <div className="space-y-3">
           {filtered.map((author) => (
@@ -242,12 +314,23 @@ export default function AuthorsTab() {
                         <Globe className="h-3 w-3" /> View
                       </a>
                     )}
+                    <button
+                      onClick={() => {
+                        if (author.photo_url) startCropEdit(author);
+                        else {
+                          setUploadingPhotoFor(author.user_id);
+                        }
+                      }}
+                      className="flex items-center gap-1 text-secondary hover:underline"
+                    >
+                      <ImageIcon className="h-3 w-3" /> {author.photo_url ? "Adjust Photo" : "Upload Photo"}
+                    </button>
                     {author.photo_url && (
                       <button
-                        onClick={() => startCropEdit(author)}
+                        onClick={() => setUploadingPhotoFor(author.user_id)}
                         className="flex items-center gap-1 text-secondary hover:underline"
                       >
-                        <ImageIcon className="h-3 w-3" /> Adjust Photo
+                        <Upload className="h-3 w-3" /> Replace Photo
                       </button>
                     )}
                   </div>

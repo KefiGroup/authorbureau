@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -143,6 +142,9 @@ export default function SupportTab() {
     feedbackTypeFilter === "all" || f.type === feedbackTypeFilter
   );
 
+  const hasBugData = bugs.length > 0;
+  const hasFeedbackData = feedbackList.length > 0;
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -161,124 +163,151 @@ export default function SupportTab() {
 
         {/* Bug Reports */}
         <TabsContent value="bugs">
-          <div className="flex gap-2 mb-3">
-            <Select value={bugStatusFilter} onValueChange={setBugStatusFilter}>
-              <SelectTrigger className="w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="new">New</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="resolved">Resolved</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={bugPriorityFilter} onValueChange={setBugPriorityFilter}>
-              <SelectTrigger className="w-[140px]"><SelectValue placeholder="Priority" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Priority</SelectItem>
-                <SelectItem value="critical">Critical</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="low">Low</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Page</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Date</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredBugs.map(bug => (
-                <TableRow key={bug.id} className="cursor-pointer hover:bg-muted/50" onClick={() => { setSelectedBug(bug); setAdminNotes(bug.admin_notes || ""); }}>
-                  <TableCell className="text-sm">{bug.page_url}</TableCell>
-                  <TableCell className="text-sm max-w-[200px] truncate">{bug.description}</TableCell>
-                  <TableCell><Badge variant="outline" className={priorityColors[bug.priority]}>{bug.priority}</Badge></TableCell>
-                  <TableCell><Badge variant="outline" className={statusColors[bug.status]}>{bug.status}</Badge></TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{format(new Date(bug.created_at), "MMM d, yyyy")}</TableCell>
+          {hasBugData && (
+            <div className="flex gap-2 mb-3">
+              <Select value={bugStatusFilter} onValueChange={setBugStatusFilter}>
+                <SelectTrigger className="w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="new">New</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="resolved">Resolved</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={bugPriorityFilter} onValueChange={setBugPriorityFilter}>
+                <SelectTrigger className="w-[140px]"><SelectValue placeholder="Priority" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Priority</SelectItem>
+                  <SelectItem value="critical">Critical</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="low">Low</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {!hasBugData ? (
+            <div className="rounded-xl border border-dashed border-border bg-muted/30 p-12 text-center">
+              <Bug className="mx-auto h-10 w-10 text-muted-foreground/40 mb-3" />
+              <p className="font-medium text-muted-foreground">No bug reports yet</p>
+              <p className="text-sm text-muted-foreground/60 mt-1">Bug reports submitted via the Abby Help Assistant will appear here.</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Page</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Priority</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Date</TableHead>
                 </TableRow>
-              ))}
-              {filteredBugs.length === 0 && (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No bug reports found</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredBugs.map(bug => (
+                  <TableRow key={bug.id} className="cursor-pointer hover:bg-muted/50" onClick={() => { setSelectedBug(bug); setAdminNotes(bug.admin_notes || ""); }}>
+                    <TableCell className="text-sm">{bug.page_url}</TableCell>
+                    <TableCell className="text-sm max-w-[200px] truncate">{bug.description}</TableCell>
+                    <TableCell><Badge variant="outline" className={priorityColors[bug.priority]}>{bug.priority}</Badge></TableCell>
+                    <TableCell><Badge variant="outline" className={statusColors[bug.status]}>{bug.status}</Badge></TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{format(new Date(bug.created_at), "MMM d, yyyy")}</TableCell>
+                  </TableRow>
+                ))}
+                {filteredBugs.length === 0 && hasBugData && (
+                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No bug reports match the current filters</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
         </TabsContent>
 
         {/* Feedback */}
         <TabsContent value="feedback">
-          <div className="flex gap-2 mb-3">
-            <Select value={feedbackTypeFilter} onValueChange={setFeedbackTypeFilter}>
-              <SelectTrigger className="w-[160px]"><SelectValue placeholder="Type" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="feature_request">Feature Request</SelectItem>
-                <SelectItem value="improvement">Improvement</SelectItem>
-                <SelectItem value="general">General</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Type</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Importance</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Date</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredFeedback.map(fb => (
-                <TableRow key={fb.id} className="cursor-pointer hover:bg-muted/50" onClick={() => { setSelectedFeedback(fb); setAdminNotes(fb.admin_notes || ""); }}>
-                  <TableCell><Badge variant="outline" className={typeColors[fb.type]}>{fb.type.replace("_", " ")}</Badge></TableCell>
-                  <TableCell className="text-sm max-w-[200px] truncate">{fb.description}</TableCell>
-                  <TableCell><Badge variant="outline" className={importanceColors[fb.importance]}>{fb.importance.replace(/_/g, " ")}</Badge></TableCell>
-                  <TableCell><Badge variant="outline" className={statusColors[fb.status]}>{fb.status}</Badge></TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{format(new Date(fb.created_at), "MMM d, yyyy")}</TableCell>
+          {hasFeedbackData && (
+            <div className="flex gap-2 mb-3">
+              <Select value={feedbackTypeFilter} onValueChange={setFeedbackTypeFilter}>
+                <SelectTrigger className="w-[160px]"><SelectValue placeholder="Type" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="feature_request">Feature Request</SelectItem>
+                  <SelectItem value="improvement">Improvement</SelectItem>
+                  <SelectItem value="general">General</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {!hasFeedbackData ? (
+            <div className="rounded-xl border border-dashed border-border bg-muted/30 p-12 text-center">
+              <MessageSquare className="mx-auto h-10 w-10 text-muted-foreground/40 mb-3" />
+              <p className="font-medium text-muted-foreground">No feedback yet</p>
+              <p className="text-sm text-muted-foreground/60 mt-1">Feedback submitted by authors will appear here for review.</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Importance</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Date</TableHead>
                 </TableRow>
-              ))}
-              {filteredFeedback.length === 0 && (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No feedback found</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredFeedback.map(fb => (
+                  <TableRow key={fb.id} className="cursor-pointer hover:bg-muted/50" onClick={() => { setSelectedFeedback(fb); setAdminNotes(fb.admin_notes || ""); }}>
+                    <TableCell><Badge variant="outline" className={typeColors[fb.type]}>{fb.type.replace("_", " ")}</Badge></TableCell>
+                    <TableCell className="text-sm max-w-[200px] truncate">{fb.description}</TableCell>
+                    <TableCell><Badge variant="outline" className={importanceColors[fb.importance]}>{fb.importance.replace(/_/g, " ")}</Badge></TableCell>
+                    <TableCell><Badge variant="outline" className={statusColors[fb.status]}>{fb.status}</Badge></TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{format(new Date(fb.created_at), "MMM d, yyyy")}</TableCell>
+                  </TableRow>
+                ))}
+                {filteredFeedback.length === 0 && hasFeedbackData && (
+                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No feedback matches the current filter</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
         </TabsContent>
 
         {/* Chat Logs */}
         <TabsContent value="chats">
-          <div className="mb-3">
-            <div className="relative w-64">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search chats..." value={chatSearch} onChange={e => setChatSearch(e.target.value)} className="pl-8" />
+          {chatSessions.length > 0 && (
+            <div className="mb-3">
+              <div className="relative w-64">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input placeholder="Search chats..." value={chatSearch} onChange={e => setChatSearch(e.target.value)} className="pl-8" />
+              </div>
             </div>
-          </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Page</TableHead>
-                <TableHead>Messages</TableHead>
-                <TableHead>Date</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {chatSessions
-                .filter(c => !chatSearch || JSON.stringify(c.messages).toLowerCase().includes(chatSearch.toLowerCase()))
-                .map(chat => (
-                  <TableRow key={chat.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedChat(chat)}>
-                    <TableCell className="text-sm">{chat.page_url || "—"}</TableCell>
-                    <TableCell className="text-sm">{Array.isArray(chat.messages) ? chat.messages.length : 0} messages</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{format(new Date(chat.created_at), "MMM d, yyyy HH:mm")}</TableCell>
-                  </TableRow>
-                ))}
-              {chatSessions.length === 0 && (
-                <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-8">No chat sessions found</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
+          )}
+          {chatSessions.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border bg-muted/30 p-12 text-center">
+              <MessagesSquare className="mx-auto h-10 w-10 text-muted-foreground/40 mb-3" />
+              <p className="font-medium text-muted-foreground">No chat sessions yet</p>
+              <p className="text-sm text-muted-foreground/60 mt-1">Conversations with the Abby Help Assistant are automatically saved here.</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Page</TableHead>
+                  <TableHead>Messages</TableHead>
+                  <TableHead>Date</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {chatSessions
+                  .filter(c => !chatSearch || JSON.stringify(c.messages).toLowerCase().includes(chatSearch.toLowerCase()))
+                  .map(chat => (
+                    <TableRow key={chat.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedChat(chat)}>
+                      <TableCell className="text-sm">{chat.page_url || "—"}</TableCell>
+                      <TableCell className="text-sm">{Array.isArray(chat.messages) ? chat.messages.length : 0} messages</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{format(new Date(chat.created_at), "MMM d, yyyy HH:mm")}</TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+          )}
         </TabsContent>
       </Tabs>
 

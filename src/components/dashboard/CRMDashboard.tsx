@@ -316,9 +316,23 @@ export default function CRMDashboard() {
               loading={activitiesLoading}
             />
           ) : (
-            <div className="rounded-xl border border-dashed border-border bg-muted/30 p-8 text-center">
+            <div className="rounded-xl border border-dashed border-border bg-muted/30 p-8 text-center space-y-3">
               <ChevronRight className="mx-auto h-8 w-8 text-muted-foreground/40 mb-2" />
-              <p className="text-sm text-muted-foreground">Select a contact to view activity</p>
+              <p className="text-sm font-medium text-muted-foreground">Select a contact to view activity</p>
+              <div className="text-xs text-muted-foreground/70 space-y-1">
+                <p>{contacts.length} total contact{contacts.length !== 1 ? "s" : ""}</p>
+                {contacts.filter(c => {
+                  const weekAgo = Date.now() - 7 * 86400000;
+                  return new Date(c.created_at).getTime() > weekAgo;
+                }).length > 0 && (
+                  <p className="text-secondary font-medium">
+                    {contacts.filter(c => new Date(c.created_at).getTime() > Date.now() - 7 * 86400000).length} new this week
+                  </p>
+                )}
+                {allTags.length > 0 && (
+                  <p>{allTags.length} tag{allTags.length !== 1 ? "s" : ""} in use</p>
+                )}
+              </div>
             </div>
           )}
         </div>
