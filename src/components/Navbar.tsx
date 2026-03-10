@@ -91,7 +91,7 @@ export default function Navbar() {
                 Sign In
               </Link>
               <Button asChild variant="default" size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-none rounded-full">
-                <Link to="/auth">Get Featured</Link>
+                <Link to="/get-featured">Get Featured</Link>
               </Button>
             </>
           )}
