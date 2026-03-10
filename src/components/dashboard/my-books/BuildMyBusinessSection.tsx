@@ -22,6 +22,8 @@ export default function BuildMyBusinessSection({
     { label: "Y·Yield", total: 8, built: yieldBuilt, requiredTier: "enterprise" as const },
   ];
 
+  const totalBuilt = buildBuilt + bridgeBuilt + yieldBuilt;
+
   return (
     <div className="rounded-2xl bg-[#1A1A2E] p-6 lg:p-8 space-y-5">
       <div className="flex items-center gap-2">
@@ -48,7 +50,9 @@ export default function BuildMyBusinessSection({
               <p className="text-xs font-semibold text-white">{cat.label}</p>
               <p className="text-[11px] text-white/50">{cat.total} products</p>
               {unlocked ? (
-                <p className="text-[11px] text-[#0D9488]">✓ {cat.built} built</p>
+                <p className={`text-[11px] ${cat.built > 0 ? "text-[#0D9488]" : "text-white/40"}`}>
+                  ✓ {cat.built} built
+                </p>
               ) : (
                 <p className="text-[11px] text-white/40 flex items-center justify-center gap-1">
                   <Lock className="h-3 w-3" /> {cat.requiredTier.charAt(0).toUpperCase() + cat.requiredTier.slice(1)}
@@ -61,6 +65,7 @@ export default function BuildMyBusinessSection({
 
       <p className="text-xs text-white/50">
         For: {bookTitle} — {recommendedCount} products recommended by Abby
+        {totalBuilt > 0 && ` · ${totalBuilt} built so far`}
       </p>
 
       <Button

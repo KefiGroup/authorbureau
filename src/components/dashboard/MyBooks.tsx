@@ -67,6 +67,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
   const [manuscriptBooks, setManuscriptBooks] = useState<Set<string>>(new Set());
   const [showManuscriptUpload, setShowManuscriptUpload] = useState<string | null>(null);
   const [productCounts, setProductCounts] = useState<Record<string, number>>({});
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, { build: number; bridge: number; yield: number }>>({});
 
   const isSubscribed = isPremium || isAdmin;
 
@@ -95,6 +96,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
       setAnalyzedBooks(analyzed);
       setManuscriptBooks(manuscripts);
       setProductCounts(result.productCounts || {});
+      setCategoryCounts(result.categoryCounts || {});
     } catch (err) {
       console.error("Failed to fetch books:", err);
     }
@@ -522,20 +524,30 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
           </div>
 
           {/* 5. Build My Author Business Section */}
-          {isSubscribed && analyzedCount > 0 && (
-            <BuildMyBusinessSection
-              bookTitle={books.find(b => analyzedBooks.has(b.id))?.title || "Your Book"}
-              recommendedCount={12}
-              tier={tier}
-              buildBuilt={totalProductsBuilt}
-              bridgeBuilt={0}
-              yieldBuilt={0}
-              onBuild={() => {
-                const firstAnalyzed = books.find(b => analyzedBooks.has(b.id));
-                if (firstAnalyzed) navigate(`/dashboard/book/${firstAnalyzed.id}?tab=revenue-streams`);
-              }}
-            />
-          )}
+          {isSubscribed && analyzedCount > 0 && (() => {
+            // Aggregate category counts across all analyzed books
+            const analyzedBookList = books.filter(b => analyzedBooks.has(b.id));
+            const aggBuild = analyzedBookList.reduce((s, b) => s + (categoryCounts[b.id]?.build || 0), 0);
+            const aggBridge = analyzedBookList.reduce((s, b) => s + (categoryCounts[b.id]?.bridge || 0), 0);
+            const aggYield = analyzedBookList.reduce((s, b) => s + (categoryCounts[b.id]?.yield || 0), 0);
+            const bookLabel = analyzedBookList.length === 1
+              ? analyzedBookList[0].title
+              : `${analyzedBookList.length} Books`;
+            return (
+              <BuildMyBusinessSection
+                bookTitle={bookLabel}
+                recommendedCount={analyzedBookList.length * 12}
+                tier={tier}
+                buildBuilt={aggBuild}
+                bridgeBuilt={aggBridge}
+                yieldBuilt={aggYield}
+                onBuild={() => {
+                  const firstAnalyzed = analyzedBookList[0];
+                  if (firstAnalyzed) navigate(`/dashboard/book/${firstAnalyzed.id}?tab=revenue-streams`);
+                }}
+              />
+            );
+          })()}
         </>
       )}
     </div>
