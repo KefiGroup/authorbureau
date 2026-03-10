@@ -180,8 +180,8 @@ serve(async (req) => {
       });
     }
 
-    const userId = authResult.claims.sub as string;
-    const userEmail = (authResult.claims.email as string) || "unknown";
+    const userId = authResult.user.id as string;
+    const userEmail = (authResult.user.email as string) || "unknown";
 
     // Service role client for DB ops
     const supabase = createClient(supabaseUrl, serviceRoleKey);
