@@ -52,7 +52,9 @@ export default function SharedPublishStep({
       }
       onMarkEdited(stepId);
       setStepData(prev => ({ ...prev, published: true, publishedAt: new Date().toISOString() }));
-      toast({ title: `${builderLabel} published!`, description: "It's now live on your profile." });
+      toast({ title: `${builderLabel} published!`, description: "Redirecting to Review & Publish…" });
+      // Redirect to review-products after a short delay
+      setTimeout(() => onNavigate?.("review-products"), 800);
     } catch (err) {
       console.error(err);
       toast({ title: "Publish failed", variant: "destructive" });
