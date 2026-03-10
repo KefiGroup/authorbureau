@@ -64,8 +64,8 @@ const plans = [
     popular: true,
     features: [
       "Everything in Starter",
-      "All 11 B·Build AI builders",
-      "All 8 B·Bridge builders (Coaching, Speaking, Training)",
+      "All 7 B·Build AI builders",
+      "All 14 B·Bridge builders (Courses, Coaching, Audiobooks, Podcasts)",
       "Full microsite with unlimited sales pages",
       "Stripe Connect payment processing",
       "CRM & email automation",
