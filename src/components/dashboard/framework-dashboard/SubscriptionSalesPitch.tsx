@@ -73,8 +73,8 @@ const plans = [
       "Coaching booking system",
       "+ 5% platform fee on sales",
     ],
-    unlockedCategories: ["B·Build (11)", "B·Bridge (8)"],
-    builderCount: 19,
+    unlockedCategories: ["B·Build (7)", "B·Bridge (14)"],
+    builderCount: 21,
   },
   {
     id: "enterprise" as const,
