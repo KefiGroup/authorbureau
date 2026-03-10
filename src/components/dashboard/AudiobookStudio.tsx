@@ -479,11 +479,9 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
                       <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handlePlayChapter(i)}>
                         {playingIndex === i ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
                       </Button>
-                      <a href={ch.audioUrl} download={`${ch.title}.mp3`} target="_blank" rel="noopener">
-                        <Button size="icon" variant="ghost" className="h-8 w-8">
-                          <Download className="h-3.5 w-3.5" />
-                        </Button>
-                      </a>
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleDownloadChapter(ch)}>
+                        <Download className="h-3.5 w-3.5" />
+                      </Button>
                       {!isGenerating && (
                         <Button size="sm" variant="outline" className="shrink-0 text-xs text-amber-600 border-amber-500/30" onClick={() => handleRegenerateSingle(i)}>
                           Regenerate ($9)
