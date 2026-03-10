@@ -5,7 +5,14 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
   Loader2, BookOpen, Users, Calendar, TrendingUp, Share2, ArrowRight, MessageSquare,
+  CheckCircle2, Sparkles, BookHeart,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -32,25 +39,43 @@ export default function AuthorReadingClub({ onNavigate }: Props) {
   const [totalReaders, setTotalReaders] = useState(0);
   const [totalDiscussions, setTotalDiscussions] = useState(0);
 
+  // Feature request modal state
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [authorBooks, setAuthorBooks] = useState<Array<{ id: string; title: string; cover_image_url: string | null }>>([]);
+  const [selectedBookId, setSelectedBookId] = useState<string>("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [existingRequests, setExistingRequests] = useState<Set<string>>(new Set());
+
   useEffect(() => {
     if (!user) return;
     (async () => {
       try {
-        // Get author's books
-        const { data: authorBooks } = await supabase
+        const { data: books } = await supabase
           .from("books")
           .select("id, title, cover_image_url")
           .eq("author_id", user.id);
 
-        if (!authorBooks?.length) {
+        if (!books?.length) {
           setLoading(false);
           return;
         }
 
-        const bookIds = authorBooks.map((b) => b.id);
-        const bookMap = Object.fromEntries(authorBooks.map((b) => [b.id, b]));
+        setAuthorBooks(books);
+        const bookIds = books.map((b) => b.id);
+        const bookMap = Object.fromEntries(books.map((b) => [b.id, b]));
 
-        // Get featured entries for author's books
+        // Check existing feature requests
+        const { data: requests } = await (supabase as any)
+          .from("feature_requests")
+          .select("book_id")
+          .eq("author_id", user.id)
+          .eq("request_type", "reading_club");
+        if (requests) {
+          setExistingRequests(new Set(requests.map((r: any) => r.book_id)));
+        }
+
+        // Get featured entries
         const { data: featured } = await supabase
           .from("reading_club_featured_books")
           .select("*")
@@ -111,6 +136,28 @@ export default function AuthorReadingClub({ onNavigate }: Props) {
     })();
   }, [user, toast]);
 
+  const handleSubmitRequest = async () => {
+    if (!user || !selectedBookId) return;
+    setSubmitting(true);
+    try {
+      const { error } = await (supabase as any)
+        .from("feature_requests")
+        .insert({
+          author_id: user.id,
+          book_id: selectedBookId,
+          request_type: "reading_club",
+          status: "pending",
+        });
+      if (error) throw error;
+      setSubmitted(true);
+      setExistingRequests(prev => new Set([...prev, selectedBookId]));
+      toast({ title: "Request submitted! 📚", description: "Our team will review your book for the Reading Club." });
+    } catch (err) {
+      toast({ title: "Failed to submit", description: err instanceof Error ? err.message : "Please try again", variant: "destructive" });
+    }
+    setSubmitting(false);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -124,22 +171,117 @@ export default function AuthorReadingClub({ onNavigate }: Props) {
     return (
       <div className="max-w-3xl mx-auto py-16 text-center space-y-6">
         <div className="w-16 h-16 rounded-2xl bg-secondary/10 flex items-center justify-center mx-auto">
-          <BookOpen className="h-8 w-8 text-secondary" />
+          <BookHeart className="h-8 w-8 text-secondary" />
         </div>
         <h2 className="font-heading text-2xl font-bold">Your Books in the Reading Club</h2>
-        <p className="text-muted-foreground text-sm max-w-md mx-auto leading-relaxed">
-          Your books aren't in the Reading Club yet. The Reading Club helps readers discover and engage
-          with your books through 100-Day Challenges and community discussions.
+        <p className="text-muted-foreground text-sm max-w-lg mx-auto leading-relaxed">
+          The <strong>Authors Bureau Reading Club</strong> connects your book with a community of avid readers through
+          structured <strong>100-Day Reading Challenges</strong>. Featured books get dedicated challenges and community
+          discussions — driving reader engagement, reviews, and sales.
         </p>
+
+        {/* Benefits */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-lg mx-auto text-left">
+          {[
+            { icon: Users, label: "New Readers", desc: "Reach avid readers actively looking for their next book" },
+            { icon: TrendingUp, label: "Engagement", desc: "Daily reading accountability drives completion and reviews" },
+            { icon: Sparkles, label: "Social Proof", desc: "Challenge completions generate reviews and word-of-mouth" },
+          ].map((b) => (
+            <Card key={b.label} className="p-3">
+              <b.icon className="h-4 w-4 text-secondary mb-1" />
+              <p className="text-xs font-semibold">{b.label}</p>
+              <p className="text-[10px] text-muted-foreground">{b.desc}</p>
+            </Card>
+          ))}
+        </div>
+
         <Card className="max-w-md mx-auto p-6 border-secondary/20 bg-secondary/5 text-left">
           <h3 className="font-heading font-semibold text-sm mb-2">Want to get your book featured?</h3>
           <p className="text-xs text-muted-foreground mb-4">
-            Featured books get dedicated reading challenges and community discussions, driving reader engagement and discovery.
+            Submit a request and our team will review your book for inclusion in the next Reading Club season.
           </p>
-          <Button size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
+          <Button
+            size="sm"
+            className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
+            onClick={() => {
+              setSubmitted(false);
+              setSelectedBookId(authorBooks[0]?.id || "");
+              setShowRequestModal(true);
+            }}
+          >
             Request to Feature Your Book <ArrowRight className="h-3.5 w-3.5 ml-1" />
           </Button>
         </Card>
+
+        {/* Feature Request Modal */}
+        <Dialog open={showRequestModal} onOpenChange={setShowRequestModal}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="font-heading">
+                {submitted ? "Request Submitted! 🎉" : "Request to Feature Your Book"}
+              </DialogTitle>
+              <DialogDescription>
+                {submitted
+                  ? "Our team will review your book and get back to you. You'll be notified when your book is approved for the Reading Club."
+                  : "Select which book you'd like to submit for the Reading Club. Our admin team reviews all requests."}
+              </DialogDescription>
+            </DialogHeader>
+
+            {submitted ? (
+              <div className="flex flex-col items-center py-4 gap-3">
+                <CheckCircle2 className="h-12 w-12 text-accent" />
+                <p className="text-sm text-muted-foreground text-center">
+                  Your request is now <strong>Pending Review</strong>. We typically review within 3-5 business days.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4 py-2">
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">Select a Book</label>
+                  <Select value={selectedBookId} onValueChange={setSelectedBookId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a book..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {authorBooks.map((book) => (
+                        <SelectItem
+                          key={book.id}
+                          value={book.id}
+                          disabled={existingRequests.has(book.id)}
+                        >
+                          {book.title} {existingRequests.has(book.id) ? "(Already Requested)" : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {existingRequests.has(selectedBookId) && (
+                  <p className="text-xs text-muted-foreground">
+                    You've already submitted a request for this book. Our team is reviewing it.
+                  </p>
+                )}
+              </div>
+            )}
+
+            <DialogFooter className="gap-2">
+              {submitted ? (
+                <Button variant="outline" onClick={() => setShowRequestModal(false)}>Close</Button>
+              ) : (
+                <>
+                  <Button variant="outline" onClick={() => setShowRequestModal(false)}>Cancel</Button>
+                  <Button
+                    className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                    onClick={handleSubmitRequest}
+                    disabled={!selectedBookId || submitting || existingRequests.has(selectedBookId)}
+                  >
+                    {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                    Submit Request
+                  </Button>
+                </>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
