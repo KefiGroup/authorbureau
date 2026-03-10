@@ -65,7 +65,10 @@ export default function AbbyHelpChatbot() {
   });
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
   const [mode, setMode] = useState<ConversationMode>("help");
+  const MAX_INPUT_LENGTH = 2000;
+  const MAX_SESSION_MESSAGES = 50;
 
   // Bug report state
   const [bugStep, setBugStep] = useState<BugStep>("page");
@@ -117,21 +120,43 @@ export default function AbbyHelpChatbot() {
     addMessage("assistant", greeting);
   };
 
+  const getAuthToken = useCallback(async (): Promise<string | null> => {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data } = await supabase.auth.getSession();
+    return data?.session?.access_token || null;
+  }, []);
+
   // Stream AI response
   const streamResponse = useCallback(async (userMessages: { role: string; content: string }[]) => {
+    if (sessionExpired) return;
     setIsStreaming(true);
     streamingRef.current = "";
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/abby-help-chat`;
 
     try {
+      const token = await getAuthToken();
+      if (!token) {
+        setSessionExpired(true);
+        addMessage("assistant", "Your session has expired. Please sign in again to continue chatting.");
+        setIsStreaming(false);
+        return;
+      }
+
       const resp = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ messages: userMessages }),
       });
+
+      if (resp.status === 401) {
+        setSessionExpired(true);
+        addMessage("assistant", "Your session has expired. Please sign in again to continue chatting.");
+        setIsStreaming(false);
+        return;
+      }
 
       if (!resp.ok || !resp.body) {
         const errData = await resp.json().catch(() => ({}));
@@ -193,8 +218,15 @@ export default function AbbyHelpChatbot() {
   }, [addMessage]);
 
   const sendMessage = useCallback(() => {
-    const text = input.trim();
-    if (!text || isStreaming) return;
+    const text = input.trim().slice(0, MAX_INPUT_LENGTH);
+    if (!text || isStreaming || sessionExpired) return;
+
+    // Session message cap
+    if (messages.length >= MAX_SESSION_MESSAGES) {
+      addMessage("assistant", "We've reached the conversation limit. Please start a new conversation to continue.");
+      return;
+    }
+
     setInput("");
     addMessage("user", text);
 
@@ -220,19 +252,24 @@ export default function AbbyHelpChatbot() {
       .map(m => ({ role: m.role, content: m.content }));
 
     streamResponse(chatHistory);
-  }, [input, isStreaming, messages, mode, location.pathname, addMessage, streamResponse]);
+  }, [input, isStreaming, sessionExpired, messages, mode, location.pathname, addMessage, streamResponse]);
 
   // Submit actions for structured flows
   const submitAction = async (action: string, data: any) => {
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/abby-help-chat`;
     try {
+      const token = await getAuthToken();
+      if (!token) {
+        setSessionExpired(true);
+        return;
+      }
       await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ action, data: { ...data, userId: user?.id } }),
+        body: JSON.stringify({ action, data }),
       });
     } catch { /* silent fail, message already shown */ }
   };
@@ -286,6 +323,9 @@ export default function AbbyHelpChatbot() {
     if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
     return `${Math.floor(diff / 3600)}h ago`;
   };
+
+  // Auth gate: only render for authenticated users
+  if (!user) return null;
 
   return (
     <>
@@ -462,12 +502,19 @@ export default function AbbyHelpChatbot() {
 
           {/* Input area */}
           <div className="flex items-end gap-2 px-3 py-2.5 border-t border-[#E5E7EB] bg-white shrink-0">
+            {sessionExpired ? (
+              <p className="text-sm text-destructive py-2 text-center w-full">Your session has expired. Please sign in again.</p>
+            ) : messages.length >= MAX_SESSION_MESSAGES ? (
+              <p className="text-sm text-muted-foreground py-2 text-center w-full">Conversation limit reached. Start a new conversation.</p>
+            ) : (
+            <>
             <textarea
               ref={inputRef}
               value={input}
-              onChange={e => setInput(e.target.value)}
+              onChange={e => setInput(e.target.value.slice(0, MAX_INPUT_LENGTH))}
               onKeyDown={handleKeyDown}
               placeholder="Ask Abby anything..."
+              maxLength={MAX_INPUT_LENGTH}
               rows={1}
               className="flex-1 resize-none text-sm outline-none placeholder:text-gray-400 max-h-20 min-h-[36px] py-2"
             />
@@ -479,6 +526,8 @@ export default function AbbyHelpChatbot() {
             >
               <ArrowUp className="text-white" size={16} />
             </button>
+            </>
+            )}
           </div>
         </div>
       )}

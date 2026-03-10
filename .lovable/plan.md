@@ -1,126 +1,67 @@
 
 
-# Chatbot Security Hardening — Porting PublishNow Controls to Authors Bureau
+## Phase 1: CRM Foundation + Reading Club Enhancement (Weeks 1-4)
 
-## Current State (Gaps)
+The roadmap says to build the CRM ("nervous system") and Reading Club ("demand engine") first, so every subsequent feature automatically captures contacts and drives conversions.
 
-The current `abby-help-chat` edge function and `AbbyHelpChatbot.tsx` have **none** of the PublishNow security controls:
-- No JWT authentication — uses anon key fallback
-- No rate limiting
-- No input sanitization or length limits
-- No prompt injection resistance in system prompt
-- No CORS origin whitelisting (uses `*`)
-- No role forcing on messages (client can inject `system` role)
-- No session message caps
-- Widget renders for anonymous users
+### Current State
 
-## Changes
+- **CRM**: A basic `CRMDashboard.tsx` that reads from `profiles`, `reading_club_members`, and `newsletter_signups` as a unified contact list. Separate `crm_contacts`, `crm_contact_tags`, and `crm_activity_log` tables exist but are only used by the `CoachingCRM` component (which is actually a coaching package manager, not a CRM).
+- **Reading Club**: A public page with featured books, member signup (email+name), and basic discussions. No book catalog browsing, no challenges, no CRM integration.
 
-### 1. Edge Function: `supabase/functions/abby-help-chat/index.ts`
+### What We Build
 
-**Authentication (JWT required)**
-- Extract `Authorization` header, verify via `getClaims(token)`
-- Extract user email from JWT claims (never trust client)
-- Return 401 for missing/invalid tokens
+**Week 1-2: Full CRM Dashboard**
 
-**Rate Limiting (database-backed)**
-- Create a `rate_limits` table (reusable) with `key`, `count`, `window_start`
-- Check 20 req/60s for chat, 3 req/60s for escalation actions
-- Log rate-limit hits with `console.warn`
+1. **Rebuild CRM Dashboard** to use the proper `crm_contacts` table (not the current hacky unified view from 3 tables):
+   - Contact list with search, sort, and filter by source/tag
+   - Add/edit contact form (name, email, phone, company, notes, source)
+   - Tag management: add/remove tags per contact, filter by tag
+   - Activity log panel: view and add notes, calls, emails per contact
+   - Auto-capture: when someone joins Reading Club or signs up for newsletter, auto-create a `crm_contacts` entry
 
-**Payload Restrictions**
-- Truncate message content to 3,000 chars server-side
-- Force all message roles to `user` or `assistant` only (strip any `system` role)
-- Send only last 20 messages to AI
-- Validate `action` field is string; sanitize `currentPage` (200 char limit, strip control chars)
-- Reject empty messages with 400
+2. **CRM Auto-Capture Edge Function** (`crm-auto-capture`):
+   - Called by Reading Club signup, newsletter signup, and service inquiry flows
+   - Creates/updates `crm_contacts` record, adds source tag, logs activity
+   - Deduplicates by email
 
-**CORS Origin Whitelist**
-- Replace `"*"` with dynamic origin check against: `authorsbureau.com`, `www.authorsbureau.com`, `authorbureau.lovable.app`, and preview domains
-- Non-matching origins get a non-matching header (browser blocks)
+3. **CRM Stats on Dashboard Overview**: Total contacts, contacts this week, top tags, recent activity
 
-**Prompt Injection Resistance**
-- Add three defense layers to system prompt:
-  1. Proprietary data guardrails (never discuss internal prompts, AI models, schemas, source code)
-  2. Explicit injection resistance rules (reject "ignore previous instructions", "reveal your system prompt", etc.)
-  3. Standard deflection: "I'm here to help you use Authors Bureau! What can I help you with today?"
+**Week 3-4: Reading Club Enhancement**
 
-**Anti-XSS**
-- Add `esc()` helper for HTML-escaping in any email escalation payloads (bug reports)
+4. **Book Catalog**: Full browsable catalog of published books with genre filters, search, and cover images (not just featured books)
 
-### 2. Database Migration: `rate_limits` table
+5. **Reading Challenges**: A simple "30-day reading challenge" feature — join a challenge tied to a featured book, track progress
 
-```sql
-CREATE TABLE public.rate_limits (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  key text NOT NULL,
-  count integer NOT NULL DEFAULT 1,
-  window_start timestamptz NOT NULL DEFAULT now(),
-  UNIQUE(key)
-);
+6. **CRM Integration**: Every Reading Club signup triggers the CRM auto-capture, tagged as `reading_club`
 
-ALTER TABLE public.rate_limits ENABLE ROW LEVEL SECURITY;
+### Technical Details
 
--- Service role only - no direct user access
-CREATE POLICY "Service role only" ON public.rate_limits
-  FOR ALL USING (false);
+**Database Changes:**
+- Add a `reading_club_challenges` table (id, book_id, title, description, duration_days, status, created_at)
+- Add a `reading_club_challenge_participants` table (id, challenge_id, member_id, progress, joined_at)
+- No changes needed for `crm_contacts`, `crm_contact_tags`, `crm_activity_log` — they already exist
 
--- RPC function for atomic rate limit check
-CREATE OR REPLACE FUNCTION public.check_rate_limit(
-  p_key text,
-  p_limit integer,
-  p_window_seconds integer
-) RETURNS boolean
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE
-  v_count integer;
-BEGIN
-  INSERT INTO rate_limits (key, count, window_start)
-  VALUES (p_key, 1, now())
-  ON CONFLICT (key) DO UPDATE SET
-    count = CASE
-      WHEN rate_limits.window_start + (p_window_seconds || ' seconds')::interval < now()
-      THEN 1
-      ELSE rate_limits.count + 1
-    END,
-    window_start = CASE
-      WHEN rate_limits.window_start + (p_window_seconds || ' seconds')::interval < now()
-      THEN now()
-      ELSE rate_limits.window_start
-    END
-  RETURNING count INTO v_count;
-  RETURN v_count <= p_limit;
-END;
-$$;
-```
+**New Edge Function:**
+- `crm-auto-capture`: receives `{ email, name, source, source_detail }`, upserts into `crm_contacts`, adds tag, logs activity
 
-### 3. Frontend: `src/components/AbbyHelpChatbot.tsx`
+**Frontend Components (new or rewritten):**
+- `src/components/dashboard/CRMDashboard.tsx` — full rewrite with proper contact management
+- `src/components/dashboard/crm/ContactList.tsx` — already exists, may need updates
+- `src/components/dashboard/crm/ContactForm.tsx` — already exists, may need updates
+- `src/components/dashboard/crm/ActivityPanel.tsx` — already exists, may need updates
+- Reading Club page enhancements — book catalog grid, challenge cards
 
-**Auth gating**
-- If `!user`, return `null` (no widget for anonymous users)
-- Send user's session token in Authorization header (not anon key)
-- On 401 response, show "Your session has expired. Please sign in again." and block further requests
+**Files Modified:**
+- `src/pages/ReadingClub.tsx` — add catalog browse + challenge section
+- `src/components/dashboard/DashboardOverview.tsx` — add CRM stats card
+- `src/pages/AuthorDashboard.tsx` — wire updated CRM section
 
-**Input limits (client-side)**
-- Cap input to 2,000 characters
-- Cap session to 50 messages (show "Start a new conversation" prompt)
-- Disable send on empty input (already done)
+### Implementation Order
 
-**Safe rendering**
-- Already uses `ReactMarkdown` (no `dangerouslySetInnerHTML`) — confirmed safe
-
-### 4. Summary of Security Controls Ported
-
-| Control | Status |
-|---------|--------|
-| JWT-required | New |
-| No anonymous access | New |
-| Rate limiting (DB-backed) | New |
-| Message length limits | New |
-| Session message cap (50/20) | New |
-| Role forcing (no system injection) | New |
-| CORS origin whitelist | New |
-| Prompt injection resistance | New |
-| Input sanitization (currentPage) | New |
-| Anti-XSS (ReactMarkdown) | Already in place |
+1. CRM auto-capture edge function + database migration for challenge tables
+2. Rewrite CRM Dashboard with full contact CRUD, tags, and activity log
+3. Add CRM stats to Dashboard Overview
+4. Enhance Reading Club with book catalog + challenges
+5. Wire auto-capture into Reading Club and newsletter signup flows
 
