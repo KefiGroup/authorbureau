@@ -233,7 +233,8 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
   };
 
   // Stats
-  const liveCount = books.filter(b => b.published_at).length;
+  // BUG-021: Only count books with published_at as live microsites
+  const liveCount = books.filter(b => !!b.published_at).length;
   const analyzedCount = analyzedBooks.size;
   const totalProductsBuilt = Object.values(productCounts).reduce((s, c) => s + c, 0);
   const totalRecommended = analyzedCount * 12; // estimated, ideally from Abby

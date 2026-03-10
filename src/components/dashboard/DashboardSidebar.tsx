@@ -172,12 +172,12 @@ export default function DashboardSidebar({
           </button>
         );
 
-        if (item.tooltip) {
+        if (item.tooltip || collapsed) {
           return (
             <Tooltip key={`${item.id}-${idx}`}>
               <TooltipTrigger asChild>{btn}</TooltipTrigger>
               <TooltipContent side="right" className="max-w-[220px] text-xs">
-                {item.tooltip}
+                {collapsed ? item.label : item.tooltip}
               </TooltipContent>
             </Tooltip>
           );
