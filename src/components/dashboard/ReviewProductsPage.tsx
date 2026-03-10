@@ -53,6 +53,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
   const [publishing, setPublishing] = useState<string | null>(null);
   const [confirmProduct, setConfirmProduct] = useState<DraftProduct | null>(null);
   const [previewProduct, setPreviewProduct] = useState<DraftProduct | null>(null);
+  const [exportProduct, setExportProduct] = useState<DraftProduct | null>(null);
 
   useEffect(() => {
     if (!user) return;
