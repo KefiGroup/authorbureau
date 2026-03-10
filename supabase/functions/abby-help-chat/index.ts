@@ -244,10 +244,28 @@ serve(async (req) => {
 
     // ── Handle save chat session ──────────────────────────────────
     if (action === "save_session") {
+      const sessionAllowed = await checkRateLimit(supabase, `session:${rateLimitKey}`, 3, 60);
+      if (!sessionAllowed) {
+        console.warn(`Rate limit hit (save_session): ${rateLimitKey}`);
+        return new Response(JSON.stringify({ error: "Too many submissions. Please wait a moment." }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const data = body.data || {};
+      // Sanitize stored messages
+      const rawSessionMsgs = Array.isArray(data.messages) ? data.messages : [];
+      const sanitizedSessionMsgs = rawSessionMsgs
+        .filter((m: any) => m && typeof m === "object")
+        .slice(0, 50)
+        .map((m: any) => ({
+          role: m.role === "assistant" ? "assistant" : "user",
+          content: typeof m.content === "string" ? m.content.slice(0, 3000) : "",
+        }))
+        .filter((m: any) => m.content.length > 0);
       const { error } = await supabase.from("chat_sessions").insert({
         user_id: userId,
-        messages: data.messages || [],
+        messages: sanitizedSessionMsgs,
         page_url: sanitizePage(data.pageUrl),
       });
       if (error) throw error;
