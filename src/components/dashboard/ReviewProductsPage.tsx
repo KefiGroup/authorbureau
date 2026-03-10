@@ -6,8 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import {
   CheckCircle2, Eye, Edit, Loader2, Package, GraduationCap,
-  BookOpen, Headphones, Video, Podcast, FileText, AlertTriangle,
-  Download, Printer,
+  BookOpen, Headphones, Video, Podcast, FileText, Download,
 } from "lucide-react";
 import HomeStudyExportModal from "./HomeStudyExportModal";
 import { toast } from "@/hooks/use-toast";
@@ -23,7 +22,6 @@ interface DraftProduct {
   description?: string;
   price?: number;
   createdAt: string;
-  meta?: string;
 }
 
 const typeIcons: Record<string, React.ElementType> = {
@@ -50,6 +48,8 @@ const typeLabels: Record<string, string> = {
   coaching_packages: "Coaching Package",
 };
 
+const TABLES = ["courses", "home_study_courses", "audiobooks", "podcasts", "social_media_content", "email_flows", "coaching_packages"] as const;
+
 interface Props {
   onNavigate?: (section: string) => void;
 }
@@ -71,21 +71,23 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
   const fetchDrafts = async () => {
     if (!user) return;
     setLoading(true);
-    const drafts: DraftProduct[] = [];
 
     try {
-      const tables = ["courses", "home_study_courses", "webinars", "audiobooks", "podcasts", "workbooks", "social_media_content", "email_flows", "coaching_packages"] as const;
+      // Fetch all tables in parallel for performance (BUG-058)
+      const results = await Promise.all(
+        TABLES.map(async (table) => {
+          const { data } = await supabase
+            .from(table)
+            .select("id, title, book_id, created_at, status, description")
+            .eq("author_id", user.id)
+            .in("status", ["draft", "ready_for_review"]);
+          return { table, data: data || [] };
+        })
+      );
 
-      for (const table of tables) {
-        const { data } = await supabase
-          .from(table)
-          .select("id, title, book_id, created_at, status, description")
-          .eq("author_id", user.id)
-          .in("status", ["draft", "ready_for_review"]);
-
-        if (!data) continue;
-
-        for (const item of (data || []) as any[]) {
+      const drafts: DraftProduct[] = [];
+      for (const { table, data } of results) {
+        for (const item of data as any[]) {
           drafts.push({
             id: item.id,
             title: item.title,
@@ -100,8 +102,8 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
         }
       }
 
-      // Get book titles
-      const bookIds = [...new Set(drafts.map(d => d.bookId))];
+      // Get book titles in a single query
+      const bookIds = [...new Set(drafts.map(d => d.bookId).filter(Boolean))];
       if (bookIds.length > 0) {
         const { data: books } = await supabase
           .from("books")
@@ -111,11 +113,12 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
         (books || []).forEach((b: any) => { titleMap[b.id] = b.title; });
         drafts.forEach(d => { d.bookTitle = titleMap[d.bookId] || "Unknown Book"; });
       }
+
+      setProducts(drafts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
     } catch (err) {
       console.error("Failed to fetch drafts:", err);
     }
 
-    setProducts(drafts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
     setLoading(false);
   };
 
@@ -123,6 +126,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
     setPublishing(product.id);
     setConfirmProduct(null);
     try {
+      // Update status to "published" (the only way a product becomes "live") — BUG-059
       const { error } = await supabase
         .from(product.table as any)
         .update({ status: "published" })
@@ -203,7 +207,6 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
                     </div>
                     <p className="text-[11px] text-muted-foreground">
                       {product.type} · {product.bookTitle}
-                      {product.price ? ` · $${product.price}` : ""}
                     </p>
                     {product.description && (
                       <p className="text-xs text-muted-foreground line-clamp-2">{product.description}</p>
@@ -273,22 +276,19 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
             {previewProduct?.description && (
               <p className="text-sm text-muted-foreground">{previewProduct.description}</p>
             )}
-            {previewProduct?.price && (
-              <p className="text-sm font-semibold">Suggested price: ${previewProduct.price}</p>
-            )}
             <p className="text-xs text-muted-foreground italic">
               Full preview with detailed content is available in the product editor.
             </p>
           </div>
         </DialogContent>
       </Dialog>
+
       {/* Home Study Export Modal */}
       <HomeStudyExportModal
         open={!!exportProduct}
         onOpenChange={() => setExportProduct(null)}
         product={exportProduct}
         fetchContent={exportProduct ? async () => {
-          // Fetch the builder draft for this home study course
           if (!user) return null;
           const { data: asset } = await supabase
             .from("generated_assets")
@@ -297,7 +297,6 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
             .eq("book_id", exportProduct.bookId)
             .eq("asset_type", "builder_draft_home-study")
             .maybeSingle();
-
           if (!asset?.content) return null;
           try {
             const parsed = JSON.parse(asset.content);
@@ -326,17 +325,18 @@ export function useReviewProductCount() {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      let total = 0;
-      const tables = ["courses", "home_study_courses", "webinars", "audiobooks", "podcasts", "workbooks", "social_media_content", "email_flows", "coaching_packages"] as const;
-      for (const table of tables) {
-        const { count: c } = await supabase
-          .from(table)
-          .select("id", { count: "exact", head: true })
-          .eq("author_id", user.id)
-          .in("status", ["draft", "ready_for_review"]);
-        total += c || 0;
-      }
-      setCount(total);
+      // Parallel count queries for performance (BUG-058)
+      const results = await Promise.all(
+        TABLES.map(async (table) => {
+          const { count: c } = await supabase
+            .from(table)
+            .select("id", { count: "exact", head: true })
+            .eq("author_id", user.id)
+            .in("status", ["draft", "ready_for_review"]);
+          return c || 0;
+        })
+      );
+      setCount(results.reduce((a, b) => a + b, 0));
     })();
   }, [user]);
 
