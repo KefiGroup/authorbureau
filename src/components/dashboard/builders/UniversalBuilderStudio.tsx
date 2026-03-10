@@ -9,6 +9,7 @@ import AbbyNarrativeLoading from "./AbbyNarrativeLoading";
 import AbbyProposal from "./AbbyProposal";
 import CrossBuilderNotifications from "./CrossBuilderNotifications";
 import CrossBuilderPushSummary from "./CrossBuilderPushSummary";
+import BuilderUpgradeGate from "./BuilderUpgradeGate";
 import { BUILDER_SYSTEM_PROMPTS } from "./builderSystemPrompts";
 import { useBuilderGeneration } from "@/hooks/useBuilderGeneration";
 import { Button } from "@/components/ui/button";
@@ -384,43 +385,17 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
 
   // ─── SUBSCRIPTION GATE ─────────────────────────────────────────────
   if (!hasAccess) {
-    const reqTier = nodeConfig.requiredTier as "starter" | "pro" | "enterprise";
-    const tierInfo = TIERS[reqTier];
     return (
-      <div className="max-w-2xl mx-auto py-16 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-secondary/10 flex items-center justify-center mx-auto mb-6">
-          <Lock className="h-8 w-8 text-secondary" />
-        </div>
-        <h2 className="font-heading text-2xl font-bold mb-3">{nodeConfig.label}</h2>
-        <p className="text-muted-foreground text-sm mb-4">
-          This builder is included in your <strong>{tierInfo.label}</strong> plan.
-          Upgrade to unlock it and start generating revenue from {nodeConfig.label.toLowerCase()}.
-        </p>
-        {plan && (
-          <Card className="p-4 border-secondary/20 bg-secondary/5 mb-6 text-left max-w-md mx-auto">
-            <p className="text-xs font-semibold text-secondary mb-1">📊 Revenue Projection from Your Plan</p>
-            <p className="text-sm text-muted-foreground">
-              Your business plan projects this product can generate revenue within {plan.packages[reqTier]?.timeline || "3-6 months"}.
-            </p>
-          </Card>
-        )}
-        <Button
-          onClick={async () => {
-            try {
-              const { data, error } = await supabase.functions.invoke("create-checkout", {
-                body: { priceId: tierInfo.price_id },
-              });
-              if (error) throw error;
-              if (data?.url) window.open(data.url, "_blank");
-            } catch (err) {
-              console.error("Checkout error:", err);
-            }
-          }}
-          className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold px-8"
-        >
-          Upgrade to {tierInfo.label} — ${tierInfo.monthlyPrice}/month
-        </Button>
-      </div>
+      <BuilderUpgradeGate
+        nodeConfig={nodeConfig}
+        currentTier={tier}
+        planData={plan ? {
+          revenueProjection: plan.packages?.[nodeConfig.requiredTier as keyof typeof plan.packages]?.timeline
+            ? `This product can generate revenue within ${plan.packages[nodeConfig.requiredTier as keyof typeof plan.packages]?.timeline || "3-6 months"}.`
+            : undefined,
+        } : null}
+        onNavigate={onNavigate}
+      />
     );
   }
 

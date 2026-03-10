@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ManuscriptUpload from "@/components/dashboard/ManuscriptUpload";
 import ABBYFrameworkVisual from "./ABBYFrameworkVisual";
 import ROIBanner from "@/components/dashboard/ROIBanner";
+import FreeTrialTeaser from "@/components/dashboard/builders/FreeTrialTeaser";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import { supabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
@@ -445,6 +446,17 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
           authorId={authorId}
           tier={tier}
           onNavigateBuilder={(builderId) => onNavigateTab("revenue-streams")}
+        />
+      )}
+
+      {/* Free-to-Paid Conversion Teaser — only for free-tier analyzed users */}
+      {isAnalyzed && tier === "free" && (
+        <FreeTrialTeaser
+          bookTitle={book.title}
+          bookId={book.id}
+          currentTier={tier}
+          hasBusinessPlan={planSections.length > 0 || !!plan}
+          onNavigate={(section) => onNavigateTab(section)}
         />
       )}
 
