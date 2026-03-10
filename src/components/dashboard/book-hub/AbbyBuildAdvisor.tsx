@@ -3,6 +3,7 @@ import { Sparkles, ChevronDown, ChevronUp, ArrowRight, MessageCircle, Lightbulb 
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useMarketResearch } from "@/hooks/useMarketResearch";
+import { ADVISOR_CONTENT, getStudioPath, type AbbyCategory } from "@/config/abbyFrameworkConfig";
 
 interface Props {
   categoryId: string;
@@ -10,124 +11,6 @@ interface Props {
   bookTitle?: string;
   bookGenre?: string;
 }
-
-interface AdvisorTip {
-  heading: string;
-  intro: string;
-  recommendations: {
-    label: string;
-    reason: string;
-    priceRange?: string;
-    difficulty: "Easy" | "Medium" | "Advanced";
-    nodeId?: string;
-  }[];
-  closingNote: string;
-}
-
-const advisorContent: Record<string, AdvisorTip> = {
-  "revenue-streams": {
-    heading: "Where should you start building?",
-    intro: "Based on the ABBY Framework, here's my recommended build order — start with the lowest-effort, highest-impact products first:",
-    recommendations: [
-      {
-        label: "Workbook",
-        reason: "Your fastest win. AI generates it directly from your manuscript — exercises, reflection prompts, and action plans. Most authors finish in under 30 minutes.",
-        priceRange: "$4.99 – $9.99",
-        difficulty: "Easy",
-        nodeId: "workbooks",
-      },
-      {
-        label: "Home Study Course",
-        reason: "A structured self-paced program with daily schedules. Great lead magnet or entry-level product.",
-        priceRange: "$27 – $47",
-        difficulty: "Medium",
-        nodeId: "home-study",
-      },
-      {
-        label: "Book Sales",
-        reason: "QR code order pages and direct sales funnels. Quick to set up, immediate revenue from your existing book.",
-        priceRange: "$15 – $30/book",
-        difficulty: "Easy",
-        nodeId: "book-sales-events",
-      },
-      {
-        label: "Special Editions",
-        reason: "Signed copies, bundles, and limited editions command premium prices from your most loyal readers.",
-        priceRange: "$30 – $75",
-        difficulty: "Easy",
-        nodeId: "special-editions",
-      },
-      {
-        label: "Social Media (90-day Calendar)",
-        reason: "AI generates a full content calendar from your book. Start building your audience while creating digital products.",
-        difficulty: "Easy",
-        nodeId: "social-media",
-      },
-    ],
-    closingNote: "Start with Workbook + Book Sales for quick wins, then add Home Study Course and Social Media to build momentum.",
-  },
-  "marketing-channels": {
-    heading: "Which channels should you activate first?",
-    intro: "Bridge products connect your book to a wider audience. Here's the priority order:",
-    recommendations: [
-      {
-        label: "Audiobook",
-        reason: "AI-narrated from your manuscript. No recording studio needed. Expands your reach to listeners who prefer audio.",
-        priceRange: "$9.99 – $14.99",
-        difficulty: "Easy",
-        nodeId: "audiobook",
-      },
-      {
-        label: "Online Course",
-        reason: "Your flagship digital product. 8–12 modules generated from your book's frameworks. Best for building recurring revenue.",
-        priceRange: "$47 – $97",
-        difficulty: "Medium",
-        nodeId: "courses",
-      },
-      {
-        label: "Webinars",
-        reason: "AI generates scripts, slide decks, and registration pages. Great for selling coaching and courses.",
-        priceRange: "$47 – $197",
-        difficulty: "Medium",
-        nodeId: "webinars",
-      },
-      {
-        label: "1-on-1 Coaching",
-        reason: "Premium service with the highest margins. Use your book's frameworks as session outlines.",
-        priceRange: "$150 – $500/session",
-        difficulty: "Easy",
-        nodeId: "coaching-1on1",
-      },
-      {
-        label: "Monthly Memberships",
-        reason: "3-tier membership system for predictable recurring revenue from your most engaged readers.",
-        priceRange: "$27 – $97/mo",
-        difficulty: "Medium",
-        nodeId: "memberships",
-      },
-    ],
-    closingNote: "Start with Audiobook + Online Course to build momentum, then add Webinars and Coaching for higher-ticket revenue.",
-  },
-  "authority-builders": {
-    heading: "When should you pursue premium opportunities?",
-    intro: "These are your highest-value plays — but they work best after you've built a foundation with digital products and an audience:",
-    recommendations: [
-      {
-        label: "Conventions & Conferences",
-        reason: "Apply as a speaker to build credibility. AI generates your submission materials and speaker profile.",
-        difficulty: "Medium",
-        nodeId: "conventions",
-      },
-      {
-        label: "Fund Raising Events",
-        reason: "Leverage your book for cause-driven events. Works especially well for non-fiction authors with a mission.",
-        difficulty: "Advanced",
-        nodeId: "fundraising",
-      },
-    ],
-    closingNote: "Focus here after you have at least 2–3 digital products live and an active email list of 500+ subscribers.",
-  },
-};
 
 const difficultyColors: Record<string, string> = {
   Easy: "bg-green-500/15 text-green-700",
@@ -138,29 +21,11 @@ const difficultyColors: Record<string, string> = {
 export default function AbbyBuildAdvisor({ categoryId, bookId, bookTitle, bookGenre }: Props) {
   const [expanded, setExpanded] = useState(true);
   const navigate = useNavigate();
-  const content = advisorContent[categoryId];
+  const content = ADVISOR_CONTENT[categoryId as AbbyCategory];
   const { data: marketData } = useMarketResearch(bookId, bookTitle, bookGenre);
   if (!content) return null;
 
   const titleParam = bookTitle ? `&bookTitle=${encodeURIComponent(bookTitle)}` : "";
-
-  const getStudioPath = (nodeId: string): string | null => {
-    const map: Record<string, string> = {
-      "social-media": `/dashboard?section=social-media&bookId=${bookId}${titleParam}`,
-      workbooks: `/dashboard?section=workbooks&bookId=${bookId}${titleParam}`,
-      webinars: `/dashboard?section=webinars&bookId=${bookId}${titleParam}`,
-      audiobook: `/dashboard?section=audiobook-studio&bookId=${bookId}${titleParam}`,
-      "coaching-1on1": `/dashboard?section=coaching&bookId=${bookId}${titleParam}`,
-      keynotes: `/dashboard?section=speaking&bookId=${bookId}${titleParam}`,
-      courses: `/dashboard?section=courses&bookId=${bookId}${titleParam}`,
-      "home-study": `/dashboard?section=home-study&bookId=${bookId}${titleParam}`,
-      "email-marketing": `/dashboard?section=email-marketing&bookId=${bookId}${titleParam}`,
-      "podcast-guest": `/dashboard?section=podcast&bookId=${bookId}${titleParam}`,
-      memberships: `/dashboard?section=memberships&bookId=${bookId}${titleParam}`,
-      "group-coaching": `/dashboard?section=group-coaching&bookId=${bookId}${titleParam}`,
-    };
-    return map[nodeId] || null;
-  };
 
   return (
     <div className="rounded-xl border border-secondary/30 bg-gradient-to-br from-secondary/5 to-secondary/10 overflow-hidden">
@@ -188,18 +53,14 @@ export default function AbbyBuildAdvisor({ categoryId, bookId, bookTitle, bookGe
 
           <div className="space-y-3">
             {content.recommendations.map((rec, i) => {
-              const studioPath = rec.nodeId ? getStudioPath(rec.nodeId) : null;
-              // Build market insight tag if data available
+              const studioPath = rec.nodeId ? getStudioPath(rec.nodeId, bookId, titleParam) : null;
               const marketInsight = marketData?.amazonBestsellers?.pricingAnalysis && rec.priceRange
                 ? `${rec.label}s in "${marketData.amazonCategory}" are priced ${marketData.amazonBestsellers.pricingAnalysis.lowest}–${marketData.amazonBestsellers.pricingAnalysis.highest}. Median: ${marketData.amazonBestsellers.pricingAnalysis.median}.`
                 : null;
               const recommendedPrice = marketData?.amazonBestsellers?.pricingAnalysis?.median;
 
               return (
-                <div
-                  key={i}
-                  className="flex items-start gap-3 rounded-lg border border-border/60 bg-card p-3"
-                >
+                <div key={i} className="flex items-start gap-3 rounded-lg border border-border/60 bg-card p-3">
                   <div className="w-6 h-6 rounded-full bg-secondary/20 flex items-center justify-center shrink-0 mt-0.5">
                     <span className="text-xs font-black text-secondary">{i + 1}</span>
                   </div>
@@ -221,7 +82,6 @@ export default function AbbyBuildAdvisor({ categoryId, bookId, bookTitle, bookGe
                     </div>
                     <p className="text-xs text-muted-foreground leading-relaxed mt-1">{rec.reason}</p>
 
-                    {/* Inline Market Insight Tag */}
                     {marketInsight && (
                       <div className="flex items-start gap-1.5 mt-2 rounded-md bg-amber-500/10 border border-amber-500/20 px-2.5 py-1.5">
                         <Lightbulb className="h-3 w-3 text-amber-600 shrink-0 mt-0.5" />
@@ -263,7 +123,6 @@ export default function AbbyBuildAdvisor({ categoryId, bookId, bookTitle, bookGe
               <MessageCircle className="h-3.5 w-3.5" />
               Ask Abby for personalized advice
             </Button>
-            
           </div>
         </div>
       )}
