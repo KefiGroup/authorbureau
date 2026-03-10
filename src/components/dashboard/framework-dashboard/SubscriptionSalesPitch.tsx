@@ -83,7 +83,7 @@ const plans = [
     priceNum: 499,
     period: "/mo",
     tagline: "Build an empire.",
-    description: "Complete monetization empire — all 29 streams",
+    description: "Complete monetization empire — all 28 streams",
     popular: false,
     features: [
       "Everything in Pro",
