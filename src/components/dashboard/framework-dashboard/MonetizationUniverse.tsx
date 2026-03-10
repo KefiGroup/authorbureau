@@ -89,7 +89,7 @@ interface Props {
 
 const INITIAL_VISIBLE = 3;
 
-export default function MonetizationUniverse({ activatedCount, builtProducts, recommendedByAbby, subscribedTier }: Props) {
+export default function MonetizationUniverse({ activatedCount, builtProducts, recommendedByAbby, subscribedTier, onNavigateToStream }: Props) {
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const totalStreams = STREAMS.reduce((s, g) => s + g.nodes.length, 0);
