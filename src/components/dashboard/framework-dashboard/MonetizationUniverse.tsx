@@ -84,6 +84,7 @@ interface Props {
   builtProducts: string[];
   recommendedByAbby: string[];
   subscribedTier: string;
+  onNavigateToStream?: (streamLabel: string) => void;
 }
 
 const INITIAL_VISIBLE = 3;
