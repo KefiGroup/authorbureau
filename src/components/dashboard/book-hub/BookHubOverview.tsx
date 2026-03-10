@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ManuscriptUpload from "@/components/dashboard/ManuscriptUpload";
 import ABBYFrameworkVisual from "./ABBYFrameworkVisual";
 import ROIBanner from "@/components/dashboard/ROIBanner";
+import FreeTrialTeaser from "@/components/dashboard/builders/FreeTrialTeaser";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import { supabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
