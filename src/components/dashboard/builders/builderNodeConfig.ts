@@ -277,11 +277,11 @@ const webinarBuilder: BuilderNodeConfig = {
 const membershipBuilder: BuilderNodeConfig = {
   id: "membership",
   label: "Monthly Membership",
-  category: "build",
+  category: "bridge",
   requiredTier: "pro",
   dbTable: "courses",
   icon: "CreditCard",
-  color: "text-emerald-500",
+  color: "text-violet-500",
   customRenderer: "membership",
   abbyGreeting: "Recurring revenue through memberships is the holy grail. Let's design a membership program your readers will love.",
   abbyPublishMessage: "Your membership program is designed! Connect payment processing and start enrolling founding members.",
