@@ -18,7 +18,7 @@ interface Props {
 
 type SubscriptionLoading = { loading: boolean };
 
-export default function DashboardHeader({ user, isPremium, isAdmin, tier, onSignOut, onToggleSidebar }: Props) {
+export default function DashboardHeader({ user, isPremium, isAdmin, tier, subscription, onSignOut, onToggleSidebar }: Props) {
   const [penName, setPenName] = useState<string | null>(null);
 
   useEffect(() => {
