@@ -152,7 +152,7 @@ export default function BusinessFramework({ onNavigate, isPremium, focusStep }: 
                 {(() => {
                   const groups: { name: string; nodes: Node[] }[] = [];
                   activeCatData.nodes.forEach((node) => {
-                    const groupName = node.group || "Other";
+                    const groupName = node.subCategory || "Other";
                     const existing = groups.find((g) => g.name === groupName);
                     if (existing) existing.nodes.push(node);
                     else groups.push({ name: groupName, nodes: [node] });
