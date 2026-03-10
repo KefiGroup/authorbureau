@@ -1,14 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import {
-  BookOpen, Mic, Podcast, GraduationCap, FileText, Video,
-  Share2, CreditCard, Users, Trophy, Building2,
-  Bookmark, Calendar, Link2, TrendingUp, Megaphone,
-  Headphones, BookMarked, Presentation, UserCheck,
-  HandCoins, Handshake, BarChart3, ShieldCheck,
-  ArrowRight, Sparkles, Loader2, Plus, DollarSign, Radio, Award,
-} from "lucide-react";
+import { ArrowRight, Sparkles, Loader2, Plus } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
@@ -16,85 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import SmartProductCard, { type ProductCardState, BASELINE_REVENUE } from "@/components/dashboard/SmartProductCard";
 import { toast } from "@/hooks/use-toast";
+import { ABBY_CATEGORIES, type AbbyCategory, type AbbyNode } from "@/config/abbyFrameworkConfig";
 
-interface Node {
-  id: string;
-  label: string;
-  icon: typeof BookOpen;
-  description: string;
-  status: "available" | "coming-soon" | "planned";
-  tierRequired?: string;
-  subCategory?: string;
-  sequence?: number;
-  navigateTo?: string; // dashboard section or URL to navigate to
-}
-
-interface CategoryConfig {
-  id: string;
-  label: string;
-  subtitle: string;
-  color: string;
-  bgColor: string;
-  gradientFrom: string;
-  gradientTo: string;
-  headerIcon: typeof DollarSign;
-  nodes: Node[];
-}
-
-const categoryConfigs: Record<string, CategoryConfig> = {
-  "revenue-streams": {
-    id: "revenue-streams", label: "B · Build Authority", subtitle: "Digital assets & authority products (7 nodes)",
-    color: "text-emerald-600", bgColor: "bg-emerald-500/10",
-    gradientFrom: "from-emerald-500", gradientTo: "to-emerald-600",
-    headerIcon: DollarSign,
-    nodes: [
-      { id: "workbooks", label: "Workbook", icon: FileText, description: "Companion workbook PDFs with exercises and templates", status: "available", subCategory: "Digital Products", sequence: 1, navigateTo: "workbooks" },
-      { id: "home-study", label: "Home Study Course", icon: BookMarked, description: "Self-paced study guide with daily exercises", status: "available", subCategory: "Digital Products", sequence: 2, navigateTo: "home-study" },
-      { id: "book-sales-events", label: "Book Sales", icon: BookOpen, description: "QR code order pages & direct sales", status: "available", subCategory: "Digital Products", sequence: 3, navigateTo: "book-sales-setup" },
-      { id: "special-editions", label: "Special Editions", icon: Sparkles, description: "Signed copies, bundles, limited editions", status: "available", subCategory: "Digital Products", sequence: 4, navigateTo: "special-editions-setup" },
-      { id: "social-media", label: "Social Media", icon: Share2, description: "90-day AI content calendar from your book", status: "available", subCategory: "In-House", sequence: 5, navigateTo: "social-media" },
-      { id: "email-marketing", label: "Email Marketing", icon: Megaphone, description: "AI-driven nurture sequences from book content", status: "available", subCategory: "In-House", sequence: 6, navigateTo: "email-marketing" },
-      { id: "microsite", label: "Website / Microsite", icon: BookOpen, description: "Your book's landing page (built-in)", status: "available", subCategory: "In-House", sequence: 7, navigateTo: "microsite-manager" },
-    ],
-  },
-  "marketing-channels": {
-    id: "marketing-channels", label: "B · Bridge Channels", subtitle: "Marketing channels & audience connections (14 nodes)",
-    color: "text-violet-600", bgColor: "bg-violet-500/10",
-    gradientFrom: "from-violet-500", gradientTo: "to-violet-600",
-    headerIcon: Radio,
-    nodes: [
-      { id: "audiobook", label: "Audiobook", icon: Headphones, description: "AI-narrated audiobook from your manuscript", status: "available", subCategory: "Pro Products", sequence: 1, tierRequired: "Pro", navigateTo: "audiobook-studio" },
-      { id: "courses", label: "Online Courses", icon: GraduationCap, description: "8-12 module structured courses from your book content", status: "available", subCategory: "Pro Products", sequence: 2, tierRequired: "Pro", navigateTo: "courses" },
-      { id: "podcast-guest", label: "Podcasts", icon: Podcast, description: "Podcast series from your book content", status: "available", subCategory: "Pro Products", sequence: 3, tierRequired: "Pro", navigateTo: "podcast" },
-      { id: "webinars", label: "Webinars", icon: Video, description: "Webinar scripts + slide decks + registration pages", status: "available", subCategory: "Pro Products", sequence: 4, tierRequired: "Pro", navigateTo: "webinars" },
-      { id: "memberships", label: "Monthly Memberships", icon: CreditCard, description: "3-tier membership system with recurring revenue", status: "available", subCategory: "Pro Products", sequence: 5, tierRequired: "Pro", navigateTo: "memberships" },
-      { id: "coaching-1on1", label: "1-on-1 Coaching", icon: UserCheck, description: "6/12-session coaching programs with session outlines", status: "available", subCategory: "Coaching", sequence: 6, tierRequired: "Pro", navigateTo: "coaching" },
-      { id: "group-coaching", label: "Group Coaching", icon: Users, description: "8-week group coaching curriculum", status: "available", subCategory: "Coaching", sequence: 7, tierRequired: "Pro", navigateTo: "group-coaching" },
-      { id: "big-ticket", label: "Big Ticket Consulting", icon: Trophy, description: "Premium consulting packages ($5K–$25K)", status: "planned", subCategory: "Coaching", sequence: 8, tierRequired: "Pro", navigateTo: "big-ticket" },
-      { id: "upsells", label: "Upsells / Downsells", icon: TrendingUp, description: "Conversion sequences and funnel optimization", status: "planned", subCategory: "Growth", sequence: 9, tierRequired: "Pro" },
-      { id: "in-house-speaker", label: "In-House Speaker", icon: Presentation, description: "Corporate speaker profile + booking", status: "planned", subCategory: "Speaking", sequence: 10, tierRequired: "Pro" },
-      { id: "training", label: "Training Programs", icon: Building2, description: "Half/full-day corporate training programs", status: "planned", subCategory: "Speaking", sequence: 11, tierRequired: "Enterprise" },
-      { id: "affiliates", label: "Affiliates", icon: Link2, description: "Affiliate tracking links + commission structures", status: "planned", subCategory: "Growth", sequence: 12, tierRequired: "Pro" },
-      { id: "lead-magnet", label: "Lead Magnet", icon: FileText, description: "Free PDF downloads to grow your email list", status: "available", subCategory: "Growth", sequence: 13 },
-      { id: "revenue-sharing", label: "Revenue Sharing", icon: Handshake, description: "Partnership matching + contract templates", status: "planned", subCategory: "Growth", sequence: 14, tierRequired: "Pro" },
-    ],
-  },
-  "authority-builders": {
-    id: "authority-builders", label: "Y · Yield Revenue", subtitle: "Premium revenue streams & monetization (7 nodes)",
-    color: "text-sky-600", bgColor: "bg-sky-500/10",
-    gradientFrom: "from-sky-500", gradientTo: "to-sky-600",
-    headerIcon: Award,
-    nodes: [
-      { id: "keynotes", label: "Keynotes", icon: Mic, description: "3-5 keynote topics with slide decks", status: "available", subCategory: "Corporate", sequence: 1, navigateTo: "speaking" },
-      { id: "masterminds", label: "Masterminds", icon: BarChart3, description: "Quarterly mastermind group programs", status: "planned", tierRequired: "Enterprise", subCategory: "Corporate", sequence: 2 },
-      { id: "retreats", label: "Retreats & Bootcamps", icon: Bookmark, description: "2-3 day retreat programs", status: "planned", tierRequired: "Enterprise", subCategory: "Corporate", sequence: 3 },
-      { id: "certification", label: "Certification", icon: ShieldCheck, description: "Curriculum + exam + digital certificates", status: "planned", tierRequired: "Enterprise", subCategory: "High Yield", sequence: 4 },
-      { id: "conventions", label: "Conventions / Conferences", icon: Calendar, description: "Conference submission generator", status: "planned", tierRequired: "Enterprise", subCategory: "Events", sequence: 5 },
-      { id: "fundraising", label: "Fund Raising", icon: HandCoins, description: "Fundraising event templates", status: "planned", tierRequired: "Enterprise", subCategory: "Events", sequence: 6 },
-      { id: "exhibitors", label: "Exhibitors / JV", icon: Megaphone, description: "Exhibitor prospectus + partnership matching", status: "planned", tierRequired: "Enterprise", subCategory: "Events", sequence: 7 },
-    ],
-  },
-};
+// Re-use Node type from config
+type Node = AbbyNode;
 
 interface BookSummary {
   id: string;
@@ -132,7 +50,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
   const [recommendations, setRecommendations] = useState<AbbyRecommendation[]>([]);
   const [builtProducts, setBuiltProducts] = useState<Set<string>>(new Set());
   const [publishedProducts, setPublishedProducts] = useState<Set<string>>(new Set());
-  const category = categoryConfigs[categoryId];
+  const category = ABBY_CATEGORIES[categoryId as AbbyCategory];
 
   useEffect(() => {
     async function fetchData() {

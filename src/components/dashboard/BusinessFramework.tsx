@@ -1,114 +1,22 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  BookOpen, Mic, Podcast, GraduationCap, FileText, Video,
-  Share2, CreditCard, Users, Trophy, Building2,
-  Bookmark, Calendar, Link2, TrendingUp, Megaphone,
-  Headphones, BookMarked, Globe, Presentation, UserCheck,
-  HandCoins, Handshake, BarChart3, ShieldCheck,
-  ArrowRight, Sparkles, X, Lock, DollarSign, Radio, Award,
+  BookOpen, Globe, UserCheck, ArrowRight, X, Lock,
 } from "lucide-react";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
 import ABBYFrameworkVisual from "@/components/dashboard/book-hub/ABBYFrameworkVisual";
+import { ABBY_CATEGORIES, ABBY_CATEGORY_LIST, type AbbyCategoryConfig, type AbbyNode, type AbbyCategory } from "@/config/abbyFrameworkConfig";
+
+// Alias for backward compat in this file
+type Node = AbbyNode;
+type Category = AbbyCategoryConfig;
+const categories = ABBY_CATEGORY_LIST;
 
 interface Props {
   onNavigate: (section: DashboardSection | string) => void;
   isPremium: boolean;
   focusStep?: string;
 }
-
-interface Node {
-  id: string;
-  label: string;
-  icon: typeof BookOpen;
-  section?: DashboardSection;
-  description: string;
-  status: "available" | "coming-soon" | "planned";
-  group?: string;
-}
-
-interface Category {
-  id: string;
-  label: string;
-  subtitle: string;
-  color: string;
-  bgColor: string;
-  ringColor: string;
-  gradientFrom: string;
-  gradientTo: string;
-  headerIcon: typeof DollarSign;
-  nodes: Node[];
-}
-
-const categories: Category[] = [
-  {
-    id: "revenue-streams",
-    label: "B · Build Authority",
-    subtitle: "Create Digital Products (7 nodes)",
-    color: "text-emerald-600",
-    bgColor: "bg-emerald-500/10",
-    ringColor: "ring-emerald-500/30",
-    gradientFrom: "from-emerald-500",
-    gradientTo: "to-emerald-600",
-    headerIcon: DollarSign,
-    nodes: [
-      { id: "workbooks", label: "Workbook", icon: FileText, section: "workbooks", description: "Companion workbook PDFs with exercises and templates.", status: "available", group: "Digital Products" },
-      { id: "home-study", label: "Home Study Course", icon: BookMarked, description: "Self-paced study guide with daily exercises.", status: "available", group: "Digital Products" },
-      { id: "book-sales-events", label: "Book Sales", icon: BookOpen, description: "QR code order pages & direct sales.", status: "available", group: "Digital Products" },
-      { id: "special-editions", label: "Special Editions", icon: Sparkles, description: "Signed copies, bundles, limited editions.", status: "available", group: "Digital Products" },
-      { id: "social-media", label: "Social Media", icon: Share2, section: "social-media", description: "90-day AI content calendar from your book.", status: "available", group: "In-House" },
-      { id: "email-marketing", label: "Email Marketing", icon: Megaphone, description: "AI-driven nurture sequences from book content.", status: "available", group: "In-House" },
-      { id: "microsite", label: "Website / Microsite", icon: BookOpen, description: "Your book's landing page (built-in).", status: "available", group: "In-House" },
-    ],
-  },
-  {
-    id: "marketing-channels",
-    label: "B · Bridge Channels",
-    subtitle: "Grow Your Audience (14 nodes)",
-    color: "text-violet-600",
-    bgColor: "bg-violet-500/10",
-    ringColor: "ring-violet-500/30",
-    gradientFrom: "from-violet-500",
-    gradientTo: "to-violet-600",
-    headerIcon: Radio,
-    nodes: [
-      { id: "audiobook", label: "Audiobook", icon: Headphones, description: "AI-narrated audiobook from your manuscript.", status: "available", group: "Pro Products" },
-      { id: "courses", label: "Online Courses", icon: GraduationCap, section: "courses", description: "8-12 module structured courses from your book content.", status: "available", group: "Pro Products" },
-      { id: "podcast-guest", label: "Podcasts", icon: Podcast, section: "podcast", description: "Podcast series from your book content.", status: "available", group: "Pro Products" },
-      { id: "webinars", label: "Webinars", icon: Video, section: "webinars", description: "Webinar scripts + slide decks + registration pages.", status: "available", group: "Pro Products" },
-      { id: "memberships", label: "Monthly Memberships", icon: CreditCard, section: "memberships", description: "3-tier membership system with recurring revenue.", status: "available", group: "Pro Products" },
-      { id: "coaching-1on1", label: "1-on-1 Coaching", icon: UserCheck, section: "coaching", description: "6/12-session coaching programs.", status: "available", group: "Coaching" },
-      { id: "group-coaching", label: "Group Coaching", icon: Users, section: "group-coaching", description: "8-week group coaching curriculum.", status: "available", group: "Coaching" },
-      { id: "big-ticket", label: "Big Ticket Consulting", icon: Trophy, section: "big-ticket", description: "Premium consulting packages ($5K–$25K).", status: "planned", group: "Coaching" },
-      { id: "upsells", label: "Upsells / Downsells", icon: TrendingUp, description: "Conversion sequences and funnel optimization.", status: "planned", group: "Growth" },
-      { id: "in-house-speaker", label: "In-House Speaker", icon: Presentation, description: "Corporate speaker profile + booking.", status: "planned", group: "Speaking" },
-      { id: "training", label: "Training Programs", icon: Building2, description: "Half/full-day corporate training programs.", status: "planned", group: "Speaking" },
-      { id: "affiliates", label: "Affiliates", icon: Link2, description: "Affiliate tracking links + commission structures.", status: "planned", group: "Growth" },
-      { id: "lead-magnet", label: "Lead Magnet", icon: FileText, description: "Free PDF downloads to grow your email list.", status: "available", group: "Growth" },
-      { id: "revenue-sharing", label: "Revenue Sharing", icon: Handshake, description: "Partnership matching + contract templates.", status: "planned", group: "Growth" },
-    ],
-  },
-  {
-    id: "authority-builders",
-    label: "Y · Yield Revenue",
-    subtitle: "High-Ticket & Premium Offers (7 nodes)",
-    color: "text-sky-600",
-    bgColor: "bg-sky-500/10",
-    ringColor: "ring-sky-500/30",
-    gradientFrom: "from-sky-500",
-    gradientTo: "to-sky-600",
-    headerIcon: Award,
-    nodes: [
-      { id: "keynotes", label: "Keynotes", icon: Mic, section: "speaking", description: "3-5 keynote topics with slide decks.", status: "available" },
-      { id: "masterminds", label: "Masterminds", icon: BarChart3, description: "Quarterly mastermind group programs.", status: "planned" },
-      { id: "retreats", label: "Retreats & Bootcamps", icon: Bookmark, description: "2-3 day retreat programs.", status: "planned" },
-      { id: "certification", label: "Certification", icon: ShieldCheck, description: "Curriculum + exam + digital certificates.", status: "planned" },
-      { id: "conventions", label: "Conventions / Conferences", icon: Calendar, description: "Conference submission generator.", status: "planned" },
-      { id: "fundraising", label: "Fund Raising", icon: HandCoins, description: "Fundraising event templates.", status: "planned" },
-      { id: "exhibitors", label: "Exhibitors / JV", icon: Megaphone, description: "Exhibitor prospectus + partnership matching.", status: "planned" },
-    ],
-  },
-];
 
 const statusStyles = {
   available: { badge: "Available", className: "bg-accent/15 text-accent border-accent/30" },
@@ -244,7 +152,7 @@ export default function BusinessFramework({ onNavigate, isPremium, focusStep }: 
                 {(() => {
                   const groups: { name: string; nodes: Node[] }[] = [];
                   activeCatData.nodes.forEach((node) => {
-                    const groupName = node.group || "Other";
+                    const groupName = node.subCategory || "Other";
                     const existing = groups.find((g) => g.name === groupName);
                     if (existing) existing.nodes.push(node);
                     else groups.push({ name: groupName, nodes: [node] });
