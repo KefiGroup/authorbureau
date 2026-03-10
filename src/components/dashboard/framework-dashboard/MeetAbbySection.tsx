@@ -84,7 +84,7 @@ export default function MeetAbbySection({ hasPlan, planSummary, hasBook, onStart
           </h2>
 
           <p className="text-sm md:text-base text-muted-foreground leading-relaxed max-w-lg">
-            Your microsite is your storefront. But what will you sell? Abby analyzes your book and creates a personalized business plan with up to <strong className="text-foreground">27 revenue streams</strong> — 
+            Your microsite is your storefront. But what will you sell? Abby analyzes your book and creates a personalized business plan with up to <strong className="text-foreground">29 revenue streams</strong> — 
             branded products, pricing recommendations, and revenue projections tailored to your expertise.
           </p>
 
