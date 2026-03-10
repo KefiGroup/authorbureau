@@ -318,6 +318,7 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
       await new Promise(r => setTimeout(r, 800));
     }
   };
+  const doneCount = chapters.filter(c => c.status === "done").length;
   const progressPercent = chapters.length > 0 ? Math.round((doneCount / chapters.length) * 100) : 0;
   const hasManuscript = manuscript.length > 0;
 
