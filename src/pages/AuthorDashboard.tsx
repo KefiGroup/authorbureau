@@ -353,23 +353,33 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
 
   return (
     <div className="flex min-h-screen bg-background">
-      <DashboardSidebar
-        activeSection={activeSection}
-        onSectionChange={setActiveSection}
-        collapsed={sidebarCollapsed}
-        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-        isPremium={isPremium || isAdmin}
-        isAdmin={isAdmin}
-        tier={tier}
-        hasBooks={hasBooks}
-        hasAnalysis={hasAnalysis}
-        hasMicrosite={hasMicrosite}
-        stripeConnected={stripeConnected}
-        pendingReviewCount={pendingReviewCount}
-        buildUnlocked={stats.products.totalBuilt}
-        bridgeUnlocked={Object.entries(stats.products.perTable).reduce((sum, [, v]) => sum + v.total, 0)}
-        yieldUnlocked={stats.products.totalBuilt}
-      />
+      {/* Mobile sidebar overlay */}
+      {!sidebarCollapsed && (
+        <div className="fixed inset-0 z-40 bg-foreground/30 lg:hidden" onClick={() => setSidebarCollapsed(true)} />
+      )}
+      <div className={`
+        fixed inset-y-0 left-0 z-50 lg:static lg:z-auto
+        transition-transform duration-200 lg:translate-x-0
+        ${sidebarCollapsed ? "-translate-x-full" : "translate-x-0"}
+      `}>
+        <DashboardSidebar
+          activeSection={activeSection}
+          onSectionChange={(s) => { setActiveSection(s); if (window.innerWidth < 1024) setSidebarCollapsed(true); }}
+          collapsed={false}
+          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          isPremium={isPremium || isAdmin}
+          isAdmin={isAdmin}
+          tier={tier}
+          hasBooks={hasBooks}
+          hasAnalysis={hasAnalysis}
+          hasMicrosite={hasMicrosite}
+          stripeConnected={stripeConnected}
+          pendingReviewCount={pendingReviewCount}
+          buildUnlocked={stats.products.totalBuilt}
+          bridgeUnlocked={Object.entries(stats.products.perTable).reduce((sum, [, v]) => sum + v.total, 0)}
+          yieldUnlocked={stats.products.totalBuilt}
+        />
+      </div>
       <div className="flex flex-1 flex-col min-w-0">
         <DashboardHeader
           user={user}

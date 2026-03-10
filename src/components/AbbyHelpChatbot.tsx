@@ -375,6 +375,7 @@ export default function AbbyHelpChatbot() {
       {/* Chat panel */}
       {isOpen && (
         <div
+          onClick={(e) => e.stopPropagation()}
           className={cn(
             "fixed z-[9999] flex flex-col bg-white overflow-hidden",
             "animate-in slide-in-from-bottom-4 duration-300",

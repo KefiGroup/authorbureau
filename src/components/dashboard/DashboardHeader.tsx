@@ -110,11 +110,24 @@ export default function DashboardHeader({ user, isPremium, isAdmin, tier, subscr
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onSignOut} className="cursor-pointer text-destructive">
+            <DropdownMenuItem onClick={() => setShowLogoutConfirm(true)} className="cursor-pointer text-destructive">
               <LogOut className="h-4 w-4 mr-2" /> Sign Out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Sign out?</AlertDialogTitle>
+              <AlertDialogDescription>Are you sure you want to sign out of your account?</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={onSignOut}>Sign Out</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </header>
   );
