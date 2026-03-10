@@ -67,6 +67,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
   const [manuscriptBooks, setManuscriptBooks] = useState<Set<string>>(new Set());
   const [showManuscriptUpload, setShowManuscriptUpload] = useState<string | null>(null);
   const [productCounts, setProductCounts] = useState<Record<string, number>>({});
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, { build: number; bridge: number; yield: number }>>({});
 
   const isSubscribed = isPremium || isAdmin;
 
