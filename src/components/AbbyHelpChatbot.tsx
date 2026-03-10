@@ -258,13 +258,18 @@ export default function AbbyHelpChatbot() {
   const submitAction = async (action: string, data: any) => {
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/abby-help-chat`;
     try {
+      const token = await getAuthToken();
+      if (!token) {
+        setSessionExpired(true);
+        return;
+      }
       await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ action, data: { ...data, userId: user?.id } }),
+        body: JSON.stringify({ action, data }),
       });
     } catch { /* silent fail, message already shown */ }
   };
