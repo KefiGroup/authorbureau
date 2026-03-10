@@ -351,7 +351,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
               const hasManuscript = manuscriptBooks.has(book.id);
               const cta = getPrimaryCTA(book);
               const CTAIcon = cta.icon;
-              const builtCount = productCounts[book.id] || 0;
+              const builtCount = getBookProductCount(book.id);
               const isBestseller = book.badges?.some(b => b.toLowerCase().includes("bestseller"));
 
               return (
