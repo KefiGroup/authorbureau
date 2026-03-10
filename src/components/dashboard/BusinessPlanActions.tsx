@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, Loader2, Check, Crown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { asBlob } from "html-docx-js-typescript";
+import { printExportHtml } from "@/lib/print-export";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { TIERS, useAuth } from "@/hooks/useAuth";
 

@@ -13,7 +13,7 @@ import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import MarketSnapshot from "./MarketSnapshot";
 import { supabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
-import { asBlob } from "html-docx-js-typescript";
+import { printExportHtml } from "@/lib/print-export";
 import { useToast } from "@/hooks/use-toast";
 import { useAbbyPlan } from "@/hooks/useAbbyPlan";
 import { useMarketResearch } from "@/hooks/useMarketResearch";
