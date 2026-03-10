@@ -221,8 +221,22 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
     if (!user) return;
     setSaving(true);
     try {
-      // Generate slug from pen_name if not set
-      const slug = profile.author_slug || profile.pen_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      // Generate slug from pen_name if not set, or use custom slug
+      let slug = (profile.author_slug || profile.pen_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")).replace(/(^-|-$)/g, "");
+
+      // Check for uniqueness
+      const { data: existing } = await supabase
+        .from("author_profiles")
+        .select("user_id")
+        .eq("author_slug", slug)
+        .neq("user_id", user.id)
+        .maybeSingle();
+
+      if (existing) {
+        toast({ title: "Slug already taken", description: `The URL "authorsbureau.com/authors/${slug}" is already in use. Please choose a different one.`, variant: "destructive" });
+        setSaving(false);
+        return;
+      }
 
       const payload = {
         pen_name: profile.pen_name.trim(),
