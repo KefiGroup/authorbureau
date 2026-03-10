@@ -155,10 +155,12 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
   const sortedNodes = [...category.nodes].sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
   
   // Build sub-category groups for rendering
+  const labelMap: Record<string, string> = { "Other": "Premium Programs & Live Events", "Pro Products": "Digital Products" };
   const subCategories: { name: string; nodes: Node[] }[] = [];
   const seen = new Set<string>();
   for (const node of sortedNodes) {
-    const sub = node.subCategory || "Other";
+    const rawSub = node.subCategory || "Other";
+    const sub = labelMap[rawSub] || rawSub;
     if (!seen.has(sub)) {
       seen.add(sub);
       subCategories.push({ name: sub, nodes: [] });

@@ -150,9 +150,11 @@ export default function BusinessFramework({ onNavigate, isPremium, focusStep }: 
               </div>
               <div className="space-y-6">
                 {(() => {
+                  const labelMap: Record<string, string> = { "Other": "Premium Programs & Live Events", "Pro Products": "Digital Products" };
                   const groups: { name: string; nodes: Node[] }[] = [];
                   activeCatData.nodes.forEach((node) => {
-                    const groupName = node.subCategory || "Other";
+                    const rawGroup = node.subCategory || "Other";
+                    const groupName = labelMap[rawGroup] || rawGroup;
                     const existing = groups.find((g) => g.name === groupName);
                     if (existing) existing.nodes.push(node);
                     else groups.push({ name: groupName, nodes: [node] });

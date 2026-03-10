@@ -74,9 +74,9 @@ export default function DashboardSidebar({
     {
       id: "revenue-streams", label: "B·Build Authority", icon: DollarSign,
       subtitle: "Create Digital Products",
-      tooltip: "Turn your book into 7 digital products your audience can buy.",
+      tooltip: "Turn your book into 9 digital products your audience can buy.",
       color: "text-emerald-500",
-      badge: hasAnalysis || bypassLocks ? `${buildUnlocked} of 7` : undefined,
+      badge: hasAnalysis || bypassLocks ? `${buildUnlocked} built` : undefined,
       lockMessage: (!hasAnalysis && !bypassLocks) ? "Analyze a book first" : (!tierAccess("starter") ? "Requires Starter" : undefined),
     },
     {
@@ -84,7 +84,7 @@ export default function DashboardSidebar({
       subtitle: "Grow Your Audience",
       tooltip: "Build the marketing channels that bring readers to you.",
       color: "text-violet-500",
-      badge: tierAccess("pro") ? `${bridgeUnlocked} of 14` : undefined,
+      badge: tierAccess("pro") ? `${bridgeUnlocked} built` : undefined,
       lockMessage: !tierAccess("pro") ? "Requires Pro Plan" : undefined,
     },
     {
@@ -92,8 +92,8 @@ export default function DashboardSidebar({
       subtitle: "High-Ticket & Premium Offers",
       tooltip: "Unlock premium speaking, coaching, and event income.",
       color: "text-amber-500",
-      badge: tierAccess("enterprise") ? `${yieldUnlocked} of 8` : undefined,
-      lockMessage: !tierAccess("enterprise") ? "Requires Enterprise" : undefined,
+      badge: tierAccess("enterprise") || bypassLocks ? `${yieldUnlocked} built` : undefined,
+      lockMessage: (!bypassLocks && !tierAccess("enterprise")) ? "Requires Enterprise" : undefined,
     },
     {
       id: "reading-club" as DashboardSection, label: "Reading Club", icon: BookHeart,

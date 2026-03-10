@@ -5,13 +5,15 @@ import AbbyBuildAdvisor from "./AbbyBuildAdvisor";
 import AbbyExecutionDashboard from "@/components/dashboard/AbbyExecutionDashboard";
 import AbbyAdvisorPanel from "@/components/dashboard/AbbyAdvisorPanel";
 import { useAbbyPlan } from "@/hooks/useAbbyPlan";
-import { hasTierAccess } from "@/hooks/useAuth";
+import { hasTierAccess, useAuth } from "@/hooks/useAuth";
 import type { SubscriptionTier } from "@/hooks/useAuth";
 import {
-  BookOpen, ArrowRight, Lock, Zap, CheckCircle2,
+  BookOpen, ArrowRight, Lock, Zap, CheckCircle2, Bell,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ABBY_CATEGORIES, getStudioPath as getStudioPathFromConfig, type AbbyCategory, type AbbyNode } from "@/config/abbyFrameworkConfig";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 interface ProductNode {
   id: string;
@@ -130,8 +132,10 @@ interface Props {
 
 export default function BookHubStepTab({ categoryId, bookId, bookTitle, bookGenre, isPremium, tier }: Props) {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { plan, completedAssets } = useAbbyPlan(bookId);
   const [executingNode, setExecutingNode] = useState<ProductNode | null>(null);
+  const [notifiedNodes, setNotifiedNodes] = useState<Set<string>>(new Set());
   const catData = deriveCategoryConfig(categoryId as AbbyCategory);
   if (!catData) return null;
 
@@ -206,9 +210,15 @@ export default function BookHubStepTab({ categoryId, bookId, bookTitle, bookGenr
       {/* Product Grid */}
       <div className="space-y-8">
         {(() => {
+          // BUG-042: Rename generic labels to descriptive ones
+          const labelMap: Record<string, string> = {
+            "Other": "Premium Programs & Live Events",
+            "Pro Products": "Digital Products", // BUG-036: Remove tier references
+          };
           const groups: { name: string; nodes: ProductNode[] }[] = [];
           catData.nodes.forEach((node) => {
-            const groupName = node.group || "Other";
+            const rawGroup = node.group || "Other";
+            const groupName = labelMap[rawGroup] || rawGroup;
             const existing = groups.find((g) => g.name === groupName);
             if (existing) existing.nodes.push(node);
             else groups.push({ name: groupName, nodes: [node] });
@@ -228,6 +238,8 @@ export default function BookHubStepTab({ categoryId, bookId, bookTitle, bookGenr
                   const nodeAccessible = hasTierAccess(tier, node.requiredTier);
                   const isClickable = canOpen && Boolean(studioPath) && nodeAccessible;
                   const canBuild = (node.status === "available" || node.status === "coming-soon") && nodeAccessible && plan;
+                  const isPlanned = node.status === "planned";
+                  const isNotified = notifiedNodes.has(node.id);
 
                   // Lock info for inaccessible nodes
                   const lockLabel = !nodeAccessible
@@ -237,6 +249,24 @@ export default function BookHubStepTab({ categoryId, bookId, bookTitle, bookGenr
                         ? "Upgrade to Pro"
                         : "Subscribe to unlock"
                     : null;
+
+                  // BUG-040: Handle Notify Me
+                  const handleNotifyMe = async (e: React.MouseEvent) => {
+                    e.stopPropagation();
+                    if (!user) return;
+                    try {
+                      await supabase.from("feature_requests").insert({
+                        author_id: user.id,
+                        book_id: bookId,
+                        request_type: node.id,
+                        status: "pending",
+                      });
+                      setNotifiedNodes(prev => new Set(prev).add(node.id));
+                      toast({ title: "We'll notify you!", description: `You'll be notified when ${node.label} becomes available.` });
+                    } catch {
+                      toast({ title: "Error", description: "Could not register interest. Please try again.", variant: "destructive" });
+                    }
+                  };
 
                   return (
                     <motion.div
@@ -309,6 +339,20 @@ export default function BookHubStepTab({ categoryId, bookId, bookTitle, bookGenr
                             >
                               <Zap className="h-3 w-3 text-secondary" />
                               Build Now
+                            </Button>
+                          )}
+
+                          {/* BUG-040: Notify Me button for planned products */}
+                          {isPlanned && !isCompleted && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={isNotified}
+                              className="mt-2 text-[11px] gap-1.5 h-7"
+                              onClick={handleNotifyMe}
+                            >
+                              <Bell className="h-3 w-3" />
+                              {isNotified ? "We'll Notify You!" : "Notify Me"}
                             </Button>
                           )}
 
