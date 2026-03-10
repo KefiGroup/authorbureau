@@ -65,7 +65,10 @@ export default function AbbyHelpChatbot() {
   });
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
   const [mode, setMode] = useState<ConversationMode>("help");
+  const MAX_INPUT_LENGTH = 2000;
+  const MAX_SESSION_MESSAGES = 50;
 
   // Bug report state
   const [bugStep, setBugStep] = useState<BugStep>("page");
