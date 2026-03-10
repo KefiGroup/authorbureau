@@ -184,7 +184,9 @@ export default function MonetizationUniverse({ activatedCount, builtProducts, re
                     return (
                       <div
                         key={node.label}
-                        className={`relative rounded-lg border px-3 py-2.5 transition-all cursor-default ${
+                        className={`relative rounded-lg border px-3 py-2.5 transition-all ${
+                          status === "built" || status === "recommended" || status === "unlocked" ? "cursor-pointer" : "cursor-default"
+                        } ${
                           status === "built"
                             ? "border-green-500/40 bg-green-500/10"
                             : status === "recommended"
@@ -193,6 +195,9 @@ export default function MonetizationUniverse({ activatedCount, builtProducts, re
                             ? "border-gray-600 bg-gray-800/50 hover:border-gray-500"
                             : "border-gray-700/50 bg-gray-900/50 opacity-60"
                         }`}
+                        onClick={() => {
+                          if (status !== "locked" && onNavigateToStream) onNavigateToStream(node.label);
+                        }}
                         onMouseEnter={() => setHoveredNode(`${group.id}-${node.label}`)}
                         onMouseLeave={() => setHoveredNode(null)}
                       >
