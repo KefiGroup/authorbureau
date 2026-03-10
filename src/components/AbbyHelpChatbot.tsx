@@ -502,12 +502,19 @@ export default function AbbyHelpChatbot() {
 
           {/* Input area */}
           <div className="flex items-end gap-2 px-3 py-2.5 border-t border-[#E5E7EB] bg-white shrink-0">
+            {sessionExpired ? (
+              <p className="text-sm text-destructive py-2 text-center w-full">Your session has expired. Please sign in again.</p>
+            ) : messages.length >= MAX_SESSION_MESSAGES ? (
+              <p className="text-sm text-muted-foreground py-2 text-center w-full">Conversation limit reached. Start a new conversation.</p>
+            ) : (
+            <>
             <textarea
               ref={inputRef}
               value={input}
-              onChange={e => setInput(e.target.value)}
+              onChange={e => setInput(e.target.value.slice(0, MAX_INPUT_LENGTH))}
               onKeyDown={handleKeyDown}
               placeholder="Ask Abby anything..."
+              maxLength={MAX_INPUT_LENGTH}
               rows={1}
               className="flex-1 resize-none text-sm outline-none placeholder:text-gray-400 max-h-20 min-h-[36px] py-2"
             />
