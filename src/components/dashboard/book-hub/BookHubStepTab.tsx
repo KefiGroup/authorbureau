@@ -8,34 +8,37 @@ import { useAbbyPlan } from "@/hooks/useAbbyPlan";
 import { hasTierAccess } from "@/hooks/useAuth";
 import type { SubscriptionTier } from "@/hooks/useAuth";
 import {
-  BookOpen, Mic, Podcast, GraduationCap, FileText, Video,
-  Share2, CreditCard, Users, Trophy, Building2,
-  Bookmark, Calendar, Link2, TrendingUp, Megaphone,
-  Headphones, BookMarked, Presentation, UserCheck,
-  HandCoins, Handshake, BarChart3, ShieldCheck,
-  ArrowRight, Lock, Sparkles, DollarSign, Radio, Award,
-  Zap, CheckCircle2,
+  BookOpen, ArrowRight, Lock, Zap, CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-const iconMap: Record<string, typeof BookOpen> = {
-  Share2, FileText, Video, Podcast, GraduationCap, Headphones, BookMarked,
-  CreditCard, Link2, TrendingUp, UserCheck, Users, Trophy, Handshake,
-  Mic, Building2, BookOpen, Sparkles, Presentation, HandCoins, Calendar,
-  Bookmark, ShieldCheck, BarChart3, Megaphone, DollarSign, Radio, Award,
-};
+import { ABBY_CATEGORIES, getStudioPath as getStudioPathFromConfig, type AbbyCategory, type AbbyNode } from "@/config/abbyFrameworkConfig";
 
 interface ProductNode {
   id: string;
   label: string;
-  iconName: string;
+  icon: typeof BookOpen;
   description: string;
-  status: "live" | "coming-soon" | "planned";
+  status: "available" | "coming-soon" | "planned";
   group?: string;
   requiredTier: SubscriptionTier;
 }
 
-interface CategoryConfig {
+/** Derive local ProductNode[] from shared config */
+function deriveNodes(catId: AbbyCategory): ProductNode[] {
+  const cat = ABBY_CATEGORIES[catId];
+  if (!cat) return [];
+  return cat.nodes.map(n => ({
+    id: n.id,
+    label: n.label,
+    icon: n.icon,
+    description: n.description,
+    status: n.status,
+    group: n.subCategory,
+    requiredTier: (n.tierRequired?.toLowerCase() || "starter") as SubscriptionTier,
+  }));
+}
+
+interface DerivedCategory {
   id: string;
   label: string;
   subtitle: string;
@@ -43,70 +46,31 @@ interface CategoryConfig {
   bgColor: string;
   gradientFrom: string;
   gradientTo: string;
-  headerIconName: string;
+  headerIcon: typeof BookOpen;
   nodes: ProductNode[];
 }
 
+function deriveCategoryConfig(catId: AbbyCategory): DerivedCategory | null {
+  const cat = ABBY_CATEGORIES[catId];
+  if (!cat) return null;
+  return {
+    id: cat.id,
+    label: cat.label,
+    subtitle: cat.subtitle,
+    color: cat.color,
+    bgColor: cat.bgColor,
+    gradientFrom: cat.gradientFrom,
+    gradientTo: cat.gradientTo,
+    headerIcon: cat.headerIcon,
+    nodes: deriveNodes(catId),
+  };
+}
+
 const statusStyles = {
-  live: { badge: "Live", className: "bg-green-500/15 text-green-700 dark:text-green-400" },
+  available: { badge: "Available", className: "bg-accent/15 text-accent border-accent/30" },
   "coming-soon": { badge: "Building", className: "bg-amber-500/15 text-amber-700 dark:text-amber-400" },
   planned: { badge: "Planned", className: "bg-muted text-muted-foreground" },
 };
-
-export const categoryConfigs: CategoryConfig[] = [
-  {
-    id: "revenue-streams", label: "B · Build Authority", subtitle: "Digital assets & authority products (7 nodes)",
-    color: "text-emerald-600", bgColor: "bg-emerald-500/10",
-    gradientFrom: "from-emerald-500", gradientTo: "to-emerald-600",
-    headerIconName: "DollarSign",
-    nodes: [
-      { id: "workbooks", label: "Workbook", iconName: "FileText", description: "Companion workbook PDFs with exercises and templates.", status: "live", group: "Digital Products", requiredTier: "starter" },
-      { id: "home-study", label: "Home Study Course", iconName: "BookMarked", description: "Self-paced study guide with daily exercises.", status: "live", group: "Digital Products", requiredTier: "starter" },
-      { id: "book-sales-events", label: "Book Sales", iconName: "BookOpen", description: "QR code order pages & direct sales.", status: "live", group: "Digital Products", requiredTier: "starter" },
-      { id: "special-editions", label: "Special Editions", iconName: "Sparkles", description: "Signed copies, bundles, limited editions.", status: "live", group: "Digital Products", requiredTier: "starter" },
-      { id: "social-media", label: "Social Media", iconName: "Share2", description: "90-day AI content calendar from your book.", status: "live", group: "In-House", requiredTier: "starter" },
-      { id: "email-marketing", label: "Email Marketing", iconName: "Megaphone", description: "AI-driven nurture sequences from book content.", status: "live", group: "In-House", requiredTier: "starter" },
-      { id: "microsite", label: "Website / Microsite", iconName: "BookOpen", description: "Your book's landing page (built-in).", status: "live", group: "In-House", requiredTier: "starter" },
-    ],
-  },
-  {
-    id: "marketing-channels", label: "B · Bridge Channels", subtitle: "Marketing channels & audience connections (14 nodes)",
-    color: "text-violet-600", bgColor: "bg-violet-500/10",
-    gradientFrom: "from-violet-500", gradientTo: "to-violet-600",
-    headerIconName: "Radio",
-    nodes: [
-      { id: "audiobook", label: "Audiobook", iconName: "Headphones", description: "AI-narrated audiobook from your manuscript.", status: "live", group: "Pro Products", requiredTier: "pro" },
-      { id: "courses", label: "Online Courses", iconName: "GraduationCap", description: "8-12 module structured courses from your book content.", status: "live", group: "Pro Products", requiredTier: "pro" },
-      { id: "podcast-guest", label: "Podcasts", iconName: "Podcast", description: "Podcast series from your book content.", status: "live", group: "Pro Products", requiredTier: "pro" },
-      { id: "webinars", label: "Webinars", iconName: "Video", description: "Webinar scripts + slide decks + registration pages.", status: "live", group: "Pro Products", requiredTier: "pro" },
-      { id: "memberships", label: "Monthly Memberships", iconName: "CreditCard", description: "3-tier membership system with recurring revenue.", status: "live", group: "Pro Products", requiredTier: "pro" },
-      { id: "coaching-1on1", label: "1-on-1 Coaching", iconName: "UserCheck", description: "6/12-session coaching programs with session outlines.", status: "live", group: "Coaching", requiredTier: "pro" },
-      { id: "group-coaching", label: "Group Coaching", iconName: "Users", description: "8-week group coaching curriculum.", status: "live", group: "Coaching", requiredTier: "pro" },
-      { id: "big-ticket", label: "Big Ticket Consulting", iconName: "Trophy", description: "Premium consulting packages ($5K–$25K).", status: "planned", group: "Coaching", requiredTier: "pro" },
-      { id: "upsells", label: "Upsells / Downsells", iconName: "TrendingUp", description: "Conversion sequences and funnel optimization.", status: "planned", group: "Growth", requiredTier: "pro" },
-      { id: "in-house-speaker", label: "In-House Speaker", iconName: "Presentation", description: "Corporate speaker profile + booking.", status: "planned", group: "Speaking", requiredTier: "pro" },
-      { id: "training", label: "Training Programs", iconName: "Building2", description: "Half/full-day corporate training programs.", status: "planned", group: "Speaking", requiredTier: "enterprise" },
-      { id: "affiliates", label: "Affiliates", iconName: "Link2", description: "Affiliate tracking links + commission structures.", status: "planned", group: "Growth", requiredTier: "pro" },
-      { id: "lead-magnet", label: "Lead Magnet", iconName: "Magnet", description: "Free PDF downloads to grow your email list.", status: "live", group: "Growth", requiredTier: "starter" },
-      { id: "revenue-sharing", label: "Revenue Sharing", iconName: "Handshake", description: "Partnership matching + contract templates.", status: "planned", group: "Growth", requiredTier: "pro" },
-    ],
-  },
-  {
-    id: "authority-builders", label: "Y · Yield Revenue", subtitle: "Premium revenue streams & monetization (7 nodes)",
-    color: "text-sky-600", bgColor: "bg-sky-500/10",
-    gradientFrom: "from-sky-500", gradientTo: "to-sky-600",
-    headerIconName: "Award",
-    nodes: [
-      { id: "keynotes", label: "Keynotes", iconName: "Mic", description: "3-5 keynote topics with slide decks.", status: "live", requiredTier: "pro" },
-      { id: "masterminds", label: "Masterminds", iconName: "BarChart3", description: "Quarterly mastermind group programs.", status: "planned", requiredTier: "enterprise" },
-      { id: "retreats", label: "Retreats & Bootcamps", iconName: "Bookmark", description: "2-3 day retreat programs.", status: "planned", requiredTier: "enterprise" },
-      { id: "certification", label: "Certification", iconName: "ShieldCheck", description: "Curriculum + exam + digital certificates.", status: "planned", requiredTier: "enterprise" },
-      { id: "conventions", label: "Conventions / Conferences", iconName: "Calendar", description: "Conference submission generator.", status: "planned", requiredTier: "enterprise" },
-      { id: "fundraising", label: "Fund Raising", iconName: "HandCoins", description: "Fundraising event templates.", status: "planned", requiredTier: "enterprise" },
-      { id: "exhibitors", label: "Exhibitors / JV", iconName: "Megaphone", description: "Exhibitor prospectus + partnership matching.", status: "planned", requiredTier: "enterprise" },
-    ],
-  },
-];
 
 // Tier-specific upgrade banner config
 function getUpgradeBanner(tier: SubscriptionTier, categoryId: string): { message: string; cta: string; link: string } | null {
