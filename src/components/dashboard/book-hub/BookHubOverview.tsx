@@ -123,6 +123,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
       const token = session?.access_token;
       const userId = session?.user?.id;
       if (!userId) { setDataReady(true); return; }
+      setAuthorId(userId);
 
       try {
         const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/consultation-session`, {
