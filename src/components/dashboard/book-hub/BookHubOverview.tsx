@@ -260,7 +260,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
             <>Your plan for <strong>"{book.title}"</strong> is ready with projected revenue potential. On Pro, you have access to 16 builders (Build + Bridge). Let's make it happen!</>
           )}
           {tier === "enterprise" && (
-            <>Your plan for <strong>"{book.title}"</strong> is ready. All 27 builders are unlocked on your Enterprise plan — let's build your author empire!</>
+            <>Your plan for <strong>"{book.title}"</strong> is ready. All 28 builders are unlocked on your Enterprise plan — let's build your author empire!</>
           )}
         </p>
 

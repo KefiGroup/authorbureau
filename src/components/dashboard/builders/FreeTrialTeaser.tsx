@@ -108,7 +108,7 @@ export default function FreeTrialTeaser({ bookTitle, bookId, currentTier, hasBus
               <p className="text-lg font-bold">
                 ${totalRevLow.toLocaleString()} – ${totalRevHigh.toLocaleString()}/mo
               </p>
-              <p className="text-[10px] text-muted-foreground">Potential across all 27 builders</p>
+              <p className="text-[10px] text-muted-foreground">Potential across all 28 builders</p>
             </div>
           </div>
         </div>

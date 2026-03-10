@@ -935,7 +935,7 @@ subscription_tier: "${isPremium ? subscriptionTier || "enterprise" : subscriptio
 subscription_status: "${isPremium ? "active" : subscriptionStatus || "none"}"
 subscription_note: "${
   subscriptionTier === "enterprise" 
-    ? "Author has Enterprise — skip the subscription sell entirely and encourage them to start building immediately. They have access to ALL 27 nodes."
+    ? "Author has Enterprise — skip the subscription sell entirely and encourage them to start building immediately. They have access to ALL 28 nodes."
     : subscriptionTier === "pro"
     ? "Author has Pro — skip the subscription sell for Starter/Pro features. If the plan includes Enterprise-only features (keynotes, retreats, certification, masterminds), mention they can upgrade to Enterprise when ready."
     : subscriptionTier === "starter"
