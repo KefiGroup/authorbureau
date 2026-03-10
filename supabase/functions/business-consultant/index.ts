@@ -420,6 +420,17 @@ Based on your projected monthly revenue of $[range], your subscription pays for 
 8. Include ===SUBSCRIBE_CTA=== on its own line exactly ONCE in the UNLOCK YOUR PLAN section. The frontend will render this as a subscribe button.
 9. NEVER recommend subscribing more than once per business plan. One clear pitch in UNLOCK YOUR PLAN is enough.
 
+# MARKET-AWARE RECOMMENDATIONS
+
+When LIVE MARKET RESEARCH data is available in the context, you MUST use it to make your recommendations specific and data-driven:
+
+1. **Use real competitor prices**: Instead of generic ranges like "$97-$497", cite actual prices from competitors found in the market data. Example: "Courses on this topic are currently priced between $129 and $299 on Udemy and Teachable, with the top sellers averaging 50+ enrollments per month."
+2. **Reference trending topics**: If market data shows specific trending sub-topics, recommend products that address those trends. Example: "My research shows that '21-day challenges' are the top-selling format in your niche — I recommend we start with a 21-Day Challenge home study course."
+3. **Back recommendations with data**: Every product recommendation should include a data point. Instead of "Create a course," say "Courses in the [genre] niche are averaging $X on [platform] with Y sales/month. This represents a potential $Z/month revenue stream for you."
+4. **Acknowledge sources**: Briefly mention that your recommendations are based on current market research without being overly technical.
+
+If no market research data is available, fall back to the genre-specific guidance below.
+
 # GENRE-SPECIFIC GUIDANCE
 
 When analyzing the book, adapt your recommendations based on genre:
@@ -779,6 +790,53 @@ serve(async (req) => {
     const businessPlanAsset = existingAssets.find((a: any) => a.asset_type === "business_plan");
     const existingBusinessPlan = businessPlanAsset ? businessPlanAsset.content.slice(0, 20000) : null;
 
+    // --- MARKET RESEARCH: Fetch real-time market data for this genre ---
+    let marketResearchContext = "";
+    if (selectedBook?.genre && !builderMode) {
+      try {
+        const marketRes = await fetch(
+          `${Deno.env.get("SUPABASE_URL")}/functions/v1/market-research`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
+            },
+            body: JSON.stringify({
+              bookTitle: selectedBook.title,
+              genre: selectedBook.genre,
+              description: selectedBook.description?.slice(0, 500),
+            }),
+          }
+        );
+        if (marketRes.ok) {
+          const marketData = await marketRes.json();
+          if (marketData && !marketData.error) {
+            const parts: string[] = [];
+            parts.push(`=== LIVE MARKET RESEARCH (${marketData.dataTimestamp}) ===`);
+            parts.push(`Data sources: ${(marketData.dataSources || []).join(", ")}`);
+            if (marketData.marketIntelligence) {
+              parts.push(`\nMARKET INTELLIGENCE:\n${marketData.marketIntelligence.slice(0, 4000)}`);
+            }
+            if (marketData.pricingIntelligence) {
+              parts.push(`\nPRICING BENCHMARKS:\n${marketData.pricingIntelligence.slice(0, 2000)}`);
+            }
+            if (marketData.competitorProducts?.length > 0) {
+              parts.push(`\nCOMPETITOR PRODUCTS FOUND:\n${marketData.competitorProducts.map((p: any) => `- ${p.title}: ${p.snippet}`).join("\n").slice(0, 1500)}`);
+            }
+            if (marketData.amazonBestsellerContext) {
+              parts.push(`\nAMAZON BESTSELLER CONTEXT:\n${marketData.amazonBestsellerContext.slice(0, 1500)}`);
+            }
+            parts.push(`=== END MARKET RESEARCH ===`);
+            parts.push(`\nIMPORTANT: Use this real market data to make your recommendations SPECIFIC and DATA-DRIVEN. Instead of generic pricing like "$97-$497", use the actual prices competitors are charging in this niche. Reference trending topics and competitor products when recommending what to build first.`);
+            marketResearchContext = parts.join("\n");
+          }
+        }
+      } catch (err) {
+        console.warn("Market research fetch failed (non-blocking):", err);
+      }
+    }
+
     const contextBlock = `
 CURRENT CONTEXT:
 author_profile: ${JSON.stringify({
@@ -844,6 +902,7 @@ subscription_note: "${
 author_frameworks: ${profile?.frameworks && Array.isArray(profile.frameworks) && profile.frameworks.length > 0
   ? JSON.stringify(profile.frameworks)
   : "none saved in profile — extract from manuscript if available, but DO NOT list them back to the author. Use them silently to inform product recommendations."}
+${marketResearchContext}
 `;
 
     const assistantTurns = Array.isArray(messages)

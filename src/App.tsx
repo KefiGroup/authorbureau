@@ -21,6 +21,8 @@ import ReadingClub from "./pages/ReadingClub";
 import SSO from "./pages/SSO";
 import NotFound from "./pages/NotFound";
 import BookHub from "./pages/BookHub";
+import Solutions from "./pages/Solutions";
+import SolutionsIndex from "./pages/SolutionsIndex";
 import ScrollToTop from "./components/ScrollToTop";
 import AbbyHelpChatbot from "./components/AbbyHelpChatbot";
 
@@ -69,6 +71,8 @@ const AppRoutes = () => (
       <Route path="/contact" element={<Contact />} />
       <Route path="/faq" element={<FAQ />} />
       <Route path="/reading-club" element={<ReadingClub />} />
+      <Route path="/solutions" element={<SolutionsIndex />} />
+      <Route path="/solutions/:genre" element={<Solutions />} />
       <Route path="/sso" element={<SSO />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
