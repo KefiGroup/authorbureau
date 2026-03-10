@@ -1,24 +1,31 @@
-import { LogOut, Crown, Menu, Shield } from "lucide-react";
+import { LogOut, Crown, Menu, Shield, Settings, User, ChevronDown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import type { User } from "@supabase/supabase-js";
+import type { User as SupaUser } from "@supabase/supabase-js";
 import type { SubscriptionTier } from "@/hooks/useAuth";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import NotificationCenter from "./NotificationCenter";
 
 interface Props {
-  user: User;
+  user: SupaUser;
   isPremium: boolean;
   isAdmin?: boolean;
   tier?: SubscriptionTier;
   subscription: { subscribed: boolean; loading: boolean };
   onSignOut: () => void;
   onToggleSidebar: () => void;
+  onNavigate?: (section: string) => void;
 }
 
-type SubscriptionLoading = { loading: boolean };
-
-export default function DashboardHeader({ user, isPremium, isAdmin, tier, subscription, onSignOut, onToggleSidebar }: Props) {
+export default function DashboardHeader({ user, isPremium, isAdmin, tier, subscription, onSignOut, onToggleSidebar, onNavigate }: Props) {
   const [penName, setPenName] = useState<string | null>(null);
 
   useEffect(() => {
@@ -35,8 +42,6 @@ export default function DashboardHeader({ user, isPremium, isAdmin, tier, subscr
   }, [user.id]);
 
   const displayName = penName || user.email;
-
-  // Determine effective tier: admins are treated as enterprise
   const effectiveTier = isAdmin ? "enterprise" : tier;
 
   return (
@@ -62,14 +67,42 @@ export default function DashboardHeader({ user, isPremium, isAdmin, tier, subscr
         </div>
       </div>
       <div className="flex items-center gap-2">
+        {/* Notification Center */}
+        <NotificationCenter userId={user.id} onNavigate={onNavigate} />
+
         {isAdmin && (
           <Button asChild variant="outline" size="sm" className="text-muted-foreground">
             <Link to="/admin"><Shield className="mr-2 h-4 w-4" /> Admin Panel</Link>
           </Button>
         )}
-        <Button onClick={onSignOut} variant="ghost" size="sm" className="text-muted-foreground">
-          <LogOut className="mr-2 h-4 w-4" /> Sign Out
-        </Button>
+
+        {/* User Profile Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="text-muted-foreground gap-1.5">
+              <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+                <User className="h-3.5 w-3.5 text-primary" />
+              </div>
+              <ChevronDown className="h-3 w-3" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <div className="px-2 py-1.5">
+              <p className="text-sm font-medium truncate">{displayName}</p>
+              <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link to="/account-settings" className="flex items-center gap-2 cursor-pointer">
+                <Settings className="h-4 w-4" /> Account Settings
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onSignOut} className="cursor-pointer text-destructive">
+              <LogOut className="h-4 w-4 mr-2" /> Sign Out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

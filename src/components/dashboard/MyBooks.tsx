@@ -233,7 +233,8 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
   };
 
   // Stats
-  const liveCount = books.filter(b => b.published_at).length;
+  // BUG-021: Only count books with published_at as live microsites
+  const liveCount = books.filter(b => !!b.published_at).length;
   const analyzedCount = analyzedBooks.size;
   const totalProductsBuilt = Object.values(productCounts).reduce((s, c) => s + c, 0);
   const totalRecommended = analyzedCount * 12; // estimated, ideally from Abby
@@ -274,11 +275,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
           </p>
         </div>
         <div className="flex gap-2">
-          {isSubscribed && !stripeConnected && (
-            <Button variant="outline" size="sm" onClick={() => onNavigate?.("connect-stripe")} className="text-muted-foreground w-fit">
-              <CreditCard className="h-4 w-4 mr-1.5" /> Connect Stripe
-            </Button>
-          )}
+          {/* BUG-025: Removed redundant Stripe banner — CTA lives in sidebar */}
           <Button onClick={() => setShowForm(true)} className="bg-secondary text-secondary-foreground hover:bg-secondary/90 w-fit">
             <Plus className="h-4 w-4 mr-1.5" /> Add Book
           </Button>
@@ -363,7 +360,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
                     {/* Bottom gradient overlay */}
                     <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/60 to-transparent" />
                     <label
-                      className="absolute bottom-2 left-2 flex items-center gap-1.5 text-white text-[11px] font-medium bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 cursor-pointer hover:bg-white/30 transition-colors"
+                      className="absolute bottom-2 left-2 flex items-center gap-1.5 text-white text-[11px] font-medium bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 cursor-pointer hover:bg-white/30 transition-colors opacity-0 group-hover:opacity-100"
                       htmlFor={`cover-upload-${book.id}`}
                     >
                       {uploadingCover === book.id ? (

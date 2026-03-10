@@ -403,34 +403,35 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           subscription={subscription}
           onSignOut={signOut}
           onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
+          onNavigate={handleNavigate}
         />
         <div className="border-b border-border px-6 lg:px-8 bg-card">
           <JourneyBreadcrumb
             steps={[
               {
-                label: journeyMicrosite === "done" ? "Microsite Live" : "Set Up Microsite",
+                label: journeyMicrosite === "done" ? "Profile Set Up ✓" : "1. Set Up Profile",
                 state: journeyMicrosite,
-                onClick: () => setActiveSection("my-books"),
+                onClick: () => setActiveSection("profile"),
               },
               {
-                label: booksAnalyzed > 0 ? `${booksAnalyzed} Book${booksAnalyzed !== 1 ? "s" : ""} Analyzed` : "Analyze a Book",
+                label: booksAnalyzed > 0 ? `2. Book Analyzed ✓` : "2. Analyze First Book",
                 state: journeyPlan,
                 onClick: () => setActiveSection("build-business"),
               },
-              ...(isPremium && !stripeConnected ? [{
-                label: "Connect Payments" as string,
-                state: (journeyPlan === "done" && !stripeConnected ? "current" : journeyPlan === "done" ? "done" : "upcoming") as JourneyStep,
-                onClick: () => setActiveSection("connect-stripe" as DashboardSection),
-              }] : []),
               {
-                label: "Building Products",
+                label: journeyBuild === "done" ? "3. Product Built ✓" : "3. Build First Product",
                 state: journeyBuild,
                 onClick: () => setActiveSection("revenue-streams"),
               },
               {
-                label: "Earning Revenue",
-                state: journeySell,
-                onClick: () => setActiveSection("analytics" as DashboardSection),
+                label: hasMicrosite ? "4. Microsite Live ✓" : "4. Launch Microsite",
+                state: hasMicrosite ? "done" : (journeyBuild === "done" ? "current" : "upcoming"),
+                onClick: () => setActiveSection("microsite-manager" as DashboardSection),
+              },
+              {
+                label: stripeConnected ? "5. Stripe Connected ✓" : "5. Connect Stripe",
+                state: stripeConnected ? "done" : (hasMicrosite ? "current" : "upcoming"),
+                onClick: () => setActiveSection("connect-stripe" as DashboardSection),
               },
             ]}
           />

@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
+import AccountSettings from "./pages/AccountSettings";
 import GetFeatured from "./pages/GetFeatured";
 import Directory from "./pages/Directory";
 import AuthorProfile from "./pages/AuthorProfile";
@@ -69,6 +70,7 @@ const AppRoutes = () => (
       <Route path="/admin-login" element={<AdminAuth />} />
       <Route path="/admin" element={<AdminDashboard />} />
       <Route path="/dashboard" element={<AuthorDashboard />} />
+      <Route path="/account-settings" element={<ProtectedRoute><AccountSettings /></ProtectedRoute>} />
       <Route path="/dashboard/book/:bookId" element={<BookHub />} />
       <Route path="/my-books" element={<AuthorDashboard initialSection="my-books" />} />
       <Route path="/contact" element={<Contact />} />
