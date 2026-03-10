@@ -10,11 +10,13 @@ import ABBYFrameworkVisual from "./ABBYFrameworkVisual";
 import ROIBanner from "@/components/dashboard/ROIBanner";
 import FreeTrialTeaser from "@/components/dashboard/builders/FreeTrialTeaser";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
+import MarketSnapshot from "./MarketSnapshot";
 import { supabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { asBlob } from "html-docx-js-typescript";
 import { useToast } from "@/hooks/use-toast";
 import { useAbbyPlan } from "@/hooks/useAbbyPlan";
+import { useMarketResearch } from "@/hooks/useMarketResearch";
 import type { SubscriptionTier } from "@/hooks/useAuth";
 import { hasTierAccess } from "@/hooks/useAuth";
 
@@ -47,6 +49,7 @@ function extractSections(fullContent: string): PlanSection[] {
 interface Book {
   id: string;
   title: string;
+  genre?: string | null;
 }
 
 interface Props {
@@ -93,6 +96,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
   const [authorId, setAuthorId] = useState<string>("");
   const { toast } = useToast();
   const { plan, completedAssets } = useAbbyPlan(book.id);
+  const { data: marketData, loading: marketLoading } = useMarketResearch(book.id, book.title, book.genre || undefined);
 
   const isAnalyzed = hasConsultation || planSections.length > 0 || !!plan;
   const recommendations = getRecommendationsFromPlan(planContent);
@@ -426,6 +430,11 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
           </div>
         </div>
       </motion.div>
+
+      {/* Market Snapshot — shown after analysis */}
+      {isAnalyzed && (marketData || marketLoading) && (
+        <MarketSnapshot data={marketData!} loading={marketLoading} />
+      )}
 
       {/* Expandable manuscript upload */}
       {showManuscriptUpload && (

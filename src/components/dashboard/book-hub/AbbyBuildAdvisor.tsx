@@ -1,12 +1,14 @@
 import { useState } from "react";
-import { Sparkles, ChevronDown, ChevronUp, ArrowRight, MessageCircle } from "lucide-react";
+import { Sparkles, ChevronDown, ChevronUp, ArrowRight, MessageCircle, Lightbulb } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useMarketResearch } from "@/hooks/useMarketResearch";
 
 interface Props {
   categoryId: string;
   bookId: string;
   bookTitle?: string;
+  bookGenre?: string;
 }
 
 interface AdvisorTip {
@@ -117,10 +119,11 @@ const difficultyColors: Record<string, string> = {
   Advanced: "bg-red-500/15 text-red-700",
 };
 
-export default function AbbyBuildAdvisor({ categoryId, bookId, bookTitle }: Props) {
+export default function AbbyBuildAdvisor({ categoryId, bookId, bookTitle, bookGenre }: Props) {
   const [expanded, setExpanded] = useState(true);
   const navigate = useNavigate();
   const content = advisorContent[categoryId];
+  const { data: marketData } = useMarketResearch(bookId, bookTitle, bookGenre);
   if (!content) return null;
 
   const titleParam = bookTitle ? `&bookTitle=${encodeURIComponent(bookTitle)}` : "";
@@ -170,6 +173,12 @@ export default function AbbyBuildAdvisor({ categoryId, bookId, bookTitle }: Prop
           <div className="space-y-3">
             {content.recommendations.map((rec, i) => {
               const studioPath = rec.nodeId ? getStudioPath(rec.nodeId) : null;
+              // Build market insight tag if data available
+              const marketInsight = marketData?.amazonBestsellers?.pricingAnalysis && rec.priceRange
+                ? `${rec.label}s in "${marketData.amazonCategory}" are priced ${marketData.amazonBestsellers.pricingAnalysis.lowest}–${marketData.amazonBestsellers.pricingAnalysis.highest}. Median: ${marketData.amazonBestsellers.pricingAnalysis.median}.`
+                : null;
+              const recommendedPrice = marketData?.amazonBestsellers?.pricingAnalysis?.median;
+
               return (
                 <div
                   key={i}
@@ -184,13 +193,28 @@ export default function AbbyBuildAdvisor({ categoryId, bookId, bookTitle }: Prop
                       <span className={`text-[10px] font-medium rounded-full px-2 py-0.5 ${difficultyColors[rec.difficulty]}`}>
                         {rec.difficulty}
                       </span>
-                      {rec.priceRange && (
+                      {recommendedPrice && rec.priceRange ? (
+                        <span className="text-[10px] font-semibold text-secondary">
+                          {recommendedPrice} Recommended
+                        </span>
+                      ) : rec.priceRange ? (
                         <span className="text-[10px] font-medium text-muted-foreground">
                           {rec.priceRange}
                         </span>
-                      )}
+                      ) : null}
                     </div>
                     <p className="text-xs text-muted-foreground leading-relaxed mt-1">{rec.reason}</p>
+
+                    {/* Inline Market Insight Tag */}
+                    {marketInsight && (
+                      <div className="flex items-start gap-1.5 mt-2 rounded-md bg-amber-500/10 border border-amber-500/20 px-2.5 py-1.5">
+                        <Lightbulb className="h-3 w-3 text-amber-600 shrink-0 mt-0.5" />
+                        <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
+                          <strong>Market Insight:</strong> {marketInsight}
+                        </p>
+                      </div>
+                    )}
+
                     {studioPath && (
                       <button
                         onClick={(e) => {
