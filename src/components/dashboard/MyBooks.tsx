@@ -243,12 +243,12 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
     }
   };
 
-  // Stats
-  // BUG-021: Only count books with published_at as live microsites
-  const liveCount = books.filter(b => !!b.published_at).length;
-  const analyzedCount = analyzedBooks.size;
-  const totalProductsBuilt = Object.values(productCounts).reduce((s, c) => s + c, 0);
+  // Stats — use centralized stats as single source of truth when available
+  const liveCount = centralStats?.liveMicrosites ?? books.filter(b => !!b.published_at).length;
+  const analyzedCount = centralStats?.analyzedCount ?? analyzedBooks.size;
+  const totalProductsBuilt = centralStats?.products.totalBuilt ?? Object.values(productCounts).reduce((s, c) => s + c, 0);
   const totalRecommended = analyzedCount * 12; // estimated, ideally from Abby
+  const getBookProductCount = (bookId: string) => centralStats?.products.perBook[bookId] ?? productCounts[bookId] ?? 0;
 
   // Form view
   if (showForm && user) {
