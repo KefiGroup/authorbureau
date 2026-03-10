@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ManuscriptUpload from "@/components/dashboard/ManuscriptUpload";
 import ABBYFrameworkVisual from "./ABBYFrameworkVisual";
+import ROIBanner from "@/components/dashboard/ROIBanner";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import { supabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
@@ -88,6 +89,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
   const [planSections, setPlanSections] = useState<PlanSection[]>([]);
   const [downloading, setDownloading] = useState(false);
   const [dataReady, setDataReady] = useState(false);
+  const [authorId, setAuthorId] = useState<string>("");
   const { toast } = useToast();
   const { plan, completedAssets } = useAbbyPlan(book.id);
 
@@ -121,6 +123,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
       const token = session?.access_token;
       const userId = session?.user?.id;
       if (!userId) { setDataReady(true); return; }
+      setAuthorId(userId);
 
       try {
         const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/consultation-session`, {
@@ -433,6 +436,16 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
       {/* Build My Author Business button — Pro/Enterprise only, analyzed only */}
       {isAnalyzed && (
         <BuildMyBusinessButton tier={tier} recommendedCount={recommendations.length} />
+      )}
+
+      {/* ROI Banner — Revenue Intelligence */}
+      {isAnalyzed && authorId && (
+        <ROIBanner
+          bookId={book.id}
+          authorId={authorId}
+          tier={tier}
+          onNavigateBuilder={(builderId) => onNavigateTab("revenue-streams")}
+        />
       )}
 
       {/* ABBY Framework Visual */}

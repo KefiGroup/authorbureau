@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, hasTierAccess, TIERS } from "@/hooks/useAuth";
 import { useAbbyPlan } from "@/hooks/useAbbyPlan";
+import ROIBanner from "@/components/dashboard/ROIBanner";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import CourseStepRenderer from "./course/CourseStepRenderer";
 import HomeStudyStepRenderer from "./home-study/HomeStudyStepRenderer";
@@ -537,6 +538,15 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
               onImport={(pushData) => {
                 toast({ title: "Content imported!", description: "Pre-filled content is ready for editing." });
               }}
+            />
+          )}
+          {/* Compact ROI Banner */}
+          {user && bookId && (
+            <ROIBanner
+              bookId={bookId}
+              authorId={user.id}
+              tier={tier}
+              compact
             />
           )}
           <AnimatePresence mode="wait">
