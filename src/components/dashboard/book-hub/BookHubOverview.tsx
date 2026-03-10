@@ -439,10 +439,10 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
       )}
 
       {/* ROI Banner — Revenue Intelligence */}
-      {isAnalyzed && (
+      {isAnalyzed && authorId && (
         <ROIBanner
           bookId={book.id}
-          authorId={supabase.auth.getUser ? "" : ""}
+          authorId={authorId}
           tier={tier}
           onNavigateBuilder={(builderId) => onNavigateTab("revenue-streams")}
         />
