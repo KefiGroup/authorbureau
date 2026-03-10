@@ -327,7 +327,7 @@ export function useReviewProductCount() {
     if (!user) return;
     (async () => {
       let total = 0;
-      const tables = ["courses", "home_study_courses", "webinars", "audiobooks", "podcasts"] as const;
+      const tables = ["courses", "home_study_courses", "webinars", "audiobooks", "podcasts", "workbooks", "social_media_content", "email_flows", "coaching_packages"] as const;
       for (const table of tables) {
         const { count: c } = await supabase
           .from(table)
