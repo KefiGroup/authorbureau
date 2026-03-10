@@ -271,9 +271,16 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
             Your books, your journey, your revenue — all in one place.
           </p>
         </div>
-        <Button onClick={() => setShowForm(true)} className="bg-[#C4973B] hover:bg-[#D4A843] text-white w-fit">
-          <Plus className="h-4 w-4 mr-1.5" /> Add Book
-        </Button>
+        <div className="flex gap-2">
+          {isSubscribed && !stripeConnected && (
+            <Button variant="outline" size="sm" onClick={() => onNavigate?.("connect-stripe")} className="text-muted-foreground w-fit">
+              <CreditCard className="h-4 w-4 mr-1.5" /> Connect Stripe
+            </Button>
+          )}
+          <Button onClick={() => setShowForm(true)} className="bg-secondary text-secondary-foreground hover:bg-secondary/90 w-fit">
+            <Plus className="h-4 w-4 mr-1.5" /> Add Book
+          </Button>
+        </div>
       </div>
 
       {loading ? (
