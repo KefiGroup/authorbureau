@@ -229,27 +229,20 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
     ));
   };
 
-  // Generate all chapters sequentially
-  const handleGenerateAll = async () => {
-    if (chapters.length === 0) {
-      toast({ title: "No chapters", description: "Parse chapters first.", variant: "destructive" });
-      return;
-    }
-    setIsGenerating(true);
-    const session = (await supabase.auth.getSession()).data.session;
-    const authToken = session?.access_token || "";
+  // Regenerate a single chapter (with $9 confirmation gate)
+  const [regenConfirmIndex, setRegenConfirmIndex] = useState<number | null>(null);
 
-    for (let i = 0; i < chapters.length; i++) {
-      try {
-        await generateChapter(i, authToken);
-      } catch (e: any) {
-        setChapters(prev => prev.map((ch, idx) => idx === i ? { ...ch, status: "error", error: e.message } : ch));
-        toast({ title: `Chapter ${i + 1} failed`, description: e.message, variant: "destructive" });
-      }
-    }
-    setIsGenerating(false);
-    setCurrentChapter(-1);
-    toast({ title: "Audiobook generation complete!" });
+  const handleRegenerateSingle = (i: number) => {
+    setRegenConfirmIndex(i);
+  };
+
+  const confirmRegenerate = async () => {
+    if (regenConfirmIndex === null) return;
+    const i = regenConfirmIndex;
+    setRegenConfirmIndex(null);
+    // TODO: Wire Stripe $9 payment here before allowing regeneration
+    toast({ title: "Regeneration started", description: `Payment of $9 will be required in production.` });
+    await handleGenerateSingle(i);
   };
 
   // Generate a single chapter
