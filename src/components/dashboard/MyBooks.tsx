@@ -359,7 +359,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
                     {/* Bottom gradient overlay */}
                     <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/60 to-transparent" />
                     <label
-                      className="absolute bottom-2 left-2 flex items-center gap-1.5 text-white text-[11px] font-medium bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 cursor-pointer hover:bg-white/30 transition-colors"
+                      className="absolute bottom-2 left-2 flex items-center gap-1.5 text-white text-[11px] font-medium bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 cursor-pointer hover:bg-white/30 transition-colors opacity-0 group-hover:opacity-100"
                       htmlFor={`cover-upload-${book.id}`}
                     >
                       {uploadingCover === book.id ? (
