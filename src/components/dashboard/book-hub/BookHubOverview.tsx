@@ -49,6 +49,7 @@ function extractSections(fullContent: string): PlanSection[] {
 interface Book {
   id: string;
   title: string;
+  genre?: string | null;
 }
 
 interface Props {
