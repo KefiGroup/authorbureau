@@ -96,7 +96,7 @@ export default function MeetAbbySection({ hasPlan, planSummary, hasBook, onStart
             <div className="rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-4 flex items-center gap-3 flex-1">
               <BarChart3 className="h-6 w-6 text-blue-600 shrink-0" />
               <div>
-                <p className="font-bold text-lg text-foreground">27</p>
+                <p className="font-bold text-lg text-foreground">28</p>
                 <p className="text-[10px] text-muted-foreground">Revenue Streams Mapped</p>
               </div>
             </div>

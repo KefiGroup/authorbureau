@@ -145,7 +145,7 @@ Estimated monthly revenue range.
 Include: "1-on-1 strategic session with Pauline Teo, founder of Authors Bureau" as a premium bonus in this tier.
 
 **SECTION 5 — YOUR MONETIZATION MAP**
-Summarize how many of the 28 streams are activated in this plan, broken down by B·Build (7), B·Bridge (14), and Y·Yield (7). Show the progression: "X streams in Month 1-2 → Y streams by Month 6 → Z streams by Month 12."
+Summarize how many of the 28 streams are activated in this plan, broken down by B·Build (8), B·Bridge (8), and Y·Yield (12). Show the progression: "X streams in Month 1-2 → Y streams by Month 6 → Z streams by Month 12."
 
 **SECTION 6 — NEXT STEPS**
 Always end with clear, actionable next steps. Use the EXACT navigation markers below so the platform can render clickable buttons:
