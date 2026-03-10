@@ -436,6 +436,16 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
         <BuildMyBusinessButton tier={tier} recommendedCount={recommendations.length} />
       )}
 
+      {/* ROI Banner — Revenue Intelligence */}
+      {isAnalyzed && (
+        <ROIBanner
+          bookId={book.id}
+          authorId={supabase.auth.getUser ? "" : ""}
+          tier={tier}
+          onNavigateBuilder={(builderId) => onNavigateTab("revenue-streams")}
+        />
+      )}
+
       {/* ABBY Framework Visual */}
       <ABBYFrameworkVisual
         hasConsultation={isAnalyzed}
