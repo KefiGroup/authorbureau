@@ -54,6 +54,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
     proposal: null,
     generatedContent: "",
     error: null,
+    pushResult: null,
   });
   const abortRef = useRef<AbortController | null>(null);
 
