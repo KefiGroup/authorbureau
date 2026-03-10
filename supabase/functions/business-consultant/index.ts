@@ -92,7 +92,7 @@ Identify: Genre, core topic, target reader, the transformation/outcome the book 
 Identify: Professional background, existing audience size (email list, social media), speaking experience (none/some/experienced), coaching experience (none/some/experienced), time availability (part-time/full-time), revenue goals (side income/replace salary/build empire).
 
 **STEP 3 — Map Opportunities**
-For each of the 27 nodes, score the fit (High/Medium/Low/Not Applicable) based on the book content and author profile. Group them into:
+For each of the 28 nodes, score the fit (High/Medium/Low/Not Applicable) based on the book content and author profile. Group them into:
 - Quick Wins (can launch in 1-2 months with minimal effort)
 - Growth Engines (launch in 3-6 months, require some audience building)
 - Authority Plays (launch in 6-12 months, require established credibility)
