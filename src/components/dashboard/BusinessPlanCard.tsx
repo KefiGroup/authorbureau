@@ -133,13 +133,7 @@ export default function BusinessPlanCard({ plan }: { plan: AbbyPlan }) {
     setDownloading(true);
     try {
       const html = generatePlanHTML(plan);
-      const blob = await asBlob(html, { orientation: "portrait" }) as Blob;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `ABBY-Business-Plan-${plan.book_title.replace(/[^a-zA-Z0-9]/g, "-")}.docx`;
-      a.click();
-      URL.revokeObjectURL(url);
+      printExportHtml(html, `ABBY Business Plan - ${plan.book_title}`);
       toast({ title: "Downloaded!", description: "Your ABBY Business Plan has been saved as a Word document." });
     } catch (err) {
       console.error("Download failed:", err);
