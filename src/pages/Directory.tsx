@@ -45,8 +45,10 @@ const fadeUp = {
 };
 
 export default function Directory() {
-  const [search, setSearch] = useState("");
-  const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [search, setSearch] = useState(searchParams.get("q") || "");
+  const [selectedGenre, setSelectedGenre] = useState<string | null>(searchParams.get("genre") || null);
+  const [sortBy, setSortBy] = useState<string>(searchParams.get("sort") || "featured");
   const [dynamicAuthors, setDynamicAuthors] = useState<DirectoryAuthor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
