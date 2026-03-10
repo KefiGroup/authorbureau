@@ -26,7 +26,7 @@ const plans = [
       "1 product sales page",
       "+ 5% platform fee on sales",
     ],
-    unlockedCategories: ["B·Build (3 of 11)"],
+    unlockedCategories: ["B·Build (3 of 7)"],
   },
   {
     id: "pro" as const,
