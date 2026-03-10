@@ -47,6 +47,7 @@ export default function NewsletterSignup({ bookId, authorName, authorId }: Newsl
               name: result.data,
               source: "newsletter",
               source_detail: authorName,
+              author_id: authorId,
             }),
           }
         );
