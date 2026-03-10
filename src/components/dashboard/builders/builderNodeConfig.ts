@@ -163,11 +163,11 @@ const bookSalesBuilder: BuilderNodeConfig = {
 const onlineCourseBuilder: BuilderNodeConfig = {
   id: "online-course",
   label: "Online Course Builder",
-  category: "build",
+  category: "bridge",
   requiredTier: "pro",
   dbTable: "courses",
   icon: "PlayCircle",
-  color: "text-emerald-500",
+  color: "text-violet-500",
   customRenderer: "course",
   abbyGreeting: "Online courses are where authors build real recurring revenue. Let's transform your expertise into a structured learning experience.",
   abbyPublishMessage: "Your course is ready to launch! Connect it to Teachable or host it on your microsite. Next: consider your Audiobook.",
