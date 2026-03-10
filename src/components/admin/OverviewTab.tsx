@@ -67,9 +67,14 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
         "podcasts", "workbooks", "social_media_content", "email_flows", "coaching_packages",
       ] as const;
 
-      const countPromises = tables.map((t) =>
-        supabase.from(t).select("id", { count: "exact", head: true }).then((r) => r.count ?? 0).catch(() => 0)
-      );
+      const countPromises = tables.map(async (t) => {
+        try {
+          const r = await supabase.from(t).select("id", { count: "exact", head: true });
+          return r.count ?? 0;
+        } catch {
+          return 0;
+        }
+      });
       const counts = await Promise.all(countPromises);
       setProductCounts({
         courses: counts[0],
