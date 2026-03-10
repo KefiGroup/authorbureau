@@ -779,6 +779,53 @@ serve(async (req) => {
     const businessPlanAsset = existingAssets.find((a: any) => a.asset_type === "business_plan");
     const existingBusinessPlan = businessPlanAsset ? businessPlanAsset.content.slice(0, 20000) : null;
 
+    // --- MARKET RESEARCH: Fetch real-time market data for this genre ---
+    let marketResearchContext = "";
+    if (selectedBook?.genre && !builderMode) {
+      try {
+        const marketRes = await fetch(
+          `${Deno.env.get("SUPABASE_URL")}/functions/v1/market-research`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
+            },
+            body: JSON.stringify({
+              bookTitle: selectedBook.title,
+              genre: selectedBook.genre,
+              description: selectedBook.description?.slice(0, 500),
+            }),
+          }
+        );
+        if (marketRes.ok) {
+          const marketData = await marketRes.json();
+          if (marketData && !marketData.error) {
+            const parts: string[] = [];
+            parts.push(`=== LIVE MARKET RESEARCH (${marketData.dataTimestamp}) ===`);
+            parts.push(`Data sources: ${(marketData.dataSources || []).join(", ")}`);
+            if (marketData.marketIntelligence) {
+              parts.push(`\nMARKET INTELLIGENCE:\n${marketData.marketIntelligence.slice(0, 4000)}`);
+            }
+            if (marketData.pricingIntelligence) {
+              parts.push(`\nPRICING BENCHMARKS:\n${marketData.pricingIntelligence.slice(0, 2000)}`);
+            }
+            if (marketData.competitorProducts?.length > 0) {
+              parts.push(`\nCOMPETITOR PRODUCTS FOUND:\n${marketData.competitorProducts.map((p: any) => `- ${p.title}: ${p.snippet}`).join("\n").slice(0, 1500)}`);
+            }
+            if (marketData.amazonBestsellerContext) {
+              parts.push(`\nAMAZON BESTSELLER CONTEXT:\n${marketData.amazonBestsellerContext.slice(0, 1500)}`);
+            }
+            parts.push(`=== END MARKET RESEARCH ===`);
+            parts.push(`\nIMPORTANT: Use this real market data to make your recommendations SPECIFIC and DATA-DRIVEN. Instead of generic pricing like "$97-$497", use the actual prices competitors are charging in this niche. Reference trending topics and competitor products when recommending what to build first.`);
+            marketResearchContext = parts.join("\n");
+          }
+        }
+      } catch (err) {
+        console.warn("Market research fetch failed (non-blocking):", err);
+      }
+    }
+
     const contextBlock = `
 CURRENT CONTEXT:
 author_profile: ${JSON.stringify({
