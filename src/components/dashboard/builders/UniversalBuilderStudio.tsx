@@ -540,6 +540,15 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
               }}
             />
           )}
+          {/* Compact ROI Banner */}
+          {user && bookId && (
+            <ROIBanner
+              bookId={bookId}
+              authorId={user.id}
+              tier={tier}
+              compact
+            />
+          )}
           <AnimatePresence mode="wait">
             <motion.div
               key={currentStepConfig.id}
