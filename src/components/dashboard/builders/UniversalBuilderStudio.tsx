@@ -662,6 +662,8 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                         userId={user?.id || ""}
                         manuscriptSummary={manuscriptSummary}
                         frameworks={frameworks}
+                        onStartGeneration={() => builderGen.startAct1(bookId)}
+                        builderAct={builderGen.act}
                       />
                     );
                   }

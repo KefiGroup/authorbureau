@@ -1,8 +1,9 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Wand2 } from "lucide-react";
+import { Sparkles, Wand2 } from "lucide-react";
 import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 import type { HomeStudyStepProps } from "./types";
 
@@ -32,21 +33,79 @@ const FORMATS = [
   { label: "Digital Interactive", value: "interactive", desc: "Online experience with progress tracking" },
 ];
 
-export default function ProgramSetupStep({ stepData, setStepData, onMarkEdited, plan }: HomeStudyStepProps) {
+export default function ProgramSetupStep({ stepData, setStepData, onMarkEdited, plan, onStartGeneration, builderAct }: HomeStudyStepProps) {
   const data = stepData.setup || {};
+  const isEmpty = !data.title && !data.duration && !data.commitment;
+  const isIdle = !builderAct || builderAct === "idle";
 
   const update = (field: string, value: any) => {
     setStepData(prev => ({ ...prev, setup: { ...prev.setup, [field]: value } }));
     onMarkEdited("setup");
   };
 
+  // Show prominent AI CTA when form is empty
+  if (isEmpty && isIdle) {
+    return (
+      <div className="space-y-6">
+        {/* Primary CTA: Let Abby design everything */}
+        <Card className="p-8 border-secondary/30 bg-gradient-to-br from-secondary/5 to-secondary/10 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-secondary/15 flex items-center justify-center mx-auto mb-5">
+            <Sparkles className="h-8 w-8 text-secondary" />
+          </div>
+          <h3 className="font-heading text-xl font-bold mb-2">
+            Let Abby Design Your Home Study Program
+          </h3>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6 leading-relaxed">
+            Abby will analyze your manuscript, propose a complete program structure with title options, 
+            optimal duration, pricing, and a day-by-day curriculum — all tailored to your book's content.
+          </p>
+          <Button
+            onClick={onStartGeneration}
+            className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold h-12 px-8 text-sm"
+          >
+            <Sparkles className="h-4 w-4 mr-2" /> Let Abby Design This Program
+          </Button>
+          <p className="text-[10px] text-muted-foreground/60 mt-4">
+            You'll review and edit Abby's proposal before anything is generated
+          </p>
+        </Card>
+
+        {/* Secondary option: manual setup */}
+        <div className="text-center">
+          <p className="text-xs text-muted-foreground mb-2">Or set up manually:</p>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs text-muted-foreground"
+            onClick={() => update("_manualMode", true)}
+          >
+            <Wand2 className="h-3 w-3 mr-1" /> I'll configure it myself
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <AbbyRecommendationCard>
-        <p className="text-sm text-foreground leading-relaxed">
-          A <strong>21-day home study program</strong> is the sweet spot — long enough for transformation, short enough to complete. Pair it with daily audio prompts for <strong>3x higher completion rates</strong>.
-        </p>
-      </AbbyRecommendationCard>
+      {/* Abby can still be triggered if form has some data */}
+      {isIdle && onStartGeneration && (
+        <AbbyRecommendationCard>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-foreground leading-relaxed">
+              Want Abby to propose the optimal program design? She'll analyze your manuscript and suggest title, 
+              duration, pricing, and a full curriculum.
+            </p>
+            <Button
+              onClick={onStartGeneration}
+              size="sm"
+              className="shrink-0 rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90"
+            >
+              <Sparkles className="h-3.5 w-3.5 mr-1" /> Design with AI
+            </Button>
+          </div>
+        </AbbyRecommendationCard>
+      )}
 
       {/* Title */}
       <div className="space-y-2">

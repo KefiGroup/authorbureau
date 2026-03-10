@@ -8,6 +8,8 @@ export interface HomeStudyStepProps {
   generationState: "idle" | "queued" | "analyzing" | "generating" | "complete" | "error";
   setGenerationState: (s: "idle" | "queued" | "analyzing" | "generating" | "complete" | "error") => void;
   userId: string;
+  onStartGeneration?: () => void;
+  builderAct?: string;
 }
 
 export interface StudyDay {
