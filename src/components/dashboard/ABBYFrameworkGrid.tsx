@@ -79,9 +79,9 @@ const CY = H / 2;
 // Hub positions (absolute SVG coords)
 const HUBS: Record<number, { x: number; y: number; startAngle: number; sweep: number; radius: number }> = {
   0: { x: 220, y: 260, startAngle: 120, sweep: 280, radius: 180 },   // Analyze – 10 nodes, top-left
-  1: { x: 220, y: 600, startAngle: 160, sweep: 200, radius: 150 },   // Build – 5 nodes, bottom-left
-  2: { x: 960, y: 600, startAngle: -60, sweep: 300, radius: 180 },   // Bridge – 9 nodes, wide wrap
-  3: { x: 960, y: 260, startAngle: -120, sweep: 180, radius: 160 },  // Yield – 4 nodes, fan upward
+  1: { x: 220, y: 600, startAngle: 160, sweep: 200, radius: 150 },   // Build – 7 nodes, bottom-left
+  2: { x: 960, y: 600, startAngle: -60, sweep: 300, radius: 180 },   // Bridge – 14 nodes, wide wrap
+  3: { x: 960, y: 260, startAngle: -120, sweep: 180, radius: 160 },  // Yield – 8 nodes, fan upward
 };
 
 function getNodePositions(count: number, cx: number, cy: number, radius: number, startAngle: number, sweep: number) {
