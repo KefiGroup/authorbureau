@@ -65,7 +65,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
 
   // ── ACT 1: Analyze ─────────────────────────────────────────────
   const startAct1 = useCallback(async (bookId: string) => {
-    setState({ act: "act1_loading", proposal: null, generatedContent: "", error: null });
+    setState({ act: "act1_loading", proposal: null, generatedContent: "", error: null, pushResult: null });
 
     try {
       const token = await getToken();
