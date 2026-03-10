@@ -31,7 +31,6 @@ const STREAMS: StreamGroup[] = [
       { label: "Online Courses", price: "$97–$497", status: "locked", requiredTier: "Pro" },
       { label: "Home Study Courses", price: "$27–$97", status: "locked", requiredTier: "Starter" },
       { label: "Workbooks", price: "$0–$27 (lead magnet)", status: "locked", requiredTier: "Starter" },
-      { label: "Audiobook", price: "$9.99–$24.99", status: "locked", requiredTier: "Pro" },
       { label: "Monthly Memberships", price: "$9–$97/mo", status: "locked", requiredTier: "Pro" },
       { label: "Upsells / Downsells", price: "Varies", status: "locked", requiredTier: "Starter" },
       { label: "Social Media Calendar", price: "Marketing asset", status: "locked", requiredTier: "Starter" },
