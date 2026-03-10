@@ -147,8 +147,6 @@ export default function Navbar() {
                   >
                     Get Featured
                   </Link>
-                    Get Featured
-                  </Link>
                 </>
               )}
             </div>
