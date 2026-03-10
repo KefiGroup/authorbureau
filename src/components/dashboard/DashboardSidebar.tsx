@@ -130,7 +130,7 @@ export default function DashboardSidebar({
         const isLocked = !!item.lockMessage;
         const isActive = activeSection === item.id && !isLocked;
 
-        return (
+        const btn = (
           <button
             key={`${item.id}-${idx}`}
             onClick={() => {
@@ -152,7 +152,12 @@ export default function DashboardSidebar({
             <item.icon className={`h-4 w-4 shrink-0 ${!isActive && item.color ? item.color : ""}`} />
             {!collapsed && (
               <>
-                <span className="flex-1 text-left whitespace-normal leading-tight">{item.label}</span>
+                <span className="flex-1 text-left whitespace-normal leading-tight">
+                  <span className="block">{item.label}</span>
+                  {item.subtitle && (
+                    <span className="block text-[10px] font-normal text-muted-foreground/50 leading-tight">{item.subtitle}</span>
+                  )}
+                </span>
                 {isLocked && <Lock className="h-3 w-3 text-muted-foreground/30" />}
                 {item.badge && !isLocked && (
                   <span className="text-[10px] text-muted-foreground/60 font-normal">{item.badge}</span>
@@ -166,6 +171,18 @@ export default function DashboardSidebar({
             )}
           </button>
         );
+
+        if (item.tooltip) {
+          return (
+            <Tooltip key={`${item.id}-${idx}`}>
+              <TooltipTrigger asChild>{btn}</TooltipTrigger>
+              <TooltipContent side="right" className="max-w-[220px] text-xs">
+                {item.tooltip}
+              </TooltipContent>
+            </Tooltip>
+          );
+        }
+        return btn;
       })}
     </div>
   );
