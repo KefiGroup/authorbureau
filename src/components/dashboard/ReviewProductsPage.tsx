@@ -274,6 +274,39 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
           </div>
         </DialogContent>
       </Dialog>
+      {/* Home Study Export Modal */}
+      <HomeStudyExportModal
+        open={!!exportProduct}
+        onOpenChange={() => setExportProduct(null)}
+        product={exportProduct}
+        fetchContent={exportProduct ? async () => {
+          // Fetch the builder draft for this home study course
+          if (!user) return null;
+          const { data: asset } = await supabase
+            .from("generated_assets")
+            .select("content")
+            .eq("author_id", user.id)
+            .eq("book_id", exportProduct.bookId)
+            .eq("asset_type", "builder_draft_home-study")
+            .maybeSingle();
+
+          if (!asset?.content) return null;
+          try {
+            const parsed = JSON.parse(asset.content);
+            const sd = parsed.stepData || {};
+            const { data: profile } = await supabase
+              .from("author_profiles")
+              .select("pen_name")
+              .eq("user_id", user.id)
+              .maybeSingle();
+            return {
+              setup: sd.setup || { title: exportProduct.title, description: exportProduct.description || "", duration: 30, commitment: 30, level: "Beginner" },
+              days: sd.schedule?.days || [],
+              authorName: profile?.pen_name || "Author",
+            };
+          } catch { return null; }
+        } : undefined}
+      />
     </div>
   );
 }
