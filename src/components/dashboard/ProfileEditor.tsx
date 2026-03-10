@@ -425,6 +425,22 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
               <Input value={profile.pen_name} onChange={e => setProfile(prev => ({ ...prev, pen_name: e.target.value }))} placeholder="Your author name" />
             </div>
             <div>
+              <Label className="text-xs">Profile URL Slug</Label>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">authorsbureau.com/authors/</span>
+                <Input
+                  value={profile.author_slug}
+                  onChange={e => {
+                    const val = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "").replace(/--+/g, "-");
+                    setProfile(prev => ({ ...prev, author_slug: val }));
+                  }}
+                  placeholder="your-name"
+                  className="font-mono text-sm"
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">Lowercase letters, numbers, and hyphens only. Leave blank to auto-generate from your name.</p>
+            </div>
+            <div>
               <Label className="text-xs">Tagline</Label>
               <Input value={profile.tagline} onChange={e => setProfile(prev => ({ ...prev, tagline: e.target.value }))} placeholder="e.g. Bestselling author of..." />
             </div>
