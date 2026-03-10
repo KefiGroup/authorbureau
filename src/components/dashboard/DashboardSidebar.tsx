@@ -138,7 +138,7 @@ export default function DashboardSidebar({
             <item.icon className={`h-4 w-4 shrink-0 ${!isActive && item.color ? item.color : ""}`} />
             {!collapsed && (
               <>
-                <span className="truncate flex-1 text-left">{item.label}</span>
+                <span className="flex-1 text-left whitespace-normal leading-tight">{item.label}</span>
                 {isLocked && <Lock className="h-3 w-3 text-muted-foreground/30" />}
                 {item.badge && !isLocked && (
                   <span className="text-[10px] text-muted-foreground/60 font-normal">{item.badge}</span>
