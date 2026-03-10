@@ -279,7 +279,45 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
     setPlayingIndex(index);
   };
 
-  const doneCount = chapters.filter(c => c.status === "done").length;
+  // Programmatic download helper
+  const downloadFile = async (url: string, filename: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      // Fallback: open in new tab
+      window.open(url, "_blank");
+    }
+  };
+
+  const handleDownloadChapter = async (ch: ChapterAudio) => {
+    const urls = ch.audioUrls || (ch.audioUrl ? [ch.audioUrl] : []);
+    for (let i = 0; i < urls.length; i++) {
+      const suffix = urls.length > 1 ? `-part${i + 1}` : "";
+      const filename = `${bookTitle} - ${ch.title}${suffix}.mp3`;
+      await downloadFile(urls[i], filename);
+      if (urls.length > 1) await new Promise(r => setTimeout(r, 500)); // stagger downloads
+    }
+    toast({ title: "Download started", description: `${ch.title} (${urls.length} file${urls.length > 1 ? "s" : ""})` });
+  };
+
+  const handleDownloadAll = async () => {
+    const doneChapters = chapters.filter(c => c.status === "done");
+    if (doneChapters.length === 0) return;
+    toast({ title: "Downloading all chapters…", description: `${doneChapters.length} chapters will be downloaded.` });
+    for (const ch of doneChapters) {
+      await handleDownloadChapter(ch);
+      await new Promise(r => setTimeout(r, 800));
+    }
+  };
   const progressPercent = chapters.length > 0 ? Math.round((doneCount / chapters.length) * 100) : 0;
   const hasManuscript = manuscript.length > 0;
 
