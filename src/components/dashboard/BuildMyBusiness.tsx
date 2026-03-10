@@ -640,7 +640,7 @@ export default function BuildMyBusiness() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-3xl mx-auto">
                 {[
                   { emoji: "📄", title: "Personalized Business Plan", desc: "Up to 27 revenue streams mapped from your book content" },
-                  { emoji: "🏷️", title: "Branded Product Recommendations", desc: "Product names, pricing, and descriptions ready to build", highlight: true },
+                  { emoji: "📊", title: "Market-Aware Business Plan", desc: "Product recommendations, pricing, and positioning based on Abby's real-time market research and live genre analysis.", highlight: true },
                   { emoji: "📈", title: "Revenue Projections", desc: "Monthly and yearly estimates based on your genre and audience" },
                 ].map((card) => (
                   <Card key={card.title} className={`p-4 text-center ${card.highlight ? "ring-1 ring-secondary/30 bg-secondary/5" : ""}`}>
@@ -653,6 +653,9 @@ export default function BuildMyBusiness() {
               </div>
               <p className="text-xs text-muted-foreground text-center mt-3">
                 ⏱️ Takes about 5 minutes · 💬 Interactive chat · 📄 Saved forever
+              </p>
+              <p className="text-xs text-secondary font-medium text-center mt-2 flex items-center justify-center gap-1.5">
+                📊 Backed by Abby's real-time market research
               </p>
             </div>
 

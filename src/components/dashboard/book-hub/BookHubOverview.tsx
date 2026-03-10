@@ -10,11 +10,13 @@ import ABBYFrameworkVisual from "./ABBYFrameworkVisual";
 import ROIBanner from "@/components/dashboard/ROIBanner";
 import FreeTrialTeaser from "@/components/dashboard/builders/FreeTrialTeaser";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
+import MarketSnapshot from "./MarketSnapshot";
 import { supabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { asBlob } from "html-docx-js-typescript";
 import { useToast } from "@/hooks/use-toast";
 import { useAbbyPlan } from "@/hooks/useAbbyPlan";
+import { useMarketResearch } from "@/hooks/useMarketResearch";
 import type { SubscriptionTier } from "@/hooks/useAuth";
 import { hasTierAccess } from "@/hooks/useAuth";
 
