@@ -74,7 +74,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
     const drafts: DraftProduct[] = [];
 
     try {
-      const tables = ["courses", "home_study_courses", "webinars", "audiobooks", "podcasts"] as const;
+      const tables = ["courses", "home_study_courses", "webinars", "audiobooks", "podcasts", "workbooks", "social_media_content", "email_flows", "coaching_packages"] as const;
 
       for (const table of tables) {
         const { data } = await supabase
