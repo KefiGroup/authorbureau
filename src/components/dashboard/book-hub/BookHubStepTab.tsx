@@ -210,9 +210,15 @@ export default function BookHubStepTab({ categoryId, bookId, bookTitle, bookGenr
       {/* Product Grid */}
       <div className="space-y-8">
         {(() => {
+          // BUG-042: Rename generic labels to descriptive ones
+          const labelMap: Record<string, string> = {
+            "Other": "Premium Programs & Live Events",
+            "Pro Products": "Digital Products", // BUG-036: Remove tier references
+          };
           const groups: { name: string; nodes: ProductNode[] }[] = [];
           catData.nodes.forEach((node) => {
-            const groupName = node.group || "Other";
+            const rawGroup = node.group || "Other";
+            const groupName = labelMap[rawGroup] || rawGroup;
             const existing = groups.find((g) => g.name === groupName);
             if (existing) existing.nodes.push(node);
             else groups.push({ name: groupName, nodes: [node] });
@@ -232,6 +238,8 @@ export default function BookHubStepTab({ categoryId, bookId, bookTitle, bookGenr
                   const nodeAccessible = hasTierAccess(tier, node.requiredTier);
                   const isClickable = canOpen && Boolean(studioPath) && nodeAccessible;
                   const canBuild = (node.status === "available" || node.status === "coming-soon") && nodeAccessible && plan;
+                  const isPlanned = node.status === "planned";
+                  const isNotified = notifiedNodes.has(node.id);
 
                   // Lock info for inaccessible nodes
                   const lockLabel = !nodeAccessible
@@ -241,6 +249,24 @@ export default function BookHubStepTab({ categoryId, bookId, bookTitle, bookGenr
                         ? "Upgrade to Pro"
                         : "Subscribe to unlock"
                     : null;
+
+                  // BUG-040: Handle Notify Me
+                  const handleNotifyMe = async (e: React.MouseEvent) => {
+                    e.stopPropagation();
+                    if (!user) return;
+                    try {
+                      await supabase.from("feature_requests").insert({
+                        author_id: user.id,
+                        book_id: bookId,
+                        request_type: node.id,
+                        status: "pending",
+                      });
+                      setNotifiedNodes(prev => new Set(prev).add(node.id));
+                      toast({ title: "We'll notify you!", description: `You'll be notified when ${node.label} becomes available.` });
+                    } catch {
+                      toast({ title: "Error", description: "Could not register interest. Please try again.", variant: "destructive" });
+                    }
+                  };
 
                   return (
                     <motion.div
@@ -313,6 +339,20 @@ export default function BookHubStepTab({ categoryId, bookId, bookTitle, bookGenr
                             >
                               <Zap className="h-3 w-3 text-secondary" />
                               Build Now
+                            </Button>
+                          )}
+
+                          {/* BUG-040: Notify Me button for planned products */}
+                          {isPlanned && !isCompleted && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={isNotified}
+                              className="mt-2 text-[11px] gap-1.5 h-7"
+                              onClick={handleNotifyMe}
+                            >
+                              <Bell className="h-3 w-3" />
+                              {isNotified ? "We'll Notify You!" : "Notify Me"}
                             </Button>
                           )}
 
