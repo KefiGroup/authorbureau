@@ -42,12 +42,22 @@ async function requireAuth(req: Request, supabase: any) {
   if (!authHeader?.startsWith("Bearer ")) {
     return { error: "Unauthorized", status: 401 };
   }
-  const token = authHeader.replace("Bearer ", "");
-  const { data, error } = await supabase.auth.getClaims(token);
-  if (error || !data?.claims) {
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) {
     return { error: "Unauthorized", status: 401 };
   }
-  return { claims: data.claims };
+  return { user };
+}
+
+// ── Validation helpers ────────────────────────────────────────────
+function validateEnum<T extends string>(value: unknown, allowed: T[], fallback: T): T {
+  return typeof value === "string" && (allowed as string[]).includes(value) ? value as T : fallback;
+}
+
+function validateUrl(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim().slice(0, 500);
+  return trimmed.startsWith("https://") ? trimmed : null;
 }
 
 // ── Rate limit helper ─────────────────────────────────────────────
