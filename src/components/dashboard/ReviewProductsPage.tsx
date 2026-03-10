@@ -32,6 +32,10 @@ const typeIcons: Record<string, React.ElementType> = {
   webinars: Video,
   audiobooks: Headphones,
   podcasts: Podcast,
+  workbooks: FileText,
+  social_media_content: FileText,
+  email_flows: FileText,
+  coaching_packages: FileText,
 };
 
 const typeLabels: Record<string, string> = {
@@ -40,6 +44,10 @@ const typeLabels: Record<string, string> = {
   webinars: "Webinar",
   audiobooks: "Audiobook",
   podcasts: "Podcast",
+  workbooks: "Workbook",
+  social_media_content: "Social Media Calendar",
+  email_flows: "Email Marketing",
+  coaching_packages: "Coaching Package",
 };
 
 interface Props {
