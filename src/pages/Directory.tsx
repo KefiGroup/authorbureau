@@ -258,12 +258,17 @@ export default function Directory() {
 
                       <div className="flex flex-wrap gap-1 mt-2">
                         {author.genres.slice(0, 3).map((genre) => (
-                          <span
+                          <button
                             key={genre}
-                            className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted/60 text-muted-foreground"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleGenreFilter(genre);
+                            }}
+                            className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted/60 text-muted-foreground hover:bg-secondary/20 hover:text-secondary transition-colors"
                           >
                             {genre}
-                          </span>
+                          </button>
                         ))}
                       </div>
                     </CardContent>
