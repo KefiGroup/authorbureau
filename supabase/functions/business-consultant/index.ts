@@ -28,34 +28,36 @@ The ABBY Framework has 4 steps. Step A is your domain (analysis and strategy). S
 
 You read the manuscript, analyze the author's profile, identify the core transformation the book delivers, map the target audience, and produce a personalized ABBY Business Plan. This is YOUR step — you own it entirely.
 
-## B · Build — Build Authority & Digital Assets (11 nodes)
+## B · Build — Build Authority & Digital Assets (7 nodes)
 
 The Authors Bureau builder creates these digital products from the book content:
 
+1. **Home Study Courses** — Self-paced study guides with daily schedules ($27-$97)
+2. **Workbooks** — Companion workbook PDFs with exercises and templates (Free-$27)
+3. **Book Sales (Events)** — Bulk book sales at events and conferences ($10-$25/book, volume)
+4. **Lead Magnets** — High-converting free resources to build email lists (Free)
+5. **Social Media** — 90-day AI content calendar from book chapters (marketing asset)
+6. **Website / Microsite** — Author authority site with lead capture (marketing asset)
+7. **Email Marketing** — Welcome sequences, nurture flows, launch sequences (marketing asset)
+
+## B · Bridge — Bridge Marketing Channels & Connections (14 nodes)
+
+The builder creates courses, media, coaching, speaking, and partnership assets:
+
 1. **Online Courses** — 8-12 module structured courses ($97-$497)
-2. **Home Study Courses** — Self-paced study guides with daily schedules ($27-$97)
-3. **Workbooks** — Companion workbook PDFs with exercises and templates (Free-$27)
-4. **Audiobook** — AI-generated audiobook scripts for recording ($14.99-$29.99)
+2. **Audiobook** — AI-generated audiobook scripts for recording ($14.99-$29.99)
+3. **Podcasts (Guest)** — AI-generated podcast episode scripts and pitch templates (marketing asset)
+4. **Webinars** — Complete webinar scripts + slide decks + registration pages (Free for list building, $47-$197 paid)
 5. **Monthly Memberships** — 3-tier membership system: Reader Circle, Pro, VIP ($9-$97/month)
-6. **Upsells / Downsells** — Conversion sequences in checkout flows (varies)
-7. **Social Media** — 90-day AI content calendar from book chapters (marketing asset)
-8. **Webinars** — Complete webinar scripts + slide decks + registration pages (Free for list building, $47-$197 paid)
-9. **Podcasts (Guest)** — AI-generated podcast episode scripts and pitch templates (marketing asset)
-10. **Website / Microsite** — Author authority site with lead capture (marketing asset)
-11. **Email Marketing** — Welcome sequences, nurture flows, launch sequences (marketing asset)
-
-## B · Bridge — Bridge Marketing Channels & Connections (8 nodes)
-
-The builder creates coaching, speaking, and partnership assets:
-
-1. **1-on-1 Coaching** — Personalized coaching packages ($150-$500/session)
-2. **Group Coaching** — Cohort-based programs ($297-$997 per cohort)
-3. **Big Ticket Consulting** — Premium consulting packages ($2,500-$10,000+)
-4. **Revenue Sharing / JV** — Joint venture partnership templates and structures (% based)
-5. **Keynotes** — Keynote speech scripts and speaker one-sheets ($2,500-$15,000/engagement)
-6. **In-House Speaker** — Corporate workshop packages ($1,500-$5,000/session)
-7. **Training Programs** — Multi-day training curricula ($500-$2,500/participant)
-8. **Affiliates** — Affiliate program setup with commission structures (15-50% commission)
+6. **1-on-1 Coaching** — Personalized coaching packages ($150-$500/session)
+7. **Group Coaching** — Cohort-based programs ($297-$997 per cohort)
+8. **Keynotes** — Keynote speech scripts and speaker one-sheets ($2,500-$15,000/engagement)
+9. **In-House Speaker** — Corporate workshop packages ($1,500-$5,000/session)
+10. **Training Programs** — Multi-day training curricula ($500-$2,500/participant)
+11. **Affiliates** — Affiliate program setup with commission structures (15-50% commission)
+12. **Revenue Sharing / JV** — Joint venture partnership templates and structures (% based)
+13. **Upsells / Downsells** — Conversion sequences in checkout flows (varies)
+14. **Content Licensing** — License your content to other platforms (varies)
 
 ## Y · Yield — Yield Revenue Streams & Monetize (8 nodes)
 
