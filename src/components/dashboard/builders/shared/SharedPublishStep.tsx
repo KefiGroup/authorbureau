@@ -28,6 +28,7 @@ interface Props {
   publishFn?: (stepData: Record<string, any>, userId: string) => Promise<void>;
   userId: string;
   exportKeys?: string[]; // keys from stepData to include in export
+  onNavigate?: (section: string) => void;
 }
 
 export default function SharedPublishStep({
