@@ -153,7 +153,7 @@ export default function ABBYFrameworkVisual({ hasConsultation, tier, completedAs
             <h4 className="font-heading font-bold text-base">
               {isAnalyzed
                 ? `${totalRecommended} of ${totalNodes} streams recommended · ${totalBuilt} built`
-                : "0 of 27 streams activated — Analyze with Abby to get started"
+                : "0 of 29 streams activated — Analyze with Abby to get started"
               }
             </h4>
           </div>

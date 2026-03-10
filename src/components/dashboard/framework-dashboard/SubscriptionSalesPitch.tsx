@@ -118,9 +118,9 @@ function getBreakEven(planPrice: number, products: PlanAnalysisData["products"])
 
 function getRevenueHookText(tier: SubscriptionTier): string {
   switch (tier) {
-    case "starter": return "You've unlocked 3 builders. Upgrade to access all 27 revenue streams.";
-    case "pro": return "You've unlocked 19 builders. Upgrade to Enterprise for retreats, certification, and a 1-on-1 session with Pauline Teo.";
-    case "enterprise": return "You have full access to all 27 builders. Start building!";
+    case "starter": return "You've unlocked 3 builders. Upgrade to access all 29 revenue streams.";
+    case "pro": return "You've unlocked 21 builders. Upgrade to Enterprise for retreats, certification, and a 1-on-1 session with Pauline Teo.";
+    case "enterprise": return "You have full access to all 29 builders. Start building!";
     default: return "";
   }
 }
