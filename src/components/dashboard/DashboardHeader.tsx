@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { LogOut, Crown, Menu, Shield, Settings, User, ChevronDown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
