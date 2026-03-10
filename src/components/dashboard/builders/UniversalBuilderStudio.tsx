@@ -632,6 +632,14 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                         Continue to Next Step <ArrowRight className="h-3.5 w-3.5 ml-1" />
                       </Button>
                     </div>
+                    {/* Cross-builder push summary */}
+                    {user && bookId && (
+                      <CrossBuilderPushSummary
+                        builderId={nodeConfig.id}
+                        authorId={user.id}
+                        bookId={bookId}
+                      />
+                    )}
                   </Card>
                 )}
 
