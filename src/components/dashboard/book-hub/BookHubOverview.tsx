@@ -449,6 +449,17 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
         />
       )}
 
+      {/* Free-to-Paid Conversion Teaser — only for free-tier analyzed users */}
+      {isAnalyzed && tier === "free" && (
+        <FreeTrialTeaser
+          bookTitle={book.title}
+          bookId={book.id}
+          currentTier={tier}
+          hasBusinessPlan={planSections.length > 0 || !!plan}
+          onNavigate={(section) => onNavigateTab(section)}
+        />
+      )}
+
       {/* ABBY Framework Visual */}
       <ABBYFrameworkVisual
         hasConsultation={isAnalyzed}
