@@ -52,9 +52,20 @@ interface MyBooksProps {
   isPremium?: boolean;
   onNavigate?: (section: string) => void;
   stripeConnected?: boolean;
+  centralStats?: {
+    bookCount: number;
+    liveMicrosites: number;
+    analyzedCount: number;
+    products: {
+      totalBuilt: number;
+      totalReadyForReview: number;
+      totalPublished: number;
+      perBook: Record<string, number>;
+    };
+  };
 }
 
-export default function MyBooks({ isPremium = false, onNavigate, stripeConnected = false }: MyBooksProps) {
+export default function MyBooks({ isPremium = false, onNavigate, stripeConnected = false, centralStats }: MyBooksProps) {
   const { user, tier, isAdmin } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -178,7 +189,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
       hasMicrosite: !!book.published_at,
       isAnalyzed: analyzedBooks.has(book.id),
       isSubscribed,
-      productsBuilt: productCounts[book.id] || 0,
+      productsBuilt: getBookProductCount(book.id),
       hasRevenue: false, // TODO: integrate real revenue data
     });
   };
@@ -196,7 +207,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
       label: "Subscribe to Start Building", icon: CreditCard, bg: "bg-[#6366F1] hover:bg-[#6366F1]/90",
       action: () => onNavigate?.("build-business"),
     };
-    if ((productCounts[book.id] || 0) === 0) return {
+    if (getBookProductCount(book.id) === 0) return {
       label: "Start Building", icon: Rocket, bg: "bg-[#0D9488] hover:bg-[#0D9488]/90",
       action: () => navigate(`/dashboard/book/${book.id}`),
     };
@@ -232,12 +243,12 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
     }
   };
 
-  // Stats
-  // BUG-021: Only count books with published_at as live microsites
-  const liveCount = books.filter(b => !!b.published_at).length;
-  const analyzedCount = analyzedBooks.size;
-  const totalProductsBuilt = Object.values(productCounts).reduce((s, c) => s + c, 0);
+  // Stats — use centralized stats as single source of truth when available
+  const liveCount = centralStats?.liveMicrosites ?? books.filter(b => !!b.published_at).length;
+  const analyzedCount = centralStats?.analyzedCount ?? analyzedBooks.size;
+  const totalProductsBuilt = centralStats?.products.totalBuilt ?? Object.values(productCounts).reduce((s, c) => s + c, 0);
   const totalRecommended = analyzedCount * 12; // estimated, ideally from Abby
+  const getBookProductCount = (bookId: string) => centralStats?.products.perBook[bookId] ?? productCounts[bookId] ?? 0;
 
   // Form view
   if (showForm && user) {
@@ -340,7 +351,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
               const hasManuscript = manuscriptBooks.has(book.id);
               const cta = getPrimaryCTA(book);
               const CTAIcon = cta.icon;
-              const builtCount = productCounts[book.id] || 0;
+              const builtCount = getBookProductCount(book.id);
               const isBestseller = book.badges?.some(b => b.toLowerCase().includes("bestseller"));
 
               return (
