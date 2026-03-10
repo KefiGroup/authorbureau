@@ -104,13 +104,31 @@ export default function Directory() {
 
   const allGenres = [...new Set(allAuthors.flatMap((a) => a.genres))];
 
+  const handleGenreFilter = (genre: string | null) => {
+    setSelectedGenre(genre);
+    const params = new URLSearchParams(searchParams);
+    if (genre) params.set("genre", genre); else params.delete("genre");
+    setSearchParams(params, { replace: true });
+  };
+
   const filtered = allAuthors.filter((a) => {
     const matchesSearch =
       !search ||
       a.name.toLowerCase().includes(search.toLowerCase()) ||
-      a.title.toLowerCase().includes(search.toLowerCase());
+      a.title.toLowerCase().includes(search.toLowerCase()) ||
+      a.shortBio.toLowerCase().includes(search.toLowerCase());
     const matchesGenre = !selectedGenre || a.genres.includes(selectedGenre);
     return matchesSearch && matchesGenre;
+  });
+
+  // Sort
+  const sorted = [...filtered].sort((a, b) => {
+    if (sortBy === "name") return a.name.localeCompare(b.name);
+    if (sortBy === "featured") {
+      const order = { "ab-verified": 0, featured: 1, verified: 2, listed: 3 };
+      return (order[a.badge] ?? 3) - (order[b.badge] ?? 3);
+    }
+    return 0;
   });
 
   return (
