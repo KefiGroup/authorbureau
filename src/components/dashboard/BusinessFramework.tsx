@@ -12,6 +12,12 @@ type Node = AbbyNode;
 type Category = AbbyCategoryConfig;
 const categories = ABBY_CATEGORY_LIST;
 
+interface Props {
+  onNavigate: (section: DashboardSection | string) => void;
+  isPremium: boolean;
+  focusStep?: string;
+}
+
 const statusStyles = {
   available: { badge: "Available", className: "bg-accent/15 text-accent border-accent/30" },
   "coming-soon": { badge: "Building", className: "bg-amber-500/15 text-amber-700 dark:text-amber-400" },

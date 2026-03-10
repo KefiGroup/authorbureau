@@ -50,7 +50,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
   const [recommendations, setRecommendations] = useState<AbbyRecommendation[]>([]);
   const [builtProducts, setBuiltProducts] = useState<Set<string>>(new Set());
   const [publishedProducts, setPublishedProducts] = useState<Set<string>>(new Set());
-  const category = categoryConfigs[categoryId];
+  const category = ABBY_CATEGORIES[categoryId as AbbyCategory];
 
   useEffect(() => {
     async function fetchData() {
