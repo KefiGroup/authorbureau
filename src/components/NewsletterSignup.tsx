@@ -14,7 +14,7 @@ interface NewsletterSignupProps {
   authorId?: string;
 }
 
-export default function NewsletterSignup({ bookId, authorName }: NewsletterSignupProps) {
+export default function NewsletterSignup({ bookId, authorName, authorId }: NewsletterSignupProps) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
