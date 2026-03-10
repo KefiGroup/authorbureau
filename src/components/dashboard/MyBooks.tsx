@@ -52,6 +52,17 @@ interface MyBooksProps {
   isPremium?: boolean;
   onNavigate?: (section: string) => void;
   stripeConnected?: boolean;
+  centralStats?: {
+    bookCount: number;
+    liveMicrosites: number;
+    analyzedCount: number;
+    products: {
+      totalBuilt: number;
+      totalReadyForReview: number;
+      totalPublished: number;
+      perBook: Record<string, number>;
+    };
+  };
 }
 
 export default function MyBooks({ isPremium = false, onNavigate, stripeConnected = false }: MyBooksProps) {
