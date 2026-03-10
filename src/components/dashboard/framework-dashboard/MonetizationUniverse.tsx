@@ -31,7 +31,6 @@ const STREAMS: StreamGroup[] = [
       { label: "Online Courses", price: "$97–$497", status: "locked", requiredTier: "Pro" },
       { label: "Home Study Courses", price: "$27–$97", status: "locked", requiredTier: "Starter" },
       { label: "Workbooks", price: "$0–$27 (lead magnet)", status: "locked", requiredTier: "Starter" },
-      { label: "Audiobook", price: "$9.99–$24.99", status: "locked", requiredTier: "Pro" },
       { label: "Monthly Memberships", price: "$9–$97/mo", status: "locked", requiredTier: "Pro" },
       { label: "Upsells / Downsells", price: "Varies", status: "locked", requiredTier: "Starter" },
       { label: "Social Media Calendar", price: "Marketing asset", status: "locked", requiredTier: "Starter" },
@@ -49,6 +48,7 @@ const STREAMS: StreamGroup[] = [
     tierLabel: "Pro $199/mo",
     color: "#8B5CF6",
     nodes: [
+      { label: "Audiobook", price: "$9.99–$24.99", status: "locked", requiredTier: "Pro" },
       { label: "1-on-1 Coaching", price: "$150–$500/session", status: "locked", requiredTier: "Pro" },
       { label: "Group Coaching", price: "$297–$997/cohort", status: "locked", requiredTier: "Pro" },
       { label: "Big Ticket Consulting", price: "$2,500–$10,000+", status: "locked", requiredTier: "Pro" },

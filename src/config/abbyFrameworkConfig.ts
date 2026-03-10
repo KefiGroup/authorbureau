@@ -46,13 +46,13 @@ export interface AbbyCategoryConfig {
 
 export const ABBY_CATEGORIES: Record<AbbyCategory, AbbyCategoryConfig> = {
   /**
-   * BUILD AUTHORITY (9 nodes)
+   * BUILD AUTHORITY (8 nodes)
    * Digital products & content assets created from the book.
    */
   "revenue-streams": {
     id: "revenue-streams",
     label: "B · Build Authority",
-    subtitle: "Digital Products & Content Assets (9 nodes)",
+    subtitle: "Digital Products & Content Assets (8 nodes)",
     color: "text-emerald-600",
     bgColor: "bg-emerald-500/10",
     ringColor: "ring-emerald-500/30",
@@ -67,19 +67,18 @@ export const ABBY_CATEGORIES: Record<AbbyCategory, AbbyCategoryConfig> = {
       { id: "social-media", label: "Social Media", icon: Share2, section: "social-media", navigateTo: "social-media", description: "90-day AI content calendar from your book.", status: "available", subCategory: "In-House", sequence: 5 },
       { id: "email-marketing", label: "Email Marketing", icon: Megaphone, section: "email-marketing", navigateTo: "email-marketing", description: "AI-driven nurture sequences from book content.", status: "available", subCategory: "In-House", sequence: 6 },
       { id: "microsite", label: "Website / Microsite", icon: BookOpen, section: "microsite-manager", navigateTo: "microsite-manager", description: "Your book's landing page (built-in).", status: "available", subCategory: "In-House", sequence: 7 },
-      { id: "audiobook", label: "Audiobook", icon: Headphones, section: "audiobook-studio", navigateTo: "audiobook-studio", description: "AI-narrated audiobook from your manuscript.", status: "available", subCategory: "Pro Products", sequence: 8, tierRequired: "Pro" },
-      { id: "courses", label: "Online Course", icon: GraduationCap, section: "courses", navigateTo: "courses", description: "8-12 module structured courses from your book content.", status: "available", subCategory: "Pro Products", sequence: 9, tierRequired: "Pro" },
+      { id: "courses", label: "Online Course", icon: GraduationCap, section: "courses", navigateTo: "courses", description: "8-12 module structured courses from your book content.", status: "available", subCategory: "Pro Products", sequence: 8, tierRequired: "Pro" },
     ],
   },
 
   /**
-   * BRIDGE CHANNELS (7 nodes)
+   * BRIDGE CHANNELS (8 nodes)
    * Marketing channels that connect the book to a wider audience.
    */
   "marketing-channels": {
     id: "marketing-channels",
     label: "B · Bridge Channels",
-    subtitle: "Marketing & Audience Growth (7 nodes)",
+    subtitle: "Marketing & Audience Growth (8 nodes)",
     color: "text-violet-600",
     bgColor: "bg-violet-500/10",
     ringColor: "ring-violet-500/30",
@@ -87,13 +86,14 @@ export const ABBY_CATEGORIES: Record<AbbyCategory, AbbyCategoryConfig> = {
     gradientTo: "to-violet-600",
     headerIcon: Radio,
     nodes: [
-      { id: "podcast-guest", label: "Podcast Tour", icon: Podcast, section: "podcast", navigateTo: "podcast", description: "Podcast series & guest pitches from your book content.", status: "available", subCategory: "Outreach", sequence: 1, tierRequired: "Pro" },
-      { id: "webinars", label: "Webinars", icon: Video, section: "webinars", navigateTo: "webinars", description: "Webinar scripts + slide decks + registration pages.", status: "available", subCategory: "Outreach", sequence: 2, tierRequired: "Pro" },
-      { id: "lead-magnet", label: "Lead Magnet Funnel", icon: FileText, navigateTo: "lead-magnet", description: "Free PDF downloads to grow your email list.", status: "available", subCategory: "Growth", sequence: 3 },
-      { id: "in-house-speaker", label: "Media Outreach", icon: Presentation, description: "Press kit, media pitches & speaker profile.", status: "planned", subCategory: "Outreach", sequence: 4, tierRequired: "Pro" },
-      { id: "affiliates", label: "Affiliates", icon: Link2, description: "Affiliate tracking links + commission structures.", status: "planned", subCategory: "Growth", sequence: 5, tierRequired: "Pro" },
-      { id: "upsells", label: "Upsells / Downsells", icon: TrendingUp, description: "Conversion sequences and funnel optimization.", status: "planned", subCategory: "Growth", sequence: 6, tierRequired: "Pro" },
-      { id: "revenue-sharing", label: "Revenue Sharing", icon: Handshake, description: "Partnership matching + contract templates.", status: "planned", subCategory: "Growth", sequence: 7, tierRequired: "Pro" },
+      { id: "audiobook", label: "Audiobook", icon: Headphones, section: "audiobook-studio", navigateTo: "audiobook-studio", description: "AI-narrated audiobook from your manuscript.", status: "available", subCategory: "Content", sequence: 1, tierRequired: "Pro" },
+      { id: "podcast-guest", label: "Podcast Tour", icon: Podcast, section: "podcast", navigateTo: "podcast", description: "Podcast series & guest pitches from your book content.", status: "available", subCategory: "Outreach", sequence: 2, tierRequired: "Pro" },
+      { id: "webinars", label: "Webinars", icon: Video, section: "webinars", navigateTo: "webinars", description: "Webinar scripts + slide decks + registration pages.", status: "available", subCategory: "Outreach", sequence: 3, tierRequired: "Pro" },
+      { id: "lead-magnet", label: "Lead Magnet Funnel", icon: FileText, navigateTo: "lead-magnet", description: "Free PDF downloads to grow your email list.", status: "available", subCategory: "Growth", sequence: 4 },
+      { id: "in-house-speaker", label: "Media Outreach", icon: Presentation, description: "Press kit, media pitches & speaker profile.", status: "planned", subCategory: "Outreach", sequence: 5, tierRequired: "Pro" },
+      { id: "affiliates", label: "Affiliates", icon: Link2, description: "Affiliate tracking links + commission structures.", status: "planned", subCategory: "Growth", sequence: 6, tierRequired: "Pro" },
+      { id: "upsells", label: "Upsells / Downsells", icon: TrendingUp, description: "Conversion sequences and funnel optimization.", status: "planned", subCategory: "Growth", sequence: 7, tierRequired: "Pro" },
+      { id: "revenue-sharing", label: "Revenue Sharing", icon: Handshake, description: "Partnership matching + contract templates.", status: "planned", subCategory: "Growth", sequence: 8, tierRequired: "Pro" },
     ],
   },
 
@@ -170,20 +170,20 @@ export const ADVISOR_CONTENT: Record<AbbyCategory, AdvisorContent> = {
       { label: "Home Study Course", reason: "A structured self-paced program with daily schedules. Great lead magnet or entry-level product.", priceRange: "$27 – $47", difficulty: "Medium", nodeId: "home-study" },
       { label: "Book Sales", reason: "QR code order pages and direct sales funnels. Quick to set up, immediate revenue from your existing book.", priceRange: "$15 – $30/book", difficulty: "Easy", nodeId: "book-sales-events" },
       { label: "Social Media (90-day Calendar)", reason: "AI generates a full content calendar from your book. Start building your audience while creating digital products.", difficulty: "Easy", nodeId: "social-media" },
-      { label: "Audiobook", reason: "AI-narrated from your manuscript. No recording studio needed. Expands your reach to listeners who prefer audio.", priceRange: "$9.99 – $14.99", difficulty: "Easy", nodeId: "audiobook" },
       { label: "Online Course", reason: "Your flagship digital product. 8–12 modules generated from your book's frameworks. Best for building recurring revenue.", priceRange: "$47 – $97", difficulty: "Medium", nodeId: "courses" },
     ],
-    closingNote: "Start with Workbook + Book Sales for quick wins, then add Audiobook and Online Course to build momentum.",
+    closingNote: "Start with Workbook + Book Sales for quick wins, then add Online Course to build momentum.",
   },
   "marketing-channels": {
     heading: "Which channels should you activate first?",
     intro: "Bridge products connect your book to a wider audience. Here's the priority order:",
     recommendations: [
+      { label: "Audiobook", reason: "AI-narrated from your manuscript. No recording studio needed. Expands your reach to listeners who prefer audio.", priceRange: "$9.99 – $14.99", difficulty: "Easy", nodeId: "audiobook" },
       { label: "Podcast Tour", reason: "AI generates guest pitches, talking points, and media one-sheets. The fastest way to reach new audiences.", difficulty: "Easy", nodeId: "podcast-guest" },
       { label: "Webinars", reason: "AI generates scripts, slide decks, and registration pages. Great for selling coaching and courses.", priceRange: "$47 – $197", difficulty: "Medium", nodeId: "webinars" },
       { label: "Lead Magnet Funnel", reason: "Free PDF downloads that capture emails and feed your nurture sequences. Essential for list building.", difficulty: "Easy", nodeId: "lead-magnet" },
     ],
-    closingNote: "Start with Podcast Tour + Lead Magnet to grow your audience, then add Webinars to convert them.",
+    closingNote: "Start with Audiobook + Podcast Tour to grow your audience, then add Webinars to convert them.",
   },
   "authority-builders": {
     heading: "When should you pursue premium revenue?",
