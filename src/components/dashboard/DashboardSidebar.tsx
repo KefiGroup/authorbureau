@@ -50,7 +50,11 @@ export default function DashboardSidebar({
   stripeConnected = false, pendingReviewCount = 0,
 }: Props) {
 
+  // Admin and premium users bypass all tier locks
+  const bypassLocks = isPremium || isAdmin;
+
   const tierAccess = (required: "starter" | "pro" | "enterprise") => {
+    if (bypassLocks) return true;
     const order = ["free", "starter", "pro", "enterprise"];
     return order.indexOf(tier) >= order.indexOf(required);
   };
