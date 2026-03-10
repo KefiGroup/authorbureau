@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
+import GetFeatured from "./pages/GetFeatured";
 import Directory from "./pages/Directory";
 import AuthorProfile from "./pages/AuthorProfile";
 import DynamicBookMicrosite from "./pages/DynamicBookMicrosite";
