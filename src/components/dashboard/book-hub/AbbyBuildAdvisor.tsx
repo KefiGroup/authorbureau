@@ -1,12 +1,14 @@
 import { useState } from "react";
-import { Sparkles, ChevronDown, ChevronUp, ArrowRight, MessageCircle } from "lucide-react";
+import { Sparkles, ChevronDown, ChevronUp, ArrowRight, MessageCircle, Lightbulb } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useMarketResearch } from "@/hooks/useMarketResearch";
 
 interface Props {
   categoryId: string;
   bookId: string;
   bookTitle?: string;
+  bookGenre?: string;
 }
 
 interface AdvisorTip {
