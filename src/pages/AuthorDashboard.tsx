@@ -34,6 +34,7 @@ import AuthorReadingClub from "@/components/dashboard/AuthorReadingClub";
 import { Loader2, Rocket, FileText, Video, Share2, CreditCard, Users, Trophy, Podcast, Building2, Bookmark, Award } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
+import { useAuthorStats } from "@/hooks/useAuthorStats";
 
 async function getActiveToken(): Promise<string | null> {
   const { data: cloudSession } = await supabase.auth.getSession();
