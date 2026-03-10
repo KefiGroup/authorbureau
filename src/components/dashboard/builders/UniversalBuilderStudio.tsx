@@ -744,11 +744,12 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                 // Save product to its DB table with ready_for_review status
                 if (user && bookId && nodeConfig.dbTable) {
                   try {
+                    const tbl = nodeConfig.dbTable as "home_study_courses" | "courses" | "webinars" | "audiobooks" | "podcasts";
                     const { data: existing } = await supabase
-                      .from(nodeConfig.dbTable as any)
+                      .from(tbl)
                       .select("id")
                       .eq("author_id", user.id)
-                      .eq("book_id", bookId)
+                      .eq("book_id" as any, bookId)
                       .maybeSingle();
                     const productRecord: any = {
                       author_id: user.id,
