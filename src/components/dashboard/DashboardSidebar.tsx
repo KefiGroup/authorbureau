@@ -67,7 +67,7 @@ export default function DashboardSidebar({
       id: "revenue-streams", label: "Build Authority (11)", icon: DollarSign,
       color: "text-emerald-500",
       badge: hasAnalysis ? `${buildUnlocked} of 11` : undefined,
-      lockMessage: !hasAnalysis ? "Analyze a book first" : (!tierAccess("starter") ? "Requires Starter" : undefined),
+      lockMessage: (!hasAnalysis && !tierAccess("starter")) ? "Analyze a book first" : (!tierAccess("starter") ? "Requires Starter" : undefined),
     },
     {
       id: "marketing-channels", label: "Bridge Channels (8)", icon: Radio,
