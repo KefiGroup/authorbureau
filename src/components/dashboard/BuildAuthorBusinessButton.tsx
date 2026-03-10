@@ -243,7 +243,7 @@ export default function BuildAuthorBusinessButton({
             <p>Estimated time</p>
           </div>
           <div>
-            <p className="font-semibold text-foreground">{totalProducts} of 27</p>
+            <p className="font-semibold text-foreground">{totalProducts} of 28</p>
             <p>Products to build</p>
           </div>
           <div>

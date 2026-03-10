@@ -2,7 +2,7 @@
  * Cross-Builder Output Registry
  * 
  * Defines what outputs each builder generates and where they should be pushed.
- * Based on the ABBY 27-Node Ecosystem Cross-Builder Integration Map (v3).
+ * Based on the ABBY 28-Node Ecosystem Cross-Builder Integration Map (v3).
  * 
  * Each entry maps: sourceBuilder → array of push definitions
  * Push definitions include: destination builder, push type, label, and
