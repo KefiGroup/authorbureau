@@ -11,9 +11,10 @@ const emailSchema = z.string().trim().email("Please enter a valid email").max(25
 interface NewsletterSignupProps {
   bookId: string;
   authorName: string;
+  authorId?: string;
 }
 
-export default function NewsletterSignup({ bookId, authorName }: NewsletterSignupProps) {
+export default function NewsletterSignup({ bookId, authorName, authorId }: NewsletterSignupProps) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -46,6 +47,7 @@ export default function NewsletterSignup({ bookId, authorName }: NewsletterSignu
               name: result.data,
               source: "newsletter",
               source_detail: authorName,
+              author_id: authorId,
             }),
           }
         );
