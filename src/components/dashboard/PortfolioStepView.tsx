@@ -22,10 +22,11 @@ interface Node {
   label: string;
   icon: typeof BookOpen;
   description: string;
-  status: "live" | "coming-soon" | "planned";
+  status: "available" | "coming-soon" | "planned";
   tierRequired?: string;
   subCategory?: string;
   sequence?: number;
+  navigateTo?: string; // dashboard section or URL to navigate to
 }
 
 interface CategoryConfig {
