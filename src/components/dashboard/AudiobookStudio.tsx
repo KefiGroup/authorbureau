@@ -444,6 +444,11 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
                           <Download className="h-3.5 w-3.5" />
                         </Button>
                       </a>
+                      {!isGenerating && (
+                        <Button size="sm" variant="outline" className="shrink-0 text-xs text-amber-600 border-amber-500/30" onClick={() => handleRegenerateSingle(i)}>
+                          Regenerate ($9)
+                        </Button>
+                      )}
                     </div>
                   )}
                   {ch.status === "pending" && !isGenerating && (
