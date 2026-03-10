@@ -170,10 +170,9 @@ export const ADVISOR_CONTENT: Record<AbbyCategory, AdvisorContent> = {
       { label: "Home Study Course", reason: "A structured self-paced program with daily schedules. Great lead magnet or entry-level product.", priceRange: "$27 – $47", difficulty: "Medium", nodeId: "home-study" },
       { label: "Book Sales", reason: "QR code order pages and direct sales funnels. Quick to set up, immediate revenue from your existing book.", priceRange: "$15 – $30/book", difficulty: "Easy", nodeId: "book-sales-events" },
       { label: "Social Media (90-day Calendar)", reason: "AI generates a full content calendar from your book. Start building your audience while creating digital products.", difficulty: "Easy", nodeId: "social-media" },
-      { label: "Audiobook", reason: "AI-narrated from your manuscript. No recording studio needed. Expands your reach to listeners who prefer audio.", priceRange: "$9.99 – $14.99", difficulty: "Easy", nodeId: "audiobook" },
       { label: "Online Course", reason: "Your flagship digital product. 8–12 modules generated from your book's frameworks. Best for building recurring revenue.", priceRange: "$47 – $97", difficulty: "Medium", nodeId: "courses" },
     ],
-    closingNote: "Start with Workbook + Book Sales for quick wins, then add Audiobook and Online Course to build momentum.",
+    closingNote: "Start with Workbook + Book Sales for quick wins, then add Online Course to build momentum.",
   },
   "marketing-channels": {
     heading: "Which channels should you activate first?",
