@@ -59,8 +59,8 @@ export default function Auth() {
   const location = useLocation();
   const { toast } = useToast();
 
-  const [mode, setMode] = useState<SignInMode>("code");
-  const [flow, setFlow] = useState<FlowState>("email");
+  const [mode, setMode] = useState<SignInMode>("password");
+  const [flow, setFlow] = useState<FlowState>("password-login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
