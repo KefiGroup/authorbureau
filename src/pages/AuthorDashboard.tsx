@@ -416,8 +416,6 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
                 state: journeyPlan,
                 onClick: () => setActiveSection("build-business"),
               },
-                onClick: () => setActiveSection("build-business"),
-              },
               ...(isPremium && !stripeConnected ? [{
                 label: "Connect Payments" as string,
                 state: (journeyPlan === "done" && !stripeConnected ? "current" : journeyPlan === "done" ? "done" : "upcoming") as JourneyStep,
