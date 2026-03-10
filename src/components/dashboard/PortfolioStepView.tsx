@@ -226,6 +226,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
     if (node.tierRequired && !hasTierAccess(node.tierRequired)) return "locked";
     const isRecommended = recommendations.some(r => r.nodeId === node.id || r.nodeId.includes(node.id.split("-")[0]));
     if (isRecommended) return "recommended";
+    // BUG-029: Default to "available" (not "live") — products start as not_started
     return "available";
   };
 
