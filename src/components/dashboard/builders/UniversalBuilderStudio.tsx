@@ -528,6 +528,17 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
 
         {/* Step content area */}
         <div className="flex-1 overflow-y-auto p-6 lg:p-8">
+          {/* Cross-builder incoming notifications */}
+          {user && bookId && (
+            <CrossBuilderNotifications
+              builderId={nodeConfig.id}
+              authorId={user.id}
+              bookId={bookId}
+              onImport={(pushData) => {
+                toast({ title: "Content imported!", description: "Pre-filled content is ready for editing." });
+              }}
+            />
+          )}
           <AnimatePresence mode="wait">
             <motion.div
               key={currentStepConfig.id}
