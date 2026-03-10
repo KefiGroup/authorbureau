@@ -99,7 +99,7 @@ export default function FreeTrialTeaser({ bookTitle, bookId, currentTier, hasBus
           <p className="text-sm text-muted-foreground max-w-md mx-auto mb-4">
             {hasBusinessPlan
               ? "Abby has mapped your revenue streams. Subscribe to unlock the AI builders that create each product automatically."
-              : "Subscribe to unlock 27 AI-powered builders that turn your book into courses, coaching, memberships, and more."}
+              : "Subscribe to unlock 28 AI-powered builders that turn your book into courses, coaching, memberships, and more."}
           </p>
 
           <div className="inline-flex items-center gap-3 bg-card rounded-xl px-6 py-3 shadow-sm border border-border">
