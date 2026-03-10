@@ -201,7 +201,12 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
                       <p className="text-xs text-muted-foreground line-clamp-2">{product.description}</p>
                     )}
                   </div>
-                  <div className="flex gap-2 shrink-0">
+                  <div className="flex gap-2 shrink-0 flex-wrap">
+                    {product.table === "home_study_courses" && (
+                      <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => setExportProduct(product)}>
+                        <Download className="h-3 w-3 mr-1" /> Download / Print
+                      </Button>
+                    )}
                     <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => setPreviewProduct(product)}>
                       <Eye className="h-3 w-3 mr-1" /> Preview
                     </Button>
@@ -217,7 +222,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
                       {publishing === product.id ? (
                         <Loader2 className="h-3 w-3 animate-spin" />
                       ) : (
-                        <><CheckCircle2 className="h-3 w-3 mr-1" /> Publish</>
+                        <><CheckCircle2 className="h-3 w-3 mr-1" /> Publish to Microsite</>
                       )}
                     </Button>
                   </div>
