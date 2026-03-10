@@ -208,9 +208,10 @@ export default function DashboardSidebar({
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-3 space-y-4 px-2">
         <TooltipProvider delayDuration={300}>
-        {renderSection("Your Journey", journeyItems)}
-        {renderSection("Build Your Business", businessItems)}
-        {renderSection("Your Brand", brandItems)}
+          {renderSection("Your Journey", journeyItems)}
+          {renderSection("Build Your Business", businessItems)}
+          {renderSection("Your Brand", brandItems)}
+        </TooltipProvider>
 
         {/* Stripe Connect status badge */}
         {!collapsed && isPremium && (
