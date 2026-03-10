@@ -297,7 +297,7 @@ function NodeCard({
   isPremium: boolean;
 }) {
   const status = statusStyles[node.status];
-  const canNavigate = node.section && node.status === "live";
+  const canNavigate = node.section && node.status === "available";
   const Icon = node.icon;
 
   return (
