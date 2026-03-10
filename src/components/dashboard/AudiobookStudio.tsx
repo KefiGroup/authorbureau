@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Headphones, Play, Pause, Download, Sparkles, Volume2, Loader2, CheckCircle2, AlertCircle, Upload, ArrowLeft, FileText } from "lucide-react";
+import { Headphones, Play, Pause, Download, Sparkles, Volume2, Loader2, CheckCircle2, AlertCircle, Upload, ArrowLeft, FileText, FolderDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ManuscriptUpload from "@/components/dashboard/ManuscriptUpload";
 import { useNavigate } from "react-router-dom";
