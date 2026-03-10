@@ -45,6 +45,20 @@ export default function FreeMicrositeHero({
             with your photo, bio, books, pricing, services, and social links. Share one link everywhere.
           </p>
 
+          {profileState === "live" && authorSlug && (
+            <div className="flex items-center gap-2 bg-white/80 rounded-lg border border-amber-200 px-3 py-2 w-fit">
+              <Globe className="h-3.5 w-3.5 text-green-600" />
+              <a
+                href={`/authors/${authorSlug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm font-medium text-amber-800 hover:underline"
+              >
+                authorsbureau.com/authors/{authorSlug}
+              </a>
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-2">
             {pills.map((pill) => (
               <span key={pill} className="inline-flex items-center gap-1.5 rounded-full bg-white/80 border border-amber-200 px-3 py-1.5 text-xs font-semibold text-gray-800 shadow-sm">
