@@ -526,6 +526,8 @@ export default function AbbyHelpChatbot() {
             >
               <ArrowUp className="text-white" size={16} />
             </button>
+            </>
+            )}
           </div>
         </div>
       )}
