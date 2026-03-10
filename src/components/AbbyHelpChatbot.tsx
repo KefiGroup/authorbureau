@@ -120,21 +120,43 @@ export default function AbbyHelpChatbot() {
     addMessage("assistant", greeting);
   };
 
+  const getAuthToken = useCallback(async (): Promise<string | null> => {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data } = await supabase.auth.getSession();
+    return data?.session?.access_token || null;
+  }, []);
+
   // Stream AI response
   const streamResponse = useCallback(async (userMessages: { role: string; content: string }[]) => {
+    if (sessionExpired) return;
     setIsStreaming(true);
     streamingRef.current = "";
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/abby-help-chat`;
 
     try {
+      const token = await getAuthToken();
+      if (!token) {
+        setSessionExpired(true);
+        addMessage("assistant", "Your session has expired. Please sign in again to continue chatting.");
+        setIsStreaming(false);
+        return;
+      }
+
       const resp = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ messages: userMessages }),
       });
+
+      if (resp.status === 401) {
+        setSessionExpired(true);
+        addMessage("assistant", "Your session has expired. Please sign in again to continue chatting.");
+        setIsStreaming(false);
+        return;
+      }
 
       if (!resp.ok || !resp.body) {
         const errData = await resp.json().catch(() => ({}));
