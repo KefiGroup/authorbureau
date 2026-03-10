@@ -34,7 +34,7 @@ interface Props {
 export default function SharedPublishStep({
   builderLabel, checklist, revenue, previewContent,
   stepData, setStepData, onMarkEdited, stepId, bookTitle,
-  publishFn, userId, exportKeys,
+  publishFn, userId, exportKeys, onNavigate,
 }: Props) {
   const { toast } = useToast();
   const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop");
