@@ -362,6 +362,18 @@ export default function AuthorProfile() {
         </section>
       )}
 
+      {/* PublishNow relationship note */}
+      <section className="border-t border-border py-8">
+        <div className="container max-w-4xl">
+          <div className="rounded-xl border border-border bg-muted/30 p-5 flex items-start gap-3">
+            <Globe className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+            <p className="text-sm text-muted-foreground">
+              To manage your public author brand consistently across all platforms, your core profile is managed via our sister platform, <a href="https://publishnow.io" target="_blank" rel="noopener noreferrer" className="text-secondary hover:underline">PublishNow.io</a>. Changes you make there will be reflected across the entire author ecosystem.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {author.services.length > 0 && (
         <ServiceInquiryForm
           open={inquiryOpen}

@@ -189,7 +189,7 @@ export default function DashboardSidebar({
 
   return (
     <aside
-      className={`hidden lg:flex flex-col border-r border-border bg-card transition-all duration-200 ${
+      className={`flex flex-col border-r border-border bg-card transition-all duration-200 h-full ${
         collapsed ? "w-16" : "w-64"
       }`}
     >

@@ -191,7 +191,28 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <div className="w-full max-w-6xl px-4">
+          <div className="flex gap-4">
+            {/* Sidebar skeleton */}
+            <div className="hidden lg:flex flex-col w-64 space-y-3">
+              <div className="h-16 rounded-xl bg-muted animate-pulse" />
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="h-9 rounded-lg bg-muted animate-pulse" />
+              ))}
+            </div>
+            {/* Main content skeleton */}
+            <div className="flex-1 space-y-4">
+              <div className="h-16 rounded-xl bg-muted animate-pulse" />
+              <div className="h-10 rounded-lg bg-muted animate-pulse w-3/4" />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="h-32 rounded-xl bg-muted animate-pulse" />
+                ))}
+              </div>
+              <div className="h-64 rounded-xl bg-muted animate-pulse" />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -332,23 +353,33 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
 
   return (
     <div className="flex min-h-screen bg-background">
-      <DashboardSidebar
-        activeSection={activeSection}
-        onSectionChange={setActiveSection}
-        collapsed={sidebarCollapsed}
-        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-        isPremium={isPremium || isAdmin}
-        isAdmin={isAdmin}
-        tier={tier}
-        hasBooks={hasBooks}
-        hasAnalysis={hasAnalysis}
-        hasMicrosite={hasMicrosite}
-        stripeConnected={stripeConnected}
-        pendingReviewCount={pendingReviewCount}
-        buildUnlocked={stats.products.totalBuilt}
-        bridgeUnlocked={Object.entries(stats.products.perTable).reduce((sum, [, v]) => sum + v.total, 0)}
-        yieldUnlocked={stats.products.totalBuilt}
-      />
+      {/* Mobile sidebar overlay */}
+      {!sidebarCollapsed && (
+        <div className="fixed inset-0 z-40 bg-foreground/30 lg:hidden" onClick={() => setSidebarCollapsed(true)} />
+      )}
+      <div className={`
+        fixed inset-y-0 left-0 z-50 lg:static lg:z-auto
+        transition-transform duration-200 lg:translate-x-0
+        ${sidebarCollapsed ? "-translate-x-full" : "translate-x-0"}
+      `}>
+        <DashboardSidebar
+          activeSection={activeSection}
+          onSectionChange={(s) => { setActiveSection(s); if (window.innerWidth < 1024) setSidebarCollapsed(true); }}
+          collapsed={false}
+          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          isPremium={isPremium || isAdmin}
+          isAdmin={isAdmin}
+          tier={tier}
+          hasBooks={hasBooks}
+          hasAnalysis={hasAnalysis}
+          hasMicrosite={hasMicrosite}
+          stripeConnected={stripeConnected}
+          pendingReviewCount={pendingReviewCount}
+          buildUnlocked={stats.products.totalBuilt}
+          bridgeUnlocked={Object.entries(stats.products.perTable).reduce((sum, [, v]) => sum + v.total, 0)}
+          yieldUnlocked={stats.products.totalBuilt}
+        />
+      </div>
       <div className="flex flex-1 flex-col min-w-0">
         <DashboardHeader
           user={user}
