@@ -229,27 +229,20 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
     ));
   };
 
-  // Generate all chapters sequentially
-  const handleGenerateAll = async () => {
-    if (chapters.length === 0) {
-      toast({ title: "No chapters", description: "Parse chapters first.", variant: "destructive" });
-      return;
-    }
-    setIsGenerating(true);
-    const session = (await supabase.auth.getSession()).data.session;
-    const authToken = session?.access_token || "";
+  // Regenerate a single chapter (with $9 confirmation gate)
+  const [regenConfirmIndex, setRegenConfirmIndex] = useState<number | null>(null);
 
-    for (let i = 0; i < chapters.length; i++) {
-      try {
-        await generateChapter(i, authToken);
-      } catch (e: any) {
-        setChapters(prev => prev.map((ch, idx) => idx === i ? { ...ch, status: "error", error: e.message } : ch));
-        toast({ title: `Chapter ${i + 1} failed`, description: e.message, variant: "destructive" });
-      }
-    }
-    setIsGenerating(false);
-    setCurrentChapter(-1);
-    toast({ title: "Audiobook generation complete!" });
+  const handleRegenerateSingle = (i: number) => {
+    setRegenConfirmIndex(i);
+  };
+
+  const confirmRegenerate = async () => {
+    if (regenConfirmIndex === null) return;
+    const i = regenConfirmIndex;
+    setRegenConfirmIndex(null);
+    // TODO: Wire Stripe $9 payment here before allowing regeneration
+    toast({ title: "Regeneration started", description: `Payment of $9 will be required in production.` });
+    await handleGenerateSingle(i);
   };
 
   // Generate a single chapter
@@ -451,6 +444,11 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
                           <Download className="h-3.5 w-3.5" />
                         </Button>
                       </a>
+                      {!isGenerating && (
+                        <Button size="sm" variant="outline" className="shrink-0 text-xs text-amber-600 border-amber-500/30" onClick={() => handleRegenerateSingle(i)}>
+                          Regenerate ($9)
+                        </Button>
+                      )}
                     </div>
                   )}
                   {ch.status === "pending" && !isGenerating && (
@@ -470,19 +468,23 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
               ))}
             </div>
 
-            <Button
-              onClick={handleGenerateAll}
-              disabled={isGenerating}
-              className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
-            >
-              {isGenerating ? (
-                <><Loader2 className="h-4 w-4 animate-spin mr-2" />Generating Chapter {currentChapter + 1} of {chapters.length}…</>
-              ) : doneCount > 0 ? (
-                <><Sparkles className="h-4 w-4 mr-2" />Regenerate All Chapters</>
-              ) : (
-                <><Sparkles className="h-4 w-4 mr-2" />Generate All Chapters</>
-              )}
-            </Button>
+            {/* Regenerate confirmation dialog */}
+            {regenConfirmIndex !== null && (
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
+                <p className="text-sm font-medium">Re-generate "{chapters[regenConfirmIndex]?.title}"?</p>
+                <p className="text-xs text-muted-foreground">
+                  Re-generating a chapter costs <span className="font-semibold">$9</span>. This will replace the existing audio.
+                </p>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="destructive" onClick={confirmRegenerate}>
+                    Yes, Regenerate ($9)
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setRegenConfirmIndex(null)}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
