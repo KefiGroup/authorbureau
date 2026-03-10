@@ -7,7 +7,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import {
   CheckCircle2, Eye, Edit, Loader2, Package, GraduationCap,
   BookOpen, Headphones, Video, Podcast, FileText, AlertTriangle,
+  Download, Printer,
 } from "lucide-react";
+import HomeStudyExportModal from "./HomeStudyExportModal";
 import { toast } from "@/hooks/use-toast";
 
 interface DraftProduct {
@@ -51,6 +53,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
   const [publishing, setPublishing] = useState<string | null>(null);
   const [confirmProduct, setConfirmProduct] = useState<DraftProduct | null>(null);
   const [previewProduct, setPreviewProduct] = useState<DraftProduct | null>(null);
+  const [exportProduct, setExportProduct] = useState<DraftProduct | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -198,7 +201,12 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
                       <p className="text-xs text-muted-foreground line-clamp-2">{product.description}</p>
                     )}
                   </div>
-                  <div className="flex gap-2 shrink-0">
+                  <div className="flex gap-2 shrink-0 flex-wrap">
+                    {product.table === "home_study_courses" && (
+                      <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => setExportProduct(product)}>
+                        <Download className="h-3 w-3 mr-1" /> Download / Print
+                      </Button>
+                    )}
                     <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => setPreviewProduct(product)}>
                       <Eye className="h-3 w-3 mr-1" /> Preview
                     </Button>
@@ -214,7 +222,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
                       {publishing === product.id ? (
                         <Loader2 className="h-3 w-3 animate-spin" />
                       ) : (
-                        <><CheckCircle2 className="h-3 w-3 mr-1" /> Publish</>
+                        <><CheckCircle2 className="h-3 w-3 mr-1" /> Publish to Microsite</>
                       )}
                     </Button>
                   </div>
@@ -266,6 +274,39 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
           </div>
         </DialogContent>
       </Dialog>
+      {/* Home Study Export Modal */}
+      <HomeStudyExportModal
+        open={!!exportProduct}
+        onOpenChange={() => setExportProduct(null)}
+        product={exportProduct}
+        fetchContent={exportProduct ? async () => {
+          // Fetch the builder draft for this home study course
+          if (!user) return null;
+          const { data: asset } = await supabase
+            .from("generated_assets")
+            .select("content")
+            .eq("author_id", user.id)
+            .eq("book_id", exportProduct.bookId)
+            .eq("asset_type", "builder_draft_home-study")
+            .maybeSingle();
+
+          if (!asset?.content) return null;
+          try {
+            const parsed = JSON.parse(asset.content);
+            const sd = parsed.stepData || {};
+            const { data: profile } = await supabase
+              .from("author_profiles")
+              .select("pen_name")
+              .eq("user_id", user.id)
+              .maybeSingle();
+            return {
+              setup: sd.setup || { title: exportProduct.title, description: exportProduct.description || "", duration: 30, commitment: 30, level: "Beginner" },
+              days: sd.schedule?.days || [],
+              authorName: profile?.pen_name || "Author",
+            };
+          } catch { return null; }
+        } : undefined}
+      />
     </div>
   );
 }

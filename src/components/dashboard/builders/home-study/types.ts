@@ -10,6 +10,7 @@ export interface HomeStudyStepProps {
   userId: string;
   onStartGeneration?: () => void;
   builderAct?: string;
+  onNavigate?: (section: string) => void;
 }
 
 export interface StudyDay {

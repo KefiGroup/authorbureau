@@ -28,12 +28,13 @@ interface Props {
   publishFn?: (stepData: Record<string, any>, userId: string) => Promise<void>;
   userId: string;
   exportKeys?: string[]; // keys from stepData to include in export
+  onNavigate?: (section: string) => void;
 }
 
 export default function SharedPublishStep({
   builderLabel, checklist, revenue, previewContent,
   stepData, setStepData, onMarkEdited, stepId, bookTitle,
-  publishFn, userId, exportKeys,
+  publishFn, userId, exportKeys, onNavigate,
 }: Props) {
   const { toast } = useToast();
   const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop");
@@ -51,7 +52,9 @@ export default function SharedPublishStep({
       }
       onMarkEdited(stepId);
       setStepData(prev => ({ ...prev, published: true, publishedAt: new Date().toISOString() }));
-      toast({ title: `${builderLabel} published!`, description: "It's now live on your profile." });
+      toast({ title: `${builderLabel} published!`, description: "Redirecting to Review & Publish…" });
+      // Redirect to review-products after a short delay
+      setTimeout(() => onNavigate?.("review-products"), 800);
     } catch (err) {
       console.error(err);
       toast({ title: "Publish failed", variant: "destructive" });
