@@ -94,6 +94,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
         proposal: data.proposal,
         generatedContent: "",
         error: null,
+        pushResult: null,
       });
 
       toast({ title: "Abby's proposal is ready!", description: "Review and approve to generate all content." });
