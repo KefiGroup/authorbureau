@@ -158,6 +158,7 @@ export default function BookHub() {
           user={user!}
           isPremium={isPremium}
           isAdmin={isAdmin}
+          tier={effectiveTier}
           subscription={subscription}
           onSignOut={signOut}
           onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}

@@ -490,9 +490,10 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
                         {cta.label}
                       </Button>
 
-                      {/* View button */}
+                      {/* View button with tooltip */}
                       <Button
                         variant="outline" size="icon" className="h-9 w-9 shrink-0"
+                        title="View Microsite"
                         onClick={() => {
                           if (book.published_at) window.open(`/books/${book.slug}`, "_blank");
                           else toast({ title: "Microsite is under review" });

@@ -168,7 +168,10 @@ export default function MonetizationUniverse({ activatedCount, builtProducts, re
                     </div>
                   </div>
                   <p className="text-gray-400 text-[10px] pl-10">{group.subtitle}</p>
-                  <p className="text-[10px] font-semibold pl-10" style={{ color: group.color }}>{group.tierLabel}</p>
+                  {/* Show tier label only for non-subscribers */}
+                  {subscribedTier === "free" && (
+                    <p className="text-[10px] font-semibold pl-10" style={{ color: group.color }}>{group.tierLabel}</p>
+                  )}
                 </div>
 
                 {/* Nodes */}

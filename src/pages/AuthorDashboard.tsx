@@ -412,8 +412,10 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
                 onClick: () => setActiveSection("my-books"),
               },
               {
-                label: booksAnalyzed > 0 ? `${booksAnalyzed} Book${booksAnalyzed !== 1 ? "s" : ""} Analyzed` : "Analyze Books",
+                label: booksAnalyzed > 0 ? `${booksAnalyzed} Book${booksAnalyzed !== 1 ? "s" : ""} Analyzed` : "Analyze a Book",
                 state: journeyPlan,
+                onClick: () => setActiveSection("build-business"),
+              },
                 onClick: () => setActiveSection("build-business"),
               },
               ...(isPremium && !stripeConnected ? [{
