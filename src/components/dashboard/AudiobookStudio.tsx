@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Headphones, Play, Pause, Download, Sparkles, Volume2, Loader2, CheckCircle2, AlertCircle, Upload, ArrowLeft, FileText } from "lucide-react";
+import { Headphones, Play, Pause, Download, Sparkles, Volume2, Loader2, CheckCircle2, AlertCircle, Upload, ArrowLeft, FileText, FolderDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ManuscriptUpload from "@/components/dashboard/ManuscriptUpload";
 import { useNavigate } from "react-router-dom";
@@ -22,6 +22,7 @@ interface ChapterAudio {
   text: string;
   status: "pending" | "generating" | "done" | "error";
   audioUrl?: string;
+  audioUrls?: string[];
   error?: string;
 }
 
@@ -225,7 +226,7 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
     }
 
     setChapters(prev => prev.map((ch, idx) =>
-      idx === i ? { ...ch, status: "done", audioUrl: chunkUrls[0], error: undefined } : ch
+      idx === i ? { ...ch, status: "done", audioUrl: chunkUrls[0], audioUrls: chunkUrls, error: undefined } : ch
     ));
   };
 
@@ -278,6 +279,45 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
     setPlayingIndex(index);
   };
 
+  // Programmatic download helper
+  const downloadFile = async (url: string, filename: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      // Fallback: open in new tab
+      window.open(url, "_blank");
+    }
+  };
+
+  const handleDownloadChapter = async (ch: ChapterAudio) => {
+    const urls = ch.audioUrls || (ch.audioUrl ? [ch.audioUrl] : []);
+    for (let i = 0; i < urls.length; i++) {
+      const suffix = urls.length > 1 ? `-part${i + 1}` : "";
+      const filename = `${bookTitle} - ${ch.title}${suffix}.mp3`;
+      await downloadFile(urls[i], filename);
+      if (urls.length > 1) await new Promise(r => setTimeout(r, 500)); // stagger downloads
+    }
+    toast({ title: "Download started", description: `${ch.title} (${urls.length} file${urls.length > 1 ? "s" : ""})` });
+  };
+
+  const handleDownloadAll = async () => {
+    const doneChapters = chapters.filter(c => c.status === "done");
+    if (doneChapters.length === 0) return;
+    toast({ title: "Downloading all chapters…", description: `${doneChapters.length} chapters will be downloaded.` });
+    for (const ch of doneChapters) {
+      await handleDownloadChapter(ch);
+      await new Promise(r => setTimeout(r, 800));
+    }
+  };
   const doneCount = chapters.filter(c => c.status === "done").length;
   const progressPercent = chapters.length > 0 ? Math.round((doneCount / chapters.length) * 100) : 0;
   const hasManuscript = manuscript.length > 0;
@@ -439,11 +479,9 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
                       <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handlePlayChapter(i)}>
                         {playingIndex === i ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
                       </Button>
-                      <a href={ch.audioUrl} download={`${ch.title}.mp3`} target="_blank" rel="noopener">
-                        <Button size="icon" variant="ghost" className="h-8 w-8">
-                          <Download className="h-3.5 w-3.5" />
-                        </Button>
-                      </a>
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleDownloadChapter(ch)}>
+                        <Download className="h-3.5 w-3.5" />
+                      </Button>
                       {!isGenerating && (
                         <Button size="sm" variant="outline" className="shrink-0 text-xs text-amber-600 border-amber-500/30" onClick={() => handleRegenerateSingle(i)}>
                           Regenerate ($9)
@@ -485,6 +523,53 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
                 </div>
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 3. Your Audiobook Files — downloadable library */}
+      {doneCount > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base">3. Your Audiobook Files</CardTitle>
+                <CardDescription>{doneCount} chapter{doneCount !== 1 ? "s" : ""} ready to download</CardDescription>
+              </div>
+              <Button size="sm" onClick={handleDownloadAll} className="gap-1.5">
+                <FolderDown className="h-4 w-4" />
+                Download All
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="divide-y divide-border rounded-lg border">
+              {chapters.filter(c => c.status === "done").map((ch) => {
+                const urls = ch.audioUrls || (ch.audioUrl ? [ch.audioUrl] : []);
+                return (
+                  <div key={ch.index} className="flex items-center gap-3 px-4 py-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <Headphones className="h-4 w-4 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{bookTitle} — {ch.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {urls.length} file{urls.length !== 1 ? "s" : ""} · ~{Math.round(ch.text.length / 15 / 60)} min
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handlePlayChapter(ch.index)}>
+                        {playingIndex === ch.index ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+                      </Button>
+                      <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => handleDownloadChapter(ch)}>
+                        <Download className="h-3.5 w-3.5" />
+                        {urls.length > 1 ? `Download (${urls.length} parts)` : "Download MP3"}
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
       )}
