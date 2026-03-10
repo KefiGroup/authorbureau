@@ -176,8 +176,32 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
         }
       }
 
-      // ── Cross-Builder Push Execution ──────────────────────────
-      // After content is saved, push outputs to destination builders
+      // ── Save generated content + Cross-Builder Push ─────────────
+      const session = await supabase.auth.getSession();
+      const userId = session.data?.session?.user?.id;
+      if (userId && bookId) {
+        try {
+          const { error: upsertErr } = await supabase.from("generated_assets" as any).upsert({
+            book_id: bookId,
+            author_id: userId,
+            asset_type: `builder_content_${builderId}`,
+            content: accumulated,
+            updated_at: new Date().toISOString(),
+          } as any, { onConflict: "book_id,asset_type" as any });
+          if (upsertErr) {
+            await supabase.from("generated_assets" as any).insert({
+              book_id: bookId,
+              author_id: userId,
+              asset_type: `builder_content_${builderId}`,
+              content: accumulated,
+            } as any);
+          }
+        } catch {
+          // Non-blocking save failure
+        }
+      }
+
+      // Push outputs to destination builders
       let pushResult: { pushed: number; errors: string[] } | null = null;
       if (userId && bookId) {
         try {
