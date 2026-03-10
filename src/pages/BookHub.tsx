@@ -132,6 +132,7 @@ export default function BookHub() {
             categoryId={activeTab}
             bookId={book.id}
             bookTitle={book.title}
+            bookGenre={book.genre || undefined}
             isPremium={isPremium || isAdmin}
             tier={effectiveTier}
           />

@@ -229,7 +229,7 @@ export default function BookHubStepTab({ categoryId, bookId, bookTitle, bookGenr
       )}
 
       {/* Abby Build Advisor */}
-      <AbbyBuildAdvisor categoryId={categoryId} bookId={bookId} bookTitle={bookTitle} />
+      <AbbyBuildAdvisor categoryId={categoryId} bookId={bookId} bookTitle={bookTitle} bookGenre={bookGenre} />
 
       {/* Header */}
       <div className="flex items-center gap-3">
