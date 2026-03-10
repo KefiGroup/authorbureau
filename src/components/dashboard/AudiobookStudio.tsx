@@ -94,6 +94,25 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
 
   useEffect(() => { loadManuscript(); }, [loadManuscript]);
 
+  // Check if audiobook is already distributed
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("audiobooks")
+          .select("status")
+          .eq("book_id", bookId)
+          .eq("author_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (data?.status === "distributing" || data?.status === "distributed") {
+          setDistributionStatus(data.status === "distributed" ? "distributed" : "distributing");
+        }
+      } catch { /* ignore */ }
+    })();
+  }, [bookId, userId]);
+
   // Split manuscript into chapters
   const parseChapters = useCallback(() => {
     if (!manuscript.trim()) {
