@@ -171,9 +171,6 @@ export default function DashboardSidebar({
             <span className="font-heading text-lg font-bold truncate block">
               Authors <span className="text-gradient-gold">Bureau</span>
             </span>
-            <span className="text-[9px] font-medium uppercase tracking-widest text-muted-foreground/60 leading-none">
-              AI Marketing Studio
-            </span>
           </div>
         )}
       </div>
