@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Loader2, Search, Users, UserPlus, X, ChevronRight, TrendingUp,
   Mail, Phone, Building2, MessageSquare, Trash2, Download, ArrowRight,
-  Calendar, Tag, Plus,
+  Calendar, Tag, Plus, Upload,
 } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -43,6 +43,7 @@ interface Props {
 export default function AuthorCRMPage({ onNavigate }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [contacts, setContacts] = useState<CRMContact[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,6 +51,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
   const [sourceFilter, setSourceFilter] = useState("all");
   const [showForm, setShowForm] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   const [selected, setSelected] = useState<CRMContact | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -175,7 +177,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
       setContacts((prev) => prev.filter((c) => c.id !== id));
       if (selected?.id === id) setSelected(null);
       toast({ title: "Contact deleted" });
-    } catch (err: any) {
+    } catch {
       toast({ title: "Delete failed", variant: "destructive" });
     }
   };
@@ -238,6 +240,74 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
     URL.revokeObjectURL(url);
   };
 
+  const handleCSVImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setImporting(true);
+
+    try {
+      const text = await file.text();
+      const lines = text.split("\n").filter((l) => l.trim());
+      if (lines.length < 2) {
+        toast({ title: "CSV is empty or has no data rows", variant: "destructive" });
+        setImporting(false);
+        return;
+      }
+
+      // Parse header to find column indices
+      const headerLine = lines[0];
+      const headers = headerLine.split(",").map((h) => h.replace(/"/g, "").trim().toLowerCase());
+      const nameIdx = headers.findIndex((h) => h.includes("name"));
+      const emailIdx = headers.findIndex((h) => h.includes("email"));
+      const phoneIdx = headers.findIndex((h) => h.includes("phone"));
+      const companyIdx = headers.findIndex((h) => h.includes("company") || h.includes("org"));
+
+      if (nameIdx === -1 && emailIdx === -1) {
+        toast({ title: "CSV must have a 'Name' or 'Email' column", variant: "destructive" });
+        setImporting(false);
+        return;
+      }
+
+      const rows = lines.slice(1).map((line) => {
+        const cols = line.split(",").map((c) => c.replace(/"/g, "").trim());
+        return {
+          author_id: user.id,
+          full_name: (nameIdx >= 0 ? cols[nameIdx] : cols[emailIdx]) || "Unknown",
+          email: emailIdx >= 0 ? cols[emailIdx] || null : null,
+          phone: phoneIdx >= 0 ? cols[phoneIdx] || null : null,
+          company: companyIdx >= 0 ? cols[companyIdx] || null : null,
+          source: "csv_import",
+        };
+      }).filter((r) => r.full_name && r.full_name !== "Unknown");
+
+      if (rows.length === 0) {
+        toast({ title: "No valid rows found in CSV", variant: "destructive" });
+        setImporting(false);
+        return;
+      }
+
+      // Insert in batches of 50
+      let imported = 0;
+      for (let i = 0; i < rows.length; i += 50) {
+        const batch = rows.slice(i, i + 50);
+        const { error } = await supabase.from("crm_contacts").insert(batch);
+        if (error) {
+          console.error("CSV import batch error:", error);
+        } else {
+          imported += batch.length;
+        }
+      }
+
+      toast({ title: `Imported ${imported} contacts from CSV` });
+      fetchContacts();
+    } catch (err: any) {
+      toast({ title: "Import failed", description: err.message, variant: "destructive" });
+    }
+    setImporting(false);
+    // Reset file input
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -257,9 +327,13 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
           Your contact list will grow as readers engage with your microsite, download your resources,
           sign up for your courses, and attend your events. Build your first product to start collecting contacts.
         </p>
-        <div className="flex gap-3 justify-center">
+        <div className="flex gap-3 justify-center flex-wrap">
           <Button onClick={() => setShowForm(true)} variant="outline" size="sm">
             <UserPlus className="h-4 w-4 mr-1.5" /> Add Contact Manually
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={importing}>
+            {importing ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Upload className="h-4 w-4 mr-1.5" />}
+            Import CSV
           </Button>
           <Button
             className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
@@ -268,6 +342,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
             Build Your First Product <ArrowRight className="h-4 w-4 ml-1.5" />
           </Button>
         </div>
+        <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleCSVImport} />
       </div>
     );
   }
@@ -282,7 +357,11 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
             Everyone who has engaged with your books, products, and microsite — all in one place.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={importing}>
+            {importing ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Upload className="h-4 w-4 mr-1.5" />}
+            Import CSV
+          </Button>
           <Button onClick={exportCSV} variant="outline" size="sm">
             <Download className="h-4 w-4 mr-1.5" /> Export CSV
           </Button>
@@ -292,6 +371,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
           </Button>
         </div>
       </div>
+      <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleCSVImport} />
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

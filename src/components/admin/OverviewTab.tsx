@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Clock, BookOpen, ShieldCheck, ArrowRight, RefreshCw, AlertCircle, UserCheck, Contact } from "lucide-react";
+import { Loader2, Clock, BookOpen, ShieldCheck, ArrowRight, RefreshCw, AlertCircle, UserCheck, Contact, Package, DollarSign, Cpu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import type { AdminStats, Submission } from "@/types/admin";
 
 interface OverviewTabProps {
@@ -20,12 +21,35 @@ const statusColors: Record<string, string> = {
   rejected: "bg-red-100 text-red-800 border-red-200",
 };
 
+interface ProductCounts {
+  courses: number;
+  homeStudy: number;
+  webinars: number;
+  audiobooks: number;
+  podcasts: number;
+  workbooks: number;
+  socialMedia: number;
+  emailFlows: number;
+  coaching: number;
+}
+
+interface AIUsageStats {
+  totalTokens: number;
+  totalCost: number;
+  topFeatures: { feature: string; tokens: number }[];
+  last7DaysTokens: number;
+}
+
 export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pendingBookCount = 0, pendingAuthorCount = 0 }: OverviewTabProps) {
   const [crmCount, setCrmCount] = useState(0);
   const [crmWeekCount, setCrmWeekCount] = useState(0);
+  const [productCounts, setProductCounts] = useState<ProductCounts | null>(null);
+  const [aiUsage, setAiUsage] = useState<AIUsageStats | null>(null);
+  const [subscriberCount, setSubscriberCount] = useState(0);
 
   useEffect(() => {
     (async () => {
+      // CRM counts
       const { count } = await supabase.from("crm_contacts").select("id", { count: "exact", head: true });
       setCrmCount(count ?? 0);
       const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
@@ -34,6 +58,67 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
         .select("id", { count: "exact", head: true })
         .gte("created_at", weekAgo);
       setCrmWeekCount(weekCount ?? 0);
+
+      // Product counts (parallel)
+      const tables = [
+        "courses", "home_study_courses", "webinars", "audiobooks",
+        "podcasts", "workbooks", "social_media_content", "email_flows", "coaching_packages",
+      ] as const;
+
+      const countPromises = tables.map((t) =>
+        supabase.from(t).select("id", { count: "exact", head: true }).then((r) => r.count ?? 0)
+      );
+      const counts = await Promise.all(countPromises);
+      setProductCounts({
+        courses: counts[0],
+        homeStudy: counts[1],
+        webinars: counts[2],
+        audiobooks: counts[3],
+        podcasts: counts[4],
+        workbooks: counts[5],
+        socialMedia: counts[6],
+        emailFlows: counts[7],
+        coaching: counts[8],
+      });
+
+      // Subscriber count
+      const { count: subCount } = await supabase
+        .from("author_subscribers")
+        .select("id", { count: "exact", head: true });
+      setSubscriberCount(subCount ?? 0);
+
+      // AI usage stats
+      try {
+        const { data: usageRows } = await supabase
+          .from("ai_usage_logs" as any)
+          .select("feature, total_tokens, cost_estimate, created_at")
+          .order("created_at", { ascending: false })
+          .limit(1000);
+
+        if (usageRows && usageRows.length > 0) {
+          const totalTokens = usageRows.reduce((sum: number, r: any) => sum + (r.total_tokens || 0), 0);
+          const totalCost = usageRows.reduce((sum: number, r: any) => sum + parseFloat(r.cost_estimate || 0), 0);
+          const last7 = usageRows
+            .filter((r: any) => new Date(r.created_at) > new Date(Date.now() - 7 * 86400000))
+            .reduce((sum: number, r: any) => sum + (r.total_tokens || 0), 0);
+
+          // Top features by token usage
+          const featureMap: Record<string, number> = {};
+          usageRows.forEach((r: any) => {
+            featureMap[r.feature] = (featureMap[r.feature] || 0) + (r.total_tokens || 0);
+          });
+          const topFeatures = Object.entries(featureMap)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5)
+            .map(([feature, tokens]) => ({ feature, tokens }));
+
+          setAiUsage({ totalTokens, totalCost, topFeatures, last7DaysTokens: last7 });
+        } else {
+          setAiUsage({ totalTokens: 0, totalCost: 0, topFeatures: [], last7DaysTokens: 0 });
+        }
+      } catch {
+        setAiUsage({ totalTokens: 0, totalCost: 0, topFeatures: [], last7DaysTokens: 0 });
+      }
     })();
   }, [stats]);
 
@@ -46,6 +131,9 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
   }
 
   const pendingCount = stats.pending_submissions ?? 0;
+  const totalProducts = productCounts
+    ? Object.values(productCounts).reduce((a, b) => a + b, 0)
+    : 0;
 
   const cards = [
     {
@@ -61,6 +149,12 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
       icon: UserCheck,
       action: () => onNavigate("authors"),
       badge: pendingAuthorCount > 0 ? `${pendingAuthorCount} unlisted` : undefined,
+    },
+    {
+      label: "Published Products",
+      value: totalProducts,
+      icon: Package,
+      action: () => onNavigate("books"),
     },
     { label: "Admins", value: stats.total_admins ?? stats.admins ?? 0, icon: ShieldCheck, action: () => onNavigate("admins") },
     {
@@ -85,7 +179,7 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {cards.map((c) => {
           const Icon = c.icon;
           return (
@@ -107,6 +201,99 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
             </button>
           );
         })}
+      </div>
+
+      {/* Revenue & Subscriptions Panel */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-secondary" />
+            <h3 className="font-heading font-bold">Revenue & Subscriptions</h3>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs text-muted-foreground">Total Subscribers</p>
+              <p className="text-2xl font-bold font-heading">{subscriberCount}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Total Products</p>
+              <p className="text-2xl font-bold font-heading">{totalProducts}</p>
+            </div>
+          </div>
+          {productCounts && (
+            <div className="space-y-2 pt-2 border-t border-border">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Product Breakdown</p>
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                {[
+                  { label: "Courses", count: productCounts.courses },
+                  { label: "Home Study", count: productCounts.homeStudy },
+                  { label: "Webinars", count: productCounts.webinars },
+                  { label: "Audiobooks", count: productCounts.audiobooks },
+                  { label: "Podcasts", count: productCounts.podcasts },
+                  { label: "Workbooks", count: productCounts.workbooks },
+                  { label: "Social Content", count: productCounts.socialMedia },
+                  { label: "Email Flows", count: productCounts.emailFlows },
+                  { label: "Coaching", count: productCounts.coaching },
+                ].map((p) => (
+                  <div key={p.label} className="flex justify-between bg-muted/50 rounded px-2 py-1">
+                    <span className="text-muted-foreground">{p.label}</span>
+                    <span className="font-semibold">{p.count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </Card>
+
+        {/* AI Usage Panel */}
+        <Card className="p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <Cpu className="h-5 w-5 text-secondary" />
+            <h3 className="font-heading font-bold">AI Usage Dashboard</h3>
+          </div>
+          {aiUsage ? (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-muted-foreground">Total Tokens Used</p>
+                  <p className="text-2xl font-bold font-heading">
+                    {aiUsage.totalTokens > 1_000_000
+                      ? `${(aiUsage.totalTokens / 1_000_000).toFixed(1)}M`
+                      : aiUsage.totalTokens > 1_000
+                      ? `${(aiUsage.totalTokens / 1_000).toFixed(1)}K`
+                      : aiUsage.totalTokens}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Last 7 Days</p>
+                  <p className="text-2xl font-bold font-heading">
+                    {aiUsage.last7DaysTokens > 1_000
+                      ? `${(aiUsage.last7DaysTokens / 1_000).toFixed(1)}K`
+                      : aiUsage.last7DaysTokens}
+                  </p>
+                </div>
+              </div>
+              {aiUsage.topFeatures.length > 0 && (
+                <div className="space-y-2 pt-2 border-t border-border">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Top Features by Usage</p>
+                  {aiUsage.topFeatures.map((f) => (
+                    <div key={f.feature} className="flex justify-between items-center text-xs bg-muted/50 rounded px-2 py-1.5">
+                      <span className="text-muted-foreground capitalize">{f.feature.replace(/_/g, " ")}</span>
+                      <span className="font-semibold">
+                        {f.tokens > 1_000 ? `${(f.tokens / 1_000).toFixed(1)}K` : f.tokens} tokens
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {aiUsage.totalTokens === 0 && (
+                <p className="text-xs text-muted-foreground italic">No AI usage recorded yet. Usage will appear here as authors use AI builders.</p>
+              )}
+            </>
+          ) : (
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          )}
+        </Card>
       </div>
 
       {/* Quick Actions */}
