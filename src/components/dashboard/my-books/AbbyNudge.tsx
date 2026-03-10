@@ -63,7 +63,7 @@ export default function AbbyNudge({
       return `Your business plan for "${bookTitle}" has ${totalProducts} products ready to build across Build + Bridge. ${nextProduct ? `I recommend starting with "${nextProduct}" — projected at ${revenueRange}/month.` : ""} Let's go!`;
     }
     if (tier === "enterprise") {
-      return `All 27 builders are unlocked for "${bookTitle}"! Your plan maps ${revenueStreams} revenue streams with projected revenue of ${revenueRange}/month. ${nextProduct ? `I recommend starting with "${nextProduct}" — your highest-ROI move.` : ""} Ready to build?`;
+      return `All 28 builders are unlocked for "${bookTitle}"! Your plan maps ${revenueStreams} revenue streams with projected revenue of ${revenueRange}/month. ${nextProduct ? `I recommend starting with "${nextProduct}" — your highest-ROI move.` : ""} Ready to build?`;
     }
 
     // Stage 5: Earning
