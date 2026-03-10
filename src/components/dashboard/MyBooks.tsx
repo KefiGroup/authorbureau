@@ -207,7 +207,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
       label: "Subscribe to Start Building", icon: CreditCard, bg: "bg-[#6366F1] hover:bg-[#6366F1]/90",
       action: () => onNavigate?.("build-business"),
     };
-    if ((productCounts[book.id] || 0) === 0) return {
+    if (getBookProductCount(book.id) === 0) return {
       label: "Start Building", icon: Rocket, bg: "bg-[#0D9488] hover:bg-[#0D9488]/90",
       action: () => navigate(`/dashboard/book/${book.id}`),
     };
