@@ -67,19 +67,18 @@ export const ABBY_CATEGORIES: Record<AbbyCategory, AbbyCategoryConfig> = {
       { id: "social-media", label: "Social Media", icon: Share2, section: "social-media", navigateTo: "social-media", description: "90-day AI content calendar from your book.", status: "available", subCategory: "In-House", sequence: 5 },
       { id: "email-marketing", label: "Email Marketing", icon: Megaphone, section: "email-marketing", navigateTo: "email-marketing", description: "AI-driven nurture sequences from book content.", status: "available", subCategory: "In-House", sequence: 6 },
       { id: "microsite", label: "Website / Microsite", icon: BookOpen, section: "microsite-manager", navigateTo: "microsite-manager", description: "Your book's landing page (built-in).", status: "available", subCategory: "In-House", sequence: 7 },
-      { id: "audiobook", label: "Audiobook", icon: Headphones, section: "audiobook-studio", navigateTo: "audiobook-studio", description: "AI-narrated audiobook from your manuscript.", status: "available", subCategory: "Pro Products", sequence: 8, tierRequired: "Pro" },
-      { id: "courses", label: "Online Course", icon: GraduationCap, section: "courses", navigateTo: "courses", description: "8-12 module structured courses from your book content.", status: "available", subCategory: "Pro Products", sequence: 9, tierRequired: "Pro" },
+      { id: "courses", label: "Online Course", icon: GraduationCap, section: "courses", navigateTo: "courses", description: "8-12 module structured courses from your book content.", status: "available", subCategory: "Pro Products", sequence: 8, tierRequired: "Pro" },
     ],
   },
 
   /**
-   * BRIDGE CHANNELS (7 nodes)
+   * BRIDGE CHANNELS (8 nodes)
    * Marketing channels that connect the book to a wider audience.
    */
   "marketing-channels": {
     id: "marketing-channels",
     label: "B · Bridge Channels",
-    subtitle: "Marketing & Audience Growth (7 nodes)",
+    subtitle: "Marketing & Audience Growth (8 nodes)",
     color: "text-violet-600",
     bgColor: "bg-violet-500/10",
     ringColor: "ring-violet-500/30",
