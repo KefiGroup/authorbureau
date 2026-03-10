@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, hasTierAccess, TIERS } from "@/hooks/useAuth";
 import { useAbbyPlan } from "@/hooks/useAbbyPlan";
+import ROIBanner from "@/components/dashboard/ROIBanner";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import CourseStepRenderer from "./course/CourseStepRenderer";
 import HomeStudyStepRenderer from "./home-study/HomeStudyStepRenderer";
