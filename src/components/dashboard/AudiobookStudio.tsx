@@ -36,6 +36,7 @@ interface Props {
 
 export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
   const navigate = useNavigate();
+  const { tier } = useAuth();
   const [voices, setVoices] = useState<Voice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState("sarah");
   const [previewAudio, setPreviewAudio] = useState<HTMLAudioElement | null>(null);
@@ -49,6 +50,8 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
   const [showUploadFallback, setShowUploadFallback] = useState(false);
   const playerRef = useRef<HTMLAudioElement | null>(null);
   const [playingIndex, setPlayingIndex] = useState(-1);
+  const [distributionStatus, setDistributionStatus] = useState<"idle" | "distributing" | "distributed">("idle");
+  const [showDistributeModal, setShowDistributeModal] = useState(false);
 
   // Load voices
   useEffect(() => {
