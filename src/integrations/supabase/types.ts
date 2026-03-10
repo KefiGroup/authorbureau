@@ -59,6 +59,13 @@ export type Database = {
             referencedRelation: "books"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ai_usage_logs_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       audiobooks: {
@@ -134,6 +141,13 @@ export type Database = {
             columns: ["book_id"]
             isOneToOne: false
             referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audiobooks_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
             referencedColumns: ["id"]
           },
           {
@@ -595,6 +609,13 @@ export type Database = {
             referencedRelation: "books"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "consultation_sessions_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       course_enrollments: {
@@ -801,6 +822,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "courses_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "courses_source_asset_id_fkey"
             columns: ["source_asset_id"]
             isOneToOne: false
@@ -976,6 +1004,13 @@ export type Database = {
             columns: ["book_id"]
             isOneToOne: false
             referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cross_builder_pushes_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
             referencedColumns: ["id"]
           },
           {
@@ -1186,6 +1221,13 @@ export type Database = {
             referencedRelation: "books"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "email_flows_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       email_send_logs: {
@@ -1317,6 +1359,13 @@ export type Database = {
             referencedRelation: "books"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "feature_requests_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       feedback: {
@@ -1388,6 +1437,13 @@ export type Database = {
             referencedRelation: "books"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "generated_assets_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       home_study_courses: {
@@ -1454,6 +1510,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "home_study_courses_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "home_study_courses_source_asset_id_fkey"
             columns: ["source_asset_id"]
             isOneToOne: false
@@ -1487,6 +1550,13 @@ export type Database = {
             columns: ["book_id"]
             isOneToOne: false
             referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "newsletter_signups_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1653,6 +1723,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "podcasts_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "podcasts_source_asset_id_fkey"
             columns: ["source_asset_id"]
             isOneToOne: false
@@ -1774,6 +1851,13 @@ export type Database = {
             referencedRelation: "books"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "reading_challenge_entries_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       reading_club_challenge_participants: {
@@ -1851,6 +1935,13 @@ export type Database = {
             referencedRelation: "books"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "reading_club_challenges_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       reading_club_discussions: {
@@ -1884,6 +1975,13 @@ export type Database = {
             columns: ["book_id"]
             isOneToOne: false
             referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reading_club_discussions_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
             referencedColumns: ["id"]
           },
           {
@@ -1930,6 +2028,13 @@ export type Database = {
             columns: ["book_id"]
             isOneToOne: false
             referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reading_club_featured_books_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
             referencedColumns: ["id"]
           },
         ]
@@ -2046,6 +2151,13 @@ export type Database = {
             columns: ["book_id"]
             isOneToOne: false
             referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_media_content_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
             referencedColumns: ["id"]
           },
           {
@@ -2216,6 +2328,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "webinars_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "webinars_source_asset_id_fkey"
             columns: ["source_asset_id"]
             isOneToOne: false
@@ -2285,6 +2404,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "workbooks_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "workbooks_source_asset_id_fkey"
             columns: ["source_asset_id"]
             isOneToOne: false
@@ -2295,7 +2421,96 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      books_public: {
+        Row: {
+          ai_enriched: boolean | null
+          amazon_author_profile_url: string | null
+          amazon_url: string | null
+          author_bio: string | null
+          author_id: string | null
+          author_name: string | null
+          author_photo_url: string | null
+          badges: string[] | null
+          bestseller_proof_url: string | null
+          cover_image_url: string | null
+          created_at: string | null
+          currency: string | null
+          description: string | null
+          entry_mode: string | null
+          genre: string | null
+          id: string | null
+          kindle_price: string | null
+          pages: number | null
+          paperback_price: string | null
+          price: string | null
+          published_at: string | null
+          rating: number | null
+          review_count: number | null
+          slug: string | null
+          subtitle: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ai_enriched?: boolean | null
+          amazon_author_profile_url?: string | null
+          amazon_url?: string | null
+          author_bio?: string | null
+          author_id?: string | null
+          author_name?: string | null
+          author_photo_url?: string | null
+          badges?: string[] | null
+          bestseller_proof_url?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          entry_mode?: string | null
+          genre?: string | null
+          id?: string | null
+          kindle_price?: string | null
+          pages?: number | null
+          paperback_price?: string | null
+          price?: string | null
+          published_at?: string | null
+          rating?: number | null
+          review_count?: number | null
+          slug?: string | null
+          subtitle?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ai_enriched?: boolean | null
+          amazon_author_profile_url?: string | null
+          amazon_url?: string | null
+          author_bio?: string | null
+          author_id?: string | null
+          author_name?: string | null
+          author_photo_url?: string | null
+          badges?: string[] | null
+          bestseller_proof_url?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          entry_mode?: string | null
+          genre?: string | null
+          id?: string | null
+          kindle_price?: string | null
+          pages?: number | null
+          paperback_price?: string | null
+          price?: string | null
+          published_at?: string | null
+          rating?: number | null
+          review_count?: number | null
+          slug?: string | null
+          subtitle?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       check_rate_limit: {
