@@ -15,7 +15,7 @@ interface Node {
   icon: typeof BookOpen;
   section?: DashboardSection;
   description: string;
-  status: "live" | "coming-soon" | "planned";
+  status: "available" | "coming-soon" | "planned";
 }
 
 interface CategoryDef {
