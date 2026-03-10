@@ -345,6 +345,9 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         hasMicrosite={hasMicrosite}
         stripeConnected={stripeConnected}
         pendingReviewCount={pendingReviewCount}
+        buildUnlocked={stats.products.totalBuilt}
+        bridgeUnlocked={Object.entries(stats.products.perTable).reduce((sum, [, v]) => sum + v.total, 0)}
+        yieldUnlocked={stats.products.totalBuilt}
       />
       <div className="flex flex-1 flex-col min-w-0">
         <DashboardHeader
