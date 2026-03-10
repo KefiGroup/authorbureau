@@ -263,7 +263,7 @@ export default function AbbyBuildAdvisor({ categoryId, bookId, bookTitle, bookGe
               <MessageCircle className="h-3.5 w-3.5" />
               Ask Abby for personalized advice
             </Button>
-            <span className="text-[10px] text-muted-foreground">or consult a real expert (coming soon)</span>
+            
           </div>
         </div>
       )}

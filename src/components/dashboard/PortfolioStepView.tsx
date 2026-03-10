@@ -22,10 +22,11 @@ interface Node {
   label: string;
   icon: typeof BookOpen;
   description: string;
-  status: "live" | "coming-soon" | "planned";
+  status: "available" | "coming-soon" | "planned";
   tierRequired?: string;
   subCategory?: string;
   sequence?: number;
+  navigateTo?: string; // dashboard section or URL to navigate to
 }
 
 interface CategoryConfig {
@@ -47,13 +48,13 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     gradientFrom: "from-emerald-500", gradientTo: "to-emerald-600",
     headerIcon: DollarSign,
     nodes: [
-      { id: "workbooks", label: "Workbook", icon: FileText, description: "Companion workbook PDFs with exercises and templates", status: "live", subCategory: "Digital Products", sequence: 1 },
-      { id: "home-study", label: "Home Study Course", icon: BookMarked, description: "Self-paced study guide with daily exercises", status: "live", subCategory: "Digital Products", sequence: 2 },
-      { id: "book-sales-events", label: "Book Sales", icon: BookOpen, description: "QR code order pages & direct sales", status: "live", subCategory: "Digital Products", sequence: 3 },
-      { id: "special-editions", label: "Special Editions", icon: Sparkles, description: "Signed copies, bundles, limited editions", status: "live", subCategory: "Digital Products", sequence: 4 },
-      { id: "social-media", label: "Social Media", icon: Share2, description: "90-day AI content calendar from your book", status: "live", subCategory: "In-House", sequence: 5 },
-      { id: "email-marketing", label: "Email Marketing", icon: Megaphone, description: "AI-driven nurture sequences from book content", status: "live", subCategory: "In-House", sequence: 6 },
-      { id: "microsite", label: "Website / Microsite", icon: BookOpen, description: "Your book's landing page (built-in)", status: "live", subCategory: "In-House", sequence: 7 },
+      { id: "workbooks", label: "Workbook", icon: FileText, description: "Companion workbook PDFs with exercises and templates", status: "available", subCategory: "Digital Products", sequence: 1, navigateTo: "workbooks" },
+      { id: "home-study", label: "Home Study Course", icon: BookMarked, description: "Self-paced study guide with daily exercises", status: "available", subCategory: "Digital Products", sequence: 2, navigateTo: "home-study" },
+      { id: "book-sales-events", label: "Book Sales", icon: BookOpen, description: "QR code order pages & direct sales", status: "available", subCategory: "Digital Products", sequence: 3, navigateTo: "book-sales-setup" },
+      { id: "special-editions", label: "Special Editions", icon: Sparkles, description: "Signed copies, bundles, limited editions", status: "available", subCategory: "Digital Products", sequence: 4, navigateTo: "special-editions-setup" },
+      { id: "social-media", label: "Social Media", icon: Share2, description: "90-day AI content calendar from your book", status: "available", subCategory: "In-House", sequence: 5, navigateTo: "social-media" },
+      { id: "email-marketing", label: "Email Marketing", icon: Megaphone, description: "AI-driven nurture sequences from book content", status: "available", subCategory: "In-House", sequence: 6, navigateTo: "email-marketing" },
+      { id: "microsite", label: "Website / Microsite", icon: BookOpen, description: "Your book's landing page (built-in)", status: "available", subCategory: "In-House", sequence: 7, navigateTo: "microsite-manager" },
     ],
   },
   "marketing-channels": {
@@ -62,19 +63,19 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     gradientFrom: "from-violet-500", gradientTo: "to-violet-600",
     headerIcon: Radio,
     nodes: [
-      { id: "audiobook", label: "Audiobook", icon: Headphones, description: "AI-narrated audiobook from your manuscript", status: "live", subCategory: "Pro Products", sequence: 1, tierRequired: "Pro" },
-      { id: "courses", label: "Online Courses", icon: GraduationCap, description: "8-12 module structured courses from your book content", status: "live", subCategory: "Pro Products", sequence: 2, tierRequired: "Pro" },
-      { id: "podcast-guest", label: "Podcasts", icon: Podcast, description: "Podcast series from your book content", status: "live", subCategory: "Pro Products", sequence: 3, tierRequired: "Pro" },
-      { id: "webinars", label: "Webinars", icon: Video, description: "Webinar scripts + slide decks + registration pages", status: "live", subCategory: "Pro Products", sequence: 4, tierRequired: "Pro" },
-      { id: "memberships", label: "Monthly Memberships", icon: CreditCard, description: "3-tier membership system with recurring revenue", status: "live", subCategory: "Pro Products", sequence: 5, tierRequired: "Pro" },
-      { id: "coaching-1on1", label: "1-on-1 Coaching", icon: UserCheck, description: "6/12-session coaching programs with session outlines", status: "live", subCategory: "Coaching", sequence: 6, tierRequired: "Pro" },
-      { id: "group-coaching", label: "Group Coaching", icon: Users, description: "8-week group coaching curriculum", status: "live", subCategory: "Coaching", sequence: 7, tierRequired: "Pro" },
-      { id: "big-ticket", label: "Big Ticket Consulting", icon: Trophy, description: "Premium consulting packages ($5K–$25K)", status: "planned", subCategory: "Coaching", sequence: 8, tierRequired: "Pro" },
+      { id: "audiobook", label: "Audiobook", icon: Headphones, description: "AI-narrated audiobook from your manuscript", status: "available", subCategory: "Pro Products", sequence: 1, tierRequired: "Pro", navigateTo: "audiobook-studio" },
+      { id: "courses", label: "Online Courses", icon: GraduationCap, description: "8-12 module structured courses from your book content", status: "available", subCategory: "Pro Products", sequence: 2, tierRequired: "Pro", navigateTo: "courses" },
+      { id: "podcast-guest", label: "Podcasts", icon: Podcast, description: "Podcast series from your book content", status: "available", subCategory: "Pro Products", sequence: 3, tierRequired: "Pro", navigateTo: "podcast" },
+      { id: "webinars", label: "Webinars", icon: Video, description: "Webinar scripts + slide decks + registration pages", status: "available", subCategory: "Pro Products", sequence: 4, tierRequired: "Pro", navigateTo: "webinars" },
+      { id: "memberships", label: "Monthly Memberships", icon: CreditCard, description: "3-tier membership system with recurring revenue", status: "available", subCategory: "Pro Products", sequence: 5, tierRequired: "Pro", navigateTo: "memberships" },
+      { id: "coaching-1on1", label: "1-on-1 Coaching", icon: UserCheck, description: "6/12-session coaching programs with session outlines", status: "available", subCategory: "Coaching", sequence: 6, tierRequired: "Pro", navigateTo: "coaching" },
+      { id: "group-coaching", label: "Group Coaching", icon: Users, description: "8-week group coaching curriculum", status: "available", subCategory: "Coaching", sequence: 7, tierRequired: "Pro", navigateTo: "group-coaching" },
+      { id: "big-ticket", label: "Big Ticket Consulting", icon: Trophy, description: "Premium consulting packages ($5K–$25K)", status: "planned", subCategory: "Coaching", sequence: 8, tierRequired: "Pro", navigateTo: "big-ticket" },
       { id: "upsells", label: "Upsells / Downsells", icon: TrendingUp, description: "Conversion sequences and funnel optimization", status: "planned", subCategory: "Growth", sequence: 9, tierRequired: "Pro" },
       { id: "in-house-speaker", label: "In-House Speaker", icon: Presentation, description: "Corporate speaker profile + booking", status: "planned", subCategory: "Speaking", sequence: 10, tierRequired: "Pro" },
       { id: "training", label: "Training Programs", icon: Building2, description: "Half/full-day corporate training programs", status: "planned", subCategory: "Speaking", sequence: 11, tierRequired: "Enterprise" },
       { id: "affiliates", label: "Affiliates", icon: Link2, description: "Affiliate tracking links + commission structures", status: "planned", subCategory: "Growth", sequence: 12, tierRequired: "Pro" },
-      { id: "lead-magnet", label: "Lead Magnet", icon: FileText, description: "Free PDF downloads to grow your email list", status: "live", subCategory: "Growth", sequence: 13 },
+      { id: "lead-magnet", label: "Lead Magnet", icon: FileText, description: "Free PDF downloads to grow your email list", status: "available", subCategory: "Growth", sequence: 13 },
       { id: "revenue-sharing", label: "Revenue Sharing", icon: Handshake, description: "Partnership matching + contract templates", status: "planned", subCategory: "Growth", sequence: 14, tierRequired: "Pro" },
     ],
   },
@@ -84,7 +85,7 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     gradientFrom: "from-sky-500", gradientTo: "to-sky-600",
     headerIcon: Award,
     nodes: [
-      { id: "keynotes", label: "Keynotes", icon: Mic, description: "3-5 keynote topics with slide decks", status: "live", subCategory: "Corporate", sequence: 1 },
+      { id: "keynotes", label: "Keynotes", icon: Mic, description: "3-5 keynote topics with slide decks", status: "available", subCategory: "Corporate", sequence: 1, navigateTo: "speaking" },
       { id: "masterminds", label: "Masterminds", icon: BarChart3, description: "Quarterly mastermind group programs", status: "planned", tierRequired: "Enterprise", subCategory: "Corporate", sequence: 2 },
       { id: "retreats", label: "Retreats & Bootcamps", icon: Bookmark, description: "2-3 day retreat programs", status: "planned", tierRequired: "Enterprise", subCategory: "Corporate", sequence: 3 },
       { id: "certification", label: "Certification", icon: ShieldCheck, description: "Curriculum + exam + digital certificates", status: "planned", tierRequired: "Enterprise", subCategory: "High Yield", sequence: 4 },
@@ -226,6 +227,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
     if (node.tierRequired && !hasTierAccess(node.tierRequired)) return "locked";
     const isRecommended = recommendations.some(r => r.nodeId === node.id || r.nodeId.includes(node.id.split("-")[0]));
     if (isRecommended) return "recommended";
+    // BUG-029: Default to "available" (not "live") — products start as not_started
     return "available";
   };
 
@@ -311,8 +313,8 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
                         difficulty: BASELINE_REVENUE[node.id]?.difficulty || 2,
                       } : undefined}
                       genre={genre || undefined}
-                      onBuild={() => { if (primaryBookId) navigate(`/dashboard/book/${primaryBookId}?tab=${categoryId}`); }}
-                      onContinue={() => { if (primaryBookId) navigate(`/dashboard/book/${primaryBookId}?tab=${categoryId}`); }}
+                      onBuild={() => { node.navigateTo ? onNavigate?.(node.navigateTo) : (primaryBookId && navigate(`/dashboard/book/${primaryBookId}?tab=${categoryId}`)); }}
+                      onContinue={() => { node.navigateTo ? onNavigate?.(node.navigateTo) : (primaryBookId && navigate(`/dashboard/book/${primaryBookId}?tab=${categoryId}`)); }}
                       onView={() => { const profile = books[0]?.slug; if (profile) window.open(`/books/${profile}`, "_blank"); }}
                       onUpgrade={() => onNavigate?.("overview")}
                     />
@@ -342,8 +344,8 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
                     difficulty: BASELINE_REVENUE[node.id]?.difficulty || 2,
                   } : undefined}
                   genre={genre || undefined}
-                  onBuild={() => { if (primaryBookId) navigate(`/dashboard/book/${primaryBookId}?tab=${categoryId}`); }}
-                  onContinue={() => { if (primaryBookId) navigate(`/dashboard/book/${primaryBookId}?tab=${categoryId}`); }}
+                  onBuild={() => { node.navigateTo ? onNavigate?.(node.navigateTo) : (primaryBookId && navigate(`/dashboard/book/${primaryBookId}?tab=${categoryId}`)); }}
+                  onContinue={() => { node.navigateTo ? onNavigate?.(node.navigateTo) : (primaryBookId && navigate(`/dashboard/book/${primaryBookId}?tab=${categoryId}`)); }}
                   onView={() => { const profile = books[0]?.slug; if (profile) window.open(`/books/${profile}`, "_blank"); }}
                   onUpgrade={() => onNavigate?.("overview")}
                 />

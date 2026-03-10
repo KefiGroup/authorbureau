@@ -23,7 +23,7 @@ interface Node {
   icon: typeof BookOpen;
   section?: DashboardSection;
   description: string;
-  status: "live" | "coming-soon" | "planned";
+  status: "available" | "coming-soon" | "planned";
   group?: string;
 }
 
@@ -52,13 +52,13 @@ const categories: Category[] = [
     gradientTo: "to-emerald-600",
     headerIcon: DollarSign,
     nodes: [
-      { id: "workbooks", label: "Workbook", icon: FileText, section: "workbooks", description: "Companion workbook PDFs with exercises and templates.", status: "live", group: "Digital Products" },
-      { id: "home-study", label: "Home Study Course", icon: BookMarked, description: "Self-paced study guide with daily exercises.", status: "live", group: "Digital Products" },
-      { id: "book-sales-events", label: "Book Sales", icon: BookOpen, description: "QR code order pages & direct sales.", status: "live", group: "Digital Products" },
-      { id: "special-editions", label: "Special Editions", icon: Sparkles, description: "Signed copies, bundles, limited editions.", status: "live", group: "Digital Products" },
-      { id: "social-media", label: "Social Media", icon: Share2, section: "social-media", description: "90-day AI content calendar from your book.", status: "live", group: "In-House" },
-      { id: "email-marketing", label: "Email Marketing", icon: Megaphone, description: "AI-driven nurture sequences from book content.", status: "live", group: "In-House" },
-      { id: "microsite", label: "Website / Microsite", icon: BookOpen, description: "Your book's landing page (built-in).", status: "live", group: "In-House" },
+      { id: "workbooks", label: "Workbook", icon: FileText, section: "workbooks", description: "Companion workbook PDFs with exercises and templates.", status: "available", group: "Digital Products" },
+      { id: "home-study", label: "Home Study Course", icon: BookMarked, description: "Self-paced study guide with daily exercises.", status: "available", group: "Digital Products" },
+      { id: "book-sales-events", label: "Book Sales", icon: BookOpen, description: "QR code order pages & direct sales.", status: "available", group: "Digital Products" },
+      { id: "special-editions", label: "Special Editions", icon: Sparkles, description: "Signed copies, bundles, limited editions.", status: "available", group: "Digital Products" },
+      { id: "social-media", label: "Social Media", icon: Share2, section: "social-media", description: "90-day AI content calendar from your book.", status: "available", group: "In-House" },
+      { id: "email-marketing", label: "Email Marketing", icon: Megaphone, description: "AI-driven nurture sequences from book content.", status: "available", group: "In-House" },
+      { id: "microsite", label: "Website / Microsite", icon: BookOpen, description: "Your book's landing page (built-in).", status: "available", group: "In-House" },
     ],
   },
   {
@@ -72,19 +72,19 @@ const categories: Category[] = [
     gradientTo: "to-violet-600",
     headerIcon: Radio,
     nodes: [
-      { id: "audiobook", label: "Audiobook", icon: Headphones, description: "AI-narrated audiobook from your manuscript.", status: "live", group: "Pro Products" },
-      { id: "courses", label: "Online Courses", icon: GraduationCap, section: "courses", description: "8-12 module structured courses from your book content.", status: "live", group: "Pro Products" },
-      { id: "podcast-guest", label: "Podcasts", icon: Podcast, section: "podcast", description: "Podcast series from your book content.", status: "live", group: "Pro Products" },
-      { id: "webinars", label: "Webinars", icon: Video, section: "webinars", description: "Webinar scripts + slide decks + registration pages.", status: "live", group: "Pro Products" },
-      { id: "memberships", label: "Monthly Memberships", icon: CreditCard, section: "memberships", description: "3-tier membership system with recurring revenue.", status: "live", group: "Pro Products" },
-      { id: "coaching-1on1", label: "1-on-1 Coaching", icon: UserCheck, section: "coaching", description: "6/12-session coaching programs.", status: "live", group: "Coaching" },
-      { id: "group-coaching", label: "Group Coaching", icon: Users, section: "group-coaching", description: "8-week group coaching curriculum.", status: "live", group: "Coaching" },
+      { id: "audiobook", label: "Audiobook", icon: Headphones, description: "AI-narrated audiobook from your manuscript.", status: "available", group: "Pro Products" },
+      { id: "courses", label: "Online Courses", icon: GraduationCap, section: "courses", description: "8-12 module structured courses from your book content.", status: "available", group: "Pro Products" },
+      { id: "podcast-guest", label: "Podcasts", icon: Podcast, section: "podcast", description: "Podcast series from your book content.", status: "available", group: "Pro Products" },
+      { id: "webinars", label: "Webinars", icon: Video, section: "webinars", description: "Webinar scripts + slide decks + registration pages.", status: "available", group: "Pro Products" },
+      { id: "memberships", label: "Monthly Memberships", icon: CreditCard, section: "memberships", description: "3-tier membership system with recurring revenue.", status: "available", group: "Pro Products" },
+      { id: "coaching-1on1", label: "1-on-1 Coaching", icon: UserCheck, section: "coaching", description: "6/12-session coaching programs.", status: "available", group: "Coaching" },
+      { id: "group-coaching", label: "Group Coaching", icon: Users, section: "group-coaching", description: "8-week group coaching curriculum.", status: "available", group: "Coaching" },
       { id: "big-ticket", label: "Big Ticket Consulting", icon: Trophy, section: "big-ticket", description: "Premium consulting packages ($5K–$25K).", status: "planned", group: "Coaching" },
       { id: "upsells", label: "Upsells / Downsells", icon: TrendingUp, description: "Conversion sequences and funnel optimization.", status: "planned", group: "Growth" },
       { id: "in-house-speaker", label: "In-House Speaker", icon: Presentation, description: "Corporate speaker profile + booking.", status: "planned", group: "Speaking" },
       { id: "training", label: "Training Programs", icon: Building2, description: "Half/full-day corporate training programs.", status: "planned", group: "Speaking" },
       { id: "affiliates", label: "Affiliates", icon: Link2, description: "Affiliate tracking links + commission structures.", status: "planned", group: "Growth" },
-      { id: "lead-magnet", label: "Lead Magnet", icon: FileText, description: "Free PDF downloads to grow your email list.", status: "live", group: "Growth" },
+      { id: "lead-magnet", label: "Lead Magnet", icon: FileText, description: "Free PDF downloads to grow your email list.", status: "available", group: "Growth" },
       { id: "revenue-sharing", label: "Revenue Sharing", icon: Handshake, description: "Partnership matching + contract templates.", status: "planned", group: "Growth" },
     ],
   },
@@ -99,7 +99,7 @@ const categories: Category[] = [
     gradientTo: "to-sky-600",
     headerIcon: Award,
     nodes: [
-      { id: "keynotes", label: "Keynotes", icon: Mic, section: "speaking", description: "3-5 keynote topics with slide decks.", status: "live" },
+      { id: "keynotes", label: "Keynotes", icon: Mic, section: "speaking", description: "3-5 keynote topics with slide decks.", status: "available" },
       { id: "masterminds", label: "Masterminds", icon: BarChart3, description: "Quarterly mastermind group programs.", status: "planned" },
       { id: "retreats", label: "Retreats & Bootcamps", icon: Bookmark, description: "2-3 day retreat programs.", status: "planned" },
       { id: "certification", label: "Certification", icon: ShieldCheck, description: "Curriculum + exam + digital certificates.", status: "planned" },
@@ -111,7 +111,7 @@ const categories: Category[] = [
 ];
 
 const statusStyles = {
-  live: { badge: "Live", className: "bg-green-500/15 text-green-700 dark:text-green-400" },
+  available: { badge: "Available", className: "bg-accent/15 text-accent border-accent/30" },
   "coming-soon": { badge: "Building", className: "bg-amber-500/15 text-amber-700 dark:text-amber-400" },
   planned: { badge: "Planned", className: "bg-muted text-muted-foreground" },
 };
@@ -297,7 +297,7 @@ function NodeCard({
   isPremium: boolean;
 }) {
   const status = statusStyles[node.status];
-  const canNavigate = node.section && node.status === "live";
+  const canNavigate = node.section && node.status === "available";
   const Icon = node.icon;
 
   return (
