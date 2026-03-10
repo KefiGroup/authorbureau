@@ -26,7 +26,7 @@ const plans = [
       "1 product sales page",
       "+ 5% platform fee on sales",
     ],
-    unlockedCategories: ["B·Build (3 of 7)"],
+    unlockedCategories: ["B·Build (3 of 8)"],
   },
   {
     id: "pro" as const,
@@ -47,7 +47,7 @@ const plans = [
       "Coaching booking system",
       "+ 5% platform fee on sales",
     ],
-    unlockedCategories: ["B·Build (7)", "B·Bridge (14)"],
+    unlockedCategories: ["B·Build (8)", "B·Bridge (8)"],
   },
   {
     id: "enterprise" as const,
@@ -66,7 +66,7 @@ const plans = [
       "1-on-1 strategic session with Pauline Teo",
       "+ 5% platform fee on sales",
     ],
-    unlockedCategories: ["B·Build (7)", "B·Bridge (14)", "Y·Yield (7)"],
+    unlockedCategories: ["B·Build (8)", "B·Bridge (8)", "Y·Yield (12)"],
   },
 ];
 
