@@ -1,67 +1,65 @@
 
 
-## Phase 1: CRM Foundation + Reading Club Enhancement (Weeks 1-4)
+# Abby Chatbot Security Vulnerability Fix Plan
 
-The roadmap says to build the CRM ("nervous system") and Reading Club ("demand engine") first, so every subsequent feature automatically captures contacts and drives conversions.
+## Vulnerabilities Found (7 issues)
 
-### Current State
+### Critical
+1. **`getClaims()` does not exist on Supabase JS client** — The `requireAuth()` function calls `supabase.auth.getClaims(token)` which is not a real method. This means auth verification may be silently failing or throwing, causing the function to 500 instead of properly authenticating. Must replace with `supabase.auth.getUser(token)`.
 
-- **CRM**: A basic `CRMDashboard.tsx` that reads from `profiles`, `reading_club_members`, and `newsletter_signups` as a unified contact list. Separate `crm_contacts`, `crm_contact_tags`, and `crm_activity_log` tables exist but are only used by the `CoachingCRM` component (which is actually a coaching package manager, not a CRM).
-- **Reading Club**: A public page with featured books, member signup (email+name), and basic discussions. No book catalog browsing, no challenges, no CRM integration.
+### Medium
+2. **`save_session` action has no rate limiting** — An attacker can flood the `chat_sessions` table with unlimited requests.
+3. **`save_session` messages stored unsanitized** — Raw JSONB of arbitrary size is inserted without validation or size cap.
+4. **`screenshot_url` stored without validation** — Bug reports accept any string as a URL, allowing injection of phishing links or arbitrary data into admin-facing views.
 
-### What We Build
+### Low
+5. **`priority`, `type`, `importance` fields have no whitelist validation** — Arbitrary strings can be stored instead of expected enum values.
+6. **Error catch block leaks `e.message`** — Internal error details (paths, secrets) could be exposed to clients.
+7. **Client `submitAction` silently fails** — User sees success toast even if submission actually failed.
 
-**Week 1-2: Full CRM Dashboard**
+## Changes
 
-1. **Rebuild CRM Dashboard** to use the proper `crm_contacts` table (not the current hacky unified view from 3 tables):
-   - Contact list with search, sort, and filter by source/tag
-   - Add/edit contact form (name, email, phone, company, notes, source)
-   - Tag management: add/remove tags per contact, filter by tag
-   - Activity log panel: view and add notes, calls, emails per contact
-   - Auto-capture: when someone joins Reading Club or signs up for newsletter, auto-create a `crm_contacts` entry
+### Edge Function: `supabase/functions/abby-help-chat/index.ts`
 
-2. **CRM Auto-Capture Edge Function** (`crm-auto-capture`):
-   - Called by Reading Club signup, newsletter signup, and service inquiry flows
-   - Creates/updates `crm_contacts` record, adds source tag, logs activity
-   - Deduplicates by email
+**Fix #1 — Replace `getClaims` with `getUser`**
+```typescript
+async function requireAuth(req: Request, supabase: any) {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return { error: "Unauthorized", status: 401 };
+  }
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) {
+    return { error: "Unauthorized", status: 401 };
+  }
+  return { user };
+}
+```
+Then extract `userId = authResult.user.id` and `userEmail = authResult.user.email`.
 
-3. **CRM Stats on Dashboard Overview**: Total contacts, contacts this week, top tags, recent activity
+**Fix #2 — Add rate limit to `save_session`**
+Add the same escalation rate limit check (3 req/60s) before the save_session insert.
 
-**Week 3-4: Reading Club Enhancement**
+**Fix #3 — Validate and cap `save_session` messages**
+- Validate `data.messages` is an array, cap at 50 entries
+- Truncate each message content to 3,000 chars
+- Force roles to user/assistant
 
-4. **Book Catalog**: Full browsable catalog of published books with genre filters, search, and cover images (not just featured books)
+**Fix #4 — Validate `screenshot_url`**
+Only accept URLs starting with `https://` and cap at 500 chars; reject or null-out anything else.
 
-5. **Reading Challenges**: A simple "30-day reading challenge" feature — join a challenge tied to a featured book, track progress
+**Fix #5 — Whitelist enum fields**
+- `priority`: only allow `"low" | "medium" | "high" | "critical"`, default to `"low"`
+- `type`: only allow `"feature_request" | "improvement" | "general"`, default to `"general"`
+- `importance`: only allow `"critical" | "important" | "nice_to_have"`, default to `"nice_to_have"`
 
-6. **CRM Integration**: Every Reading Club signup triggers the CRM auto-capture, tagged as `reading_club`
+**Fix #6 — Sanitize error responses**
+Replace `e.message` with a generic `"Internal server error"` in the catch block.
 
-### Technical Details
+**Fix #7 — N/A server-side** (client-only improvement, optional)
 
-**Database Changes:**
-- Add a `reading_club_challenges` table (id, book_id, title, description, duration_days, status, created_at)
-- Add a `reading_club_challenge_participants` table (id, challenge_id, member_id, progress, joined_at)
-- No changes needed for `crm_contacts`, `crm_contact_tags`, `crm_activity_log` — they already exist
+### Frontend: `src/components/AbbyHelpChatbot.tsx`
 
-**New Edge Function:**
-- `crm-auto-capture`: receives `{ email, name, source, source_detail }`, upserts into `crm_contacts`, adds tag, logs activity
-
-**Frontend Components (new or rewritten):**
-- `src/components/dashboard/CRMDashboard.tsx` — full rewrite with proper contact management
-- `src/components/dashboard/crm/ContactList.tsx` — already exists, may need updates
-- `src/components/dashboard/crm/ContactForm.tsx` — already exists, may need updates
-- `src/components/dashboard/crm/ActivityPanel.tsx` — already exists, may need updates
-- Reading Club page enhancements — book catalog grid, challenge cards
-
-**Files Modified:**
-- `src/pages/ReadingClub.tsx` — add catalog browse + challenge section
-- `src/components/dashboard/DashboardOverview.tsx` — add CRM stats card
-- `src/pages/AuthorDashboard.tsx` — wire updated CRM section
-
-### Implementation Order
-
-1. CRM auto-capture edge function + database migration for challenge tables
-2. Rewrite CRM Dashboard with full contact CRUD, tags, and activity log
-3. Add CRM stats to Dashboard Overview
-4. Enhance Reading Club with book catalog + challenges
-5. Wire auto-capture into Reading Club and newsletter signup flows
+**Fix #7 — Handle `submitAction` failures**
+Check response status and show an error toast if submission fails, instead of always showing success.
 
