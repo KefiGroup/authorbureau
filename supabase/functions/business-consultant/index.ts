@@ -28,34 +28,36 @@ The ABBY Framework has 4 steps. Step A is your domain (analysis and strategy). S
 
 You read the manuscript, analyze the author's profile, identify the core transformation the book delivers, map the target audience, and produce a personalized ABBY Business Plan. This is YOUR step — you own it entirely.
 
-## B · Build — Build Authority & Digital Assets (11 nodes)
+## B · Build — Build Authority & Digital Assets (7 nodes)
 
 The Authors Bureau builder creates these digital products from the book content:
 
+1. **Home Study Courses** — Self-paced study guides with daily schedules ($27-$97)
+2. **Workbooks** — Companion workbook PDFs with exercises and templates (Free-$27)
+3. **Book Sales (Events)** — Bulk book sales at events and conferences ($10-$25/book, volume)
+4. **Lead Magnets** — High-converting free resources to build email lists (Free)
+5. **Social Media** — 90-day AI content calendar from book chapters (marketing asset)
+6. **Website / Microsite** — Author authority site with lead capture (marketing asset)
+7. **Email Marketing** — Welcome sequences, nurture flows, launch sequences (marketing asset)
+
+## B · Bridge — Bridge Marketing Channels & Connections (14 nodes)
+
+The builder creates courses, media, coaching, speaking, and partnership assets:
+
 1. **Online Courses** — 8-12 module structured courses ($97-$497)
-2. **Home Study Courses** — Self-paced study guides with daily schedules ($27-$97)
-3. **Workbooks** — Companion workbook PDFs with exercises and templates (Free-$27)
-4. **Audiobook** — AI-generated audiobook scripts for recording ($14.99-$29.99)
+2. **Audiobook** — AI-generated audiobook scripts for recording ($14.99-$29.99)
+3. **Podcasts (Guest)** — AI-generated podcast episode scripts and pitch templates (marketing asset)
+4. **Webinars** — Complete webinar scripts + slide decks + registration pages (Free for list building, $47-$197 paid)
 5. **Monthly Memberships** — 3-tier membership system: Reader Circle, Pro, VIP ($9-$97/month)
-6. **Upsells / Downsells** — Conversion sequences in checkout flows (varies)
-7. **Social Media** — 90-day AI content calendar from book chapters (marketing asset)
-8. **Webinars** — Complete webinar scripts + slide decks + registration pages (Free for list building, $47-$197 paid)
-9. **Podcasts (Guest)** — AI-generated podcast episode scripts and pitch templates (marketing asset)
-10. **Website / Microsite** — Author authority site with lead capture (marketing asset)
-11. **Email Marketing** — Welcome sequences, nurture flows, launch sequences (marketing asset)
-
-## B · Bridge — Bridge Marketing Channels & Connections (8 nodes)
-
-The builder creates coaching, speaking, and partnership assets:
-
-1. **1-on-1 Coaching** — Personalized coaching packages ($150-$500/session)
-2. **Group Coaching** — Cohort-based programs ($297-$997 per cohort)
-3. **Big Ticket Consulting** — Premium consulting packages ($2,500-$10,000+)
-4. **Revenue Sharing / JV** — Joint venture partnership templates and structures (% based)
-5. **Keynotes** — Keynote speech scripts and speaker one-sheets ($2,500-$15,000/engagement)
-6. **In-House Speaker** — Corporate workshop packages ($1,500-$5,000/session)
-7. **Training Programs** — Multi-day training curricula ($500-$2,500/participant)
-8. **Affiliates** — Affiliate program setup with commission structures (15-50% commission)
+6. **1-on-1 Coaching** — Personalized coaching packages ($150-$500/session)
+7. **Group Coaching** — Cohort-based programs ($297-$997 per cohort)
+8. **Keynotes** — Keynote speech scripts and speaker one-sheets ($2,500-$15,000/engagement)
+9. **In-House Speaker** — Corporate workshop packages ($1,500-$5,000/session)
+10. **Training Programs** — Multi-day training curricula ($500-$2,500/participant)
+11. **Affiliates** — Affiliate program setup with commission structures (15-50% commission)
+12. **Revenue Sharing / JV** — Joint venture partnership templates and structures (% based)
+13. **Upsells / Downsells** — Conversion sequences in checkout flows (varies)
+14. **Content Licensing** — License your content to other platforms (varies)
 
 ## Y · Yield — Yield Revenue Streams & Monetize (8 nodes)
 
@@ -349,20 +351,19 @@ There are THREE subscription tiers that unlock progressively more product builde
 
 ### STARTER ($49/month)
 - Full Abby consultation with unlimited sessions
-- B·Build: Workbook Builder, Social Media Calendar, Email Marketing Flows, Author Microsite, Book Sales (Events), Home Study Courses
+- B·Build: Workbook Builder, Social Media Calendar, Email Marketing Flows, Author Microsite, Book Sales (Events), Home Study Courses, Lead Magnets
 - Best for: Authors starting out who want quick-win digital products and list building
 
 ### PRO ($199/month)
 - Everything in Starter, PLUS:
-- B·Build: Online Course Builder, Audiobook Studio, Podcast Scripts, Webinar Builder, Monthly Memberships, Upsells/Downsells
-- B·Bridge: 1-on-1 Coaching, Group Coaching
+- B·Bridge: Online Course Builder, Audiobook Studio, Podcast Scripts, Webinar Builder, Monthly Memberships, 1-on-1 Coaching, Group Coaching, Affiliate Program, Revenue Sharing / JV, Upsells/Downsells, Content Licensing
 - CRM + Subscriber Management
 - Best for: Authors ready to monetize with courses, coaching, and advanced marketing
 
 ### ENTERPRISE ($499/month)
 - Everything in Pro, PLUS:
-- B·Bridge: Big Ticket Consulting, Revenue Sharing / JV, Training Programs, Affiliates
-- Y·Yield: ALL 8 premium revenue builders (Retreats, Certification, Masterminds, Special Editions, Keynotes, In-House Speaker, Conventions, Exhibitors)
+- B·Bridge: Keynotes, In-House Speaker, Training Programs
+- Y·Yield: ALL premium revenue builders (Retreats, Certification, Masterminds, Special Editions, Conventions, Big Ticket Consulting, Exhibitors, Fundraising)
 - 1-on-1 strategic session with Pauline Teo (founder of Authors Bureau)
 - Best for: Established authors building a full-scale training empire
 
@@ -422,12 +423,26 @@ Based on your projected monthly revenue of $[range], your subscription pays for 
 
 # MARKET-AWARE RECOMMENDATIONS
 
-When LIVE MARKET RESEARCH data is available in the context, you MUST use it to make your recommendations specific and data-driven:
+When LIVE MARKET RESEARCH data is available in the context, you MUST use it to deliver a two-part recommendation for every product:
 
-1. **Use real competitor prices**: Instead of generic ranges like "$97-$497", cite actual prices from competitors found in the market data. Example: "Courses on this topic are currently priced between $129 and $299 on Udemy and Teachable, with the top sellers averaging 50+ enrollments per month."
-2. **Reference trending topics**: If market data shows specific trending sub-topics, recommend products that address those trends. Example: "My research shows that '21-day challenges' are the top-selling format in your niche — I recommend we start with a 21-Day Challenge home study course."
-3. **Back recommendations with data**: Every product recommendation should include a data point. Instead of "Create a course," say "Courses in the [genre] niche are averaging $X on [platform] with Y sales/month. This represents a potential $Z/month revenue stream for you."
-4. **Acknowledge sources**: Briefly mention that your recommendations are based on current market research without being overly technical.
+## Part 1: "The What and Why" (Trend-Driven)
+Use the Perplexity market intelligence to identify what's trending and what's underserved. Tell the author:
+- WHAT to build (product type + specific angle/format, e.g., "21-Day Burnout Recovery Challenge Workbook")
+- WHY now (cite the trending sub-topic or market gap from the research)
+- Example: "Based on my market research, '21-day challenges' are the #1 selling format in the self-help niche right now. I recommend we start with a 21-Day [Topic] Challenge — this format has the highest completion rates and generates the most testimonials for social proof."
+
+## Part 2: "The How Much and How to Position" (Data-Driven Pricing)
+Use the Amazon bestseller data and Perplexity pricing benchmarks to give specific positioning advice:
+- PRICE: Cite actual competitor prices from the research. Never use generic ranges when real data is available. Example: "The top 3 competing workbooks on Amazon are priced at $14.99, $17.99, and $22.99. I recommend pricing yours at $19.99 to sit competitively in the middle."
+- KEYWORDS: Reference the top title keywords from Amazon bestsellers. Example: "The top sellers all use the words 'Challenge', 'Blueprint', or 'Mastery' in their titles — I recommend incorporating one of these."
+- POSITIONING: Use competitor product count and ratings to identify positioning opportunities. Example: "There are 8 competing courses on Udemy averaging $49, but none of them include a companion workbook. Bundle yours for $79 and you'll stand out."
+
+## Rules for Market Data Usage:
+1. **Structured Amazon data takes priority** over generic ranges. If you have real prices from the Amazon bestseller list, USE THEM.
+2. **Cite the data naturally** — don't say "According to Firecrawl scrape data." Instead: "Looking at the current Amazon bestsellers in your category..." or "Based on my analysis of what's selling right now..."
+3. **Every product recommendation MUST include at least one market data point** — a competitor price, a trending topic, a keyword, or a market gap.
+4. **If Amazon structured data includes ratings and review counts**, use them to gauge demand: "The top book in this category has 4.7 stars with 2,345 reviews — there's clearly strong demand for this topic."
+5. **Cross-reference platforms**: If Udemy shows courses at one price and Amazon shows books at another, use both to triangulate the right price for your product.
 
 If no market research data is available, fall back to the genre-specific guidance below.
 
@@ -815,20 +830,49 @@ serve(async (req) => {
             const parts: string[] = [];
             parts.push(`=== LIVE MARKET RESEARCH (${marketData.dataTimestamp}) ===`);
             parts.push(`Data sources: ${(marketData.dataSources || []).join(", ")}`);
-            if (marketData.marketIntelligence) {
-              parts.push(`\nMARKET INTELLIGENCE:\n${marketData.marketIntelligence.slice(0, 4000)}`);
-            }
-            if (marketData.pricingIntelligence) {
-              parts.push(`\nPRICING BENCHMARKS:\n${marketData.pricingIntelligence.slice(0, 2000)}`);
-            }
-            if (marketData.competitorProducts?.length > 0) {
-              parts.push(`\nCOMPETITOR PRODUCTS FOUND:\n${marketData.competitorProducts.map((p: any) => `- ${p.title}: ${p.snippet}`).join("\n").slice(0, 1500)}`);
-            }
-            if (marketData.amazonBestsellerContext) {
+            parts.push(`Amazon category: ${marketData.amazonCategory || marketData.genre}`);
+
+            // Structured Amazon bestseller data
+            if (marketData.amazonBestsellers?.products?.length > 0) {
+              const products = marketData.amazonBestsellers.products;
+              parts.push(`\nAMAZON BESTSELLERS IN "${marketData.amazonCategory}" (Top ${products.length}):`);
+              products.forEach((p: any) => {
+                parts.push(`  #${p.rank || "?"} "${p.title}" by ${p.author || "Unknown"} — ${p.price || "N/A"} | ${p.rating || "?"}★ (${p.review_count || "?"} reviews) | ${p.format || "Book"}`);
+              });
+
+              // Pricing analysis
+              if (marketData.amazonBestsellers.pricingAnalysis) {
+                const pa = marketData.amazonBestsellers.pricingAnalysis;
+                parts.push(`\nAMAZON PRICING ANALYSIS (${pa.sampleSize} products):`);
+                parts.push(`  Lowest: ${pa.lowest} | Highest: ${pa.highest} | Average: ${pa.average} | Median: ${pa.median}`);
+              }
+
+              // Top title keywords
+              if (marketData.amazonBestsellers.topTitleKeywords?.length > 0) {
+                parts.push(`\nTOP TITLE KEYWORDS (from bestsellers): ${marketData.amazonBestsellers.topTitleKeywords.map((k: any) => `"${k.word}" (${k.count}x)`).join(", ")}`);
+              }
+            } else if (marketData.amazonBestsellerContext) {
               parts.push(`\nAMAZON BESTSELLER CONTEXT:\n${marketData.amazonBestsellerContext.slice(0, 1500)}`);
             }
+
+            // Competitor digital products
+            if (marketData.competitorProducts?.length > 0) {
+              parts.push(`\nCOMPETITOR DIGITAL PRODUCTS FOUND (${marketData.competitorProducts.length}):`);
+              marketData.competitorProducts.forEach((p: any) => {
+                parts.push(`  - [${p.platform}] "${p.title}": ${p.snippet}`);
+              });
+            }
+
+            // Perplexity market intelligence
+            if (marketData.marketIntelligence) {
+              parts.push(`\nMARKET INTELLIGENCE (trends, demographics, gaps):\n${marketData.marketIntelligence.slice(0, 4000)}`);
+            }
+            if (marketData.pricingIntelligence) {
+              parts.push(`\nDETAILED PRICING BENCHMARKS:\n${marketData.pricingIntelligence.slice(0, 2000)}`);
+            }
+
             parts.push(`=== END MARKET RESEARCH ===`);
-            parts.push(`\nIMPORTANT: Use this real market data to make your recommendations SPECIFIC and DATA-DRIVEN. Instead of generic pricing like "$97-$497", use the actual prices competitors are charging in this niche. Reference trending topics and competitor products when recommending what to build first.`);
+            parts.push(`\nCRITICAL: You now have REAL market data. Use it in every product recommendation. Deliver the two-part recommendation: (1) "What & Why" using trends and gaps, and (2) "How Much & How to Position" using actual competitor prices and keywords. NEVER fall back to generic ranges when specific data is available above.`);
             marketResearchContext = parts.join("\n");
           }
         }
