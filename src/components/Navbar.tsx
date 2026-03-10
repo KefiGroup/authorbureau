@@ -141,10 +141,12 @@ export default function Navbar() {
                     Sign In
                   </Link>
                   <Link
-                    to="/auth"
+                    to="/get-featured"
                     onClick={() => setOpen(false)}
                     className="inline-flex w-fit items-center rounded-full bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground"
                   >
+                    Get Featured
+                  </Link>
                     Get Featured
                   </Link>
                 </>

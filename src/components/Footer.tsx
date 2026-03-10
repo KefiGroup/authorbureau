@@ -19,7 +19,7 @@ export default function Footer() {
             </h4>
             <ul className="space-y-2 text-sm text-primary-foreground/70">
               <li><Link to="/directory" className="hover:text-secondary transition-colors">Author Directory</Link></li>
-              <li><Link to="/auth" className="hover:text-secondary transition-colors">Get Featured</Link></li>
+              <li><Link to="/get-featured" className="hover:text-secondary transition-colors">Get Featured</Link></li>
             </ul>
           </div>
 
