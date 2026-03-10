@@ -96,6 +96,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
       setAnalyzedBooks(analyzed);
       setManuscriptBooks(manuscripts);
       setProductCounts(result.productCounts || {});
+      setCategoryCounts(result.categoryCounts || {});
     } catch (err) {
       console.error("Failed to fetch books:", err);
     }
