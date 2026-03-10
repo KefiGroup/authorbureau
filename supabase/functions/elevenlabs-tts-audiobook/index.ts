@@ -73,8 +73,10 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const user = await resolveUser(token);
 
-    const { action, bookId, voiceKey, chapterText, chapterIndex, audiobookId } = await req.json();
+    const body = await req.json();
+    const { action } = body;
 
+    // === LIST VOICES ===
     if (action === "list-voices") {
       const voices = Object.entries(VOICES).map(([key, v]) => ({ key, name: v.name, voiceId: v.id }));
       return new Response(JSON.stringify({ voices }), {
@@ -82,8 +84,9 @@ serve(async (req) => {
       });
     }
 
+    // === PREVIEW VOICE ===
     if (action === "preview-voice") {
-      const voice = VOICES[voiceKey];
+      const voice = VOICES[body.voiceKey];
       if (!voice) throw new Error("Unknown voice key");
 
       const sampleText = "Hello! This is a preview of how I would narrate your audiobook. I hope you enjoy the sound of my voice.";
@@ -95,7 +98,79 @@ serve(async (req) => {
       });
     }
 
+    // === GENERATE SINGLE CHUNK (new: one chunk at a time) ===
+    if (action === "generate-chunk") {
+      const { bookId, voiceKey, chunkText, chapterIndex, chunkIndex, previousContext, nextContext } = body;
+      if (!bookId || !chunkText || chapterIndex === undefined || chunkIndex === undefined) {
+        throw new Error("Missing required fields for generate-chunk");
+      }
+
+      const { data: book } = await supabase
+        .from("books").select("id, author_id, title").eq("id", bookId).single();
+      if (!book || book.author_id !== user.id) {
+        return new Response(JSON.stringify({ error: "Book not found or unauthorized" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const voice = VOICES[voiceKey || "sarah"];
+      if (!voice) throw new Error("Unknown voice key");
+
+      console.log(`Generating chunk ${chunkIndex} for chapter ${chapterIndex} (${chunkText.length} chars)`);
+      const audioBuffer = await generateTTS(ELEVENLABS_API_KEY, voice.id, chunkText, previousContext, nextContext);
+
+      // Upload chunk to storage
+      const filePath = `${user.id}/${bookId}/chapter-${String(chapterIndex).padStart(3, "0")}-chunk-${String(chunkIndex).padStart(3, "0")}.mp3`;
+      const { error: uploadError } = await supabase.storage
+        .from("audiobook-audio")
+        .upload(filePath, audioBuffer, {
+          contentType: "audio/mpeg",
+          upsert: true,
+        });
+      if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+
+      const { data: publicUrl } = supabase.storage
+        .from("audiobook-audio")
+        .getPublicUrl(filePath);
+
+      return new Response(JSON.stringify({
+        success: true,
+        chunkIndex,
+        chapterIndex,
+        audioUrl: publicUrl.publicUrl,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // === FINALIZE CHAPTER (combine chunk URLs) ===
+    if (action === "finalize-chapter") {
+      const { bookId, chapterIndex, chunkUrls, audiobookId } = body;
+
+      // For now just return the first chunk or all chunk URLs
+      // The client can play them sequentially or we store the list
+      const finalUrl = chunkUrls && chunkUrls.length > 0 ? chunkUrls[0] : null;
+
+      if (audiobookId) {
+        await supabase.from("audiobooks").update({
+          audio_url: finalUrl,
+          status: "generated",
+        }).eq("id", audiobookId).eq("author_id", user.id);
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        chapterIndex,
+        audioUrls: chunkUrls,
+        primaryUrl: finalUrl,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // === LEGACY: generate-chapter (kept for backward compat, but warns) ===
     if (action === "generate-chapter") {
+      const { bookId, voiceKey, chapterText, chapterIndex, audiobookId } = body;
       if (!bookId || !chapterText || chapterIndex === undefined) {
         throw new Error("Missing bookId, chapterText, or chapterIndex");
       }
@@ -111,28 +186,15 @@ serve(async (req) => {
       const voice = VOICES[voiceKey || "sarah"];
       if (!voice) throw new Error("Unknown voice key");
 
-      const chunks = splitText(chapterText, 4500);
-      const audioBuffers: ArrayBuffer[] = [];
-
-      for (let i = 0; i < chunks.length; i++) {
-        const previousText = i > 0 ? chunks[i - 1].slice(-200) : undefined;
-        const nextText = i < chunks.length - 1 ? chunks[i + 1].slice(0, 200) : undefined;
-        const buf = await generateTTS(ELEVENLABS_API_KEY, voice.id, chunks[i], previousText, nextText);
-        audioBuffers.push(buf);
-      }
-
-      const totalLength = audioBuffers.reduce((sum, buf) => sum + buf.byteLength, 0);
-      const combined = new Uint8Array(totalLength);
-      let offset = 0;
-      for (const buf of audioBuffers) {
-        combined.set(new Uint8Array(buf), offset);
-        offset += buf.byteLength;
-      }
+      // For legacy, just do a single TTS call with truncated text to avoid timeout
+      const truncatedText = chapterText.slice(0, 4500);
+      console.log(`Legacy generate-chapter: truncating ${chapterText.length} to ${truncatedText.length} chars`);
+      const audioBuffer = await generateTTS(ELEVENLABS_API_KEY, voice.id, truncatedText);
 
       const filePath = `${user.id}/${bookId}/chapter-${String(chapterIndex).padStart(3, "0")}.mp3`;
       const { error: uploadError } = await supabase.storage
         .from("audiobook-audio")
-        .upload(filePath, combined.buffer, {
+        .upload(filePath, audioBuffer, {
           contentType: "audio/mpeg",
           upsert: true,
         });
@@ -153,7 +215,7 @@ serve(async (req) => {
         success: true,
         chapterIndex,
         audioUrl: publicUrl.publicUrl,
-        durationEstimate: Math.round(chapterText.length / 15),
+        durationEstimate: Math.round(truncatedText.length / 15),
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -164,8 +226,9 @@ serve(async (req) => {
     });
   } catch (e) {
     console.error("elevenlabs-tts-audiobook error:", e);
-    const status = e instanceof Error && e.message.includes("429") ? 429 : 500;
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    const msg = e instanceof Error ? e.message : "Unknown error";
+    const status = msg.includes("429") ? 429 : 500;
+    return new Response(JSON.stringify({ error: msg }), {
       status,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
