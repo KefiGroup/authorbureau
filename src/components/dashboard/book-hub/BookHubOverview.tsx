@@ -89,6 +89,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
   const [planSections, setPlanSections] = useState<PlanSection[]>([]);
   const [downloading, setDownloading] = useState(false);
   const [dataReady, setDataReady] = useState(false);
+  const [authorId, setAuthorId] = useState<string>("");
   const { toast } = useToast();
   const { plan, completedAssets } = useAbbyPlan(book.id);
 
