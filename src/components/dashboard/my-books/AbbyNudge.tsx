@@ -42,12 +42,12 @@ export default function AbbyNudge({
   const getMessage = (): string => {
     // Stage 1: Microsite only — needs analysis
     if (stage === 1) {
-      return `Your microsite for "${bookTitle}" is live! Now let me analyze your book and map up to 29 revenue streams. It's free and takes about 5 minutes.`;
+      return `Your microsite for "${bookTitle}" is live! Now let me analyze your book and map up to 28 revenue streams. It's free and takes about 5 minutes.`;
     }
 
     // Stage 2: Needs analysis (microsite live but not analyzed)
     if (stage === 2) {
-      return `I can map up to 29 revenue streams for "${bookTitle}." This takes about 5 minutes and it's completely free. Ready to unlock your book's earning potential?`;
+      return `I can map up to 28 revenue streams for "${bookTitle}." This takes about 5 minutes and it's completely free. Ready to unlock your book's earning potential?`;
     }
 
     // Stage 3: Analyzed but needs subscription (only happens when tier === "free")

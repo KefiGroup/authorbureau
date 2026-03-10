@@ -19,7 +19,7 @@ export default function BuildMyBusinessSection({
   const categories = [
     { label: "B·Build", total: 7, built: buildBuilt, requiredTier: "starter" as const },
     { label: "B·Bridge", total: 14, built: bridgeBuilt, requiredTier: "pro" as const },
-    { label: "Y·Yield", total: 8, built: yieldBuilt, requiredTier: "enterprise" as const },
+    { label: "Y·Yield", total: 7, built: yieldBuilt, requiredTier: "enterprise" as const },
   ];
 
   const totalBuilt = buildBuilt + bridgeBuilt + yieldBuilt;

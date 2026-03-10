@@ -55,18 +55,18 @@ const plans = [
     price: "$499",
     period: "/mo",
     tagline: "Build an empire.",
-    description: "Complete monetization empire — all 29 streams",
+    description: "Complete monetization empire — all 28 streams",
     popular: false,
     features: [
       "Everything in Pro",
-      "All 8 Y·Yield builders (Retreats, Certification, Masterminds)",
+      "All 7 Y·Yield builders (Retreats, Certification, Masterminds)",
       "Full site with custom domain support",
       "White-label option (Authors Bureau branding removed)",
       "Events management system",
       "1-on-1 strategic session with Pauline Teo",
       "+ 5% platform fee on sales",
     ],
-    unlockedCategories: ["B·Build (7)", "B·Bridge (14)", "Y·Yield (8)"],
+    unlockedCategories: ["B·Build (7)", "B·Bridge (14)", "Y·Yield (7)"],
   },
 ];
 

@@ -639,7 +639,7 @@ export default function BuildMyBusiness() {
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-3xl mx-auto">
                 {[
-                  { emoji: "📄", title: "Personalized Business Plan", desc: "Up to 29 revenue streams mapped from your book content" },
+                  { emoji: "📄", title: "Personalized Business Plan", desc: "Up to 28 revenue streams mapped from your book content" },
                   { emoji: "📊", title: "Market-Aware Business Plan", desc: "Product recommendations, pricing, and positioning based on Abby's real-time market research and live genre analysis.", highlight: true },
                   { emoji: "📈", title: "Revenue Projections", desc: "Monthly and yearly estimates based on your genre and audience" },
                 ].map((card) => (

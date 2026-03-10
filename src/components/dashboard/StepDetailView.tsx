@@ -79,7 +79,7 @@ const categories: CategoryDef[] = [
   {
     id: "authority-builders",
     label: "Y · Yield Revenue",
-    subtitle: "Premium revenue streams & monetization (8 nodes)",
+    subtitle: "Premium revenue streams & monetization (7 nodes)",
     color: "text-sky-600",
     bgColor: "bg-sky-500/10",
     gradientFrom: "from-sky-500",
@@ -93,7 +93,6 @@ const categories: CategoryDef[] = [
       { id: "conventions", label: "Conventions / Conferences", icon: Calendar, description: "Conference submission generator.", status: "planned" },
       { id: "fundraising", label: "Fund Raising", icon: HandCoins, description: "Fundraising event templates.", status: "planned" },
       { id: "exhibitors", label: "Exhibitors / JV", icon: Megaphone, description: "Exhibitor prospectus + partnership matching.", status: "planned" },
-      { id: "reading-club", label: "Reading Club", icon: BookOpen, description: "Community reading challenges.", status: "live" },
     ],
   },
 ];
