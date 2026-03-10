@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Clock, BookOpen, ShieldCheck, ArrowRight, RefreshCw, AlertCircle, UserCheck, Contact, Package, DollarSign, Cpu } from "lucide-react";
+import { Loader2, Clock, BookOpen, ShieldCheck, ArrowRight, RefreshCw, AlertCircle, UserCheck, Contact, Package, DollarSign, Cpu, Headphones, Users, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -46,6 +46,8 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
   const [productCounts, setProductCounts] = useState<ProductCounts | null>(null);
   const [aiUsage, setAiUsage] = useState<AIUsageStats | null>(null);
   const [subscriberCount, setSubscriberCount] = useState(0);
+  const [bugCount, setBugCount] = useState(0);
+  const [feedbackCount, setFeedbackCount] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -66,7 +68,7 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
       ] as const;
 
       const countPromises = tables.map((t) =>
-        supabase.from(t).select("id", { count: "exact", head: true }).then((r) => r.count ?? 0)
+        supabase.from(t).select("id", { count: "exact", head: true }).then((r) => r.count ?? 0).catch(() => 0)
       );
       const counts = await Promise.all(countPromises);
       setProductCounts({
@@ -87,10 +89,18 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
         .select("id", { count: "exact", head: true });
       setSubscriberCount(subCount ?? 0);
 
+      // Support counts
+      const [{ count: bCount }, { count: fCount }] = await Promise.all([
+        supabase.from("bug_reports").select("id", { count: "exact", head: true }).eq("status", "new"),
+        supabase.from("feedback").select("id", { count: "exact", head: true }).eq("status", "new"),
+      ]);
+      setBugCount(bCount ?? 0);
+      setFeedbackCount(fCount ?? 0);
+
       // AI usage stats
       try {
         const { data: usageRows } = await supabase
-          .from("ai_usage_logs" as any)
+          .from("ai_usage_logs")
           .select("feature, total_tokens, cost_estimate, created_at")
           .order("created_at", { ascending: false })
           .limit(1000);
@@ -102,7 +112,6 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
             .filter((r: any) => new Date(r.created_at) > new Date(Date.now() - 7 * 86400000))
             .reduce((sum: number, r: any) => sum + (r.total_tokens || 0), 0);
 
-          // Top features by token usage
           const featureMap: Record<string, number> = {};
           usageRows.forEach((r: any) => {
             featureMap[r.feature] = (featureMap[r.feature] || 0) + (r.total_tokens || 0);
@@ -130,7 +139,6 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
     );
   }
 
-  const pendingCount = stats.pending_submissions ?? 0;
   const totalProducts = productCounts
     ? Object.values(productCounts).reduce((a, b) => a + b, 0)
     : 0;
@@ -164,6 +172,24 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
       action: () => onNavigate("crm"),
       badge: crmWeekCount > 0 ? `${crmWeekCount} this week` : undefined,
     },
+    {
+      label: "Subscribers",
+      value: subscriberCount,
+      icon: Users,
+      action: () => onNavigate("crm"),
+    },
+    {
+      label: "AI Tokens Used",
+      value: aiUsage
+        ? aiUsage.totalTokens > 1_000_000
+          ? `${(aiUsage.totalTokens / 1_000_000).toFixed(1)}M`
+          : aiUsage.totalTokens > 1_000
+          ? `${(aiUsage.totalTokens / 1_000).toFixed(1)}K`
+          : aiUsage.totalTokens
+        : 0,
+      icon: Cpu,
+      action: () => {},
+    },
   ];
 
   const recentSubmissions: Submission[] = stats.recent_submissions ?? [];
@@ -179,14 +205,14 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {cards.map((c) => {
           const Icon = c.icon;
           return (
             <button
               key={c.label}
               onClick={c.action}
-              className="rounded-xl border border-border bg-card p-6 shadow-sm text-left hover:border-secondary/50 hover:shadow-md transition-all group"
+              className="rounded-xl border border-border bg-card p-5 shadow-sm text-left hover:border-secondary/50 hover:shadow-md transition-all group"
             >
               <div className="flex items-center gap-3 mb-2">
                 <Icon className="h-5 w-5 text-muted-foreground group-hover:text-secondary transition-colors" />
@@ -322,19 +348,28 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
               Review {pendingAuthorCount} Unlisted Author{pendingAuthorCount !== 1 ? "s" : ""}
             </Button>
           )}
-          {pendingCount > 0 && (
+          {(bugCount > 0 || feedbackCount > 0) && (
             <Button
               variant="default"
               size="sm"
-              onClick={() => onNavigate("submissions", "pending")}
+              onClick={() => onNavigate("support")}
               className="bg-amber-600 hover:bg-amber-700 text-white"
             >
-              <AlertCircle className="h-4 w-4 mr-1.5" />
-              Review {pendingCount} Pending Submission{pendingCount !== 1 ? "s" : ""}
+              <Headphones className="h-4 w-4 mr-1.5" />
+              {bugCount + feedbackCount} New Support Item{bugCount + feedbackCount !== 1 ? "s" : ""}
             </Button>
           )}
+          <Button variant="outline" size="sm" onClick={() => onNavigate("support")}>
+            <Headphones className="h-4 w-4 mr-1.5" /> View Support Tickets
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => onNavigate("crm")}>
+            <Users className="h-4 w-4 mr-1.5" /> Manage CRM
+          </Button>
           <Button variant="outline" size="sm" onClick={() => onNavigate("authors")}>
             <UserCheck className="h-4 w-4 mr-1.5" /> View All Authors
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => onNavigate("reading-club")}>
+            <BookOpen className="h-4 w-4 mr-1.5" /> Reading Club
           </Button>
         </div>
       </div>
