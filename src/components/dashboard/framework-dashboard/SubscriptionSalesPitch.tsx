@@ -87,7 +87,7 @@ const plans = [
     popular: false,
     features: [
       "Everything in Pro",
-      "All 8 Y·Yield builders (Retreats, Certification, Masterminds)",
+      "All 7 Y·Yield builders (Retreats, Certification, Masterminds)",
       "Full site with custom domain support",
       "White-label option (Authors Bureau branding removed)",
       "Events management system",
