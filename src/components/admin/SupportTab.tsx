@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { RefreshCw, Bug, MessageSquare, MessagesSquare, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
 type BugReport = {
   id: string;
@@ -71,6 +71,22 @@ const importanceColors: Record<string, string> = {
   just_a_thought: "bg-gray-100 text-gray-600 border-gray-200",
 };
 
+async function adminDataFetch(action: string, body: Record<string, unknown> = {}) {
+  const token = await getActiveToken();
+  if (!token) throw new Error("Not authenticated");
+  const res = await fetchWithTimeout(
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-data`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ action, ...body }),
+    }
+  );
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+  return data;
+}
+
 export default function SupportTab() {
   const { toast } = useToast();
 
@@ -90,18 +106,24 @@ export default function SupportTab() {
   const [chatSearch, setChatSearch] = useState("");
 
   const fetchBugs = useCallback(async () => {
-    const { data, error } = await supabase.from("bug_reports").select("*").order("created_at", { ascending: false });
-    if (!error && data) setBugs(data as BugReport[]);
+    try {
+      const data = await adminDataFetch("list-bugs");
+      setBugs(data.bugs || []);
+    } catch {}
   }, []);
 
   const fetchFeedback = useCallback(async () => {
-    const { data, error } = await supabase.from("feedback").select("*").order("created_at", { ascending: false });
-    if (!error && data) setFeedbackList(data as FeedbackItem[]);
+    try {
+      const data = await adminDataFetch("list-feedback");
+      setFeedbackList(data.feedback || []);
+    } catch {}
   }, []);
 
   const fetchChats = useCallback(async () => {
-    const { data, error } = await supabase.from("chat_sessions").select("*").order("created_at", { ascending: false });
-    if (!error && data) setChatSessions(data as ChatSession[]);
+    try {
+      const data = await adminDataFetch("list-chats");
+      setChatSessions(data.chats || []);
+    } catch {}
   }, []);
 
   const refresh = useCallback(async () => {
@@ -113,24 +135,25 @@ export default function SupportTab() {
   useEffect(() => { refresh(); }, []);
 
   const updateBugStatus = async (id: string, status: string) => {
-    await supabase.from("bug_reports").update({
-      status,
-      admin_notes: adminNotes || undefined,
-      resolved_at: status === "resolved" ? new Date().toISOString() : null,
-    }).eq("id", id);
-    toast({ title: "Bug report updated" });
-    fetchBugs();
-    setSelectedBug(null);
+    try {
+      await adminDataFetch("update-bug", { id, status, admin_notes: adminNotes || undefined });
+      toast({ title: "Bug report updated" });
+      fetchBugs();
+      setSelectedBug(null);
+    } catch (err: any) {
+      toast({ title: err.message || "Update failed", variant: "destructive" });
+    }
   };
 
   const updateFeedbackStatus = async (id: string, status: string) => {
-    await supabase.from("feedback").update({
-      status,
-      admin_notes: adminNotes || undefined,
-    }).eq("id", id);
-    toast({ title: "Feedback updated" });
-    fetchFeedback();
-    setSelectedFeedback(null);
+    try {
+      await adminDataFetch("update-feedback", { id, status, admin_notes: adminNotes || undefined });
+      toast({ title: "Feedback updated" });
+      fetchFeedback();
+      setSelectedFeedback(null);
+    } catch (err: any) {
+      toast({ title: err.message || "Update failed", variant: "destructive" });
+    }
   };
 
   const filteredBugs = bugs.filter(b =>
@@ -161,7 +184,6 @@ export default function SupportTab() {
           <TabsTrigger value="chats" className="gap-1.5"><MessagesSquare className="h-4 w-4" /> Chat Logs ({chatSessions.length})</TabsTrigger>
         </TabsList>
 
-        {/* Bug Reports */}
         <TabsContent value="bugs">
           {hasBugData && (
             <div className="flex gap-2 mb-3">
@@ -220,7 +242,6 @@ export default function SupportTab() {
           )}
         </TabsContent>
 
-        {/* Feedback */}
         <TabsContent value="feedback">
           {hasFeedbackData && (
             <div className="flex gap-2 mb-3">
@@ -270,7 +291,6 @@ export default function SupportTab() {
           )}
         </TabsContent>
 
-        {/* Chat Logs */}
         <TabsContent value="chats">
           {chatSessions.length > 0 && (
             <div className="mb-3">
@@ -361,17 +381,25 @@ export default function SupportTab() {
 
       {/* Chat Session Dialog */}
       <Dialog open={!!selectedChat} onOpenChange={() => setSelectedChat(null)}>
-        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-lg max-h-[70vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Chat Session</DialogTitle></DialogHeader>
           {selectedChat && (
-            <div className="space-y-2">
-              <p className="text-xs text-muted-foreground">Page: {selectedChat.page_url || "—"} • {format(new Date(selectedChat.created_at), "MMM d, yyyy HH:mm")}</p>
-              <div className="space-y-2 mt-3">
+            <div className="space-y-3">
+              <div className="text-sm text-muted-foreground">
+                Page: {selectedChat.page_url || "Unknown"} • {format(new Date(selectedChat.created_at), "MMM d, yyyy HH:mm")}
+              </div>
+              <div className="space-y-2 max-h-[50vh] overflow-y-auto">
                 {(Array.isArray(selectedChat.messages) ? selectedChat.messages : []).map((msg: any, i: number) => (
-                  <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                    <div className={`rounded-lg px-3 py-2 text-sm max-w-[85%] ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
-                      {msg.content}
-                    </div>
+                  <div
+                    key={i}
+                    className={`rounded-lg p-3 text-sm ${
+                      msg.role === "user"
+                        ? "bg-secondary/10 text-foreground ml-8"
+                        : "bg-muted text-muted-foreground mr-8"
+                    }`}
+                  >
+                    <p className="text-xs font-medium mb-1 capitalize">{msg.role || "system"}</p>
+                    <p className="whitespace-pre-wrap">{msg.content}</p>
                   </div>
                 ))}
               </div>

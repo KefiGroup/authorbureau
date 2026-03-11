@@ -1,5 +1,4 @@
 import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Navigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { adminApi } from "@/lib/admin-api";
@@ -8,19 +7,36 @@ import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { LogOut, BookOpen, BarChart3, ShieldCheck, Globe, UserCheck, Users, BookMarked, Headphones } from "lucide-react";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
 import OverviewTab from "@/components/admin/OverviewTab";
 import BooksTab from "@/components/admin/BooksTab";
 import AdminsTab from "@/components/admin/AdminsTab";
 import PlatformAccessTab from "@/components/admin/PlatformAccessTab";
 import AuthorsTab from "@/components/admin/AuthorsTab";
-import CRMDashboard from "@/components/dashboard/CRMDashboard";
+import AdminCRMTab from "@/components/admin/AdminCRMTab";
 import ReadingClubTab from "@/components/admin/ReadingClubTab";
 import SupportTab from "@/components/admin/SupportTab";
 
-import type { AdminStats, Submission, AdminUser, AdminBook, AdminInfo } from "@/types/admin";
+import type { AdminStats, AdminBook, AdminInfo } from "@/types/admin";
 
 type Tab = "overview" | "books" | "authors" | "admins" | "platforms" | "crm" | "reading-club" | "support";
+
+async function adminFetch(action: string, body: Record<string, unknown> = {}) {
+  const token = await getActiveToken();
+  if (!token) throw new Error("Not authenticated");
+  const res = await fetchWithTimeout(
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-books`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ action, ...body }),
+    }
+  );
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+  return data;
+}
 
 export default function AdminDashboard() {
   const { user, loading, isAdmin, signOut } = useAuth();
@@ -33,9 +49,7 @@ export default function AdminDashboard() {
   // Overview
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
-
-
-
+  const [overviewData, setOverviewData] = useState<any>(null);
 
   // Books
   const [books, setBooks] = useState<AdminBook[]>([]);
@@ -56,39 +70,28 @@ export default function AdminDashboard() {
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-
-      // Parallel: get books list (with totalCount), pending-counts, authors count
-      const [listRes, countsRes, authorsRes] = await Promise.all([
-        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-books`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ action: "list", page: 1, filter: "all" }),
-        }),
-        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-books`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ action: "pending-counts" }),
-        }),
-        supabase.from("author_profiles").select("id", { count: "exact", head: true }),
+      // Parallel: get books list, pending-counts, authors count, overview-counts
+      const [listData, countData, overviewRes] = await Promise.all([
+        adminFetch("list", { page: 1, filter: "all" }),
+        adminFetch("pending-counts"),
+        (async () => {
+          const token = await getActiveToken();
+          if (!token) return null;
+          const res = await fetchWithTimeout(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-data`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ action: "overview-counts" }),
+            }
+          );
+          return res.ok ? await res.json() : null;
+        })(),
       ]);
 
-      let totalBooks = 0;
-      let pendingBooks = 0;
-      if (listRes.ok) {
-        const listData = await listRes.json();
-        totalBooks = listData.totalCount ?? listData.books?.length ?? 0;
-        pendingBooks = listData.pendingCount ?? 0;
-      }
-
-      let pendingAuthorsCount = 0;
-      if (countsRes.ok) {
-        const countData = await countsRes.json();
-        pendingBooks = countData.pendingBooks ?? pendingBooks;
-        pendingAuthorsCount = countData.pendingAuthors ?? 0;
-        totalBooks = countData.totalBooks ?? totalBooks;
-      }
+      const totalBooks = countData?.totalBooks ?? listData?.totalCount ?? 0;
+      const pendingBooks = countData?.pendingBooks ?? listData?.pendingCount ?? 0;
+      const pendingAuthorsCount = countData?.pendingAuthors ?? 0;
 
       // Get admins count
       let adminsCount = 0;
@@ -97,66 +100,65 @@ export default function AdminDashboard() {
         adminsCount = (adminsData?.admins || adminsData?.data || []).length;
       } catch {}
 
+      // Get authors count from overview data or fallback
+      const authorsCount = overviewRes
+        ? (overviewRes.subscriberCount !== undefined ? 0 : 0) // we'll get this from list-authors
+        : 0;
+
       setPendingBookCount(pendingBooks);
       setPendingAuthorCount(pendingAuthorsCount);
+      setOverviewData(overviewRes);
+
+      // Also fetch author count
+      let authorCount = 0;
+      try {
+        const authorsRes = await (async () => {
+          const token = await getActiveToken();
+          if (!token) return null;
+          const res = await fetchWithTimeout(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-data`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ action: "list-authors" }),
+            }
+          );
+          return res.ok ? await res.json() : null;
+        })();
+        authorCount = authorsRes?.authors?.length ?? 0;
+      } catch {}
 
       setStats({
-        total_users: (authorsRes.count ?? 0),
+        total_users: authorCount,
         total_books: totalBooks,
         total_admins: adminsCount,
         total_submissions: 0,
         pending_submissions: 0,
         recent_submissions: [],
       });
-    } catch { toast({ title: "Failed to load stats", variant: "destructive" }); }
+    } catch {
+      toast({ title: "Failed to load stats", variant: "destructive" });
+    }
     setStatsLoading(false);
   }, []);
-
-
-
 
   const fetchBooks = useCallback(async () => {
     setBooksLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-books`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session?.access_token}`,
-          },
-          body: JSON.stringify({ action: "list", page: booksPage, filter: booksFilter }),
-        }
-      );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      const data = await adminFetch("list", { page: booksPage, filter: booksFilter });
       setBooks(data?.books || []);
       setPendingBookCount(data?.pendingCount || 0);
-    } catch { toast({ title: "Failed to load books", variant: "destructive" }); }
+    } catch {
+      toast({ title: "Failed to load books", variant: "destructive" });
+    }
     setBooksLoading(false);
   }, [booksPage, booksFilter]);
 
   const fetchPendingCounts = useCallback(async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-books`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session?.access_token}`,
-          },
-          body: JSON.stringify({ action: "pending-counts" }),
-        }
-      );
-      const data = await res.json();
-      if (res.ok) {
-        setPendingBookCount(data.pendingBooks || 0);
-        setPendingAuthorCount(data.pendingAuthors || 0);
-      }
+      const data = await adminFetch("pending-counts");
+      setPendingBookCount(data.pendingBooks || 0);
+      setPendingAuthorCount(data.pendingAuthors || 0);
     } catch {}
   }, []);
 
@@ -165,27 +167,24 @@ export default function AdminDashboard() {
     try {
       const data = await adminApi.listAdmins();
       setAdmins(data?.admins || data?.data || []);
-    } catch { toast({ title: "Failed to load admins", variant: "destructive" }); }
+    } catch {
+      toast({ title: "Failed to load admins", variant: "destructive" });
+    }
     setAdminsLoading(false);
   }, []);
 
-  // Local admin = super admin (no shared backend call needed)
   useEffect(() => {
     if (!isAdmin) return;
     setIsSuperAdmin(true);
     adminApi.checkPublishNowAdmin().then((data) => setIsPublishNowAdmin(!!data?.is_super_admin)).catch(() => {});
   }, [isAdmin]);
 
-  // Fetch data when tab/page/filter changes
   useEffect(() => {
     if (!isAdmin) return;
     if (tab === "overview") { fetchStats(); fetchPendingCounts(); }
     else if (tab === "books") fetchBooks();
     else if (tab === "admins") fetchAdmins();
   }, [tab, isAdmin, booksPage, booksFilter]);
-
-
-
 
   const handlePromote = async () => {
     if (!promoteEmail.trim()) return;
@@ -214,17 +213,7 @@ export default function AdminDashboard() {
   const handleDeleteBook = async (bookId: string) => {
     setDeletingBookId(bookId);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-books`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
-          body: JSON.stringify({ action: "delete", bookId }),
-        }
-      );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Delete failed");
+      await adminFetch("delete", { bookId });
       setBooks((prev) => prev.filter((b) => b.id !== bookId));
       toast({ title: "Book deleted" });
     } catch (err: any) {
@@ -236,17 +225,7 @@ export default function AdminDashboard() {
   const handleApproveBook = async (bookId: string) => {
     setApprovingBookId(bookId);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-books`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
-          body: JSON.stringify({ action: "approve", bookId }),
-        }
-      );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Approve failed");
+      await adminFetch("approve", { bookId });
       toast({ title: "Book approved & microsite published! 🎉" });
       fetchBooks();
     } catch (err: any) {
@@ -258,17 +237,7 @@ export default function AdminDashboard() {
   const handleRejectBook = async (bookId: string) => {
     setApprovingBookId(bookId);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-books`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
-          body: JSON.stringify({ action: "reject", bookId }),
-        }
-      );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Reject failed");
+      await adminFetch("reject", { bookId });
       toast({ title: "Book unpublished" });
       fetchBooks();
     } catch (err: any) {
@@ -318,7 +287,6 @@ export default function AdminDashboard() {
         </div>
       </section>
 
-      {/* Tabs */}
       <div className="border-b border-border">
         <div className="container flex gap-1 overflow-x-auto py-2">
           {tabs.filter((t) => (!t.superOnly || isSuperAdmin) && (!t.pnAdminOnly || isPublishNowAdmin)).map((t) => {
@@ -348,6 +316,7 @@ export default function AdminDashboard() {
               onNavigate={handleNavigate}
               pendingBookCount={pendingBookCount}
               pendingAuthorCount={pendingAuthorCount}
+              overviewData={overviewData}
             />
           )}
           {tab === "authors" && <AuthorsTab />}
@@ -368,7 +337,7 @@ export default function AdminDashboard() {
               setFilter={setBooksFilter}
             />
           )}
-          {tab === "crm" && <CRMDashboard />}
+          {tab === "crm" && <AdminCRMTab />}
           {tab === "reading-club" && <ReadingClubTab />}
           {tab === "support" && <SupportTab />}
           {tab === "platforms" && <PlatformAccessTab />}
