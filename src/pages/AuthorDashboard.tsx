@@ -11,7 +11,7 @@ import ProfileEditor from "@/components/dashboard/ProfileEditor";
 import CourseBuilder from "@/components/dashboard/CourseBuilder";
 import SpeakingProfile from "@/components/dashboard/SpeakingProfile";
 import CoachingCRM from "@/components/dashboard/CoachingCRM";
-import DashboardOverview from "@/components/dashboard/DashboardOverview";
+// DashboardOverview removed — replaced by ABBYFrameworkDashboard
 import ABBYFrameworkDashboard from "@/components/dashboard/ABBYFrameworkDashboard";
 import PortfolioStepView from "@/components/dashboard/PortfolioStepView";
 import WorkbooksManager from "@/components/dashboard/WorkbooksManager";
