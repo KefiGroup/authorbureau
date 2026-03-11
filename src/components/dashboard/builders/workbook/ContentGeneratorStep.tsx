@@ -59,14 +59,50 @@ export default function ContentGeneratorStep({ stepData, setStepData, onMarkEdit
             Authorization: `Bearer ${session?.session?.access_token}`,
           },
           body: JSON.stringify({
-            prompt: `Generate workbook content for the section "${section.title}" (mapped to "${section.chapterRef}") of a workbook for the book "${bookTitle}". Content types to include: ${section.contentTypes.join(", ")}. Return JSON with: intro (string), elements (array of {id, type, title, content}), takeaway (string). Each element should be 100-200 words. Return ONLY JSON.`,
-            stream: false,
+            messages: [
+              {
+                role: "user",
+                content: `Generate workbook content for the section "${section.title}" (mapped to "${section.chapterRef}") of a workbook for the book "${bookTitle}". Content types to include: ${section.contentTypes.join(", ")}. Return JSON with: intro (string), elements (array of {id, type, title, content}), takeaway (string). Each element should be 100-200 words. Return ONLY JSON.`,
+              },
+            ],
+            bookId,
           }),
         }
       );
-      const result = await res.json();
-      const text = result.response || result.content || JSON.stringify(result);
-      const match = text.match(/\{[\s\S]*\}/);
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(errData.error || `Server error: ${res.status}`);
+      }
+
+      // Handle SSE stream
+      let fullText = "";
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) throw new Error("No response body");
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split("\n");
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const data = line.slice(6).trim();
+            if (data === "[DONE]") continue;
+            try {
+              const parsed = JSON.parse(data);
+              const delta = parsed.choices?.[0]?.delta?.content;
+              if (delta) fullText += delta;
+            } catch {
+              // skip malformed chunks
+            }
+          }
+        }
+      }
+
+      const match = fullText.match(/\{[\s\S]*\}/);
       if (match) {
         const parsed = JSON.parse(match[0]);
         updateSection({
@@ -80,9 +116,11 @@ export default function ContentGeneratorStep({ stepData, setStepData, onMarkEdit
           takeaway: parsed.takeaway || section.takeaway,
         });
         toast.success("Section content generated!");
+      } else {
+        throw new Error("Could not parse AI response");
       }
-    } catch {
-      toast.error("Generation failed");
+    } catch (err: any) {
+      toast.error(err?.message || "Generation failed");
     }
     setGenerationState("complete");
   };
