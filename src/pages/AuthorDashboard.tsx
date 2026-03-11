@@ -448,7 +448,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
                 onClick: () => setActiveSection("revenue-streams"),
               },
               {
-                label: hasMicrosite ? "4. Microsite Live ✓" : "4. Launch Microsite",
+                label: hasMicrosite ? "4. Website Live ✓" : "4. Build Website",
                 state: hasMicrosite ? "done" : (journeyBuild === "done" ? "current" : "upcoming"),
                 onClick: () => setActiveSection("microsite-manager" as DashboardSection),
               },
