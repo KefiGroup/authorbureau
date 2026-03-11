@@ -152,7 +152,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       try {
         const token = await getActiveToken();
         if (!token) return;
-        const booksResp = await fetch(
+        const booksResp = await fetchWithTimeout(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`,
           { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } }
         );
@@ -160,7 +160,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         const fetchedBooks = booksResult.books || [];
         if (fetchedBooks.length > 0) {
           const bookIds = fetchedBooks.map((b: any) => b.id);
-          const statusResp = await fetch(
+          const statusResp = await fetchWithTimeout(
             `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-manuscript`,
             {
               method: "POST",
