@@ -158,6 +158,9 @@ export default function MicrositeManager({ onNavigate }: Props) {
 
   return (
     <div className="max-w-5xl space-y-6">
+      {/* Manus Handoff — top of page */}
+      <ManusHandoffCard profileExists={profileExists} />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
