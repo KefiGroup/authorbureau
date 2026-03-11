@@ -102,7 +102,7 @@ export default function Join() {
           </h1>
           <p className="mx-auto max-w-lg text-primary-foreground/70">
             Apply to be featured in our directory. Get a professional author
-            profile and book microsites.
+            profile and book pages.
           </p>
         </div>
       </section>
