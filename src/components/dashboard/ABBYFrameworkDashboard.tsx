@@ -10,18 +10,13 @@ import MeetAbbySection from "./framework-dashboard/MeetAbbySection";
 import MonetizationUniverse from "./framework-dashboard/MonetizationUniverse";
 import SubscriptionPricing from "./framework-dashboard/SubscriptionPricing";
 import JourneyMapCTA from "./framework-dashboard/JourneyMapCTA";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
 interface Props {
   onNavigate: (section: DashboardSection | string) => void;
   isPremium: boolean;
-}
-
-async function getActiveToken(): Promise<string | null> {
-  const { data: cloudSession } = await cloudSupabase.auth.getSession();
-  if (cloudSession?.session?.access_token) return cloudSession.session.access_token;
-  const { data: sharedSession } = await sharedSupabase.auth.getSession();
-  return sharedSession?.session?.access_token || null;
 }
 
 export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props) {
