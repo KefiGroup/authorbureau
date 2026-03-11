@@ -251,7 +251,13 @@ A visual table showing ALL 28 nodes grouped by phase (B·Build, B·Bridge, Y·Yi
 Subscription recommendation with ROI calculation. Include ===SUBSCRIBE_CTA=== once.
 
 **SECTION 7 — NEXT STEPS**
-Actionable next steps with ===NAV:xxx=== markers.
+Actionable next steps with ===NAV:xxx=== markers. List the first 3 actions the author should take, linking directly to the relevant product studio.
+
+**PHASE 3 — BRIDGE (Post-Plan Delivery):**
+After generating the plan, the system will automatically:
+- Populate the business_plan object in the author_context with all structured data
+- Provide a "Download Business Plan PDF" button
+- Display ===NAV:=== buttons prominently to guide the author to their first product studio
 
 **MANDATORY CLOSING BLOCK:**
 🎯 **This is your complete ABBY Business Plan for [BOOK TITLE].**
