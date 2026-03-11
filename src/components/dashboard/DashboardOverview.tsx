@@ -45,21 +45,28 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
   });
 
   const fetchDashboardState = async (token: string) => {
-    const res = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dashboard-state`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dashboard-state`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          signal: controller.signal,
+        }
+      );
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `dashboard-state ${res.status}`);
       }
-    );
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      throw new Error(body.error || `dashboard-state ${res.status}`);
+      return await res.json() as { profile: any; bookCount: number };
+    } finally {
+      clearTimeout(timer);
     }
-    return await res.json() as { profile: any; bookCount: number };
   };
 
   const applyDashboardState = (state: { profile: any; bookCount: number }) => {
