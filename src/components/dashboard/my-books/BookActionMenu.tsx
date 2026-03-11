@@ -22,8 +22,8 @@ interface BookActionMenuProps {
 }
 
 export default function BookActionMenu({
-  isAnalyzed, hasManuscript, hasMicrosite,
-  onEdit, onUploadManuscript, onViewBusinessPlan, onReAnalyze, onViewMicrosite, onDelete,
+  isAnalyzed, hasManuscript, hasBookPage,
+  onEdit, onUploadManuscript, onViewBusinessPlan, onReAnalyze, onViewBookPage, onDelete,
 }: BookActionMenuProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
