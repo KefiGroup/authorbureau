@@ -25,12 +25,7 @@ interface BookData {
   author_name: string | null;
 }
 
-async function getActiveToken(): Promise<string | null> {
-  const { data: cloudSession } = await cloudSupabase.auth.getSession();
-  if (cloudSession?.session?.access_token) return cloudSession.session.access_token;
-  const { data: sharedSession } = await sharedSupabase.auth.getSession();
-  return sharedSession?.session?.access_token || null;
-}
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
 const tabs: { id: BookHubTab; label: string }[] = [
   { id: "overview", label: "Overview" },
