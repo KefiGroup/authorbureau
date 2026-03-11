@@ -8,7 +8,7 @@ import {
   TrendingUp, Sparkles, Eye,
 } from "lucide-react";
 
-export type ProductCardState = "recommended" | "available" | "locked" | "in-progress" | "published";
+export type ProductCardState = "recommended" | "available" | "locked" | "in-progress" | "published" | "coming-soon";
 
 interface RevenueEstimate {
   annual: number;
@@ -104,6 +104,11 @@ const stateConfig: Record<ProductCardState, { badge: string; badgeClass: string;
     badge: "✅ Published",
     badgeClass: "bg-accent/15 text-accent border-accent/30",
     borderClass: "border-accent/30",
+  },
+  "coming-soon": {
+    badge: "🚧 Coming Soon",
+    badgeClass: "bg-muted text-muted-foreground border-border",
+    borderClass: "border-border opacity-70",
   },
 };
 
@@ -225,6 +230,11 @@ export default function SmartProductCard({
           {state === "published" && (
             <Button variant="outline" size="sm" className="w-full text-xs" onClick={onView}>
               <Eye className="h-3 w-3 mr-1.5" /> View on Microsite →
+            </Button>
+          )}
+          {state === "coming-soon" && (
+            <Button variant="outline" size="sm" className="w-full text-xs opacity-60" disabled>
+              Coming Soon
             </Button>
           )}
         </div>

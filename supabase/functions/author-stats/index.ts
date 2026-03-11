@@ -14,7 +14,6 @@ const SHARED_ANON_KEY =
 const PRODUCT_TABLES = [
   "courses",
   "home_study_courses",
-  "webinars",
   "audiobooks",
   "podcasts",
   "workbooks",

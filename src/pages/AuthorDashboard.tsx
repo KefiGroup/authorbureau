@@ -31,7 +31,7 @@ import ConnectStripePage from "@/components/dashboard/ConnectStripePage";
 import ReviewProductsPage from "@/components/dashboard/ReviewProductsPage";
 import AuthorCRMPage from "@/components/dashboard/AuthorCRMPage";
 import AuthorReadingClub from "@/components/dashboard/AuthorReadingClub";
-import { Loader2, Rocket, FileText, Video, Share2, CreditCard, Users, Trophy, Podcast, Building2, Bookmark, Award } from "lucide-react";
+import { Loader2, Rocket, FileText, Video, Share2, CreditCard, Users, Trophy, Podcast, Building2, Bookmark, Award, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { useAuthorStats } from "@/hooks/useAuthorStats";
@@ -54,12 +54,16 @@ export type DashboardSection =
   | "marketing" | "crm" | "author-crm" | "reading-club"
   | "analytics" | "microsite-manager"
   | "connect-stripe" | "review-products"
+  | "book-sales" | "special-editions" | "lead-magnet"
   // Universal builder nodes
   | "builder";
 
 const comingSoonSections: Record<string, { title: string; description: string; icon: typeof Rocket }> = {
   crm: { title: "CRM & Contacts", description: "Your unified customer relationship management hub.", icon: Users },
   marketing: { title: "Marketing Package", description: "AI-driven marketing suite — email flows, social media, affiliate dashboard.", icon: Rocket },
+  "book-sales": { title: "Book Sales", description: "QR code order pages & direct sales funnels for your book.", icon: BookOpen },
+  "special-editions": { title: "Special Editions", description: "Signed copies, bundles, and limited edition packages.", icon: Award },
+  "lead-magnet": { title: "Lead Magnet Funnel", description: "Free PDF downloads to grow your email list.", icon: FileText },
 };
 
 function ComingSoonPlaceholder({ sectionId }: { sectionId: string }) {
@@ -324,6 +328,33 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         return gate("My Contacts", <AuthorCRMPage onNavigate={handleNavigate} />, "pro");
       case "reading-club":
         return <AuthorReadingClub onNavigate={handleNavigate} />;
+      case "book-sales":
+        return gate("Book Sales", 
+          BUILDER_NODE_MAP["book-sales-events"] ? (
+            <UniversalBuilderStudio 
+              nodeConfig={BUILDER_NODE_MAP["book-sales-events"]} 
+              onNavigate={handleNavigate} 
+            />
+          ) : <ComingSoonPlaceholder sectionId="book-sales" />
+        );
+      case "special-editions":
+        return gate("Special Editions", 
+          BUILDER_NODE_MAP["special-editions"] ? (
+            <UniversalBuilderStudio 
+              nodeConfig={BUILDER_NODE_MAP["special-editions"]} 
+              onNavigate={handleNavigate} 
+            />
+          ) : <ComingSoonPlaceholder sectionId="special-editions" />
+        );
+      case "lead-magnet":
+        return gate("Lead Magnet Funnel", 
+          BUILDER_NODE_MAP["lead-magnet"] ? (
+            <UniversalBuilderStudio 
+              nodeConfig={BUILDER_NODE_MAP["lead-magnet"]} 
+              onNavigate={handleNavigate} 
+            />
+          ) : <ComingSoonPlaceholder sectionId="lead-magnet" />
+        );
       case "connect-stripe":
         return <ConnectStripePage />;
       case "overview":
@@ -370,9 +401,20 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           hasMicrosite={hasMicrosite}
           stripeConnected={stripeConnected}
           pendingReviewCount={pendingReviewCount}
-          buildUnlocked={stats.products.totalBuilt}
-          bridgeUnlocked={Object.entries(stats.products.perTable).reduce((sum, [, v]) => sum + v.total, 0)}
-          yieldUnlocked={stats.products.totalBuilt}
+          buildUnlocked={
+            (stats.products.perTable["workbooks"]?.total || 0) +
+            (stats.products.perTable["home_study_courses"]?.total || 0) +
+            (stats.products.perTable["courses"]?.total || 0) +
+            (stats.products.perTable["social_media_content"]?.total || 0) +
+            (stats.products.perTable["email_flows"]?.total || 0)
+          }
+          bridgeUnlocked={
+            (stats.products.perTable["audiobooks"]?.total || 0) +
+            (stats.products.perTable["podcasts"]?.total || 0)
+          }
+          yieldUnlocked={
+            (stats.products.perTable["coaching_packages"]?.total || 0)
+          }
         />
       </div>
       <div className="flex flex-1 flex-col min-w-0">

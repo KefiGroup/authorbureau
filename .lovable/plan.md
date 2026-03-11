@@ -34,11 +34,11 @@
 | ID | Bug | Severity |
 |----|-----|----------|
 | PV-01 | `getActiveToken()` is redefined locally (line 25-30) instead of importing from `@/lib/get-active-token` — possible stale session handling | Medium |
-| PV-02 | Product state detection `nodeIdMap` (line 139-142) is incomplete — only maps 5 of 28 nodes, so most products always show as "available" even when built | High |
-| PV-03 | `builtProducts` only checks `generated_assets` table for 5 asset types (line 102), misses home_study_courses, podcasts, etc. | High |
-| PV-04 | `publishedProducts` check (line 112-121) queries `webinars` table which doesn't exist in schema — should be removed or the table created | Medium |
+| PV-02 | ✅ FIXED — Product state detection `nodeIdMap` expanded to cover all 10 node-to-table mappings | Done |
+| PV-03 | ✅ FIXED — `builtProducts` now checks all 7 product tables + expanded generated_assets types | Done |
+| PV-04 | ✅ FIXED — Removed non-existent `webinars` table from published products check | Done |
 | PV-05 | "Planned" feature cards have no "Notify Me" button or disabled state mechanism | Medium |
-| PV-06 | Missing "Open Studio" buttons for `book-sales-events`, `special-editions`, and `lead-magnet` nodes — `getStudioPath` maps them but `section` routing in `AuthorDashboard.tsx` doesn't handle `book-sales`, `special-editions`, or `lead-magnet` sections | High |
+| PV-06 | ✅ FIXED — Added book-sales, special-editions, lead-magnet section routing to AuthorDashboard | Done |
 
 ### 1E. Revenue Dashboard (`RevenueDashboard.tsx`)
 
@@ -99,7 +99,7 @@
 | ID | Bug | Severity |
 |----|-----|----------|
 | UB-01 | `builderNodeConfig` maps nodes to studios — need to verify all 27 nodes have valid configs | High |
-| UB-02 | Several planned nodes (big-ticket, training, retreats, certification, conventions, fundraising, exhibitors, affiliates, upsells, revenue-sharing, in-house-speaker) have `status: "planned"` but no gating in SmartProductCard — clicking "Build" may lead to empty pages | High |
+| UB-02 | ✅ FIXED — Planned nodes now show "Coming Soon" state with disabled button, preventing navigation to empty pages | Done |
 
 ---
 

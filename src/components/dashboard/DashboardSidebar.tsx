@@ -107,7 +107,7 @@ export default function DashboardSidebar({
     {
       id: "author-crm" as DashboardSection, label: "My Contacts",
       icon: Contact,
-      lockMessage: !tierAccess("pro") ? `Upgrade to ${tier === "starter" ? "Pro" : "Pro"} to access your CRM` : undefined,
+      lockMessage: !tierAccess("pro") ? "Upgrade to Pro to access your CRM" : undefined,
     },
     {
       id: "review-products" as DashboardSection, label: "Review Products", icon: Package,
