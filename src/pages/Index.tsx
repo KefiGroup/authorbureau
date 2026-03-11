@@ -324,7 +324,7 @@ export default function Index() {
               <BookOpen className="h-8 w-8 text-secondary" />
             </div>
             <h3 className="font-heading text-2xl md:text-3xl font-bold mb-4">
-              Get Featured with a Professional Book Microsite for <span className="text-secondary">FREE</span>
+              Get Featured with a Professional Book Page for <span className="text-secondary">FREE</span>
             </h3>
             <p className="text-primary-foreground/70 max-w-2xl mx-auto text-lg leading-relaxed">
               Published authors can apply for a free professional showcase with a dedicated book microsite. Books published through PublishNow.io also receive a verified badge.
