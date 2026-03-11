@@ -164,15 +164,15 @@ export default function MicrositeManager({ onNavigate }: Props) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h2 className="font-heading text-2xl font-bold">Your Author Microsite</h2>
+          <h2 className="font-heading text-2xl font-bold">Your Author Website</h2>
           {micrositeUrl ? (
             <div className="flex items-center gap-2 mt-1">
               <p className="text-sm text-muted-foreground">
-                {isLive ? "Manage your live author microsite." : "Your microsite is in draft mode."}
+                {isLive ? "Manage your live author website." : "Your website is in draft mode."}
               </p>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground mt-1">Set up your author profile to get your microsite URL.</p>
+            <p className="text-sm text-muted-foreground mt-1">Set up your author profile to get your website URL.</p>
           )}
         </div>
         {micrositeUrl && (
