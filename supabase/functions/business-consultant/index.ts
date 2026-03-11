@@ -244,8 +244,8 @@ Deliver the COMPLETE plan following this structure:
 2-4 products from B·Bridge and Y·Yield.
 Include: "1-on-1 strategic session with Pauline Teo, founder of Authors Bureau" as premium bonus.
 
-**SECTION 5 — YOUR MONETIZATION MAP**
-Summary of activated streams by phase.
+**SECTION 5 — YOUR MONETISATION MAP**
+A visual table showing ALL 28 nodes grouped by phase (B·Build, B·Bridge, Y·Yield), with columns for: Node Name, Recommended Price Point, Projected Monthly Revenue, and Status (Recommended / Future / Not Applicable). This gives the author a complete at-a-glance view of their revenue potential.
 
 **SECTION 6 — 🔓 UNLOCK YOUR PLAN**
 Subscription recommendation with ROI calculation. Include ===SUBSCRIBE_CTA=== once.
