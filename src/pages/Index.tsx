@@ -327,7 +327,7 @@ export default function Index() {
               Get Featured with a Professional Book Page for <span className="text-secondary">FREE</span>
             </h3>
             <p className="text-primary-foreground/70 max-w-2xl mx-auto text-lg leading-relaxed">
-              Published authors can apply for a free professional showcase with a dedicated book microsite. Books published through PublishNow.io also receive a verified badge.
+              Published authors can apply for a free professional showcase with a dedicated book page. Books published through PublishNow.io also receive a verified badge.
             </p>
             <div className="mt-8">
               <Button
