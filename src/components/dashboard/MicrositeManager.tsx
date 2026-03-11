@@ -10,6 +10,7 @@ import {
   Palette, User, ArrowRight, Eye,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import ManusHandoffCard from "./microsite/ManusHandoffCard";
 
 interface MicrositePage {
   id: string;
