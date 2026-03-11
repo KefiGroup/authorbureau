@@ -1002,7 +1002,7 @@ export default function BuildMyBusiness() {
           const displayContent = msg.content
             .replace(/===BUILD_REQUEST===[\s\S]*?===END_BUILD_REQUEST===/g, "")
             .replace(/===SUBSCRIBE_CTA===/g, "")
-            .replace(/===NAV:\w+===/g, "")
+            .replace(/===NAV:[\w-]+===/g, "")
             .trim();
 
           return (
