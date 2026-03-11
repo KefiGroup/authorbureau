@@ -102,7 +102,7 @@ export default function Join() {
           </h1>
           <p className="mx-auto max-w-lg text-primary-foreground/70">
             Apply to be featured in our directory. Get a professional author
-            profile and book microsites.
+            profile and book pages.
           </p>
         </div>
       </section>
@@ -121,7 +121,7 @@ export default function Join() {
               </motion.h2>
               {[
                 "Professional author profile page",
-                "Book microsites for each title",
+                "Book pages for each title",
                 "Listed in searchable directory",
                 "Offer courses and digital products",
                 "Coaching and speaking tools",

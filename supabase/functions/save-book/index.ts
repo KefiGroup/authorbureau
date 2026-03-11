@@ -360,13 +360,13 @@ serve(async (req) => {
                     Thank you for submitting <strong>"${bookTitle}"</strong> to Authors Bureau.
                   </p>
                   <p style="color: #333; font-size: 15px; line-height: 1.6;">
-                    Our admin team will review your book and microsite within <strong>48 hours</strong>. 
-                    You'll receive another email once your microsite is approved and live.
+                    Our admin team will review your book within <strong>48 hours</strong>. 
+                    You'll receive another email once your book page is approved and live.
                   </p>
                   <div style="background: #fef9e7; border: 1px solid #f0d77b; border-radius: 8px; padding: 16px; margin: 20px 0;">
                     <p style="color: #8a6d0b; font-size: 13px; margin: 0;">
                       ⏳ <strong>What happens next?</strong><br/>
-                      An admin will review your book details, cover image, and description. Once approved, your microsite will go live and you'll be notified.
+                      An admin will review your book details, cover image, and description. Once approved, your book page will go live and you'll be notified.
                     </p>
                   </div>
                   <p style="color: #888; font-size: 13px; margin-top: 32px; text-align: center;">

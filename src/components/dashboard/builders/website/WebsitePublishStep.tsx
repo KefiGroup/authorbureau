@@ -48,7 +48,7 @@ export default function WebsitePublishStep({ stepData, setStepData, onMarkEdited
         }),
       });
       setPublished(true);
-      toast({ title: "Website published!", description: "Your microsite is now live." });
+      toast({ title: "Website published!", description: "Your website is now live." });
     } catch (err) {
       console.error("Publish error:", err);
       toast({ title: "Publish failed", variant: "destructive" });
@@ -64,7 +64,7 @@ export default function WebsitePublishStep({ stepData, setStepData, onMarkEdited
         </div>
         <h3 className="font-heading text-xl font-bold mb-2">Website Published! 🎉</h3>
         <p className="text-sm text-muted-foreground max-w-md mx-auto mb-4">
-          Your {SITE_TYPE_LABELS[config.siteType]?.label || "microsite"} is live at{" "}
+          Your {SITE_TYPE_LABELS[config.siteType]?.label || "website"} is live at{" "}
           <span className="font-semibold text-secondary">{config.subdomain}.authorsbureau.com</span>
         </p>
         <Button variant="outline" size="sm" className="rounded-full">

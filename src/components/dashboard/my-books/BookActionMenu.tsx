@@ -12,18 +12,18 @@ import { MoreHorizontal, Pencil, Upload, FileText, RotateCcw, Globe, Trash2 } fr
 interface BookActionMenuProps {
   isAnalyzed: boolean;
   hasManuscript: boolean;
-  hasMicrosite: boolean;
+  hasBookPage: boolean;
   onEdit: () => void;
   onUploadManuscript: () => void;
   onViewBusinessPlan: () => void;
   onReAnalyze: () => void;
-  onViewMicrosite: () => void;
+  onViewBookPage: () => void;
   onDelete: () => void;
 }
 
 export default function BookActionMenu({
-  isAnalyzed, hasManuscript, hasMicrosite,
-  onEdit, onUploadManuscript, onViewBusinessPlan, onReAnalyze, onViewMicrosite, onDelete,
+  isAnalyzed, hasManuscript, hasBookPage,
+  onEdit, onUploadManuscript, onViewBusinessPlan, onReAnalyze, onViewBookPage, onDelete,
 }: BookActionMenuProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
@@ -54,9 +54,9 @@ export default function BookActionMenu({
               </DropdownMenuItem>
             </>
           )}
-          {hasMicrosite && (
-            <DropdownMenuItem onClick={onViewMicrosite}>
-              <Globe className="h-3.5 w-3.5 mr-2" /> View Microsite
+          {hasBookPage && (
+            <DropdownMenuItem onClick={onViewBookPage}>
+              <Globe className="h-3.5 w-3.5 mr-2" /> View Book Page
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />

@@ -89,26 +89,26 @@ Your role is to help users navigate the platform, answer questions, and provide 
 ### What is Authors Bureau?
 Authors Bureau helps published authors monetize their books through the ABBY Framework:
 - **A**nalyze: Abby (the AI business consultant) analyzes your book and creates a personalized business plan mapping up to 28 revenue streams
-- **B**uild Authority (8 nodes): Create digital products (workbooks, home study courses, social media, email marketing, book sales, special editions, microsite, online courses)
+- **B**uild Authority (8 nodes): Create digital products (workbooks, home study courses, social media, email marketing, book sales, special editions, website, online courses)
 - **B**ridge Channels (8 nodes): Scale with audiobooks, podcasts, webinars, lead magnets, media outreach, affiliates, upsells/downsells, and revenue sharing
 - **Y**ield Revenue (12 nodes): Monetize through coaching, memberships, consulting, speaking, training, masterminds, retreats, certification, conventions, fundraising, and exhibitors/JV
 
 ### Getting Started Flow
 1. Sign up and add your book (via Amazon URL or manually)
-2. Your book microsite is automatically created and published
+2. Your book page is automatically created and published
 3. Run "Analyze with Abby" — a free AI consultation that creates your business plan
 4. Subscribe to unlock the AI builders
 5. Build products and start earning
 
 ### Subscription Tiers
-- **Free**: Book microsite, Abby analysis, business plan
-- **Starter ($49/mo)**: Build Authority products (workbooks, home study, book sales, special editions, social media, email marketing, microsite)
+- **Free**: Book page, Abby analysis, business plan
+- **Starter ($49/mo)**: Build Authority products (workbooks, home study, book sales, special editions, social media, email marketing, website)
 - **Pro ($199/mo)**: Starter + Online Courses + all 8 Bridge Channels (audiobooks, podcasts, webinars, lead magnets, media outreach, affiliates, upsells/downsells, revenue sharing)
 - **Enterprise ($499/mo)**: All 28 builders + priority support + advanced analytics
 
 ### Key Features
 - **My Books Hub**: Manage all your books, see analysis status, track your monetization journey
-- **Book Microsites**: Beautiful landing pages for each book, auto-generated
+- **Book Pages**: Beautiful landing pages for each book, auto-generated
 - **Abby Analysis**: Free AI business consultation that maps revenue opportunities
 - **27 AI Builders**: Each creates a specific product or channel using your book content
 - **Author Profile**: Public profile with bio, credentials, and services

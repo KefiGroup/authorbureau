@@ -324,10 +324,10 @@ export default function Index() {
               <BookOpen className="h-8 w-8 text-secondary" />
             </div>
             <h3 className="font-heading text-2xl md:text-3xl font-bold mb-4">
-              Get Featured with a Professional Book Microsite for <span className="text-secondary">FREE</span>
+              Get Featured with a Professional Book Page for <span className="text-secondary">FREE</span>
             </h3>
             <p className="text-primary-foreground/70 max-w-2xl mx-auto text-lg leading-relaxed">
-              Published authors can apply for a free professional showcase with a dedicated book microsite. Books published through PublishNow.io also receive a verified badge.
+              Published authors can apply for a free professional showcase with a dedicated book page. Books published through PublishNow.io also receive a verified badge.
             </p>
             <div className="mt-8">
               <Button
@@ -342,14 +342,14 @@ export default function Index() {
             </div>
           </motion.div>
 
-          {/* Your Book, Your Page — Microsite Showcase */}
+          {/* Your Book, Your Page — Book Page Showcase */}
           <div className="grid gap-12 lg:grid-cols-2 items-center">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }}>
               <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
                 Your Book, Your Page
               </motion.p>
               <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-4xl mb-4">
-                Professional Book <span className="italic text-secondary">Microsites</span>
+                Professional Book <span className="italic text-secondary">Pages</span>
               </motion.h2>
               <motion.p variants={fadeUp} custom={2} className="text-lg text-muted-foreground leading-relaxed mb-8">
                 Every listed author gets a dedicated landing page for their book — designed to showcase your Amazon bestseller status, drive purchases, and build your reader community. <strong className="text-foreground">Completely free.</strong>
@@ -470,7 +470,7 @@ export default function Index() {
             {[
               { step: "1", title: "Analyze Your Book", desc: "Upload your manuscript and let Abby, your AI Business Consultant, generate a comprehensive business plan tailored to your book." },
               { step: "2", title: "Build Your Products", desc: "Use our AI-powered studios to instantly create a suite of digital products, from workbooks to online courses, all based on your book's content." },
-              { step: "3", title: "Launch Your Microsite", desc: "Activate your professional author microsite, a central hub to showcase your brand, sell your products, and connect with your audience." },
+              { step: "3", title: "Launch Your Website", desc: "Build your professional author website, a central hub to showcase your brand, sell your products, and connect with your audience." },
               { step: "4", title: "Grow Your Business", desc: "Use our CRM, revenue dashboard, and marketing tools to grow your audience and build a sustainable author business." },
             ].map((item, i) => (
               <motion.div

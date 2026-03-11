@@ -229,7 +229,7 @@ export default function SmartProductCard({
           )}
           {state === "published" && (
             <Button variant="outline" size="sm" className="w-full text-xs" onClick={onView}>
-              <Eye className="h-3 w-3 mr-1.5" /> View on Microsite →
+              <Eye className="h-3 w-3 mr-1.5" /> View on Website →
             </Button>
           )}
           {state === "coming-soon" && (

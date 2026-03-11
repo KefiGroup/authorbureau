@@ -523,12 +523,12 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
                       <BookActionMenu
                         isAnalyzed={isAnalyzed}
                         hasManuscript={hasManuscript}
-                        hasMicrosite={!!book.published_at}
+                        hasBookPage={!!book.published_at}
                         onEdit={() => handleEdit(book)}
                         onUploadManuscript={() => setShowManuscriptUpload(book.id)}
                         onViewBusinessPlan={() => navigate(`/dashboard/book/${book.id}`)}
                         onReAnalyze={() => onNavigate?.("build-business")}
-                        onViewMicrosite={() => window.open(`/books/${book.slug}`, "_blank")}
+                        onViewBookPage={() => window.open(`/books/${book.slug}`, "_blank")}
                         onDelete={() => handleDeleteBook(book.id)}
                       />
                     </div>
