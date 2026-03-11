@@ -10,24 +10,20 @@ import MeetAbbySection from "./framework-dashboard/MeetAbbySection";
 import MonetizationUniverse from "./framework-dashboard/MonetizationUniverse";
 import SubscriptionPricing from "./framework-dashboard/SubscriptionPricing";
 import JourneyMapCTA from "./framework-dashboard/JourneyMapCTA";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
 interface Props {
   onNavigate: (section: DashboardSection | string) => void;
   isPremium: boolean;
 }
 
-async function getActiveToken(): Promise<string | null> {
-  const { data: cloudSession } = await cloudSupabase.auth.getSession();
-  if (cloudSession?.session?.access_token) return cloudSession.session.access_token;
-  const { data: sharedSession } = await sharedSupabase.auth.getSession();
-  return sharedSession?.session?.access_token || null;
-}
-
 export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props) {
   const { user, tier, subscription, checkSubscription } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
 
@@ -43,97 +39,102 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
   const [builtProducts, setBuiltProducts] = useState<string[]>([]);
   const [recommendedByAbby, setRecommendedByAbby] = useState<string[]>([]);
 
-  useEffect(() => {
+  const loadDashboard = async () => {
     if (!user) return;
-    (async () => {
-      setLoading(true);
-      try {
-        const token = await getActiveToken();
-        if (!token) { setLoading(false); return; }
+    setLoading(true);
+    setError(null);
+    try {
+      const token = await getActiveToken();
+      if (!token) { setError("Unable to authenticate. Please sign out and back in."); setLoading(false); return; }
 
-        // Fetch dashboard state
-        const res = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dashboard-state`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          }
-        );
-        const state = await res.json();
-
-        if (state.profile) {
-          const p = state.profile;
-          const hasName = !!p.pen_name?.trim();
-          const hasPhoto = !!p.photo_url?.trim();
-          const hasBio = !!(p.bio_long?.trim() || p.bio_short?.trim());
-          const isListed = ["listed", "verified", "featured"].includes(p.directory_status);
-
-          setAuthorName(p.pen_name || "");
-          setAuthorPhoto(p.photo_url || "");
-
-          if (isListed && hasName && hasPhoto && hasBio) {
-            setProfileState("live");
-          } else if (hasName || hasPhoto) {
-            setProfileState("incomplete");
-          } else {
-            setProfileState("none");
-          }
+      // Fetch dashboard state
+      const res = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dashboard-state`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         }
+      );
+      const state = await res.json();
 
-        setBookCount(state.bookCount || 0);
+      if (state.profile) {
+        const p = state.profile;
+        const hasName = !!p.pen_name?.trim();
+        const hasPhoto = !!p.photo_url?.trim();
+        const hasBio = !!(p.bio_long?.trim() || p.bio_short?.trim());
+        const isListed = ["listed", "verified", "featured"].includes(p.directory_status);
 
-        // Fetch books for covers and slug
-        const booksRes = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`,
-          { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } }
-        );
-        const booksData = await booksRes.json();
-        if (booksData.books) {
-          setBookCovers(booksData.books.filter((b: any) => b.cover_image_url).map((b: any) => b.cover_image_url).slice(0, 3));
-          // Get author slug from profile directly via database
-          const { data: profileRow } = await cloudSupabase
-            .from("author_profiles")
-            .select("author_slug")
-            .eq("user_id", user.id)
-            .maybeSingle();
-          if (profileRow?.author_slug) {
-            setAuthorSlug(profileRow.author_slug);
-          }
+        setAuthorName(p.pen_name || "");
+        setAuthorPhoto(p.photo_url || "");
 
-          // Check for business plans (generated_assets with type business_plan)
-          if (booksData.books.length > 0) {
-            const firstBook = booksData.books[0];
-            try {
-              const planRes = await fetch(
-                `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/abby-execute`,
-                {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                  body: JSON.stringify({ action: "status", bookId: firstBook.id }),
-                }
-              );
-              const planData = await planRes.json();
-              if (planData.plan) {
-                setHasPlan(true);
-                setPlanSummary({
-                  bookTitle: firstBook.title,
-                  streamsMapped: planData.plan.products?.length || 0,
-                  projectedRevenue: planData.plan.projectedRevenue || "$50K+",
-                  productsBuilt: planData.completedAssets?.length || 0,
-                });
-                setBuiltProducts(planData.completedAssets || []);
-                setRecommendedByAbby(planData.plan.products?.map((p: any) => p.name || p.label) || []);
-              }
-            } catch {
-              // No plan available
-            }
-          }
+        if (isListed && hasName && hasPhoto && hasBio) {
+          setProfileState("live");
+        } else if (hasName || hasPhoto) {
+          setProfileState("incomplete");
+        } else {
+          setProfileState("none");
         }
-      } catch (err) {
-        console.error("Failed to load dashboard:", err);
       }
-      setLoading(false);
-    })();
+
+      setBookCount(state.bookCount || 0);
+
+      // Fetch books for covers and slug
+      const booksRes = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`,
+        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } }
+      );
+      const booksData = await booksRes.json();
+      if (booksData.books) {
+        setBookCovers(booksData.books.filter((b: any) => b.cover_image_url).map((b: any) => b.cover_image_url).slice(0, 3));
+        // Get author slug from profile directly via database
+        const { data: profileRow } = await cloudSupabase
+          .from("author_profiles")
+          .select("author_slug")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (profileRow?.author_slug) {
+          setAuthorSlug(profileRow.author_slug);
+        }
+
+        // Check for business plans (generated_assets with type business_plan)
+        if (booksData.books.length > 0) {
+          const firstBook = booksData.books[0];
+          try {
+            const planRes = await fetchWithTimeout(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/abby-execute`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ action: "status", bookId: firstBook.id }),
+              },
+              10000
+            );
+            const planData = await planRes.json();
+            if (planData.plan) {
+              setHasPlan(true);
+              setPlanSummary({
+                bookTitle: firstBook.title,
+                streamsMapped: planData.plan.products?.length || 0,
+                projectedRevenue: planData.plan.projectedRevenue || "$50K+",
+                productsBuilt: planData.completedAssets?.length || 0,
+              });
+              setBuiltProducts(planData.completedAssets || []);
+              setRecommendedByAbby(planData.plan.products?.map((p: any) => p.name || p.label) || []);
+            }
+          } catch {
+            // No plan available - non-critical
+          }
+        }
+      }
+    } catch (err: any) {
+      console.error("Failed to load dashboard:", err);
+      setError(err?.name === "AbortError" ? "Request timed out. Please try again." : "Could not load dashboard data. Please try again.");
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadDashboard();
   }, [user]);
 
   const handleSubscribe = async (planTier: "starter" | "pro" | "enterprise") => {
@@ -168,6 +169,18 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <AlertCircle className="h-10 w-10 text-destructive" />
+        <p className="text-muted-foreground text-sm text-center max-w-md">{error}</p>
+        <Button variant="outline" size="sm" onClick={loadDashboard}>
+          <RefreshCw className="h-4 w-4 mr-2" /> Retry
+        </Button>
       </div>
     );
   }

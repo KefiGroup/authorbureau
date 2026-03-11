@@ -1,10 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase as sharedSupabase } from "@/lib/shared-backend";
-
-async function getActiveToken(): Promise<string | null> {
-  const { data: sharedSession } = await sharedSupabase.auth.getSession();
-  return sharedSession?.session?.access_token || null;
-}
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
 export interface AuthorStats {
   bookCount: number;
@@ -43,7 +38,7 @@ export function useAuthorStats(userId: string | undefined) {
     try {
       const token = await getActiveToken();
       if (!token) return;
-      const resp = await fetch(
+      const resp = await fetchWithTimeout(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/author-stats`,
         {
           method: "POST",

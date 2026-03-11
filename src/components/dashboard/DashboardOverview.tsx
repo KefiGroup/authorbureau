@@ -45,21 +45,28 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
   });
 
   const fetchDashboardState = async (token: string) => {
-    const res = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dashboard-state`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dashboard-state`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          signal: controller.signal,
+        }
+      );
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `dashboard-state ${res.status}`);
       }
-    );
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      throw new Error(body.error || `dashboard-state ${res.status}`);
+      return await res.json() as { profile: any; bookCount: number };
+    } finally {
+      clearTimeout(timer);
     }
-    return await res.json() as { profile: any; bookCount: number };
   };
 
   const applyDashboardState = (state: { profile: any; bookCount: number }) => {
@@ -101,8 +108,18 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
     const fetchState = async () => {
       setStateLoading(true);
       try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData?.session?.access_token;
+        // Try shared backend first (where user authenticates), then Cloud
+        const { data: sharedSession } = await supabase.auth.getSession();
+        let token = sharedSession?.session?.access_token || null;
+        if (!token) {
+          // Fallback: try Cloud client
+          const { createClient } = await import("@supabase/supabase-js");
+          const cloudUrl = import.meta.env.VITE_SUPABASE_URL;
+          const cloudKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+          const cloudClient = createClient(cloudUrl, cloudKey);
+          const { data: cloudSession } = await cloudClient.auth.getSession();
+          token = cloudSession?.session?.access_token || null;
+        }
         if (!token) throw new Error("Not authenticated");
 
         const state = await fetchDashboardState(token);

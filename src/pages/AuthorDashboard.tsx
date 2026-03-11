@@ -36,12 +36,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { useAuthorStats } from "@/hooks/useAuthorStats";
 
-async function getActiveToken(): Promise<string | null> {
-  const { data: cloudSession } = await supabase.auth.getSession();
-  if (cloudSession?.session?.access_token) return cloudSession.session.access_token;
-  const { data: sharedSession } = await sharedSupabase.auth.getSession();
-  return sharedSession?.session?.access_token || null;
-}
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
 // All builder node IDs for the type union
 const BUILDER_NODE_IDS = Object.keys(BUILDER_NODE_MAP) as Array<keyof typeof BUILDER_NODE_MAP>;
@@ -157,7 +152,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       try {
         const token = await getActiveToken();
         if (!token) return;
-        const booksResp = await fetch(
+        const booksResp = await fetchWithTimeout(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`,
           { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } }
         );
@@ -165,7 +160,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         const fetchedBooks = booksResult.books || [];
         if (fetchedBooks.length > 0) {
           const bookIds = fetchedBooks.map((b: any) => b.id);
-          const statusResp = await fetch(
+          const statusResp = await fetchWithTimeout(
             `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-manuscript`,
             {
               method: "POST",

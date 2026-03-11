@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
   BookOpen, Plus, ExternalLink, Loader2, ImagePlus, Sparkles, Eye,
-  CreditCard, Rocket, Hammer, ChartLine, CheckCircle2, Upload,
+  CreditCard, Rocket, Hammer, ChartLine, CheckCircle2, Upload, RefreshCw,
 } from "lucide-react";
 import ManuscriptUpload from "./ManuscriptUpload";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
@@ -43,10 +43,7 @@ interface Book {
   bestseller_proof_url?: string | null;
 }
 
-async function getActiveToken(): Promise<string | null> {
-  const { data: sharedSession } = await sharedSupabase.auth.getSession();
-  return sharedSession?.session?.access_token || null;
-}
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
 interface MyBooksProps {
   isPremium?: boolean;
@@ -79,17 +76,19 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
   const [showManuscriptUpload, setShowManuscriptUpload] = useState<string | null>(null);
   const [productCounts, setProductCounts] = useState<Record<string, number>>({});
   const [categoryCounts, setCategoryCounts] = useState<Record<string, { build: number; bridge: number; yield: number }>>({});
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const isSubscribed = isPremium || isAdmin;
 
   const fetchBooks = async () => {
     if (!user) return;
     setLoading(true);
+    setFetchError(null);
     try {
       const token = await getActiveToken();
-      if (!token) { setLoading(false); return; }
+      if (!token) { setFetchError("Unable to authenticate. Please sign out and back in."); setLoading(false); return; }
 
-      const response = await fetch(
+      const response = await fetchWithTimeout(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`,
         {
           method: "POST",
@@ -108,8 +107,9 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
       setManuscriptBooks(manuscripts);
       setProductCounts(result.productCounts || {});
       setCategoryCounts(result.categoryCounts || {});
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to fetch books:", err);
+      setFetchError(err?.name === "AbortError" ? "Request timed out. Please try again." : "Could not load your books. Please try again.");
     }
     setLoading(false);
   };
@@ -296,6 +296,13 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
       {loading ? (
         <div className="flex items-center justify-center py-20 text-muted-foreground">
           <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading books...
+        </div>
+      ) : fetchError ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-3">
+          <p className="text-muted-foreground text-sm">{fetchError}</p>
+          <Button variant="outline" size="sm" onClick={fetchBooks}>
+            <RefreshCw className="h-4 w-4 mr-2" /> Try Again
+          </Button>
         </div>
       ) : books.length === 0 ? (
         <Card className="flex flex-col items-center justify-center py-16 px-8 text-center border-dashed">
