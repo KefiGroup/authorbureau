@@ -105,6 +105,11 @@ const stateConfig: Record<ProductCardState, { badge: string; badgeClass: string;
     badgeClass: "bg-accent/15 text-accent border-accent/30",
     borderClass: "border-accent/30",
   },
+  "coming-soon": {
+    badge: "🚧 Coming Soon",
+    badgeClass: "bg-muted text-muted-foreground border-border",
+    borderClass: "border-border opacity-70",
+  },
 };
 
 export default function SmartProductCard({
