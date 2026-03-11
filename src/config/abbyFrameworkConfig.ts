@@ -86,7 +86,7 @@ export const ABBY_CATEGORIES: Record<AbbyCategory, AbbyCategoryConfig> = {
     gradientTo: "to-violet-600",
     headerIcon: Radio,
     nodes: [
-      { id: "audiobook", label: "Audiobook", icon: Headphones, section: "audiobook-studio", navigateTo: "audiobook-studio", description: "AI-narrated audiobook from your manuscript.", status: "available", subCategory: "Content", sequence: 1, tierRequired: "Pro" },
+      { id: "audiobook", label: "Audiobook", icon: Headphones, section: "audiobook-studio", navigateTo: "audiobook-studio", description: "AI-narrated audiobook from your manuscript.", status: "available", subCategory: "Outreach", sequence: 1, tierRequired: "Pro" },
       { id: "podcast-guest", label: "Podcast Tour", icon: Podcast, section: "podcast", navigateTo: "podcast", description: "Podcast series & guest pitches from your book content.", status: "available", subCategory: "Outreach", sequence: 2, tierRequired: "Pro" },
       { id: "webinars", label: "Webinars", icon: Video, section: "webinars", navigateTo: "webinars", description: "Webinar scripts + slide decks + registration pages.", status: "available", subCategory: "Outreach", sequence: 3, tierRequired: "Pro" },
       { id: "lead-magnet", label: "Lead Magnet Funnel", icon: FileText, navigateTo: "lead-magnet", description: "Free PDF downloads to grow your email list.", status: "available", subCategory: "Growth", sequence: 4 },
