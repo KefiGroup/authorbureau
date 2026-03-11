@@ -105,22 +105,39 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
           </div>
 
           {/* Stat cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {[
-              { label: "Gross Sales This Month", value: `$${grossSales.toFixed(2)}`, icon: DollarSign, color: "text-accent" },
-              { label: "Platform Fee (5%)", value: `$${platformFee.toFixed(2)}`, icon: Percent, color: "text-muted-foreground" },
-              { label: "Stripe Fees", value: `$${stripeFees.toFixed(2)}`, icon: CreditCard, color: "text-muted-foreground" },
-              { label: "Your Earnings", value: `$${earnings.toFixed(2)}`, icon: TrendingUp, color: "text-accent font-bold" },
-            ].map((stat) => (
-              <Card key={stat.label} className="p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
-                  <span className="text-[11px] text-muted-foreground">{stat.label}</span>
-                </div>
-                <p className={`text-xl font-heading font-bold ${stat.color}`}>{stat.value}</p>
-              </Card>
-            ))}
-          </div>
+          {grossSales > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { label: "Gross Sales This Month", value: `$${grossSales.toFixed(2)}`, icon: DollarSign, color: "text-accent" },
+                { label: "Platform Fee (5%)", value: `$${platformFee.toFixed(2)}`, icon: Percent, color: "text-muted-foreground" },
+                { label: "Stripe Fees", value: `$${stripeFees.toFixed(2)}`, icon: CreditCard, color: "text-muted-foreground" },
+                { label: "Your Earnings", value: `$${earnings.toFixed(2)}`, icon: TrendingUp, color: "text-accent font-bold" },
+              ].map((stat) => (
+                <Card key={stat.label} className="p-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                    <span className="text-[11px] text-muted-foreground">{stat.label}</span>
+                  </div>
+                  <p className={`text-xl font-heading font-bold ${stat.color}`}>{stat.value}</p>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { label: "Gross Sales", value: "—", icon: DollarSign, color: "text-muted-foreground" },
+                { label: "Your Earnings", value: "—", icon: TrendingUp, color: "text-muted-foreground" },
+              ].map((stat) => (
+                <Card key={stat.label} className="p-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                    <span className="text-[11px] text-muted-foreground">{stat.label}</span>
+                  </div>
+                  <p className={`text-xl font-heading font-bold ${stat.color}`}>{stat.value}</p>
+                </Card>
+              ))}
+            </div>
+          )}
 
           {/* Empty state guidance */}
           {!hasRevenue && (
