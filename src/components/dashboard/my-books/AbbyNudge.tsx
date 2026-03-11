@@ -45,7 +45,7 @@ export default function AbbyNudge({
       return `Your microsite for "${bookTitle}" is live! Now let me analyze your book and map up to 28 revenue streams. It's free and takes about 5 minutes.`;
     }
 
-    // Stage 2: Needs analysis (microsite live but not analyzed)
+    // Stage 2: Needs analysis (book page live but not analyzed)
     if (stage === 2) {
       return `I can map up to 28 revenue streams for "${bookTitle}." This takes about 5 minutes and it's completely free. Ready to unlock your book's earning potential?`;
     }

@@ -365,10 +365,27 @@ export default function BuildMyBusiness() {
     bridge: { label: "B · Bridge Channels", icon: "🌉", tab: "marketing-channels" },
     yield: { label: "Y · Yield Revenue", icon: "💰", tab: "authority-builders" },
     profile: { label: "Author Profile", icon: "👤", tab: "profile" },
+    // Studio-specific nav targets from business plan "Next Steps"
+    "lead-magnet-studio": { label: "Lead Magnet Studio", icon: "🧲", tab: "lead-magnet" },
+    "email-marketing-studio": { label: "Email Marketing Studio", icon: "📧", tab: "email-marketing" },
+    "workbook-studio": { label: "Workbook Studio", icon: "📓", tab: "workbooks" },
+    "social-media-studio": { label: "Social Media Studio", icon: "📱", tab: "social-media" },
+    "coaching-studio": { label: "Coaching Studio", icon: "🎯", tab: "coaching" },
+    "course-studio": { label: "Course Studio", icon: "🎓", tab: "courses" },
+    "audiobook-studio": { label: "Audiobook Studio", icon: "🎧", tab: "audiobook-studio" },
+    "podcast-studio": { label: "Podcast Studio", icon: "🎙️", tab: "podcast" },
+    "webinar-studio": { label: "Webinar Studio", icon: "📹", tab: "webinars" },
+    "speaking-studio": { label: "Speaking Studio", icon: "🎤", tab: "speaking" },
+    "home-study-studio": { label: "Home Study Studio", icon: "📚", tab: "home-study" },
+    "membership-studio": { label: "Membership Studio", icon: "💳", tab: "memberships" },
+    "group-coaching-studio": { label: "Group Coaching Studio", icon: "👥", tab: "group-coaching" },
+    "book-sales-studio": { label: "Book Sales Studio", icon: "📖", tab: "book-sales" },
+    "special-editions-studio": { label: "Special Editions Studio", icon: "✨", tab: "special-editions" },
+    "website-studio": { label: "Website Studio", icon: "🌐", tab: "microsite-manager" },
   };
 
   const parseNavMarkers = (content: string): string[] => {
-    const regex = /===NAV:(\w+)===/g;
+    const regex = /===NAV:([\w-]+)===/g;
     const markers: string[] = [];
     let match;
     while ((match = regex.exec(content)) !== null) {
@@ -985,7 +1002,7 @@ export default function BuildMyBusiness() {
           const displayContent = msg.content
             .replace(/===BUILD_REQUEST===[\s\S]*?===END_BUILD_REQUEST===/g, "")
             .replace(/===SUBSCRIBE_CTA===/g, "")
-            .replace(/===NAV:\w+===/g, "")
+            .replace(/===NAV:[\w-]+===/g, "")
             .trim();
 
           return (
@@ -1057,6 +1074,9 @@ export default function BuildMyBusiness() {
                         <Button key={key} size="sm" className="gap-2 rounded-full" variant={key === navMarkers[0] ? "default" : "outline"}
                           onClick={() => {
                             if (key === "profile") navigate("/dashboard?section=profile");
+                            else if (key.endsWith("-studio") && selectedBook) {
+                              navigate(`/dashboard?section=${cfg.tab}&bookId=${selectedBook.id}&title=${encodeURIComponent(selectedBook.title)}`);
+                            }
                             else if (selectedBook) navigate(`/dashboard/book/${selectedBook.id}?tab=${cfg.tab}`);
                           }}>
                           <span>{cfg.icon}</span>{cfg.label}

@@ -446,7 +446,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
                       {book.published_at && (
                         <div className="flex items-center gap-1.5">
                           <div className="h-1.5 w-1.5 rounded-full bg-[#059669]" />
-                          <span className="text-[11px] text-muted-foreground">Microsite Live</span>
+                          <span className="text-[11px] text-muted-foreground">Book Page Live</span>
                         </div>
                       )}
                       {isAnalyzed && (

@@ -21,10 +21,18 @@ interface PlanSection {
   content: string;
 }
 
+function stripMarkers(text: string): string {
+  return text
+    .replace(/===NAV:[\w-]+===/g, "")
+    .replace(/===BUILD_REQUEST===[\s\S]*?===END_BUILD_REQUEST===/g, "")
+    .replace(/===SUBSCRIBE_CTA===/g, "")
+    .replace(/\[STOP\]/g, "")
+    .trim();
+}
+
 function extractSections(fullContent: string): PlanSection[] {
   const sections: PlanSection[] = [];
   
-  // Define section patterns to extract
   const patterns: Array<{ key: string; label: string; emoji: string; regex: RegExp }> = [
     { key: "transformation", label: "Transformation Promise", emoji: "✨", regex: /(?:#{1,3}.*?TRANSFORMATION PROMISE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?STARTER PACKAGE|$)/i },
     { key: "starter", label: "Starter Package", emoji: "🟢", regex: /(?:#{1,3}.*?STARTER PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?PRO PACKAGE|$)/i },
@@ -37,7 +45,7 @@ function extractSections(fullContent: string): PlanSection[] {
   for (const p of patterns) {
     const match = fullContent.match(p.regex);
     if (match?.[1]?.trim()) {
-      sections.push({ key: p.key, label: p.label, emoji: p.emoji, content: match[1].trim() });
+      sections.push({ key: p.key, label: p.label, emoji: p.emoji, content: stripMarkers(match[1].trim()) });
     }
   }
 
@@ -86,7 +94,7 @@ export default function SavedBusinessPlan({ bookId, bookTitle, authorId }: Saved
     setDownloading(true);
     try {
       // Simple markdown to HTML
-      let html = plan
+      let html = stripMarkers(plan)
         .replace(/^### (.+)$/gm, "<h3>$1</h3>")
         .replace(/^## (.+)$/gm, "<h2>$1</h2>")
         .replace(/^# (.+)$/gm, "<h1>$1</h1>")
