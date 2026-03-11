@@ -31,6 +31,7 @@ import ConnectStripePage from "@/components/dashboard/ConnectStripePage";
 import ReviewProductsPage from "@/components/dashboard/ReviewProductsPage";
 import AuthorCRMPage from "@/components/dashboard/AuthorCRMPage";
 import AuthorReadingClub from "@/components/dashboard/AuthorReadingClub";
+import AbbyConsultantBanner from "@/components/dashboard/AbbyConsultantBanner";
 import { Loader2, Rocket, FileText, Video, Share2, CreditCard, Users, Trophy, Podcast, Building2, Bookmark, Award, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
@@ -459,7 +460,10 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
             ]}
           />
         </div>
-        <main className="flex-1 overflow-y-auto p-6 lg:p-8">
+        <main className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-4">
+          {activeSection !== "overview" && activeSection !== "build-business" && (
+            <AbbyConsultantBanner compact onAnalyze={() => setActiveSection("build-business")} />
+          )}
           {renderSection()}
         </main>
       </div>
