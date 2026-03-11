@@ -96,28 +96,35 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
         });
         setRecommendations(recs);
 
-        // Check built/published products
+        // Check built/published products across all product tables
         const built = new Set<string>();
         const published = new Set<string>();
-        const assetTypes = ["workbook", "course", "social", "email", "speaker"];
+
+        // Check generated_assets for content that's been built
+        const assetTypes = ["workbook", "course", "social", "email", "speaker", "home_study", "podcast", "audiobook"];
         const { data: assets } = await cloudSupabase
           .from("generated_assets")
           .select("asset_type")
           .eq("author_id", user.id)
           .in("asset_type", assetTypes);
         (assets || []).forEach((a: any) => built.add(a.asset_type));
-        setBuiltProducts(built);
 
-        // Check published statuses
-        const tables = ["courses", "home_study_courses", "webinars", "audiobooks", "podcasts"] as const;
+        // Check all product tables for built/published status
+        const tables = ["courses", "home_study_courses", "audiobooks", "podcasts", "coaching_packages", "email_flows", "social_media_content"] as const;
         for (const table of tables) {
-          const { count } = await cloudSupabase
+          const { data: rows } = await cloudSupabase
             .from(table)
-            .select("id", { count: "exact", head: true })
+            .select("id, status")
             .eq("author_id", user.id)
-            .eq("status", "published");
-          if ((count || 0) > 0) published.add(table);
+            .limit(1);
+          if (rows && rows.length > 0) {
+            built.add(table);
+            if (rows.some((r: any) => r.status === "published" || r.status === "active")) {
+              published.add(table);
+            }
+          }
         }
+        setBuiltProducts(built);
         setPublishedProducts(published);
       } catch (err) {
         console.error("Failed to fetch data:", err);

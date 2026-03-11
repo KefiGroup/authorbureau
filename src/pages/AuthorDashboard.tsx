@@ -61,6 +61,9 @@ export type DashboardSection =
 const comingSoonSections: Record<string, { title: string; description: string; icon: typeof Rocket }> = {
   crm: { title: "CRM & Contacts", description: "Your unified customer relationship management hub.", icon: Users },
   marketing: { title: "Marketing Package", description: "AI-driven marketing suite — email flows, social media, affiliate dashboard.", icon: Rocket },
+  "book-sales": { title: "Book Sales", description: "QR code order pages & direct sales funnels for your book.", icon: BookOpen },
+  "special-editions": { title: "Special Editions", description: "Signed copies, bundles, and limited edition packages.", icon: Award },
+  "lead-magnet": { title: "Lead Magnet Funnel", description: "Free PDF downloads to grow your email list.", icon: FileText },
 };
 
 function ComingSoonPlaceholder({ sectionId }: { sectionId: string }) {

@@ -232,6 +232,11 @@ export default function SmartProductCard({
               <Eye className="h-3 w-3 mr-1.5" /> View on Microsite →
             </Button>
           )}
+          {state === "coming-soon" && (
+            <Button variant="outline" size="sm" className="w-full text-xs opacity-60" disabled>
+              Coming Soon
+            </Button>
+          )}
         </div>
       </Card>
     </motion.div>
