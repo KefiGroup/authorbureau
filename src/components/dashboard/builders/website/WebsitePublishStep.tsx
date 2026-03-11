@@ -48,7 +48,7 @@ export default function WebsitePublishStep({ stepData, setStepData, onMarkEdited
         }),
       });
       setPublished(true);
-      toast({ title: "Website published!", description: "Your microsite is now live." });
+      toast({ title: "Website published!", description: "Your website is now live." });
     } catch (err) {
       console.error("Publish error:", err);
       toast({ title: "Publish failed", variant: "destructive" });
