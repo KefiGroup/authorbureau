@@ -6,10 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Sparkles, Loader2, BookOpen, Wand2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { generateJSONWithAI } from "@/lib/ai-generate";
 import type { HomeStudyStepProps, StudyDay } from "./types";
 import StaleContentBanner from "./StaleContentBanner";
 
-export default function DailyContentStep({ stepData, setStepData, onMarkEdited, bookTitle, generationState, setGenerationState }: HomeStudyStepProps) {
+export default function DailyContentStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, generationState, setGenerationState }: HomeStudyStepProps) {
   const { toast } = useToast();
   const days: StudyDay[] = stepData.schedule?.days || [];
   const [selectedIdx, setSelectedIdx] = useState(0);
@@ -33,20 +34,51 @@ export default function DailyContentStep({ stepData, setStepData, onMarkEdited, 
     onMarkEdited("content");
   };
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     setGenerationState("queued");
-    setTimeout(() => setGenerationState("analyzing"), 1500);
-    setTimeout(() => setGenerationState("generating"), 4000);
-    setTimeout(() => {
-      updateDay("concept", `## Day ${currentDay.dayNumber}: ${currentDay.theme}\n\nToday we explore a foundational concept from "${bookTitle}" that will shift how you approach this topic.\n\n### The Core Idea\n\nThe author explains that the key to mastery lies in understanding the underlying principles rather than memorizing techniques. When you grasp the "why," the "how" becomes intuitive.\n\n### Why This Matters\n\nMost people skip this foundational step and jump straight to action. But without understanding the principle behind the practice, results are inconsistent and short-lived.\n\n### Today's Focus\n\nAs you read today's assignment, pay attention to the specific examples the author uses. Notice how each example reinforces the central principle.`);
-      updateDay("exercise", `### Today's Exercise (${stepData.setup?.commitment || 15} minutes)\n\n**Step 1:** Review today's reading and highlight the 3 most important sentences.\n\n**Step 2:** In your own words, explain the core concept to an imaginary friend in 2-3 sentences.\n\n**Step 3:** Identify one area in your life where this concept applies right now.\n\n**Step 4:** Write down one specific action you'll take today based on this concept.\n\n**Bonus:** Share your insight in the community forum for feedback.`);
-      updateDay("reflection", `### Evening Reflection 🪞\n\nTake 5 minutes before bed to answer these questions:\n\n1. **What surprised me most** about today's reading?\n2. **What resistance** did I notice in myself?\n3. **What's one thing** I'll do differently tomorrow based on today's lesson?\n4. **Rate my engagement** today: 1-5 ⭐\n\n_Remember: honest reflection accelerates growth._`);
-      if (hasAudio) {
-        updateDay("audioScript", `[INTRO MUSIC - 3 seconds]\n\nGood morning! Welcome to Day ${currentDay.dayNumber} of your study program.\n\nToday's theme is "${currentDay.theme}" — and I'm excited about this one because it's where everything starts to click.\n\nBefore we dive in, take a deep breath. Set your intention for today's learning.\n\n[PAUSE - 3 seconds]\n\nNow, open your book to ${currentDay.chapterRef} and let's begin...\n\n[READING GUIDANCE - 5 minutes]\n\n[OUTRO]\nGreat work today. Complete your exercise and reflection in your study guide, and I'll see you tomorrow for Day ${currentDay.dayNumber + 1}.\n\n[OUTRO MUSIC - 3 seconds]`);
+    try {
+      setGenerationState("analyzing");
+
+      const commitment = stepData.setup?.commitment || 15;
+
+      const result = await generateJSONWithAI<{
+        concept: string;
+        exercise: string;
+        reflection: string;
+        audioScript?: string;
+      }>(
+        `Generate detailed daily content for Day ${currentDay.dayNumber} of a home study program based on the book "${bookTitle}".
+Day theme: "${currentDay.theme}"
+Chapter reference: "${currentDay.chapterRef}"
+Daily commitment: ${commitment} minutes
+${currentDay.isCatchUp ? "This is a catch-up/review day." : ""}
+
+Return a JSON object with:
+- "concept": string (markdown, 200-300 words, with sections: Core Idea, Why This Matters, Today's Focus)
+- "exercise": string (markdown, practical exercise with numbered steps, ${commitment} minutes)
+- "reflection": string (markdown, evening journal prompts, 4 questions)
+${hasAudio ? '- "audioScript": string (narration script with [INTRO MUSIC], [PAUSE], [OUTRO] markers, 200 words)' : ""}
+
+Make content specific to the book topic and day theme. Return ONLY valid JSON.`,
+        { bookId, isPremium: true }
+      );
+
+      setGenerationState("generating");
+
+      updateDay("concept", result.concept);
+      updateDay("exercise", result.exercise);
+      updateDay("reflection", result.reflection);
+      if (hasAudio && result.audioScript) {
+        updateDay("audioScript", result.audioScript);
       }
+
       setGenerationState("complete");
       toast({ title: "Day content generated!", description: `Content for Day ${currentDay.dayNumber} is ready.` });
-    }, 6000);
+    } catch (err) {
+      console.error(err);
+      setGenerationState("error");
+      toast({ title: "Generation failed", variant: "destructive" });
+    }
   };
 
   const generatedSetup = stepData.schedule?._generatedFromSetup;

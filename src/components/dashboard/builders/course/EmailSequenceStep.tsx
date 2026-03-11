@@ -6,19 +6,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Wand2, Loader2, Mail, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { generateJSONWithAI } from "@/lib/ai-generate";
 import type { CourseStepProps, EmailStep } from "./types";
 
-const EMAIL_PURPOSES = [
-  "Welcome + what to expect",
-  "Quick win from Lesson 1",
-  "Deeper insight + social proof",
-  "Overcome objection",
-  "Urgency / deadline",
-  "Last chance",
-  "Post-purchase onboarding",
-];
-
-export default function EmailSequenceStep({ stepData, setStepData, onMarkEdited, bookTitle, generationState, setGenerationState }: CourseStepProps) {
+export default function EmailSequenceStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, generationState, setGenerationState }: CourseStepProps) {
   const { toast } = useToast();
   const emails: EmailStep[] = stepData.emailSequence?.emails || [];
   const [selectedIdx, setSelectedIdx] = useState(0);
@@ -36,24 +27,49 @@ export default function EmailSequenceStep({ stepData, setStepData, onMarkEdited,
     updateEmails(updated);
   };
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     setGenerationState("queued");
-    setTimeout(() => setGenerationState("generating"), 2000);
-    setTimeout(() => {
+    try {
+      setGenerationState("generating");
+
       const title = stepData.foundation?.title || "the course";
-      const generated: EmailStep[] = [
-        { id: "1", dayNumber: 0, purpose: EMAIL_PURPOSES[0], subject: `Welcome to ${title} — Here's what to expect`, previewText: "Your learning journey starts now", body: `Hi [First Name],\n\nWelcome aboard! I'm thrilled you've decided to invest in yourself.\n\nHere's what you can expect over the coming weeks:\n\n✅ ${stepData.curriculum?.modules?.length || 8} structured modules\n✅ Practical exercises after every lesson\n✅ A companion workbook to track progress\n\nYour first lesson is ready and waiting. Dive in whenever you're ready.\n\n[Start Module 1 →]\n\nTo your success,\n[Author Name]` },
-        { id: "2", dayNumber: 2, purpose: EMAIL_PURPOSES[1], subject: `Quick win: Try this from Lesson 1`, previewText: "A simple exercise that delivers results fast", body: `Hi [First Name],\n\nHave you started Module 1 yet? If so, here's a quick win you can apply today:\n\n[Insert key insight from Lesson 1]\n\nThis single technique has helped hundreds of readers see immediate results.\n\nTry it today and reply to let me know how it goes!\n\n[Continue Your Course →]\n\nCheers,\n[Author Name]` },
-        { id: "3", dayNumber: 5, purpose: EMAIL_PURPOSES[2], subject: `"This changed everything for me" — A student story`, previewText: "Real results from someone just like you", body: `Hi [First Name],\n\nI wanted to share something inspiring.\n\n[Student Name] started this course feeling [pain point]. After completing Module 3, they [specific result].\n\n"[Testimonial quote]"\n\nYou have the same potential. Keep going — Module ${Math.min(3, stepData.curriculum?.modules?.length || 3)} dives even deeper.\n\n[Continue Learning →]\n\nRooting for you,\n[Author Name]` },
-        { id: "4", dayNumber: 8, purpose: EMAIL_PURPOSES[3], subject: `Feeling stuck? You're not alone`, previewText: "The #1 reason people plateau (and how to push through)", body: `Hi [First Name],\n\nIf you're feeling overwhelmed or stuck, that's completely normal.\n\nThe #1 reason people plateau is [common objection]. Here's how to push through:\n\n1. Focus on one lesson at a time\n2. Complete the exercises — they're designed to build momentum\n3. Re-read the key takeaways before moving on\n\nRemember: progress beats perfection.\n\n[Jump Back In →]\n\nYou've got this,\n[Author Name]` },
-        { id: "5", dayNumber: 12, purpose: EMAIL_PURPOSES[4], subject: `⏰ Don't miss out — Special offer ending soon`, previewText: "Your exclusive bonus expires in 48 hours", body: `Hi [First Name],\n\nJust a heads up: the special bonus for course students is expiring in 48 hours.\n\n🎁 [Bonus description]\n\nThis is only available to active students. Once it's gone, it's gone.\n\n[Claim Your Bonus →]\n\nDon't wait,\n[Author Name]` },
-        { id: "6", dayNumber: 14, purpose: EMAIL_PURPOSES[5], subject: `Last chance — This closes tonight`, previewText: "Final reminder before the door closes", body: `Hi [First Name],\n\nThis is your final reminder.\n\n[Offer/bonus] closes at midnight tonight.\n\nIf you've been on the fence, now is the time to act.\n\n[Last Chance →]\n\nSee you on the other side,\n[Author Name]` },
-        { id: "7", dayNumber: 16, purpose: EMAIL_PURPOSES[6], subject: `You did it! What's next on your journey`, previewText: "Congratulations on completing the course", body: `Hi [First Name],\n\nCongratulations! 🎉 You've completed "${title}"!\n\nHere's what I recommend next:\n\n1. Download your Certificate of Completion\n2. Join our alumni community\n3. Check out [next product] to continue your growth\n\nI'm so proud of your commitment. Keep applying what you've learned.\n\n[Get Your Certificate →]\n\nWith gratitude,\n[Author Name]` },
-      ];
+      const moduleCount = stepData.curriculum?.modules?.length || 8;
+
+      const result = await generateJSONWithAI<Array<{
+        dayNumber: number;
+        purpose: string;
+        subject: string;
+        previewText: string;
+        body: string;
+      }>>(
+        `Generate a 7-email nurture sequence for an online course called "${title}" based on the book "${bookTitle}" with ${moduleCount} modules.
+
+The sequence should cover: Welcome, Quick Win, Social Proof, Overcome Objection, Urgency, Last Chance, Post-Purchase Onboarding.
+
+Return a JSON array of 7 objects, each with:
+- "dayNumber": number (day the email sends, starting at 0)
+- "purpose": string (e.g. "Welcome + what to expect")
+- "subject": string (compelling subject line)
+- "previewText": string (email preview text)
+- "body": string (full email body with [First Name], [Author Name] placeholders, and [CTA Button →] links)
+
+Make each email specific to the course topic. Return ONLY valid JSON.`,
+        { bookId, isPremium: true }
+      );
+
+      const generated: EmailStep[] = result.map((e, i) => ({
+        id: String(i + 1),
+        ...e,
+      }));
+
       updateEmails(generated);
       setGenerationState("complete");
       toast({ title: "Email sequence generated!", description: "7 emails ready to review and customize." });
-    }, 5000);
+    } catch (err) {
+      console.error(err);
+      setGenerationState("error");
+      toast({ title: "Generation failed", variant: "destructive" });
+    }
   };
 
   if (emails.length === 0 && generationState === "idle") {

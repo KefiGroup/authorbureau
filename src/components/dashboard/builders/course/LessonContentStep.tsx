@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Sparkles, Loader2, BookOpen, Wand2, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { generateJSONWithAI } from "@/lib/ai-generate";
 import type { CourseStepProps, CourseModule, CourseQuiz } from "./types";
 
 export default function LessonContentStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, generationState, setGenerationState }: CourseStepProps) {
@@ -54,32 +55,42 @@ export default function LessonContentStep({ stepData, setStepData, onMarkEdited,
   };
 
   const removeQuiz = (idx: number) => {
-    updateLesson("quiz", (currentLesson?.quiz || []).filter((_, i) => i !== idx));
+    updateLesson("quiz", (currentLesson?.quiz || []).filter((_: any, i: number) => i !== idx));
   };
 
-  const handleGenerateContent = () => {
+  const handleGenerateContent = async () => {
     setGenerationState("queued");
-    // Simulate AI generation
-    setTimeout(() => setGenerationState("analyzing"), 1500);
-    setTimeout(() => setGenerationState("generating"), 4000);
-    setTimeout(() => {
-      // Populate current lesson with generated content
-      updateLesson("script", `# ${currentLesson?.title}\n\nWelcome to this lesson where we'll dive deep into the concepts from your book "${bookTitle}".\n\n## Key Concepts\n\nIn this section, we explore the foundational ideas that underpin this topic...\n\n## Practical Application\n\nLet's look at how you can apply these principles in your daily life...\n\n## Summary\n\nRemember, the key takeaway from this lesson is that consistent practice leads to mastery.`);
-      updateLesson("summary", [
-        "Core concept explained with real-world examples",
-        "Step-by-step implementation guide",
-        "Common mistakes to avoid",
-        "Quick wins you can apply today",
-      ]);
-      updateLesson("exercise", "Take 10 minutes to apply the main concept from this lesson to your own situation. Write down:\n1. Your current state\n2. Your desired outcome\n3. Three specific actions you'll take this week");
-      updateLesson("quiz", [
-        { question: "What is the main principle discussed in this lesson?", options: ["Option A", "Option B", "Option C", "Option D"], correctAnswer: 0, explanation: "This is the correct answer because..." },
-        { question: "Which approach does the author recommend?", options: ["Approach 1", "Approach 2", "Approach 3", "Approach 4"], correctAnswer: 1, explanation: "The author specifically recommends this approach for best results." },
-        { question: "What is the first step in implementation?", options: ["Step A", "Step B", "Step C", "Step D"], correctAnswer: 2, explanation: "Starting with this step ensures a solid foundation." },
-      ]);
+    try {
+      setGenerationState("analyzing");
+
+      const result = await generateJSONWithAI(
+        `Generate lesson content for a course lesson titled "${currentLesson?.title}" in module "${currentModule?.title}" from the book "${bookTitle}".
+
+Return a JSON object with:
+- "script": string (markdown lesson script, 400-600 words, with sections for Key Concepts, Practical Application, and Summary)
+- "summary": string[] (4 key takeaway bullet points)
+- "exercise": string (a practical exercise, 100-150 words with numbered steps)
+- "quiz": array of 3 objects each with {"question": string, "options": string[] (4 options), "correctAnswer": number (0-3), "explanation": string}
+
+Make the content specific to the lesson topic, not generic.
+Return ONLY valid JSON, no markdown fences.`,
+        { bookId, isPremium: true }
+      );
+
+      setGenerationState("generating");
+
+      updateLesson("script", result.script);
+      updateLesson("summary", result.summary);
+      updateLesson("exercise", result.exercise);
+      updateLesson("quiz", result.quiz);
+
       setGenerationState("complete");
       toast({ title: "Lesson content generated!", description: "Review the script, exercises, and quiz below." });
-    }, 7000);
+    } catch (err) {
+      console.error(err);
+      setGenerationState("error");
+      toast({ title: "Generation failed", variant: "destructive" });
+    }
   };
 
   if (generationState !== "idle" && generationState !== "complete" && generationState !== "error") {
