@@ -167,8 +167,8 @@ export default function BuildAuthorBusinessButton({
             <Button onClick={onNavigateReview} className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
               Review & Publish Products →
             </Button>
-            <Button variant="outline" onClick={() => window.open("/authors/", "_blank")}>
-              <Globe className="h-4 w-4 mr-1.5" /> View Your Website →
+            <Button variant="outline" onClick={onNavigateReview}>
+              <Globe className="h-4 w-4 mr-1.5" /> View Your Products →
             </Button>
           </div>
         </CardContent>

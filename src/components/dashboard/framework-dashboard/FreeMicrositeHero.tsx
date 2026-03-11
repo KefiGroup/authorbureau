@@ -70,19 +70,19 @@ export default function FreeMicrositeHero({
           {profileState === "none" && (
             <Button onClick={onSetupMicrosite} size="lg" className="w-fit bg-amber-600 hover:bg-amber-700 text-white shadow-lg">
               <Globe className="h-4 w-4 mr-2" />
-              Set Up Your Free Microsite →
+              Set Up Your Free Author Page →
             </Button>
           )}
           {profileState === "incomplete" && (
             <Button onClick={onCompleteProfile} size="lg" className="w-fit bg-amber-600 hover:bg-amber-700 text-white shadow-lg">
               <User className="h-4 w-4 mr-2" />
-              Update Your Profile on PublishNow →
+              Update Your Profile →
             </Button>
           )}
           {profileState === "live" && (
             <Button onClick={onViewMicrosite} size="lg" className="w-fit bg-green-600 hover:bg-green-700 text-white shadow-lg">
               <ExternalLink className="h-4 w-4 mr-2" />
-              View Your Live Microsite ↗
+              View Your Live Author Page ↗
             </Button>
           )}
         </div>

@@ -8,7 +8,7 @@ interface JourneyTrackerProps {
 }
 
 const stages = [
-  { label: "Microsite", color: "#0D9488", icon: Globe },
+  { label: "Book Page", color: "#0D9488", icon: Globe },
   { label: "Analyzed", color: "#C4973B", icon: Sparkles },
   { label: "Subscribed", color: "#6366F1", icon: CreditCard },
   { label: "Building", color: "#0D9488", icon: Hammer },
