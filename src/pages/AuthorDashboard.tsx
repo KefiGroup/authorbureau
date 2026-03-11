@@ -31,7 +31,7 @@ import ConnectStripePage from "@/components/dashboard/ConnectStripePage";
 import ReviewProductsPage from "@/components/dashboard/ReviewProductsPage";
 import AuthorCRMPage from "@/components/dashboard/AuthorCRMPage";
 import AuthorReadingClub from "@/components/dashboard/AuthorReadingClub";
-import { Loader2, Rocket, FileText, Video, Share2, CreditCard, Users, Trophy, Podcast, Building2, Bookmark, Award } from "lucide-react";
+import { Loader2, Rocket, FileText, Video, Share2, CreditCard, Users, Trophy, Podcast, Building2, Bookmark, Award, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { useAuthorStats } from "@/hooks/useAuthorStats";
