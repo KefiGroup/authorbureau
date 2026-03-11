@@ -1,0 +1,263 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
+const SHARED_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnRkcG5la3NjcnNnaHF0c3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MDYzODksImV4cCI6MjA4NDQ4MjM4OX0.o2qA0tLao4UtxPGxSnavXIYKUmVZvS99pHtnL220L-s";
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+async function resolveUserId(token: string): Promise<string | null> {
+  const cloudAdmin = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+  const { data: { user: cloudUser } } = await cloudAdmin.auth.getUser(token);
+  if (cloudUser) return cloudUser.id;
+
+  const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
+  const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
+  return sharedUser?.id ?? null;
+}
+
+async function verifyAdmin(token: string) {
+  const userId = await resolveUserId(token);
+  if (!userId) return { userId: null, client: null };
+
+  const client = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+  const { data: roleData } = await client
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
+
+  if (!roleData) return { userId: null, client: null };
+  return { userId, client };
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  try {
+    const authHeader = req.headers.get("Authorization") || req.headers.get("authorization");
+    if (!authHeader) return json({ error: "Missing authorization" }, 401);
+
+    const token = authHeader.replace("Bearer ", "");
+    const { userId, client } = await verifyAdmin(token);
+    if (!userId || !client) return json({ error: "Admin access required" }, 403);
+
+    const { action, ...params } = await req.json();
+
+    // ─── Overview Counts ───
+    if (action === "overview-counts") {
+      const tables = [
+        { key: "courses", table: "courses" },
+        { key: "homeStudy", table: "home_study_courses" },
+        { key: "audiobooks", table: "audiobooks" },
+        { key: "podcasts", table: "podcasts" },
+        { key: "socialMedia", table: "social_media_content" },
+        { key: "emailFlows", table: "email_flows" },
+        { key: "coaching", table: "coaching_packages" },
+      ];
+
+      const productCounts: Record<string, number> = {};
+      await Promise.all(
+        tables.map(async ({ key, table }) => {
+          const { count } = await client.from(table).select("id", { count: "exact", head: true });
+          productCounts[key] = count ?? 0;
+        })
+      );
+
+      const [
+        { count: crmCount },
+        { count: subscriberCount },
+        { count: bugCount },
+        { count: feedbackCount },
+      ] = await Promise.all([
+        client.from("crm_contacts").select("id", { count: "exact", head: true }),
+        client.from("author_subscribers").select("id", { count: "exact", head: true }),
+        client.from("bug_reports").select("id", { count: "exact", head: true }).eq("status", "new"),
+        client.from("feedback").select("id", { count: "exact", head: true }).eq("status", "new"),
+      ]);
+
+      const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+      const { count: crmWeekCount } = await client
+        .from("crm_contacts")
+        .select("id", { count: "exact", head: true })
+        .gte("created_at", weekAgo);
+
+      // AI usage
+      const { data: usageRows } = await client
+        .from("ai_usage_logs")
+        .select("feature, total_tokens, cost_estimate, created_at")
+        .order("created_at", { ascending: false })
+        .limit(1000);
+
+      let aiUsage = { totalTokens: 0, totalCost: 0, topFeatures: [] as any[], last7DaysTokens: 0 };
+      if (usageRows && usageRows.length > 0) {
+        const totalTokens = usageRows.reduce((s, r) => s + (r.total_tokens || 0), 0);
+        const totalCost = usageRows.reduce((s, r) => s + parseFloat(String(r.cost_estimate || 0)), 0);
+        const last7 = usageRows
+          .filter(r => new Date(r.created_at) > new Date(Date.now() - 7 * 86400000))
+          .reduce((s, r) => s + (r.total_tokens || 0), 0);
+        const featureMap: Record<string, number> = {};
+        usageRows.forEach(r => { featureMap[r.feature] = (featureMap[r.feature] || 0) + (r.total_tokens || 0); });
+        const topFeatures = Object.entries(featureMap)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .map(([feature, tokens]) => ({ feature, tokens }));
+        aiUsage = { totalTokens, totalCost, topFeatures, last7DaysTokens: last7 };
+      }
+
+      return json({
+        productCounts,
+        crmCount: crmCount ?? 0,
+        crmWeekCount: crmWeekCount ?? 0,
+        subscriberCount: subscriberCount ?? 0,
+        bugCount: bugCount ?? 0,
+        feedbackCount: feedbackCount ?? 0,
+        aiUsage,
+      });
+    }
+
+    // ─── Authors ───
+    if (action === "list-authors") {
+      const { data: profiles } = await client
+        .from("author_profiles")
+        .select("user_id, pen_name, photo_url, photo_crop_y, bio_short, bio_long, genres, directory_status, author_slug, created_at, tagline, website_url, instagram_url, twitter_url, linkedin_url, youtube_url, amazon_author_profile_url, location_city, location_country, is_speaker, speaker_fee_range, availability_notes, photo_zoom")
+        .order("created_at", { ascending: false });
+
+      const { data: books } = await client.from("books").select("author_id, author_name");
+      const bookCounts = new Map<string, number>();
+      (books || []).forEach((b: any) => {
+        bookCounts.set(b.author_id, (bookCounts.get(b.author_id) || 0) + 1);
+      });
+      const bookCountsByName = new Map<string, number>();
+      (books || []).forEach((b: any) => {
+        if (b.author_name) bookCountsByName.set(b.author_name, (bookCountsByName.get(b.author_name) || 0) + 1);
+      });
+
+      const authors = (profiles || []).map((p: any) => {
+        const byId = bookCounts.get(p.user_id) || 0;
+        const byName = p.pen_name ? (bookCountsByName.get(p.pen_name) || 0) : 0;
+        return { ...p, book_count: Math.max(byId, byName) };
+      });
+
+      return json({ authors });
+    }
+
+    if (action === "update-author") {
+      const { userId: targetUserId, updates } = params;
+      if (!targetUserId || !updates) return json({ error: "userId and updates required" }, 400);
+
+      // Only allow safe fields
+      const allowedFields = [
+        "pen_name", "bio_short", "bio_long", "tagline", "genres", "directory_status",
+        "photo_url", "photo_crop_y", "photo_zoom", "website_url", "instagram_url",
+        "twitter_url", "linkedin_url", "youtube_url", "amazon_author_profile_url",
+        "location_city", "location_country", "is_speaker", "speaker_fee_range", "availability_notes",
+      ];
+      const safeUpdates: Record<string, any> = {};
+      for (const key of allowedFields) {
+        if (key in updates) safeUpdates[key] = updates[key];
+      }
+
+      const { error } = await client
+        .from("author_profiles")
+        .update(safeUpdates)
+        .eq("user_id", targetUserId);
+      if (error) throw error;
+      return json({ success: true });
+    }
+
+    // ─── Support: Bug Reports ───
+    if (action === "list-bugs") {
+      const { data } = await client.from("bug_reports").select("*").order("created_at", { ascending: false });
+      return json({ bugs: data || [] });
+    }
+
+    if (action === "update-bug") {
+      const { id, status, admin_notes } = params;
+      if (!id) return json({ error: "id required" }, 400);
+      const updateData: any = {};
+      if (status) updateData.status = status;
+      if (admin_notes !== undefined) updateData.admin_notes = admin_notes;
+      if (status === "resolved") updateData.resolved_at = new Date().toISOString();
+      await client.from("bug_reports").update(updateData).eq("id", id);
+      return json({ success: true });
+    }
+
+    // ─── Support: Feedback ───
+    if (action === "list-feedback") {
+      const { data } = await client.from("feedback").select("*").order("created_at", { ascending: false });
+      return json({ feedback: data || [] });
+    }
+
+    if (action === "update-feedback") {
+      const { id, status, admin_notes } = params;
+      if (!id) return json({ error: "id required" }, 400);
+      const updateData: any = {};
+      if (status) updateData.status = status;
+      if (admin_notes !== undefined) updateData.admin_notes = admin_notes;
+      await client.from("feedback").update(updateData).eq("id", id);
+      return json({ success: true });
+    }
+
+    // ─── Support: Chat Sessions ───
+    if (action === "list-chats") {
+      const { data } = await client.from("chat_sessions").select("*").order("created_at", { ascending: false });
+      return json({ chats: data || [] });
+    }
+
+    // ─── CRM Contacts ───
+    if (action === "list-crm-contacts") {
+      const { data: contacts } = await client
+        .from("crm_contacts")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      // Get tags for all contacts
+      const contactIds = (contacts || []).map((c: any) => c.id);
+      let tags: any[] = [];
+      if (contactIds.length > 0) {
+        const { data: tagData } = await client
+          .from("crm_contact_tags")
+          .select("contact_id, tag")
+          .in("contact_id", contactIds);
+        tags = tagData || [];
+      }
+
+      const tagMap = new Map<string, string[]>();
+      tags.forEach((t: any) => {
+        const arr = tagMap.get(t.contact_id) || [];
+        arr.push(t.tag);
+        tagMap.set(t.contact_id, arr);
+      });
+
+      const enriched = (contacts || []).map((c: any) => ({
+        ...c,
+        tags: tagMap.get(c.id) || [],
+      }));
+
+      return json({ contacts: enriched });
+    }
+
+    return json({ error: "Unknown action" }, 400);
+  } catch (err) {
+    return json({ error: (err as Error).message }, 500);
+  }
+});
