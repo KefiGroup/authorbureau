@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Sparkles, Loader2, GripVertical, Eye, EyeOff, Plus, Trash2, Wand2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { generateWithAI } from "@/lib/ai-generate";
 import type { SitePage, PageSection } from "./types";
 import { SECTION_TYPES } from "./types";
 
@@ -98,23 +99,67 @@ export default function PageBuilderStep({ stepData, setStepData, onMarkEdited, b
     updatePages(updated);
   };
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     setGenerationState("queued");
-    setTimeout(() => setGenerationState("analyzing"), 2000);
-    setTimeout(() => setGenerationState("generating"), 5000);
-    setTimeout(() => {
-      setGenerationState("complete");
-      // Populate with sample generated content
-      const generated = pages.map(page => ({
-        ...page,
-        sections: page.sections.map(s => ({
-          ...s,
-          content: s.content || `AI-generated ${s.title} content for "${bookTitle}". This section will be populated with relevant content from your book and business plan.`,
-        })),
-      }));
+    try {
+      setGenerationState("analyzing");
+
+      const siteType = stepData["setup"]?.config?.siteType || "full";
+
+      // Generate content for each page's sections in parallel
+      const contentPromises = pages.filter(p => p.enabled).map(async (page) => {
+        const sectionDescriptions = page.sections.map(s => `- "${s.title}" (type: ${s.type})`).join("\n");
+
+        const content = await generateWithAI(
+          `Generate website content for the "${page.title}" page of an author's website for the book "${bookTitle}".
+Site type: ${siteType}.
+
+The page has these sections:
+${sectionDescriptions}
+
+For each section, write compelling, professional copy (50-150 words per section).
+Format as markdown with each section separated by "---SECTION: [section title]---" headers.
+Return ONLY the content.`,
+          { bookId, isPremium: true }
+        );
+
+        return { pageId: page.id, content };
+      });
+
+      setGenerationState("generating");
+
+      const results = await Promise.all(contentPromises);
+
+      const generated = pages.map(page => {
+        const result = results.find(r => r.pageId === page.id);
+        if (!result) return page;
+
+        // Parse sections from the generated content
+        const sectionContents = result.content.split(/---SECTION:\s*([^-]+)---/i);
+        const contentMap: Record<string, string> = {};
+        for (let i = 1; i < sectionContents.length; i += 2) {
+          const title = sectionContents[i].trim();
+          const body = (sectionContents[i + 1] || "").trim();
+          contentMap[title.toLowerCase()] = body;
+        }
+
+        return {
+          ...page,
+          sections: page.sections.map(s => ({
+            ...s,
+            content: s.content || contentMap[s.title.toLowerCase()] || result.content.slice(0, 200),
+          })),
+        };
+      });
+
       updatePages(generated);
+      setGenerationState("complete");
       toast({ title: "Pages generated!", description: "Review and customize your site content." });
-    }, 8000);
+    } catch (err) {
+      console.error(err);
+      setGenerationState("error");
+      toast({ title: "Generation failed", variant: "destructive" });
+    }
   };
 
   const currentPage = pages[activePage];

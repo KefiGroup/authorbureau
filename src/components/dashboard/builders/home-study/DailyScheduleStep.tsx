@@ -9,12 +9,13 @@ import {
   Coffee, Wand2, GripVertical,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { generateJSONWithAI } from "@/lib/ai-generate";
 import type { HomeStudyStepProps, StudyDay } from "./types";
 import StaleContentBanner from "./StaleContentBanner";
 
 function generateId() { return crypto.randomUUID(); }
 
-export default function DailyScheduleStep({ stepData, setStepData, onMarkEdited, bookTitle, generationState, setGenerationState }: HomeStudyStepProps) {
+export default function DailyScheduleStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, generationState, setGenerationState }: HomeStudyStepProps) {
   const { toast } = useToast();
   const setup = stepData.setup || {};
   const duration = setup.duration || 30;
@@ -31,41 +32,50 @@ export default function DailyScheduleStep({ stepData, setStepData, onMarkEdited,
     updateDays(days.map(d => d.id === dayId ? { ...d, [field]: value } : d));
   };
 
-  const weekThemes = [
-    "Awareness & Foundation",
-    "Skills & Strategies",
-    "Practice & Application",
-    "Integration & Mastery",
-    "Advanced Mastery",
-  ];
-
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     setGenerationState("queued");
-    setTimeout(() => setGenerationState("analyzing"), 1500);
-    setTimeout(() => setGenerationState("generating"), 4000);
-    setTimeout(() => {
-      const weeks = Math.ceil(duration / 7);
-      const generated: StudyDay[] = Array.from({ length: duration }, (_, i) => {
-        const dayNum = i + 1;
-        const weekNum = Math.ceil(dayNum / 7);
-        const dayInWeek = ((dayNum - 1) % 7) + 1;
-        const isCatchUp = dayInWeek === 7;
+    try {
+      setGenerationState("analyzing");
 
-        return {
-          id: generateId(),
-          dayNumber: dayNum,
-          weekNumber: weekNum,
-          theme: isCatchUp
-            ? `Week ${weekNum} Review & Catch-Up`
-            : `${weekThemes[weekNum - 1] || "Mastery"} — Day ${dayInWeek}`,
-          chapterRef: isCatchUp ? "Review" : `Chapter ${Math.min(Math.ceil(dayNum / (duration / 12)), 12)}`,
-          reading: isCatchUp ? "Review this week's key concepts" : `Read section on "${bookTitle}" key insights`,
-          concept: "",
-          exercise: isCatchUp ? "Complete any missed exercises from this week" : "Practice exercise for today's concept",
-          reflection: isCatchUp ? "What was your biggest insight this week?" : "Journal prompt for today's learning",
-          isCatchUp,
-        };
-      });
+      const result = await generateJSONWithAI<Array<{
+        dayNumber: number;
+        weekNumber: number;
+        theme: string;
+        chapterRef: string;
+        reading: string;
+        exercise: string;
+        reflection: string;
+        isCatchUp: boolean;
+      }>>(
+        `Generate a ${duration}-day home study schedule for the book "${bookTitle}".
+Organize into weeks of 7 days. Day 7 of each week should be a catch-up/review day.
+
+Each day needs a specific theme, chapter reference from the book, reading assignment, exercise, and reflection prompt.
+Make weekly themes progress from Awareness → Skills → Practice → Integration → Mastery.
+
+Return a JSON array of ${duration} objects, each with:
+- "dayNumber": number
+- "weekNumber": number
+- "theme": string (specific to that day's learning focus)
+- "chapterRef": string (e.g. "Chapter 3")
+- "reading": string (specific reading assignment)
+- "exercise": string (short exercise description)
+- "reflection": string (journal prompt)
+- "isCatchUp": boolean (true only for day 7 of each week)
+
+Return ONLY valid JSON.`,
+        { bookId, isPremium: true }
+      );
+
+      setGenerationState("generating");
+
+      const generated: StudyDay[] = result.map(d => ({
+        id: generateId(),
+        ...d,
+        concept: "",
+        audioScript: undefined,
+      }));
+
       setStepData(prev => ({
         ...prev,
         schedule: {
@@ -77,8 +87,13 @@ export default function DailyScheduleStep({ stepData, setStepData, onMarkEdited,
       onMarkEdited("schedule");
       setSelectedDayId(generated[0]?.id || null);
       setGenerationState("complete");
+      const weeks = Math.ceil(duration / 7);
       toast({ title: "Schedule generated!", description: `${duration}-day program with ${weeks} weekly themes.` });
-    }, 6000);
+    } catch (err) {
+      console.error(err);
+      setGenerationState("error");
+      toast({ title: "Generation failed", variant: "destructive" });
+    }
   };
 
   if (days.length === 0 && generationState === "idle") {
@@ -135,7 +150,7 @@ export default function DailyScheduleStep({ stepData, setStepData, onMarkEdited,
             {weeks.map(weekNum => (
               <div key={weekNum}>
                 <p className="text-[10px] font-bold text-secondary uppercase tracking-wider mb-1.5">
-                  Week {weekNum}: {weekThemes[weekNum - 1] || "Advanced"}
+                  Week {weekNum}
                 </p>
                 <div className="flex gap-1.5">
                   {days.filter(d => d.weekNumber === weekNum).map(day => (

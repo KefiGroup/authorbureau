@@ -3,11 +3,12 @@ import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, FileText, Award, Gift, Wand2 } from "lucide-react";
+import { Sparkles, FileText, Award, Gift, Wand2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { generateWithAI } from "@/lib/ai-generate";
 import type { CourseStepProps } from "./types";
 
-export default function CourseMaterialsStep({ stepData, setStepData, onMarkEdited, bookTitle, generationState, setGenerationState }: CourseStepProps) {
+export default function CourseMaterialsStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, generationState, setGenerationState }: CourseStepProps) {
   const { toast } = useToast();
   const data = stepData.materials || {};
 
@@ -19,22 +20,62 @@ export default function CourseMaterialsStep({ stepData, setStepData, onMarkEdite
     onMarkEdited("materials");
   };
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     setGenerationState("queued");
-    setTimeout(() => setGenerationState("generating"), 2000);
-    setTimeout(() => {
-      update("welcomeScript", `# Welcome to ${stepData.foundation?.title || "Your Course"}!\n\nHello and welcome! I'm so excited you've decided to invest in your growth.\n\nOver the coming modules, we'll work through the core concepts from "${bookTitle}" in a structured, hands-on way.\n\n## What to Expect\n\n- **${stepData.curriculum?.modules?.length || 8} modules** with practical lessons\n- **Exercises** after each lesson to apply what you learn\n- **A companion workbook** to track your progress\n- **Quizzes** to test your understanding\n\n## How to Get the Most Out of This Course\n\n1. Set aside 30-45 minutes per lesson\n2. Complete the exercises — don't skip them!\n3. Take notes in your companion workbook\n4. Revisit challenging modules as needed\n\nLet's get started!`);
-      update("certificateTitle", `Certificate of Completion: ${stepData.foundation?.title || "Course"}`);
-      update("bonusSuggestions", [
-        "Private community access for course students",
-        "Monthly live Q&A session with the author",
-        "Bonus chapter: Advanced strategies not in the book",
-        `Companion workbook (link to your Workbook builder)`,
+    try {
+      setGenerationState("generating");
+
+      const courseTitle = stepData.foundation?.title || "Your Course";
+      const moduleCount = stepData.curriculum?.modules?.length || 8;
+
+      const [welcomeScript, bonusText] = await Promise.all([
+        generateWithAI(
+          `Write a warm, professional welcome video script for an online course called "${courseTitle}" based on the book "${bookTitle}".
+The course has ${moduleCount} modules. Include what students will learn, how to get the most from the course, and an encouraging opening.
+Format as clean markdown. 300-400 words.
+Return ONLY the markdown content.`,
+          { bookId, isPremium: true }
+        ),
+        generateWithAI(
+          `Suggest 4 creative bonus material ideas for an online course called "${courseTitle}" based on the book "${bookTitle}".
+These should increase perceived value (e.g. community access, live sessions, bonus chapters, workbooks).
+Return ONLY a JSON array of 4 strings, e.g. ["bonus1","bonus2","bonus3","bonus4"]`,
+          { bookId, isPremium: true }
+        ),
       ]);
+
+      update("welcomeScript", welcomeScript);
+      update("certificateTitle", `Certificate of Completion: ${courseTitle}`);
+
+      try {
+        const cleaned = bonusText.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
+        update("bonusSuggestions", JSON.parse(cleaned));
+      } catch {
+        update("bonusSuggestions", [
+          "Private community access for course students",
+          "Monthly live Q&A session with the author",
+          "Bonus chapter: Advanced strategies not in the book",
+          "Companion workbook",
+        ]);
+      }
+
       setGenerationState("complete");
       toast({ title: "Course materials generated!" });
-    }, 4000);
+    } catch (err) {
+      console.error(err);
+      setGenerationState("error");
+      toast({ title: "Generation failed", variant: "destructive" });
+    }
   };
+
+  if (generationState !== "idle" && generationState !== "complete" && generationState !== "error") {
+    return (
+      <div className="text-center py-12">
+        <Loader2 className="h-10 w-10 animate-spin text-secondary mx-auto mb-4" />
+        <p className="text-sm font-medium">Generating course materials...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

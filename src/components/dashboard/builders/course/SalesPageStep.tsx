@@ -6,9 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Sparkles, Wand2, Loader2, ChevronDown, ChevronRight, User } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { generateJSONWithAI } from "@/lib/ai-generate";
 import type { CourseStepProps } from "./types";
 
-export default function SalesPageStep({ stepData, setStepData, onMarkEdited, bookTitle, generationState, setGenerationState }: CourseStepProps) {
+export default function SalesPageStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, generationState, setGenerationState }: CourseStepProps) {
   const { toast } = useToast();
   const data = stepData.salesPage || {};
   const [expandedModule, setExpandedModule] = useState<number | null>(null);
@@ -21,34 +22,47 @@ export default function SalesPageStep({ stepData, setStepData, onMarkEdited, boo
     onMarkEdited("sales-page");
   };
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     setGenerationState("queued");
-    setTimeout(() => setGenerationState("generating"), 2000);
-    setTimeout(() => {
+    try {
+      setGenerationState("generating");
+
       const title = stepData.foundation?.title || "Your Course";
       const transformation = stepData.foundation?.transformation || "transform your life";
-      update("headline", `Master ${title} and ${transformation}`);
-      update("subheadline", `The step-by-step system from the bestselling book "${bookTitle}"`);
-      update("painPoints", [
-        "You've read the book but struggle to apply the concepts consistently",
-        "Information overload — you don't know where to start",
-        "You want accountability and structured guidance",
-        "DIY learning feels slow and you keep making the same mistakes",
-      ]);
-      update("transformationText", `In just ${stepData.curriculum?.modules?.length || 8} modules, you'll go from overwhelmed to empowered — with a clear action plan, practical exercises, and the confidence to ${transformation}.`);
+      const moduleCount = stepData.curriculum?.modules?.length || 8;
+
+      const result = await generateJSONWithAI(
+        `Generate a high-converting sales page for an online course called "${title}" based on the book "${bookTitle}".
+The course has ${moduleCount} modules and promises to help students ${transformation}.
+
+Return a JSON object with these fields:
+- "headline": string (compelling main headline)
+- "subheadline": string (supporting subheadline)
+- "painPoints": string[] (4 pain points the audience faces)
+- "transformationText": string (1-2 paragraph transformation promise)
+- "faqs": array of {"q": string, "a": string} (4 FAQs with answers)
+
+Return ONLY valid JSON, no markdown fences.`,
+        { bookId, isPremium: true }
+      );
+
+      update("headline", result.headline);
+      update("subheadline", result.subheadline);
+      update("painPoints", result.painPoints);
+      update("transformationText", result.transformationText);
       update("testimonials", [
         { name: "", text: "Add a student testimonial here..." },
         { name: "", text: "Add another testimonial here..." },
       ]);
-      update("faqs", [
-        { q: "How long do I have access?", a: "Lifetime access! Once enrolled, you can revisit lessons at any time." },
-        { q: "What if I'm not satisfied?", a: "We offer a 30-day money-back guarantee. No questions asked." },
-        { q: "Do I need any prior experience?", a: "No! This course is designed for beginners and intermediate learners alike." },
-        { q: "Is there a community or support?", a: "Yes — all students get access to our private community for Q&A and networking." },
-      ]);
+      update("faqs", result.faqs);
+
       setGenerationState("complete");
       toast({ title: "Sales page generated!" });
-    }, 5000);
+    } catch (err) {
+      console.error(err);
+      setGenerationState("error");
+      toast({ title: "Generation failed", variant: "destructive" });
+    }
   };
 
   if (!data.headline && generationState === "idle") {
