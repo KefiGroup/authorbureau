@@ -42,6 +42,11 @@ export default function ChapterMappingStep({ stepData, setStepData, onMarkEdited
         }
       );
 
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(errData.error || `Server error: ${res.status}`);
+      }
+
       setGenerationState("generating");
 
       // The edge function returns SSE stream — collect all chunks
@@ -93,9 +98,9 @@ export default function ChapterMappingStep({ stepData, setStepData, onMarkEdited
       onMarkEdited("mapping");
       setGenerationState("complete");
       toast.success(`Mapped ${parsed.length} workbook sections!`);
-    } catch {
+    } catch (err: any) {
       setGenerationState("error");
-      toast.error("Failed to generate chapter mapping");
+      toast.error(err?.message || "Failed to generate chapter mapping");
     }
   };
 
@@ -149,9 +154,11 @@ export default function ChapterMappingStep({ stepData, setStepData, onMarkEdited
         <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
           AI will analyze your manuscript and create a section-by-section mapping with recommended content types.
         </p>
-        <Button onClick={handleGenerate} disabled={generationState !== "idle" && generationState !== "complete"}>
-          {generationState !== "idle" && generationState !== "complete" ? (
+        <Button onClick={handleGenerate} disabled={generationState === "queued" || generationState === "analyzing" || generationState === "generating"}>
+          {generationState === "queued" || generationState === "analyzing" || generationState === "generating" ? (
             <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Generating...</>
+          ) : generationState === "error" ? (
+            <><Wand2 className="h-4 w-4 mr-2" /> Retry Chapter Mapping</>
           ) : (
             <><Wand2 className="h-4 w-4 mr-2" /> Generate Chapter Mapping</>
           )}
