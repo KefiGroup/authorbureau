@@ -114,6 +114,12 @@ export default function DailyScheduleStep({ stepData, setStepData, onMarkEdited,
 
   return (
     <div className="space-y-4">
+      <StaleContentBanner
+        currentSetup={setup}
+        generatedSetup={generatedSetup}
+        onRegenerate={handleGenerate}
+        isGenerating={generationState !== "idle" && generationState !== "complete" && generationState !== "error"}
+      />
       {/* Horizontal timeline */}
       <div className="border border-border rounded-lg bg-card">
         <div className="px-3 py-2.5 border-b border-border bg-muted/30 flex items-center justify-between">

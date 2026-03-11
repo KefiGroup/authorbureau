@@ -49,8 +49,14 @@ export default function DailyContentStep({ stepData, setStepData, onMarkEdited, 
     }, 6000);
   };
 
+  const generatedSetup = stepData.schedule?._generatedFromSetup;
+
   return (
     <div className="space-y-4">
+      <StaleContentBanner
+        currentSetup={stepData.setup || {}}
+        generatedSetup={generatedSetup}
+      />
       {/* Day selector */}
       <div className="flex gap-1.5 overflow-x-auto pb-2">
         {days.map((day, i) => (
