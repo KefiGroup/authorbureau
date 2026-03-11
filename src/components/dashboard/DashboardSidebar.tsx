@@ -115,7 +115,6 @@ export default function DashboardSidebar({
     },
     {
       id: "analytics" as DashboardSection, label: "Revenue Dashboard", icon: BarChart3,
-      hidden: !hasMicrosite && !isPremium,
     },
   ];
 

@@ -40,12 +40,11 @@ interface Props {
 }
 
 export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
-  const { isPremium, isAdmin, tier } = useAuth();
+  const { isPremium, isAdmin, tier, user } = useAuth();
   const { onboarding_complete } = useStripeConnect();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("revenue");
   const [slug, setSlug] = useState(authorSlug || "");
-  const { user } = useAuth();
 
   // Fetch author slug if not provided
   useEffect(() => {
@@ -106,22 +105,39 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
           </div>
 
           {/* Stat cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {[
-              { label: "Gross Sales This Month", value: `$${grossSales.toFixed(2)}`, icon: DollarSign, color: "text-accent" },
-              { label: "Platform Fee (5%)", value: `$${platformFee.toFixed(2)}`, icon: Percent, color: "text-muted-foreground" },
-              { label: "Stripe Fees", value: `$${stripeFees.toFixed(2)}`, icon: CreditCard, color: "text-muted-foreground" },
-              { label: "Your Earnings", value: `$${earnings.toFixed(2)}`, icon: TrendingUp, color: "text-accent font-bold" },
-            ].map((stat) => (
-              <Card key={stat.label} className="p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
-                  <span className="text-[11px] text-muted-foreground">{stat.label}</span>
-                </div>
-                <p className={`text-xl font-heading font-bold ${stat.color}`}>{stat.value}</p>
-              </Card>
-            ))}
-          </div>
+          {grossSales > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { label: "Gross Sales This Month", value: `$${grossSales.toFixed(2)}`, icon: DollarSign, color: "text-accent" },
+                { label: "Platform Fee (5%)", value: `$${platformFee.toFixed(2)}`, icon: Percent, color: "text-muted-foreground" },
+                { label: "Stripe Fees", value: `$${stripeFees.toFixed(2)}`, icon: CreditCard, color: "text-muted-foreground" },
+                { label: "Your Earnings", value: `$${earnings.toFixed(2)}`, icon: TrendingUp, color: "text-accent font-bold" },
+              ].map((stat) => (
+                <Card key={stat.label} className="p-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                    <span className="text-[11px] text-muted-foreground">{stat.label}</span>
+                  </div>
+                  <p className={`text-xl font-heading font-bold ${stat.color}`}>{stat.value}</p>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { label: "Gross Sales", value: "—", icon: DollarSign, color: "text-muted-foreground" },
+                { label: "Your Earnings", value: "—", icon: TrendingUp, color: "text-muted-foreground" },
+              ].map((stat) => (
+                <Card key={stat.label} className="p-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                    <span className="text-[11px] text-muted-foreground">{stat.label}</span>
+                  </div>
+                  <p className={`text-xl font-heading font-bold ${stat.color}`}>{stat.value}</p>
+                </Card>
+              ))}
+            </div>
+          )}
 
           {/* Empty state guidance */}
           {!hasRevenue && (
@@ -165,7 +181,7 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={MONTHS_DATA}>
                   <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                  <XAxis dataKey="month" tick={{ fontSize: 11 }} padding={{ left: 10, right: 10 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip />
                   <Line type="monotone" dataKey="gross" stroke="hsl(var(--muted-foreground))" strokeWidth={1.5} dot={false} name="Gross Sales" />
@@ -187,7 +203,7 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
                   {cat.label}
                 </span>
                 <p className="text-lg font-heading font-bold">${cat.revenue.toFixed(0)}</p>
-                <p className="text-[11px] text-muted-foreground">from {cat.products} products</p>
+                <p className="text-[11px] text-muted-foreground">{cat.products > 0 ? `from ${cat.products} products` : "No products built yet"}</p>
               </Card>
             ))}
           </div>

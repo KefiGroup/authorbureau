@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Sparkles, Loader2, Plus } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
-import { supabase as sharedSupabase } from "@/lib/shared-backend";
+import { getActiveToken } from "@/lib/get-active-token";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import SmartProductCard, { type ProductCardState, BASELINE_REVENUE } from "@/components/dashboard/SmartProductCard";
@@ -22,12 +22,7 @@ interface BookSummary {
   genre?: string | null;
 }
 
-async function getActiveToken(): Promise<string | null> {
-  const { data: cloudSession } = await cloudSupabase.auth.getSession();
-  if (cloudSession?.session?.access_token) return cloudSession.session.access_token;
-  const { data: sharedSession } = await sharedSupabase.auth.getSession();
-  return sharedSession?.session?.access_token || null;
-}
+// getActiveToken is now imported from @/lib/get-active-token
 
 interface Props {
   categoryId: string;

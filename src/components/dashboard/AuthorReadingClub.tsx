@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -54,12 +55,23 @@ export default function AuthorReadingClub({ onNavigate }: Props) {
     if (!user) return;
     (async () => {
       try {
-        const { data: books } = await supabase
-          .from("books")
-          .select("id, title, cover_image_url")
-          .eq("author_id", user.id);
+        // Fetch books via edge function to handle dual-backend identity
+        const token = await getActiveToken();
+        let books: Array<{ id: string; title: string; cover_image_url: string | null }> = [];
+        if (token) {
+          try {
+            const resp = await fetchWithTimeout(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`,
+              { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } }
+            );
+            const result = await resp.json();
+            books = (result.books || []).map((b: any) => ({ id: b.id, title: b.title, cover_image_url: b.cover_image_url }));
+          } catch (err) {
+            console.error("Failed to fetch books for reading club:", err);
+          }
+        }
 
-        if (!books?.length) {
+        if (!books.length) {
           setLoading(false);
           return;
         }
