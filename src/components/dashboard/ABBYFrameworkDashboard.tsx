@@ -23,6 +23,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
   const { user, tier, subscription, checkSubscription } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
 
