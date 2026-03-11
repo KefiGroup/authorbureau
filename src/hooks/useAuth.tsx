@@ -126,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           // Check admin role - don't set loading false until this completes
           const userId = session.user.id;
-          supabase.rpc("has_role", { _user_id: userId, _role: "admin" })
+          Promise.resolve(supabase.rpc("has_role", { _user_id: userId, _role: "admin" }))
             .then(({ data }) => {
               setIsAdmin(!!data || isAdminSession);
             })
