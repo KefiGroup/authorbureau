@@ -164,15 +164,15 @@ export default function MicrositeManager({ onNavigate }: Props) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h2 className="font-heading text-2xl font-bold">Your Author Microsite</h2>
+          <h2 className="font-heading text-2xl font-bold">Your Author Website</h2>
           {micrositeUrl ? (
             <div className="flex items-center gap-2 mt-1">
               <p className="text-sm text-muted-foreground">
-                {isLive ? "Manage your live author microsite." : "Your microsite is in draft mode."}
+                {isLive ? "Manage your live author website." : "Your website is in draft mode."}
               </p>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground mt-1">Set up your author profile to get your microsite URL.</p>
+            <p className="text-sm text-muted-foreground mt-1">Set up your author profile to get your website URL.</p>
           )}
         </div>
         {micrositeUrl && (
@@ -188,7 +188,7 @@ export default function MicrositeManager({ onNavigate }: Props) {
         )}
         {!profileExists && (
           <Button className="bg-secondary text-secondary-foreground hover:bg-secondary/90 w-fit" onClick={() => onNavigate?.("profile")}>
-            Set Up Your Microsite <ArrowRight className="h-4 w-4 ml-1" />
+            Set Up Your Website <ArrowRight className="h-4 w-4 ml-1" />
           </Button>
         )}
       </div>
@@ -197,7 +197,7 @@ export default function MicrositeManager({ onNavigate }: Props) {
       {isLive && (
         <div className="flex items-center gap-2 rounded-lg bg-accent/10 border border-accent/20 px-3 py-2">
           <CheckCircle2 className="h-4 w-4 text-accent" />
-          <p className="text-sm font-medium text-accent">Your microsite is live!</p>
+          <p className="text-sm font-medium text-accent">Your website is live!</p>
         </div>
       )}
 
@@ -321,8 +321,8 @@ export default function MicrositeManager({ onNavigate }: Props) {
       <Card className="p-4 border-border">
         <p className="text-sm text-muted-foreground">
           {isLive
-            ? "Your microsite traffic data will appear in the Analytics tab once visitors start arriving."
-            : "Set up your microsite to start tracking visits and leads."}
+            ? "Your website traffic data will appear in the Analytics tab once visitors start arriving."
+            : "Set up your website to start tracking visits and leads."}
         </p>
       </Card>
     </div>

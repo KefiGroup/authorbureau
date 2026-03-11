@@ -103,7 +103,7 @@ export default function DashboardSidebar({
   // Section 3: Your Brand
   const brandItems: NavItem[] = [
     { id: "profile", label: "Author Profile", icon: User },
-    { id: "microsite-manager" as DashboardSection, label: "My Microsite", icon: Globe },
+    { id: "microsite-manager" as DashboardSection, label: "My Website", icon: Globe },
     {
       id: "author-crm" as DashboardSection, label: "My Contacts",
       icon: Contact,
