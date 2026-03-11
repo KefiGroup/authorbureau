@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import {
   Sparkles, ExternalLink, Copy, CheckCircle2, Info,
   Globe, User, BookOpen, ShoppingBag, FileText, Calendar,
-  Megaphone, Loader2, Link2, Download,
+  Megaphone, Loader2, Link2, Download, AlertCircle,
 } from "lucide-react";
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
@@ -15,145 +15,180 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 
-interface BlueprintPage {
+/* ---------- types ---------- */
+interface AbbyPage {
   id: string;
-  label: string;
-  description: string;
-  tooltip: string;
-  icon: typeof Globe;
-  alwaysOn?: boolean;
-  defaultEnabled: boolean;
+  name: string;
+  recommended: boolean;
+  enabled: boolean;
+  reason?: string;
+}
+
+interface PreviewData {
+  hero_headline: string;
+  hero_subheadline?: string;
+  cta_text?: string;
+  nav_links: string[];
+}
+
+interface Phase1Result {
+  pages: AbbyPage[];
+  preview_data: PreviewData;
 }
 
 interface Props {
   onNavigate?: (section: string) => void;
 }
 
-const ALL_PAGES: BlueprintPage[] = [
-  {
-    id: "homepage",
-    label: "Homepage",
-    description: "Hero section with your transformation promise, featured book, and email capture.",
-    tooltip: "The Homepage is the first thing visitors see. It communicates your core message and captures leads.",
-    icon: Globe,
-    alwaysOn: true,
-    defaultEnabled: true,
-  },
-  {
-    id: "about",
-    label: "About Page",
-    description: "Your author bio, headshot, credentials, and social links.",
-    tooltip: "The About Page tells your story and builds a personal connection with your readers.",
-    icon: User,
-    alwaysOn: true,
-    defaultEnabled: true,
-  },
-  {
-    id: "books",
-    label: "My Book(s) Page",
-    description: "Dedicated pages for your books with summaries, buy links, and reviews.",
-    tooltip: "Showcase each book with its cover, description, and purchase links in one place.",
-    icon: BookOpen,
-    defaultEnabled: true,
-  },
-  {
-    id: "products",
-    label: "Product Sales Pages",
-    description: "Individual sales pages for each completed product (Workbook, Course, etc.).",
-    tooltip: "Each digital product gets its own optimized sales page with pricing and checkout.",
-    icon: ShoppingBag,
-    defaultEnabled: true,
-  },
-  {
-    id: "coaching",
-    label: "Coaching / Services Page",
-    description: "Market your coaching packages and consulting services.",
-    tooltip: "Display your coaching offerings with pricing tiers and a booking or inquiry form.",
-    icon: FileText,
-    defaultEnabled: false,
-  },
-  {
-    id: "events",
-    label: "Events Page",
-    description: "Calendar of retreats, webinars, and speaking engagements.",
-    tooltip: "Promote your upcoming events with dates, descriptions, and registration links.",
-    icon: Calendar,
-    defaultEnabled: false,
-  },
-  {
-    id: "blog",
-    label: "Blog / Content Hub",
-    description: "Articles, book excerpts, and content marketing.",
-    tooltip: "A blog builds SEO authority and gives readers a reason to keep coming back.",
-    icon: Megaphone,
-    defaultEnabled: false,
-  },
-];
+/* ---------- icon map ---------- */
+const PAGE_ICONS: Record<string, typeof Globe> = {
+  homepage: Globe,
+  about: User,
+  books: BookOpen,
+  products: ShoppingBag,
+  coaching: FileText,
+  events: Calendar,
+  blog: Megaphone,
+};
+
+const PAGE_TOOLTIPS: Record<string, string> = {
+  homepage: "The Homepage is the first thing visitors see. It communicates your core message and captures leads.",
+  about: "The About Page tells your story and builds a personal connection with your readers.",
+  books: "Showcase each book with its cover, description, and purchase links in one place.",
+  products: "Each digital product gets its own optimized sales page with pricing and checkout.",
+  coaching: "Display your coaching offerings with pricing tiers and a booking or inquiry form.",
+  events: "Promote your upcoming events with dates, descriptions, and registration links.",
+  blog: "A blog builds SEO authority and gives readers a reason to keep coming back.",
+};
+
+const ALWAYS_ON = new Set(["homepage", "about"]);
 
 export default function WebsiteBlueprintPage({ onNavigate }: Props) {
   const { user } = useAuth();
+
+  /* --- raw data for preview --- */
   const [profileData, setProfileData] = useState<any>(null);
   const [books, setBooks] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [enabledPages, setEnabledPages] = useState<Record<string, boolean>>({});
+
+  /* --- AI state --- */
+  const [phase1Loading, setPhase1Loading] = useState(true);
+  const [phase1Error, setPhase1Error] = useState<string | null>(null);
+  const [abbyPages, setAbbyPages] = useState<AbbyPage[]>([]);
+  const [previewData, setPreviewData] = useState<PreviewData | null>(null);
+
+  /* --- Phase 2 / build state --- */
   const [generating, setGenerating] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [designData, setDesignData] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  /* --- link state --- */
   const [manusLink, setManusLink] = useState("");
   const [linkSaved, setLinkSaved] = useState(false);
 
-  // Fetch author data
+  /* ============================================
+   * ON LOAD: Fetch raw data + run Phase 1
+   * ============================================ */
   useEffect(() => {
     if (!user) return;
+    let cancelled = false;
+
     (async () => {
+      // 1. Fetch raw data for local preview
       const [profileRes, booksRes] = await Promise.all([
         supabase.from("author_profiles").select("*").eq("user_id", user.id).maybeSingle(),
         supabase.from("books").select("id, title, cover_image_url, description, genre").eq("author_id", user.id),
       ]);
+      if (cancelled) return;
       setProfileData(profileRes.data);
       setBooks(booksRes.data || []);
-
-      // Set defaults based on data
-      const defaults: Record<string, boolean> = {};
-      ALL_PAGES.forEach((p) => {
-        if (p.alwaysOn) {
-          defaults[p.id] = true;
-        } else if (p.id === "books") {
-          defaults[p.id] = (booksRes.data || []).length > 0;
-        } else {
-          defaults[p.id] = p.defaultEnabled;
-        }
-      });
-      setEnabledPages(defaults);
       if (profileRes.data?.website_url) {
         setManusLink(profileRes.data.website_url);
         setLinkSaved(true);
       }
-      setLoading(false);
+
+      // 2. Call Phase 1 via edge function
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) throw new Error("Not authenticated");
+
+        const resp = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/abby-website-builder`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ phase: "1" }),
+          }
+        );
+
+        if (!resp.ok) {
+          const errBody = await resp.json().catch(() => ({}));
+          throw new Error(errBody.error || `Phase 1 failed (${resp.status})`);
+        }
+
+        const result: Phase1Result = await resp.json();
+        if (cancelled) return;
+
+        setAbbyPages(result.pages);
+        setPreviewData(result.preview_data);
+      } catch (err: any) {
+        console.error("Phase 1 error:", err);
+        if (!cancelled) {
+          setPhase1Error(err.message || "Failed to analyze your profile");
+          // Fallback: set default pages
+          setAbbyPages([
+            { id: "homepage", name: "Homepage", recommended: true, enabled: true },
+            { id: "about", name: "About Page", recommended: true, enabled: true },
+            { id: "books", name: "My Book(s) Page", recommended: true, enabled: (booksRes.data || []).length > 0 },
+            { id: "products", name: "Product Sales Pages", recommended: false, enabled: false },
+            { id: "coaching", name: "Coaching / Services Page", recommended: false, enabled: false },
+            { id: "events", name: "Events Page", recommended: false, enabled: false },
+            { id: "blog", name: "Blog / Content Hub", recommended: false, enabled: false },
+          ]);
+        }
+      } finally {
+        if (!cancelled) setPhase1Loading(false);
+      }
     })();
+
+    return () => { cancelled = true; };
   }, [user]);
 
-  const togglePage = (id: string) => {
-    const page = ALL_PAGES.find((p) => p.id === id);
-    if (page?.alwaysOn) return;
-    setEnabledPages((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const enabledCount = useMemo(
-    () => Object.values(enabledPages).filter(Boolean).length,
-    [enabledPages]
+  /* ---------- derived ---------- */
+  const enabledPages = useMemo(
+    () => abbyPages.filter((p) => p.enabled),
+    [abbyPages]
   );
 
+  const enabledCount = enabledPages.length;
+
   const navItems = useMemo(
-    () => ALL_PAGES.filter((p) => enabledPages[p.id]).map((p) => p.label.replace(" Page", "").replace("My ", "")),
-    [enabledPages]
+    () => previewData?.nav_links || enabledPages.map((p) => p.name.replace(" Page", "").replace("My ", "")),
+    [previewData, enabledPages]
   );
 
   const authorName = profileData?.pen_name || "Your Name";
-  const tagline = profileData?.tagline || "Transforming lives through the power of words";
+  const tagline = previewData?.hero_subheadline || profileData?.tagline || "Transforming lives through the power of words";
+  const heroHeadline = previewData?.hero_headline || authorName;
+  const ctaText = previewData?.cta_text || "Get My Free Guide →";
   const photoUrl = profileData?.photo_url;
 
-  const handleGenerate = async () => {
+  /* ---------- toggle ---------- */
+  const togglePage = useCallback((id: string) => {
+    if (ALWAYS_ON.has(id)) return;
+    setAbbyPages((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, enabled: !p.enabled } : p))
+    );
+    // Clear cached Phase 2 data when user changes selection
+    setDesignData(null);
+  }, []);
+
+  /* ============================================
+   * PHASE 2: Generate manus_spec.json
+   * ============================================ */
+  const handleBuildWithManus = useCallback(async () => {
     setGenerating(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -162,50 +197,98 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
         return;
       }
 
+      const enabledIds = abbyPages.filter((p) => p.enabled).map((p) => p.id);
+
       const resp = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-business-design-file`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/abby-website-builder`,
         {
           method: "POST",
           headers: {
             Authorization: `Bearer ${session.access_token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ enabledPages: Object.keys(enabledPages).filter((k) => enabledPages[k]) }),
+          body: JSON.stringify({ phase: "2", enabledPages: enabledIds }),
         }
       );
 
-      if (!resp.ok) throw new Error("Failed to generate");
-      const data = await resp.json();
-      const specText = JSON.stringify(data, null, 2);
+      if (resp.status === 429) {
+        toast({ title: "Rate limited — please try again in a moment.", variant: "destructive" });
+        return;
+      }
+      if (resp.status === 402) {
+        toast({ title: "AI credits exhausted. Please add funds.", variant: "destructive" });
+        return;
+      }
+      if (!resp.ok) throw new Error("Failed to generate specs");
+
+      const specData = await resp.json();
+      const specText = JSON.stringify(specData, null, 2);
       setDesignData(specText);
+
+      // Auto-copy to clipboard
       await navigator.clipboard.writeText(specText);
       setCopied(true);
-      toast({ title: "Design specs generated & copied! 🚀" });
       setTimeout(() => setCopied(false), 4000);
+
+      toast({ title: "Website specs generated & copied to clipboard! 🚀" });
+
+      // Open Manus
+      window.open("https://manus.im/invitation/XT9XTFJVZ8SASD", "_blank");
     } catch (err) {
-      console.error(err);
-      toast({ title: "Failed to generate specs", variant: "destructive" });
+      console.error("Phase 2 error:", err);
+      toast({ title: "Failed to generate website specs", variant: "destructive" });
     } finally {
       setGenerating(false);
     }
-  };
+  }, [abbyPages]);
 
-  const handleCopySpecs = async () => {
+  const handleCopySpecs = useCallback(async () => {
     if (!designData) return;
     await navigator.clipboard.writeText(designData);
     setCopied(true);
     toast({ title: "Specs copied to clipboard! 📋" });
     setTimeout(() => setCopied(false), 3000);
-  };
+  }, [designData]);
 
-  const handleBuildWithManus = async () => {
-    if (!designData) {
-      await handleGenerate();
+  const handleExportManual = useCallback(async () => {
+    if (designData) {
+      handleCopySpecs();
+      return;
     }
-    window.open("https://manus.im/invitation/XT9XTFJVZ8SASD", "_blank");
-  };
+    // Generate without opening Manus
+    setGenerating(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
 
-  const handleSaveLink = async () => {
+      const enabledIds = abbyPages.filter((p) => p.enabled).map((p) => p.id);
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/abby-website-builder`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ phase: "2", enabledPages: enabledIds }),
+        }
+      );
+      if (!resp.ok) throw new Error("Failed");
+      const specData = await resp.json();
+      const specText = JSON.stringify(specData, null, 2);
+      setDesignData(specText);
+      await navigator.clipboard.writeText(specText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 4000);
+      toast({ title: "Specs generated & copied! Use them with any website builder." });
+    } catch {
+      toast({ title: "Failed to generate specs", variant: "destructive" });
+    } finally {
+      setGenerating(false);
+    }
+  }, [designData, abbyPages, handleCopySpecs]);
+
+  const handleSaveLink = useCallback(async () => {
     if (!manusLink.trim()) return;
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -219,16 +302,19 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
     } catch {
       toast({ title: "Failed to save link", variant: "destructive" });
     }
-  };
+  }, [manusLink]);
 
-  if (loading) {
+  /* ---------- loading state ---------- */
+  if (phase1Loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <div className="flex flex-col items-center justify-center py-20 gap-3">
+        <Loader2 className="h-6 w-6 animate-spin text-secondary" />
+        <p className="text-sm text-muted-foreground">ABBY is analyzing your profile…</p>
       </div>
     );
   }
 
+  /* ---------- render ---------- */
   return (
     <TooltipProvider>
       <div className="max-w-6xl space-y-6">
@@ -244,6 +330,14 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
           </p>
         </div>
 
+        {/* Phase 1 error notice */}
+        {phase1Error && (
+          <div className="flex items-center gap-2 rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2">
+            <AlertCircle className="h-4 w-4 text-destructive" />
+            <p className="text-sm text-destructive">{phase1Error} — Using default recommendations.</p>
+          </div>
+        )}
+
         {/* Two-column layout */}
         <div className="grid gap-6 lg:grid-cols-5">
           {/* LEFT COLUMN: Blueprint (3/5) */}
@@ -257,38 +351,45 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
               </div>
 
               <div className="space-y-1">
-                {ALL_PAGES.map((page) => {
-                  const enabled = !!enabledPages[page.id];
-                  const Icon = page.icon;
+                {abbyPages.map((page) => {
+                  const Icon = PAGE_ICONS[page.id] || Globe;
+                  const isAlwaysOn = ALWAYS_ON.has(page.id);
                   return (
                     <div
                       key={page.id}
-                      className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
-                        enabled
+                      className={`flex items-start gap-3 p-3 rounded-lg transition-colors ${
+                        isAlwaysOn ? "cursor-default" : "cursor-pointer"
+                      } ${
+                        page.enabled
                           ? "bg-secondary/5 border border-secondary/20"
                           : "border border-transparent hover:bg-muted/50"
-                      } ${page.alwaysOn ? "cursor-default" : ""}`}
+                      }`}
                       onClick={() => togglePage(page.id)}
                     >
                       <Checkbox
-                        checked={enabled}
-                        disabled={page.alwaysOn}
+                        checked={page.enabled}
+                        disabled={isAlwaysOn}
                         onCheckedChange={() => togglePage(page.id)}
                         className="mt-0.5"
                       />
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                        enabled ? "bg-secondary/10" : "bg-muted"
+                        page.enabled ? "bg-secondary/10" : "bg-muted"
                       }`}>
-                        <Icon className={`h-4 w-4 ${enabled ? "text-secondary" : "text-muted-foreground"}`} />
+                        <Icon className={`h-4 w-4 ${page.enabled ? "text-secondary" : "text-muted-foreground"}`} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className={`font-semibold text-sm ${enabled ? "text-foreground" : "text-muted-foreground"}`}>
-                            {page.label}
+                          <span className={`font-semibold text-sm ${page.enabled ? "text-foreground" : "text-muted-foreground"}`}>
+                            {page.name}
                           </span>
-                          {page.alwaysOn && (
+                          {isAlwaysOn && (
                             <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-secondary/15 text-secondary border border-secondary/20">
                               REQUIRED
+                            </span>
+                          )}
+                          {page.recommended && !isAlwaysOn && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-accent/15 text-accent border border-accent/20">
+                              RECOMMENDED
                             </span>
                           )}
                           <Tooltip>
@@ -296,13 +397,15 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
                               <Info className="h-3.5 w-3.5 text-muted-foreground/50 hover:text-muted-foreground cursor-help" />
                             </TooltipTrigger>
                             <TooltipContent side="right" className="max-w-[220px] text-xs">
-                              {page.tooltip}
+                              {PAGE_TOOLTIPS[page.id] || page.reason || "A page for your website."}
                             </TooltipContent>
                           </Tooltip>
                         </div>
-                        <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-                          {page.description}
-                        </p>
+                        {page.reason && (
+                          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                            {page.reason}
+                          </p>
+                        )}
                       </div>
                     </div>
                   );
@@ -361,7 +464,7 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
                 <span className="text-[10px] text-muted-foreground ml-2">yourwebsite.com</span>
               </div>
 
-              {/* Mini nav */}
+              {/* Mini nav — dynamically reflects enabled pages */}
               <div className="px-4 py-2 border-b border-border bg-card">
                 <div className="flex items-center gap-3 overflow-x-auto">
                   <span className="text-[10px] font-bold text-secondary whitespace-nowrap">{authorName}</span>
@@ -389,7 +492,7 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
                   </div>
                 )}
                 <div>
-                  <p className="font-heading font-bold text-sm">{authorName}</p>
+                  <p className="font-heading font-bold text-sm">{heroHeadline}</p>
                   <p className="text-[10px] text-muted-foreground mt-0.5 max-w-[200px]">{tagline}</p>
                 </div>
                 {books.length > 0 && (
@@ -408,7 +511,7 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
                   </div>
                 )}
                 <div className="mt-1 px-3 py-1 rounded-full bg-secondary/10 text-[9px] text-secondary font-medium">
-                  Get My Free Guide →
+                  {ctaText}
                 </div>
               </div>
 
@@ -458,15 +561,16 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
                 )}
 
                 <button
-                  onClick={handleCopySpecs}
-                  className="text-[11px] text-muted-foreground hover:text-foreground underline underline-offset-2 block mx-auto"
+                  onClick={handleExportManual}
+                  disabled={generating}
+                  className="text-[11px] text-muted-foreground hover:text-foreground underline underline-offset-2 block mx-auto disabled:opacity-50"
                 >
                   Or, export design specs for manual build
                 </button>
               </div>
             </Card>
 
-            {/* How it works mini */}
+            {/* How it works */}
             <Card className="p-4 border-border">
               <p className="text-xs font-semibold flex items-center gap-1.5 mb-2">
                 <Info className="h-3.5 w-3.5 text-secondary" />
@@ -474,16 +578,19 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
               </p>
               <ol className="text-[11px] text-muted-foreground space-y-1.5 list-decimal list-inside">
                 <li>
+                  <span className="font-medium text-foreground">ABBY Analyzes Your Profile</span> — Your books, products, and business plan are reviewed automatically
+                </li>
+                <li>
                   <span className="font-medium text-foreground">Review Your Blueprint</span> — Toggle pages on/off to customize your website plan
                 </li>
                 <li>
-                  <span className="font-medium text-foreground">Click "Build My Website"</span> — ABBY compiles your specs and opens{" "}
+                  <span className="font-medium text-foreground">Click "Build My Website"</span> — ABBY generates a complete spec and opens{" "}
                   <a href="https://manus.im" target="_blank" rel="noopener noreferrer" className="text-secondary hover:underline">
                     Manus AI
                   </a>
                 </li>
                 <li>
-                  <span className="font-medium text-foreground">Paste & Build</span> — Paste your copied specs into Manus to generate your full website
+                  <span className="font-medium text-foreground">Paste & Build</span> — Your specs are auto-copied. Paste them into Manus to build your website
                 </li>
                 <li>
                   <span className="font-medium text-foreground">Link Back</span> — Save your published website URL to your dashboard
