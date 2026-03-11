@@ -43,10 +43,7 @@ interface Book {
   bestseller_proof_url?: string | null;
 }
 
-async function getActiveToken(): Promise<string | null> {
-  const { data: sharedSession } = await sharedSupabase.auth.getSession();
-  return sharedSession?.session?.access_token || null;
-}
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
 interface MyBooksProps {
   isPremium?: boolean;
