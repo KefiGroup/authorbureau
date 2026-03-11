@@ -82,7 +82,7 @@ export default function FreeMicrositeHero({
           {profileState === "live" && (
             <Button onClick={onViewMicrosite} size="lg" className="w-fit bg-green-600 hover:bg-green-700 text-white shadow-lg">
               <ExternalLink className="h-4 w-4 mr-2" />
-              View Your Live Microsite ↗
+              View Your Live Author Page ↗
             </Button>
           )}
         </div>
