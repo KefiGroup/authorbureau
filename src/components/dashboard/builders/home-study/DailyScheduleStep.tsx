@@ -10,13 +10,16 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { HomeStudyStepProps, StudyDay } from "./types";
+import StaleContentBanner from "./StaleContentBanner";
 
 function generateId() { return crypto.randomUUID(); }
 
 export default function DailyScheduleStep({ stepData, setStepData, onMarkEdited, bookTitle, generationState, setGenerationState }: HomeStudyStepProps) {
   const { toast } = useToast();
-  const duration = stepData.setup?.duration || 30;
+  const setup = stepData.setup || {};
+  const duration = setup.duration || 30;
   const days: StudyDay[] = stepData.schedule?.days || [];
+  const generatedSetup = stepData.schedule?._generatedFromSetup;
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
 
   const updateDays = (newDays: StudyDay[]) => {
@@ -63,7 +66,15 @@ export default function DailyScheduleStep({ stepData, setStepData, onMarkEdited,
           isCatchUp,
         };
       });
-      updateDays(generated);
+      setStepData(prev => ({
+        ...prev,
+        schedule: {
+          ...prev.schedule,
+          days: generated,
+          _generatedFromSetup: { ...prev.setup },
+        },
+      }));
+      onMarkEdited("schedule");
       setSelectedDayId(generated[0]?.id || null);
       setGenerationState("complete");
       toast({ title: "Schedule generated!", description: `${duration}-day program with ${weeks} weekly themes.` });
@@ -103,6 +114,12 @@ export default function DailyScheduleStep({ stepData, setStepData, onMarkEdited,
 
   return (
     <div className="space-y-4">
+      <StaleContentBanner
+        currentSetup={setup}
+        generatedSetup={generatedSetup}
+        onRegenerate={handleGenerate}
+        isGenerating={generationState !== "idle" && generationState !== "complete" && generationState !== "error"}
+      />
       {/* Horizontal timeline */}
       <div className="border border-border rounded-lg bg-card">
         <div className="px-3 py-2.5 border-b border-border bg-muted/30 flex items-center justify-between">

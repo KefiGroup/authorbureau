@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Sparkles, Loader2, BookOpen, Wand2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { HomeStudyStepProps, StudyDay } from "./types";
+import StaleContentBanner from "./StaleContentBanner";
 
 export default function DailyContentStep({ stepData, setStepData, onMarkEdited, bookTitle, generationState, setGenerationState }: HomeStudyStepProps) {
   const { toast } = useToast();
@@ -48,8 +49,14 @@ export default function DailyContentStep({ stepData, setStepData, onMarkEdited, 
     }, 6000);
   };
 
+  const generatedSetup = stepData.schedule?._generatedFromSetup;
+
   return (
     <div className="space-y-4">
+      <StaleContentBanner
+        currentSetup={stepData.setup || {}}
+        generatedSetup={generatedSetup}
+      />
       {/* Day selector */}
       <div className="flex gap-1.5 overflow-x-auto pb-2">
         {days.map((day, i) => (
