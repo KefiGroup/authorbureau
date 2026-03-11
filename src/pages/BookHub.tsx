@@ -66,36 +66,38 @@ export default function BookHub() {
 
   const effectiveTier: SubscriptionTier = isAdmin ? "enterprise" : tier;
 
-  useEffect(() => {
-    async function fetchBook() {
-      if (!user || !bookId) return;
-      // If cached, don't show loading
-      if (bookCache.has(bookId)) {
-        setBook(bookCache.get(bookId)!);
-        setLoading(false);
-        return;
-      }
-      setLoading(true);
-      try {
-        const token = await getActiveToken();
-        if (!token) { setLoading(false); return; }
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ action: "get", bookId }),
-          }
-        );
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error);
-        setBook(result.book);
-        if (result.book) bookCache.set(bookId, result.book);
-      } catch (err) {
-        console.error("Failed to fetch book:", err);
-      }
+  const fetchBook = async () => {
+    if (!user || !bookId) return;
+    if (bookCache.has(bookId)) {
+      setBook(bookCache.get(bookId)!);
       setLoading(false);
+      return;
     }
+    setLoading(true);
+    setFetchError(null);
+    try {
+      const token = await getActiveToken();
+      if (!token) { setFetchError("Unable to authenticate. Please sign out and back in."); setLoading(false); return; }
+      const response = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ action: "get", bookId }),
+        }
+      );
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+      setBook(result.book);
+      if (result.book) bookCache.set(bookId, result.book);
+    } catch (err: any) {
+      console.error("Failed to fetch book:", err);
+      setFetchError(err?.name === "AbortError" ? "Request timed out." : "Could not load book data.");
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
     fetchBook();
   }, [user, bookId]);
 
