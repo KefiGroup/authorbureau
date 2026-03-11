@@ -10,12 +10,10 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
 import paulinePhoto from "@/assets/pauline-teo-headshot.jpg";
-import bobPhoto from "@/assets/bob-battista-headshot.jpg";
 import feliciaPhoto from "@/assets/felicia-tan-headshot.png";
 
 const staticPhotoMap: Record<string, string> = {
   "pauline-teo": paulinePhoto,
-  "robert-battista": bobPhoto,
   "felicia-tan": feliciaPhoto,
 };
 

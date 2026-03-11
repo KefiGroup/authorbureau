@@ -14,11 +14,9 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ServiceInquiryForm from "@/components/ServiceInquiryForm";
 
-import bobPhoto from "@/assets/bob-battista.jpg";
 import feliciaPhoto from "@/assets/felicia-tan-headshot.png";
 
 const staticPhotoMap: Record<string, string> = {
-  "robert-battista": bobPhoto,
   "felicia-tan": feliciaPhoto,
 };
 

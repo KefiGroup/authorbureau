@@ -12,10 +12,8 @@ import heroBg from "@/assets/hero-bg.jpg";
 
 import paulinePhoto from "@/assets/pauline-teo-headshot.jpg";
 import paulineFullPhoto from "@/assets/pauline-teo.jpeg";
-import bobPhoto from "@/assets/bob-battista-headshot.jpg";
 import feliciaPhoto from "@/assets/felicia-tan-headshot.png";
 import besuckcessfulCover from "@/assets/besuckcessful-cover.jpg";
-import hiCover from "@/assets/hemispheric-intelligence-cover.png";
 import viWomenCover from "@/assets/value-investing-women-cover.png";
 import investBuffettCover from "@/assets/invest-like-buffett-cover.jpg";
 import tobabywithlove from "@/assets/to-baby-with-love-cover.png";
@@ -24,13 +22,11 @@ import giftfromheaven from "@/assets/gift-from-heaven-cover.png";
 
 const photoMap: Record<string, string> = {
   "pauline-teo": paulinePhoto,
-  "robert-battista": bobPhoto,
   "felicia-tan": feliciaPhoto,
 };
 
 const coverMap: Record<string, string> = {
   "be-suckcessful": besuckcessfulCover,
-  "hemispheric-intelligence": hiCover,
   "value-investing-for-women": viWomenCover,
   "invest-like-buffett": investBuffettCover,
   "to-baby-with-love": tobabywithlove,
