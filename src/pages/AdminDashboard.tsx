@@ -4,10 +4,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { adminApi } from "@/lib/admin-api";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import { LogOut, BookOpen, BarChart3, ShieldCheck, Globe, UserCheck, Users, BookMarked, Headphones } from "lucide-react";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
+import logoIcon from "@/assets/logo-icon.png";
 
 import OverviewTab from "@/components/admin/OverviewTab";
 import BooksTab from "@/components/admin/BooksTab";
@@ -70,7 +69,6 @@ export default function AdminDashboard() {
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
     try {
-      // Parallel: get books list, pending-counts, authors count, overview-counts
       const [listData, countData, overviewRes] = await Promise.all([
         adminFetch("list", { page: 1, filter: "all" }),
         adminFetch("pending-counts"),
@@ -93,23 +91,16 @@ export default function AdminDashboard() {
       const pendingBooks = countData?.pendingBooks ?? listData?.pendingCount ?? 0;
       const pendingAuthorsCount = countData?.pendingAuthors ?? 0;
 
-      // Get admins count
       let adminsCount = 0;
       try {
         const adminsData = await adminApi.listAdmins();
         adminsCount = (adminsData?.admins || adminsData?.data || []).length;
       } catch {}
 
-      // Get authors count from overview data or fallback
-      const authorsCount = overviewRes
-        ? (overviewRes.subscriberCount !== undefined ? 0 : 0) // we'll get this from list-authors
-        : 0;
-
       setPendingBookCount(pendingBooks);
       setPendingAuthorCount(pendingAuthorsCount);
       setOverviewData(overviewRes);
 
-      // Also fetch author count
       let authorCount = 0;
       try {
         const authorsRes = await (async () => {
@@ -267,27 +258,30 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="min-h-screen">
-      <Navbar />
-
-      <section className="border-b border-border bg-primary py-10 text-primary-foreground">
-        <div className="container flex items-center justify-between">
-          <div>
-            <h1 className="font-heading text-3xl font-bold">Admin Dashboard</h1>
-            <p className="text-primary-foreground/70 text-sm mt-1">Authors Bureau administration</p>
+    <div className="min-h-screen bg-background">
+      {/* Dedicated Admin Header */}
+      <header className="border-b border-border bg-card">
+        <div className="container flex h-16 items-center justify-between">
+          <div className="flex items-center gap-3">
+            <img src={logoIcon} alt="Authors Bureau" className="h-8 w-8" />
+            <div>
+              <span className="font-heading text-lg font-bold">Admin Panel</span>
+              <span className="ml-2 text-xs text-muted-foreground">Authors Bureau</span>
+            </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button asChild variant="outline" size="sm" className="text-primary-foreground border-primary-foreground/40 hover:bg-primary-foreground/10 bg-primary-foreground/10">
+            <Button asChild variant="outline" size="sm">
               <Link to="/dashboard">Author Dashboard</Link>
             </Button>
-            <Button onClick={signOut} variant="outline" size="sm" className="text-primary-foreground border-primary-foreground/40 hover:bg-primary-foreground/10 bg-primary-foreground/10">
+            <Button onClick={signOut} variant="outline" size="sm">
               <LogOut className="mr-2 h-4 w-4" /> Sign Out
             </Button>
           </div>
         </div>
-      </section>
+      </header>
 
-      <div className="border-b border-border">
+      {/* Tab Navigation */}
+      <div className="border-b border-border bg-card">
         <div className="container flex gap-1 overflow-x-auto py-2">
           {tabs.filter((t) => (!t.superOnly || isSuperAdmin) && (!t.pnAdminOnly || isPublishNowAdmin)).map((t) => {
             const Icon = t.icon;
@@ -355,8 +349,6 @@ export default function AdminDashboard() {
           )}
         </div>
       </section>
-
-      <Footer />
     </div>
   );
 }
