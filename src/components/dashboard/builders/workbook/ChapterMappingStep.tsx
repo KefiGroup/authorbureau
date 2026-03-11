@@ -42,6 +42,11 @@ export default function ChapterMappingStep({ stepData, setStepData, onMarkEdited
         }
       );
 
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(errData.error || `Server error: ${res.status}`);
+      }
+
       setGenerationState("generating");
 
       // The edge function returns SSE stream — collect all chunks
