@@ -297,6 +297,13 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
         <div className="flex items-center justify-center py-20 text-muted-foreground">
           <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading books...
         </div>
+      ) : fetchError ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-3">
+          <p className="text-muted-foreground text-sm">{fetchError}</p>
+          <Button variant="outline" size="sm" onClick={fetchBooks}>
+            <RefreshCw className="h-4 w-4 mr-2" /> Try Again
+          </Button>
+        </div>
       ) : books.length === 0 ? (
         <Card className="flex flex-col items-center justify-center py-16 px-8 text-center border-dashed">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary/10 mb-4">
