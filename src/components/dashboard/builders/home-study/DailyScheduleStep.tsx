@@ -10,13 +10,16 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { HomeStudyStepProps, StudyDay } from "./types";
+import StaleContentBanner from "./StaleContentBanner";
 
 function generateId() { return crypto.randomUUID(); }
 
 export default function DailyScheduleStep({ stepData, setStepData, onMarkEdited, bookTitle, generationState, setGenerationState }: HomeStudyStepProps) {
   const { toast } = useToast();
-  const duration = stepData.setup?.duration || 30;
+  const setup = stepData.setup || {};
+  const duration = setup.duration || 30;
   const days: StudyDay[] = stepData.schedule?.days || [];
+  const generatedSetup = stepData.schedule?._generatedFromSetup;
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
 
   const updateDays = (newDays: StudyDay[]) => {
