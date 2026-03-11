@@ -42,7 +42,7 @@ export interface SeoData {
 }
 
 export const SITE_TYPE_LABELS: Record<string, { label: string; description: string }> = {
-  full: { label: "Full Microsite", description: "5+ pages — Home, About, Products, Blog, Contact" },
+  full: { label: "Full Website", description: "5+ pages — Home, About, Products, Blog, Contact" },
   landing: { label: "Landing Page", description: "One high-converting page with email capture" },
   "link-in-bio": { label: "Link-in-Bio", description: "Mobile-first page linking to all your products" },
 };

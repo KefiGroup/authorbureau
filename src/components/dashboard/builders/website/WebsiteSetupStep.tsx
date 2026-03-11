@@ -33,7 +33,7 @@ export default function WebsiteSetupStep({ stepData, setStepData, onMarkEdited, 
     <div className="space-y-6">
       <AbbyRecommendationCard>
         <p className="text-sm text-foreground leading-relaxed">
-          Your microsite is the hub that connects all your products. I recommend starting with a <strong>landing page that captures emails</strong>, then expanding to a full site as you add products.
+          Your website is the hub that connects all your products. I recommend starting with a <strong>landing page that captures emails</strong>, then expanding to a full site as you add products.
         </p>
       </AbbyRecommendationCard>
 

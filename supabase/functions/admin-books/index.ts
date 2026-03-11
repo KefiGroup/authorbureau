@@ -148,7 +148,7 @@ Deno.serve(async (req) => {
                 body: JSON.stringify({
                   from: "Authors Bureau <notify@notify.authorsbureau.com>",
                   to: [authorEmail],
-                  subject: `🎉 Your microsite for "${approvedBook.title}" is now live!`,
+                  subject: `🎉 Your book page for "${approvedBook.title}" is now live!`,
                   html: `
                     <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 32px 24px; background: #ffffff;">
                       <div style="text-align: center; margin-bottom: 24px;">
@@ -156,26 +156,26 @@ Deno.serve(async (req) => {
                         <p style="color: #c8a55a; font-size: 14px; margin: 4px 0 0;">AI Marketing Studio</p>
                       </div>
                       <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 16px 0;" />
-                      <h2 style="font-size: 20px; color: #1a1a2e;">Your microsite is live! 🎉</h2>
+                      <h2 style="font-size: 20px; color: #1a1a2e;">Your book page is live! 🎉</h2>
                       <p style="color: #333; font-size: 15px; line-height: 1.6;">
                         Great news! Your book <strong>"${approvedBook.title}"</strong> has been approved by our admin team.
                       </p>
                       <p style="color: #333; font-size: 15px; line-height: 1.6;">
-                        Your professional microsite is now live and accessible to readers worldwide.
+                        Your professional book page is now live and accessible to readers worldwide.
                       </p>
                       <div style="text-align: center; margin: 28px 0;">
-                        <a href="${micrositeUrl}" style="background: #c8a55a; color: #ffffff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 15px; display: inline-block;">
-                          View Your Live Microsite →
+                        <a href="${bookPageUrl}" style="background: #c8a55a; color: #ffffff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 15px; display: inline-block;">
+                          View Your Live Book Page →
                         </a>
                       </div>
                       <div style="background: #f0faf0; border: 1px solid #b8e6b8; border-radius: 8px; padding: 16px; margin: 20px 0;">
                         <p style="color: #2d6a2d; font-size: 13px; margin: 0;">
                           ✅ <strong>What's next?</strong><br/>
-                          Share your microsite link with your audience, upload your manuscript, and let Abby analyze your book to unlock revenue streams.
+                          Share your book page link with your audience, upload your manuscript, and let Abby analyze your book to unlock revenue streams.
                         </p>
                       </div>
                       <p style="color: #888; font-size: 12px; text-align: center; margin-top: 16px; word-break: break-all;">
-                        ${micrositeUrl}
+                        ${bookPageUrl}
                       </p>
                       <p style="color: #888; font-size: 13px; margin-top: 32px; text-align: center;">
                         — The Authors Bureau Team

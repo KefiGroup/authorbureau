@@ -470,7 +470,7 @@ export default function Index() {
             {[
               { step: "1", title: "Analyze Your Book", desc: "Upload your manuscript and let Abby, your AI Business Consultant, generate a comprehensive business plan tailored to your book." },
               { step: "2", title: "Build Your Products", desc: "Use our AI-powered studios to instantly create a suite of digital products, from workbooks to online courses, all based on your book's content." },
-              { step: "3", title: "Launch Your Microsite", desc: "Activate your professional author microsite, a central hub to showcase your brand, sell your products, and connect with your audience." },
+              { step: "3", title: "Launch Your Website", desc: "Build your professional author website, a central hub to showcase your brand, sell your products, and connect with your audience." },
               { step: "4", title: "Grow Your Business", desc: "Use our CRM, revenue dashboard, and marketing tools to grow your audience and build a sustainable author business." },
             ].map((item, i) => (
               <motion.div

@@ -14,7 +14,7 @@ const NARRATION_STYLES: { value: NarrationType; label: string; desc: string; ico
 ];
 
 const DISTRIBUTION_OPTIONS = [
-  { id: "platform", label: "Authors Bureau Platform", desc: "Sell on your author microsite" },
+  { id: "platform", label: "Authors Bureau Platform", desc: "Sell on your author website" },
   { id: "acx", label: "Audible / ACX", desc: "Distribute to the world's largest audiobook marketplace" },
   { id: "google-play", label: "Google Play Books", desc: "Reach Android users and Google ecosystem" },
 ];

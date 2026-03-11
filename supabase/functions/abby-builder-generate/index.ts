@@ -139,7 +139,7 @@ DESIGN:
 6. REVENUE_PROJECTION: Members × price × retention rate
 7. CROSS_BUILDER_PREVIEW: Welcome emails→Email, sales pages→Website, teasers→Social`,
 
-  "website": `You are Abby, expert in author website design. Design a complete author microsite.
+  "website": `You are Abby, expert in author website design. Design a complete author website.
 
 DESIGN:
 1. SITE_STRUCTURE: Page hierarchy (Home, About, Products, Blog, Contact)

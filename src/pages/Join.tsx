@@ -121,7 +121,7 @@ export default function Join() {
               </motion.h2>
               {[
                 "Professional author profile page",
-                "Book microsites for each title",
+                "Book pages for each title",
                 "Listed in searchable directory",
                 "Offer courses and digital products",
                 "Coaching and speaking tools",

@@ -108,7 +108,7 @@ Authors Bureau helps published authors monetize their books through the ABBY Fra
 
 ### Key Features
 - **My Books Hub**: Manage all your books, see analysis status, track your monetization journey
-- **Book Microsites**: Beautiful landing pages for each book, auto-generated
+- **Book Pages**: Beautiful landing pages for each book, auto-generated
 - **Abby Analysis**: Free AI business consultation that maps revenue opportunities
 - **27 AI Builders**: Each creates a specific product or channel using your book content
 - **Author Profile**: Public profile with bio, credentials, and services
