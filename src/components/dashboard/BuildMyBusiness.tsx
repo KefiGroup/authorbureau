@@ -1074,6 +1074,9 @@ export default function BuildMyBusiness() {
                         <Button key={key} size="sm" className="gap-2 rounded-full" variant={key === navMarkers[0] ? "default" : "outline"}
                           onClick={() => {
                             if (key === "profile") navigate("/dashboard?section=profile");
+                            else if (key.endsWith("-studio") && selectedBook) {
+                              navigate(`/dashboard?section=${cfg.tab}&bookId=${selectedBook.id}&title=${encodeURIComponent(selectedBook.title)}`);
+                            }
                             else if (selectedBook) navigate(`/dashboard/book/${selectedBook.id}?tab=${cfg.tab}`);
                           }}>
                           <span>{cfg.icon}</span>{cfg.label}
