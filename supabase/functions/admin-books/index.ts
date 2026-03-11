@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
           if (authorEmail) {
             const resendKey = Deno.env.get("RESEND_API_KEY");
             if (resendKey) {
-              const micrositeUrl = `https://authorbureau.lovable.app/books/${approvedBook.slug}`;
+              const bookPageUrl = `https://authorbureau.lovable.app/books/${approvedBook.slug}`;
               await fetch("https://api.resend.com/emails", {
                 method: "POST",
                 headers: {
