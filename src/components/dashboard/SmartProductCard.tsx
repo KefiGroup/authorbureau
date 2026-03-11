@@ -8,7 +8,7 @@ import {
   TrendingUp, Sparkles, Eye,
 } from "lucide-react";
 
-export type ProductCardState = "recommended" | "available" | "locked" | "in-progress" | "published";
+export type ProductCardState = "recommended" | "available" | "locked" | "in-progress" | "published" | "coming-soon";
 
 interface RevenueEstimate {
   annual: number;
