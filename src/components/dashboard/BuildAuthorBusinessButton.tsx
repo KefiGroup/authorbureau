@@ -168,7 +168,7 @@ export default function BuildAuthorBusinessButton({
               Review & Publish Products →
             </Button>
             <Button variant="outline" onClick={() => window.open("/authors/", "_blank")}>
-              <Globe className="h-4 w-4 mr-1.5" /> View Your Microsite →
+              <Globe className="h-4 w-4 mr-1.5" /> View Your Website →
             </Button>
           </div>
         </CardContent>
