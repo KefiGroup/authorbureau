@@ -301,8 +301,8 @@ export default function MicrositeManager({ onNavigate }: Props) {
         })}
       </div>
 
-      {/* Manus Handoff */}
-      <ManusHandoffCard profileExists={profileExists} />
+
+
 
       {/* Footer */}
       <Card className="p-4 border-border">
