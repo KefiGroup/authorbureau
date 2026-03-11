@@ -22,6 +22,10 @@ export default function HomeStudyPreviewStep({ stepData }: HomeStudyStepProps) {
 
   return (
     <div className="space-y-6">
+      <StaleContentBanner
+        currentSetup={setup}
+        generatedSetup={stepData.schedule?._generatedFromSetup}
+      />
       {/* View toggle */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
