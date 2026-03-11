@@ -398,9 +398,20 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           hasMicrosite={hasMicrosite}
           stripeConnected={stripeConnected}
           pendingReviewCount={pendingReviewCount}
-          buildUnlocked={stats.products.totalBuilt}
-          bridgeUnlocked={Object.entries(stats.products.perTable).reduce((sum, [, v]) => sum + v.total, 0)}
-          yieldUnlocked={stats.products.totalBuilt}
+          buildUnlocked={
+            (stats.products.perTable["workbooks"]?.total || 0) +
+            (stats.products.perTable["home_study_courses"]?.total || 0) +
+            (stats.products.perTable["courses"]?.total || 0) +
+            (stats.products.perTable["social_media_content"]?.total || 0) +
+            (stats.products.perTable["email_flows"]?.total || 0)
+          }
+          bridgeUnlocked={
+            (stats.products.perTable["audiobooks"]?.total || 0) +
+            (stats.products.perTable["podcasts"]?.total || 0)
+          }
+          yieldUnlocked={
+            (stats.products.perTable["coaching_packages"]?.total || 0)
+          }
         />
       </div>
       <div className="flex flex-1 flex-col min-w-0">
