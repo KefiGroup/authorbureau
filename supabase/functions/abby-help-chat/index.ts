@@ -95,7 +95,7 @@ Authors Bureau helps published authors monetize their books through the ABBY Fra
 
 ### Getting Started Flow
 1. Sign up and add your book (via Amazon URL or manually)
-2. Your book microsite is automatically created and published
+2. Your book page is automatically created and published
 3. Run "Analyze with Abby" — a free AI consultation that creates your business plan
 4. Subscribe to unlock the AI builders
 5. Build products and start earning
