@@ -12,12 +12,12 @@ import { MoreHorizontal, Pencil, Upload, FileText, RotateCcw, Globe, Trash2 } fr
 interface BookActionMenuProps {
   isAnalyzed: boolean;
   hasManuscript: boolean;
-  hasMicrosite: boolean;
+  hasBookPage: boolean;
   onEdit: () => void;
   onUploadManuscript: () => void;
   onViewBusinessPlan: () => void;
   onReAnalyze: () => void;
-  onViewMicrosite: () => void;
+  onViewBookPage: () => void;
   onDelete: () => void;
 }
 
