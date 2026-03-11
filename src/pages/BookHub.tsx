@@ -60,6 +60,7 @@ export default function BookHub() {
   const cachedBook = bookId ? bookCache.get(bookId) : undefined;
   const [book, setBook] = useState<BookData | null>(cachedBook || null);
   const [loading, setLoading] = useState(!cachedBook);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<BookHubTab>(initialTab);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
