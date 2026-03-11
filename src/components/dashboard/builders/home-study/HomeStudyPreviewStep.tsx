@@ -7,6 +7,7 @@ import {
   BookOpen, Clock, CalendarDays, Award,
 } from "lucide-react";
 import type { HomeStudyStepProps, StudyDay } from "./types";
+import StaleContentBanner from "./StaleContentBanner";
 
 export default function HomeStudyPreviewStep({ stepData }: HomeStudyStepProps) {
   const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
