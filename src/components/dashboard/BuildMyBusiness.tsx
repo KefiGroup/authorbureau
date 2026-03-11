@@ -50,7 +50,7 @@ async function getActiveToken(): Promise<string | null> {
   return sharedSession?.session?.access_token || null;
 }
 
-export default function BuildMyBusiness() {
+export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section: string) => void }) {
   const navigate = useNavigate();
   const { user, isPremium, isAdmin, tier } = useAuth();
   const { toast } = useToast();
@@ -788,7 +788,7 @@ export default function BuildMyBusiness() {
                 annualProjectionLow={Object.values(planSummaries)[0]?.annual_projection_low || "$10,000"}
                 annualProjectionHigh={Object.values(planSummaries)[0]?.annual_projection_high || "$50,000"}
                 onComplete={() => toast({ title: "All products built! 🎉" })}
-                onNavigateReview={() => navigate("/dashboard?section=review-products")}
+                onNavigateReview={() => onNavigate?.("review-products") ?? navigate("/dashboard?section=review-products")}
               />
             )}
 

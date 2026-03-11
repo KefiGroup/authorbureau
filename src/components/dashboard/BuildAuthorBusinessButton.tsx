@@ -158,7 +158,7 @@ export default function BuildAuthorBusinessButton({
           <PartyPopper className="h-12 w-12 text-accent mx-auto" />
           <h3 className="font-heading text-xl font-bold">Your Author Business is Ready!</h3>
           <p className="text-sm text-muted-foreground">
-            {doneCount} products have been created as drafts on your microsite.
+            {doneCount} products have been created as drafts on your book page.
           </p>
           <p className="text-sm font-semibold text-accent">
             Estimated annual revenue: {annualProjectionLow} – {annualProjectionHigh}
@@ -168,7 +168,7 @@ export default function BuildAuthorBusinessButton({
               Review & Publish Products →
             </Button>
             <Button variant="outline" onClick={() => window.open("/authors/", "_blank")}>
-              <Globe className="h-4 w-4 mr-1.5" /> View Your Microsite →
+              <Globe className="h-4 w-4 mr-1.5" /> View Your Website →
             </Button>
           </div>
         </CardContent>
