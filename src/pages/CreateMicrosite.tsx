@@ -30,7 +30,7 @@ export default function CreateMicrosite() {
             Your Book Deserves Its Own <span className="italic text-secondary">Landing Page</span>
           </h1>
           <p className="mx-auto max-w-lg text-primary-foreground/70 text-lg">
-            Create a professional book microsite in minutes. Showcase your bestseller status, drive sales, and grow your readership — completely free.
+            Create a professional book page in minutes. Showcase your bestseller status, drive sales, and grow your readership — completely free.
           </p>
         </div>
       </section>
@@ -47,7 +47,7 @@ export default function CreateMicrosite() {
                 </div>
                 <h3 className="font-heading text-xl font-bold mb-2">I Use PublishNow.io</h3>
                 <p className="text-sm text-muted-foreground mb-6 flex-1">
-                  Your books are already in our shared system. Sign in to your Authors Bureau dashboard and your books will be ready to turn into microsites.
+                  Your books are already in our shared system. Sign in to your Authors Bureau dashboard and your books will be ready to showcase.
                 </p>
                 <Button asChild className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90">
                   <Link to="/auth">
@@ -66,7 +66,7 @@ export default function CreateMicrosite() {
                 </div>
                 <h3 className="font-heading text-xl font-bold mb-2">I Have a Published Book</h3>
                 <p className="text-sm text-muted-foreground mb-6 flex-1">
-                  Sign in and add your books via Amazon import or manual entry. Create your microsite in minutes with our guided setup.
+                  Sign in and add your books via Amazon import or manual entry. Create your book page in minutes with our guided setup.
                 </p>
                 <Button asChild variant="outline" className="w-full">
                   <Link to="/auth">
@@ -96,7 +96,7 @@ export default function CreateMicrosite() {
       <section className="border-t border-border bg-muted/50 py-16">
         <div className="container max-w-4xl text-center">
           <h2 className="font-heading text-2xl font-bold mb-3">
-            Every Microsite Includes
+            Every Book Page Includes
           </h2>
           <p className="text-muted-foreground mb-10">All free. No hidden fees. No subscriptions.</p>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
