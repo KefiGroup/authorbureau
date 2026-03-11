@@ -149,9 +149,11 @@ export default function ChapterMappingStep({ stepData, setStepData, onMarkEdited
         <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
           AI will analyze your manuscript and create a section-by-section mapping with recommended content types.
         </p>
-        <Button onClick={handleGenerate} disabled={generationState !== "idle" && generationState !== "complete"}>
-          {generationState !== "idle" && generationState !== "complete" ? (
+        <Button onClick={handleGenerate} disabled={generationState === "queued" || generationState === "analyzing" || generationState === "generating"}>
+          {generationState === "queued" || generationState === "analyzing" || generationState === "generating" ? (
             <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Generating...</>
+          ) : generationState === "error" ? (
+            <><Wand2 className="h-4 w-4 mr-2" /> Retry Chapter Mapping</>
           ) : (
             <><Wand2 className="h-4 w-4 mr-2" /> Generate Chapter Mapping</>
           )}
