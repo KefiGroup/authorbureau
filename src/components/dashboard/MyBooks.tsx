@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
   BookOpen, Plus, ExternalLink, Loader2, ImagePlus, Sparkles, Eye,
-  CreditCard, Rocket, Hammer, ChartLine, CheckCircle2, Upload,
+  CreditCard, Rocket, Hammer, ChartLine, CheckCircle2, Upload, RefreshCw,
 } from "lucide-react";
 import ManuscriptUpload from "./ManuscriptUpload";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
