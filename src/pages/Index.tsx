@@ -342,7 +342,7 @@ export default function Index() {
             </div>
           </motion.div>
 
-          {/* Your Book, Your Page — Microsite Showcase */}
+          {/* Your Book, Your Page — Book Page Showcase */}
           <div className="grid gap-12 lg:grid-cols-2 items-center">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }}>
               <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
