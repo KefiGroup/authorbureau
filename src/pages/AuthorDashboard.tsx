@@ -325,6 +325,33 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         return gate("My Contacts", <AuthorCRMPage onNavigate={handleNavigate} />, "pro");
       case "reading-club":
         return <AuthorReadingClub onNavigate={handleNavigate} />;
+      case "book-sales":
+        return gate("Book Sales", 
+          BUILDER_NODE_MAP["book-sales-events"] ? (
+            <UniversalBuilderStudio 
+              nodeConfig={BUILDER_NODE_MAP["book-sales-events"]} 
+              onNavigate={handleNavigate} 
+            />
+          ) : <ComingSoonPlaceholder sectionId="book-sales" />
+        );
+      case "special-editions":
+        return gate("Special Editions", 
+          BUILDER_NODE_MAP["special-editions"] ? (
+            <UniversalBuilderStudio 
+              nodeConfig={BUILDER_NODE_MAP["special-editions"]} 
+              onNavigate={handleNavigate} 
+            />
+          ) : <ComingSoonPlaceholder sectionId="special-editions" />
+        );
+      case "lead-magnet":
+        return gate("Lead Magnet Funnel", 
+          BUILDER_NODE_MAP["lead-magnet"] ? (
+            <UniversalBuilderStudio 
+              nodeConfig={BUILDER_NODE_MAP["lead-magnet"]} 
+              onNavigate={handleNavigate} 
+            />
+          ) : <ComingSoonPlaceholder sectionId="lead-magnet" />
+        );
       case "connect-stripe":
         return <ConnectStripePage />;
       case "overview":
