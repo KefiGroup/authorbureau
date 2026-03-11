@@ -197,7 +197,7 @@ export default function MicrositeManager({ onNavigate }: Props) {
       {isLive && (
         <div className="flex items-center gap-2 rounded-lg bg-accent/10 border border-accent/20 px-3 py-2">
           <CheckCircle2 className="h-4 w-4 text-accent" />
-          <p className="text-sm font-medium text-accent">Your microsite is live!</p>
+          <p className="text-sm font-medium text-accent">Your website is live!</p>
         </div>
       )}
 
