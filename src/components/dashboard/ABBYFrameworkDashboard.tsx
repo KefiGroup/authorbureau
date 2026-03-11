@@ -173,6 +173,18 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
     );
   }
 
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <AlertCircle className="h-10 w-10 text-destructive" />
+        <p className="text-muted-foreground text-sm text-center max-w-md">{error}</p>
+        <Button variant="outline" size="sm" onClick={loadDashboard}>
+          <RefreshCw className="h-4 w-4 mr-2" /> Retry
+        </Button>
+      </div>
+    );
+  }
+
   // Determine journey states - sequential logic
   const step1Done = profileState === "live" && bookCount > 0;
   const step2Done = hasPlan;

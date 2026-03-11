@@ -165,6 +165,15 @@ export default function BookHub() {
         <main className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-6">
           {showSkeleton ? (
             <BookHubSkeleton />
+          ) : fetchError ? (
+            <div className="flex min-h-[400px] items-center justify-center">
+              <div className="text-center space-y-3">
+                <p className="text-muted-foreground text-sm">{fetchError}</p>
+                <button onClick={fetchBook} className="text-sm text-secondary hover:underline">Try again</button>
+                <span className="mx-2 text-muted-foreground">|</span>
+                <button onClick={() => navigate("/dashboard")} className="text-sm text-secondary hover:underline">Back to Dashboard</button>
+              </div>
+            </div>
           ) : !book ? (
             <div className="flex min-h-[400px] items-center justify-center">
               <div className="text-center">

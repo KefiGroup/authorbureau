@@ -83,11 +83,12 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
   const fetchBooks = async () => {
     if (!user) return;
     setLoading(true);
+    setFetchError(null);
     try {
       const token = await getActiveToken();
-      if (!token) { setLoading(false); return; }
+      if (!token) { setFetchError("Unable to authenticate. Please sign out and back in."); setLoading(false); return; }
 
-      const response = await fetch(
+      const response = await fetchWithTimeout(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`,
         {
           method: "POST",
@@ -106,8 +107,9 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
       setManuscriptBooks(manuscripts);
       setProductCounts(result.productCounts || {});
       setCategoryCounts(result.categoryCounts || {});
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to fetch books:", err);
+      setFetchError(err?.name === "AbortError" ? "Request timed out. Please try again." : "Could not load your books. Please try again.");
     }
     setLoading(false);
   };

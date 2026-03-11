@@ -38,7 +38,7 @@ export function useAuthorStats(userId: string | undefined) {
     try {
       const token = await getActiveToken();
       if (!token) return;
-      const resp = await fetch(
+      const resp = await fetchWithTimeout(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/author-stats`,
         {
           method: "POST",
