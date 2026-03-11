@@ -99,7 +99,7 @@
 | ID | Bug | Severity |
 |----|-----|----------|
 | UB-01 | `builderNodeConfig` maps nodes to studios — need to verify all 27 nodes have valid configs | High |
-| UB-02 | Several planned nodes (big-ticket, training, retreats, certification, conventions, fundraising, exhibitors, affiliates, upsells, revenue-sharing, in-house-speaker) have `status: "planned"` but no gating in SmartProductCard — clicking "Build" may lead to empty pages | High |
+| UB-02 | ✅ FIXED — Planned nodes now show "Coming Soon" state with disabled button, preventing navigation to empty pages | Done |
 
 ---
 
