@@ -1,10 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase as sharedSupabase } from "@/lib/shared-backend";
-
-async function getActiveToken(): Promise<string | null> {
-  const { data: sharedSession } = await sharedSupabase.auth.getSession();
-  return sharedSession?.session?.access_token || null;
-}
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
 export interface AuthorStats {
   bookCount: number;
