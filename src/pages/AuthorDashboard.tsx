@@ -243,7 +243,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "my-books":
         return <MyBooks isPremium={isPremium || isAdmin} onNavigate={handleNavigate} stripeConnected={stripeConnected} centralStats={stats} />;
       case "build-business":
-        return <BuildMyBusiness />;
+        return <BuildMyBusiness onNavigate={handleNavigate} />;
       case "analytics":
         return <RevenueDashboard onNavigate={handleNavigate} />;
       case "microsite-manager":
