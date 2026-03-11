@@ -349,7 +349,7 @@ export default function Index() {
                 Your Book, Your Page
               </motion.p>
               <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-4xl mb-4">
-                Professional Book <span className="italic text-secondary">Microsites</span>
+                Professional Book <span className="italic text-secondary">Pages</span>
               </motion.h2>
               <motion.p variants={fadeUp} custom={2} className="text-lg text-muted-foreground leading-relaxed mb-8">
                 Every listed author gets a dedicated landing page for their book — designed to showcase your Amazon bestseller status, drive purchases, and build your reader community. <strong className="text-foreground">Completely free.</strong>
