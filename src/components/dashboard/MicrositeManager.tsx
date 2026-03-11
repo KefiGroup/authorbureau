@@ -321,8 +321,8 @@ export default function MicrositeManager({ onNavigate }: Props) {
       <Card className="p-4 border-border">
         <p className="text-sm text-muted-foreground">
           {isLive
-            ? "Your microsite traffic data will appear in the Analytics tab once visitors start arriving."
-            : "Set up your microsite to start tracking visits and leads."}
+            ? "Your website traffic data will appear in the Analytics tab once visitors start arriving."
+            : "Set up your website to start tracking visits and leads."}
         </p>
       </Card>
     </div>
