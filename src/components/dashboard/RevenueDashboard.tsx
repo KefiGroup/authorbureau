@@ -203,7 +203,7 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
                   {cat.label}
                 </span>
                 <p className="text-lg font-heading font-bold">${cat.revenue.toFixed(0)}</p>
-                <p className="text-[11px] text-muted-foreground">from {cat.products} products</p>
+                <p className="text-[11px] text-muted-foreground">{cat.products > 0 ? `from ${cat.products} products` : "No products built yet"}</p>
               </Card>
             ))}
           </div>
