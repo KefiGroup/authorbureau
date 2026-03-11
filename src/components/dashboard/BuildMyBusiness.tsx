@@ -50,7 +50,7 @@ async function getActiveToken(): Promise<string | null> {
   return sharedSession?.session?.access_token || null;
 }
 
-export default function BuildMyBusiness() {
+export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section: string) => void }) {
   const navigate = useNavigate();
   const { user, isPremium, isAdmin, tier } = useAuth();
   const { toast } = useToast();
