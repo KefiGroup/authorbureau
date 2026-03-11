@@ -66,7 +66,15 @@ export default function DailyScheduleStep({ stepData, setStepData, onMarkEdited,
           isCatchUp,
         };
       });
-      updateDays(generated);
+      setStepData(prev => ({
+        ...prev,
+        schedule: {
+          ...prev.schedule,
+          days: generated,
+          _generatedFromSetup: { ...prev.setup },
+        },
+      }));
+      onMarkEdited("schedule");
       setSelectedDayId(generated[0]?.id || null);
       setGenerationState("complete");
       toast({ title: "Schedule generated!", description: `${duration}-day program with ${weeks} weekly themes.` });
