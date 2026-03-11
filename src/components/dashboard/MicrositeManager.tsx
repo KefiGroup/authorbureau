@@ -286,7 +286,20 @@ export default function MicrositeManager({ onNavigate }: Props) {
                   </Button>
                 )}
                 {page.status === "not_created" && (
-                  <Button size="sm" className="w-full text-xs bg-secondary text-secondary-foreground hover:bg-secondary/90">
+                  <Button
+                    size="sm"
+                    className="w-full text-xs bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                    onClick={() => {
+                      if (page.id === "author-profile") {
+                        onNavigate?.("profile");
+                      } else {
+                        toast({
+                          title: `${page.name} — Coming Soon`,
+                          description: "This page type will be available in a future update. Stay tuned!",
+                        });
+                      }
+                    }}
+                  >
                     <PlusCircle className="h-3 w-3 mr-1" /> {actionLabel}
                   </Button>
                 )}
