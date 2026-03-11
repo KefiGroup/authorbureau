@@ -79,7 +79,7 @@ export default function BookEnricher() {
         <CardHeader>
           <CardTitle>Enrich Book & Author Data</CardTitle>
           <CardDescription>
-            Provide your Amazon book link and author profile link, and we'll automatically extract and populate your microsite with metadata like page count, ratings, and more.
+            Provide your Amazon book link and author profile link, and we'll automatically extract and populate your book page with metadata like page count, ratings, and more.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
