@@ -1,13 +1,16 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, RefreshCw, BookOpen, Globe, ImageIcon, Search, Upload } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Loader2, RefreshCw, BookOpen, Globe, ImageIcon, Search, Upload, Pencil } from "lucide-react";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
 interface DirectoryAuthor {
   user_id: string;
@@ -15,11 +18,20 @@ interface DirectoryAuthor {
   photo_url: string | null;
   photo_crop_y: string | null;
   bio_short: string | null;
+  bio_long: string | null;
+  tagline: string | null;
   genres: string[] | null;
   directory_status: string;
   author_slug: string | null;
   created_at: string;
   book_count?: number;
+  website_url: string | null;
+  instagram_url: string | null;
+  twitter_url: string | null;
+  linkedin_url: string | null;
+  youtube_url: string | null;
+  location_city: string | null;
+  location_country: string | null;
 }
 
 const ALL_STATUSES = ["unlisted", "listed", "verified", "featured"] as const;
@@ -31,6 +43,22 @@ const statusColors: Record<string, string> = {
   featured: "bg-amber-100 text-amber-800",
 };
 
+async function adminDataFetch(action: string, body: Record<string, unknown> = {}) {
+  const token = await getActiveToken();
+  if (!token) throw new Error("Not authenticated");
+  const res = await fetchWithTimeout(
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-data`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ action, ...body }),
+    }
+  );
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+  return data;
+}
+
 export default function AuthorsTab() {
   const [authors, setAuthors] = useState<DirectoryAuthor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,42 +69,17 @@ export default function AuthorsTab() {
   const [cropValue, setCropValue] = useState<number>(0);
   const [uploadingPhotoFor, setUploadingPhotoFor] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [editingAuthor, setEditingAuthor] = useState<DirectoryAuthor | null>(null);
+  const [editForm, setEditForm] = useState<Record<string, any>>({});
+  const [editSaving, setEditSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const fetchAuthors = useCallback(async () => {
     setLoading(true);
     try {
-      const { data: profiles, error } = await supabase
-        .from("author_profiles")
-        .select("user_id, pen_name, photo_url, photo_crop_y, bio_short, genres, directory_status, author_slug, created_at")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-
-      const { data: books } = await supabase
-        .from("books")
-        .select("author_id, author_name");
-
-      const bookCounts = new Map<string, number>();
-      (books || []).forEach((b: any) => {
-        bookCounts.set(b.author_id, (bookCounts.get(b.author_id) || 0) + 1);
-      });
-
-      const bookCountsByName = new Map<string, number>();
-      (books || []).forEach((b: any) => {
-        if (b.author_name) {
-          bookCountsByName.set(b.author_name, (bookCountsByName.get(b.author_name) || 0) + 1);
-        }
-      });
-
-      setAuthors(
-        (profiles || []).map((p: any) => {
-          const byId = bookCounts.get(p.user_id) || 0;
-          const byName = p.pen_name ? (bookCountsByName.get(p.pen_name) || 0) : 0;
-          return { ...p, book_count: Math.max(byId, byName) };
-        })
-      );
+      const data = await adminDataFetch("list-authors");
+      setAuthors(data.authors || []);
     } catch {
       toast({ title: "Failed to load authors", variant: "destructive" });
     }
@@ -88,11 +91,7 @@ export default function AuthorsTab() {
   const updateStatus = async (userId: string, newStatus: string) => {
     setUpdatingId(userId);
     try {
-      const { error } = await supabase
-        .from("author_profiles")
-        .update({ directory_status: newStatus })
-        .eq("user_id", userId);
-      if (error) throw error;
+      await adminDataFetch("update-author", { userId, updates: { directory_status: newStatus } });
       setAuthors((prev) =>
         prev.map((a) => (a.user_id === userId ? { ...a, directory_status: newStatus } : a))
       );
@@ -113,11 +112,7 @@ export default function AuthorsTab() {
       const { error: uploadError } = await supabase.storage.from("author-photos").upload(path, file, { upsert: true });
       if (uploadError) throw uploadError;
       const { data: { publicUrl } } = supabase.storage.from("author-photos").getPublicUrl(path);
-      const { error: updateError } = await supabase
-        .from("author_profiles")
-        .update({ photo_url: publicUrl })
-        .eq("user_id", uploadingPhotoFor);
-      if (updateError) throw updateError;
+      await adminDataFetch("update-author", { userId: uploadingPhotoFor, updates: { photo_url: publicUrl } });
       setAuthors((prev) =>
         prev.map((a) => (a.user_id === uploadingPhotoFor ? { ...a, photo_url: publicUrl } : a))
       );
@@ -128,6 +123,39 @@ export default function AuthorsTab() {
     setUploading(false);
     setUploadingPhotoFor(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const openEditDialog = (author: DirectoryAuthor) => {
+    setEditingAuthor(author);
+    setEditForm({
+      pen_name: author.pen_name || "",
+      tagline: author.tagline || "",
+      bio_short: author.bio_short || "",
+      bio_long: author.bio_long || "",
+      website_url: author.website_url || "",
+      instagram_url: author.instagram_url || "",
+      twitter_url: author.twitter_url || "",
+      linkedin_url: author.linkedin_url || "",
+      youtube_url: author.youtube_url || "",
+      location_city: author.location_city || "",
+      location_country: author.location_country || "",
+    });
+  };
+
+  const saveEditForm = async () => {
+    if (!editingAuthor) return;
+    setEditSaving(true);
+    try {
+      await adminDataFetch("update-author", { userId: editingAuthor.user_id, updates: editForm });
+      setAuthors((prev) =>
+        prev.map((a) => (a.user_id === editingAuthor.user_id ? { ...a, ...editForm } : a))
+      );
+      toast({ title: "Profile updated" });
+      setEditingAuthor(null);
+    } catch (err: any) {
+      toast({ title: err.message || "Update failed", variant: "destructive" });
+    }
+    setEditSaving(false);
   };
 
   const filtered = useMemo(() => {
@@ -151,11 +179,7 @@ export default function AuthorsTab() {
 
   const saveCrop = async (userId: string) => {
     try {
-      const { error } = await supabase
-        .from("author_profiles")
-        .update({ photo_crop_y: `${cropValue}%` } as any)
-        .eq("user_id", userId);
-      if (error) throw error;
+      await adminDataFetch("update-author", { userId, updates: { photo_crop_y: `${cropValue}%` } });
       setAuthors((prev) =>
         prev.map((a) => (a.user_id === userId ? { ...a, photo_crop_y: `${cropValue}%` } : a))
       );
@@ -173,54 +197,105 @@ export default function AuthorsTab() {
 
   return (
     <div>
-      {/* Hidden file input for photo upload */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={handlePhotoUpload}
-      />
+      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
 
       {/* Photo upload dialog */}
       <Dialog open={!!uploadingPhotoFor && !uploading} onOpenChange={() => setUploadingPhotoFor(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>Upload Author Photo</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">Select a new profile photo for this author.</p>
-          <Button
-            onClick={() => fileInputRef.current?.click()}
-            className="w-full"
-          >
+          <Button onClick={() => fileInputRef.current?.click()} className="w-full">
             <Upload className="h-4 w-4 mr-2" /> Choose Photo
           </Button>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Profile Dialog */}
+      <Dialog open={!!editingAuthor} onOpenChange={() => setEditingAuthor(null)}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Edit Author Profile</DialogTitle></DialogHeader>
+          {editingAuthor && (
+            <div className="space-y-4">
+              <div>
+                <Label>Pen Name</Label>
+                <Input value={editForm.pen_name} onChange={(e) => setEditForm(f => ({ ...f, pen_name: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Tagline</Label>
+                <Input value={editForm.tagline} onChange={(e) => setEditForm(f => ({ ...f, tagline: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Short Bio</Label>
+                <Textarea value={editForm.bio_short} onChange={(e) => setEditForm(f => ({ ...f, bio_short: e.target.value }))} rows={2} />
+              </div>
+              <div>
+                <Label>Full Bio</Label>
+                <Textarea value={editForm.bio_long} onChange={(e) => setEditForm(f => ({ ...f, bio_long: e.target.value }))} rows={4} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>City</Label>
+                  <Input value={editForm.location_city} onChange={(e) => setEditForm(f => ({ ...f, location_city: e.target.value }))} />
+                </div>
+                <div>
+                  <Label>Country</Label>
+                  <Input value={editForm.location_country} onChange={(e) => setEditForm(f => ({ ...f, location_country: e.target.value }))} />
+                </div>
+              </div>
+              <div>
+                <Label>Website URL</Label>
+                <Input value={editForm.website_url} onChange={(e) => setEditForm(f => ({ ...f, website_url: e.target.value }))} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Instagram</Label>
+                  <Input value={editForm.instagram_url} onChange={(e) => setEditForm(f => ({ ...f, instagram_url: e.target.value }))} />
+                </div>
+                <div>
+                  <Label>Twitter/X</Label>
+                  <Input value={editForm.twitter_url} onChange={(e) => setEditForm(f => ({ ...f, twitter_url: e.target.value }))} />
+                </div>
+                <div>
+                  <Label>LinkedIn</Label>
+                  <Input value={editForm.linkedin_url} onChange={(e) => setEditForm(f => ({ ...f, linkedin_url: e.target.value }))} />
+                </div>
+                <div>
+                  <Label>YouTube</Label>
+                  <Input value={editForm.youtube_url} onChange={(e) => setEditForm(f => ({ ...f, youtube_url: e.target.value }))} />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => setEditingAuthor(null)}>Cancel</Button>
+                <Button onClick={saveEditForm} disabled={editSaving}>
+                  {editSaving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="font-heading text-2xl font-bold">Author Directory Management</h2>
-          <p className="text-muted-foreground text-sm mt-1">
-            Manage author visibility and status in the public directory
-          </p>
+          <p className="text-muted-foreground text-sm mt-1">Manage author visibility and status in the public directory</p>
         </div>
         <Button variant="outline" size="sm" onClick={fetchAuthors} disabled={loading}>
-          <RefreshCw className={`mr-1.5 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          Refresh
+          <RefreshCw className={`mr-1.5 h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh
         </Button>
       </div>
 
-      {/* Search bar */}
       <div className="relative mb-4 max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by name, bio, or genre..."
-          className="pl-9"
+          className="pl-9 border-border focus:border-secondary"
         />
       </div>
 
-      {/* Status filter pills */}
       <div className="flex flex-wrap gap-2 mb-4">
         {[{ key: "all", label: "All", count: authors.length }, ...ALL_STATUSES.map((s) => ({ key: s, label: s.charAt(0).toUpperCase() + s.slice(1), count: counts[s] || 0 }))].map((f) => (
           <button
@@ -263,27 +338,15 @@ export default function AuthorsTab() {
                   </div>
                 )}
 
-                {/* Photo crop editor */}
                 {cropEditing === author.user_id && author.photo_url && (
                   <div className="absolute left-0 right-0 top-full mt-2 z-20 bg-card border rounded-lg p-4 shadow-lg">
                     <p className="text-xs font-medium mb-2">Adjust photo vertical position</p>
                     <div className="flex items-center gap-4">
                       <div className="w-20 h-24 rounded overflow-hidden border shrink-0">
-                        <img
-                          src={author.photo_url}
-                          alt="Preview"
-                          className="w-full h-full object-cover"
-                          style={{ objectPosition: `50% ${cropValue}%` }}
-                        />
+                        <img src={author.photo_url} alt="Preview" className="w-full h-full object-cover" style={{ objectPosition: `50% ${cropValue}%` }} />
                       </div>
                       <div className="flex-1 space-y-2">
-                        <Slider
-                          value={[cropValue]}
-                          onValueChange={([v]) => setCropValue(v)}
-                          min={0}
-                          max={50}
-                          step={1}
-                        />
+                        <Slider value={[cropValue]} onValueChange={([v]) => setCropValue(v)} min={0} max={50} step={1} />
                         <p className="text-xs text-muted-foreground">Position: {cropValue}% from top</p>
                         <div className="flex gap-2">
                           <Button size="sm" variant="outline" onClick={() => setCropEditing(null)}>Cancel</Button>
@@ -302,7 +365,7 @@ export default function AuthorsTab() {
                     </span>
                   </div>
                   <p className="text-sm text-muted-foreground truncate">{author.bio_short || "No bio"}</p>
-                  <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
                     <span className="flex items-center gap-1">
                       <BookOpen className="h-3 w-3" /> {author.book_count} books
                     </span>
@@ -314,29 +377,26 @@ export default function AuthorsTab() {
                         <Globe className="h-3 w-3" /> View
                       </a>
                     )}
+                    <button onClick={() => openEditDialog(author)} className="flex items-center gap-1 text-secondary hover:underline">
+                      <Pencil className="h-3 w-3" /> Edit Profile
+                    </button>
                     <button
                       onClick={() => {
                         if (author.photo_url) startCropEdit(author);
-                        else {
-                          setUploadingPhotoFor(author.user_id);
-                        }
+                        else setUploadingPhotoFor(author.user_id);
                       }}
                       className="flex items-center gap-1 text-secondary hover:underline"
                     >
                       <ImageIcon className="h-3 w-3" /> {author.photo_url ? "Adjust Photo" : "Upload Photo"}
                     </button>
                     {author.photo_url && (
-                      <button
-                        onClick={() => setUploadingPhotoFor(author.user_id)}
-                        className="flex items-center gap-1 text-secondary hover:underline"
-                      >
+                      <button onClick={() => setUploadingPhotoFor(author.user_id)} className="flex items-center gap-1 text-secondary hover:underline">
                         <Upload className="h-3 w-3" /> Replace Photo
                       </button>
                     )}
                   </div>
                 </div>
 
-                {/* Status dropdown */}
                 <div className="shrink-0 w-36">
                   <Select
                     value={author.directory_status}

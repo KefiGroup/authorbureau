@@ -124,21 +124,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const isAdminSession = sessionStorage.getItem(ADMIN_AUTH_KEY) === "true";
           if (isAdminSession) setIsAdmin(true);
 
-          // Dispatch RPC outside the listener to avoid Supabase client deadlock
+          // Check admin role - don't set loading false until this completes
           const userId = session.user.id;
-          setTimeout(async () => {
-            const { data } = await supabase.rpc("has_role", {
-              _user_id: userId,
-              _role: "admin",
+          Promise.resolve(supabase.rpc("has_role", { _user_id: userId, _role: "admin" }))
+            .then(({ data }) => {
+              setIsAdmin(!!data || isAdminSession);
+            })
+            .catch(() => {
+              setIsAdmin(isAdminSession);
+            })
+            .finally(() => {
+              setLoading(false);
             });
-            setIsAdmin(!!data || isAdminSession);
-          }, 0);
         } else {
           setIsAdmin(false);
           setSubscription({ subscribed: false, productId: null, subscriptionEnd: null, loading: false });
+          setLoading(false);
         }
-
-        setLoading(false);
       }
     );
 

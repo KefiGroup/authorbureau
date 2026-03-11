@@ -1,25 +1,8 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Clock, BookOpen, ShieldCheck, ArrowRight, RefreshCw, AlertCircle, UserCheck, Contact, Package, DollarSign, Cpu, Headphones, Users, BarChart3 } from "lucide-react";
+import { Loader2, BookOpen, ShieldCheck, ArrowRight, RefreshCw, UserCheck, Contact, Package, DollarSign, Cpu, Headphones, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import type { AdminStats, Submission } from "@/types/admin";
-
-interface OverviewTabProps {
-  stats: AdminStats | null;
-  loading: boolean;
-  onRefresh: () => void;
-  onNavigate: (tab: string, filter?: string) => void;
-  pendingBookCount?: number;
-  pendingAuthorCount?: number;
-}
-
-const statusColors: Record<string, string> = {
-  pending: "bg-amber-100 text-amber-800 border-amber-200",
-  approved: "bg-green-100 text-green-800 border-green-200",
-  rejected: "bg-red-100 text-red-800 border-red-200",
-};
 
 interface ProductCounts {
   courses: number;
@@ -27,7 +10,6 @@ interface ProductCounts {
   webinars: number;
   audiobooks: number;
   podcasts: number;
-  workbooks: number;
   socialMedia: number;
   emailFlows: number;
   coaching: number;
@@ -40,102 +22,31 @@ interface AIUsageStats {
   last7DaysTokens: number;
 }
 
-export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pendingBookCount = 0, pendingAuthorCount = 0 }: OverviewTabProps) {
-  const [crmCount, setCrmCount] = useState(0);
-  const [crmWeekCount, setCrmWeekCount] = useState(0);
-  const [productCounts, setProductCounts] = useState<ProductCounts | null>(null);
-  const [aiUsage, setAiUsage] = useState<AIUsageStats | null>(null);
-  const [subscriberCount, setSubscriberCount] = useState(0);
-  const [bugCount, setBugCount] = useState(0);
-  const [feedbackCount, setFeedbackCount] = useState(0);
+interface OverviewTabProps {
+  stats: AdminStats | null;
+  loading: boolean;
+  onRefresh: () => void;
+  onNavigate: (tab: string, filter?: string) => void;
+  pendingBookCount?: number;
+  pendingAuthorCount?: number;
+  overviewData?: {
+    productCounts: ProductCounts;
+    crmCount: number;
+    crmWeekCount: number;
+    subscriberCount: number;
+    bugCount: number;
+    feedbackCount: number;
+    aiUsage: AIUsageStats;
+  } | null;
+}
 
-  useEffect(() => {
-    (async () => {
-      // CRM counts
-      const { count } = await supabase.from("crm_contacts").select("id", { count: "exact", head: true });
-      setCrmCount(count ?? 0);
-      const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
-      const { count: weekCount } = await supabase
-        .from("crm_contacts")
-        .select("id", { count: "exact", head: true })
-        .gte("created_at", weekAgo);
-      setCrmWeekCount(weekCount ?? 0);
+const statusColors: Record<string, string> = {
+  pending: "bg-amber-100 text-amber-800 border-amber-200",
+  approved: "bg-green-100 text-green-800 border-green-200",
+  rejected: "bg-red-100 text-red-800 border-red-200",
+};
 
-      // Product counts (parallel)
-      const tables = [
-        "courses", "home_study_courses", "webinars", "audiobooks",
-        "podcasts", "workbooks", "social_media_content", "email_flows", "coaching_packages",
-      ] as const;
-
-      const countPromises = tables.map(async (t) => {
-        try {
-          const r = await supabase.from(t).select("id", { count: "exact", head: true });
-          return r.count ?? 0;
-        } catch {
-          return 0;
-        }
-      });
-      const counts = await Promise.all(countPromises);
-      setProductCounts({
-        courses: counts[0],
-        homeStudy: counts[1],
-        webinars: counts[2],
-        audiobooks: counts[3],
-        podcasts: counts[4],
-        workbooks: counts[5],
-        socialMedia: counts[6],
-        emailFlows: counts[7],
-        coaching: counts[8],
-      });
-
-      // Subscriber count
-      const { count: subCount } = await supabase
-        .from("author_subscribers")
-        .select("id", { count: "exact", head: true });
-      setSubscriberCount(subCount ?? 0);
-
-      // Support counts
-      const [{ count: bCount }, { count: fCount }] = await Promise.all([
-        supabase.from("bug_reports").select("id", { count: "exact", head: true }).eq("status", "new"),
-        supabase.from("feedback").select("id", { count: "exact", head: true }).eq("status", "new"),
-      ]);
-      setBugCount(bCount ?? 0);
-      setFeedbackCount(fCount ?? 0);
-
-      // AI usage stats
-      try {
-        const { data: usageRows } = await supabase
-          .from("ai_usage_logs")
-          .select("feature, total_tokens, cost_estimate, created_at")
-          .order("created_at", { ascending: false })
-          .limit(1000);
-
-        if (usageRows && usageRows.length > 0) {
-          const totalTokens = usageRows.reduce((sum: number, r: any) => sum + (r.total_tokens || 0), 0);
-          const totalCost = usageRows.reduce((sum: number, r: any) => sum + parseFloat(r.cost_estimate || 0), 0);
-          const last7 = usageRows
-            .filter((r: any) => new Date(r.created_at) > new Date(Date.now() - 7 * 86400000))
-            .reduce((sum: number, r: any) => sum + (r.total_tokens || 0), 0);
-
-          const featureMap: Record<string, number> = {};
-          usageRows.forEach((r: any) => {
-            featureMap[r.feature] = (featureMap[r.feature] || 0) + (r.total_tokens || 0);
-          });
-          const topFeatures = Object.entries(featureMap)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 5)
-            .map(([feature, tokens]) => ({ feature, tokens }));
-
-          setAiUsage({ totalTokens, totalCost, topFeatures, last7DaysTokens: last7 });
-        } else {
-          setAiUsage({ totalTokens: 0, totalCost: 0, topFeatures: [], last7DaysTokens: 0 });
-        }
-      } catch {
-        setAiUsage({ totalTokens: 0, totalCost: 0, topFeatures: [], last7DaysTokens: 0 });
-      }
-    })();
-  }, [stats]);
-
+export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pendingBookCount = 0, pendingAuthorCount = 0, overviewData }: OverviewTabProps) {
   if (loading || !stats) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -143,6 +54,14 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
       </div>
     );
   }
+
+  const productCounts = overviewData?.productCounts ?? null;
+  const crmCount = overviewData?.crmCount ?? 0;
+  const crmWeekCount = overviewData?.crmWeekCount ?? 0;
+  const subscriberCount = overviewData?.subscriberCount ?? 0;
+  const bugCount = overviewData?.bugCount ?? 0;
+  const feedbackCount = overviewData?.feedbackCount ?? 0;
+  const aiUsage = overviewData?.aiUsage ?? null;
 
   const totalProducts = productCounts
     ? Object.values(productCounts).reduce((a, b) => a + b, 0)
@@ -201,7 +120,6 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="font-heading text-xl font-bold">Overview</h2>
         <Button variant="outline" size="sm" onClick={onRefresh} disabled={loading}>
@@ -209,7 +127,6 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
         </Button>
       </div>
 
-      {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {cards.map((c) => {
           const Icon = c.icon;
@@ -258,10 +175,8 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
                 {[
                   { label: "Courses", count: productCounts.courses },
                   { label: "Home Study", count: productCounts.homeStudy },
-                  { label: "Webinars", count: productCounts.webinars },
                   { label: "Audiobooks", count: productCounts.audiobooks },
                   { label: "Podcasts", count: productCounts.podcasts },
-                  { label: "Workbooks", count: productCounts.workbooks },
                   { label: "Social Content", count: productCounts.socialMedia },
                   { label: "Email Flows", count: productCounts.emailFlows },
                   { label: "Coaching", count: productCounts.coaching },
@@ -276,7 +191,6 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
           )}
         </Card>
 
-        {/* AI Usage Panel */}
         <Card className="p-6 space-y-4">
           <div className="flex items-center gap-2">
             <Cpu className="h-5 w-5 text-secondary" />
@@ -318,7 +232,7 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
                 </div>
               )}
               {aiUsage.totalTokens === 0 && (
-                <p className="text-xs text-muted-foreground italic">No AI usage recorded yet. Usage will appear here as authors use AI builders.</p>
+                <p className="text-xs text-muted-foreground italic">No AI usage recorded yet.</p>
               )}
             </>
           ) : (
@@ -332,36 +246,18 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
         <h3 className="font-heading font-semibold text-sm text-muted-foreground uppercase tracking-wider">Quick Actions</h3>
         <div className="flex gap-3 flex-wrap">
           {pendingBookCount > 0 && (
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => onNavigate("books", "pending")}
-              className="bg-amber-600 hover:bg-amber-700 text-white"
-            >
-              <BookOpen className="h-4 w-4 mr-1.5" />
-              Review {pendingBookCount} Pending Book{pendingBookCount !== 1 ? "s" : ""}
+            <Button variant="default" size="sm" onClick={() => onNavigate("books", "pending")} className="bg-amber-600 hover:bg-amber-700 text-white">
+              <BookOpen className="h-4 w-4 mr-1.5" /> Review {pendingBookCount} Pending Book{pendingBookCount !== 1 ? "s" : ""}
             </Button>
           )}
           {pendingAuthorCount > 0 && (
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => onNavigate("authors")}
-              className="bg-amber-600 hover:bg-amber-700 text-white"
-            >
-              <UserCheck className="h-4 w-4 mr-1.5" />
-              Review {pendingAuthorCount} Unlisted Author{pendingAuthorCount !== 1 ? "s" : ""}
+            <Button variant="default" size="sm" onClick={() => onNavigate("authors")} className="bg-amber-600 hover:bg-amber-700 text-white">
+              <UserCheck className="h-4 w-4 mr-1.5" /> Review {pendingAuthorCount} Unlisted Author{pendingAuthorCount !== 1 ? "s" : ""}
             </Button>
           )}
           {(bugCount > 0 || feedbackCount > 0) && (
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => onNavigate("support")}
-              className="bg-amber-600 hover:bg-amber-700 text-white"
-            >
-              <Headphones className="h-4 w-4 mr-1.5" />
-              {bugCount + feedbackCount} New Support Item{bugCount + feedbackCount !== 1 ? "s" : ""}
+            <Button variant="default" size="sm" onClick={() => onNavigate("support")} className="bg-amber-600 hover:bg-amber-700 text-white">
+              <Headphones className="h-4 w-4 mr-1.5" /> {bugCount + feedbackCount} New Support Item{bugCount + feedbackCount !== 1 ? "s" : ""}
             </Button>
           )}
           <Button variant="outline" size="sm" onClick={() => onNavigate("support")}>
@@ -379,23 +275,17 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
         </div>
       </div>
 
-      {/* Recent Activity */}
       {recentSubmissions.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="font-heading font-semibold text-sm text-muted-foreground uppercase tracking-wider">
-              Recent Submissions
-            </h3>
+            <h3 className="font-heading font-semibold text-sm text-muted-foreground uppercase tracking-wider">Recent Submissions</h3>
             <Button variant="ghost" size="sm" onClick={() => onNavigate("submissions")} className="text-xs">
               View all <ArrowRight className="h-3 w-3 ml-1" />
             </Button>
           </div>
           <div className="space-y-2">
             {recentSubmissions.slice(0, 5).map((sub) => (
-              <div
-                key={sub.id}
-                className="rounded-lg border border-border bg-card px-4 py-3 flex items-center justify-between gap-3"
-              >
+              <div key={sub.id} className="rounded-lg border border-border bg-card px-4 py-3 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-medium text-sm truncate">{sub.full_name}</p>
                   <p className="text-xs text-muted-foreground">{sub.email}</p>
