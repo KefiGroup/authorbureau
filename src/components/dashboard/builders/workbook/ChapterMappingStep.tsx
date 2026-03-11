@@ -98,9 +98,9 @@ export default function ChapterMappingStep({ stepData, setStepData, onMarkEdited
       onMarkEdited("mapping");
       setGenerationState("complete");
       toast.success(`Mapped ${parsed.length} workbook sections!`);
-    } catch {
+    } catch (err: any) {
       setGenerationState("error");
-      toast.error("Failed to generate chapter mapping");
+      toast.error(err?.message || "Failed to generate chapter mapping");
     }
   };
 
