@@ -222,6 +222,9 @@ export function getStudioPath(nodeId: string, bookId: string, titleParam: string
     memberships: `/dashboard?section=memberships&bookId=${bookId}${titleParam}`,
     "group-coaching": `/dashboard?section=group-coaching&bookId=${bookId}${titleParam}`,
     "lead-magnet": `/dashboard?section=lead-magnet&bookId=${bookId}${titleParam}`,
+    "book-sales-events": `/dashboard?section=book-sales&bookId=${bookId}${titleParam}`,
+    "special-editions": `/dashboard?section=special-editions&bookId=${bookId}${titleParam}`,
+    microsite: `/dashboard?section=microsite-manager`,
   };
   return map[nodeId] || null;
 }

@@ -292,7 +292,7 @@ export default function AuthorsTab() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by name, bio, or genre..."
-          className="pl-9 border-border focus:border-secondary"
+          className="pl-9"
         />
       </div>
 
