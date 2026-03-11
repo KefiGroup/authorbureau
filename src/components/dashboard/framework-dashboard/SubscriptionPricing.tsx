@@ -129,7 +129,7 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
           Ready to Build Your Author Business?
         </h2>
         <p className="text-muted-foreground text-sm max-w-xl mx-auto">
-          Your microsite is live. Your business plan is ready. Now unlock the AI builders that turn your plan into real products.
+          Your author page is live. Your business plan is ready. Now unlock the AI builders that turn your plan into real products.
         </p>
       </div>
 

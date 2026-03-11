@@ -208,7 +208,7 @@ export default function BookEnricher() {
 
       <div className="p-4 bg-muted/50 rounded-lg border border-border">
         <p className="text-sm text-muted-foreground">
-          <strong>💡 Tip:</strong> Use the extracted data to update your book's information. Copy the data above and manually update your book entries with the page count, rating, and categories. This data will be displayed on your book's microsite.
+          <strong>💡 Tip:</strong> Use the extracted data to update your book's information. Copy the data above and manually update your book entries with the page count, rating, and categories. This data will be displayed on your book page.
         </p>
       </div>
     </div>

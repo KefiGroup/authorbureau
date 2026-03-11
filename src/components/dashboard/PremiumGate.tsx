@@ -18,7 +18,7 @@ const tierFeatures = {
     "Workbook Builder",
     "Social Media Calendar",
     "Email Marketing Flows",
-    "Author Microsite",
+    "Author Website",
     "Book Sales (Events)",
     "Home Study Courses",
   ],

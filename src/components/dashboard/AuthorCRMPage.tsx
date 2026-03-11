@@ -354,7 +354,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
         <div>
           <h2 className="font-heading text-2xl font-bold">My Contacts</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Everyone who has engaged with your books, products, and microsite — all in one place.
+            Everyone who has engaged with your books, products, and website — all in one place.
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
