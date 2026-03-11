@@ -188,7 +188,7 @@ export default function MicrositeManager({ onNavigate }: Props) {
         )}
         {!profileExists && (
           <Button className="bg-secondary text-secondary-foreground hover:bg-secondary/90 w-fit" onClick={() => onNavigate?.("profile")}>
-            Set Up Your Microsite <ArrowRight className="h-4 w-4 ml-1" />
+            Set Up Your Website <ArrowRight className="h-4 w-4 ml-1" />
           </Button>
         )}
       </div>
