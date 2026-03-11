@@ -53,7 +53,7 @@ export default function ManusHandoffModal({ open, onOpenChange }: Props) {
             asChild
           >
             <a
-              href="https://manus.im"
+              href="https://manus.im/invitation/XT9XTFJVZ8SASD"
               target="_blank"
               rel="noopener noreferrer"
             >
