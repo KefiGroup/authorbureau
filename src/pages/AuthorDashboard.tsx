@@ -460,7 +460,10 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
             ]}
           />
         </div>
-        <main className="flex-1 overflow-y-auto p-6 lg:p-8">
+        <main className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-4">
+          {activeSection !== "overview" && activeSection !== "build-business" && (
+            <AbbyConsultantBanner compact onAnalyze={() => setActiveSection("build-business")} />
+          )}
           {renderSection()}
         </main>
       </div>
