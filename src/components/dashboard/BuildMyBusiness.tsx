@@ -756,7 +756,7 @@ export default function BuildMyBusiness() {
                           <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => handleBookSelect(book)}>
                             Chat with Abby
                           </Button>
-                          <Button size="sm" className="text-xs h-7 bg-secondary text-secondary-foreground hover:bg-secondary/90" onClick={() => navigate(`/dashboard?section=revenue-streams`)}>
+                          <Button size="sm" className="text-xs h-7 bg-secondary text-secondary-foreground hover:bg-secondary/90" onClick={() => navigate(`/dashboard/book/${book.id}`)}>
                             Start Building →
                           </Button>
                         </div>
