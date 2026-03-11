@@ -136,16 +136,26 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
   };
 
   const getNodeState = (node: Node): ProductCardState => {
+    // Planned nodes are always "coming-soon" regardless of other state
+    if (node.status === "planned") return "coming-soon";
+
     const nodeIdMap: Record<string, string> = {
-      "courses": "courses", "home-study": "home_study_courses", "webinars": "webinars",
-      "audiobook": "audiobooks", "workbooks": "workbook",
+      "courses": "courses",
+      "home-study": "home_study_courses",
+      "audiobook": "audiobooks",
+      "workbooks": "workbooks",
+      "podcast-guest": "podcasts",
+      "social-media": "social_media_content",
+      "email-marketing": "email_flows",
+      "coaching-1on1": "coaching_packages",
+      "group-coaching": "coaching_packages",
+      "keynotes": "speaking_topics",
     };
     if (publishedProducts.has(nodeIdMap[node.id] || "")) return "published";
     if (builtProducts.has(node.id) || builtProducts.has(nodeIdMap[node.id] || "")) return "in-progress";
     if (node.tierRequired && !hasTierAccess(node.tierRequired)) return "locked";
     const isRecommended = recommendations.some(r => r.nodeId === node.id || r.nodeId.includes(node.id.split("-")[0]));
     if (isRecommended) return "recommended";
-    // BUG-029: Default to "available" (not "live") — products start as not_started
     return "available";
   };
 
