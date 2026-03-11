@@ -163,7 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     // Safety timeout: ensure loading resolves within 5 seconds
-    const timeout = setTimeout(() => setLoading(false), 5000);
+    const timeout = setTimeout(() => setLoading(false), 3000);
 
     return () => {
       authSub.unsubscribe();

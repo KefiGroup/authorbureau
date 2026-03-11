@@ -47,69 +47,43 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
       const token = await getActiveToken();
       if (!token) { setError("Unable to authenticate. Please sign out and back in."); setLoading(false); return; }
 
-      // Fetch dashboard state
-      const res = await fetchWithTimeout(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dashboard-state`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        }
-      );
-      const state = await res.json();
+      const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 
+      // Fire ALL requests in parallel instead of sequential waterfall
+      const [stateRes, booksRes, slugRes] = await Promise.all([
+        fetchWithTimeout(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dashboard-state`, { method: "POST", headers }),
+        fetchWithTimeout(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`, { method: "POST", headers }),
+        cloudSupabase.from("author_profiles").select("author_slug").eq("user_id", user.id).maybeSingle(),
+      ]);
+
+      const [state, booksData] = await Promise.all([stateRes.json(), booksRes.json()]);
+
+      // Apply profile state
       if (state.profile) {
         const p = state.profile;
         const hasName = !!p.pen_name?.trim();
         const hasPhoto = !!p.photo_url?.trim();
         const hasBio = !!(p.bio_long?.trim() || p.bio_short?.trim());
         const isListed = ["listed", "verified", "featured"].includes(p.directory_status);
-
         setAuthorName(p.pen_name || "");
         setAuthorPhoto(p.photo_url || "");
-
-        if (isListed && hasName && hasPhoto && hasBio) {
-          setProfileState("live");
-        } else if (hasName || hasPhoto) {
-          setProfileState("incomplete");
-        } else {
-          setProfileState("none");
-        }
+        setProfileState(isListed && hasName && hasPhoto && hasBio ? "live" : (hasName || hasPhoto ? "incomplete" : "none"));
       }
 
       setBookCount(state.bookCount || 0);
+      if (slugRes.data?.author_slug) setAuthorSlug(slugRes.data.author_slug);
 
-      // Fetch books for covers and slug
-      const booksRes = await fetchWithTimeout(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`,
-        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } }
-      );
-      const booksData = await booksRes.json();
       if (booksData.books) {
         setBookCovers(booksData.books.filter((b: any) => b.cover_image_url).map((b: any) => b.cover_image_url).slice(0, 3));
-        // Get author slug from profile directly via database
-        const { data: profileRow } = await cloudSupabase
-          .from("author_profiles")
-          .select("author_slug")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        if (profileRow?.author_slug) {
-          setAuthorSlug(profileRow.author_slug);
-        }
 
-        // Check for business plans (generated_assets with type business_plan)
+        // Check for business plan (non-blocking, don't delay loading)
         if (booksData.books.length > 0) {
           const firstBook = booksData.books[0];
-          try {
-            const planRes = await fetchWithTimeout(
-              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/abby-execute`,
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ action: "status", bookId: firstBook.id }),
-              },
-              10000
-            );
-            const planData = await planRes.json();
+          fetchWithTimeout(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/abby-execute`,
+            { method: "POST", headers, body: JSON.stringify({ action: "status", bookId: firstBook.id }) },
+            10000
+          ).then(r => r.json()).then(planData => {
             if (planData.plan) {
               setHasPlan(true);
               setPlanSummary({
@@ -121,9 +95,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
               setBuiltProducts(planData.completedAssets || []);
               setRecommendedByAbby(planData.plan.products?.map((p: any) => p.name || p.label) || []);
             }
-          } catch {
-            // No plan available - non-critical
-          }
+          }).catch(() => { /* non-critical */ });
         }
       }
     } catch (err: any) {

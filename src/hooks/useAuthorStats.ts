@@ -29,12 +29,23 @@ const DEFAULT_STATS: AuthorStats = {
   },
 };
 
-export function useAuthorStats(userId: string | undefined) {
-  const [stats, setStats] = useState<AuthorStats>(DEFAULT_STATS);
-  const [loading, setLoading] = useState(true);
+// Module-level cache to prevent re-fetches across remounts
+let cachedStats: AuthorStats | null = null;
+let cacheTimestamp = 0;
+const CACHE_TTL = 30_000; // 30 seconds
 
-  const refetch = useCallback(async () => {
+export function useAuthorStats(userId: string | undefined) {
+  const [stats, setStats] = useState<AuthorStats>(cachedStats || DEFAULT_STATS);
+  const [loading, setLoading] = useState(!cachedStats);
+
+  const refetch = useCallback(async (force = false) => {
     if (!userId) return;
+    // Use cache if fresh and not forced
+    if (!force && cachedStats && Date.now() - cacheTimestamp < CACHE_TTL) {
+      setStats(cachedStats);
+      setLoading(false);
+      return;
+    }
     try {
       const token = await getActiveToken();
       if (!token) return;
@@ -47,6 +58,8 @@ export function useAuthorStats(userId: string | undefined) {
       );
       if (resp.ok) {
         const data = await resp.json();
+        cachedStats = data;
+        cacheTimestamp = Date.now();
         setStats(data);
       }
     } catch (err) {
@@ -60,5 +73,5 @@ export function useAuthorStats(userId: string | undefined) {
     refetch();
   }, [refetch]);
 
-  return { stats, loading, refetch };
+  return { stats, loading, refetch: () => refetch(true) };
 }
