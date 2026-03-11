@@ -385,7 +385,7 @@ export default function BuildMyBusiness() {
   };
 
   const parseNavMarkers = (content: string): string[] => {
-    const regex = /===NAV:(\w+)===/g;
+    const regex = /===NAV:([\w-]+)===/g;
     const markers: string[] = [];
     let match;
     while ((match = regex.exec(content)) !== null) {
