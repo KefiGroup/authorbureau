@@ -324,7 +324,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
         </div>
         <h2 className="font-heading text-2xl font-bold">My Contacts</h2>
         <p className="text-muted-foreground text-sm max-w-md mx-auto leading-relaxed">
-          Your contact list will grow as readers engage with your microsite, download your resources,
+          Your contact list will grow as readers engage with your website, download your resources,
           sign up for your courses, and attend your events. Build your first product to start collecting contacts.
         </p>
         <div className="flex gap-3 justify-center flex-wrap">
