@@ -40,12 +40,11 @@ interface Props {
 }
 
 export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
-  const { isPremium, isAdmin, tier } = useAuth();
+  const { isPremium, isAdmin, tier, user } = useAuth();
   const { onboarding_complete } = useStripeConnect();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("revenue");
   const [slug, setSlug] = useState(authorSlug || "");
-  const { user } = useAuth();
 
   // Fetch author slug if not provided
   useEffect(() => {
