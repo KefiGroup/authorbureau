@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
         .eq("id", bookId);
       if (approveError) throw approveError;
 
-      // Send "Microsite Live" email notification
+      // Send "Book Page Live" email notification
       try {
         // Get book details for the email
         const { data: approvedBook } = await adminClient
