@@ -10,6 +10,7 @@ import {
   Palette, User, ArrowRight, Eye,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import ManusHandoffCard from "./microsite/ManusHandoffCard";
 
 interface MicrositePage {
   id: string;
@@ -296,6 +297,9 @@ export default function MicrositeManager({ onNavigate }: Props) {
           );
         })}
       </div>
+
+      {/* Manus Handoff */}
+      <ManusHandoffCard profileExists={profileExists} />
 
       {/* Footer */}
       <Card className="p-4 border-border">
