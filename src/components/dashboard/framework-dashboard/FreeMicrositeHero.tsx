@@ -70,7 +70,7 @@ export default function FreeMicrositeHero({
           {profileState === "none" && (
             <Button onClick={onSetupMicrosite} size="lg" className="w-fit bg-amber-600 hover:bg-amber-700 text-white shadow-lg">
               <Globe className="h-4 w-4 mr-2" />
-              Set Up Your Free Microsite →
+              Set Up Your Free Author Page →
             </Button>
           )}
           {profileState === "incomplete" && (
