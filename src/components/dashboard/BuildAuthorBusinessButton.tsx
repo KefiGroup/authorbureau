@@ -252,7 +252,7 @@ export default function BuildAuthorBusinessButton({
           </div>
         </div>
         <p className="text-[10px] text-muted-foreground text-center">
-          Or build products individually from the sidebar →
+          Or build products individually from the sidebar
         </p>
       </CardContent>
     </Card>
