@@ -14,7 +14,7 @@ import Footer from "@/components/Footer";
 import heroBg from "@/assets/hero-bg.jpg";
 import paulineFullPhoto from "@/assets/pauline-teo.jpeg";
 import besuckcessfulCover from "@/assets/besuckcessful-cover.jpg";
-import { Helmet } from "react-helmet-abstract";
+
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
