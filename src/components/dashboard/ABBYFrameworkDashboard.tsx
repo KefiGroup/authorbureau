@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth, TIERS } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
