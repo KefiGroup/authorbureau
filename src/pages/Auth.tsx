@@ -107,9 +107,17 @@ export default function Auth() {
     })();
   }, [location.hash]);
 
-  
+  // Fail-safe: if auth context loading gets stuck, still show the sign-in form
+  useEffect(() => {
+    if (!loading) {
+      setAuthLoadingFallback(false);
+      return;
+    }
+    const timeout = setTimeout(() => setAuthLoadingFallback(true), 2500);
+    return () => clearTimeout(timeout);
+  }, [loading]);
 
-  if (loading || magicLinkProcessing) {
+  if ((loading && !authLoadingFallback) || magicLinkProcessing) {
     return (
       <div className="min-h-screen">
         <Navbar />
