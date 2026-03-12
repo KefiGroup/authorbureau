@@ -215,7 +215,7 @@ export function getStudioPath(nodeId: string, bookId: string, titleParam: string
     audiobook: `/dashboard?section=audiobook-studio&bookId=${bookId}${titleParam}`,
     "coaching-1on1": `/dashboard?section=coaching&bookId=${bookId}${titleParam}&builder=coaching-1on1`,
     keynotes: `/dashboard?section=speaking&bookId=${bookId}${titleParam}`,
-    courses: `/dashboard?section=courses&bookId=${bookId}${titleParam}&wizard=ai`,
+    courses: `/dashboard?section=courses&bookId=${bookId}${titleParam}&builder=online-course`,
     "home-study": `/dashboard?section=home-study&bookId=${bookId}${titleParam}`,
     "email-marketing": `/dashboard?section=email-marketing&bookId=${bookId}${titleParam}`,
     "podcast-guest": `/dashboard?section=podcast&bookId=${bookId}${titleParam}`,
