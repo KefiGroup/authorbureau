@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { getStudioPath } from "@/config/abbyFrameworkConfig";
 import { motion } from "framer-motion";
 import { Sparkles, Zap, FileText, Upload, Download, Loader2, Lock, ArrowRight, CheckCircle2 } from "lucide-react";
 import BookHubSkeleton from "./BookHubSkeleton";
@@ -303,7 +304,15 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
                   <span className="text-xs text-muted-foreground">{rec.revenue}</span>
                 </div>
                 {canAccess ? (
-                  <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-teal-700 border-teal-300 hover:bg-teal-50" onClick={() => onNavigateTab("revenue-streams")}>
+                  <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-teal-700 border-teal-300 hover:bg-teal-50" onClick={() => {
+                    const titleParam = book.title ? `&bookTitle=${encodeURIComponent(book.title)}` : "";
+                    const studioPath = getStudioPath(rec.nodeId, book.id, titleParam);
+                    if (studioPath) {
+                      navigate(studioPath);
+                    } else {
+                      onNavigateTab("revenue-streams");
+                    }
+                  }}>
                     Build Now <ArrowRight className="h-3 w-3" />
                   </Button>
                 ) : (
