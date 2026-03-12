@@ -10,7 +10,7 @@ import type { WorkbookStepProps } from "./types";
 import { toast } from "sonner";
 import { generateWithAI } from "@/lib/ai-generate";
 
-export default function ContentGeneratorStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, generationState, setGenerationState }: WorkbookStepProps) {
+export default function ContentGeneratorStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, setGenerationState }: WorkbookStepProps) {
   const sections: WorkbookSection[] = stepData.sections || [];
   const [activeIdx, setActiveIdx] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
