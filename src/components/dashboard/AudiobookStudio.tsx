@@ -94,6 +94,57 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
 
   useEffect(() => { loadManuscript(); }, [loadManuscript]);
 
+  // Restore previously parsed chapters & generated audio from storage
+  useEffect(() => {
+    const storageKey = `audiobook-chapters-${bookId}`;
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      try {
+        const parsed: ChapterAudio[] = JSON.parse(saved);
+        if (parsed.length > 0) {
+          setChapters(parsed);
+          console.log(`Restored ${parsed.length} chapters from cache`);
+        }
+      } catch { /* ignore */ }
+    }
+
+    // Also check storage bucket for any previously generated audio files
+    (async () => {
+      try {
+        const { data: files } = await supabase.storage
+          .from("audiobook-audio")
+          .list(`${userId}/${bookId}`, { limit: 200 });
+        if (files && files.length > 0) {
+          const audioMap = new Map<number, string>();
+          for (const f of files) {
+            const match = f.name.match(/chapter-(\d+)/);
+            if (match) {
+              const idx = parseInt(match[1], 10);
+              const { data: urlData } = supabase.storage
+                .from("audiobook-audio")
+                .getPublicUrl(`${userId}/${bookId}/${f.name}`);
+              audioMap.set(idx, urlData.publicUrl);
+            }
+          }
+          if (audioMap.size > 0) {
+            setChapters(prev => {
+              if (prev.length === 0) return prev;
+              return prev.map(ch => {
+                const url = audioMap.get(ch.index);
+                if (url && ch.status !== "done") {
+                  return { ...ch, status: "done" as const, audioUrl: url };
+                }
+                return ch;
+              });
+            });
+          }
+        }
+      } catch (e) {
+        console.error("Failed to check existing audio files:", e);
+      }
+    })();
+  }, [bookId, userId]);
+
   // Check if audiobook is already distributed
   useEffect(() => {
     (async () => {
@@ -183,6 +234,13 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
     setChapters(parsed);
     toast({ title: `${parsed.length} chapters detected`, description: "Ready to generate audio." });
   }, [manuscript]);
+
+  // Persist chapters to localStorage whenever they change
+  useEffect(() => {
+    if (chapters.length > 0) {
+      localStorage.setItem(`audiobook-chapters-${bookId}`, JSON.stringify(chapters));
+    }
+  }, [chapters, bookId]);
 
   // Preview voice
   const handlePreviewVoice = async () => {
