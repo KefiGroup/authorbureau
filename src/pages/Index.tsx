@@ -456,22 +456,9 @@ export default function Index() {
         </div>
       </section>
 
-      {/* ===== SECTION 8: KNOW YOUR PRODUCTS + Comparison Infographic ===== */}
+      {/* ===== SECTION 8: KNOW YOUR PRODUCTS — Infographic Only ===== */}
       <section className="py-24 border-b border-border">
         <div className="container">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} className="mb-12 text-center">
-            <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
-              Know Your Products
-            </motion.p>
-            <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-4xl mb-4">
-              Not Sure What to Build First?
-            </motion.h2>
-            <motion.p variants={fadeUp} custom={2} className="text-muted-foreground max-w-2xl mx-auto">
-              Many authors confuse similar-sounding products. Here's a plain-English guide to help you understand the difference and which ones are right for your book.
-            </motion.p>
-          </motion.div>
-
-          {/* Comparison Infographic */}
           <motion.img
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -479,46 +466,9 @@ export default function Index() {
             transition={{ duration: 0.6 }}
             src="/images/journey-comparison.png"
             alt="Know Your Products — Learning, Coaching, and Speaking product comparison"
-            className="w-full max-w-5xl mx-auto rounded-2xl shadow-xl mb-12"
+            className="w-full max-w-5xl mx-auto rounded-2xl shadow-xl"
             loading="lazy"
           />
-
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0} variants={fadeUp} className="mx-auto max-w-3xl">
-            <Accordion type="single" collapsible className="space-y-3">
-              <AccordionItem value="workbook-vs-course" className="rounded-xl border border-border bg-card px-6">
-                <AccordionTrigger className="font-heading font-semibold text-left">
-                  What's the difference between a Workbook, Home Study, and Online Course?
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground space-y-3 pb-4">
-                  <p><strong className="text-foreground">Workbook ($17–$47):</strong> A downloadable PDF with exercises. Think of it as homework from your book. The reader fills it in themselves. Sells on autopilot.</p>
-                  <p><strong className="text-foreground">Home Study ($47–$197):</strong> A self-paced bundle with your book, video lessons, and a workbook. Like a "course in a box" the reader does alone. No live interaction needed.</p>
-                  <p><strong className="text-foreground">Online Course ($97–$497):</strong> A structured learning experience with modules, quizzes and possibly a community. You may do live Q&A sessions. Higher price, higher value.</p>
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="coaching-types" className="rounded-xl border border-border bg-card px-6">
-                <AccordionTrigger className="font-heading font-semibold text-left">
-                  What's the difference between 1-on-1 Coaching, Group Coaching, and a Mastermind?
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground space-y-3 pb-4">
-                  <p><strong className="text-foreground">1-on-1 Coaching ($150–$500/session):</strong> Private sessions where you help one person. Highest price per hour, but limited by your time.</p>
-                  <p><strong className="text-foreground">Group Coaching ($97–$297/month):</strong> You coach 10–30 people at once via group call. Same expertise, more people, more income per hour.</p>
-                  <p><strong className="text-foreground">Mastermind ($5,000–$25,000/year):</strong> A premium peer group you facilitate. Members pay for access to each other AND you. Highest revenue per member.</p>
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="speaking-types" className="rounded-xl border border-border bg-card px-6">
-                <AccordionTrigger className="font-heading font-semibold text-left">
-                  What's the difference between Keynotes, In-House Speaking, and Training Programs?
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground space-y-3 pb-4">
-                  <p><strong className="text-foreground">Keynote ($2,500–$15,000):</strong> A single inspirational speech at a conference. You fly in, speak for 45–60 minutes, and leave. One-time fee.</p>
-                  <p><strong className="text-foreground">In-House Speaker ($1,500–$5,000):</strong> A company hires you to speak to their team. More intimate, often includes Q&A. Can lead to consulting contracts.</p>
-                  <p><strong className="text-foreground">Training Program ($5,000–$50,000):</strong> A multi-session program for a company. You deliver workshops over days or weeks. Highest total value per client.</p>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          </motion.div>
         </div>
       </section>
 
