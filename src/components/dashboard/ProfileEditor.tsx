@@ -363,7 +363,7 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
         <div>
           <h2 className="font-heading text-2xl font-bold">Set Up Your Author Profile</h2>
           <p className="text-muted-foreground text-sm mt-2 max-w-md mx-auto">
-            Create your profile to get started. This powers your public author page and website.
+            Create your profile to get started. This powers your public directory profile and website.
           </p>
         </div>
         <div className="flex gap-3 justify-center">

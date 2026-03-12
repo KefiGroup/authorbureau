@@ -360,13 +360,39 @@ export default function AuthorProfile() {
         </section>
       )}
 
+      {/* Visit Full Author Website CTA */}
+      {author.websiteUrl && (
+        <section className="border-t border-border py-10">
+          <div className="container max-w-4xl">
+            <Card className="border-secondary/20 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-all rounded-2xl overflow-hidden">
+              <CardContent className="p-6 flex flex-col sm:flex-row items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center shrink-0">
+                  <Globe className="h-6 w-6 text-secondary" />
+                </div>
+                <div className="flex-1 text-center sm:text-left">
+                  <h3 className="font-heading text-lg font-bold">Visit {author.name.split(" ")[0]}'s Full Website</h3>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Explore their complete author headquarters — products, courses, coaching, and more.
+                  </p>
+                </div>
+                <Button asChild className="bg-secondary text-secondary-foreground hover:bg-secondary/90 shrink-0">
+                  <a href={author.websiteUrl} target="_blank" rel="noopener noreferrer">
+                    Visit Website <ExternalLink className="h-4 w-4 ml-2" />
+                  </a>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+      )}
+
       {/* PublishNow relationship note */}
       <section className="border-t border-border py-8">
         <div className="container max-w-4xl">
           <div className="rounded-xl border border-border bg-muted/30 p-5 flex items-start gap-3">
             <Globe className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
             <p className="text-sm text-muted-foreground">
-              To manage your public author brand consistently across all platforms, your core profile is managed via our sister platform, <a href="https://publishnow.io" target="_blank" rel="noopener noreferrer" className="text-secondary hover:underline">PublishNow.io</a>. Changes you make there will be reflected across the entire author ecosystem.
+              This is {author.name.split(" ")[0]}'s directory profile on Authors Bureau. To manage your public author brand, your core profile is managed via our sister platform, <a href="https://publishnow.io" target="_blank" rel="noopener noreferrer" className="text-secondary hover:underline">PublishNow.io</a>.
             </p>
           </div>
         </div>

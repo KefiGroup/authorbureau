@@ -37,7 +37,7 @@ export default function FreeMicrositeHero({
           </span>
 
           <h2 className="font-heading text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 leading-tight">
-            Your Professional Author Page — <span className="text-amber-700">Live & Free</span>
+            Your Public Directory Profile — <span className="text-amber-700">Live & Free</span>
           </h2>
 
           <p className="text-sm md:text-base text-gray-700 leading-relaxed max-w-lg">
@@ -70,7 +70,7 @@ export default function FreeMicrositeHero({
           {profileState === "none" && (
             <Button onClick={onSetupMicrosite} size="lg" className="w-fit bg-amber-600 hover:bg-amber-700 text-white shadow-lg">
               <Globe className="h-4 w-4 mr-2" />
-              Set Up Your Free Author Page →
+              Set Up Your Free Directory Profile →
             </Button>
           )}
           {profileState === "incomplete" && (
@@ -82,7 +82,7 @@ export default function FreeMicrositeHero({
           {profileState === "live" && (
             <Button onClick={onViewMicrosite} size="lg" className="w-fit bg-green-600 hover:bg-green-700 text-white shadow-lg">
               <ExternalLink className="h-4 w-4 mr-2" />
-              View Your Live Author Page ↗
+              View Your Live Directory Profile ↗
             </Button>
           )}
         </div>
