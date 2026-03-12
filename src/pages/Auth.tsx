@@ -9,7 +9,6 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
-import { getPublishNowAuthUrl } from "@/lib/publishnow-auth";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
@@ -59,7 +58,7 @@ export default function Auth() {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const publishNowAuthUrl = getPublishNowAuthUrl("/dashboard");
+  const redirectTo = new URLSearchParams(location.search).get("redirect") || "/dashboard";
 
   const [mode, setMode] = useState<SignInMode>("password");
   const [flow, setFlow] = useState<FlowState>("password-login");
@@ -108,29 +107,23 @@ export default function Auth() {
     })();
   }, [location.hash]);
 
-  // ─── Redirect to PublishNow for auth if no callback token ───
-  const hasCallbackToken = location.hash?.includes("auth_token");
-  useEffect(() => {
-    if (!loading && !magicLinkProcessing && !user && !hasCallbackToken) {
-      window.location.href = publishNowAuthUrl;
-    }
-  }, [loading, magicLinkProcessing, user, hasCallbackToken, publishNowAuthUrl]);
+  
 
-  if (loading || magicLinkProcessing || (!user && !hasCallbackToken)) {
+  if (loading || magicLinkProcessing) {
     return (
       <div className="min-h-screen">
         <Navbar />
         <section className="py-20">
           <div className="container max-w-md flex flex-col items-center gap-4">
             <Loader2 className="h-8 w-8 animate-spin text-secondary" />
-            <p className="text-sm text-muted-foreground">Redirecting to sign in...</p>
+            <p className="text-sm text-muted-foreground">Preparing sign in...</p>
           </div>
         </section>
         <Footer />
       </div>
     );
   }
-  if (user) return <Navigate to="/dashboard" replace />;
+  if (user) return <Navigate to={redirectTo} replace />;
 
   // ─── Handlers ───
   const handleRequestCode = async (e: React.FormEvent) => {
