@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,12 +11,66 @@ import { toast } from "sonner";
 import { generateWithAI } from "@/lib/ai-generate";
 
 const ALL_CONTENT_TYPES: ContentType[] = ["reflection", "exercise", "checklist", "action-plan", "template", "self-assessment", "goal-setting"];
+const DEFAULT_CONTENT_TYPES: ContentType[] = ["reflection", "exercise", "checklist"];
 
-export default function ChapterMappingStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, generationState, setGenerationState, userId }: WorkbookStepProps) {
+function getArrayPayload(raw: string): WorkbookSection[] {
+  const cleaned = raw
+    .replace(/^```(?:json)?\s*\n?/i, "")
+    .replace(/\n?```\s*$/i, "")
+    .trim();
+
+  const match = cleaned.match(/\[[\s\S]*\]/);
+  if (!match) return [];
+
+  const jsonCandidate = match[0];
+  const attempts = [
+    jsonCandidate,
+    jsonCandidate.replace(/,\s*([}\]])/g, "$1"),
+    jsonCandidate.replace(/}\s*{/g, "},{"),
+    jsonCandidate.replace(/,\s*([}\]])/g, "$1").replace(/}\s*{/g, "},{"),
+  ];
+
+  for (const attempt of attempts) {
+    try {
+      const parsed = JSON.parse(attempt);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {
+      // continue
+    }
+  }
+
+  return [];
+}
+
+export default function ChapterMappingStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, generationState, setGenerationState }: WorkbookStepProps) {
   const sections: WorkbookSection[] = stepData.sections || [];
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [hadGenerationError, setHadGenerationError] = useState(false);
+
+  const globalContentTypes: ContentType[] = useMemo(() => {
+    const fromState = stepData.globalContentTypes as ContentType[] | undefined;
+    return Array.isArray(fromState) && fromState.length > 0 ? fromState : DEFAULT_CONTENT_TYPES;
+  }, [stepData.globalContentTypes]);
+
+  const syncGlobalContentTypes = (nextTypes: ContentType[]) => {
+    setStepData(prev => ({
+      ...prev,
+      globalContentTypes: nextTypes,
+      sections: (prev.sections || []).map((s: WorkbookSection) => ({ ...s, contentTypes: nextTypes })),
+    }));
+    onMarkEdited("mapping");
+  };
+
+  const toggleGlobalContentType = (type: ContentType) => {
+    const hasType = globalContentTypes.includes(type);
+    const next = hasType ? globalContentTypes.filter(t => t !== type) : [...globalContentTypes, type];
+    if (next.length === 0) {
+      toast.error("Select at least one content type.");
+      return;
+    }
+    syncGlobalContentTypes(next);
+  };
 
   const handleGenerate = async () => {
     if (isGenerating) return;
@@ -27,7 +81,7 @@ export default function ChapterMappingStep({ stepData, setStepData, onMarkEdited
 
     try {
       setGenerationState("analyzing");
-      const prompt = `You are an expert workbook designer. Given a book titled "${bookTitle}" (book_id: ${bookId}), generate a workbook chapter mapping. Return a JSON array of sections, each with: id, chapterRef (which book chapter it maps to), title, position, contentTypes (array from: reflection, exercise, checklist, action-plan, template, self-assessment, goal-setting). Generate 12-15 sections mapping to the book chapters. Return ONLY the JSON array, no other text.`;
+      const prompt = `You are an expert workbook designer. Given a book titled "${bookTitle}" (book_id: ${bookId}), generate a whole-book workbook structure. Return a JSON array only (no markdown) with 10-14 sections. Each section must have: id, title, position. Do NOT include chapter mapping fields.`;
 
       setGenerationState("generating");
       const rawText = await generateWithAI(prompt, {
@@ -36,55 +90,41 @@ export default function ChapterMappingStep({ stepData, setStepData, onMarkEdited
         builderMode: true,
         builderId: "workbook",
         builderLabel: "Workbook Builder",
-        builderStep: "Chapter Mapping",
+        builderStep: "Workbook Structure",
       });
 
-      let parsed: WorkbookSection[] = [];
-      try {
-        const cleaned = rawText
-          .replace(/^```(?:json)?\s*\n?/i, "")
-          .replace(/\n?```\s*$/i, "")
-          .trim();
-        const match = cleaned.match(/\[[\s\S]*\]/);
-        if (match) parsed = JSON.parse(match[0]);
-      } catch {
-        parsed = [];
-      }
+      let parsed = getArrayPayload(rawText);
 
       if (!Array.isArray(parsed) || parsed.length === 0) {
         parsed = Array.from({ length: 12 }, (_, i) => ({
           id: `section-${i + 1}`,
-          chapterRef: `Chapter ${i + 1}`,
-          title: `Section ${i + 1}: Key Concepts & Exercises`,
+          title: `Section ${i + 1}: Core Concepts & Practice`,
           position: i,
-          contentTypes: ["reflection", "exercise", "checklist"] as ContentType[],
-          intro: "",
-          elements: [],
-          takeaway: "",
-        }));
+        })) as WorkbookSection[];
       }
 
-      const normalized: WorkbookSection[] = parsed.map((section, idx) => ({
+      const normalized: WorkbookSection[] = parsed.map((section: any, idx) => ({
         id: section.id || `section-${idx + 1}`,
-        chapterRef: section.chapterRef || `Chapter ${idx + 1}`,
         title: section.title || `Section ${idx + 1}`,
         position: typeof section.position === "number" ? section.position : idx,
-        contentTypes: Array.isArray(section.contentTypes) && section.contentTypes.length > 0
-          ? section.contentTypes.filter((type): type is ContentType => ALL_CONTENT_TYPES.includes(type as ContentType))
-          : (["reflection", "exercise", "checklist"] as ContentType[]),
+        contentTypes: globalContentTypes,
         intro: section.intro || "",
         elements: Array.isArray(section.elements) ? section.elements : [],
         takeaway: section.takeaway || "",
       }));
 
-      setStepData(prev => ({ ...prev, sections: normalized }));
+      setStepData(prev => ({
+        ...prev,
+        globalContentTypes,
+        sections: normalized,
+      }));
       onMarkEdited("mapping");
       setGenerationState("complete");
-      toast.success(`Mapped ${normalized.length} workbook sections!`);
+      toast.success(`Built a ${normalized.length}-section workbook structure!`);
     } catch (err: any) {
       setHadGenerationError(true);
       setGenerationState("error");
-      toast.error(err?.message || "Failed to generate chapter mapping");
+      toast.error(err?.message || "Failed to generate workbook structure");
     } finally {
       setIsGenerating(false);
     }
@@ -100,15 +140,6 @@ export default function ChapterMappingStep({ stepData, setStepData, onMarkEdited
     onMarkEdited("mapping");
   };
 
-  const toggleContentType = (sectionId: string, type: ContentType) => {
-    const section = sections.find(s => s.id === sectionId);
-    if (!section) return;
-    const types = section.contentTypes.includes(type)
-      ? section.contentTypes.filter(t => t !== type)
-      : [...section.contentTypes, type];
-    updateSection(sectionId, { contentTypes: types });
-  };
-
   const removeSection = (id: string) => {
     setStepData(prev => ({
       ...prev,
@@ -120,10 +151,9 @@ export default function ChapterMappingStep({ stepData, setStepData, onMarkEdited
   const addSection = () => {
     const newSection: WorkbookSection = {
       id: `section-${Date.now()}`,
-      chapterRef: "",
       title: "New Section",
       position: sections.length,
-      contentTypes: ["exercise", "reflection"],
+      contentTypes: globalContentTypes,
       intro: "",
       elements: [],
       takeaway: "",
@@ -136,17 +166,17 @@ export default function ChapterMappingStep({ stepData, setStepData, onMarkEdited
     return (
       <div className="text-center py-12">
         <Wand2 className="h-10 w-10 text-muted-foreground/30 mx-auto mb-4" />
-        <h3 className="font-heading text-lg font-semibold mb-2">Map Book Chapters to Workbook Sections</h3>
+        <h3 className="font-heading text-lg font-semibold mb-2">Build Your Workbook Structure</h3>
         <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
-          AI will analyze your manuscript and create a section-by-section mapping with recommended content types.
+          AI will create a full-book section structure; you choose content types once for the whole workbook.
         </p>
         <Button onClick={handleGenerate} disabled={isGenerating}>
           {isGenerating ? (
             <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Generating...</>
           ) : hadGenerationError || generationState === "error" ? (
-            <><Wand2 className="h-4 w-4 mr-2" /> Retry Chapter Mapping</>
+            <><Wand2 className="h-4 w-4 mr-2" /> Retry Structure Generation</>
           ) : (
-            <><Wand2 className="h-4 w-4 mr-2" /> Generate Chapter Mapping</>
+            <><Wand2 className="h-4 w-4 mr-2" /> Generate Workbook Structure</>
           )}
         </Button>
       </div>
@@ -156,18 +186,35 @@ export default function ChapterMappingStep({ stepData, setStepData, onMarkEdited
   return (
     <div className="space-y-4">
       <StepInstructions
-        summary="Each book chapter is mapped to a workbook section. Sections define which content types (reflections, exercises, checklists, etc.) will be generated for that chapter in the next step."
+        summary="Create the workbook structure first, then apply one content-type set across the whole workbook."
         items={[
-          { label: "Add Section", description: "manually create a new workbook section for content not tied to a specific chapter." },
-          { label: "Regenerate", description: "re-run AI to create a fresh mapping, replacing all current sections." },
-          { label: "Expand a section", description: "click any workbook section to edit its title, chapter reference, and toggle content types on/off." },
-          { label: "Content type badges", description: "click to include or exclude that type from the section's generated content. Hover to see what each type means." },
-          { label: "Remove Section", description: "permanently delete a section you don't need." },
+          { label: "Content type selector", description: "choose the interactive content mix once; it applies to every section." },
+          { label: "Add Section", description: "manually create additional sections if you want to expand the workbook." },
+          { label: "Regenerate", description: "re-run AI to create a fresh section structure." },
+          { label: "Expand a section", description: "edit section titles and remove sections you don't need." },
         ]}
       />
 
+      <Card className="p-4">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Content Types for Entire Workbook</p>
+        <div className="flex flex-wrap gap-1.5">
+          {ALL_CONTENT_TYPES.map(type => (
+            <Badge
+              key={type}
+              variant={globalContentTypes.includes(type) ? "default" : "outline"}
+              className="text-[10px] cursor-pointer"
+              onClick={() => toggleGlobalContentType(type)}
+              title={CONTENT_TYPE_DESCRIPTIONS[type]}
+            >
+              {CONTENT_TYPE_LABELS[type]}
+            </Badge>
+          ))}
+        </div>
+        <p className="text-[10px] text-muted-foreground mt-2 italic">Hover a badge to see what it means</p>
+      </Card>
+
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{sections.length} sections mapped</p>
+        <p className="text-sm text-muted-foreground">{sections.length} sections in workbook structure</p>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={addSection}>
             <Plus className="h-3.5 w-3.5 mr-1" /> Add Section
@@ -178,74 +225,34 @@ export default function ChapterMappingStep({ stepData, setStepData, onMarkEdited
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Left: Book chapters */}
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Book Chapters</p>
-          <div className="space-y-1.5">
-            {sections.map(s => (
-              <Card key={s.id} className="p-2.5 text-xs flex items-center gap-2 bg-muted/30">
+      <div className="space-y-2">
+        {sections.map(s => {
+          const isExpanded = expandedId === s.id;
+          return (
+            <Card key={s.id} className="overflow-hidden">
+              <button
+                className="w-full p-3 flex items-center gap-2 text-left hover:bg-muted/30 transition-colors"
+                onClick={() => setExpandedId(isExpanded ? null : s.id)}
+              >
                 <GripVertical className="h-3 w-3 text-muted-foreground/40 shrink-0" />
-                <span className="font-medium truncate">{s.chapterRef || `Chapter ${s.position + 1}`}</span>
-                <Badge variant="outline" className="text-[9px] ml-auto shrink-0">{s.contentTypes.length} types</Badge>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        {/* Right: Workbook sections */}
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Workbook Sections</p>
-          <div className="space-y-2">
-            {sections.map(s => {
-              const isExpanded = expandedId === s.id;
-              return (
-                <Card key={s.id} className="overflow-hidden">
-                  <button
-                    className="w-full p-3 flex items-center gap-2 text-left hover:bg-muted/30 transition-colors"
-                    onClick={() => setExpandedId(isExpanded ? null : s.id)}
-                  >
-                    <GripVertical className="h-3 w-3 text-muted-foreground/40 shrink-0" />
-                    <span className="text-sm font-medium flex-1 truncate">{s.title}</span>
-                    {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                  </button>
-                  {isExpanded && (
-                    <div className="px-3 pb-3 space-y-3 border-t border-border pt-3">
-                      <div>
-                        <label className="text-[10px] font-medium block mb-1">Section Title</label>
-                        <Input value={s.title} onChange={e => updateSection(s.id, { title: e.target.value })} className="h-8 text-xs" />
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-medium block mb-1">Maps to Chapter</label>
-                        <Input value={s.chapterRef} onChange={e => updateSection(s.id, { chapterRef: e.target.value })} className="h-8 text-xs" />
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-medium block mb-1.5">Content Types <span className="font-normal text-muted-foreground">(click to toggle)</span></label>
-                        <div className="flex flex-wrap gap-1.5">
-                          {ALL_CONTENT_TYPES.map(type => (
-                            <Badge
-                              key={type}
-                              variant={s.contentTypes.includes(type) ? "default" : "outline"}
-                              className="text-[9px] cursor-pointer"
-                              onClick={() => toggleContentType(s.id, type)}
-                              title={CONTENT_TYPE_DESCRIPTIONS[type]}
-                            >
-                              {CONTENT_TYPE_LABELS[type]}
-                            </Badge>
-                          ))}
-                        </div>
-                        <p className="text-[10px] text-muted-foreground mt-1.5 italic">Hover over a badge to see what it means</p>
-                      </div>
-                      <Button variant="ghost" size="sm" className="text-destructive text-xs" onClick={() => removeSection(s.id)}>
-                        <Trash2 className="h-3 w-3 mr-1" /> Remove Section
-                      </Button>
-                    </div>
-                  )}
-                </Card>
-              );
-            })}
-          </div>
-        </div>
+                <span className="text-sm font-medium flex-1 truncate">{s.title}</span>
+                <Badge variant="outline" className="text-[9px] shrink-0">{globalContentTypes.length} global types</Badge>
+                {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+              </button>
+              {isExpanded && (
+                <div className="px-3 pb-3 space-y-3 border-t border-border pt-3">
+                  <div>
+                    <label className="text-[10px] font-medium block mb-1">Section Title</label>
+                    <Input value={s.title} onChange={e => updateSection(s.id, { title: e.target.value })} className="h-8 text-xs" />
+                  </div>
+                  <Button variant="ghost" size="sm" className="text-destructive text-xs" onClick={() => removeSection(s.id)}>
+                    <Trash2 className="h-3 w-3 mr-1" /> Remove Section
+                  </Button>
+                </div>
+              )}
+            </Card>
+          );
+        })}
       </div>
     </div>
   );

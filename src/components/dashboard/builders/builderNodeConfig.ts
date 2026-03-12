@@ -43,8 +43,8 @@ const workbookBuilder: BuilderNodeConfig = {
   ],
   steps: [
     { id: "setup", label: "Workbook Setup", description: "Set title, purpose, pricing, and design template", abbyTip: "Your business plan positions this workbook as a free lead magnet. Free workbooks with a strong CTA on the last page convert 15-25% of readers to your email list." },
-    { id: "mapping", label: "Chapter Mapping", description: "Map book chapters to workbook sections", abbyTip: "I've mapped your chapters into workbook sections. Chapters with practical advice get more exercises; reflective chapters get more journal prompts." },
-    { id: "content", label: "Content Generator", description: "Generate exercises, prompts, and checklists per section", abbyTip: "Each element should connect back to a specific chapter concept. Mix content types for variety — reflection → exercise → checklist keeps engagement high." },
+    { id: "mapping", label: "Workbook Structure", description: "Create whole-book section structure and choose global content types", abbyTip: "We'll structure the workbook for the full reader journey, then apply one consistent content-type mix across all sections." },
+    { id: "content", label: "Content Generator", description: "Generate exercises, prompts, and checklists per section", abbyTip: "Generate section-by-section for quality, then lightly edit to match your voice and examples." },
     { id: "design", label: "Design Preview", description: "Preview pages and switch design templates", abbyTip: "Clean, minimal designs with plenty of writing space perform best. Make sure your cover matches your book's visual identity." },
     { id: "publish", label: "Preview & Publish", description: "Final review, download PDF, and publish", abbyTip: "Double-check your call-to-action on the last page — it should lead to your online course or website." },
   ],

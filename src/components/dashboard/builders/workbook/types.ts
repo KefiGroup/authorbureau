@@ -14,7 +14,7 @@ export interface WorkbookStepProps {
 
 export interface WorkbookSection {
   id: string;
-  chapterRef: string;
+  chapterRef?: string;
   title: string;
   position: number;
   contentTypes: ContentType[];
