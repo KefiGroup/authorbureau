@@ -406,7 +406,7 @@ export default function Index() {
                       : "bg-secondary text-secondary-foreground hover:bg-secondary/90"
                   }`}
                 >
-                  <Link to="/get-featured">{path.cta}</Link>
+                  <a href={getPlanUrl(path.planKey || "starter")} target="_blank" rel="noopener noreferrer">{path.cta}</a>
                 </Button>
               </motion.div>
             ))}
