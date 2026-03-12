@@ -497,7 +497,7 @@ export default function Index() {
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground space-y-3 pb-4">
                   <p><strong className="text-foreground">Workbook ($17–$47):</strong> A downloadable PDF with exercises. Think of it as homework from your book. The reader fills it in themselves. Sells on autopilot.</p>
-                  <p><strong className="text-foreground">Home Study ($47–$197):</strong> A self-paced bundle — your book + video lessons + workbook. Like a "course in a box" the reader does alone. No live interaction needed.</p>
+                  <p><strong className="text-foreground">Home Study ($47–$197):</strong> A self-paced bundle with your book, video lessons, and a workbook. Like a "course in a box" the reader does alone. No live interaction needed.</p>
                   <p><strong className="text-foreground">Online Course ($97–$497):</strong> A structured learning experience with modules, quizzes and possibly a community. You may do live Q&A sessions. Higher price, higher value.</p>
                 </AccordionContent>
               </AccordionItem>
