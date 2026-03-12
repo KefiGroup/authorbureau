@@ -51,10 +51,10 @@ export default function CreateMicrosite() {
                   Your books are already in our shared system. Sign in to your Authors Bureau dashboard and your books will be ready to showcase.
                 </p>
                 <Button asChild className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90">
-                  <a href={getPublishNowAuthUrl("/dashboard")} rel="noopener noreferrer">
+                  <Link to={getPublishNowAuthUrl("/dashboard")}>
                     Sign In to Dashboard
                     <ArrowRight className="ml-2 h-4 w-4" />
-                  </a>
+                  </Link>
                 </Button>
               </div>
             </motion.div>
