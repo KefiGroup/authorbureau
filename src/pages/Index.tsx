@@ -295,7 +295,7 @@ export default function Index() {
               {
                 step: "2",
                 title: "BUILD Your Products",
-                tag: "$49/month",
+                tag: "BUILD",
                 desc: "Abby uses AI to create your first digital products: workbooks, online courses, email sequences, social media calendars, and your author website. All generated from your book content. You just review and approve.",
               },
               {
