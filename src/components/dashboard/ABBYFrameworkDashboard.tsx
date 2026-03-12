@@ -113,9 +113,11 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
     setLoading(false);
   };
 
+  const userId = user?.id;
   useEffect(() => {
     loadDashboard();
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   const handleSubscribe = async (planTier: "starter" | "pro" | "enterprise") => {
     setCheckoutLoading(true);
