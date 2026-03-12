@@ -235,6 +235,13 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
     toast({ title: `${parsed.length} chapters detected`, description: "Ready to generate audio." });
   }, [manuscript]);
 
+  // Persist chapters to localStorage whenever they change
+  useEffect(() => {
+    if (chapters.length > 0) {
+      localStorage.setItem(`audiobook-chapters-${bookId}`, JSON.stringify(chapters));
+    }
+  }, [chapters, bookId]);
+
   // Preview voice
   const handlePreviewVoice = async () => {
     if (previewAudio) {
