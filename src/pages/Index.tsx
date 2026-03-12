@@ -14,6 +14,10 @@ import Footer from "@/components/Footer";
 import heroBg from "@/assets/hero-bg.jpg";
 import paulineFullPhoto from "@/assets/pauline-teo.jpeg";
 import besuckcessfulCover from "@/assets/besuckcessful-cover.jpg";
+import { getPublishNowAuthUrl } from "@/lib/publishnow-auth";
+
+const SIGNUP_URL = getPublishNowAuthUrl("/dashboard");
+const getPlanUrl = (plan: string) => getPublishNowAuthUrl(`/dashboard?plan=${plan}`);
 
 
 const fadeUp = {
@@ -49,6 +53,7 @@ const pricingPaths = [
     cta: "Start Building →",
     badge: null,
     accent: false,
+    planKey: "starter",
   },
   {
     name: "The Serious Business",
@@ -63,6 +68,7 @@ const pricingPaths = [
     cta: "Start Your Business →",
     badge: "MOST POPULAR",
     accent: true,
+    planKey: "pro",
   },
   {
     name: "The Enterprise Builder",
@@ -77,6 +83,7 @@ const pricingPaths = [
     cta: "Build Your Empire →",
     badge: "BEST VALUE",
     accent: false,
+    planKey: "enterprise",
   },
 ];
 
@@ -147,7 +154,7 @@ export default function Index() {
 
             <motion.div variants={fadeUp} custom={3.5} className="flex flex-wrap justify-center gap-4">
               <Button asChild size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 text-base font-semibold shadow-[var(--shadow-gold)] rounded-full px-8">
-                <Link to="/get-featured">Get Featured Free <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                <a href={SIGNUP_URL} target="_blank" rel="noopener noreferrer">Get Featured Free <ArrowRight className="ml-2 h-4 w-4" /></a>
               </Button>
               <Button asChild size="lg" className="border-2 border-secondary/60 bg-transparent text-secondary hover:bg-secondary hover:text-secondary-foreground text-base font-semibold rounded-full px-8">
                 <a href="#how-it-works">See How It Works ↓</a>
@@ -402,7 +409,7 @@ export default function Index() {
                       : "bg-secondary text-secondary-foreground hover:bg-secondary/90"
                   }`}
                 >
-                  <Link to="/get-featured">{path.cta}</Link>
+                  <a href={getPlanUrl(path.planKey || "starter")} target="_blank" rel="noopener noreferrer">{path.cta}</a>
                 </Button>
               </motion.div>
             ))}
@@ -616,7 +623,7 @@ export default function Index() {
 
               <motion.div variants={fadeUp} custom={10}>
                 <Button asChild size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold shadow-[var(--shadow-gold)] rounded-full px-8">
-                  <Link to="/get-featured">Get Featured <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                  <a href={SIGNUP_URL} target="_blank" rel="noopener noreferrer">Get Featured <ArrowRight className="ml-2 h-4 w-4" /></a>
                 </Button>
               </motion.div>
             </motion.div>
@@ -720,7 +727,7 @@ export default function Index() {
             </motion.p>
             <motion.div variants={fadeUp} custom={2} className="flex flex-wrap justify-center gap-4">
               <Button asChild size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 text-base font-semibold shadow-[var(--shadow-gold)] rounded-full px-8">
-                <Link to="/get-featured">Get Featured Free <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                <a href={SIGNUP_URL} target="_blank" rel="noopener noreferrer">Get Featured Free <ArrowRight className="ml-2 h-4 w-4" /></a>
               </Button>
               <Button asChild size="lg" className="border-2 border-secondary/60 bg-transparent text-secondary hover:bg-secondary hover:text-secondary-foreground text-base font-semibold rounded-full px-8">
                 <a href="#pricing">See Pricing Plans →</a>

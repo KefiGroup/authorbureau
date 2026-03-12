@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, X, ChevronDown } from "lucide-react";
@@ -157,6 +158,7 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
 /* ─── Main Component ─── */
 export default function ABBYJourneyOnboarding({ userId, onComplete }: Props) {
   const [step, setStep] = useState(0);
+  const navigate = useNavigate();
 
   const dismiss = useCallback(async (selectedPath?: string) => {
     // Mark as seen in DB
@@ -165,7 +167,11 @@ export default function ABBYJourneyOnboarding({ userId, onComplete }: Props) {
       .update({ has_seen_journey_onboarding: true } as any)
       .eq("user_id", userId);
     onComplete(selectedPath);
-  }, [userId, onComplete]);
+    // If a plan was selected, navigate to subscription flow
+    if (selectedPath) {
+      navigate(`/dashboard?section=subscription&plan=${selectedPath}`);
+    }
+  }, [userId, onComplete, navigate]);
 
   const next = () => setStep((s) => Math.min(s + 1, 3));
 
