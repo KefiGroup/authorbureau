@@ -30,6 +30,7 @@ export default function AbbyAdvisorPanel({ bookId, bookTitle, productNode, produ
   const [chatMessages, setChatMessages] = useState<Array<{ role: string; content: string }>>([]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [showFirstVisit, setShowFirstVisit] = useState(() => !hasSeenBuilderFirstVisit(productNode));
 
   const getToken = async (): Promise<string> => {
     const { supabase } = await import("@/integrations/supabase/client");
