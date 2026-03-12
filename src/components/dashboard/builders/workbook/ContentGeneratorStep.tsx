@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Loader2, Wand2, ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
+import StepInstructions from "../shared/StepInstructions";
 import { CONTENT_TYPE_LABELS, type WorkbookSection, type WorkbookElement, type ContentType } from "./types";
 import type { WorkbookStepProps } from "./types";
 import { toast } from "sonner";
@@ -93,6 +94,17 @@ export default function ContentGeneratorStep({ stepData, setStepData, onMarkEdit
 
   return (
     <div className="space-y-5">
+      <StepInstructions
+        summary="Generate and edit interactive content for each workbook section. Navigate between sections and generate content one at a time."
+        items={[
+          { label: "Section navigator", description: "use the arrows to move between sections from your chapter mapping." },
+          { label: "Generate Content", description: "AI creates an introduction, interactive elements (exercises, reflections, etc.), and a key takeaway for the current section." },
+          { label: "Add element buttons", description: "manually add a specific content type (exercise, reflection, checklist, etc.) to the section." },
+          { label: "Element editor", description: "edit titles and content directly. The 'Edited' badge shows which elements you've customized." },
+          { label: "Delete element", description: "remove an element you don't need (trash icon)." },
+          { label: "Section Introduction & Key Takeaway", description: "frame the section for your reader — auto-generated but fully editable." },
+        ]}
+      />
       {/* Section navigator */}
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" className="h-7 w-7" disabled={activeIdx === 0} onClick={() => setActiveIdx(activeIdx - 1)}>

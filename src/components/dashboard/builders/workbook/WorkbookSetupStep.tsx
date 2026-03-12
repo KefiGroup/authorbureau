@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Wand2, Sparkles, Loader2, Check, BookOpen, RefreshCw } from "lucide-react";
 import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
+import StepInstructions from "../shared/StepInstructions";
 import { supabase } from "@/integrations/supabase/client";
 import { DESIGN_TEMPLATES } from "./types";
 import type { WorkbookStepProps } from "./types";
@@ -173,6 +174,18 @@ ${plan ? `\nBUSINESS PLAN WORKBOOK INFO: ${JSON.stringify(plan.products?.workboo
 
   return (
     <div className="space-y-6">
+      <StepInstructions
+        summary="Configure your workbook's identity, pricing, and visual style. All changes auto-save."
+        items={[
+          { label: "AI Title Suggestions", description: "Abby reads your manuscript and suggests 3 titles based on your book's frameworks. Click one to select it." },
+          { label: "Regenerate suggestions", description: "get 3 new AI-generated title options." },
+          { label: "Purpose & Pricing", description: "choose whether your workbook is a free lead magnet, companion, or standalone product." },
+          { label: "Page Count", description: "sets the target length — AI adjusts content density accordingly." },
+          { label: "Design Template", description: "choose a visual style for the generated workbook pages." },
+          { label: "Color Scheme", description: "'Auto-match' pulls colors from your book cover. 'Custom' lets you pick your own." },
+        ]}
+      />
+
       {/* ─── ABBY PROACTIVE GUIDE ──────────────────────────────────── */}
       <AbbyRecommendationCard>
             {suggestingTitles ? (
