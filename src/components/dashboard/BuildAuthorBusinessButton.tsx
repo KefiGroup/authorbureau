@@ -251,9 +251,6 @@ export default function BuildAuthorBusinessButton({
             <p>Est. annual revenue</p>
           </div>
         </div>
-        <p className="text-[10px] text-muted-foreground text-center">
-          Or build products individually from the sidebar
-        </p>
       </CardContent>
     </Card>
   );
