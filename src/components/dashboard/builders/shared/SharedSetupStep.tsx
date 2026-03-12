@@ -56,6 +56,16 @@ export default function SharedSetupStep({
 
   return (
     <div className="space-y-6">
+      <StepInstructions
+        summary="Configure the basic settings for your product. All fields auto-save as you type."
+        items={[
+          { label: "Text fields", description: "type to set titles, descriptions, and other details." },
+          { label: "Option cards", description: "click to select a preset (pricing tier, format, duration, etc.)." },
+          { label: "Price field", description: "set your selling price in USD. You can change this later." },
+          { label: "Abby's Recommendation", description: "personalized advice from your business plan — read before choosing." },
+        ]}
+      />
+
       <AbbyRecommendationCard>
         <p className="text-sm text-foreground leading-relaxed">{abbyTip}</p>
       </AbbyRecommendationCard>

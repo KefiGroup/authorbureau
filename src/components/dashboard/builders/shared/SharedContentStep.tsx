@@ -78,6 +78,15 @@ export default function SharedContentStep({
 
   return (
     <div className="space-y-6">
+      <StepInstructions
+        summary="AI generates your content based on the configuration from the previous step. You can edit everything after generation."
+        items={[
+          { label: "Generate with AI", description: "creates complete content using your book's themes, frameworks, and business plan." },
+          { label: "Regenerate", description: "re-runs AI generation, replacing current content with a fresh version." },
+          { label: "Text editor", description: "edit the generated content directly — your changes are auto-saved." },
+          { label: "AI Generated badge", description: "indicates content was created by AI. Editing removes this badge." },
+        ]}
+      />
       <Card className="p-4 border-secondary/20 bg-secondary/5">
         <div className="flex items-start gap-3">
           <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center shrink-0">
