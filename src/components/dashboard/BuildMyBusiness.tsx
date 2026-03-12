@@ -80,6 +80,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
   const abortRef = useRef<AbortController | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [shouldAutoStart, setShouldAutoStart] = useState(false);
+  const [viewPlanBook, setViewPlanBook] = useState<Book | null>(null);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
