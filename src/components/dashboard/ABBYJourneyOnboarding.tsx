@@ -315,7 +315,7 @@ export default function ABBYJourneyOnboarding({ userId, onComplete }: Props) {
                 onClick={next}
                 className="bg-[#C9A84C] text-white hover:bg-[#B8963B] text-sm font-semibold px-5"
               >
-                {step === 0 ? "Show Me How" : step === 1 ? "What's the Difference Between Them?" : "Choose My Path"}
+                {step === 0 ? "Show Me How" : step === 1 ? "What's the Difference Between Them?" : "Let's Get Started"}
                 <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             ) : (
