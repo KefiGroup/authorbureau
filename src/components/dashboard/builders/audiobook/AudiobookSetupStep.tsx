@@ -33,13 +33,6 @@ export default function AudiobookSetupStep({ stepData, setStepData, onMarkEdited
 
   return (
     <div className="space-y-6">
-      {/* Phase label */}
-      <div className="flex items-center gap-2">
-        <Badge variant="outline" className="text-[10px] font-semibold border-amber-400 text-amber-600 bg-amber-50">
-          ACT 1 — ANALYSE
-        </Badge>
-        <span className="text-xs text-muted-foreground">Strategic setup & positioning</span>
-      </div>
 
       <StepInstructions
         summary="Configure your audiobook's foundation — title, narration method, distribution channels, and pricing. Abby will guide you based on your genre and audience."

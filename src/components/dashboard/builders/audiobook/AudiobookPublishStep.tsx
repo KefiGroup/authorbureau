@@ -21,14 +21,6 @@ export default function AudiobookPublishStep({ stepData, bookTitle }: AudiobookS
 
   return (
     <div className="space-y-6">
-      {/* Phase label */}
-      <div className="flex items-center gap-2">
-        <Badge variant="outline" className="text-[10px] font-semibold border-green-400 text-green-600 bg-green-50">
-          ACT 3 — BRIDGE
-        </Badge>
-        <span className="text-xs text-muted-foreground">Preview, export & distribute</span>
-      </div>
-
       <StepInstructions
         summary="Preview your complete audiobook, verify all chapters are ready, then export and distribute to your chosen platforms."
         items={[
