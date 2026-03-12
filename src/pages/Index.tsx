@@ -367,7 +367,7 @@ export default function Index() {
 
               <motion.div variants={fadeUp} custom={10}>
                 <Button asChild size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold shadow-[var(--shadow-gold)] rounded-full px-8">
-                  <a href={SIGNUP_URL} target="_blank" rel="noopener noreferrer">Get Featured <ArrowRight className="ml-2 h-4 w-4" /></a>
+                  <Link to={SIGNUP_URL}>Get Featured <ArrowRight className="ml-2 h-4 w-4" /></Link>
                 </Button>
               </motion.div>
             </motion.div>
