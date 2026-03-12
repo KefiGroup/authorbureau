@@ -237,7 +237,7 @@ export default function Index() {
                 letter: "Y",
                 label: "YIELD",
                 streams: 12,
-                desc: "Premium services and scalable systems — coaching, consulting, masterminds, retreats, certification",
+                desc: "Premium services and scalable systems: coaching, consulting, masterminds, retreats, certification",
                 color: "text-primary",
                 bg: "bg-primary/10 border-primary/20",
               },
