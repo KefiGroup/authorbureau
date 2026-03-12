@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth, TIERS } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
@@ -41,14 +41,29 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
   const [builtProducts, setBuiltProducts] = useState<string[]>([]);
   const [recommendedByAbby, setRecommendedByAbby] = useState<string[]>([]);
   const [isFirstPostAnalysis, setIsFirstPostAnalysis] = useState(false);
+  const [hasBootstrapped, setHasBootstrapped] = useState(false);
+  const isFetchingRef = useRef(false);
 
   const loadDashboard = async () => {
-    if (!user) return;
-    setLoading(true);
-    setError(null);
+    if (!user?.id || isFetchingRef.current) return;
+
+    isFetchingRef.current = true;
+    const isInitialLoad = !hasBootstrapped;
+
+    if (isInitialLoad) {
+      setLoading(true);
+      setError(null);
+    }
+
     try {
       const token = await getActiveToken();
-      if (!token) { setError("Unable to authenticate. Please sign out and back in."); setLoading(false); return; }
+      if (!token) {
+        if (isInitialLoad) {
+          setError("Unable to authenticate. Please sign out and back in.");
+          setLoading(false);
+        }
+        return;
+      }
 
       const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 
@@ -106,11 +121,21 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
           }).catch(() => { /* non-critical */ });
         }
       }
+
+      if (isInitialLoad) {
+        setHasBootstrapped(true);
+      }
     } catch (err: any) {
       console.error("Failed to load dashboard:", err);
-      setError(err?.name === "AbortError" ? "Request timed out. Please try again." : "Could not load dashboard data. Please try again.");
+      if (isInitialLoad) {
+        setError(err?.name === "AbortError" ? "Request timed out. Please try again." : "Could not load dashboard data. Please try again.");
+      }
+    } finally {
+      if (isInitialLoad) {
+        setLoading(false);
+      }
+      isFetchingRef.current = false;
     }
-    setLoading(false);
   };
 
   const userId = user?.id;
