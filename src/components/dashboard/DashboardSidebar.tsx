@@ -157,7 +157,7 @@ export default function DashboardSidebar({
                 ? "bg-primary text-primary-foreground"
                 : isLocked
                 ? "text-muted-foreground/35 cursor-default"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                : "text-foreground hover:bg-muted"
             }`}
             title={isLocked ? item.lockMessage : item.label}
           >
