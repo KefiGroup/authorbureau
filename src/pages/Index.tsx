@@ -485,7 +485,7 @@ export default function Index() {
               Not Sure What to Build First?
             </motion.h2>
             <motion.p variants={fadeUp} custom={2} className="text-muted-foreground max-w-2xl mx-auto">
-              Many authors confuse similar-sounding products. Here's a plain-English guide to help you understand the difference — and which ones are right for your book.
+              Many authors confuse similar-sounding products. Here's a plain-English guide to help you understand the difference and which ones are right for your book.
             </motion.p>
           </motion.div>
 
