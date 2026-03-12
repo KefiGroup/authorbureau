@@ -113,7 +113,7 @@ export default function Auth() {
     if (!loading && !magicLinkProcessing && !user && !hasCallbackToken) {
       window.location.href = publishNowAuthUrl;
     }
-  }, [loading, magicLinkProcessing, user, hasCallbackToken]);
+  }, [loading, magicLinkProcessing, user, hasCallbackToken, publishNowAuthUrl]);
 
   if (loading || magicLinkProcessing || (!user && !hasCallbackToken)) {
     return (
