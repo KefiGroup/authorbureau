@@ -7,8 +7,6 @@ import AbbyRecommendationCard from "./AbbyRecommendationCard";
 import StepInstructions from "./StepInstructions";
 import AbbyMarketAdvice from "@/components/dashboard/book-hub/AbbyMarketAdvice";
 import type { MarketResearchData } from "@/hooks/useMarketResearch";
-import AbbyMarketAdvice from "@/components/dashboard/book-hub/AbbyMarketAdvice";
-import type { MarketResearchData } from "@/hooks/useMarketResearch";
 
 export interface SetupField {
   key: string;
