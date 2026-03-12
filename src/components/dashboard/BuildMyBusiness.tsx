@@ -776,22 +776,19 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
             </div>
 
             {/* Build My Author Business CTA */}
-            {analyzedBooks.length > 0 && totalStreams > 0 && (
+            {analyzedBooks.length > 0 && (
               <BuildAuthorBusinessButton
                 bookId={analyzedBooks[0].id}
                 bookTitle={analyzedBooks[0].title}
                 recommendedProducts={
-                  Object.entries(planSummaries).flatMap(([bookId, plan]: [string, any]) =>
-                    (plan?.packages?.starter?.products || [])
-                      .concat(plan?.packages?.pro?.products || [])
-                      .concat(plan?.packages?.enterprise?.products || [])
-                      .map((p: any) => ({
-                        nodeId: p.node || "",
-                        title: p.title || "",
-                        type: p.node || "workbook",
-                        description: p.reasoning || "",
-                      }))
-                  ).slice(0, 12)
+                  Object.values(planSummaries).flatMap((plan: any) =>
+                    (plan?.products || []).map((p: any) => ({
+                      nodeId: p.node || "",
+                      title: p.name || p.title || "",
+                      type: p.node || "workbook",
+                      description: p.reasoning || p.name || "",
+                    }))
+                  ).slice(0, 28)
                 }
                 annualProjectionLow={Object.values(planSummaries)[0]?.annual_projection_low || "$10,000"}
                 annualProjectionHigh={Object.values(planSummaries)[0]?.annual_projection_high || "$50,000"}
