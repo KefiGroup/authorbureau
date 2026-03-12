@@ -232,9 +232,9 @@ export default function Join() {
 
                   <p className="text-center text-sm text-muted-foreground">
                     Already have an account?{" "}
-                    <a href={publishNowAuthUrl} className="text-secondary font-medium hover:underline" rel="noopener noreferrer">
+                    <Link to={publishNowAuthUrl} className="text-secondary font-medium hover:underline">
                       Sign In
-                    </a>
+                    </Link>
                   </p>
                 </form>
               )}

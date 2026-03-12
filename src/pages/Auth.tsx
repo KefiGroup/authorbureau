@@ -595,9 +595,9 @@ export default function Auth() {
             <div className="text-center pt-2 border-t border-border/50">
               <p className="text-sm text-muted-foreground">
                 Don't have an account?{" "}
-                <a href={publishNowAuthUrl} className="font-semibold text-secondary hover:underline" rel="noopener noreferrer">
+                <Link to="/get-featured" className="font-semibold text-secondary hover:underline">
                   Sign Up
-                </a>
+                </Link>
               </p>
             </div>
           </div>

@@ -70,10 +70,10 @@ export default function CreateMicrosite() {
                   Sign in and add your books via Amazon import or manual entry. Create your book page in minutes with our guided setup.
                 </p>
                 <Button asChild variant="outline" className="w-full">
-                  <a href={getPublishNowAuthUrl("/dashboard")} rel="noopener noreferrer">
+                  <Link to={getPublishNowAuthUrl("/dashboard")}>
                     Get Started Free
                     <ArrowRight className="ml-2 h-4 w-4" />
-                  </a>
+                  </Link>
                 </Button>
               </div>
             </motion.div>

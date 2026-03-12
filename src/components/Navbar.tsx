@@ -135,24 +135,20 @@ export default function Navbar() {
                 </Link>
               ) : (
                 <>
-                  <a
-                    href={PUBLISHNOW_AUTH_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <Link
+                    to={PUBLISHNOW_AUTH_URL}
                     onClick={() => setOpen(false)}
                     className="text-sm font-semibold text-secondary"
                   >
                     Sign In
-                  </a>
-                  <a
-                    href={PUBLISHNOW_AUTH_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  </Link>
+                  <Link
+                    to={PUBLISHNOW_AUTH_URL}
                     onClick={() => setOpen(false)}
                     className="inline-flex w-fit items-center rounded-full bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground"
                   >
                     Sign Up
-                  </a>
+                  </Link>
                 </>
               )}
             </div>
