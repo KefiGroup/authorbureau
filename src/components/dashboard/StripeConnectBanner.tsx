@@ -3,11 +3,45 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { CreditCard, Loader2, CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface StripeConnectState {
   connected: boolean;
   onboarding_complete: boolean;
   loading: boolean;
+}
+
+function getStripeConnectErrorMessage(rawMessage: string): string {
+  if (rawMessage.includes("signed up for Connect")) {
+    return "Stripe Connect isn’t enabled on your Stripe account yet—enable Connect in Stripe, then try again.";
+  }
+
+  if (rawMessage.includes("restricted key") || rawMessage.includes("permissions")) {
+    return "Your Stripe key is missing Connect permissions; please update the key and try again.";
+  }
+
+  return rawMessage;
+}
+
+async function getFunctionErrorMessage(error: unknown): Promise<string> {
+  const fallback =
+    error instanceof Error ? error.message : "Unable to start Stripe onboarding.";
+
+  if (typeof error === "object" && error !== null && "context" in error) {
+    const maybeContext = (error as { context?: unknown }).context;
+    if (maybeContext instanceof Response) {
+      try {
+        const payload = await maybeContext.json();
+        if (payload?.error && typeof payload.error === "string") {
+          return payload.error;
+        }
+      } catch {
+        // Ignore body parse failures and use fallback error.
+      }
+    }
+  }
+
+  return fallback;
 }
 
 export function useStripeConnect() {
@@ -42,10 +76,24 @@ export function useStripeConnect() {
       const { data, error } = await supabase.functions.invoke("stripe-connect", {
         body: { action: "onboard" },
       });
-      if (error) throw error;
-      if (data.url) window.open(data.url, "_blank");
+
+      if (error) {
+        const backendMessage = await getFunctionErrorMessage(error);
+        throw new Error(getStripeConnectErrorMessage(backendMessage));
+      }
+
+      if (!data?.url) {
+        throw new Error("Unable to start Stripe onboarding.");
+      }
+
+      const popup = window.open(data.url, "_blank", "noopener,noreferrer");
+      if (!popup) {
+        window.location.href = data.url;
+      }
     } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to start Stripe onboarding.";
       console.error("Stripe Connect onboarding failed:", err);
+      toast.error(message);
     }
   };
 
@@ -64,8 +112,11 @@ export default function StripeConnectBanner({ compact = false }: BannerProps) {
 
   const handleClick = async () => {
     setStarting(true);
-    await startOnboarding();
-    setStarting(false);
+    try {
+      await startOnboarding();
+    } finally {
+      setStarting(false);
+    }
   };
 
   if (compact) {

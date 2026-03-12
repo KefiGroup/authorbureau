@@ -31,8 +31,11 @@ export default function ConnectStripePage() {
 
   const handleConnect = async () => {
     setStarting(true);
-    await startOnboarding();
-    setStarting(false);
+    try {
+      await startOnboarding();
+    } finally {
+      setStarting(false);
+    }
   };
 
   if (loading) {
