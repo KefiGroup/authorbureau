@@ -53,7 +53,7 @@ export type DashboardSection =
   | "retreats" | "certification" | "masterminds"
   | "email-marketing" | "subscribers" | "email-templates"
   | "revenue-streams" | "marketing-channels" | "authority-builders"
-  | "marketing" | "crm" | "author-crm" | "reading-club"
+  | "marketing" | "crm" | "author-crm" | "reading-club" | "how-it-works"
   | "analytics" | "microsite-manager"
   | "connect-stripe" | "review-products"
   | "book-sales" | "special-editions" | "lead-magnet"
