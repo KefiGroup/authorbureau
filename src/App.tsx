@@ -20,6 +20,7 @@ import AuthorDashboard from "./pages/AuthorDashboard";
 import Contact from "./pages/Contact";
 import FAQ from "./pages/FAQ";
 import ReadingClub from "./pages/ReadingClub";
+import HowItWorks from "./pages/HowItWorks";
 import SSO from "./pages/SSO";
 import NotFound from "./pages/NotFound";
 import BookHub from "./pages/BookHub";
@@ -76,6 +77,7 @@ const AppRoutes = () => (
       <Route path="/contact" element={<Contact />} />
       <Route path="/faq" element={<FAQ />} />
       <Route path="/reading-club" element={<ReadingClub />} />
+      <Route path="/how-it-works" element={<HowItWorks />} />
       <Route path="/solutions" element={<SolutionsIndex />} />
       <Route path="/solutions/:genre" element={<Solutions />} />
       <Route path="/sso" element={<SSO />} />
