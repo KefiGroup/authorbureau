@@ -207,6 +207,18 @@ export default function AbbyAdvisorPanel({ bookId, bookTitle, productNode, produ
             </div>
           ) : (
             <>
+              {/* First Visit Welcome */}
+              {showFirstVisit && (
+                <BuilderFirstVisitWelcome
+                  builderId={productNode}
+                  builderLabel={productLabel}
+                  onDismiss={() => {
+                    setShowFirstVisit(false);
+                    markBuilderFirstVisitSeen(productNode);
+                  }}
+                />
+              )}
+
               {/* Plan Context */}
               {advice && (
                 <Card className="p-3 border-secondary/20 bg-secondary/5">
