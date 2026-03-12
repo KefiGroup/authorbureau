@@ -24,8 +24,14 @@ async function getAuthorContext(supabase: any, userId: string) {
     supabase.from("generated_assets").select("asset_type, book_id, created_at").eq("author_id", userId),
   ]);
 
+  const profile = profileRes.data || null;
+
   return {
-    author_profile: profileRes.data || null,
+    author_profile: profile,
+    website: {
+      subdomain: profile?.author_slug || null,
+      custom_domain: profile?.website_url || null,
+    },
     books: booksRes.data || [],
     products: {
       online_courses: coursesRes.data || [],
