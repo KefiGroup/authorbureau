@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import type { AbbyPlan } from "@/components/dashboard/BusinessPlanCard";
+import BuilderFirstVisitWelcome, { hasSeenBuilderFirstVisit, markBuilderFirstVisitSeen } from "@/components/dashboard/builders/BuilderFirstVisitWelcome";
 
 interface Props {
   bookId: string;
@@ -29,6 +30,7 @@ export default function AbbyAdvisorPanel({ bookId, bookTitle, productNode, produ
   const [chatMessages, setChatMessages] = useState<Array<{ role: string; content: string }>>([]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [showFirstVisit, setShowFirstVisit] = useState(() => !hasSeenBuilderFirstVisit(productNode));
 
   const getToken = async (): Promise<string> => {
     const { supabase } = await import("@/integrations/supabase/client");
@@ -205,6 +207,18 @@ export default function AbbyAdvisorPanel({ bookId, bookTitle, productNode, produ
             </div>
           ) : (
             <>
+              {/* First Visit Welcome */}
+              {showFirstVisit && (
+                <BuilderFirstVisitWelcome
+                  builderId={productNode}
+                  builderLabel={productLabel}
+                  onDismiss={() => {
+                    setShowFirstVisit(false);
+                    markBuilderFirstVisitSeen(productNode);
+                  }}
+                />
+              )}
+
               {/* Plan Context */}
               {advice && (
                 <Card className="p-3 border-secondary/20 bg-secondary/5">

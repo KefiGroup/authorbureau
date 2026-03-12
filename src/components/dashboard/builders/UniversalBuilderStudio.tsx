@@ -24,6 +24,7 @@ import { useAbbyPlan } from "@/hooks/useAbbyPlan";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import ROIBanner from "@/components/dashboard/ROIBanner";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
+import BuilderFirstVisitWelcome, { hasSeenBuilderFirstVisit, markBuilderFirstVisitSeen } from "./BuilderFirstVisitWelcome";
 import CourseStepRenderer from "./course/CourseStepRenderer";
 import HomeStudyStepRenderer from "./home-study/HomeStudyStepRenderer";
 import WorkbookStepRenderer from "./workbook/WorkbookStepRenderer";
@@ -138,6 +139,7 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
   // Abby advisor panel
   const [abbyOpen, setAbbyOpen] = useState(false);
   const [abbyMessages, setAbbyMessages] = useState<Array<{ role: string; content: string }>>([]);
+  const [showFirstVisit, setShowFirstVisit] = useState(() => !hasSeenBuilderFirstVisit(nodeConfig.id));
   const [abbyInput, setAbbyInput] = useState("");
   const [abbyStreaming, setAbbyStreaming] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -893,7 +895,17 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
 
             {/* Chat messages */}
             <div className="flex-1 overflow-y-auto p-3 space-y-3">
-              {abbyMessages.length === 0 && (
+              {showFirstVisit && (
+                <BuilderFirstVisitWelcome
+                  builderId={nodeConfig.id}
+                  builderLabel={nodeConfig.label}
+                  onDismiss={() => {
+                    setShowFirstVisit(false);
+                    markBuilderFirstVisitSeen(nodeConfig.id);
+                  }}
+                />
+              )}
+              {abbyMessages.length === 0 && !showFirstVisit && (
                 <div className="text-center py-6">
                   <Sparkles className="h-6 w-6 text-muted-foreground/20 mx-auto mb-2" />
                   <p className="text-xs text-muted-foreground/50">Ask Abby anything about this product</p>
