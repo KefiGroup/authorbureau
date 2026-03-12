@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import logoIcon from "@/assets/logo-icon.png";
+import { getPublishNowAuthUrl } from "@/lib/publishnow-auth";
 
-const PUBLISHNOW_AUTH_URL = "https://publishnow.io/#/auth";
+const PUBLISHNOW_AUTH_URL = getPublishNowAuthUrl("/dashboard");
 
 const navLinks = [
   { label: "Home", to: "/", hash: "" },

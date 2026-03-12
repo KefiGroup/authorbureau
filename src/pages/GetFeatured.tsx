@@ -163,9 +163,9 @@ export default function GetFeatured() {
               size="lg"
               className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold shadow-[var(--shadow-gold)] rounded-full px-10"
             >
-              <Link to="/auth">
+              <a href={getPublishNowAuthUrl("/dashboard")} rel="noopener noreferrer">
                 Apply Now <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
+              </a>
             </Button>
             <p className="text-xs text-muted-foreground mt-3">
               Free to apply. No credit card required.
