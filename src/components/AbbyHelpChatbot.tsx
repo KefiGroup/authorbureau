@@ -345,7 +345,7 @@ export default function AbbyHelpChatbot() {
     <>
       {/* Floating trigger button */}
       {!isOpen && (
-        <div className="fixed z-[9999] group" style={{ bottom: isMobile ? 16 : 24, right: isMobile ? 16 : 24 }}>
+        <div className="fixed z-[9999] group" style={{ bottom: isMobile ? 16 : 80, right: isMobile ? 16 : 24 }}>
           {/* Tooltip */}
           <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
             <div className="bg-[#1B2A4A] text-white text-xs font-medium px-3 py-1.5 rounded-full whitespace-nowrap shadow-lg">
