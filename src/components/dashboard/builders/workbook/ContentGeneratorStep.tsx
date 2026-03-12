@@ -7,12 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Loader2, Wand2, ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
 import { CONTENT_TYPE_LABELS, type WorkbookSection, type WorkbookElement, type ContentType } from "./types";
 import type { WorkbookStepProps } from "./types";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { generateWithAI } from "@/lib/ai-generate";
 
 export default function ContentGeneratorStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, generationState, setGenerationState }: WorkbookStepProps) {
   const sections: WorkbookSection[] = stepData.sections || [];
   const [activeIdx, setActiveIdx] = useState(0);
+  const [isGenerating, setIsGenerating] = useState(false);
   const section = sections[activeIdx];
 
   const updateSection = (updates: Partial<WorkbookSection>) => {
@@ -46,83 +47,44 @@ export default function ContentGeneratorStep({ stepData, setStepData, onMarkEdit
   };
 
   const handleGenerateSection = async () => {
-    if (!section) return;
+    if (!section || isGenerating) return;
+
+    setIsGenerating(true);
     setGenerationState("generating");
+
     try {
-      const { data: session } = await supabase.auth.getSession();
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/business-consultant`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session?.session?.access_token}`,
-          },
-          body: JSON.stringify({
-            messages: [
-              {
-                role: "user",
-                content: `Generate workbook content for the section "${section.title}" (mapped to "${section.chapterRef}") of a workbook for the book "${bookTitle}". Content types to include: ${section.contentTypes.join(", ")}. Return JSON with: intro (string), elements (array of {id, type, title, content}), takeaway (string). Each element should be 100-200 words. Return ONLY JSON.`,
-              },
-            ],
-            bookId,
-          }),
-        }
+      const rawText = await generateWithAI(
+        `Generate workbook content for the section "${section.title}" (mapped to "${section.chapterRef}") of a workbook for the book "${bookTitle}". Content types to include: ${section.contentTypes.join(", ")}. Return JSON with: intro (string), elements (array of {id, type, title, content}), takeaway (string). Each element should be 100-200 words. Return ONLY JSON.`,
+        { bookId, isPremium: true }
       );
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({ error: "Unknown error" }));
-        throw new Error(errData.error || `Server error: ${res.status}`);
-      }
+      const cleaned = rawText
+        .replace(/^```(?:json)?\s*\n?/i, "")
+        .replace(/\n?```\s*$/i, "")
+        .trim();
+      const match = cleaned.match(/\{[\s\S]*\}/);
+      if (!match) throw new Error("Could not parse AI response");
 
-      // Handle SSE stream
-      let fullText = "";
-      const reader = res.body?.getReader();
-      const decoder = new TextDecoder();
+      const parsed = JSON.parse(match[0]);
+      updateSection({
+        intro: parsed.intro || section.intro,
+        elements: (parsed.elements || []).map((el: any, i: number) => ({
+          id: el.id || `el-${i}`,
+          type: el.type || "exercise",
+          title: el.title || "",
+          content: el.content || "",
+        })),
+        takeaway: parsed.takeaway || section.takeaway,
+      });
 
-      if (!reader) throw new Error("No response body");
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n");
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            const data = line.slice(6).trim();
-            if (data === "[DONE]") continue;
-            try {
-              const parsed = JSON.parse(data);
-              const delta = parsed.choices?.[0]?.delta?.content;
-              if (delta) fullText += delta;
-            } catch {
-              // skip malformed chunks
-            }
-          }
-        }
-      }
-
-      const match = fullText.match(/\{[\s\S]*\}/);
-      if (match) {
-        const parsed = JSON.parse(match[0]);
-        updateSection({
-          intro: parsed.intro || section.intro,
-          elements: (parsed.elements || []).map((el: any, i: number) => ({
-            id: el.id || `el-${i}`,
-            type: el.type || "exercise",
-            title: el.title || "",
-            content: el.content || "",
-          })),
-          takeaway: parsed.takeaway || section.takeaway,
-        });
-        toast.success("Section content generated!");
-      } else {
-        throw new Error("Could not parse AI response");
-      }
+      setGenerationState("complete");
+      toast.success("Section content generated!");
     } catch (err: any) {
+      setGenerationState("error");
       toast.error(err?.message || "Generation failed");
+    } finally {
+      setIsGenerating(false);
     }
-    setGenerationState("complete");
   };
 
   if (!section) {
@@ -147,8 +109,8 @@ export default function ContentGeneratorStep({ stepData, setStepData, onMarkEdit
 
       {/* Generate button */}
       <div className="flex justify-center">
-        <Button size="sm" onClick={handleGenerateSection} disabled={generationState === "generating"}>
-          {generationState === "generating" ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Wand2 className="h-3.5 w-3.5 mr-1.5" />}
+        <Button size="sm" onClick={handleGenerateSection} disabled={isGenerating}>
+          {isGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Wand2 className="h-3.5 w-3.5 mr-1.5" />}
           Generate Content for This Section
         </Button>
       </div>

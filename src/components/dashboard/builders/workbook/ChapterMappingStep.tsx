@@ -3,85 +3,47 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import { Loader2, Wand2, GripVertical, ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
 import { CONTENT_TYPE_LABELS, type ContentType, type WorkbookSection } from "./types";
 import type { WorkbookStepProps } from "./types";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { generateWithAI } from "@/lib/ai-generate";
 
 const ALL_CONTENT_TYPES: ContentType[] = ["reflection", "exercise", "checklist", "action-plan", "template", "self-assessment", "goal-setting"];
 
 export default function ChapterMappingStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, generationState, setGenerationState, userId }: WorkbookStepProps) {
   const sections: WorkbookSection[] = stepData.sections || [];
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [hadGenerationError, setHadGenerationError] = useState(false);
 
   const handleGenerate = async () => {
+    if (isGenerating) return;
+
+    setIsGenerating(true);
+    setHadGenerationError(false);
     setGenerationState("queued");
+
     try {
-      const { data: session } = await supabase.auth.getSession();
       setGenerationState("analyzing");
-
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/business-consultant`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session?.session?.access_token}`,
-          },
-          body: JSON.stringify({
-            messages: [
-              {
-                role: "user",
-                content: `You are an expert workbook designer. Given a book titled "${bookTitle}" (book_id: ${bookId}), generate a workbook chapter mapping. Return a JSON array of sections, each with: id, chapterRef (which book chapter it maps to), title, position, contentTypes (array from: reflection, exercise, checklist, action-plan, template, self-assessment, goal-setting). Generate 12-15 sections mapping to the book chapters. Return ONLY the JSON array, no other text.`,
-              },
-            ],
-            bookId,
-          }),
-        }
-      );
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({ error: "Unknown error" }));
-        throw new Error(errData.error || `Server error: ${res.status}`);
-      }
+      const prompt = `You are an expert workbook designer. Given a book titled "${bookTitle}" (book_id: ${bookId}), generate a workbook chapter mapping. Return a JSON array of sections, each with: id, chapterRef (which book chapter it maps to), title, position, contentTypes (array from: reflection, exercise, checklist, action-plan, template, self-assessment, goal-setting). Generate 12-15 sections mapping to the book chapters. Return ONLY the JSON array, no other text.`;
 
       setGenerationState("generating");
-
-      // The edge function returns SSE stream — collect all chunks
-      let fullText = "";
-      const reader = res.body?.getReader();
-      const decoder = new TextDecoder();
-
-      if (!reader) throw new Error("No response body");
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n");
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            const data = line.slice(6).trim();
-            if (data === "[DONE]") continue;
-            try {
-              const parsed = JSON.parse(data);
-              const delta = parsed.choices?.[0]?.delta?.content;
-              if (delta) fullText += delta;
-            } catch {
-              // skip malformed chunks
-            }
-          }
-        }
-      }
+      const rawText = await generateWithAI(prompt, { bookId, isPremium: true });
 
       let parsed: WorkbookSection[] = [];
       try {
-        const match = fullText.match(/\[[\s\S]*\]/);
+        const cleaned = rawText
+          .replace(/^```(?:json)?\s*\n?/i, "")
+          .replace(/\n?```\s*$/i, "")
+          .trim();
+        const match = cleaned.match(/\[[\s\S]*\]/);
         if (match) parsed = JSON.parse(match[0]);
       } catch {
-        // Generate default sections
+        parsed = [];
+      }
+
+      if (!Array.isArray(parsed) || parsed.length === 0) {
         parsed = Array.from({ length: 12 }, (_, i) => ({
           id: `section-${i + 1}`,
           chapterRef: `Chapter ${i + 1}`,
@@ -94,13 +56,29 @@ export default function ChapterMappingStep({ stepData, setStepData, onMarkEdited
         }));
       }
 
-      setStepData(prev => ({ ...prev, sections: parsed }));
+      const normalized: WorkbookSection[] = parsed.map((section, idx) => ({
+        id: section.id || `section-${idx + 1}`,
+        chapterRef: section.chapterRef || `Chapter ${idx + 1}`,
+        title: section.title || `Section ${idx + 1}`,
+        position: typeof section.position === "number" ? section.position : idx,
+        contentTypes: Array.isArray(section.contentTypes) && section.contentTypes.length > 0
+          ? section.contentTypes.filter((type): type is ContentType => ALL_CONTENT_TYPES.includes(type as ContentType))
+          : (["reflection", "exercise", "checklist"] as ContentType[]),
+        intro: section.intro || "",
+        elements: Array.isArray(section.elements) ? section.elements : [],
+        takeaway: section.takeaway || "",
+      }));
+
+      setStepData(prev => ({ ...prev, sections: normalized }));
       onMarkEdited("mapping");
       setGenerationState("complete");
-      toast.success(`Mapped ${parsed.length} workbook sections!`);
+      toast.success(`Mapped ${normalized.length} workbook sections!`);
     } catch (err: any) {
+      setHadGenerationError(true);
       setGenerationState("error");
       toast.error(err?.message || "Failed to generate chapter mapping");
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -154,10 +132,10 @@ export default function ChapterMappingStep({ stepData, setStepData, onMarkEdited
         <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
           AI will analyze your manuscript and create a section-by-section mapping with recommended content types.
         </p>
-        <Button onClick={handleGenerate} disabled={generationState === "queued" || generationState === "analyzing" || generationState === "generating"}>
-          {generationState === "queued" || generationState === "analyzing" || generationState === "generating" ? (
+        <Button onClick={handleGenerate} disabled={isGenerating}>
+          {isGenerating ? (
             <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Generating...</>
-          ) : generationState === "error" ? (
+          ) : hadGenerationError || generationState === "error" ? (
             <><Wand2 className="h-4 w-4 mr-2" /> Retry Chapter Mapping</>
           ) : (
             <><Wand2 className="h-4 w-4 mr-2" /> Generate Chapter Mapping</>
@@ -175,7 +153,7 @@ export default function ChapterMappingStep({ stepData, setStepData, onMarkEdited
           <Button variant="outline" size="sm" onClick={addSection}>
             <Plus className="h-3.5 w-3.5 mr-1" /> Add Section
           </Button>
-          <Button variant="outline" size="sm" onClick={handleGenerate}>
+          <Button variant="outline" size="sm" onClick={handleGenerate} disabled={isGenerating}>
             <Wand2 className="h-3.5 w-3.5 mr-1" /> Regenerate
           </Button>
         </div>
