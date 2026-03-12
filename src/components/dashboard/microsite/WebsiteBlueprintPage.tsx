@@ -192,6 +192,76 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
     return () => { cancelled = true; };
   }, [user]);
 
+  /* ============================================
+   * REALTIME: Listen for new completed assets
+   * ============================================ */
+  useEffect(() => {
+    if (!user) return;
+
+    // Small delay to let initial Phase 1 load complete first
+    const timer = setTimeout(() => {
+      initialAssetsLoaded.current = true;
+    }, 5000);
+
+    const channel = supabase
+      .channel("website-asset-updates")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "generated_assets",
+          filter: `author_id=eq.${user.id}`,
+        },
+        async (payload) => {
+          // Only show banner after initial load is done (not on page load inserts)
+          if (!initialAssetsLoaded.current) return;
+
+          const assetType = (payload.new as any)?.asset_type;
+          // Skip the website asset itself to avoid circular notification
+          if (assetType === "website") return;
+
+          const nodeName = ASSET_TYPE_LABELS[assetType] || assetType?.replace(/_/g, " ") || "a new node";
+          setCompletedNodeName(nodeName);
+          setRebuildNeeded(true);
+          setRebuildDismissed(false);
+
+          // Silently re-run Phase 1 to update the blueprint
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.access_token) return;
+
+            const resp = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/abby-website-builder`,
+              {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${session.access_token}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ phase: "1" }),
+              }
+            );
+
+            if (resp.ok) {
+              const result: Phase1Result = await resp.json();
+              setAbbyPages(result.pages);
+              setPreviewData(result.preview_data);
+              setDesignData(null); // Invalidate cached Phase 2 data
+            }
+          } catch (err) {
+            console.error("Silent Phase 1 re-run failed:", err);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      clearTimeout(timer);
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   /* ---------- derived ---------- */
   const enabledPages = useMemo(
     () => abbyPages.filter((p) => p.enabled),
