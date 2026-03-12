@@ -106,14 +106,22 @@ export default function Auth() {
     })();
   }, [location.hash]);
 
-  // ─── Redirect if already signed in ───
-  if (loading || magicLinkProcessing) {
+  // ─── Redirect to PublishNow for auth if no callback token ───
+  const hasCallbackToken = location.hash?.includes("auth_token");
+  useEffect(() => {
+    if (!loading && !magicLinkProcessing && !user && !hasCallbackToken) {
+      window.location.href = "https://publishnow.io/#/auth";
+    }
+  }, [loading, magicLinkProcessing, user, hasCallbackToken]);
+
+  if (loading || magicLinkProcessing || (!user && !hasCallbackToken)) {
     return (
       <div className="min-h-screen">
         <Navbar />
         <section className="py-20">
-          <div className="container max-w-md flex justify-center">
+          <div className="container max-w-md flex flex-col items-center gap-4">
             <Loader2 className="h-8 w-8 animate-spin text-secondary" />
+            <p className="text-sm text-muted-foreground">Redirecting to sign in...</p>
           </div>
         </section>
         <Footer />

@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import logoIcon from "@/assets/logo-icon.png";
 
+const PUBLISHNOW_AUTH_URL = "https://publishnow.io/#/auth";
+
 const navLinks = [
   { label: "Home", to: "/", hash: "" },
   { label: "Meet the Founders", to: "/", hash: "#meet-the-founder" },
@@ -84,14 +86,16 @@ export default function Navbar() {
             </Button>
           ) : (
             <>
-              <Link
-                to="/auth"
+              <a
+                href={PUBLISHNOW_AUTH_URL}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-sm font-semibold text-secondary transition-colors hover:text-secondary/80"
               >
                 Sign In
-              </Link>
+              </a>
               <Button asChild variant="default" size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-none rounded-full">
-                <Link to="/get-featured">Get Featured</Link>
+                <a href={PUBLISHNOW_AUTH_URL} target="_blank" rel="noopener noreferrer">Sign Up</a>
               </Button>
             </>
           )}
@@ -133,20 +137,24 @@ export default function Navbar() {
                 </Link>
               ) : (
                 <>
-                  <Link
-                    to="/auth"
+                  <a
+                    href={PUBLISHNOW_AUTH_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     onClick={() => setOpen(false)}
                     className="text-sm font-semibold text-secondary"
                   >
                     Sign In
-                  </Link>
-                  <Link
-                    to="/get-featured"
+                  </a>
+                  <a
+                    href={PUBLISHNOW_AUTH_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     onClick={() => setOpen(false)}
                     className="inline-flex w-fit items-center rounded-full bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground"
                   >
-                    Get Featured
-                  </Link>
+                    Sign Up
+                  </a>
                 </>
               )}
             </div>
