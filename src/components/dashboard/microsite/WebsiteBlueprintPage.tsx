@@ -654,16 +654,19 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
                         <span className="text-muted-foreground">Value</span>
                       </div>
                       <div className="flex gap-4">
-                        <span className="font-semibold w-12">CNAME</span>
-                        <span className="w-16">www</span>
-                        <span className="text-secondary">proxy.authorsbureau.com</span>
+                        <span className="font-semibold w-12">A</span>
+                        <span className="w-16">@</span>
+                        <span className="text-secondary">185.158.133.1</span>
                       </div>
                       <div className="flex gap-4">
-                        <span className="font-semibold w-12">CNAME</span>
-                        <span className="w-16">@</span>
-                        <span className="text-secondary">proxy.authorsbureau.com</span>
+                        <span className="font-semibold w-12">A</span>
+                        <span className="w-16">www</span>
+                        <span className="text-secondary">185.158.133.1</span>
                       </div>
                     </div>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      <strong>Note:</strong> If your registrar doesn't allow A records for www, use a CNAME with value <code className="text-secondary">proxy.authorsbureau.com</code> instead.
+                    </p>
                   </div>
                   <div className="space-y-2">
                     <p className="font-semibold">Step 2: Wait for Propagation</p>
