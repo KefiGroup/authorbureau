@@ -136,12 +136,23 @@ export default function Auth() {
       } catch (networkErr: any) {
         const msg = (networkErr?.message || "").toLowerCase();
         if (msg.includes("failed to fetch") || msg.includes("no account") || msg.includes("sign up") || msg.includes("invalid action")) {
-          const { error } = await supabase.auth.signInWithOtp({
+          // For new users, use signUp with OTP so they still get a 6-digit code
+          const { error: signUpError } = await supabase.auth.signUp({
             email: email.trim(),
+            password: crypto.randomUUID(),
             options: { emailRedirectTo: `${window.location.origin}/auth` },
           });
-          if (error) throw error;
-          toast({ title: "We sent you a sign-in link — for first-time users, this also creates your account automatically." });
+          if (signUpError) {
+            // If user already exists, fall back to magic link
+            const { error } = await supabase.auth.signInWithOtp({
+              email: email.trim(),
+              options: { emailRedirectTo: `${window.location.origin}/auth` },
+            });
+            if (error) throw error;
+            toast({ title: "We sent you a sign-in link to your email." });
+          } else {
+            toast({ title: "Account created! Check your email for a confirmation link to get started." });
+          }
           setResendCooldown(60);
         } else {
           throw networkErr;
