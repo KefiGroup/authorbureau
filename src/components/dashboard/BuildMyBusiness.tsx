@@ -901,6 +901,12 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
           </div>
         </DialogContent>
       </Dialog>
+      <FullPlanDialog
+        open={!!viewPlanBook}
+        onOpenChange={(open) => { if (!open) setViewPlanBook(null); }}
+        bookId={viewPlanBook?.id || ""}
+        bookTitle={viewPlanBook?.title || ""}
+      />
       </>
     );
   }
