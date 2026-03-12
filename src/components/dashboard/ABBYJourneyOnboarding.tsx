@@ -258,52 +258,35 @@ export default function ABBYJourneyOnboarding({ userId, onComplete }: Props) {
                 <div className="space-y-5">
                   <div className="text-center space-y-2">
                     <h2 className="font-bold text-2xl text-[#1A1F36]">
-                      Choose Your Path
+                      Let Abby Analyze Your Book First
                     </h2>
                     <p className="text-sm text-[#1A1F36]/60 max-w-lg mx-auto">
-                      Start where you are. Upgrade when you're ready.
+                      Before choosing a path, let Abby read your manuscript, build your free microsite, and create a personalized business plan. Then you'll know exactly which revenue streams are right for you.
                     </p>
                   </div>
-                  <img src="/images/journey-three-paths.png" alt="Three Subscription Paths" className="w-full rounded-lg" />
-                  <div className="grid gap-4 md:grid-cols-3">
-                    <PathCard
-                      title="The Side Hustler"
-                      subtitle="BUILD Only · 8 nodes · $49/mo"
-                      description="Perfect if you have a day job. Build digital products that sell on autopilot."
-                      revenue="Projected: $5,500-$15,500/yr (Year 1)"
-                      time="4-8 hours/week"
-                      buttonLabel="Start Here →"
-                      borderColor="#22C55E"
-                      buttonColor="#22C55E"
-                      onClick={() => dismiss("starter")}
-                    />
-                    <PathCard
-                      title="The Serious Business"
-                      subtitle="BUILD + BRIDGE · 16 nodes · $199/mo"
-                      description="Ready to go full-time? Add audience channels and partnerships."
-                      revenue="Projected: $13,500-$39,500/yr (Year 1)"
-                      time="15-25 hours/week"
-                      buttonLabel="Choose This Path →"
-                      borderColor="#F97316"
-                      buttonColor="#F97316"
-                      badge="MOST POPULAR"
-                      onClick={() => dismiss("pro")}
-                    />
-                    <PathCard
-                      title="The Enterprise Builder"
-                      subtitle="BUILD + BRIDGE + YIELD · All 28 nodes · $499/mo"
-                      description="Build a multi-stream empire with high-ticket services and scalable systems."
-                      revenue="Projected: $68,500-$215,500/yr (Year 1)"
-                      time="Full-time (leveraged)"
-                      buttonLabel="Go All In →"
-                      borderColor="#C9A84C"
-                      buttonColor="#C9A84C"
-                      badge="BEST VALUE"
-                      onClick={() => dismiss("enterprise")}
-                    />
+                  <div className="rounded-xl border-2 border-[#C9A84C] bg-[#FAF3E0]/50 p-6 text-center space-y-4">
+                    <div className="w-16 h-16 rounded-full bg-[#C9A84C]/10 flex items-center justify-center mx-auto">
+                      <span className="text-3xl">🧠</span>
+                    </div>
+                    <h3 className="font-bold text-lg text-[#1A1F36]">Your Personalized Roadmap Awaits</h3>
+                    <div className="space-y-2 text-sm text-[#1A1F36]/70 max-w-md mx-auto">
+                      <p>✅ Abby reads your manuscript & extracts your frameworks</p>
+                      <p>✅ Builds your free author microsite & directory listing</p>
+                      <p>✅ Creates a tailored business plan with revenue projections</p>
+                      <p>✅ Recommends your ideal Build → Bridge → Yield path</p>
+                    </div>
+                    <Button
+                      onClick={() => {
+                        dismiss();
+                        navigate("/dashboard?section=analyze");
+                      }}
+                      className="bg-[#C9A84C] text-white hover:bg-[#B8963B] text-base font-semibold px-8 py-3 mt-2"
+                    >
+                      Start My ABBY Analysis →
+                    </Button>
                   </div>
                   <p className="text-[10px] text-[#1A1F36]/40 text-center leading-relaxed">
-                    Projected revenue based on Authors Guild, Teachable, ICF & NSA industry surveys. Individual results vary based on niche, audience size, and effort.
+                    After your analysis, Abby will recommend the right subscription path based on your goals, genre, and audience size.
                   </p>
                 </div>
               )}
