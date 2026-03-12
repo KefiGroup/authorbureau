@@ -14,7 +14,7 @@ const STEPS = [
   { id: "hero", label: "Your Book Is More Than a Book" },
   { id: "flow", label: "28 Revenue Streams" },
   { id: "comparison", label: "Know Your Products" },
-  { id: "paths", label: "Choose Your Path" },
+  { id: "start", label: "Start Your Analysis" },
 ];
 
 /* ─── Accordion for Step 3 ─── */
