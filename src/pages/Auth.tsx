@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Navigate, useNavigate, useLocation, Link } from "react-router-dom";
+import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2, ArrowLeft, Mail, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
+import { getPublishNowAuthUrl } from "@/lib/publishnow-auth";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
