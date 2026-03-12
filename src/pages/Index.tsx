@@ -1,161 +1,537 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, BookOpen, Users, Globe, Award, Building2, GraduationCap, Mic, MapPin, ChevronLeft, ChevronRight, CheckCircle2, Monitor, Search, Globe2, Play, UserCheck, Calendar, Sparkles } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import {
+  ArrowRight, BookOpen, Users, Globe, Award, Building2, GraduationCap,
+  Mic, MapPin, CheckCircle2, Sparkles, ChevronDown, Zap, TrendingUp,
+  Star, Shield,
+} from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import useEmblaCarousel from "embla-carousel-react";
-import BadgeDisplay from "@/components/BadgeDisplay";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import DynamicMeetOurAuthors from "@/components/DynamicMeetOurAuthors";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import heroBg from "@/assets/hero-bg.jpg";
-
-import paulinePhoto from "@/assets/pauline-teo-headshot.jpg";
 import paulineFullPhoto from "@/assets/pauline-teo.jpeg";
-import feliciaPhoto from "@/assets/felicia-tan-headshot.png";
 import besuckcessfulCover from "@/assets/besuckcessful-cover.jpg";
-import viWomenCover from "@/assets/value-investing-women-cover.png";
-import investBuffettCover from "@/assets/invest-like-buffett-cover.jpg";
-import tobabywithlove from "@/assets/to-baby-with-love-cover.png";
-import lostandfound from "@/assets/lost-and-found-cover.png";
-import giftfromheaven from "@/assets/gift-from-heaven-cover.png";
 
-const photoMap: Record<string, string> = {
-  "pauline-teo": paulinePhoto,
-  "felicia-tan": feliciaPhoto,
-};
-
-const coverMap: Record<string, string> = {
-  "be-suckcessful": besuckcessfulCover,
-  "value-investing-for-women": viWomenCover,
-  "invest-like-buffett": investBuffettCover,
-  "to-baby-with-love": tobabywithlove,
-  "lost-and-found": lostandfound,
-  "a-gift-from-heaven": giftfromheaven,
-};
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: i * 0.15, duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] as const },
+    transition: { delay: i * 0.12, duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] as const },
   }),
 };
 
+const comparisonRows = [
+  { need: "Online Course", without: "Teachable ($149/mo) + you write it", withAB: "Abby creates it from your book" },
+  { need: "Email Marketing", without: "ConvertKit ($79/mo) + you write emails", withAB: "Abby writes your 7-email sequence" },
+  { need: "Coaching Setup", without: "Calendly + Stripe + you price it", withAB: "Abby designs your coaching packages" },
+  { need: "Author Website", without: "WordPress ($30/mo) + you build it", withAB: "Abby builds your microsite" },
+  { need: "Social Media", without: "Buffer ($15/mo) + you create content", withAB: "Abby generates 90-day content calendar" },
+  { need: "Speaking Kit", without: "You create your own pitch deck", withAB: "Abby writes your keynote proposal" },
+  { need: "Total Cost", without: "$273+/mo + 40 hours of your time", withAB: "From $49/mo + Abby does the work" },
+];
+
+const pricingPaths = [
+  {
+    name: "The Side Hustler",
+    price: "$49",
+    tagline: "Build passive income while keeping your day job",
+    streams: 8,
+    category: "BUILD",
+    time: "4–8 hours/week",
+    year1: "$5,500–$15,500/year",
+    year2: "$15,500–$44,000/year",
+    roi: "9x–26x return",
+    cta: "Start Building →",
+    badge: null,
+    accent: false,
+  },
+  {
+    name: "The Serious Business",
+    price: "$199",
+    tagline: "Turn your book into a real business",
+    streams: 16,
+    category: "BUILD + BRIDGE",
+    time: "15–25 hours/week",
+    year1: "$13,500–$39,500/year",
+    year2: "$39,500–$122,000/year",
+    roi: "6x–51x return",
+    cta: "Start Your Business →",
+    badge: "MOST POPULAR",
+    accent: true,
+  },
+  {
+    name: "The Enterprise Builder",
+    price: "$499",
+    tagline: "Build an empire around your expertise",
+    streams: 28,
+    category: "BUILD + BRIDGE + YIELD",
+    time: "Full-time (leveraged)",
+    year1: "$68,500–$215,500/year",
+    year2: "$215,500–$781,000/year",
+    roi: "11x–130x return",
+    cta: "Build Your Empire →",
+    badge: "BEST VALUE",
+    accent: false,
+  },
+];
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Authors Bureau",
+  applicationCategory: "BusinessApplication",
+  description:
+    "AI-powered platform that helps published authors turn one book into 28 revenue streams with courses, coaching, speaking, memberships, and more.",
+  offers: [
+    { "@type": "Offer", name: "Side Hustler", price: "49", priceCurrency: "USD" },
+    { "@type": "Offer", name: "Serious Business", price: "199", priceCurrency: "USD" },
+    { "@type": "Offer", name: "Enterprise Builder", price: "499", priceCurrency: "USD" },
+  ],
+  creator: {
+    "@type": "Person",
+    name: "Pauline Teo",
+    jobTitle: "Founder",
+    url: "https://authorsbureau.com",
+  },
+};
+
 export default function Index() {
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: "start" });
-  const [canScrollPrev, setCanScrollPrev] = useState(false);
-  const [canScrollNext, setCanScrollNext] = useState(false);
-
-  const onSelect = useCallback(() => {
-    if (!emblaApi) return;
-    setCanScrollPrev(emblaApi.canScrollPrev());
-    setCanScrollNext(emblaApi.canScrollNext());
-  }, [emblaApi]);
-
-  useEffect(() => {
-    if (!emblaApi) return;
-    onSelect();
-    emblaApi.on("select", onSelect);
-    emblaApi.on("reInit", onSelect);
-  }, [emblaApi, onSelect]);
-
   return (
     <div className="min-h-screen">
+      {/* JSON-LD Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       <Navbar />
 
-      {/* Hero Section */}
+      {/* ===== SECTION 1: HERO ===== */}
       <section
-        className="relative flex min-h-[85vh] items-center justify-center overflow-hidden"
-        style={{
-          backgroundImage: `url(${heroBg})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
+        className="relative flex min-h-[90vh] items-center justify-center overflow-hidden"
+        style={{ backgroundImage: `url(${heroBg})`, backgroundSize: "cover", backgroundPosition: "center" }}
       >
-        <div className="absolute inset-0 bg-primary/70" />
+        <div className="absolute inset-0 bg-primary/80" />
         <div className="container relative z-10 py-20 text-center">
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            className="mx-auto max-w-3xl"
-          >
+          <motion.div initial="hidden" animate="visible" className="mx-auto max-w-4xl">
             <motion.div variants={fadeUp} custom={0} className="mb-6 inline-flex items-center gap-2 rounded-full border border-secondary/30 bg-secondary/10 px-4 py-2 text-sm text-secondary">
-              <BookOpen className="h-4 w-4" />
-              The Author Showcase Platform
+              <Sparkles className="h-4 w-4" />
+              🚀 The #1 AI-Powered Author Monetization Platform
             </motion.div>
 
             <motion.h1
               variants={fadeUp}
               custom={1}
-              className="mb-6 font-heading text-4xl font-bold leading-tight text-primary-foreground md:text-6xl"
+              className="mb-6 font-heading text-4xl font-bold leading-tight text-primary-foreground md:text-6xl lg:text-7xl"
             >
-              Where Published Authors Are{" "}
-              <span className="text-gradient-gold">Discovered</span>
+              Turn Your Book Into{" "}
+              <span className="text-gradient-gold">28 Revenue Streams</span>
             </motion.h1>
 
-            <motion.p
-              variants={fadeUp}
-              custom={2}
-              className="mx-auto mb-10 max-w-xl text-lg text-primary-foreground/70"
-            >
-              Every author gets a professional showcase. Offer your services, coaching, courses, book speaking engagements, and host book launch events — all from your Authors Bureau.
+            <motion.p variants={fadeUp} custom={2} className="mb-3 font-heading text-xl text-primary-foreground/90 md:text-2xl">
+              Your book is more than a product — it's the foundation of a business empire.
             </motion.p>
 
-            <motion.div variants={fadeUp} custom={3} className="flex flex-wrap justify-center gap-4">
-              <Button
-                asChild
-                size="lg"
-                className="bg-secondary text-secondary-foreground hover:bg-secondary/90 text-base font-semibold shadow-none"
-              >
-                <Link to="/directory">
-                  Browse Authors <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
+            <motion.p variants={fadeUp} custom={2.5} className="mx-auto mb-4 max-w-2xl text-lg text-primary-foreground/70">
+              Stop earning just royalties. Authors Bureau uses AI to transform your manuscript into courses, coaching packages, speaking kits, memberships, and 24 more income streams — automatically. No business experience needed.
+            </motion.p>
+
+            <motion.p variants={fadeUp} custom={3} className="mb-8 text-sm text-secondary font-semibold">
+              Abby, your AI Business Consultant, builds everything for you.
+            </motion.p>
+
+            <motion.div variants={fadeUp} custom={3.5} className="flex flex-wrap justify-center gap-4">
+              <Button asChild size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 text-base font-semibold shadow-[var(--shadow-gold)] rounded-full px-8">
+                <Link to="/get-featured">Get Featured Free <ArrowRight className="ml-2 h-4 w-4" /></Link>
               </Button>
-              <Button
-                asChild
-                size="lg"
-                className="border-2 border-secondary bg-transparent text-secondary hover:bg-secondary hover:text-secondary-foreground text-base font-semibold"
-              >
-                <Link to="/get-featured">Get Featured</Link>
+              <Button asChild size="lg" className="border-2 border-secondary/60 bg-transparent text-secondary hover:bg-secondary hover:text-secondary-foreground text-base font-semibold rounded-full px-8">
+                <a href="#how-it-works">See How It Works ↓</a>
               </Button>
+            </motion.div>
+
+            <motion.div variants={fadeUp} custom={4} className="mt-8 flex flex-wrap justify-center gap-4 text-sm text-primary-foreground/60">
+              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-secondary" /> 28 Revenue Streams</span>
+              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-secondary" /> AI-Powered</span>
+              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-secondary" /> Free to Start</span>
+              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-secondary" /> Built by a Bestselling Author</span>
             </motion.div>
           </motion.div>
         </div>
       </section>
 
-      {/* Meet the Founder */}
+      {/* ===== SECTION 2: THE PROBLEM ===== */}
+      <section className="py-24 bg-background">
+        <div className="container">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} className="mx-auto max-w-3xl text-center">
+            <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-destructive">
+              The Reality
+            </motion.p>
+            <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-5xl mb-6">
+              97% of Authors Earn Less Than{" "}
+              <span className="text-destructive">$1,000 a Year</span> From Their Book
+            </motion.h2>
+            <motion.p variants={fadeUp} custom={2} className="text-lg text-muted-foreground leading-relaxed mb-6">
+              Most authors spend years writing their book, only to discover that royalties barely cover the cost of publishing.
+              The average self-published author earns just $1,000–$5,000 per year from book sales.
+            </motion.p>
+            <motion.p variants={fadeUp} custom={3} className="text-lg text-muted-foreground leading-relaxed mb-8">
+              But the top 3% of authors? They don't rely on royalties. They build businesses around their books — courses, coaching, speaking, memberships — and earn{" "}
+              <strong className="text-foreground">$50,000 to $500,000+ per year</strong> from the same book.
+            </motion.p>
+            <motion.p variants={fadeUp} custom={4} className="text-xl font-heading font-bold text-secondary">
+              Authors Bureau was built to make you part of that top 3%.
+            </motion.p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ===== SECTION 3: THE SOLUTION — ABBY FRAMEWORK ===== */}
+      <section className="py-24 bg-muted/50 border-y border-border">
+        <div className="container">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} className="mb-16 text-center">
+            <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
+              Your Monetization Universe
+            </motion.p>
+            <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-5xl mb-4">
+              One Book. 28 Revenue Streams.{" "}
+              <span className="text-gradient-gold">Your Empire.</span>
+            </motion.h2>
+            <motion.p variants={fadeUp} custom={2} className="mt-4 text-lg text-muted-foreground max-w-3xl mx-auto">
+              Every non-fiction book contains enough expertise to power 28 different income streams.
+              Most authors never discover them. Abby, your AI Business Consultant, finds all 28 and builds them for you — automatically.
+            </motion.p>
+          </motion.div>
+
+          {/* ABBY Category Cards */}
+          <div className="grid gap-6 md:grid-cols-3 mb-12">
+            {[
+              {
+                letter: "B",
+                label: "BUILD",
+                streams: 8,
+                desc: "Digital products that sell on autopilot — workbooks, courses, email marketing, social media",
+                color: "text-secondary",
+                bg: "bg-secondary/10 border-secondary/20",
+              },
+              {
+                letter: "B",
+                label: "BRIDGE",
+                streams: 8,
+                desc: "Audience channels that bring people to you — audiobooks, podcasts, webinars, affiliates",
+                color: "text-accent",
+                bg: "bg-accent/10 border-accent/20",
+              },
+              {
+                letter: "Y",
+                label: "YIELD",
+                streams: 12,
+                desc: "Premium services and scalable systems — coaching, consulting, masterminds, retreats, certification",
+                color: "text-primary",
+                bg: "bg-primary/10 border-primary/20",
+              },
+            ].map((cat, i) => (
+              <motion.div
+                key={cat.label}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                custom={i}
+                variants={fadeUp}
+                className={`rounded-2xl border p-8 ${cat.bg}`}
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <span className={`font-heading text-3xl font-bold ${cat.color}`}>{cat.letter}</span>
+                  <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">· {cat.label}</span>
+                </div>
+                <p className={`text-2xl font-heading font-bold mb-2 ${cat.color}`}>{cat.streams} streams</p>
+                <p className="text-sm text-muted-foreground">{cat.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0} variants={fadeUp} className="text-center">
+            <Button asChild variant="outline" size="lg" className="rounded-full border-secondary text-secondary hover:bg-secondary hover:text-secondary-foreground">
+              <Link to="/how-it-works">Explore All 28 Revenue Streams <ArrowRight className="ml-2 h-4 w-4" /></Link>
+            </Button>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ===== SECTION 4: HOW IT WORKS — 4 Steps ===== */}
+      <section id="how-it-works" className="py-24">
+        <div className="container">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} className="mb-16 text-center">
+            <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
+              How It Works
+            </motion.p>
+            <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-5xl">
+              From Author to <span className="italic text-secondary">Authority</span> in 4 Steps
+            </motion.h2>
+            <motion.p variants={fadeUp} custom={2} className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
+              Your book is the foundation. Abby does the rest. Here's how your journey unfolds:
+            </motion.p>
+          </motion.div>
+
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                step: "1",
+                title: "Upload Your Book",
+                tag: "FREE",
+                desc: "Upload your manuscript and get a professional author showcase page — completely free. Abby analyzes your book and creates a personalized business plan showing which of the 28 revenue streams are the best fit for your topic and audience.",
+              },
+              {
+                step: "2",
+                title: "BUILD Your Products",
+                tag: "$49/month",
+                desc: "Abby uses AI to create your first digital products — workbooks, online courses, email sequences, social media calendars, and your author website. All generated from your book content. You just review and approve.",
+              },
+              {
+                step: "3",
+                title: "BRIDGE Your Audience",
+                tag: "$199/month",
+                desc: "Expand into audience-building channels — audiobooks, podcast tours, webinars, lead magnet funnels, affiliate programs, and media outreach. Abby creates everything: scripts, pitch kits, registration pages, and follow-up sequences.",
+              },
+              {
+                step: "4",
+                title: "YIELD Your Empire",
+                tag: "$499/month",
+                desc: "Scale into premium offerings — 1-on-1 coaching, group coaching, masterminds, keynote speaking, training programs, retreats, certification programs, and more.",
+              },
+            ].map((item, i) => (
+              <motion.div
+                key={item.step}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                custom={i}
+                variants={fadeUp}
+                className="group rounded-2xl bg-card p-7 shadow-md hover:shadow-lg transition-all duration-300 border border-border/60 hover:border-secondary/30 hover:-translate-y-1"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-secondary/15 to-secondary/5 ring-1 ring-secondary/20 font-heading text-xl font-bold text-secondary">
+                    {item.step}
+                  </div>
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                    {item.tag}
+                  </span>
+                </div>
+                <h3 className="mb-2 font-heading text-lg font-bold">{item.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ===== SECTION 5: PRICING — Choose Your Path ===== */}
+      <section id="pricing" className="py-24 bg-muted/50 border-y border-border">
+        <div className="container">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} className="mb-16 text-center">
+            <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
+              Choose Your Path
+            </motion.p>
+            <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-5xl mb-4">
+              Which Author Are You?
+            </motion.h2>
+            <motion.p variants={fadeUp} custom={2} className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Whether you want a side income or a full-scale business, there's a path for you.
+              Every path includes Abby, your AI Business Consultant, who builds everything for you.
+            </motion.p>
+          </motion.div>
+
+          <div className="grid gap-8 lg:grid-cols-3">
+            {pricingPaths.map((path, i) => (
+              <motion.div
+                key={path.name}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                custom={i}
+                variants={fadeUp}
+                className={`relative rounded-2xl p-8 border transition-all duration-300 hover:-translate-y-1 ${
+                  path.accent
+                    ? "bg-primary text-primary-foreground border-secondary shadow-xl scale-[1.02]"
+                    : "bg-card border-border shadow-md"
+                }`}
+              >
+                {path.badge && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-4 py-1 text-xs font-bold text-secondary-foreground shadow-md">
+                      <Star className="h-3 w-3" /> {path.badge}
+                    </span>
+                  </div>
+                )}
+                <div className="text-center mb-6">
+                  <h3 className="font-heading text-xl font-bold mb-1">{path.name}</h3>
+                  <p className={`text-sm mb-4 ${path.accent ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                    {path.tagline}
+                  </p>
+                  <div className="flex items-baseline justify-center gap-1">
+                    <span className="font-heading text-4xl font-bold">{path.price}</span>
+                    <span className={`text-sm ${path.accent ? "text-primary-foreground/60" : "text-muted-foreground"}`}>/month</span>
+                  </div>
+                </div>
+
+                <div className="space-y-3 mb-6">
+                  {[
+                    `${path.streams} revenue streams (${path.category})`,
+                    `Time: ${path.time}`,
+                    `Year 1: ${path.year1}`,
+                    `Year 2+: ${path.year2}`,
+                    `ROI: ${path.roi}`,
+                  ].map((line) => (
+                    <div key={line} className="flex items-start gap-2 text-sm">
+                      <CheckCircle2 className={`h-4 w-4 mt-0.5 shrink-0 ${path.accent ? "text-secondary" : "text-secondary"}`} />
+                      <span className={path.accent ? "text-primary-foreground/80" : "text-muted-foreground"}>{line}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <Button
+                  asChild
+                  size="lg"
+                  className={`w-full rounded-full font-semibold ${
+                    path.accent
+                      ? "bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-[var(--shadow-gold)]"
+                      : "bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                  }`}
+                >
+                  <Link to="/get-featured">{path.cta}</Link>
+                </Button>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.p
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            custom={0}
+            variants={fadeUp}
+            className="mt-8 text-center text-xs text-muted-foreground max-w-3xl mx-auto"
+          >
+            * Projected revenue based on industry benchmarks from Teachable, Udemy, ICF Coach, National Speakers Association, and mastermind.com reports.
+            Individual results vary based on book topic, audience size, and effort invested. These are not guarantees.
+          </motion.p>
+        </div>
+      </section>
+
+      {/* ===== SECTION 6: WHY AUTHORS BUREAU — Comparison Table ===== */}
+      <section className="py-24">
+        <div className="container">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} className="mb-16 text-center">
+            <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
+              Why Authors Bureau
+            </motion.p>
+            <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-5xl mb-4">
+              One Platform <span className="text-gradient-gold">Replaces Everything</span>
+            </motion.h2>
+            <motion.p variants={fadeUp} custom={2} className="text-lg text-muted-foreground max-w-3xl mx-auto">
+              Other platforms make you do the work. Authors Bureau does it for you.
+              Abby reads your book, researches your market, and builds your entire business — courses, coaching packages, email sequences, sales pages, and more. You just review and publish.
+            </motion.p>
+          </motion.div>
+
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0} variants={fadeUp} className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-4 px-4 font-heading font-bold text-sm">What You Need</th>
+                  <th className="text-left py-4 px-4 font-heading font-bold text-sm text-destructive">Without Authors Bureau</th>
+                  <th className="text-left py-4 px-4 font-heading font-bold text-sm text-secondary">With Authors Bureau</th>
+                </tr>
+              </thead>
+              <tbody>
+                {comparisonRows.map((row, i) => (
+                  <tr key={row.need} className={`border-b border-border/50 ${i === comparisonRows.length - 1 ? "font-semibold bg-muted/50" : ""}`}>
+                    <td className="py-3.5 px-4 text-sm font-medium">{row.need}</td>
+                    <td className="py-3.5 px-4 text-sm text-muted-foreground">{row.without}</td>
+                    <td className="py-3.5 px-4 text-sm text-secondary font-medium">{row.withAB}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </motion.div>
+
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0} variants={fadeUp} className="mt-10 text-center">
+            <Button asChild variant="outline" size="lg" className="rounded-full border-secondary text-secondary hover:bg-secondary hover:text-secondary-foreground">
+              <Link to="/how-it-works">See All 28 Revenue Streams <ArrowRight className="ml-2 h-4 w-4" /></Link>
+            </Button>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ===== SECTION 7: PRODUCT COMPARISON — Accordions ===== */}
+      <section className="py-24 bg-muted/30 border-y border-border">
+        <div className="container">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} className="mb-12 text-center">
+            <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
+              Know Your Products
+            </motion.p>
+            <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-4xl mb-4">
+              Not Sure What to Build First?
+            </motion.h2>
+            <motion.p variants={fadeUp} custom={2} className="text-muted-foreground max-w-2xl mx-auto">
+              Many authors confuse similar-sounding products. Here's a plain-English guide to help you understand the difference — and which ones are right for your book.
+            </motion.p>
+          </motion.div>
+
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0} variants={fadeUp} className="mx-auto max-w-3xl">
+            <Accordion type="single" collapsible className="space-y-3">
+              <AccordionItem value="workbook-vs-course" className="rounded-xl border border-border bg-card px-6">
+                <AccordionTrigger className="font-heading font-semibold text-left">
+                  What's the difference between a Workbook, Home Study, and Online Course?
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground space-y-3 pb-4">
+                  <p><strong className="text-foreground">Workbook ($17–$47):</strong> A downloadable PDF with exercises. Think of it as homework from your book. The reader fills it in themselves. Sells on autopilot.</p>
+                  <p><strong className="text-foreground">Home Study ($47–$197):</strong> A self-paced bundle — your book + video lessons + workbook. Like a "course in a box" the reader does alone. No live interaction needed.</p>
+                  <p><strong className="text-foreground">Online Course ($97–$497):</strong> A structured learning experience with modules, quizzes and possibly a community. You may do live Q&A sessions. Higher price, higher value.</p>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="coaching-types" className="rounded-xl border border-border bg-card px-6">
+                <AccordionTrigger className="font-heading font-semibold text-left">
+                  What's the difference between 1-on-1 Coaching, Group Coaching, and a Mastermind?
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground space-y-3 pb-4">
+                  <p><strong className="text-foreground">1-on-1 Coaching ($150–$500/session):</strong> Private sessions where you help one person. Highest price per hour, but limited by your time.</p>
+                  <p><strong className="text-foreground">Group Coaching ($97–$297/month):</strong> You coach 10–30 people at once via group call. Same expertise, more people, more income per hour.</p>
+                  <p><strong className="text-foreground">Mastermind ($5,000–$25,000/year):</strong> A premium peer group you facilitate. Members pay for access to each other AND you. Highest revenue per member.</p>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="speaking-types" className="rounded-xl border border-border bg-card px-6">
+                <AccordionTrigger className="font-heading font-semibold text-left">
+                  What's the difference between Keynotes, In-House Speaking, and Training Programs?
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground space-y-3 pb-4">
+                  <p><strong className="text-foreground">Keynote ($2,500–$15,000):</strong> A single inspirational speech at a conference. You fly in, speak for 45–60 minutes, and leave. One-time fee.</p>
+                  <p><strong className="text-foreground">In-House Speaker ($1,500–$5,000):</strong> A company hires you to speak to their team. More intimate, often includes Q&A. Can lead to consulting contracts.</p>
+                  <p><strong className="text-foreground">Training Program ($5,000–$50,000):</strong> A multi-session program for a company. You deliver workshops over days or weeks. Highest total value per client.</p>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ===== SECTION 8: MEET THE FOUNDER ===== */}
       <section id="meet-the-founder" className="py-24">
         <div className="container">
           <div className="grid gap-12 lg:grid-cols-2 items-center">
-            {/* Photo */}
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              custom={0}
-              variants={fadeUp}
-              className="relative"
-            >
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0} variants={fadeUp} className="relative">
               <div className="rounded-2xl overflow-hidden bg-muted/30 shadow-lg max-h-[560px]">
-                <img
-                  src={paulineFullPhoto}
-                  alt="Pauline Teo — Founder of Authors Bureau"
-                  className="w-full h-full object-cover object-top max-h-[560px]"
-                />
-              </div>
-              <div className="absolute top-4 right-4">
-                <BadgeDisplay level="ab-verified" size="sm" />
+                <img src={paulineFullPhoto} alt="Pauline Teo — Founder of Authors Bureau, international bestselling author and author monetization expert" className="w-full h-full object-cover object-top max-h-[560px]" loading="lazy" />
               </div>
             </motion.div>
 
-            {/* Content */}
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-            >
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }}>
               <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
                 Meet the Founder
               </motion.p>
@@ -163,38 +539,18 @@ export default function Index() {
                 Built by an Author, <span className="italic text-secondary">for Authors</span>
               </motion.h2>
               <motion.p variants={fadeUp} custom={2} className="text-muted-foreground leading-relaxed mb-8">
-                Authors Bureau.com was founded by <strong className="text-foreground">Pauline Teo</strong>, an international bestselling author and entrepreneur with over 25 years of experience in Learning & Development. She built this platform because she knows firsthand what authors need to turn their books into thriving businesses.
+                Pauline built Authors Bureau because she knows firsthand that a book is just the beginning.
+                The real business starts after you publish.
               </motion.p>
 
               <div className="space-y-5 mb-8">
                 {[
-                  {
-                    icon: Award,
-                    title: "International Bestselling Author",
-                    desc: 'Author of "Be SUCKcessful" — Amazon Bestseller in Self-Help, Business Motivation & Personal Finance',
-                  },
-                  {
-                    icon: Building2,
-                    title: "Built the Largest Financial Education Company in SG & MY",
-                    desc: "Former Executive Director — Led startup to ASX listing (ASX:8I, 2014), oversaw spin-off to second ASX listing (ASX:8VI, 2018)",
-                  },
-                  {
-                    icon: GraduationCap,
-                    title: "25+ Years in Learning & Development",
-                    desc: "Master of Arts (Instructional Design & Technology), NTU Singapore — Mentored 10,000+ students",
-                  },
-                  {
-                    icon: Mic,
-                    title: "Recognized Speaker & Entrepreneur",
-                    desc: "Prominent female speaker in the investing sector — Entrepreneur since 2011",
-                  },
+                  { icon: Award, title: "International Bestselling Author", desc: 'Author of "Be SUCKcessful" — Amazon Bestseller in Self-Help, Business Motivation & Personal Finance' },
+                  { icon: Building2, title: "Built the Largest Financial Education Company in SG & MY", desc: "Former Executive Director — Led startup to ASX listing (ASX:8I, 2014), oversaw spin-off to second ASX listing (ASX:8VI, 2018)" },
+                  { icon: GraduationCap, title: "25+ Years in Learning & Development", desc: "Master of Arts (Instructional Design & Technology), NTU Singapore — Mentored 10,000+ students" },
+                  { icon: Mic, title: "Recognized Speaker & Entrepreneur", desc: "Prominent female speaker in the investing sector — Entrepreneur since 2011" },
                 ].map((item, i) => (
-                  <motion.div
-                    key={item.title}
-                    variants={fadeUp}
-                    custom={i + 3}
-                    className="flex gap-4 items-start border-b border-border/50 pb-4 last:border-0"
-                  >
+                  <motion.div key={item.title} variants={fadeUp} custom={i + 3} className="flex gap-4 items-start border-b border-border/50 pb-4 last:border-0">
                     <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center">
                       <item.icon className="h-5 w-5 text-secondary" />
                     </div>
@@ -207,26 +563,13 @@ export default function Index() {
               </div>
 
               <motion.div variants={fadeUp} custom={7} className="flex items-center gap-5 mb-6 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1.5">
-                  <BookOpen className="h-4 w-4 text-secondary" />
-                  <span className="font-semibold text-foreground">3</span> Books
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Mic className="h-4 w-4 text-secondary" />
-                  Speaker
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <MapPin className="h-4 w-4 text-secondary" />
-                  Singapore
-                </div>
+                <div className="flex items-center gap-1.5"><BookOpen className="h-4 w-4 text-secondary" /><span className="font-semibold text-foreground">3</span> Books</div>
+                <div className="flex items-center gap-1.5"><Mic className="h-4 w-4 text-secondary" />Speaker</div>
+                <div className="flex items-center gap-1.5"><MapPin className="h-4 w-4 text-secondary" />Singapore</div>
               </motion.div>
 
               <motion.div variants={fadeUp} custom={8}>
-                <Button
-                  asChild
-                  size="lg"
-                  className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold shadow-none rounded-full"
-                >
+                <Button asChild size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold shadow-none rounded-full">
                   <Link to="/authors/pauline-teo">View Full Profile</Link>
                 </Button>
               </motion.div>
@@ -235,124 +578,26 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Featured Authors - Dynamic from Database */}
+      {/* ===== SECTION 9: FEATURED AUTHORS ===== */}
       <DynamicMeetOurAuthors />
 
-      {/* ==================== HOW IT WORKS — 6 Platform Cards ==================== */}
-      <section id="how-it-works" className="border-y border-border bg-muted/50 py-24">
-        <div className="container">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            className="mb-16 text-center"
-          >
-            <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
-              Why Authors Bureau
-            </motion.p>
-            <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-4xl">
-              One Platform, <span className="italic text-secondary">Everything</span> You Need
-            </motion.h2>
-            <motion.p variants={fadeUp} custom={2} className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-              Stop juggling six different tools. Authors Bureau replaces them all with a single, integrated platform where your book is the center of everything.
-            </motion.p>
-          </motion.div>
-
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {[
-              { icon: Search, title: "Author Discovery", desc: "Replaces: Amazon Author Central, Goodreads" },
-              { icon: Globe2, title: "Book Landing Page", desc: "Replaces: Carrd, Leadpages, WordPress" },
-              { icon: Play, title: "Course Offering", desc: "Replaces: Teachable, Kajabi" },
-              { icon: UserCheck, title: "Coaching CRM", desc: "Replaces: Calendly + Stripe" },
-              { icon: Mic, title: "Speaking Bureau", desc: "Replaces: eSpeakers, SpeakerHub" },
-              { icon: Calendar, title: "Event Management", desc: "Replaces: Eventbrite, Meetup" },
-            ].map((item, i) => (
-              <motion.div
-                key={item.title}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                custom={i}
-                variants={fadeUp}
-                className="group rounded-2xl bg-card p-8 shadow-md hover:shadow-lg transition-all duration-300 border border-border/60 hover:border-secondary/30"
-              >
-                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-secondary/10 ring-1 ring-secondary/20 group-hover:ring-secondary/40 transition-all">
-                  <item.icon className="h-6 w-6 text-secondary" />
-                </div>
-                <h3 className="mb-1 font-heading text-lg font-bold italic">{item.title}</h3>
-                <p className="text-sm text-muted-foreground">{item.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ==================== STEP 1: FROM AUTHOR TO AUTHORITY ==================== */}
+      {/* ===== SECTION 10: FREE TIER — BOOK PAGE SHOWCASE ===== */}
       <section className="py-24">
         <div className="container">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            className="mb-16 text-center"
-          >
-            <motion.div variants={fadeUp} custom={0} className="mb-4 inline-flex items-center gap-2 rounded-full bg-accent/10 border border-accent/20 px-4 py-1.5 text-sm font-semibold text-accent">
-              <Sparkles className="h-4 w-4" />
-              FREE TIER
-            </motion.div>
-            <motion.p variants={fadeUp} custom={0.5} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
-              Step 1 · How It Works
-            </motion.p>
-            <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-4xl">
-              From Author to <span className="italic text-secondary">Authority</span>
-            </motion.h2>
-            <motion.p variants={fadeUp} custom={1.5} className="mt-3 text-muted-foreground">
-              Everything you need to get discovered — completely free.
-            </motion.p>
-          </motion.div>
-
-          {/* Get Featured Card */}
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            custom={0}
-            variants={fadeUp}
-            className="mb-16 rounded-2xl bg-gradient-to-br from-primary to-primary/90 p-10 md:p-14 text-primary-foreground text-center shadow-xl"
-          >
-            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary/20 ring-1 ring-secondary/30">
-              <BookOpen className="h-8 w-8 text-secondary" />
-            </div>
-            <h3 className="font-heading text-2xl md:text-3xl font-bold mb-4">
-              Get Featured with a Professional Book Page for <span className="text-secondary">FREE</span>
-            </h3>
-            <p className="text-primary-foreground/70 max-w-2xl mx-auto text-lg leading-relaxed">
-              Published authors can apply for a free professional showcase with a dedicated book page. Books published through PublishNow.io also receive a verified badge.
-            </p>
-            <div className="mt-8">
-              <Button
-                asChild
-                size="lg"
-                className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold shadow-[var(--shadow-gold)] rounded-full px-8"
-              >
-                <Link to="/get-featured">
-                  Apply Now <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
-          </motion.div>
-
-          {/* Your Book, Your Page — Book Page Showcase */}
           <div className="grid gap-12 lg:grid-cols-2 items-center">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }}>
-              <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
-                Your Book, Your Page
-              </motion.p>
+              <motion.div variants={fadeUp} custom={0} className="mb-4 inline-flex items-center gap-2 rounded-full bg-accent/10 border border-accent/20 px-4 py-1.5 text-sm font-semibold text-accent">
+                <Sparkles className="h-4 w-4" />
+                FREE TIER
+              </motion.div>
               <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-4xl mb-4">
                 Professional Book <span className="italic text-secondary">Pages</span>
               </motion.h2>
-              <motion.p variants={fadeUp} custom={2} className="text-lg text-muted-foreground leading-relaxed mb-8">
-                Every listed author gets a dedicated landing page for their book — designed to showcase your Amazon bestseller status, drive purchases, and build your reader community. <strong className="text-foreground">Completely free.</strong>
+              <motion.p variants={fadeUp} custom={2} className="text-lg text-muted-foreground leading-relaxed mb-4">
+                Every author starts here — free. Your professional book page is your foundation for everything that follows.
+              </motion.p>
+              <motion.p variants={fadeUp} custom={2.5} className="text-muted-foreground leading-relaxed mb-8">
+                Every listed author gets a dedicated landing page for their book — designed to showcase your Amazon bestseller status, drive purchases, and build your reader community.
               </motion.p>
 
               <div className="space-y-4 mb-8">
@@ -370,25 +615,14 @@ export default function Index() {
               </div>
 
               <motion.div variants={fadeUp} custom={10}>
-                <Button
-                  asChild
-                  size="lg"
-                  className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold shadow-[var(--shadow-gold)] rounded-full px-8"
-                >
-                  <Link to="/get-featured">
-                    Get Featured <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
+                <Button asChild size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold shadow-[var(--shadow-gold)] rounded-full px-8">
+                  <Link to="/get-featured">Get Featured <ArrowRight className="ml-2 h-4 w-4" /></Link>
                 </Button>
               </motion.div>
             </motion.div>
 
             {/* Browser Mockup */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.7, delay: 0.2 }}
-            >
+            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.2 }}>
               <div className="rounded-2xl border border-border bg-card shadow-xl overflow-hidden">
                 <div className="flex items-center gap-3 border-b border-border px-4 py-3 bg-muted/50">
                   <div className="flex gap-1.5">
@@ -404,22 +638,14 @@ export default function Index() {
                 </div>
                 <div className="bg-primary p-8 text-primary-foreground">
                   <div className="flex flex-col sm:flex-row items-center gap-6">
-                    <img
-                      src={besuckcessfulCover}
-                      alt="Be SUCKcessful book cover"
-                      className="h-40 rounded-lg shadow-2xl object-contain"
-                    />
+                    <img src={besuckcessfulCover} alt="Be SUCKcessful book cover — author monetization platform showcase" className="h-40 rounded-lg shadow-2xl object-contain" loading="lazy" />
                     <div className="text-center sm:text-left">
                       <h3 className="font-heading text-xl font-bold italic">Be SUCKcessful</h3>
                       <p className="text-sm text-primary-foreground/70 italic">We SUCK Before We SUCCEED</p>
                       <p className="text-xs text-primary-foreground/50 mt-1">by Pauline Teo</p>
                       <div className="mt-3 flex flex-wrap gap-2">
-                        <span className="inline-flex items-center gap-1 rounded-full bg-secondary/20 px-2.5 py-0.5 text-xs font-semibold text-secondary">
-                          ⭐ #1 Best Seller
-                        </span>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-secondary/20 px-2.5 py-0.5 text-xs font-semibold text-secondary">
-                          ⭐ #1 New Release
-                        </span>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-secondary/20 px-2.5 py-0.5 text-xs font-semibold text-secondary">⭐ #1 Best Seller</span>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-secondary/20 px-2.5 py-0.5 text-xs font-semibold text-secondary">⭐ #1 New Release</span>
                       </div>
                     </div>
                   </div>
@@ -435,9 +661,7 @@ export default function Index() {
                     <span>⭐ 4.8/5</span>
                   </div>
                   <div className="flex gap-3">
-                    <div className="flex-1 rounded-lg bg-secondary py-2.5 text-center text-sm font-semibold text-secondary-foreground">
-                      Buy on Amazon
-                    </div>
+                    <div className="flex-1 rounded-lg bg-secondary py-2.5 text-center text-sm font-semibold text-secondary-foreground">Buy on Amazon</div>
                   </div>
                 </div>
               </div>
@@ -446,51 +670,63 @@ export default function Index() {
         </div>
       </section>
 
-      {/* ==================== HOW IT WORKS — 4 Steps ==================== */}
-      <section className="py-24 bg-muted/50 border-y border-border">
+      {/* ===== SECTION 11: SOCIAL PROOF & TRUST ===== */}
+      <section className="py-16 bg-primary text-primary-foreground">
         <div className="container">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            className="mb-16 text-center"
-          >
-            <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
-              How It Works
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} className="text-center mb-10">
+            <motion.p variants={fadeUp} custom={0} className="mb-2 text-xs font-semibold uppercase tracking-widest text-secondary">
+              Trusted by Authors Worldwide
             </motion.p>
-            <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-4xl">
-              From Book to <span className="italic text-secondary">Business</span> in 4 Steps
+            <motion.h2 variants={fadeUp} custom={1} className="font-heading text-2xl font-bold md:text-3xl">
+              Join the Growing Community of Author-Entrepreneurs
             </motion.h2>
-            <motion.p variants={fadeUp} custom={2} className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-              Your book is the foundation. Abby, your AI Business Consultant, helps you build everything else.
-            </motion.p>
           </motion.div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0} variants={fadeUp} className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             {[
-              { step: "1", title: "Analyze Your Book", desc: "Upload your manuscript and let Abby, your AI Business Consultant, generate a comprehensive business plan tailored to your book." },
-              { step: "2", title: "Build Your Products", desc: "Use our AI-powered studios to instantly create a suite of digital products, from workbooks to online courses, all based on your book's content." },
-              { step: "3", title: "Launch Your Website", desc: "Build your professional author website, a central hub to showcase your brand, sell your products, and connect with your audience." },
-              { step: "4", title: "Grow Your Business", desc: "Use our CRM, revenue dashboard, and marketing tools to grow your audience and build a sustainable author business." },
-            ].map((item, i) => (
-              <motion.div
-                key={item.step}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                custom={i}
-                variants={fadeUp}
-                className="group rounded-2xl bg-card p-7 shadow-md hover:shadow-lg transition-all duration-300 border border-border/60 hover:border-secondary/30 hover:-translate-y-1"
-              >
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-secondary/15 to-secondary/5 ring-1 ring-secondary/20 font-heading text-xl font-bold text-secondary">
-                  {item.step}
-                </div>
-                <h3 className="mb-2 font-heading text-lg font-bold">{item.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
-              </motion.div>
+              { stat: "28", label: "Revenue Streams" },
+              { stat: "3", label: "Subscription Tiers" },
+              { stat: "AI", label: "Powered by Abby" },
+              { stat: "Free", label: "To Start" },
+            ].map((item) => (
+              <div key={item.label} className="py-4">
+                <p className="text-3xl md:text-4xl font-heading font-bold text-secondary">{item.stat}</p>
+                <p className="text-sm text-primary-foreground/60 mt-1">{item.label}</p>
+              </div>
             ))}
-          </div>
+          </motion.div>
 
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={1} variants={fadeUp} className="mt-10 mx-auto max-w-2xl text-center">
+            <blockquote className="italic text-primary-foreground/70 text-lg leading-relaxed">
+              "I went from earning $200/month in royalties to $4,500/month in course sales — all because Abby built my course from my manuscript in 2 hours."
+            </blockquote>
+            <p className="mt-3 text-sm text-primary-foreground/50">— Featured Author Testimonial (Coming Soon)</p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ===== SECTION 12: FINAL CTA ===== */}
+      <section className="relative py-24 overflow-hidden" style={{ background: "var(--gradient-hero)" }}>
+        <div className="absolute inset-0 bg-gradient-to-r from-secondary/10 to-transparent" />
+        <div className="container relative z-10 text-center">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }}>
+            <motion.h2 variants={fadeUp} custom={0} className="font-heading text-3xl font-bold md:text-5xl text-primary-foreground mb-6">
+              Your Book Deserves More Than{" "}
+              <span className="text-gradient-gold">Royalties</span>
+            </motion.h2>
+            <motion.p variants={fadeUp} custom={1} className="text-lg text-primary-foreground/70 max-w-2xl mx-auto mb-10">
+              Every day you wait is revenue you're leaving on the table. Upload your book, let Abby build your business,
+              and start earning from all 28 revenue streams — not just one.
+            </motion.p>
+            <motion.div variants={fadeUp} custom={2} className="flex flex-wrap justify-center gap-4">
+              <Button asChild size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 text-base font-semibold shadow-[var(--shadow-gold)] rounded-full px-8">
+                <Link to="/get-featured">Get Featured Free <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              </Button>
+              <Button asChild size="lg" className="border-2 border-secondary/60 bg-transparent text-secondary hover:bg-secondary hover:text-secondary-foreground text-base font-semibold rounded-full px-8">
+                <a href="#pricing">See Pricing Plans →</a>
+              </Button>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 

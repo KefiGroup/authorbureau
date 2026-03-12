@@ -9,7 +9,7 @@ export default function Footer() {
           <div className="space-y-4">
             <img src={logoText} alt="Authors Bureau" className="h-20 w-auto" />
             <p className="text-sm text-primary-foreground/70">
-              Where published authors are discovered and where their expertise becomes a business.
+              The #1 AI-powered platform that turns your book into 28 revenue streams.
             </p>
           </div>
 
@@ -20,6 +20,8 @@ export default function Footer() {
             <ul className="space-y-2 text-sm text-primary-foreground/70">
               <li><Link to="/directory" className="hover:text-secondary transition-colors">Author Directory</Link></li>
               <li><Link to="/get-featured" className="hover:text-secondary transition-colors">Get Featured</Link></li>
+              <li><Link to="/how-it-works" className="hover:text-secondary transition-colors">How It Works</Link></li>
+              <li><a href="/#pricing" className="hover:text-secondary transition-colors">Pricing</a></li>
             </ul>
           </div>
 
@@ -41,6 +43,7 @@ export default function Footer() {
             <ul className="space-y-2 text-sm text-primary-foreground/70">
               <li><Link to="/contact" className="hover:text-secondary transition-colors">Contact Us</Link></li>
               <li><Link to="/faq" className="hover:text-secondary transition-colors">Help Center</Link></li>
+              <li><Link to="/reading-club" className="hover:text-secondary transition-colors">Reading Club</Link></li>
             </ul>
           </div>
         </div>
