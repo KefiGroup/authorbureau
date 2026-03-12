@@ -500,21 +500,6 @@ export default function Index() {
         </div>
       </section>
 
-      {/* ===== SECTION 8: KNOW YOUR PRODUCTS — Infographic Only ===== */}
-      <section className="py-24 border-b border-border">
-        <div className="container">
-          <motion.img
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            src="/images/journey-comparison.png"
-            alt="Know Your Products — Learning, Coaching, and Speaking product comparison"
-            className="w-full max-w-5xl mx-auto rounded-2xl shadow-xl"
-            loading="lazy"
-          />
-        </div>
-      </section>
 
       {/* ===== SECTION 10: CHOOSE YOUR PATH + Three Paths Infographic + Pricing ===== */}
       <section id="pricing" className="py-24 bg-muted/50 border-y border-border">
