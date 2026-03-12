@@ -141,11 +141,11 @@ export default function Index() {
             </motion.h1>
 
             <motion.p variants={fadeUp} custom={2} className="mb-3 font-heading text-xl text-primary-foreground/90 md:text-2xl">
-              Your book is more than a product — it's the foundation of a business empire.
+              Your book is more than a product. It's the foundation of a business empire.
             </motion.p>
 
             <motion.p variants={fadeUp} custom={2.5} className="mx-auto mb-4 max-w-2xl text-lg text-primary-foreground/70">
-              Stop earning just royalties. Authors Bureau uses AI to transform your manuscript into courses, coaching packages, speaking kits, memberships, and 24 more income streams — automatically. No business experience needed.
+              Stop earning just royalties. Authors Bureau uses AI to transform your manuscript into courses, coaching packages, speaking kits, memberships, and 24 more income streams, automatically. No business experience needed.
             </motion.p>
 
             <motion.p variants={fadeUp} custom={3} className="mb-8 text-sm text-secondary font-semibold">
@@ -187,7 +187,7 @@ export default function Index() {
               The average self-published author earns just $1,000–$5,000 per year from book sales.
             </motion.p>
             <motion.p variants={fadeUp} custom={3} className="text-lg text-muted-foreground leading-relaxed mb-8">
-              But the top 3% of authors? They don't rely on royalties. They build businesses around their books — courses, coaching, speaking, memberships — and earn{" "}
+              But the top 3% of authors? They don't rely on royalties. They build businesses around their books with courses, coaching, speaking, and memberships, earning{" "}
               <strong className="text-foreground">$50,000 to $500,000+ per year</strong> from the same book.
             </motion.p>
             <motion.p variants={fadeUp} custom={4} className="text-xl font-heading font-bold text-secondary">
@@ -210,7 +210,7 @@ export default function Index() {
             </motion.h2>
             <motion.p variants={fadeUp} custom={2} className="mt-4 text-lg text-muted-foreground max-w-3xl mx-auto">
               Every non-fiction book contains enough expertise to power 28 different income streams.
-              Most authors never discover them. Abby, your AI Business Consultant, finds all 28 and builds them for you — automatically.
+              Most authors never discover them. Abby, your AI Business Consultant, finds all 28 and builds them for you automatically.
             </motion.p>
           </motion.div>
 
@@ -221,7 +221,7 @@ export default function Index() {
                 letter: "B",
                 label: "BUILD",
                 streams: 8,
-                desc: "Digital products that sell on autopilot — workbooks, courses, email marketing, social media",
+                desc: "Digital products that sell on autopilot: workbooks, courses, email marketing, social media",
                 color: "text-secondary",
                 bg: "bg-secondary/10 border-secondary/20",
               },
@@ -229,7 +229,7 @@ export default function Index() {
                 letter: "B",
                 label: "BRIDGE",
                 streams: 8,
-                desc: "Audience channels that bring people to you — audiobooks, podcasts, webinars, affiliates",
+                desc: "Audience channels that bring people to you: audiobooks, podcasts, webinars, affiliates",
                 color: "text-accent",
                 bg: "bg-accent/10 border-accent/20",
               },
@@ -237,7 +237,7 @@ export default function Index() {
                 letter: "Y",
                 label: "YIELD",
                 streams: 12,
-                desc: "Premium services and scalable systems — coaching, consulting, masterminds, retreats, certification",
+                desc: "Premium services and scalable systems: coaching, consulting, masterminds, retreats, certification",
                 color: "text-primary",
                 bg: "bg-primary/10 border-primary/20",
               },
@@ -290,25 +290,25 @@ export default function Index() {
                 step: "1",
                 title: "Upload Your Book",
                 tag: "FREE",
-                desc: "Upload your manuscript and get a professional author showcase page — completely free. Abby analyzes your book and creates a personalized business plan showing which of the 28 revenue streams are the best fit for your topic and audience.",
+                desc: "Upload your manuscript and get a professional author showcase page, completely free. Abby analyzes your book and creates a personalized business plan showing which of the 28 revenue streams are the best fit for your topic and audience.",
               },
               {
                 step: "2",
                 title: "BUILD Your Products",
                 tag: "$49/month",
-                desc: "Abby uses AI to create your first digital products — workbooks, online courses, email sequences, social media calendars, and your author website. All generated from your book content. You just review and approve.",
+                desc: "Abby uses AI to create your first digital products: workbooks, online courses, email sequences, social media calendars, and your author website. All generated from your book content. You just review and approve.",
               },
               {
                 step: "3",
                 title: "BRIDGE Your Audience",
                 tag: "$199/month",
-                desc: "Expand into audience-building channels — audiobooks, podcast tours, webinars, lead magnet funnels, affiliate programs, and media outreach. Abby creates everything: scripts, pitch kits, registration pages, and follow-up sequences.",
+                desc: "Expand into audience-building channels: audiobooks, podcast tours, webinars, lead magnet funnels, affiliate programs, and media outreach. Abby creates everything including scripts, pitch kits, registration pages, and follow-up sequences.",
               },
               {
                 step: "4",
                 title: "YIELD Your Empire",
                 tag: "$499/month",
-                desc: "Scale into premium offerings — 1-on-1 coaching, group coaching, masterminds, keynote speaking, training programs, retreats, certification programs, and more.",
+                desc: "Scale into premium offerings: 1-on-1 coaching, group coaching, masterminds, keynote speaking, training programs, retreats, certification programs, and more.",
               },
             ].map((item, i) => (
               <motion.div
@@ -441,7 +441,7 @@ export default function Index() {
             </motion.h2>
             <motion.p variants={fadeUp} custom={2} className="text-lg text-muted-foreground max-w-3xl mx-auto">
               Other platforms make you do the work. Authors Bureau does it for you.
-              Abby reads your book, researches your market, and builds your entire business — courses, coaching packages, email sequences, sales pages, and more. You just review and publish.
+              Abby reads your book, researches your market, and builds your entire business: courses, coaching packages, email sequences, sales pages, and more. You just review and publish.
             </motion.p>
           </motion.div>
 
@@ -485,7 +485,7 @@ export default function Index() {
               Not Sure What to Build First?
             </motion.h2>
             <motion.p variants={fadeUp} custom={2} className="text-muted-foreground max-w-2xl mx-auto">
-              Many authors confuse similar-sounding products. Here's a plain-English guide to help you understand the difference — and which ones are right for your book.
+              Many authors confuse similar-sounding products. Here's a plain-English guide to help you understand the difference and which ones are right for your book.
             </motion.p>
           </motion.div>
 
@@ -497,7 +497,7 @@ export default function Index() {
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground space-y-3 pb-4">
                   <p><strong className="text-foreground">Workbook ($17–$47):</strong> A downloadable PDF with exercises. Think of it as homework from your book. The reader fills it in themselves. Sells on autopilot.</p>
-                  <p><strong className="text-foreground">Home Study ($47–$197):</strong> A self-paced bundle — your book + video lessons + workbook. Like a "course in a box" the reader does alone. No live interaction needed.</p>
+                  <p><strong className="text-foreground">Home Study ($47–$197):</strong> A self-paced bundle with your book, video lessons, and a workbook. Like a "course in a box" the reader does alone. No live interaction needed.</p>
                   <p><strong className="text-foreground">Online Course ($97–$497):</strong> A structured learning experience with modules, quizzes and possibly a community. You may do live Q&A sessions. Higher price, higher value.</p>
                 </AccordionContent>
               </AccordionItem>
@@ -534,7 +534,7 @@ export default function Index() {
           <div className="grid gap-12 lg:grid-cols-2 items-center">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0} variants={fadeUp} className="relative">
               <div className="rounded-2xl overflow-hidden bg-muted/30 shadow-lg max-h-[560px]">
-                <img src={paulineFullPhoto} alt="Pauline Teo — Founder of Authors Bureau, international bestselling author and author monetization expert" className="w-full h-full object-cover object-top max-h-[560px]" loading="lazy" />
+                <img src={paulineFullPhoto} alt="Pauline Teo, Founder of Authors Bureau, international bestselling author and author monetization expert" className="w-full h-full object-cover object-top max-h-[560px]" loading="lazy" />
               </div>
             </motion.div>
 
@@ -552,10 +552,10 @@ export default function Index() {
 
               <div className="space-y-5 mb-8">
                 {[
-                  { icon: Award, title: "International Bestselling Author", desc: 'Author of "Be SUCKcessful" — Amazon Bestseller in Self-Help, Business Motivation & Personal Finance' },
-                  { icon: Building2, title: "Built the Largest Financial Education Company in SG & MY", desc: "Former Executive Director — Led startup to ASX listing (ASX:8I, 2014), oversaw spin-off to second ASX listing (ASX:8VI, 2018)" },
-                  { icon: GraduationCap, title: "25+ Years in Learning & Development", desc: "Master of Arts (Instructional Design & Technology), NTU Singapore — Mentored 10,000+ students" },
-                  { icon: Mic, title: "Recognized Speaker & Entrepreneur", desc: "Prominent female speaker in the investing sector — Entrepreneur since 2011" },
+                  { icon: Award, title: "International Bestselling Author", desc: 'Author of "Be SUCKcessful," Amazon Bestseller in Self-Help, Business Motivation & Personal Finance' },
+                  { icon: Building2, title: "Built the Largest Financial Education Company in SG & MY", desc: "Former Executive Director. Led startup to ASX listing (ASX:8I, 2014), oversaw spin-off to second ASX listing (ASX:8VI, 2018)" },
+                  { icon: GraduationCap, title: "25+ Years in Learning & Development", desc: "Master of Arts (Instructional Design & Technology), NTU Singapore. Mentored 10,000+ students" },
+                  { icon: Mic, title: "Recognized Speaker & Entrepreneur", desc: "Prominent female speaker in the investing sector. Entrepreneur since 2011" },
                 ].map((item, i) => (
                   <motion.div key={item.title} variants={fadeUp} custom={i + 3} className="flex gap-4 items-start border-b border-border/50 pb-4 last:border-0">
                     <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center">
@@ -601,7 +601,7 @@ export default function Index() {
                 Professional Book <span className="italic text-secondary">Pages</span>
               </motion.h2>
               <motion.p variants={fadeUp} custom={2} className="text-lg text-muted-foreground leading-relaxed mb-4">
-                Every author starts here — free. Your professional book page is your foundation for everything that follows.
+                Every author starts here, free. Your professional book page is your foundation for everything that follows.
               </motion.p>
               <motion.p variants={fadeUp} custom={2.5} className="text-muted-foreground leading-relaxed mb-8">
                 Every listed author gets a dedicated landing page for their book — designed to showcase your Amazon bestseller status, drive purchases, and build your reader community.
