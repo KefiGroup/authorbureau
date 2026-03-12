@@ -601,7 +601,7 @@ export default function Index() {
                 Professional Book <span className="italic text-secondary">Pages</span>
               </motion.h2>
               <motion.p variants={fadeUp} custom={2} className="text-lg text-muted-foreground leading-relaxed mb-4">
-                Every author starts here — free. Your professional book page is your foundation for everything that follows.
+                Every author starts here, free. Your professional book page is your foundation for everything that follows.
               </motion.p>
               <motion.p variants={fadeUp} custom={2.5} className="text-muted-foreground leading-relaxed mb-8">
                 Every listed author gets a dedicated landing page for their book — designed to showcase your Amazon bestseller status, drive purchases, and build your reader community.
