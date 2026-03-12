@@ -236,9 +236,9 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
       // Save to generated_assets as builder draft
       const content = JSON.stringify({
         nodeId: nodeConfig.id,
-        currentStep,
-        stepData,
-        editedSteps: Array.from(editedSteps),
+        currentStep: currentStepRef.current,
+        stepData: stepDataRef.current,
+        editedSteps: Array.from(editedStepsRef.current),
         savedAt: new Date().toISOString(),
       });
 
