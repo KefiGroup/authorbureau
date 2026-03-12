@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Navigate, useNavigate, useLocation, Link } from "react-router-dom";
+import { Navigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2, ArrowLeft, Mail, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -55,7 +55,6 @@ type FlowState = "email" | "otp" | "password-login" | "forgot-email" | "forgot-r
 
 export default function Auth() {
   const { user, loading } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
   const redirectTo = new URLSearchParams(location.search).get("redirect") || "/dashboard";
@@ -68,6 +67,7 @@ export default function Auth() {
   const [otp, setOtp] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [magicLinkProcessing, setMagicLinkProcessing] = useState(false);
+  const [authLoadingFallback, setAuthLoadingFallback] = useState(false);
 
   // Resend timer
   const [resendCooldown, setResendCooldown] = useState(0);
