@@ -107,7 +107,7 @@ export default function Auth() {
     })();
   }, [location.hash]);
 
-  const hasCallbackToken = location.hash?.includes("auth_token");
+  
 
   if (loading || magicLinkProcessing) {
     return (
