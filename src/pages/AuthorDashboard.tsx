@@ -331,9 +331,9 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         return <AuthorReadingClub onNavigate={handleNavigate} />;
       case "book-sales":
         return gate("Book Sales", 
-          BUILDER_NODE_MAP["book-sales-events"] ? (
+          BUILDER_NODE_MAP["book-sales"] ? (
             <UniversalBuilderStudio 
-              nodeConfig={BUILDER_NODE_MAP["book-sales-events"]} 
+              nodeConfig={BUILDER_NODE_MAP["book-sales"]} 
               onNavigate={handleNavigate} 
             />
           ) : <ComingSoonPlaceholder sectionId="book-sales" />
