@@ -190,17 +190,6 @@ export default function Join() {
                         placeholder="your@email.com"
                       />
                     </div>
-                    <div>
-                      <label className="mb-1.5 block text-sm font-medium">Password *</label>
-                      <input
-                        required
-                        name="password"
-                        type="password"
-                        minLength={6}
-                        className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-secondary/50"
-                        placeholder="••••••••"
-                      />
-                    </div>
                   </div>
 
                   <div>
