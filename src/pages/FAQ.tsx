@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 /* ─── FAQ Data ─── */
 const categories = [
   { id: "getting-started", title: "Getting Started", icon: Rocket, iconBg: "#EFF6FF", iconColor: "#3B82F6", description: "Setting up your account, profile, and first book" },
-  { id: "your-microsite", title: "Your Microsite", icon: Globe, iconBg: "#F0FDF4", iconColor: "#22C55E", description: "Managing your professional author page" },
+  { id: "your-microsite", title: "Your Directory Profile", icon: Globe, iconBg: "#F0FDF4", iconColor: "#22C55E", description: "Managing your public directory profile" },
   { id: "abby-framework", title: "ABBY Framework", icon: Sparkles, iconBg: "#FFFBEB", iconColor: "#D4A843", description: "How Abby analyzes your book and builds your plan" },
   { id: "subscriptions-billing", title: "Subscriptions & Billing", icon: CreditCard, iconBg: "#F5F3FF", iconColor: "#8B5CF6", description: "Plans, pricing, upgrades, and payments" },
   { id: "building-products", title: "Building Products", icon: Hammer, iconBg: "#FFF7ED", iconColor: "#F97316", description: "Using the AI builders to create and sell products" },

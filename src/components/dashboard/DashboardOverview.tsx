@@ -474,7 +474,7 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
               <DialogTitle className="font-heading text-lg">Complete Your Profile</DialogTitle>
             </div>
             <DialogDescription className="text-sm">
-              Your profile is synced but missing some details needed to build your author page. Please complete these on PublishNow and sync again:
+              Your profile is synced but missing some details needed to build your directory profile. Please complete these on PublishNow and sync again:
             </DialogDescription>
           </DialogHeader>
 

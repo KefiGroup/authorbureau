@@ -27,7 +27,7 @@ const ctaConfig: Record<string, { primary: { label: string; action: string; icon
   },
   analyze: {
     primary: { label: "Analyze Your Book with Abby →", action: "analyze", icon: Sparkles },
-    secondary: { label: "View Your Author Page →", action: "view-microsite", icon: Globe },
+    secondary: { label: "View Your Directory Profile →", action: "view-microsite", icon: Globe },
   },
   payments: {
     primary: { label: "Connect Stripe →", action: "connect-stripe", icon: CreditCard },
