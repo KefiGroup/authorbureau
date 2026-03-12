@@ -490,6 +490,20 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           {renderSection()}
         </main>
       </div>
+
+      {/* ABBY Journey Onboarding Modal */}
+      {showJourneyOnboarding && user && (
+        <ABBYJourneyOnboarding
+          userId={user.id}
+          onComplete={(selectedPath) => {
+            setShowJourneyOnboarding(false);
+            if (selectedPath) {
+              // Track path preference (analytics)
+              console.log("User selected path:", selectedPath);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
