@@ -9,6 +9,7 @@ import Footer from "@/components/Footer";
 import { supabase } from "@/lib/shared-backend";
 import { useToast } from "@/hooks/use-toast";
 import { getPublishNowAuthUrl } from "@/lib/publishnow-auth";
+import { Link, useNavigate } from "react-router-dom";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
