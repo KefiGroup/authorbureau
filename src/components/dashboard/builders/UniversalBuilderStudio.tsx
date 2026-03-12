@@ -6,6 +6,7 @@ import {
   Sparkles, X, Send, ChevronLeft, Lock, AlertCircle, Wand2,
 } from "lucide-react";
 import AbbyNarrativeLoading from "./AbbyNarrativeLoading";
+import ActPhaseBadge from "./shared/ActPhaseBadge";
 import AbbyProposal from "./AbbyProposal";
 import CrossBuilderNotifications from "./CrossBuilderNotifications";
 import CrossBuilderPushSummary from "./CrossBuilderPushSummary";
@@ -590,8 +591,12 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
               transition={{ duration: 0.2 }}
             >
               <div className="max-w-3xl">
-                <div className="flex items-start justify-between mb-6">
+                <div className="flex items-start justify-between mb-1">
                   <div>
+                    {/* 3-Act Phase Badge */}
+                    <ActPhaseBadge act={
+                      currentStepConfig.act || (currentStep === 0 ? 1 : currentStep === nodeConfig.steps.length - 1 ? 3 : 2)
+                    } />
                     <h2 className="font-heading text-xl font-bold mb-1">
                       Step {currentStep + 1}: {currentStepConfig.label}
                     </h2>

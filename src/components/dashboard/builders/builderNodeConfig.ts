@@ -5,6 +5,7 @@ export interface BuilderStep {
   label: string;
   description: string;
   abbyTip: string;
+  act?: 1 | 2 | 3; // 1=Analyse, 2=Build, 3=Bridge
 }
 
 export interface BuilderNodeConfig {
