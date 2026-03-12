@@ -128,6 +128,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
   const [stripeConnected, setStripeConnected] = useState(false);
   const [pendingReviewCount, setPendingReviewCount] = useState(0);
   const [analyzedBookList, setAnalyzedBookList] = useState<Array<{ id: string; title: string }>>([]);
+  const [showJourneyOnboarding, setShowJourneyOnboarding] = useState(false);
 
   // Derive journey state from centralized stats
   useEffect(() => {
