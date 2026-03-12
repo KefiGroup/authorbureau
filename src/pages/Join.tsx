@@ -64,6 +64,7 @@ export default function Join() {
     setTimeout(() => {
       window.location.href = publishNowAuthUrl;
     }, 1200);
+
   };
 
   return (
