@@ -221,6 +221,9 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
         onChatAbby={() => onNavigate("build-business")}
       />
 
+      {/* SECTION 2.5 — Journey Cards Strip */}
+      <JourneyCardsStrip />
+
       {/* SECTION 3 — Monetization Universe */}
       <MonetizationUniverse
         activatedCount={builtProducts.length}
