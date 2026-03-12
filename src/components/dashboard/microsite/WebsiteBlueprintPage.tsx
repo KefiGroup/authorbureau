@@ -6,11 +6,14 @@ import { Input } from "@/components/ui/input";
 import {
   Sparkles, ExternalLink, Copy, CheckCircle2, Info,
   Globe, User, BookOpen, ShoppingBag, FileText, Calendar,
-  Megaphone, Loader2, Link2, Download, AlertCircle,
+  Megaphone, Loader2, Link2, Download, AlertCircle, Crown, HelpCircle,
 } from "lucide-react";
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
