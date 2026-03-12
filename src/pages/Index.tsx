@@ -148,7 +148,7 @@ export default function Index() {
 
             <motion.div variants={fadeUp} custom={3.5} className="flex flex-wrap justify-center gap-4">
               <Button asChild size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 text-base font-semibold shadow-[var(--shadow-gold)] rounded-full px-8">
-                <a href={SIGNUP_URL} target="_blank" rel="noopener noreferrer">Get Featured Free <ArrowRight className="ml-2 h-4 w-4" /></a>
+                <Link to={SIGNUP_URL}>Get Featured Free <ArrowRight className="ml-2 h-4 w-4" /></Link>
               </Button>
               <Button asChild size="lg" className="border-2 border-secondary/60 bg-transparent text-secondary hover:bg-secondary hover:text-secondary-foreground text-base font-semibold rounded-full px-8">
                 <a href="#how-it-works">See How It Works ↓</a>
