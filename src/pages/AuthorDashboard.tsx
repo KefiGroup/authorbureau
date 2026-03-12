@@ -31,7 +31,7 @@ import HowItWorksSection from "@/components/dashboard/HowItWorksSection";
 import ReviewProductsPage from "@/components/dashboard/ReviewProductsPage";
 import AuthorCRMPage from "@/components/dashboard/AuthorCRMPage";
 import AuthorReadingClub from "@/components/dashboard/AuthorReadingClub";
-import AbbyConsultantBanner from "@/components/dashboard/AbbyConsultantBanner";
+// AbbyConsultantBanner removed from dashboard per reorganization
 import ABBYJourneyOnboarding from "@/components/dashboard/ABBYJourneyOnboarding";
 import { Loader2, Rocket, FileText, Video, Share2, CreditCard, Users, Trophy, Podcast, Building2, Bookmark, Award, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
