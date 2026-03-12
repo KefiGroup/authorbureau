@@ -523,73 +523,28 @@ export default function Index() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            src="/images/journey-three-paths.png"
+            src="/images/abby-three-paths.png"
             alt="Choose Your Path — Side Hustler, Serious Author, Empire Builder"
             className="w-full max-w-5xl mx-auto rounded-2xl shadow-xl mb-12"
             loading="lazy"
           />
 
-          <div className="grid gap-8 lg:grid-cols-3">
-            {pricingPaths.map((path, i) => (
-              <motion.div
-                key={path.name}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                custom={i}
-                variants={fadeUp}
-                className={`relative rounded-2xl p-8 border transition-all duration-300 hover:-translate-y-1 ${
-                  path.accent
-                    ? "bg-primary text-primary-foreground border-secondary shadow-xl scale-[1.02]"
-                    : "bg-card border-border shadow-md"
-                }`}
-              >
-                {path.badge && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-4 py-1 text-xs font-bold text-secondary-foreground shadow-md">
-                      <Star className="h-3 w-3" /> {path.badge}
-                    </span>
-                  </div>
-                )}
-                <div className="text-center mb-6">
-                  <h3 className="font-heading text-xl font-bold mb-1">{path.name}</h3>
-                  <p className={`text-sm mb-4 ${path.accent ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-                    {path.tagline}
-                  </p>
-                  <div className="flex items-baseline justify-center gap-1">
-                    <span className="font-heading text-4xl font-bold">{path.price}</span>
-                    <span className={`text-sm ${path.accent ? "text-primary-foreground/60" : "text-muted-foreground"}`}>/month</span>
-                  </div>
-                </div>
-
-                <div className="space-y-3 mb-6">
-                  {[
-                    `${path.streams} revenue streams (${path.category})`,
-                    `Time: ${path.time}`,
-                    `Projected Year 1: ${path.year1}`,
-                    `Projected ROI: ${path.roi}`,
-                  ].map((line) => (
-                    <div key={line} className="flex items-start gap-2 text-sm">
-                      <CheckCircle2 className={`h-4 w-4 mt-0.5 shrink-0 ${path.accent ? "text-secondary" : "text-secondary"}`} />
-                      <span className={path.accent ? "text-primary-foreground/80" : "text-muted-foreground"}>{line}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <Button
-                  asChild
-                  size="lg"
-                  className={`w-full rounded-full font-semibold ${
-                    path.accent
-                      ? "bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-[var(--shadow-gold)]"
-                      : "bg-secondary text-secondary-foreground hover:bg-secondary/90"
-                  }`}
-                >
-                  <Link to={getPlanUrl(path.planKey || "starter")}>{path.cta}</Link>
-                </Button>
-              </motion.div>
-            ))}
-          </div>
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            custom={0}
+            className="text-center"
+          >
+            <Button
+              asChild
+              size="lg"
+              className="rounded-full font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-[var(--shadow-gold)] px-10 text-lg"
+            >
+              <Link to="/auth">Sign Up for Abby's AI Consultation</Link>
+            </Button>
+          </motion.div>
 
           <motion.p
             initial="hidden"
