@@ -58,6 +58,7 @@ export default function Auth() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { toast } = useToast();
   const publishNowAuthUrl = getPublishNowAuthUrl("/dashboard");
 
   const [mode, setMode] = useState<SignInMode>("password");
