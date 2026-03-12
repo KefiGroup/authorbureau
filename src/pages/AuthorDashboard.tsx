@@ -353,6 +353,15 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
             />
           ) : <ComingSoonPlaceholder sectionId="lead-magnet" />
         );
+      case "big-ticket":
+        return gate("Big Ticket Consulting", 
+          BUILDER_NODE_MAP["big-ticket"] ? (
+            <UniversalBuilderStudio 
+              nodeConfig={BUILDER_NODE_MAP["big-ticket"]} 
+              onNavigate={handleNavigate} 
+            />
+          ) : <ComingSoonPlaceholder sectionId="big-ticket" />
+        , "pro");
       case "connect-stripe":
         return <ConnectStripePage />;
       case "overview":
