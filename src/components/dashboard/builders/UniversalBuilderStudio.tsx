@@ -6,6 +6,7 @@ import {
   Sparkles, X, Send, ChevronLeft, Lock, AlertCircle, Wand2,
 } from "lucide-react";
 import AbbyNarrativeLoading from "./AbbyNarrativeLoading";
+import ActPhaseBadge from "./shared/ActPhaseBadge";
 import AbbyProposal from "./AbbyProposal";
 import CrossBuilderNotifications from "./CrossBuilderNotifications";
 import CrossBuilderPushSummary from "./CrossBuilderPushSummary";
