@@ -339,7 +339,7 @@ export default function Index() {
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }}>
               <motion.div variants={fadeUp} custom={0} className="mb-4 inline-flex items-center gap-2 rounded-full bg-accent/10 border border-accent/20 px-4 py-1.5 text-sm font-semibold text-accent">
                 <Sparkles className="h-4 w-4" />
-                FREE TIER
+                ABBY AI ANALYSIS
               </motion.div>
               <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-4xl mb-4">
                 Professional Book <span className="italic text-secondary">Pages</span>
@@ -453,25 +453,25 @@ export default function Index() {
               {
                 step: "1",
                 title: "Upload Your Book",
-                tag: "ANALYSE",
+                tag: "ABBY AI ANALYSIS",
                 desc: "Upload your manuscript and get a professional author showcase page, completely free. Abby analyzes your book and creates a personalized business plan showing which of the 28 revenue streams are the best fit for your topic and audience.",
               },
               {
                 step: "2",
                 title: "BUILD Your Products",
-                tag: "BUILD",
+                tag: "BUILD AUTHORITY",
                 desc: "Abby uses AI to create your first digital products: workbooks, online courses, email sequences, social media calendars, and your author website. All generated from your book content. You just review and approve.",
               },
               {
                 step: "3",
                 title: "BRIDGE Your Audience",
-                tag: "BRIDGE",
+                tag: "BRIDGE CHANNELS",
                 desc: "Expand into audience-building channels: audiobooks, podcast tours, webinars, lead magnet funnels, affiliate programs, and media outreach. Abby creates everything including scripts, pitch kits, registration pages, and follow-up sequences.",
               },
               {
                 step: "4",
                 title: "YIELD Your Empire",
-                tag: "YIELD",
+                tag: "YIELD REVENUE",
                 desc: "Scale into premium offerings: 1-on-1 coaching, group coaching, masterminds, keynote speaking, training programs, retreats, certification programs, and more.",
               },
             ].map((item, i) => (
