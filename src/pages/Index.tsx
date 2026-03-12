@@ -53,6 +53,7 @@ const pricingPaths = [
     cta: "Start Building →",
     badge: null,
     accent: false,
+    planKey: "starter",
   },
   {
     name: "The Serious Business",
@@ -67,6 +68,7 @@ const pricingPaths = [
     cta: "Start Your Business →",
     badge: "MOST POPULAR",
     accent: true,
+    planKey: "pro",
   },
   {
     name: "The Enterprise Builder",
@@ -81,6 +83,7 @@ const pricingPaths = [
     cta: "Build Your Empire →",
     badge: "BEST VALUE",
     accent: false,
+    planKey: "enterprise",
   },
 ];
 
