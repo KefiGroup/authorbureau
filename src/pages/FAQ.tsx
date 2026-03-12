@@ -1,14 +1,17 @@
 import { useState, useRef, useCallback, useMemo } from "react";
-import { Search, Sparkles, Bug, MessageSquare, Rocket, Globe, CreditCard, Hammer, BookOpen, HelpCircle, ChevronRight, ChevronDown, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Search, Sparkles, Bug, MessageSquare, Rocket, Globe, CreditCard, Hammer, BookOpen, HelpCircle, ChevronRight, ChevronDown, ThumbsUp, ThumbsDown, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { cn } from "@/lib/utils";
+import ABBYFrameworkArticle from "@/components/faq/ABBYFrameworkArticle";
 
 /* ─── FAQ Data ─── */
 const categories = [
   { id: "getting-started", title: "Getting Started", icon: Rocket, iconBg: "#EFF6FF", iconColor: "#3B82F6", description: "Setting up your account, profile, and first book" },
   { id: "your-microsite", title: "Your Directory Profile", icon: Globe, iconBg: "#F0FDF4", iconColor: "#22C55E", description: "Managing your public directory profile" },
+  { id: "understanding-abby", title: "Understanding the ABBY Framework", icon: Sparkles, iconBg: "#FFFBEB", iconColor: "#D4A843", description: "The complete guide to 28 revenue streams, pricing paths, and how everything connects", isArticle: true },
   { id: "abby-framework", title: "ABBY Framework", icon: Sparkles, iconBg: "#FFFBEB", iconColor: "#D4A843", description: "How Abby analyzes your book and builds your plan" },
   { id: "subscriptions-billing", title: "Subscriptions & Billing", icon: CreditCard, iconBg: "#F5F3FF", iconColor: "#8B5CF6", description: "Plans, pricing, upgrades, and payments" },
   { id: "building-products", title: "Building Products", icon: Hammer, iconBg: "#FFF7ED", iconColor: "#F97316", description: "Using the AI builders to create and sell products" },
@@ -176,6 +179,29 @@ export default function FAQ() {
       {/* FAQ Sections */}
       {filteredCategories.map((cat, catIdx) => {
         const Icon = cat.icon;
+
+        // Render full article for the ABBY Framework guide
+        if ((cat as any).isArticle) {
+          if (lq) return null; // skip article in search mode
+          return (
+            <section
+              key={cat.id}
+              id={cat.id}
+              ref={el => { sectionRefs.current[cat.id] = el; }}
+              className={cn("py-12", catIdx % 2 === 0 ? "bg-background" : "bg-muted/30")}
+              style={{ scrollMarginTop: 80 }}
+            >
+              <div className="container max-w-[800px]">
+                <div className="flex items-center gap-3 mb-6">
+                  <Icon size={24} style={{ color: cat.iconColor }} />
+                  <h2 className="text-2xl font-semibold" style={{ color: "#1B2A4A" }}>{cat.title}</h2>
+                </div>
+                <ABBYFrameworkArticle />
+              </div>
+            </section>
+          );
+        }
+
         const items = faqData[cat.id] || [];
         const filteredItems = lq
           ? items.filter(f => f.q.toLowerCase().includes(lq) || f.a.toLowerCase().includes(lq))
