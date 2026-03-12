@@ -92,6 +92,7 @@ export default function VoiceSelectionStep({ stepData, setStepData, onMarkEdited
   if (narration === "author") {
     return (
       <div className="space-y-5">
+        <StepInstructions summary={VOICE_INSTRUCTIONS.author.summary} items={VOICE_INSTRUCTIONS.author.items} />
         <AbbyCoachingTip
           title="Recording Tips for Author Narration"
           expandedByDefault
