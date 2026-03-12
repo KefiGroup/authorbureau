@@ -208,53 +208,6 @@ export default function Index() {
             </motion.p>
           </motion.div>
 
-          {/* ABBY Category Cards */}
-          <div className="grid gap-6 md:grid-cols-3 mb-12">
-            {[
-              {
-                letter: "B",
-                label: "BUILD",
-                streams: 8,
-                desc: "Digital products that sell on autopilot: workbooks, courses, email marketing, social media",
-                color: "text-secondary",
-                bg: "bg-secondary/10 border-secondary/20",
-              },
-              {
-                letter: "B",
-                label: "BRIDGE",
-                streams: 8,
-                desc: "Audience channels that bring people to you: audiobooks, podcasts, webinars, affiliates",
-                color: "text-accent",
-                bg: "bg-accent/10 border-accent/20",
-              },
-              {
-                letter: "Y",
-                label: "YIELD",
-                streams: 12,
-                desc: "Premium services and scalable systems: coaching, consulting, masterminds, retreats, certification",
-                color: "text-primary",
-                bg: "bg-primary/10 border-primary/20",
-              },
-            ].map((cat, i) => (
-              <motion.div
-                key={cat.label}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                custom={i}
-                variants={fadeUp}
-                className={`rounded-2xl border p-8 ${cat.bg}`}
-              >
-                <div className="flex items-center gap-3 mb-4">
-                  <span className={`font-heading text-3xl font-bold ${cat.color}`}>{cat.letter}</span>
-                  <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">· {cat.label}</span>
-                </div>
-                <p className={`text-2xl font-heading font-bold mb-2 ${cat.color}`}>{cat.streams} streams</p>
-                <p className="text-sm text-muted-foreground">{cat.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-
           {/* Flow Diagram Infographic */}
           <motion.img
             initial={{ opacity: 0, y: 20 }}
