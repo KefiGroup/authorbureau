@@ -124,14 +124,14 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
     switch (builderGen.act) {
       case "idle": return "idle" as const;
       case "act1_loading": return "analyzing" as const;
-      case "act2_proposal": return "idle" as const; // proposal review is a separate UI
+      case "act2_proposal": return "idle" as const;
       case "act3_generating": return "generating" as const;
       case "act3_complete": return "complete" as const;
       case "error": return "error" as const;
       default: return "idle" as const;
     }
   })();
-  const setGenerationState = (_s: string) => {}; // no-op — legacy compat
+  const setGenerationState = (_s: string) => {};
   const [editedSteps, setEditedSteps] = useState<Set<string>>(new Set());
   const [resolvedBookCoverUrl, setResolvedBookCoverUrl] = useState<string | null>(bookCoverUrl);
 
@@ -196,7 +196,7 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
   // Check tier access
   const hasAccess = isPremium || isAdmin || hasTierAccess(tier, nodeConfig.requiredTier);
 
-  // Auto-save timer — save on every data change (debounced) + periodic interval
+  // Auto-save timer
   const autoSaveRef = useRef<NodeJS.Timeout | null>(null);
   const stepDataRef = useRef(stepData);
   const currentStepRef = useRef(currentStep);
@@ -251,7 +251,7 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
     }
   }, [user, bookId, nodeConfig.id, toast]);
 
-  // Debounced auto-save on data change (5s after last edit)
+  // Debounced auto-save on data change
   const debounceSaveRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
     if (Object.keys(stepData).length === 0) return;
@@ -262,7 +262,7 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
     return () => { if (debounceSaveRef.current) clearTimeout(debounceSaveRef.current); };
   }, [stepData, currentStep, handleSaveDraft]);
 
-  // Periodic auto-save every 30s as backup
+  // Periodic auto-save every 30s
   useEffect(() => {
     autoSaveRef.current = setInterval(() => {
       if (Object.keys(stepDataRef.current).length > 0) {
@@ -354,16 +354,16 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
 
 CONTEXT:
 - Book: "${bookTitle}"
-- Current step: "${currentStepConfig?.label}" — ${currentStepConfig?.description}
+- Current step: "${currentStepConfig?.label}" \u2014 ${currentStepConfig?.description}
 - Step tip: ${currentStepConfig?.abbyTip}
 
 IMPORTANT RULES:
 - Stay focused ONLY on building this specific ${nodeConfig.label}. Never suggest leaving this page or going to another section.
 - Give practical, step-by-step advice about creating, designing, and publishing this product.
-- When suggesting titles, suggest exactly 3 options based on the book's frameworks and themes.
+- When suggesting titles, suggest exactly 3 options based on the book\u2019s frameworks and themes.
 - Keep responses brief (under 150 words), actionable, and encouraging.
 - Reference specific chapters, frameworks, and concepts from the manuscript when giving advice.
-- Use the book's own language and terminology in product names.
+- Use the book\u2019s own language and terminology in product names.
 ${manuscriptSummary ? `\nMANUSCRIPT CONTEXT:\n${manuscriptSummary.slice(0, 1500)}` : ""}
 ${frameworks ? `\nBOOK FRAMEWORKS:\n${frameworks.slice(0, 1000)}` : ""}
 ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""}`,
@@ -434,243 +434,506 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
   const currentStepConfig = nodeConfig.steps[currentStep];
   const isLastStep = currentStep === nodeConfig.steps.length - 1;
 
-  return (
-    <div className="flex flex-col h-full">
-      {/* Top bar */}
-      <div className="flex items-center justify-between p-4 border-b border-border bg-secondary/5">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={() => onNavigate?.("home")} className="h-auto p-0">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Button>
-          <ActPhaseBadge act={builderGen.act} />
-        </div>
+  // ─── SUBSCRIPTION GATE ─────────────────────────────────────────────
+  if (!hasAccess) {
+    return (
+      <BuilderUpgradeGate
+        nodeConfig={nodeConfig}
+        currentTier={tier}
+        planData={plan ? {
+          revenueProjection: plan.packages?.[nodeConfig.requiredTier as keyof typeof plan.packages]?.timeline
+            ? `This product can generate revenue within ${plan.packages[nodeConfig.requiredTier as keyof typeof plan.packages]?.timeline || "3-6 months"}.`
+            : undefined,
+        } : null}
+        onNavigate={onNavigate}
+      />
+    );
+  }
 
-        <div className="flex items-center gap-3">
-          {lastSaved && (
-            <Badge variant="secondary" className="text-[10px] font-normal">
-              Last saved {lastSaved.toLocaleTimeString()}
-            </Badge>
-          )}
-          <Button variant="outline" size="sm" onClick={() => void handleSaveDraft()} disabled={saving}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-            Save Draft
-          </Button>
+  // ─── NO BOOK SELECTED ──────────────────────────────────────────────
+  if (!bookId) {
+    return (
+      <div className="max-w-2xl mx-auto py-16 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-6">
+          <BookOpen className="h-8 w-8 text-muted-foreground" />
         </div>
+        <h2 className="font-heading text-2xl font-bold mb-3">Select a Book First</h2>
+        <p className="text-muted-foreground text-sm mb-6">
+          Go to My Books Hub and select a book to start building your {nodeConfig.label.toLowerCase()}.
+        </p>
+        <Button onClick={() => onNavigate?.("my-books")} variant="outline" className="rounded-full">
+          <BookOpen className="h-4 w-4 mr-2" /> Go to My Books
+        </Button>
       </div>
+    );
+  }
 
-      {/* Main content */}
-      <div className="flex flex-1 h-full">
-        {/* Left nav */}
-        <div className="w-64 border-r border-border bg-secondary/5 overflow-y-auto">
-          <div className="p-4">
-            <h2 className="font-semibold text-sm mb-2">{nodeConfig.label} Builder</h2>
-            <p className="text-xs text-muted-foreground mb-3">{nodeConfig.description}</p>
-            <ROIBanner bookId={bookId} />
-          </div>
-          <div className="sticky top-0 bg-secondary/5 z-10 py-2">
-            <p className="text-xs font-bold uppercase text-muted-foreground px-4">Steps</p>
-          </div>
-          <div className="flex flex-col gap-0.5 p-2">
-            {nodeConfig.steps.map((step, i) => (
-              <Button
-                key={step.id}
-                variant="ghost"
-                className="justify-start text-sm px-3 py-2 rounded-md"
-                onClick={() => setCurrentStep(i)}
-                active={currentStep === i}
-              >
-                <span className="w-4 shrink-0 mr-2 opacity-50">{i + 1}.</span>
-                {step.label}
-                {editedSteps.has(step.id) && <Check className="h-4 w-4 ml-auto text-green-500" />}
-              </Button>
-            ))}
+  // ─── MAIN BUILDER UI ──────────────────────────────────────────────
+  return (
+    <div className="flex gap-0 h-full -m-6 lg:-m-8">
+      {/* Main builder area */}
+      <div className={`flex-1 flex flex-col min-w-0 transition-all ${abbyOpen ? "mr-80" : ""}`}>
+        {/* Header bar */}
+        <div className="flex items-center gap-3 px-6 py-3 border-b border-border bg-card">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              handleSaveDraft(true);
+              const categorySection = nodeConfig.category === "build" ? "build" : nodeConfig.category === "bridge" ? "bridge" : "yield";
+              onNavigate?.(categorySection);
+            }}
+            className="text-muted-foreground hover:text-foreground shrink-0 -ml-2"
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Back to {nodeConfig.category === "build" ? "B\u00B7Build" : nodeConfig.category === "bridge" ? "B\u00B7Bridge" : "Y\u00B7Yield"}
+          </Button>
+          <div className="w-px h-6 bg-border" />
+          <h1 className="font-heading font-bold text-lg truncate">{nodeConfig.label}</h1>
+          <div className="flex-1" />
+          <div className="flex items-center gap-2">
+            {lastSaved && (
+              <span className="text-[10px] text-muted-foreground/60">
+                Saved {lastSaved.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              </span>
+            )}
+            <Button variant="outline" size="sm" onClick={() => handleSaveDraft(false)} disabled={saving}>
+              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Save className="h-3.5 w-3.5 mr-1" />}
+              Save Draft
+            </Button>
           </div>
         </div>
 
-        {/* Main content area */}
-        <div className="flex-1 p-6 overflow-y-auto relative">
-          <AnimatePresence mode="wait" initial={false}>
+        {/* Progress stepper */}
+        <div className="px-6 py-3 border-b border-border bg-card/50">
+          <div className="flex items-center gap-1">
+            {nodeConfig.steps.map((step, idx) => {
+              const isCompleted = idx < currentStep;
+              const isCurrent = idx === currentStep;
+              return (
+                <div key={step.id} className="flex items-center">
+                  <button
+                    onClick={() => { handleSaveDraft(true); setCurrentStep(idx); }}
+                    className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                      isCurrent
+                        ? "bg-secondary text-secondary-foreground"
+                        : isCompleted
+                        ? "bg-accent/15 text-accent"
+                        : "text-muted-foreground/50 hover:text-muted-foreground"
+                    }`}
+                  >
+                    {isCompleted ? (
+                      <Check className="h-3 w-3" />
+                    ) : (
+                      <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center text-[9px] ${
+                        isCurrent ? "border-secondary-foreground" : "border-muted-foreground/30"
+                      }`}>
+                        {idx + 1}
+                      </span>
+                    )}
+                    <span className="hidden sm:inline">{step.label}</span>
+                  </button>
+                  {idx < nodeConfig.steps.length - 1 && (
+                    <div className={`w-6 h-px mx-0.5 ${isCompleted ? "bg-accent" : "bg-border"}`} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Book context bar */}
+        <div className="flex items-center gap-3 px-6 py-2.5 border-b border-border bg-muted/30">
+          <div className="h-8 w-6 rounded overflow-hidden bg-muted flex items-center justify-center shrink-0 border border-border">
+            {resolvedBookCoverUrl ? (
+              <img src={resolvedBookCoverUrl} alt={`${bookTitle || "Book"} cover`} className="h-full w-full object-cover" />
+            ) : (
+              <BookOpen className="h-3 w-3 text-muted-foreground/40" />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold truncate">{bookTitle || "Untitled Book"}</p>
+            <p className="text-[10px] text-muted-foreground">Manuscript loaded</p>
+          </div>
+        </div>
+
+        {/* Step content area */}
+        <div className="flex-1 overflow-y-auto p-6 lg:p-8">
+          {/* Cross-builder incoming notifications */}
+          {user && bookId && (
+            <CrossBuilderNotifications
+              builderId={nodeConfig.id}
+              authorId={user.id}
+              bookId={bookId}
+              onImport={(pushData) => {
+                toast({ title: "Content imported!", description: "Pre-filled content is ready for editing." });
+              }}
+            />
+          )}
+          {/* Compact ROI Banner */}
+          {user && bookId && (
+            <ROIBanner
+              bookId={bookId}
+              authorId={user.id}
+              tier={tier}
+              compact
+            />
+          )}
+          <AnimatePresence mode="wait">
             <motion.div
-              key={currentStep}
-              className="absolute top-0 left-0 right-0 bottom-0 p-6 bg-card rounded-lg"
-              style={{ originX: 0 }}
-              variants={{
-                enter: { scale: 0.95, opacity: 0, x: "100%" },
-                middle: { scale: 1, opacity: 1, x: "0%" },
-                exit: { scale: 1.05, opacity: 0, x: "-100%" },
-              }}
-              initial="enter"
-              animate="middle"
-              exit="exit"
-              transition={{
-                type: "spring",
-                stiffness: 200,
-                damping: 20,
-              }}
+              key={currentStepConfig.id}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
             >
-              {/* Upgrade gate */}
-              {!hasAccess && (
-                <BuilderUpgradeGate
-                  requiredTier={nodeConfig.requiredTier}
-                  currentStepLabel={currentStepConfig?.label}
-                />
-              )}
+              <div className="max-w-3xl">
+                <div className="flex items-start justify-between mb-1">
+                  <div>
+                    {/* 3-Act Phase Badge */}
+                    <ActPhaseBadge act={
+                      currentStepConfig.act || (currentStep === 0 ? 1 : currentStep === nodeConfig.steps.length - 1 ? 3 : 2)
+                    } />
+                    <h2 className="font-heading text-xl font-bold mb-1">
+                      Step {currentStep + 1}: {currentStepConfig.label}
+                    </h2>
+                    <p className="text-sm text-muted-foreground">{currentStepConfig.description}</p>
+                  </div>
+                  {editedSteps.has(currentStepConfig.id) ? (
+                    <Badge variant="secondary" className="text-[10px]">Edited by you</Badge>
+                  ) : stepData[currentStepConfig.id] ? (
+                    <Badge variant="outline" className="text-[10px] border-violet-300 text-violet-600">
+                      <Wand2 className="h-2.5 w-2.5 mr-1" /> AI Generated
+                    </Badge>
+                  ) : null}
+                </div>
 
-              {/* Generation engine */}
-              {builderGen.act === "idle" && currentStep === 0 && nodeConfig.id !== "website" && (
-                <AbbyProposal
-                  bookId={bookId}
-                  bookTitle={bookTitle}
-                  bookCoverUrl={resolvedBookCoverUrl}
-                  nodeConfig={nodeConfig}
-                  onStartGeneration={builderGen.startAct1}
-                />
-              )}
-              {builderGen.act === "act1_loading" && (
-                <AbbyNarrativeLoading
-                  bookTitle={bookTitle}
-                  bookCoverUrl={resolvedBookCoverUrl}
-                  nodeConfig={nodeConfig}
-                />
-              )}
-              {builderGen.act === "act2_proposal" && (
-                <AbbyProposal
-                  bookId={bookId}
-                  bookTitle={bookTitle}
-                  bookCoverUrl={resolvedBookCoverUrl}
-                  nodeConfig={nodeConfig}
-                  onStartGeneration={builderGen.startAct1}
-                />
-              )}
-              {builderGen.act === "act3_generating" && (
-                <AbbyNarrativeLoading
-                  bookTitle={bookTitle}
-                  bookCoverUrl={resolvedBookCoverUrl}
-                  nodeConfig={nodeConfig}
-                />
-              )}
-              {builderGen.act === "act3_complete" && (
-                <CrossBuilderPushSummary
-                  bookId={bookId}
-                  nodeConfig={nodeConfig}
-                  generatedSetup={builderGen.setup}
-                />
-              )}
-              {builderGen.act === "error" && (
-                <Card className="p-6 text-center">
-                  <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-3" />
-                  <p className="text-sm font-medium">AI generation failed</p>
-                  <p className="text-xs text-muted-foreground mb-4">
-                    Please try again, or edit the previous steps to be more specific.
-                  </p>
-                  <Button onClick={builderGen.startAct1}>Retry</Button>
-                </Card>
-              )}
+                {/* \u2550\u2550\u2550 3-ACT GENERATION ENGINE \u2550\u2550\u2550 */}
 
-              {/* Step-specific content */}
-              {hasAccess && builderGen.act === "act3_complete" && (
-                <RENDERER_MAP[nodeConfig.customRenderer || "course"]
-                  stepId={currentStepConfig?.id}
-                  stepData={stepData}
-                  setStepData={setStepData}
-                  onMarkEdited={(stepId) => setEditedSteps((prev) => new Set(prev).add(stepId))}
-                  bookId={bookId}
-                  bookTitle={bookTitle}
-                  plan={plan}
-                  generationState={generationState}
-                  setGenerationState={setGenerationState}
-                  userId={user?.id}
-                  onStartGeneration={builderGen.startAct1}
-                  builderAct={builderGen.act}
-                  onNavigate={onNavigate}
-                />
-              )}
+                {/* Act 1: Abby Analyzing */}
+                {builderGen.act === "act1_loading" && (
+                  <Card className="p-6 mb-6">
+                    <AbbyNarrativeLoading
+                      messages={nodeConfig.loadingMessages}
+                      builderLabel={nodeConfig.label.toLowerCase()}
+                      bookTitle={bookTitle || "your book"}
+                    />
+                  </Card>
+                )}
+
+                {/* Act 2: Proposal Review */}
+                {builderGen.act === "act2_proposal" && builderGen.proposal && (
+                  <div className="mb-6">
+                    <AbbyProposal
+                      proposal={builderGen.proposal}
+                      builderLabel={nodeConfig.label}
+                      bookTitle={bookTitle || "your book"}
+                      onApprove={(approved) => {
+                        // Auto-populate stepData from approved proposal for builders with custom renderers
+                        if (nodeConfig.customRenderer === "home-study") {
+                          const durationMatch = approved.recommended_title?.match(/(\d+)[- ]?day/i);
+                          setStepData(prev => ({
+                            ...prev,
+                            setup: {
+                              ...prev.setup,
+                              title: approved.recommended_title || prev.setup?.title,
+                              description: approved.description || prev.setup?.description,
+                              price: approved.recommended_price || prev.setup?.price,
+                              duration: durationMatch ? parseInt(durationMatch[1]) : (prev.setup?.duration || 21),
+                            },
+                          }));
+                        }
+                        builderGen.startAct3(bookId, approved);
+                      }}
+                      onEdit={(updates) => builderGen.updateProposal(updates)}
+                    />
+                  </div>
+                )}
+
+                {/* Act 3: Streaming Generation */}
+                {builderGen.act === "act3_generating" && (
+                  <Card className="p-6 mb-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <motion.div
+                        className="w-10 h-10 rounded-xl bg-secondary/15 flex items-center justify-center"
+                        animate={{ scale: [1, 1.05, 1] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      >
+                        <Sparkles className="h-5 w-5 text-secondary" />
+                      </motion.div>
+                      <div>
+                        <p className="text-sm font-bold">Abby is generating your {nodeConfig.label.toLowerCase()}...</p>
+                        <p className="text-xs text-muted-foreground">This may take 30-60 seconds. Don\u2019t navigate away.</p>
+                      </div>
+                    </div>
+                    {builderGen.generatedContent && (
+                      <div className="max-h-[400px] overflow-y-auto border rounded-lg p-4 bg-muted/30">
+                        <MarkdownRenderer content={builderGen.generatedContent} />
+                      </div>
+                    )}
+                  </Card>
+                )}
+
+                {/* Act 3 Complete: Show generated content */}
+                {builderGen.act === "act3_complete" && builderGen.generatedContent && (
+                  <Card className="p-6 mb-6 border-accent/30 bg-accent/5">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Check className="h-5 w-5 text-accent" />
+                      <p className="text-sm font-bold text-accent">Content generated successfully! \uD83C\uDF89</p>
+                    </div>
+                    <div className="max-h-[500px] overflow-y-auto border rounded-lg p-4 bg-background">
+                      <MarkdownRenderer content={builderGen.generatedContent} />
+                    </div>
+                    <div className="flex gap-2 mt-4">
+                      <Button size="sm" variant="outline" onClick={() => builderGen.reset()}>
+                        Start Over
+                      </Button>
+                      <Button size="sm" className="bg-secondary text-secondary-foreground" onClick={goNext}>
+                        Continue to Next Step <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                      </Button>
+                    </div>
+                    {/* Cross-builder push summary */}
+                    {user && bookId && (
+                      <CrossBuilderPushSummary
+                        builderId={nodeConfig.id}
+                        authorId={user.id}
+                        bookId={bookId}
+                      />
+                    )}
+                  </Card>
+                )}
+
+                {/* Error state */}
+                {builderGen.act === "error" && (
+                  <Card className="p-4 mb-6 border-destructive/30 bg-destructive/5">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-destructive" />
+                      <p className="text-sm font-medium text-destructive">
+                        {builderGen.error || "Something went wrong."}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 mt-3">
+                      <Button size="sm" variant="outline" onClick={() => builderGen.retry(bookId)}>Retry</Button>
+                      <Button size="sm" variant="ghost" onClick={() => setAbbyOpen(true)}>Ask Abby for help</Button>
+                    </div>
+                  </Card>
+                )}
+
+                {/* Step content \u2014 custom renderer or generic placeholder */}
+                {(() => {
+                  const RendererComponent = nodeConfig.customRenderer ? RENDERER_MAP[nodeConfig.customRenderer] : null;
+                  if (RendererComponent) {
+                    return (
+                      <RendererComponent
+                        stepId={currentStepConfig.id}
+                        stepData={stepData}
+                        setStepData={setStepData}
+                        onMarkEdited={(id: string) => setEditedSteps(prev => new Set([...prev, id]))}
+                        bookId={bookId}
+                        bookTitle={bookTitle}
+                        plan={plan}
+                        generationState={generationState}
+                        setGenerationState={setGenerationState}
+                        userId={user?.id || ""}
+                        manuscriptSummary={manuscriptSummary}
+                        frameworks={frameworks}
+                        onStartGeneration={() => builderGen.startAct1(bookId)}
+                        builderAct={builderGen.act}
+                        onNavigate={onNavigate}
+                      />
+                    );
+                  }
+                  // Generic fallback with real AI generation
+                  if (builderGen.act === "idle" || builderGen.act === "act3_complete") {
+                    return (
+                      <Card className="p-6 min-h-[300px] border-dashed border-2">
+                        <div className="text-center py-12">
+                          <Wand2 className="h-10 w-10 text-muted-foreground/30 mx-auto mb-4" />
+                          <h3 className="font-heading text-lg font-semibold mb-2">{currentStepConfig.label}</h3>
+                          <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+                            {currentStepConfig.description}
+                          </p>
+                          {builderGen.act === "idle" && (currentStepConfig.id === "generate" || currentStepConfig.id === "script" || currentStepConfig.id === "curriculum" || currentStepConfig.id === "foundation") ? (
+                            <Button
+                              className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                              onClick={() => builderGen.startAct1(bookId)}
+                            >
+                              <Sparkles className="h-4 w-4 mr-2" /> Generate with AI
+                            </Button>
+                          ) : builderGen.act === "idle" ? (
+                            <p className="text-xs text-muted-foreground/50">
+                              Builder step content will be populated by AI generation
+                            </p>
+                          ) : null}
+                        </div>
+                      </Card>
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
             </motion.div>
           </AnimatePresence>
         </div>
 
-        {/* Right sidebar */}
-        <div className="w-80 border-l border-border bg-secondary/5 flex flex-col">
-          {/* Abby chat */}
-          <div className="p-3 border-b border-border">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium">
-                Abby, Your AI Advisor
-              </h3>
-              <Button variant="ghost" size="xs" onClick={() => setAbbyOpen(!abbyOpen)}>
-                {abbyOpen ? <X className="h-3 w-3" /> : <Sparkles className="h-3 w-3" />}
+        {/* Sticky action bar */}
+        <div className="flex items-center justify-between px-6 py-3 border-t border-border bg-card">
+          <Button
+            variant="ghost"
+            onClick={goPrev}
+            disabled={currentStep === 0}
+            className="text-muted-foreground"
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" /> Previous
+          </Button>
+          <div className="flex items-center gap-2">
+            {!abbyOpen && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setAbbyOpen(true)}
+                className="text-secondary border-secondary/30 hover:bg-secondary/5"
+              >
+                <Sparkles className="h-3.5 w-3.5 mr-1" /> Ask Abby
+              </Button>
+            )}
+            <Button
+              onClick={isLastStep ? async () => {
+                await handleSaveDraft(false);
+                // Save product to its DB table with ready_for_review status
+                if (user && bookId && nodeConfig.dbTable) {
+                  try {
+                    const { data: existing } = await (supabase as any)
+                      .from(nodeConfig.dbTable)
+                      .select("id")
+                      .eq("author_id", user.id)
+                      .eq("book_id", bookId)
+                      .maybeSingle();
+                    const productRecord: any = {
+                      author_id: user.id,
+                      book_id: bookId,
+                      title: stepData.setup?.title || `${bookTitle} \u2014 ${nodeConfig.label}`,
+                      description: stepData.setup?.description || "",
+                      status: "ready_for_review",
+                    };
+                    if (existing) {
+                      await supabase.from(nodeConfig.dbTable as any).update(productRecord).eq("id", existing.id);
+                    } else {
+                      await supabase.from(nodeConfig.dbTable as any).insert(productRecord);
+                    }
+                  } catch (err) {
+                    console.error("Failed to save product record:", err);
+                  }
+                }
+                toast({ title: "Published! \uD83C\uDF89", description: `Redirecting to Review & Publish\u2026` });
+                setTimeout(() => onNavigate?.("review-products"), 800);
+              } : goNext}
+              className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold px-6"
+            >
+              {isLastStep ? (
+                <>Publish</>
+              ) : (
+                <>Save & Continue <ArrowRight className="h-4 w-4 ml-1" /></>
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Abby Advisor Panel */}
+      <AnimatePresence>
+        {abbyOpen && (
+          <motion.aside
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: 320, opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed top-0 right-0 bottom-0 z-40 w-80 bg-card border-l border-border shadow-2xl flex flex-col overflow-hidden"
+          >
+            {/* Panel header */}
+            <div className="px-4 py-3 border-b border-border bg-secondary/5 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-secondary/20 flex items-center justify-center">
+                  <Sparkles className="h-4 w-4 text-secondary" />
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-secondary uppercase tracking-widest">Abby Advisor</p>
+                  <p className="text-[10px] text-muted-foreground truncate max-w-[180px]">{nodeConfig.label}</p>
+                </div>
+              </div>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setAbbyOpen(false)}>
+                <X className="h-3.5 w-3.5" />
               </Button>
             </div>
-            <p className="text-[10px] text-muted-foreground">
-              {currentStepConfig?.abbyTip || "Need help with this step? Ask Abby!"}
-            </p>
-          </div>
 
-          {abbyOpen ? (
-            <div className="flex-1 flex flex-col justify-between">
-              <div className="flex-1 p-3 space-y-3 overflow-y-auto">
-                {abbyMessages.map((msg, i) => (
-                  <div key={i} className="flex flex-col">
-                    <p className="text-[10px] font-bold">{msg.role === "user" ? "You" : "Abby"}</p>
-                    <MarkdownRenderer className="text-xs leading-relaxed whitespace-pre-line">{msg.content}</MarkdownRenderer>
-                  </div>
-                ))}
-                <div ref={chatEndRef} />
+            {/* Contextual tip */}
+            <div className="px-4 py-3 border-b border-border bg-secondary/5 shrink-0">
+              <p className="text-[10px] font-bold text-secondary uppercase tracking-wider mb-1">\uD83D\uDCA1 Tip for this step</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {currentStepConfig.abbyTip}
+              </p>
+            </div>
+
+            {/* Plan recommendation */}
+            {plan && (
+              <div className="px-4 py-2.5 border-b border-secondary/20 bg-secondary/5 shrink-0">
+                <p className="text-[10px] font-bold text-secondary/80 uppercase tracking-wider mb-0.5">\uD83D\uDCCB From your plan</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {nodeConfig.abbyGreeting}
+                </p>
               </div>
-              <div className="p-3 border-t border-border">
+            )}
+
+            {/* Chat messages */}
+            <div className="flex-1 overflow-y-auto p-3 space-y-3">
+              {abbyMessages.length === 0 && (
+                <div className="text-center py-6">
+                  <Sparkles className="h-6 w-6 text-muted-foreground/20 mx-auto mb-2" />
+                  <p className="text-xs text-muted-foreground/50">Ask Abby anything about this product</p>
+                </div>
+              )}
+              {abbyMessages.map((msg, i) => (
+                <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                  <div className={`max-w-[90%] rounded-lg p-2.5 text-xs ${
+                    msg.role === "user"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted"
+                  }`}>
+                    {msg.role === "assistant" ? (
+                      <MarkdownRenderer content={msg.content} />
+                    ) : (
+                      msg.content
+                    )}
+                  </div>
+                </div>
+              ))}
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Chat input */}
+            <div className="p-3 border-t border-border bg-muted/30 shrink-0">
+              <div className="flex gap-1.5">
                 <Textarea
                   value={abbyInput}
                   onChange={(e) => setAbbyInput(e.target.value)}
-                  placeholder="Ask Abby a question..."
-                  className="text-xs"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      void sendAbbyMessage();
-                    }
-                  }}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendAbbyMessage(); } }}
+                  placeholder="Ask Abby..."
+                  className="min-h-[36px] max-h-[80px] resize-none text-xs"
+                  rows={1}
                 />
-                <div className="flex items-center justify-between mt-2">
-                  <Button variant="secondary" size="xs" onClick={() => void sendAbbyMessage()} disabled={abbyStreaming}>
-                    {abbyStreaming ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <Send className="h-3 w-3 mr-2" />}
-                    Send to Abby
-                  </Button>
-                  <Button variant="link" size="xs" className="text-[10px] p-0 h-auto">
-                    <Wand2 className="h-3 w-3 mr-1" />
-                    AI refine
-                  </Button>
-                </div>
+                <Button
+                  onClick={sendAbbyMessage}
+                  disabled={!abbyInput.trim() || abbyStreaming}
+                  size="icon"
+                  className="shrink-0 h-9 w-9"
+                >
+                  {abbyStreaming ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                </Button>
               </div>
             </div>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-center p-4 text-muted-foreground">
-              <Lock className="h-6 w-6 mb-2" />
-              <p className="text-xs">
-                Unlock the power of AI guidance.
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Bottom bar */}
-      <div className="flex items-center justify-between p-4 border-t border-border bg-secondary/5">
-        <Button variant="outline" size="sm" onClick={goPrev} disabled={currentStep === 0} className="text-xs">
-          <ChevronLeft className="h-3.5 w-3.5 mr-2" />
-          Previous Step
-        </Button>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          Step {currentStep + 1} of {nodeConfig.steps.length}
-          <span className="px-1">|</span>
-          <span className="font-medium">{currentStepConfig?.label}</span>
-        </div>
-        <Button size="sm" onClick={goNext} disabled={!hasAccess} className="text-xs">
-          {isLastStep ? "Complete Builder" : "Continue to Next Step"}
-          <ArrowRight className="h-3.5 w-3.5 ml-2" />
-        </Button>
-      </div>
-      <CrossBuilderNotifications bookId={bookId} />
+          </motion.aside>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
