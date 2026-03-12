@@ -79,7 +79,7 @@ export default function JourneyCardsStrip() {
           </div>
           <div className="flex items-center gap-3">
             <a
-              href="/help/journey-guide"
+              href="/how-it-works"
               className="text-xs text-[#C9A84C] hover:underline font-medium hidden sm:inline-flex items-center gap-1"
             >
               View Full Guide <ChevronRight className="h-3 w-3" />
