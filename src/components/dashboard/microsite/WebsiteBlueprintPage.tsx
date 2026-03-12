@@ -468,18 +468,18 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
                 /* Free tier: show default URL */
                 <div className="space-y-3">
                   <p className="text-xs text-muted-foreground">
-                    Your website is live at:
+                    Your directory profile is live at:
                   </p>
                   <div className="flex items-center gap-2">
                     <div className="flex-1 rounded-md border border-border bg-muted/50 px-3 py-2 text-sm font-medium text-foreground select-all">
-                      {profileData?.author_slug || "your-name"}.authorsbureau.com
+                      authorsbureau.com/authors/{profileData?.author_slug || "your-name"}
                     </div>
                     <Button
                       variant="outline"
                       size="sm"
                       className="text-xs shrink-0"
                       onClick={() => {
-                        const url = `${profileData?.author_slug || "your-name"}.authorsbureau.com`;
+                        const url = `https://authorsbureau.com/authors/${profileData?.author_slug || "your-name"}`;
                         navigator.clipboard.writeText(url);
                         setDomainCopied(true);
                         setTimeout(() => setDomainCopied(false), 2000);
