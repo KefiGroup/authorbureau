@@ -210,7 +210,7 @@ export const ADVISOR_CONTENT: Record<AbbyCategory, AdvisorContent> = {
 export function getStudioPath(nodeId: string, bookId: string, titleParam: string): string | null {
   const map: Record<string, string> = {
     "social-media": `/dashboard?section=social-media&bookId=${bookId}${titleParam}`,
-    workbooks: `/dashboard?section=workbooks&bookId=${bookId}${titleParam}`,
+    workbooks: `/dashboard?section=workbooks&bookId=${bookId}${titleParam}&builder=workbook`,
     webinars: `/dashboard?section=webinars&bookId=${bookId}${titleParam}`,
     audiobook: `/dashboard?section=audiobook-studio&bookId=${bookId}${titleParam}`,
     "coaching-1on1": `/dashboard?section=coaching&bookId=${bookId}${titleParam}&builder=coaching-1on1`,
