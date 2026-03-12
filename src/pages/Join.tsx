@@ -9,6 +9,7 @@ import Footer from "@/components/Footer";
 import { supabase } from "@/lib/shared-backend";
 import { useToast } from "@/hooks/use-toast";
 import { getPublishNowAuthUrl } from "@/lib/publishnow-auth";
+import { Link, useNavigate } from "react-router-dom";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -63,6 +64,7 @@ export default function Join() {
     setTimeout(() => {
       window.location.href = publishNowAuthUrl;
     }, 1200);
+
   };
 
   return (
@@ -230,9 +232,9 @@ export default function Join() {
 
                   <p className="text-center text-sm text-muted-foreground">
                     Already have an account?{" "}
-                    <a href={publishNowAuthUrl} className="text-secondary font-medium hover:underline" rel="noopener noreferrer">
+                    <Link to={publishNowAuthUrl} className="text-secondary font-medium hover:underline">
                       Sign In
-                    </a>
+                    </Link>
                   </p>
                 </form>
               )}

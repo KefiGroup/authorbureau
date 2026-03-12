@@ -5,6 +5,7 @@ import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { getPublishNowAuthUrl } from "@/lib/publishnow-auth";
+import { Link } from "react-router-dom";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -163,9 +164,9 @@ export default function GetFeatured() {
               size="lg"
               className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold shadow-[var(--shadow-gold)] rounded-full px-10"
             >
-              <a href={getPublishNowAuthUrl("/dashboard")} rel="noopener noreferrer">
+              <Link to={getPublishNowAuthUrl("/dashboard")}>
                 Apply Now <ArrowRight className="ml-2 h-4 w-4" />
-              </a>
+              </Link>
             </Button>
             <p className="text-xs text-muted-foreground mt-3">
               Free to apply. No credit card required.

@@ -86,16 +86,14 @@ export default function Navbar() {
             </Button>
           ) : (
             <>
-              <a
-                href={PUBLISHNOW_AUTH_URL}
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                to={PUBLISHNOW_AUTH_URL}
                 className="text-sm font-semibold text-secondary transition-colors hover:text-secondary/80"
               >
                 Sign In
-              </a>
+              </Link>
               <Button asChild variant="default" size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-none rounded-full">
-                <a href={PUBLISHNOW_AUTH_URL} target="_blank" rel="noopener noreferrer">Sign Up</a>
+                <Link to={PUBLISHNOW_AUTH_URL}>Sign Up</Link>
               </Button>
             </>
           )}
@@ -137,24 +135,20 @@ export default function Navbar() {
                 </Link>
               ) : (
                 <>
-                  <a
-                    href={PUBLISHNOW_AUTH_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <Link
+                    to={PUBLISHNOW_AUTH_URL}
                     onClick={() => setOpen(false)}
                     className="text-sm font-semibold text-secondary"
                   >
                     Sign In
-                  </a>
-                  <a
-                    href={PUBLISHNOW_AUTH_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  </Link>
+                  <Link
+                    to={PUBLISHNOW_AUTH_URL}
                     onClick={() => setOpen(false)}
                     className="inline-flex w-fit items-center rounded-full bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground"
                   >
                     Sign Up
-                  </a>
+                  </Link>
                 </>
               )}
             </div>

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { getPublishNowAuthUrl } from "@/lib/publishnow-auth";
+import { Link } from "react-router-dom";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -50,10 +51,10 @@ export default function CreateMicrosite() {
                   Your books are already in our shared system. Sign in to your Authors Bureau dashboard and your books will be ready to showcase.
                 </p>
                 <Button asChild className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90">
-                  <a href={getPublishNowAuthUrl("/dashboard")} rel="noopener noreferrer">
+                  <Link to={getPublishNowAuthUrl("/dashboard")}>
                     Sign In to Dashboard
                     <ArrowRight className="ml-2 h-4 w-4" />
-                  </a>
+                  </Link>
                 </Button>
               </div>
             </motion.div>
@@ -69,10 +70,10 @@ export default function CreateMicrosite() {
                   Sign in and add your books via Amazon import or manual entry. Create your book page in minutes with our guided setup.
                 </p>
                 <Button asChild variant="outline" className="w-full">
-                  <a href={getPublishNowAuthUrl("/dashboard")} rel="noopener noreferrer">
+                  <Link to={getPublishNowAuthUrl("/dashboard")}>
                     Get Started Free
                     <ArrowRight className="ml-2 h-4 w-4" />
-                  </a>
+                  </Link>
                 </Button>
               </div>
             </motion.div>
