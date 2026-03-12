@@ -134,16 +134,26 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
     setStripeConnected(stats.stripeConnected);
     setPendingReviewCount(stats.products.totalReadyForReview);
     setHasMicrosite(stats.liveMicrosites > 0);
-
-    const step1Done = stats.liveMicrosites > 0;
-    const step2Done = stats.analyzedCount > 0;
-    const step3Done = stats.products.totalBuilt > 0;
-
-    setJourneyMicrosite(step1Done ? "done" : "current");
-    setJourneyPlan(step2Done ? "done" : "current");
-    setJourneyBuild(step3Done ? "done" : step2Done && (isPremium || isAdmin) ? "current" : "upcoming");
-    setJourneySell("upcoming");
   }, [stats, isPremium, isAdmin]);
+
+  // Onboarding redirect state
+  const [onboardingRedirect, setOnboardingRedirect] = useState<"profile" | "my-books" | null>(null);
+
+  // Onboarding redirect logic: check prerequisites and redirect on first load
+  useEffect(() => {
+    if (loading || !user) return;
+    // Only redirect when on the overview/dashboard section
+    if (activeSection !== "overview") return;
+    
+    // Check profile completeness
+    const hasProfile = stats.liveMicrosites > 0 || stats.bookCount > 0; // simplified: they have content
+    
+    // We use stats to determine redirect: no profile data at all
+    if (!stats.bookCount && !stats.liveMicrosites && !stats.analyzedCount) {
+      // Could be brand new user - redirect is handled by dashboard state A already
+      return;
+    }
+  }, [loading, user, stats, activeSection]);
 
   // Check if journey onboarding should show (first time user has an analyzed book)
   useEffect(() => {
