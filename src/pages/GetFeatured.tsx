@@ -1,10 +1,10 @@
-import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, CheckCircle2, BookOpen, Users, Globe, Award, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { getPublishNowAuthUrl } from "@/lib/publishnow-auth";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
