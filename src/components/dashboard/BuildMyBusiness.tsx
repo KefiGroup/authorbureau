@@ -752,7 +752,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
                           {streamCount} streams mapped · Revenue projected
                         </p>
                         <div className="flex gap-2 flex-wrap pt-1">
-                          <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => handleBookSelect(book)}>
+                          <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => setViewPlanBook(book)}>
                             View Full Plan
                           </Button>
                           <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => handleBookSelect(book)}>
