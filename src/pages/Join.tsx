@@ -34,39 +34,14 @@ export default function Join() {
 
     const fullName = (formData.get("full_name") as string).trim();
     const email = (formData.get("email") as string).trim();
-    const password = (formData.get("password") as string);
     const websiteUrl = (formData.get("website_url") as string)?.trim() || null;
     const amazonBookUrl = (formData.get("amazon_book_url") as string).trim();
 
-    if (!fullName || !email || !password || !amazonBookUrl) {
+    if (!fullName || !email || !amazonBookUrl) {
       toast({ title: "Please fill in all required fields", variant: "destructive" });
       setLoading(false);
       return;
     }
-
-    if (password.length < 6) {
-      toast({ title: "Password must be at least 6 characters", variant: "destructive" });
-      setLoading(false);
-      return;
-    }
-
-    // 1. Create the auth account
-    const { error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: window.location.origin,
-        data: { display_name: fullName },
-      },
-    });
-
-    if (signUpError) {
-      toast({ title: signUpError.message, variant: "destructive" });
-      setLoading(false);
-      return;
-    }
-
-    // 2. Submit the author application
 
     const { error } = await supabase.from("author_applications").insert({
       full_name: fullName.slice(0, 200),
@@ -85,6 +60,9 @@ export default function Join() {
     }
 
     setSubmitted(true);
+    setTimeout(() => {
+      window.location.href = publishNowAuthUrl;
+    }, 1200);
   };
 
   return (
