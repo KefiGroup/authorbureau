@@ -895,7 +895,17 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
 
             {/* Chat messages */}
             <div className="flex-1 overflow-y-auto p-3 space-y-3">
-              {abbyMessages.length === 0 && (
+              {showFirstVisit && (
+                <BuilderFirstVisitWelcome
+                  builderId={nodeConfig.id}
+                  builderLabel={nodeConfig.label}
+                  onDismiss={() => {
+                    setShowFirstVisit(false);
+                    markBuilderFirstVisitSeen(nodeConfig.id);
+                  }}
+                />
+              )}
+              {abbyMessages.length === 0 && !showFirstVisit && (
                 <div className="text-center py-6">
                   <Sparkles className="h-6 w-6 text-muted-foreground/20 mx-auto mb-2" />
                   <p className="text-xs text-muted-foreground/50">Ask Abby anything about this product</p>
