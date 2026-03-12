@@ -141,7 +141,7 @@ export default function Index() {
             </motion.h1>
 
             <motion.p variants={fadeUp} custom={2} className="mb-3 font-heading text-xl text-primary-foreground/90 md:text-2xl">
-              Your book is more than a product — it's the foundation of a business empire.
+              Your book is more than a product. It's the foundation of a business empire.
             </motion.p>
 
             <motion.p variants={fadeUp} custom={2.5} className="mx-auto mb-4 max-w-2xl text-lg text-primary-foreground/70">
