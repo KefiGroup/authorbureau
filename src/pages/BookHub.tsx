@@ -28,7 +28,7 @@ interface BookData {
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
 const tabs: { id: BookHubTab; label: string }[] = [
-  { id: "overview", label: "Overview" },
+  { id: "overview", label: "Analysis" },
   { id: "revenue-streams", label: "🏗️ Build" },
   { id: "marketing-channels", label: "🌉 Bridge" },
   { id: "authority-builders", label: "💰 Yield" },
