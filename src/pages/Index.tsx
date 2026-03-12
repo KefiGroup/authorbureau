@@ -600,7 +600,7 @@ export default function Index() {
                       : "bg-secondary text-secondary-foreground hover:bg-secondary/90"
                   }`}
                 >
-                  <a href={getPlanUrl(path.planKey || "starter")} target="_blank" rel="noopener noreferrer">{path.cta}</a>
+                  <Link to={getPlanUrl(path.planKey || "starter")}>{path.cta}</Link>
                 </Button>
               </motion.div>
             ))}
