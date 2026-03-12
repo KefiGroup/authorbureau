@@ -581,8 +581,14 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
     else if (selectedBook) { skipLoadRef.current = true; setShouldAutoStart(true); }
   };
 
-  const handleBookSelect = async (book: Book) => {
+  const handleBookSelect = async (book: Book, skipAnimation = false) => {
     if (!user) return;
+    // Already analyzed → skip manuscript gate and reading animation
+    if (skipAnimation || analyzedBookIds.has(book.id)) {
+      setSelectedBook(book);
+      setShouldAutoStart(true);
+      return;
+    }
     const { data } = await cloudSupabase.from("generated_assets").select("id").eq("book_id", book.id).eq("author_id", user.id).eq("asset_type", "source_material").maybeSingle();
     if (data) startWithReadingAnimation(book);
     else { setPendingBookSelection(book); setShowManuscriptGate(true); }
