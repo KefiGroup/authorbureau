@@ -124,14 +124,14 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
     switch (builderGen.act) {
       case "idle": return "idle" as const;
       case "act1_loading": return "analyzing" as const;
-      case "act2_proposal": return "idle" as const; // proposal review is a separate UI
+      case "act2_proposal": return "idle" as const;
       case "act3_generating": return "generating" as const;
       case "act3_complete": return "complete" as const;
       case "error": return "error" as const;
       default: return "idle" as const;
     }
   })();
-  const setGenerationState = (_s: string) => {}; // no-op — legacy compat
+  const setGenerationState = (_s: string) => {};
   const [editedSteps, setEditedSteps] = useState<Set<string>>(new Set());
   const [resolvedBookCoverUrl, setResolvedBookCoverUrl] = useState<string | null>(bookCoverUrl);
 
@@ -196,7 +196,7 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
   // Check tier access
   const hasAccess = isPremium || isAdmin || hasTierAccess(tier, nodeConfig.requiredTier);
 
-  // Auto-save timer — save on every data change (debounced) + periodic interval
+  // Auto-save timer
   const autoSaveRef = useRef<NodeJS.Timeout | null>(null);
   const stepDataRef = useRef(stepData);
   const currentStepRef = useRef(currentStep);
@@ -251,7 +251,7 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
     }
   }, [user, bookId, nodeConfig.id, toast]);
 
-  // Debounced auto-save on data change (5s after last edit)
+  // Debounced auto-save on data change
   const debounceSaveRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
     if (Object.keys(stepData).length === 0) return;
@@ -262,7 +262,7 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
     return () => { if (debounceSaveRef.current) clearTimeout(debounceSaveRef.current); };
   }, [stepData, currentStep, handleSaveDraft]);
 
-  // Periodic auto-save every 30s as backup
+  // Periodic auto-save every 30s
   useEffect(() => {
     autoSaveRef.current = setInterval(() => {
       if (Object.keys(stepDataRef.current).length > 0) {
@@ -354,16 +354,16 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
 
 CONTEXT:
 - Book: "${bookTitle}"
-- Current step: "${currentStepConfig?.label}" — ${currentStepConfig?.description}
+- Current step: "${currentStepConfig?.label}" \u2014 ${currentStepConfig?.description}
 - Step tip: ${currentStepConfig?.abbyTip}
 
 IMPORTANT RULES:
 - Stay focused ONLY on building this specific ${nodeConfig.label}. Never suggest leaving this page or going to another section.
 - Give practical, step-by-step advice about creating, designing, and publishing this product.
-- When suggesting titles, suggest exactly 3 options based on the book's frameworks and themes.
+- When suggesting titles, suggest exactly 3 options based on the book\u2019s frameworks and themes.
 - Keep responses brief (under 150 words), actionable, and encouraging.
 - Reference specific chapters, frameworks, and concepts from the manuscript when giving advice.
-- Use the book's own language and terminology in product names.
+- Use the book\u2019s own language and terminology in product names.
 ${manuscriptSummary ? `\nMANUSCRIPT CONTEXT:\n${manuscriptSummary.slice(0, 1500)}` : ""}
 ${frameworks ? `\nBOOK FRAMEWORKS:\n${frameworks.slice(0, 1000)}` : ""}
 ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""}`,
@@ -422,11 +422,8 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
   }, [abbyInput, abbyMessages, abbyStreaming, bookId, bookTitle, nodeConfig, currentStep, plan, manuscriptSummary, frameworks]);
 
   const goNext = async () => {
-    const saved = await handleSaveDraft(true);
-    if (!saved) {
-      toast({ title: "Couldn’t save draft", description: "Please try again before continuing.", variant: "destructive" });
-      return;
-    }
+    // Save draft but never block step navigation
+    await handleSaveDraft(true);
     if (currentStep < nodeConfig.steps.length - 1) setCurrentStep(currentStep + 1);
   };
 
@@ -489,7 +486,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
             className="text-muted-foreground hover:text-foreground shrink-0 -ml-2"
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
-            Back to {nodeConfig.category === "build" ? "B·Build" : nodeConfig.category === "bridge" ? "B·Bridge" : "Y·Yield"}
+            Back to {nodeConfig.category === "build" ? "B\u00B7Build" : nodeConfig.category === "bridge" ? "B\u00B7Bridge" : "Y\u00B7Yield"}
           </Button>
           <div className="w-px h-6 bg-border" />
           <h1 className="font-heading font-bold text-lg truncate">{nodeConfig.label}</h1>
@@ -611,7 +608,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                   ) : null}
                 </div>
 
-                {/* ═══ 3-ACT GENERATION ENGINE ═══ */}
+                {/* \u2550\u2550\u2550 3-ACT GENERATION ENGINE \u2550\u2550\u2550 */}
 
                 {/* Act 1: Abby Analyzing */}
                 {builderGen.act === "act1_loading" && (
@@ -666,7 +663,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                       </motion.div>
                       <div>
                         <p className="text-sm font-bold">Abby is generating your {nodeConfig.label.toLowerCase()}...</p>
-                        <p className="text-xs text-muted-foreground">This may take 30-60 seconds. Don't navigate away.</p>
+                        <p className="text-xs text-muted-foreground">This may take 30-60 seconds. Don\u2019t navigate away.</p>
                       </div>
                     </div>
                     {builderGen.generatedContent && (
@@ -682,7 +679,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                   <Card className="p-6 mb-6 border-accent/30 bg-accent/5">
                     <div className="flex items-center gap-2 mb-4">
                       <Check className="h-5 w-5 text-accent" />
-                      <p className="text-sm font-bold text-accent">Content generated successfully! 🎉</p>
+                      <p className="text-sm font-bold text-accent">Content generated successfully! \uD83C\uDF89</p>
                     </div>
                     <div className="max-h-[500px] overflow-y-auto border rounded-lg p-4 bg-background">
                       <MarkdownRenderer content={builderGen.generatedContent} />
@@ -722,7 +719,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                   </Card>
                 )}
 
-                {/* Step content — custom renderer or generic placeholder */}
+                {/* Step content \u2014 custom renderer or generic placeholder */}
                 {(() => {
                   const RendererComponent = nodeConfig.customRenderer ? RENDERER_MAP[nodeConfig.customRenderer] : null;
                   if (RendererComponent) {
@@ -815,7 +812,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                     const productRecord: any = {
                       author_id: user.id,
                       book_id: bookId,
-                      title: stepData.setup?.title || `${bookTitle} — ${nodeConfig.label}`,
+                      title: stepData.setup?.title || `${bookTitle} \u2014 ${nodeConfig.label}`,
                       description: stepData.setup?.description || "",
                       status: "ready_for_review",
                     };
@@ -828,7 +825,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                     console.error("Failed to save product record:", err);
                   }
                 }
-                toast({ title: "Published! 🎉", description: `Redirecting to Review & Publish…` });
+                toast({ title: "Published! \uD83C\uDF89", description: `Redirecting to Review & Publish\u2026` });
                 setTimeout(() => onNavigate?.("review-products"), 800);
               } : goNext}
               className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold px-6"
@@ -871,7 +868,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
 
             {/* Contextual tip */}
             <div className="px-4 py-3 border-b border-border bg-secondary/5 shrink-0">
-              <p className="text-[10px] font-bold text-secondary uppercase tracking-wider mb-1">💡 Tip for this step</p>
+              <p className="text-[10px] font-bold text-secondary uppercase tracking-wider mb-1">\uD83D\uDCA1 Tip for this step</p>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 {currentStepConfig.abbyTip}
               </p>
@@ -880,7 +877,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
             {/* Plan recommendation */}
             {plan && (
               <div className="px-4 py-2.5 border-b border-secondary/20 bg-secondary/5 shrink-0">
-                <p className="text-[10px] font-bold text-secondary/80 uppercase tracking-wider mb-0.5">📋 From your plan</p>
+                <p className="text-[10px] font-bold text-secondary/80 uppercase tracking-wider mb-0.5">\uD83D\uDCCB From your plan</p>
                 <p className="text-[11px] text-muted-foreground">
                   {nodeConfig.abbyGreeting}
                 </p>
