@@ -304,7 +304,15 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
                   <span className="text-xs text-muted-foreground">{rec.revenue}</span>
                 </div>
                 {canAccess ? (
-                  <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-teal-700 border-teal-300 hover:bg-teal-50" onClick={() => onNavigateTab("revenue-streams")}>
+                  <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-teal-700 border-teal-300 hover:bg-teal-50" onClick={() => {
+                    const titleParam = book.title ? `&bookTitle=${encodeURIComponent(book.title)}` : "";
+                    const studioPath = getStudioPath(rec.nodeId, book.id, titleParam);
+                    if (studioPath) {
+                      navigate(studioPath);
+                    } else {
+                      onNavigateTab("revenue-streams");
+                    }
+                  }}>
                     Build Now <ArrowRight className="h-3 w-3" />
                   </Button>
                 ) : (
