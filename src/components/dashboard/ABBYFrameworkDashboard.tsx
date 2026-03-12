@@ -2,18 +2,19 @@ import { useState, useEffect } from "react";
 import { useAuth, TIERS } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
-import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
 
-import FreeMicrositeHero from "./framework-dashboard/FreeMicrositeHero";
 import MeetAbbySection from "./framework-dashboard/MeetAbbySection";
 import MonetizationUniverse from "./framework-dashboard/MonetizationUniverse";
 import SubscriptionPricing from "./framework-dashboard/SubscriptionPricing";
 import JourneyMapCTA from "./framework-dashboard/JourneyMapCTA";
 import JourneyCardsStrip from "./framework-dashboard/JourneyCardsStrip";
+import CompactMicrositeCard from "./framework-dashboard/CompactMicrositeCard";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown } from "lucide-react";
 
 interface Props {
   onNavigate: (section: DashboardSection | string) => void;
@@ -39,6 +40,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
   const [planSummary, setPlanSummary] = useState<any>(null);
   const [builtProducts, setBuiltProducts] = useState<string[]>([]);
   const [recommendedByAbby, setRecommendedByAbby] = useState<string[]>([]);
+  const [isFirstPostAnalysis, setIsFirstPostAnalysis] = useState(false);
 
   const loadDashboard = async () => {
     if (!user) return;
@@ -50,7 +52,6 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
 
       const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 
-      // Fire ALL requests in parallel instead of sequential waterfall
       const [stateRes, booksRes, slugRes] = await Promise.all([
         fetchWithTimeout(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dashboard-state`, { method: "POST", headers }),
         fetchWithTimeout(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`, { method: "POST", headers }),
@@ -59,7 +60,6 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
 
       const [state, booksData] = await Promise.all([stateRes.json(), booksRes.json()]);
 
-      // Apply profile state
       if (state.profile) {
         const p = state.profile;
         const hasName = !!p.pen_name?.trim();
@@ -77,7 +77,6 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
       if (booksData.books) {
         setBookCovers(booksData.books.filter((b: any) => b.cover_image_url).map((b: any) => b.cover_image_url).slice(0, 3));
 
-        // Check for business plan (non-blocking, don't delay loading)
         if (booksData.books.length > 0) {
           const firstBook = booksData.books[0];
           fetchWithTimeout(
@@ -95,6 +94,14 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
               });
               setBuiltProducts(planData.completedAssets || []);
               setRecommendedByAbby(planData.plan.products?.map((p: any) => p.name || p.label) || []);
+              // Check if first time seeing post-analysis dashboard
+              try {
+                const key = `abby_post_analysis_seen_${user.id}`;
+                if (!localStorage.getItem(key)) {
+                  setIsFirstPostAnalysis(true);
+                  localStorage.setItem(key, "true");
+                }
+              } catch { /* ignore */ }
             }
           }).catch(() => { /* non-critical */ });
         }
@@ -158,18 +165,17 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
     );
   }
 
-  // Determine journey states - sequential logic
+  // Determine journey states
   const step1Done = profileState === "live" && bookCount > 0;
   const step2Done = hasPlan;
   const step3Done = builtProducts.length > 0;
-  const step4Done = false; // No sales tracking yet
+  const step4Done = false;
 
   const micrositeStep = step1Done ? "done" as const : "current" as const;
   const planStep = step2Done ? "done" as const : step1Done ? "current" as const : "upcoming" as const;
   const buildStep = step3Done ? "done" as const : step2Done ? "current" as const : "upcoming" as const;
   const sellStep = step4Done ? "done" as const : step3Done ? "current" as const : "upcoming" as const;
 
-  // Current journey step for dynamic CTAs
   const currentJourneyStep = !step1Done ? "microsite" as const
     : !step2Done ? "analyze" as const
     : !isPremium ? "payments" as const
@@ -191,78 +197,49 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
     }
   };
 
+  // STATE A: Author has NOT completed Abby's analysis
+  if (!hasPlan) {
+    return (
+      <div className="max-w-6xl space-y-8">
+        {/* Section 1: Meet Abby (top) */}
+        <MeetAbbySection
+          hasPlan={false}
+          planSummary={undefined}
+          hasBook={bookCount > 0}
+          onStartConsultation={() => onNavigate("build-business")}
+          onViewPlan={() => onNavigate("build-business")}
+          onChatAbby={() => onNavigate("build-business")}
+        />
+
+        {/* Section 2: 4-Step Journey (middle) */}
+        <JourneyMapCTA
+          micrositeState={micrositeStep}
+          planState={planStep}
+          buildState={buildStep}
+          sellState={sellStep}
+          currentJourneyStep={currentJourneyStep}
+          onAction={handleJourneyAction}
+        />
+
+        {/* Section 3: Compact Microsite Card (bottom) */}
+        <CompactMicrositeCard
+          profileState={profileState}
+          authorSlug={authorSlug}
+          authorName={authorName}
+          onSetupProfile={() => onNavigate("profile")}
+          onViewMicrosite={() => {
+            if (authorSlug) window.open(`/authors/${authorSlug}`, "_blank");
+            else onNavigate("profile");
+          }}
+        />
+      </div>
+    );
+  }
+
+  // STATE B: Author HAS completed Abby's analysis
   return (
     <div className="max-w-6xl space-y-8">
-      {/* SECTION 1 — Free Microsite Hero */}
-      <FreeMicrositeHero
-        profileState={profileState}
-        authorName={authorName}
-        authorPhoto={authorPhoto}
-        authorSlug={authorSlug}
-        bookCovers={bookCovers}
-        onSetupMicrosite={() => onNavigate("profile")}
-        onCompleteProfile={() => onNavigate("profile")}
-        onViewMicrosite={() => {
-          if (authorSlug) {
-            window.open(`/authors/${authorSlug}`, "_blank");
-          } else {
-            onNavigate("profile");
-          }
-        }}
-      />
-
-      {/* SECTION 2 — Meet Abby */}
-      <MeetAbbySection
-        hasPlan={hasPlan}
-        planSummary={planSummary}
-        hasBook={bookCount > 0}
-        onStartConsultation={() => onNavigate("build-business")}
-        onViewPlan={() => onNavigate("build-business")}
-        onChatAbby={() => onNavigate("build-business")}
-      />
-
-      {/* SECTION 2.5 — Journey Cards Strip */}
-      <JourneyCardsStrip />
-
-      {/* SECTION 3 — Monetization Universe */}
-      <MonetizationUniverse
-        activatedCount={builtProducts.length}
-        builtProducts={builtProducts}
-        recommendedByAbby={recommendedByAbby}
-        subscribedTier={tier}
-        onNavigateToStream={(label) => {
-          // Map stream labels to dashboard sections
-          const streamMap: Record<string, string> = {
-            "Online Courses": "courses", "Home Study Courses": "home-study",
-            "Workbooks": "workbooks", "Audiobook": "audiobook-studio",
-            "Monthly Memberships": "memberships", "Upsells / Downsells": "revenue-streams",
-            "Social Media Calendar": "social-media", "Webinars": "webinars",
-            "Podcasts (Guest)": "podcast", "Website / Microsite": "microsite-manager",
-            "Email Marketing": "email-marketing", "1-on-1 Coaching": "coaching",
-            "Group Coaching": "group-coaching", "Big Ticket Consulting": "big-ticket",
-            "Keynotes": "speaking", "In-House Speaker": "speaking",
-            "Training Programs": "revenue-streams", "Affiliates": "marketing-channels",
-            "Revenue Sharing / JV": "marketing-channels",
-            "Retreats & Bootcamps": "authority-builders", "Certification": "authority-builders",
-            "Masterminds": "authority-builders", "Special Editions": "special-editions",
-            "Book Sales at Events": "book-sales", "Conventions / Conferences": "authority-builders",
-            "Fund Raising": "authority-builders", "Exhibitors / JV": "authority-builders",
-          };
-          const section = streamMap[label] || "revenue-streams";
-          onNavigate(section);
-        }}
-      />
-
-      {/* SECTION 4 — Subscription Pricing */}
-      <SubscriptionPricing
-        currentTier={tier}
-        onSubscribe={handleSubscribe}
-        onManage={handleManage}
-        loading={checkoutLoading || portalLoading}
-        abbyRecommendedTier={hasPlan ? (planSummary?.streamsMapped > 19 ? "enterprise" : planSummary?.streamsMapped > 11 ? "pro" : "starter") : undefined}
-      />
-
-      {/* SECTION 5 — Journey Map */}
+      {/* Section 1: 4-Step Journey (top, step 3 highlighted) */}
       <JourneyMapCTA
         micrositeState={micrositeStep}
         planState={planStep}
@@ -270,6 +247,83 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
         sellState={sellStep}
         currentJourneyStep={currentJourneyStep}
         onAction={handleJourneyAction}
+      />
+
+      {/* Section 2: Journey Staircase Infographic */}
+      <section className="space-y-3">
+        <h2 className="font-heading text-xl font-bold text-foreground">Your Journey Ahead</h2>
+        <img
+          src="/images/journey-staircase.png"
+          alt="The ABBY Journey — AI Analysis to BUILD to BRIDGE to YIELD"
+          className="w-full rounded-2xl shadow-lg"
+          loading="lazy"
+        />
+      </section>
+
+      {/* Section 3: Monetization Universe with collapsible revenue flow */}
+      <section className="space-y-4">
+        <Collapsible defaultOpen={isFirstPostAnalysis}>
+          <CollapsibleTrigger className="flex items-center gap-2 text-sm font-semibold text-foreground hover:text-foreground/80 transition-colors group">
+            <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]:rotate-180" />
+            Understanding Your 28 Revenue Streams
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-3">
+            <img
+              src="/images/journey-flow-diagram.png"
+              alt="How Your 28 Revenue Streams Connect"
+              className="w-full rounded-2xl shadow-lg"
+              loading="lazy"
+            />
+          </CollapsibleContent>
+        </Collapsible>
+
+        <MonetizationUniverse
+          activatedCount={builtProducts.length}
+          builtProducts={builtProducts}
+          recommendedByAbby={recommendedByAbby}
+          subscribedTier={tier}
+          onNavigateToStream={(label) => {
+            const streamMap: Record<string, string> = {
+              "Online Courses": "courses", "Home Study Courses": "home-study",
+              "Workbooks": "workbooks", "Audiobook": "audiobook-studio",
+              "Monthly Memberships": "memberships", "Upsells / Downsells": "revenue-streams",
+              "Social Media Calendar": "social-media", "Webinars": "webinars",
+              "Podcasts (Guest)": "podcast", "Website / Microsite": "microsite-manager",
+              "Email Marketing": "email-marketing", "1-on-1 Coaching": "coaching",
+              "Group Coaching": "group-coaching", "Big Ticket Consulting": "big-ticket",
+              "Keynotes": "speaking", "In-House Speaker": "speaking",
+              "Training Programs": "revenue-streams", "Affiliates": "marketing-channels",
+              "Revenue Sharing / JV": "marketing-channels",
+              "Retreats & Bootcamps": "authority-builders", "Certification": "authority-builders",
+              "Masterminds": "authority-builders", "Special Editions": "special-editions",
+              "Book Sales at Events": "book-sales", "Conventions / Conferences": "authority-builders",
+              "Fund Raising": "authority-builders", "Exhibitors / JV": "authority-builders",
+            };
+            const section = streamMap[label] || "revenue-streams";
+            onNavigate(section);
+          }}
+        />
+      </section>
+
+      {/* Section 4: Choose Your Path / Subscription */}
+      <SubscriptionPricing
+        currentTier={tier}
+        onSubscribe={handleSubscribe}
+        onManage={handleManage}
+        loading={checkoutLoading || portalLoading}
+        abbyRecommendedTier={planSummary?.streamsMapped > 19 ? "enterprise" : planSummary?.streamsMapped > 11 ? "pro" : "starter"}
+      />
+
+      {/* Section 5: Compact Microsite Card */}
+      <CompactMicrositeCard
+        profileState={profileState}
+        authorSlug={authorSlug}
+        authorName={authorName}
+        onSetupProfile={() => onNavigate("profile")}
+        onViewMicrosite={() => {
+          if (authorSlug) window.open(`/authors/${authorSlug}`, "_blank");
+          else onNavigate("profile");
+        }}
       />
     </div>
   );

@@ -4,8 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import JourneyBreadcrumb from "@/components/dashboard/JourneyBreadcrumb";
-import type { JourneyStep } from "@/components/dashboard/JourneyBreadcrumb";
+import OnboardingBanner from "@/components/dashboard/OnboardingBanner";
 import SectionGatePage from "@/components/dashboard/SectionGatePage";
 import ProfileEditor from "@/components/dashboard/ProfileEditor";
 import CourseBuilder from "@/components/dashboard/CourseBuilder";
@@ -32,7 +31,7 @@ import HowItWorksSection from "@/components/dashboard/HowItWorksSection";
 import ReviewProductsPage from "@/components/dashboard/ReviewProductsPage";
 import AuthorCRMPage from "@/components/dashboard/AuthorCRMPage";
 import AuthorReadingClub from "@/components/dashboard/AuthorReadingClub";
-import AbbyConsultantBanner from "@/components/dashboard/AbbyConsultantBanner";
+// AbbyConsultantBanner removed from dashboard per reorganization
 import ABBYJourneyOnboarding from "@/components/dashboard/ABBYJourneyOnboarding";
 import { Loader2, Rocket, FileText, Video, Share2, CreditCard, Users, Trophy, Podcast, Building2, Bookmark, Award, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -118,10 +117,6 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
   const { stats, refetch: refetchStats } = useAuthorStats(user?.id);
 
   // Journey state
-  const [journeyMicrosite, setJourneyMicrosite] = useState<JourneyStep>("current");
-  const [journeyPlan, setJourneyPlan] = useState<JourneyStep>("upcoming");
-  const [journeyBuild, setJourneyBuild] = useState<JourneyStep>("upcoming");
-  const [journeySell, setJourneySell] = useState<JourneyStep>("upcoming");
   const [booksAnalyzed, setBooksAnalyzed] = useState(0);
   const [hasBooks, setHasBooks] = useState(false);
   const [hasMicrosite, setHasMicrosite] = useState(false);
@@ -139,16 +134,26 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
     setStripeConnected(stats.stripeConnected);
     setPendingReviewCount(stats.products.totalReadyForReview);
     setHasMicrosite(stats.liveMicrosites > 0);
-
-    const step1Done = stats.liveMicrosites > 0;
-    const step2Done = stats.analyzedCount > 0;
-    const step3Done = stats.products.totalBuilt > 0;
-
-    setJourneyMicrosite(step1Done ? "done" : "current");
-    setJourneyPlan(step2Done ? "done" : "current");
-    setJourneyBuild(step3Done ? "done" : step2Done && (isPremium || isAdmin) ? "current" : "upcoming");
-    setJourneySell("upcoming");
   }, [stats, isPremium, isAdmin]);
+
+  // Onboarding redirect state
+  const [onboardingRedirect, setOnboardingRedirect] = useState<"profile" | "my-books" | null>(null);
+
+  // Onboarding redirect logic: check prerequisites and redirect on first load
+  useEffect(() => {
+    if (loading || !user) return;
+    // Only redirect when on the overview/dashboard section
+    if (activeSection !== "overview") return;
+    
+    // Check profile completeness
+    const hasProfile = stats.liveMicrosites > 0 || stats.bookCount > 0; // simplified: they have content
+    
+    // We use stats to determine redirect: no profile data at all
+    if (!stats.bookCount && !stats.liveMicrosites && !stats.analyzedCount) {
+      // Could be brand new user - redirect is handled by dashboard state A already
+      return;
+    }
+  }, [loading, user, stats, activeSection]);
 
   // Check if journey onboarding should show (first time user has an analyzed book)
   useEffect(() => {
@@ -455,40 +460,19 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
           onNavigate={handleNavigate}
         />
-        <div className="border-b border-border px-6 lg:px-8 bg-card">
-          <JourneyBreadcrumb
-            steps={[
-              {
-                label: journeyMicrosite === "done" ? "Profile Set Up ✓" : "1. Set Up Profile",
-                state: journeyMicrosite,
-                onClick: () => setActiveSection("profile"),
-              },
-              {
-                label: booksAnalyzed > 0 ? `2. Book Analyzed ✓` : "2. Analyze First Book",
-                state: journeyPlan,
-                onClick: () => setActiveSection("build-business"),
-              },
-              {
-                label: journeyBuild === "done" ? "3. Product Built ✓" : "3. Build First Product",
-                state: journeyBuild,
-                onClick: () => setActiveSection("revenue-streams"),
-              },
-              {
-                label: hasMicrosite ? "4. Website Live ✓" : "4. Build Website",
-                state: hasMicrosite ? "done" : (journeyBuild === "done" ? "current" : "upcoming"),
-                onClick: () => setActiveSection("microsite-manager" as DashboardSection),
-              },
-              {
-                label: stripeConnected ? "5. Stripe Connected ✓" : "5. Connect Stripe",
-                state: stripeConnected ? "done" : (hasMicrosite ? "current" : "upcoming"),
-                onClick: () => setActiveSection("connect-stripe" as DashboardSection),
-              },
-            ]}
-          />
-        </div>
         <main className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-4">
-          {activeSection !== "overview" && activeSection !== "build-business" && (
-            <AbbyConsultantBanner compact onAnalyze={() => setActiveSection("build-business")} />
+          {/* Onboarding banners for redirected pages */}
+          {activeSection === "profile" && (
+            <OnboardingBanner
+              message="Welcome to Authors Bureau! Let's set up your author profile first - this takes about 2 minutes."
+              storageKey="ab_onboarding_profile_banner"
+            />
+          )}
+          {activeSection === "my-books" && (
+            <OnboardingBanner
+              message="Great profile! Now let's add your first book. You can upload a manuscript or import from PublishNow."
+              storageKey="ab_onboarding_books_banner"
+            />
           )}
           {renderSection()}
         </main>

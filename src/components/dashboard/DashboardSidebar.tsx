@@ -2,8 +2,9 @@ import {
   LayoutDashboard, User, BookOpen, Sparkles,
   ChevronLeft, ChevronRight, Crown, ExternalLink, PenLine, BookMarked,
   Lock, Globe, BarChart3, Contact, DollarSign, Radio, Award, CreditCard, Package,
-  BookHeart, HelpCircle,
+  BookHeart, HelpCircle, ChevronDown, ChevronUp,
 } from "lucide-react";
+import { useState } from "react";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
 import logoIcon from "@/assets/logo-icon.png";
@@ -53,7 +54,6 @@ export default function DashboardSidebar({
   stripeConnected = false, pendingReviewCount = 0,
 }: Props) {
 
-  // Admin and premium users bypass all tier locks
   const bypassLocks = isPremium || isAdmin;
 
   const tierAccess = (required: "starter" | "pro" | "enterprise") => {
@@ -62,15 +62,23 @@ export default function DashboardSidebar({
     return order.indexOf(tier) >= order.indexOf(required);
   };
 
-  // Section 1: Your Journey
-  const journeyItems: NavItem[] = [
+  // Collapse BUILD YOUR BUSINESS if no analysis and no products
+  const [businessExpanded, setBusinessExpanded] = useState(
+    hasAnalysis || bypassLocks || buildUnlocked > 0 || bridgeUnlocked > 0 || yieldUnlocked > 0
+  );
+
+  // HOME
+  const homeItems: NavItem[] = [
     { id: "overview", label: "Dashboard", icon: LayoutDashboard },
-    { id: "my-books", label: "My Books Hub", icon: BookOpen, notificationCount: pendingReviewCount },
-    { id: "build-business", label: "Analyze with Abby", icon: Sparkles },
-    { id: "how-it-works" as DashboardSection, label: "How It Works", icon: Crown, color: "text-[hsl(45,50%,54%)]" },
   ];
 
-  // Section 2: Build Your Business
+  // GET STARTED
+  const getStartedItems: NavItem[] = [
+    { id: "build-business", label: "Analyze with Abby", icon: Sparkles },
+    { id: "my-books", label: "My Books Hub", icon: BookOpen, notificationCount: pendingReviewCount },
+  ];
+
+  // BUILD YOUR BUSINESS
   const businessItems: NavItem[] = [
     {
       id: "revenue-streams", label: "B·Build Authority", icon: DollarSign,
@@ -101,21 +109,25 @@ export default function DashboardSidebar({
     },
   ];
 
-  // Section 3: Your Brand
+  // YOUR BRAND
   const brandItems: NavItem[] = [
     { id: "profile", label: "Author Profile", icon: User },
-    { id: "microsite-manager" as DashboardSection, label: "My Website", icon: Globe },
+    { id: "microsite-manager" as DashboardSection, label: "My Microsite", icon: Globe },
     {
       id: "author-crm" as DashboardSection, label: "My Contacts",
       icon: Contact,
       lockMessage: !tierAccess("pro") ? "Upgrade to Pro to access your CRM" : undefined,
     },
-    {
-      id: "review-products" as DashboardSection, label: "Review Products", icon: Package,
-      notificationCount: pendingReviewCount,
-    },
+  ];
+
+  // REVENUE
+  const revenueItems: NavItem[] = [
     {
       id: "analytics" as DashboardSection, label: "Revenue Dashboard", icon: BarChart3,
+    },
+    {
+      id: "connect-stripe" as DashboardSection, label: stripeConnected ? "Stripe Connected" : "Connect Stripe",
+      icon: CreditCard,
     },
   ];
 
@@ -187,6 +199,88 @@ export default function DashboardSidebar({
     </div>
   );
 
+  const renderCollapsibleBusinessSection = () => {
+    const shouldCollapse = !hasAnalysis && !bypassLocks && buildUnlocked === 0 && bridgeUnlocked === 0 && yieldUnlocked === 0;
+
+    return (
+      <div className="space-y-0.5">
+        {!collapsed && (
+          <button
+            onClick={() => setBusinessExpanded(!businessExpanded)}
+            className="flex items-center justify-between w-full px-3 mb-1.5"
+          >
+            <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground/40">
+              Build Your Business
+            </p>
+            <div className="flex items-center gap-1">
+              {shouldCollapse && !businessExpanded && (
+                <span className="text-[8px] text-muted-foreground/30 italic">Complete analysis first</span>
+              )}
+              {businessExpanded ? (
+                <ChevronUp className="h-3 w-3 text-muted-foreground/40" />
+              ) : (
+                <ChevronDown className="h-3 w-3 text-muted-foreground/40" />
+              )}
+            </div>
+          </button>
+        )}
+        {(businessExpanded || collapsed) && businessItems.filter(i => !i.hidden).map((item, idx) => {
+          const isLocked = !!item.lockMessage;
+          const isActive = activeSection === item.id && !isLocked;
+
+          const btn = (
+            <button
+              key={`${item.id}-${idx}`}
+              onClick={() => {
+                if (isLocked) {
+                  toast({ title: "Locked", description: item.lockMessage });
+                  return;
+                }
+                onSectionChange(item.id);
+              }}
+              className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-medium transition-colors ${
+                isActive
+                  ? "bg-primary text-primary-foreground"
+                  : isLocked
+                  ? "text-muted-foreground/35 cursor-default"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
+              title={isLocked ? item.lockMessage : item.label}
+            >
+              <item.icon className={`h-4 w-4 shrink-0 ${!isActive && item.color ? item.color : ""}`} />
+              {!collapsed && (
+                <>
+                  <span className="flex-1 text-left whitespace-normal leading-tight">
+                    <span className="block">{item.label}</span>
+                    {item.subtitle && (
+                      <span className="block text-[10px] font-normal text-muted-foreground/50 leading-tight">{item.subtitle}</span>
+                    )}
+                  </span>
+                  {isLocked && <Lock className="h-3 w-3 text-muted-foreground/30" />}
+                  {item.badge && !isLocked && (
+                    <span className="text-[10px] text-muted-foreground/60 font-normal">{item.badge}</span>
+                  )}
+                </>
+              )}
+            </button>
+          );
+
+          if (item.tooltip || collapsed) {
+            return (
+              <Tooltip key={`${item.id}-${idx}`}>
+                <TooltipTrigger asChild>{btn}</TooltipTrigger>
+                <TooltipContent side="right" className="max-w-[220px] text-xs">
+                  {collapsed ? item.label : item.tooltip}
+                </TooltipContent>
+              </Tooltip>
+            );
+          }
+          return btn;
+        })}
+      </div>
+    );
+  };
+
   return (
     <aside
       className={`flex flex-col border-r border-border bg-card transition-all duration-200 h-full ${
@@ -208,34 +302,18 @@ export default function DashboardSidebar({
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-3 space-y-4 px-2">
         <TooltipProvider delayDuration={300}>
-          {renderSection("Your Journey", journeyItems)}
-          {renderSection("Build Your Business", businessItems)}
+          {renderSection("Home", homeItems)}
+          {renderSection("Get Started", getStartedItems)}
+          {renderCollapsibleBusinessSection()}
           {renderSection("Your Brand", brandItems)}
+          {renderSection("Revenue", revenueItems)}
         </TooltipProvider>
 
-        {/* Stripe Connect status badge */}
-        {!collapsed && isPremium && (
-          <div className="px-3">
-            {stripeConnected ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/15 text-accent px-2.5 py-1 text-[10px] font-semibold">
-                <CreditCard className="h-3 w-3" /> Payments Active
-              </span>
-            ) : (
-              <button
-                onClick={() => onSectionChange("connect-stripe" as any)}
-                className="inline-flex items-center gap-1.5 rounded-full bg-secondary/15 text-secondary px-2.5 py-1 text-[10px] font-semibold hover:bg-secondary/25 transition-colors"
-              >
-                <CreditCard className="h-3 w-3" /> Connect Stripe
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Sister platform links */}
+        {/* Sister platform links (TOOLS) */}
         {!collapsed && (
           <div className="space-y-0.5">
             <p className="px-3 mb-1.5 text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground/40">
-              Writing & Publishing
+              Tools
             </p>
             {sisterLinks.map((link) => (
               <button
@@ -270,12 +348,23 @@ export default function DashboardSidebar({
           </div>
         )}
 
-        {/* Support link */}
+        {/* SUPPORT */}
         {!collapsed && (
           <div className="space-y-0.5">
             <p className="px-3 mb-1.5 text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground/40">
               Support
             </p>
+            <button
+              onClick={() => onSectionChange("how-it-works" as DashboardSection)}
+              className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-medium transition-colors ${
+                activeSection === "how-it-works"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
+            >
+              <Crown className="h-4 w-4 shrink-0 text-[hsl(45,50%,54%)]" />
+              <span className="truncate text-[13px]">How It Works</span>
+            </button>
             <a
               href="/faq"
               className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-muted-foreground/60 hover:bg-muted hover:text-foreground transition-colors"
