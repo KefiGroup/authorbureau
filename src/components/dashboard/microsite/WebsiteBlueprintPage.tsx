@@ -6,11 +6,14 @@ import { Input } from "@/components/ui/input";
 import {
   Sparkles, ExternalLink, Copy, CheckCircle2, Info,
   Globe, User, BookOpen, ShoppingBag, FileText, Calendar,
-  Megaphone, Loader2, Link2, Download, AlertCircle,
+  Megaphone, Loader2, Link2, Download, AlertCircle, Crown, HelpCircle,
 } from "lucide-react";
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -64,7 +67,9 @@ const PAGE_TOOLTIPS: Record<string, string> = {
 const ALWAYS_ON = new Set(["homepage", "about"]);
 
 export default function WebsiteBlueprintPage({ onNavigate }: Props) {
-  const { user } = useAuth();
+  const { user, tier, isAdmin } = useAuth();
+  const effectiveTier = isAdmin ? "enterprise" : tier;
+  const isPaidTier = effectiveTier === "starter" || effectiveTier === "pro" || effectiveTier === "enterprise";
 
   /* --- raw data for preview --- */
   const [profileData, setProfileData] = useState<any>(null);
@@ -84,6 +89,11 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
   /* --- link state --- */
   const [manusLink, setManusLink] = useState("");
   const [linkSaved, setLinkSaved] = useState(false);
+
+  /* --- domain state --- */
+  const [customDomain, setCustomDomain] = useState("");
+  const [domainCopied, setDomainCopied] = useState(false);
+  const [dnsHelpOpen, setDnsHelpOpen] = useState(false);
 
   /* ============================================
    * ON LOAD: Fetch raw data + run Phase 1
@@ -413,42 +423,127 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
               </div>
             </Card>
 
-            {/* Link back section */}
+            {/* Your Website URL */}
             <Card className="p-4 border-border">
               <div className="flex items-center gap-2 mb-2">
-                <Link2 className="h-4 w-4 text-secondary" />
-                <h4 className="font-heading font-semibold text-sm">Link Your Published Website</h4>
+                <Globe className="h-4 w-4 text-secondary" />
+                <h4 className="font-heading font-semibold text-sm">Your Website URL</h4>
               </div>
-              <p className="text-xs text-muted-foreground mb-3">
-                After building your website, paste the URL here to connect it to your dashboard.
-              </p>
-              {linkSaved ? (
-                <div className="flex items-center gap-2 text-sm">
-                  <CheckCircle2 className="h-4 w-4 text-accent" />
-                  <a href={manusLink} target="_blank" rel="noopener noreferrer" className="text-secondary hover:underline flex items-center gap-1">
-                    {manusLink} <ExternalLink className="h-3 w-3" />
-                  </a>
+
+              {isPaidTier ? (
+                /* Paid tier: custom domain connect */
+                <div className="space-y-3">
+                  <p className="text-xs text-muted-foreground">
+                    Connect your own custom domain to your author website.
+                  </p>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="e.g., www.yourdomain.com"
+                      value={customDomain}
+                      onChange={(e) => setCustomDomain(e.target.value)}
+                      className="text-xs h-9 flex-1"
+                    />
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="text-xs bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                      disabled={!customDomain.trim()}
+                      onClick={() => {
+                        toast({ title: "Domain connection initiated", description: "Follow the DNS instructions to complete setup." });
+                        setDnsHelpOpen(true);
+                      }}
+                    >
+                      Connect
+                    </Button>
+                  </div>
+                  <button
+                    onClick={() => setDnsHelpOpen(true)}
+                    className="inline-flex items-center gap-1 text-xs text-secondary hover:underline"
+                  >
+                    <HelpCircle className="h-3 w-3" />
+                    How to update your DNS records
+                  </button>
                 </div>
               ) : (
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="https://your-website.com"
-                    value={manusLink}
-                    onChange={(e) => setManusLink(e.target.value)}
-                    className="text-xs h-9 flex-1"
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSaveLink}
-                    disabled={!manusLink.trim()}
-                    className="text-xs"
-                  >
-                    Save Link
-                  </Button>
+                /* Free tier: show default URL */
+                <div className="space-y-3">
+                  <p className="text-xs text-muted-foreground">
+                    Your website is live at:
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 rounded-md border border-border bg-muted/50 px-3 py-2 text-sm font-medium text-foreground select-all">
+                      {profileData?.author_slug || "your-name"}.authorsbureau.com
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs shrink-0"
+                      onClick={() => {
+                        const url = `${profileData?.author_slug || "your-name"}.authorsbureau.com`;
+                        navigator.clipboard.writeText(url);
+                        setDomainCopied(true);
+                        setTimeout(() => setDomainCopied(false), 2000);
+                        toast({ title: "URL copied!" });
+                      }}
+                    >
+                      {domainCopied ? <CheckCircle2 className="h-3.5 w-3.5 text-accent" /> : <Copy className="h-3.5 w-3.5" />}
+                    </Button>
+                  </div>
+                  <div className="rounded-lg bg-secondary/5 border border-secondary/15 p-3 flex items-start gap-2">
+                    <Crown className="h-4 w-4 text-secondary shrink-0 mt-0.5" />
+                    <p className="text-xs text-muted-foreground">
+                      <span className="font-semibold text-foreground">Upgrade to Starter or above</span> to connect your own custom domain.
+                    </p>
+                  </div>
                 </div>
               )}
             </Card>
+
+            {/* DNS Help Modal */}
+            <Dialog open={dnsHelpOpen} onOpenChange={setDnsHelpOpen}>
+              <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                  <DialogTitle className="font-heading text-lg">Connect Your Custom Domain</DialogTitle>
+                  <DialogDescription className="text-sm text-muted-foreground pt-1">
+                    Follow these steps to point your domain to your author website.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-3 text-sm">
+                  <div className="space-y-2">
+                    <p className="font-semibold">Step 1: Add DNS Records</p>
+                    <p className="text-muted-foreground text-xs">Log in to your domain registrar (GoDaddy, Namecheap, Cloudflare, etc.) and add these records:</p>
+                    <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2 text-xs font-mono">
+                      <div className="flex gap-4">
+                        <span className="text-muted-foreground w-12">Type</span>
+                        <span className="text-muted-foreground w-16">Name</span>
+                        <span className="text-muted-foreground">Value</span>
+                      </div>
+                      <div className="flex gap-4">
+                        <span className="font-semibold w-12">CNAME</span>
+                        <span className="w-16">www</span>
+                        <span className="text-secondary">proxy.authorsbureau.com</span>
+                      </div>
+                      <div className="flex gap-4">
+                        <span className="font-semibold w-12">CNAME</span>
+                        <span className="w-16">@</span>
+                        <span className="text-secondary">proxy.authorsbureau.com</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="font-semibold">Step 2: Wait for Propagation</p>
+                    <p className="text-muted-foreground text-xs">DNS changes can take up to 48 hours to propagate. SSL will be provisioned automatically once verified.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="font-semibold">Step 3: Verify</p>
+                    <p className="text-muted-foreground text-xs">Once propagation is complete, your custom domain will automatically serve your author website.</p>
+                  </div>
+                </div>
+                <Button variant="outline" className="w-full" onClick={() => setDnsHelpOpen(false)}>
+                  Got it
+                </Button>
+              </DialogContent>
+            </Dialog>
           </div>
 
           {/* RIGHT COLUMN: Preview & CTA (2/5) */}
