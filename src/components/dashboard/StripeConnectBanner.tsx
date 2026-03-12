@@ -3,11 +3,45 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { CreditCard, Loader2, CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface StripeConnectState {
   connected: boolean;
   onboarding_complete: boolean;
   loading: boolean;
+}
+
+function getStripeConnectErrorMessage(rawMessage: string): string {
+  if (rawMessage.includes("signed up for Connect")) {
+    return "Stripe Connect isn’t enabled on your Stripe account yet—enable Connect in Stripe, then try again.";
+  }
+
+  if (rawMessage.includes("restricted key") || rawMessage.includes("permissions")) {
+    return "Your Stripe key is missing Connect permissions; please update the key and try again.";
+  }
+
+  return rawMessage;
+}
+
+async function getFunctionErrorMessage(error: unknown): Promise<string> {
+  const fallback =
+    error instanceof Error ? error.message : "Unable to start Stripe onboarding.";
+
+  if (typeof error === "object" && error !== null && "context" in error) {
+    const maybeContext = (error as { context?: unknown }).context;
+    if (maybeContext instanceof Response) {
+      try {
+        const payload = await maybeContext.json();
+        if (payload?.error && typeof payload.error === "string") {
+          return payload.error;
+        }
+      } catch {
+        // Ignore body parse failures and use fallback error.
+      }
+    }
+  }
+
+  return fallback;
 }
 
 export function useStripeConnect() {
