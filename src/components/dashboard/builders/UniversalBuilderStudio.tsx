@@ -798,40 +798,47 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
               </Button>
             )}
             <Button
+              disabled={saving}
               onClick={isLastStep ? async () => {
-                await handleSaveDraft(false);
-                // Save product to its DB table with ready_for_review status
-                if (user && bookId && nodeConfig.dbTable) {
-                  try {
-                    const { data: existing } = await (supabase as any)
-                      .from(nodeConfig.dbTable)
-                      .select("id")
-                      .eq("author_id", user.id)
-                      .eq("book_id", bookId)
-                      .maybeSingle();
-                    const productRecord: any = {
-                      author_id: user.id,
-                      book_id: bookId,
-                      title: stepData.setup?.title || `${bookTitle} \u2014 ${nodeConfig.label}`,
-                      description: stepData.setup?.description || "",
-                      status: "ready_for_review",
-                    };
-                    if (existing) {
-                      await supabase.from(nodeConfig.dbTable as any).update(productRecord).eq("id", existing.id);
-                    } else {
-                      await supabase.from(nodeConfig.dbTable as any).insert(productRecord);
+                setSaving(true);
+                try {
+                  await handleSaveDraft(true);
+                  if (user && bookId && nodeConfig.dbTable) {
+                    try {
+                      const { data: existing } = await (supabase as any)
+                        .from(nodeConfig.dbTable)
+                        .select("id")
+                        .eq("author_id", user.id)
+                        .eq("book_id", bookId)
+                        .maybeSingle();
+                      const productRecord: any = {
+                        author_id: user.id,
+                        book_id: bookId,
+                        title: stepData.setup?.title || `${bookTitle} \u2014 ${nodeConfig.label}`,
+                        description: stepData.setup?.description || "",
+                        status: "ready_for_review",
+                      };
+                      if (existing) {
+                        await supabase.from(nodeConfig.dbTable as any).update(productRecord).eq("id", existing.id);
+                      } else {
+                        await supabase.from(nodeConfig.dbTable as any).insert(productRecord);
+                      }
+                    } catch (err) {
+                      console.error("Failed to save product record:", err);
                     }
-                  } catch (err) {
-                    console.error("Failed to save product record:", err);
                   }
+                } catch (err) {
+                  console.error("Save draft failed during publish:", err);
+                } finally {
+                  setSaving(false);
                 }
-                toast({ title: "Published! \uD83C\uDF89", description: `Redirecting to Review & Publish\u2026` });
+                toast({ title: "Published! \uD83C\uDF89", description: "Redirecting to Review & Publish\u2026" });
                 setTimeout(() => onNavigate?.("review-products"), 800);
               } : goNext}
               className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold px-6"
             >
               {isLastStep ? (
-                <>Publish</>
+                saving ? <><Loader2 className="h-4 w-4 animate-spin mr-1" /> Publishing&hellip;</> : <>Publish</>
               ) : (
                 <>Save & Continue <ArrowRight className="h-4 w-4 ml-1" /></>
               )}
