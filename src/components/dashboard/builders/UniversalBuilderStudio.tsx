@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, hasTierAccess, TIERS } from "@/hooks/useAuth";
 import { useAbbyPlan } from "@/hooks/useAbbyPlan";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import ROIBanner from "@/components/dashboard/ROIBanner";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import CourseStepRenderer from "./course/CourseStepRenderer";
@@ -203,95 +204,125 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
   currentStepRef.current = currentStep;
   editedStepsRef.current = editedSteps;
 
+  const handleSaveDraft = useCallback(async (silent = false): Promise<boolean> => {
+    if (!user || !bookId) return false;
+    setSaving(true);
+    try {
+      const token = await getActiveToken();
+      if (!token) throw new Error("Not authenticated");
+
+      const resp = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/builder-draft-state`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            action: "save",
+            bookId,
+            nodeId: nodeConfig.id,
+            payload: {
+              currentStep: currentStepRef.current,
+              stepData: stepDataRef.current,
+              editedSteps: Array.from(editedStepsRef.current),
+            },
+          }),
+        },
+        15000,
+      );
+
+      const result = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        throw new Error(result?.error || "Failed to save draft");
+      }
+
+      const savedAt = result?.savedAt ? new Date(result.savedAt) : new Date();
+      setLastSaved(savedAt);
+      if (!silent) toast({ title: "Draft saved" });
+      return true;
+    } catch (err: any) {
+      if (!silent) toast({ title: "Save failed", description: err?.message || "Please try again.", variant: "destructive" });
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  }, [user, bookId, nodeConfig.id, toast]);
+
   // Debounced auto-save on data change (5s after last edit)
   const debounceSaveRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
     if (Object.keys(stepData).length === 0) return;
     if (debounceSaveRef.current) clearTimeout(debounceSaveRef.current);
     debounceSaveRef.current = setTimeout(() => {
-      handleSaveDraft(true);
+      void handleSaveDraft(true);
     }, 5000);
     return () => { if (debounceSaveRef.current) clearTimeout(debounceSaveRef.current); };
-  }, [stepData, currentStep]);
+  }, [stepData, currentStep, handleSaveDraft]);
 
   // Periodic auto-save every 30s as backup
   useEffect(() => {
     autoSaveRef.current = setInterval(() => {
       if (Object.keys(stepDataRef.current).length > 0) {
-        handleSaveDraft(true);
+        void handleSaveDraft(true);
       }
     }, 30000);
     return () => { if (autoSaveRef.current) clearInterval(autoSaveRef.current); };
-  }, [user, bookId]);
+  }, [handleSaveDraft]);
 
   // Scroll chat to bottom
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [abbyMessages]);
 
-  const handleSaveDraft = async (silent = false) => {
-    if (!user || !bookId) return;
-    setSaving(true);
-    try {
-      // Save to generated_assets as builder draft
-      const content = JSON.stringify({
-        nodeId: nodeConfig.id,
-        currentStep: currentStepRef.current,
-        stepData: stepDataRef.current,
-        editedSteps: Array.from(editedStepsRef.current),
-        savedAt: new Date().toISOString(),
-      });
-
-      const { data: existing } = await supabase
-        .from("generated_assets")
-        .select("id")
-        .eq("author_id", user.id)
-        .eq("book_id", bookId)
-        .eq("asset_type", `builder_draft_${nodeConfig.id}`)
-        .maybeSingle();
-
-      if (existing) {
-        await supabase
-          .from("generated_assets")
-          .update({ content, updated_at: new Date().toISOString() })
-          .eq("id", existing.id);
-      } else {
-        await supabase.from("generated_assets").insert({
-          author_id: user.id,
-          book_id: bookId,
-          asset_type: `builder_draft_${nodeConfig.id}`,
-          content,
-        });
-      }
-
-      setLastSaved(new Date());
-      if (!silent) toast({ title: "Draft saved" });
-    } catch {
-      if (!silent) toast({ title: "Save failed", variant: "destructive" });
-    }
-    setSaving(false);
-  };
-
   // Load saved draft on mount
   useEffect(() => {
     if (!user || !bookId) return;
+
+    let isMounted = true;
     (async () => {
-      const { data } = await supabase
-        .from("generated_assets")
-        .select("content")
-        .eq("author_id", user.id)
-        .eq("book_id", bookId)
-        .eq("asset_type", `builder_draft_${nodeConfig.id}`)
-        .maybeSingle();
-      if (data?.content) {
-        try {
-          const parsed = JSON.parse(data.content);
-          if (parsed.stepData) setStepData(parsed.stepData);
-          if (parsed.currentStep) setCurrentStep(parsed.currentStep);
-          if (parsed.editedSteps) setEditedSteps(new Set(parsed.editedSteps));
-        } catch {}
+      try {
+        const token = await getActiveToken();
+        if (!token) return;
+
+        const resp = await fetchWithTimeout(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/builder-draft-state`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              action: "load",
+              bookId,
+              nodeId: nodeConfig.id,
+            }),
+          },
+          15000,
+        );
+
+        const result = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+          throw new Error(result?.error || "Failed to load draft");
+        }
+
+        if (!isMounted || !result?.draft) return;
+        const parsed = result.draft;
+
+        if (parsed.stepData) setStepData(parsed.stepData);
+        if (typeof parsed.currentStep === "number") setCurrentStep(parsed.currentStep);
+        if (Array.isArray(parsed.editedSteps)) setEditedSteps(new Set(parsed.editedSteps));
+        if (parsed.savedAt) setLastSaved(new Date(parsed.savedAt));
+      } catch (err) {
+        console.error("Failed to load builder draft:", err);
       }
     })();
+
+    return () => {
+      isMounted = false;
+    };
   }, [user, bookId, nodeConfig.id]);
 
   // Abby chat
@@ -389,8 +420,12 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
     }
   }, [abbyInput, abbyMessages, abbyStreaming, bookId, bookTitle, nodeConfig, currentStep, plan, manuscriptSummary, frameworks]);
 
-  const goNext = () => {
-    handleSaveDraft(true);
+  const goNext = async () => {
+    const saved = await handleSaveDraft(true);
+    if (!saved) {
+      toast({ title: "Couldn’t save draft", description: "Please try again before continuing.", variant: "destructive" });
+      return;
+    }
     if (currentStep < nodeConfig.steps.length - 1) setCurrentStep(currentStep + 1);
   };
 
