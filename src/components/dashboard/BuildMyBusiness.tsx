@@ -11,6 +11,7 @@ import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import BusinessPlanActions, { isBusinessPlanMessage } from "@/components/dashboard/BusinessPlanActions";
 import BuildAuthorBusinessButton from "@/components/dashboard/BuildAuthorBusinessButton";
 import SavedBusinessPlan from "@/components/dashboard/SavedBusinessPlan";
+import FullPlanDialog from "@/components/dashboard/FullPlanDialog";
 import FrameworkInterviewModal, { type BuildMode } from "@/components/dashboard/FrameworkInterviewModal";
 import SubscriptionSalesPitch from "@/components/dashboard/framework-dashboard/SubscriptionSalesPitch";
 import ManuscriptUpload from "@/components/dashboard/ManuscriptUpload";
@@ -79,6 +80,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
   const abortRef = useRef<AbortController | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [shouldAutoStart, setShouldAutoStart] = useState(false);
+  const [viewPlanBook, setViewPlanBook] = useState<Book | null>(null);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -750,7 +752,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
                           {streamCount} streams mapped · Revenue projected
                         </p>
                         <div className="flex gap-2 flex-wrap pt-1">
-                          <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => handleBookSelect(book)}>
+                          <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => setViewPlanBook(book)}>
                             View Full Plan
                           </Button>
                           <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => handleBookSelect(book)}>
@@ -899,6 +901,12 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
           </div>
         </DialogContent>
       </Dialog>
+      <FullPlanDialog
+        open={!!viewPlanBook}
+        onOpenChange={(open) => { if (!open) setViewPlanBook(null); }}
+        bookId={viewPlanBook?.id || ""}
+        bookTitle={viewPlanBook?.title || ""}
+      />
       </>
     );
   }
