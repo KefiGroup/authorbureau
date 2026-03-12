@@ -58,7 +58,7 @@ export default function Auth() {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const publishNowAuthUrl = getPublishNowAuthUrl("/dashboard");
+  const redirectTo = new URLSearchParams(location.search).get("redirect") || "/dashboard";
 
   const [mode, setMode] = useState<SignInMode>("password");
   const [flow, setFlow] = useState<FlowState>("password-login");
