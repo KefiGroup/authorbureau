@@ -15,11 +15,32 @@ export default function CompactMicrositeCard({ profileState, authorSlug, authorN
   return (
     <div className="rounded-xl border border-border bg-card p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
       {/* Thumbnail preview */}
-      <div className="w-full sm:w-40 h-24 rounded-lg bg-muted border border-border overflow-hidden flex items-center justify-center shrink-0">
-        <div className="text-center">
-          <Globe className="h-6 w-6 text-muted-foreground/40 mx-auto mb-1" />
-          <p className="text-[9px] text-muted-foreground/60">Your Microsite</p>
-        </div>
+      <div className="w-full sm:w-40 h-24 rounded-lg bg-muted border border-border overflow-hidden shrink-0 relative">
+        {profileState === "live" && authorSlug ? (
+          <div className="w-full h-full overflow-hidden pointer-events-none">
+            <iframe
+              src={`https://authorsbureau.com/authors/${authorSlug}`}
+              title="Your Website Preview"
+              className="border-0 origin-top-left"
+              style={{
+                width: "1024px",
+                height: "640px",
+                transform: "scale(0.156)",
+                transformOrigin: "top left",
+              }}
+              tabIndex={-1}
+              loading="lazy"
+              sandbox="allow-scripts allow-same-origin"
+            />
+          </div>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="text-center">
+              <Globe className="h-6 w-6 text-muted-foreground/40 mx-auto mb-1" />
+              <p className="text-[9px] text-muted-foreground/60">Your Website</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Info */}
