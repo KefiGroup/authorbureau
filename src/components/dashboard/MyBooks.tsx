@@ -538,31 +538,6 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
             })}
           </div>
 
-          {/* 5. Build My Author Business Section */}
-          {isSubscribed && analyzedCount > 0 && (() => {
-            // Aggregate category counts across all analyzed books
-            const analyzedBookList = books.filter(b => analyzedBooks.has(b.id));
-            const aggBuild = analyzedBookList.reduce((s, b) => s + (categoryCounts[b.id]?.build || 0), 0);
-            const aggBridge = analyzedBookList.reduce((s, b) => s + (categoryCounts[b.id]?.bridge || 0), 0);
-            const aggYield = analyzedBookList.reduce((s, b) => s + (categoryCounts[b.id]?.yield || 0), 0);
-            const bookLabel = analyzedBookList.length === 1
-              ? analyzedBookList[0].title
-              : `${analyzedBookList.length} Books`;
-            return (
-              <BuildMyBusinessSection
-                bookTitle={bookLabel}
-                recommendedCount={analyzedBookList.length * 12}
-                tier={tier}
-                buildBuilt={aggBuild}
-                bridgeBuilt={aggBridge}
-                yieldBuilt={aggYield}
-                onBuild={() => {
-                  const firstAnalyzed = analyzedBookList[0];
-                  if (firstAnalyzed) navigate(`/dashboard/book/${firstAnalyzed.id}?tab=revenue-streams`);
-                }}
-              />
-            );
-          })()}
         </>
       )}
     </div>
