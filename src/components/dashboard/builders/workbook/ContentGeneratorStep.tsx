@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,11 +11,47 @@ import type { WorkbookStepProps } from "./types";
 import { toast } from "sonner";
 import { generateWithAI } from "@/lib/ai-generate";
 
+const DEFAULT_CONTENT_TYPES: ContentType[] = ["reflection", "exercise", "checklist"];
+
+function parseSectionPayload(rawText: string) {
+  const cleaned = rawText
+    .replace(/^```(?:json)?\s*\n?/i, "")
+    .replace(/\n?```\s*$/i, "")
+    .trim();
+
+  const match = cleaned.match(/\{[\s\S]*\}/);
+  if (!match) return null;
+
+  const jsonCandidate = match[0];
+  const attempts = [
+    jsonCandidate,
+    jsonCandidate.replace(/,\s*([}\]])/g, "$1"),
+    jsonCandidate.replace(/}\s*{/g, "},{"),
+    jsonCandidate.replace(/,\s*([}\]])/g, "$1").replace(/}\s*{/g, "},{"),
+  ];
+
+  for (const attempt of attempts) {
+    try {
+      return JSON.parse(attempt);
+    } catch {
+      // continue
+    }
+  }
+
+  return null;
+}
+
 export default function ContentGeneratorStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, setGenerationState }: WorkbookStepProps) {
   const sections: WorkbookSection[] = stepData.sections || [];
+  const globalContentTypes = useMemo(() => {
+    const fromState = stepData.globalContentTypes as ContentType[] | undefined;
+    return Array.isArray(fromState) && fromState.length > 0 ? fromState : DEFAULT_CONTENT_TYPES;
+  }, [stepData.globalContentTypes]);
+
   const [activeIdx, setActiveIdx] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const section = sections[activeIdx];
+  const effectiveTypes = section?.contentTypes?.length ? section.contentTypes : globalContentTypes;
 
   const updateSection = (updates: Partial<WorkbookSection>) => {
     setStepData(prev => ({
@@ -47,6 +83,14 @@ export default function ContentGeneratorStep({ stepData, setStepData, onMarkEdit
     updateSection({ elements: (section?.elements || []).filter((_: any, i: number) => i !== elIdx) });
   };
 
+  const buildFallbackElements = (types: ContentType[]): WorkbookElement[] =>
+    types.slice(0, 4).map((type, idx) => ({
+      id: `el-fallback-${Date.now()}-${idx}`,
+      type,
+      title: `${CONTENT_TYPE_LABELS[type]}: ${section?.title || "Workbook Section"}`,
+      content: `Apply the main idea of this section in your own context. Write your response clearly and add one next action you will complete this week.`,
+    }));
+
   const handleGenerateSection = async () => {
     if (!section || isGenerating) return;
 
@@ -55,7 +99,7 @@ export default function ContentGeneratorStep({ stepData, setStepData, onMarkEdit
 
     try {
       const rawText = await generateWithAI(
-        `Generate workbook content for the section "${section.title}" (mapped to "${section.chapterRef}") of a workbook for the book "${bookTitle}". Content types to include: ${section.contentTypes.join(", ")}. Return STRICT VALID JSON only (no markdown, no commentary) with shape: {"intro": string, "elements": [{"id": string, "type": string, "title": string, "content": string}], "takeaway": string}. Keep each element concise (60-100 words).`,
+        `Generate workbook content for the section "${section.title}" of a workbook for the book "${bookTitle}". Content types to include: ${effectiveTypes.join(", ")}. Return STRICT VALID JSON only with shape: {"intro": string, "elements": [{"id": string, "type": string, "title": string, "content": string}], "takeaway": string}. Rules: output plain JSON only; no markdown fences; escape quotes inside strings; ensure commas between all array objects. Keep each element concise (60-100 words).`,
         {
           bookId,
           isPremium: true,
@@ -66,23 +110,31 @@ export default function ContentGeneratorStep({ stepData, setStepData, onMarkEdit
         }
       );
 
-      const cleaned = rawText
-        .replace(/^```(?:json)?\s*\n?/i, "")
-        .replace(/\n?```\s*$/i, "")
-        .trim();
-      const match = cleaned.match(/\{[\s\S]*\}/);
-      if (!match) throw new Error("Could not parse AI response");
+      const parsed = parseSectionPayload(rawText);
 
-      const parsed = JSON.parse(match[0]);
+      if (!parsed) {
+        const fallbackElements = buildFallbackElements(effectiveTypes);
+        updateSection({
+          intro: section.intro || `This section helps you apply the key concepts in ${section.title}.`,
+          elements: fallbackElements,
+          takeaway: section.takeaway || "Choose one exercise and complete it today to build momentum.",
+          contentTypes: effectiveTypes,
+        });
+        setGenerationState("complete");
+        toast.warning("AI returned malformed JSON, so we generated a safe draft you can edit.");
+        return;
+      }
+
       updateSection({
         intro: parsed.intro || section.intro,
         elements: (parsed.elements || []).map((el: any, i: number) => ({
           id: el.id || `el-${i}`,
-          type: el.type || "exercise",
+          type: el.type || effectiveTypes[0] || "exercise",
           title: el.title || "",
           content: el.content || "",
         })),
         takeaway: parsed.takeaway || section.takeaway,
+        contentTypes: effectiveTypes,
       });
 
       setGenerationState("complete");
@@ -96,20 +148,19 @@ export default function ContentGeneratorStep({ stepData, setStepData, onMarkEdit
   };
 
   if (!section) {
-    return <p className="text-sm text-muted-foreground text-center py-8">No sections found. Go back and generate the chapter mapping first.</p>;
+    return <p className="text-sm text-muted-foreground text-center py-8">No sections found. Go back and generate the workbook structure first.</p>;
   }
 
   return (
     <div className="space-y-5">
       <StepInstructions
-        summary="Generate and edit interactive content for each workbook section. Navigate between sections and generate content one at a time."
+        summary="Generate and edit interactive content for each workbook section."
         items={[
-          { label: "Section navigator", description: "use the arrows to move between sections from your chapter mapping." },
-          { label: "Generate Content", description: "AI creates an introduction, interactive elements (exercises, reflections, etc.), and a key takeaway for the current section." },
-          { label: "Add element buttons", description: "manually add a specific content type (exercise, reflection, checklist, etc.) to the section." },
-          { label: "Element editor", description: "edit titles and content directly. The 'Edited' badge shows which elements you've customized." },
-          { label: "Delete element", description: "remove an element you don't need (trash icon)." },
-          { label: "Section Introduction & Key Takeaway", description: "frame the section for your reader — auto-generated but fully editable." },
+          { label: "Section navigator", description: "use arrows to move between sections in your workbook structure." },
+          { label: "Generate Content", description: "AI creates an introduction, interactive elements, and a key takeaway for the current section." },
+          { label: "Add element buttons", description: "manually add a specific content type to the section." },
+          { label: "Element editor", description: "edit titles and content directly. The 'Edited' badge marks custom edits." },
+          { label: "Delete element", description: "remove any element you don't need." },
         ]}
       />
       {/* Section navigator */}
@@ -126,7 +177,6 @@ export default function ContentGeneratorStep({ stepData, setStepData, onMarkEdit
         </Button>
       </div>
 
-      {/* Generate button */}
       <div className="flex justify-center">
         <Button size="sm" onClick={handleGenerateSection} disabled={isGenerating}>
           {isGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Wand2 className="h-3.5 w-3.5 mr-1.5" />}
@@ -134,26 +184,33 @@ export default function ContentGeneratorStep({ stepData, setStepData, onMarkEdit
         </Button>
       </div>
 
-      {/* Section intro */}
+      <Card className="p-3 bg-muted/20">
+        <p className="text-[11px] font-medium text-muted-foreground mb-2">Global content types for this workbook</p>
+        <div className="flex flex-wrap gap-1.5">
+          {effectiveTypes.map(type => (
+            <Badge key={type} variant="outline" className="text-[10px]">{CONTENT_TYPE_LABELS[type]}</Badge>
+          ))}
+        </div>
+      </Card>
+
       <div>
         <label className="text-xs font-medium block mb-1">Section Introduction</label>
         <Textarea
           value={section.intro || ""}
           onChange={e => updateSection({ intro: e.target.value })}
-          placeholder="Connecting this section back to the book chapter..."
+          placeholder="Connecting this section to the workbook's transformation..."
           rows={3}
           className="text-sm"
         />
       </div>
 
-      {/* Elements */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Interactive Elements ({(section.elements || []).length})
           </p>
           <div className="flex gap-1">
-            {section.contentTypes.map(type => (
+            {effectiveTypes.map(type => (
               <Button key={type} variant="ghost" size="sm" className="text-[10px] h-6 px-2" onClick={() => addElement(type)}>
                 <Plus className="h-2.5 w-2.5 mr-0.5" /> {CONTENT_TYPE_LABELS[type]}
               </Button>
@@ -188,7 +245,6 @@ export default function ContentGeneratorStep({ stepData, setStepData, onMarkEdit
         ))}
       </div>
 
-      {/* Key takeaway */}
       <div>
         <label className="text-xs font-medium block mb-1">Key Takeaway Summary</label>
         <Textarea
