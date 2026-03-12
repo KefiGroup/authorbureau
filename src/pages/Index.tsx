@@ -221,7 +221,7 @@ export default function Index() {
                 letter: "B",
                 label: "BUILD",
                 streams: 8,
-                desc: "Digital products that sell on autopilot — workbooks, courses, email marketing, social media",
+                desc: "Digital products that sell on autopilot: workbooks, courses, email marketing, social media",
                 color: "text-secondary",
                 bg: "bg-secondary/10 border-secondary/20",
               },
