@@ -20,6 +20,7 @@ import AuthorDashboard from "./pages/AuthorDashboard";
 import Contact from "./pages/Contact";
 import FAQ from "./pages/FAQ";
 import ReadingClub from "./pages/ReadingClub";
+import HowItWorks from "./pages/HowItWorks";
 import SSO from "./pages/SSO";
 import NotFound from "./pages/NotFound";
 import BookHub from "./pages/BookHub";
