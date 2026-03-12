@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { CheckCircle2, BookOpen, ArrowRight, Award, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { supabase } from "@/lib/shared-backend";
 import { useToast } from "@/hooks/use-toast";
+import { getPublishNowAuthUrl } from "@/lib/publishnow-auth";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
