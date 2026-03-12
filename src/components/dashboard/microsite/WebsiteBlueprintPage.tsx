@@ -444,6 +444,45 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
           </div>
         )}
 
+        {/* Rebuild notification banner */}
+        {rebuildNeeded && !rebuildDismissed && (
+          <div className="rounded-xl p-4 bg-gradient-to-r from-[#FDF6E9] to-[#FEF3C7] border border-[#E8D5A8]">
+            <div className="flex items-start gap-3">
+              <div className="shrink-0 mt-0.5">
+                <RefreshCw className="h-5 w-5 text-secondary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground">
+                  Your website is out of date. You've completed the <span className="font-bold">{completedNodeName}</span>! Rebuild your website to add the new page.
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Your blueprint has been updated automatically. Click rebuild to generate new specs.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setRebuildDismissed(true);
+                    setRebuildNeeded(false);
+                    handleBuildWithManus();
+                  }}
+                  className="bg-secondary text-secondary-foreground hover:bg-secondary/90 text-xs h-8 font-semibold"
+                >
+                  <RefreshCw className="h-3.5 w-3.5 mr-1" />
+                  Rebuild My Website
+                </Button>
+                <button
+                  onClick={() => setRebuildDismissed(true)}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Two-column layout */}
         <div className="grid gap-6 lg:grid-cols-5">
           {/* LEFT COLUMN: Blueprint (3/5) */}
