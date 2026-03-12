@@ -37,7 +37,7 @@ export default function FreeMicrositeHero({
           </span>
 
           <h2 className="font-heading text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 leading-tight">
-            Your Professional Author Page — <span className="text-amber-700">Live & Free</span>
+            Your Public Directory Profile — <span className="text-amber-700">Live & Free</span>
           </h2>
 
           <p className="text-sm md:text-base text-gray-700 leading-relaxed max-w-lg">
