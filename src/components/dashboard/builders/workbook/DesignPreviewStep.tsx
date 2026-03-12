@@ -30,6 +30,16 @@ export default function DesignPreviewStep({ stepData, setStepData, onMarkEdited,
 
   return (
     <div className="space-y-5">
+      <StepInstructions
+        summary="Preview how your workbook will look as a formatted document. Navigate through pages and switch templates."
+        items={[
+          { label: "Design Template badges", description: "click to switch between visual styles (Clean, Modern, Bold, etc.)." },
+          { label: "Page navigator", description: "use the arrows to browse through Cover, Table of Contents, Sections, and Back Cover." },
+          { label: "Cover page", description: "shows your title, subtitle, and selected template style." },
+          { label: "Section pages", description: "preview how your exercises, reflections, and other content will be laid out." },
+          { label: "Back cover", description: "includes your call-to-action (CTA) directing readers to your next product." },
+        ]}
+      />
       {/* Template switcher */}
       <div>
         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Design Template</p>
