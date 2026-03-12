@@ -96,6 +96,31 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
   const [domainCopied, setDomainCopied] = useState(false);
   const [dnsHelpOpen, setDnsHelpOpen] = useState(false);
 
+  /* --- rebuild banner state --- */
+  const [rebuildNeeded, setRebuildNeeded] = useState(false);
+  const [completedNodeName, setCompletedNodeName] = useState<string | null>(null);
+  const [rebuildDismissed, setRebuildDismissed] = useState(false);
+  const initialAssetsLoaded = useRef(false);
+
+  /* --- asset type to friendly name map --- */
+  const ASSET_TYPE_LABELS: Record<string, string> = {
+    business_plan: "Business Plan",
+    workbook: "Workbook",
+    home_study_course: "Home Study Course",
+    audiobook_script: "Audiobook",
+    podcast: "Podcast",
+    course: "Online Course",
+    lead_magnet: "Lead Magnet",
+    social_media: "Social Media Calendar",
+    email_sequence: "Email Marketing",
+    webinar: "Webinar",
+    coaching: "Coaching Package",
+    media_kit: "Media Outreach Kit",
+    speaking: "Speaking Kit",
+    sales_page: "Book Sales Page",
+    website: "Website",
+  };
+
   /* ============================================
    * ON LOAD: Fetch raw data + run Phase 1
    * ============================================ */
