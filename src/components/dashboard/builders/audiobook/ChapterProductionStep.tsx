@@ -83,12 +83,6 @@ export default function ChapterProductionStep({ stepData, setStepData, onMarkEdi
   if (chapters.length === 0) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-[10px] font-semibold border-blue-400 text-blue-600 bg-blue-50">
-            ACT 2 — BUILD
-          </Badge>
-          <span className="text-xs text-muted-foreground">Audio production</span>
-        </div>
         <p className="text-sm text-muted-foreground text-center py-8">No chapters found. Go back and optimize your manuscript first.</p>
       </div>
     );
