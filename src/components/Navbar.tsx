@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import logoIcon from "@/assets/logo-icon.png";
 
+const PUBLISHNOW_AUTH_URL = "https://publishnow.io/#/auth";
+
 const navLinks = [
   { label: "Home", to: "/", hash: "" },
   { label: "Meet the Founders", to: "/", hash: "#meet-the-founder" },
