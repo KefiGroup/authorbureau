@@ -8,6 +8,34 @@ import { Play, Loader2, Volume2, Mic, CheckCircle2 } from "lucide-react";
 import { VOICE_OPTIONS, type AudiobookStepProps, type NarrationType, type VoiceOption } from "./types";
 import { toast } from "sonner";
 import AbbyCoachingTip from "@/components/dashboard/social-media/AbbyCoachingTip";
+import StepInstructions from "@/components/dashboard/builders/shared/StepInstructions";
+
+const VOICE_INSTRUCTIONS = {
+  "ai-voice": {
+    summary: "Choose the AI voice that will narrate your entire audiobook. Preview each voice to hear how it sounds with your book's content.",
+    items: [
+      { label: "Filter voices", description: "Use the gender and tone filters to narrow down voices that match your book's style." },
+      { label: "Preview a voice", description: "Click the play button on any voice card to hear a sample read from your book." },
+      { label: "Select your narrator", description: "Click a voice card to select it. You can change your selection anytime before production." },
+    ],
+  },
+  author: {
+    summary: "You've chosen to narrate your own audiobook. Review the equipment checklist and recording tips below to ensure professional quality.",
+    items: [
+      { label: "Prepare your space", description: "Set up a quiet room with soft furnishings to minimize echo and background noise." },
+      { label: "Check your equipment", description: "Ensure you have a quality USB microphone, pop filter, and monitoring headphones." },
+      { label: "Do a test recording", description: "Record 60 seconds, listen back, and adjust mic placement before starting." },
+    ],
+  },
+  professional: {
+    summary: "You've chosen to hire a professional narrator. Review the guidance below to find and hire the right voice for your book.",
+    items: [
+      { label: "Browse narrators", description: "Visit ACX.com or similar marketplaces to find narrators in your genre." },
+      { label: "Request auditions", description: "Send a passage from YOUR book — not generic text — to hear how they handle your content." },
+      { label: "Negotiate terms", description: "Choose between per-finished-hour rates ($200-$400) or royalty-share to manage costs." },
+    ],
+  },
+};
 
 export default function VoiceSelectionStep({ stepData, setStepData, onMarkEdited, bookTitle }: AudiobookStepProps) {
   const setup = stepData.setup || {};
