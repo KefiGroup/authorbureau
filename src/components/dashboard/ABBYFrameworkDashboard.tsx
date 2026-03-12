@@ -10,6 +10,7 @@ import MeetAbbySection from "./framework-dashboard/MeetAbbySection";
 import MonetizationUniverse from "./framework-dashboard/MonetizationUniverse";
 import SubscriptionPricing from "./framework-dashboard/SubscriptionPricing";
 import JourneyMapCTA from "./framework-dashboard/JourneyMapCTA";
+import JourneyCardsStrip from "./framework-dashboard/JourneyCardsStrip";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
