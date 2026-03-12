@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { CheckCircle2, BookOpen, ArrowRight, Award, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { supabase } from "@/lib/shared-backend";
 import { useToast } from "@/hooks/use-toast";
+import { getPublishNowAuthUrl } from "@/lib/publishnow-auth";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -23,7 +23,7 @@ export default function Join() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  const navigate = useNavigate();
+  const publishNowAuthUrl = getPublishNowAuthUrl("/dashboard");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -34,39 +34,14 @@ export default function Join() {
 
     const fullName = (formData.get("full_name") as string).trim();
     const email = (formData.get("email") as string).trim();
-    const password = (formData.get("password") as string);
     const websiteUrl = (formData.get("website_url") as string)?.trim() || null;
     const amazonBookUrl = (formData.get("amazon_book_url") as string).trim();
 
-    if (!fullName || !email || !password || !amazonBookUrl) {
+    if (!fullName || !email || !amazonBookUrl) {
       toast({ title: "Please fill in all required fields", variant: "destructive" });
       setLoading(false);
       return;
     }
-
-    if (password.length < 6) {
-      toast({ title: "Password must be at least 6 characters", variant: "destructive" });
-      setLoading(false);
-      return;
-    }
-
-    // 1. Create the auth account
-    const { error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: window.location.origin,
-        data: { display_name: fullName },
-      },
-    });
-
-    if (signUpError) {
-      toast({ title: signUpError.message, variant: "destructive" });
-      setLoading(false);
-      return;
-    }
-
-    // 2. Submit the author application
 
     const { error } = await supabase.from("author_applications").insert({
       full_name: fullName.slice(0, 200),
@@ -85,6 +60,9 @@ export default function Join() {
     }
 
     setSubmitted(true);
+    setTimeout(() => {
+      window.location.href = publishNowAuthUrl;
+    }, 1200);
   };
 
   return (
@@ -181,7 +159,7 @@ export default function Join() {
                   </div>
                   <h3 className="mb-2 font-heading text-xl font-bold">Application Submitted!</h3>
                   <p className="text-muted-foreground">
-                    We'll review your application and get back to you within 48 hours.
+                    Great — now redirecting you to secure sign up.
                   </p>
                 </motion.div>
               ) : (
@@ -210,17 +188,6 @@ export default function Join() {
                         type="email"
                         className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-secondary/50"
                         placeholder="your@email.com"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1.5 block text-sm font-medium">Password *</label>
-                      <input
-                        required
-                        name="password"
-                        type="password"
-                        minLength={6}
-                        className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-secondary/50"
-                        placeholder="••••••••"
                       />
                     </div>
                   </div>
@@ -258,12 +225,12 @@ export default function Join() {
                     ) : (
                       <Award className="mr-2 h-5 w-5" />
                     )}
-                    {loading ? "Submitting..." : "Submit Application"}
+                    {loading ? "Submitting..." : "Submit & Continue Sign Up"}
                   </Button>
 
                   <p className="text-center text-sm text-muted-foreground">
                     Already have an account?{" "}
-                    <a href="/auth" className="text-secondary font-medium hover:underline">
+                    <a href={publishNowAuthUrl} className="text-secondary font-medium hover:underline" rel="noopener noreferrer">
                       Sign In
                     </a>
                   </p>

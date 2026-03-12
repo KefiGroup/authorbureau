@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Navigate, useNavigate, useLocation, Link } from "react-router-dom";
+import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2, ArrowLeft, Mail, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
+import { getPublishNowAuthUrl } from "@/lib/publishnow-auth";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
@@ -58,6 +59,7 @@ export default function Auth() {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const publishNowAuthUrl = getPublishNowAuthUrl("/dashboard");
 
   const [mode, setMode] = useState<SignInMode>("password");
   const [flow, setFlow] = useState<FlowState>("password-login");
@@ -110,9 +112,9 @@ export default function Auth() {
   const hasCallbackToken = location.hash?.includes("auth_token");
   useEffect(() => {
     if (!loading && !magicLinkProcessing && !user && !hasCallbackToken) {
-      window.location.href = "https://publishnow.io/#/auth";
+      window.location.href = publishNowAuthUrl;
     }
-  }, [loading, magicLinkProcessing, user, hasCallbackToken]);
+  }, [loading, magicLinkProcessing, user, hasCallbackToken, publishNowAuthUrl]);
 
   if (loading || magicLinkProcessing || (!user && !hasCallbackToken)) {
     return (
@@ -593,9 +595,9 @@ export default function Auth() {
             <div className="text-center pt-2 border-t border-border/50">
               <p className="text-sm text-muted-foreground">
                 Don't have an account?{" "}
-                <Link to="/get-featured" className="font-semibold text-secondary hover:underline">
+                <a href={publishNowAuthUrl} className="font-semibold text-secondary hover:underline" rel="noopener noreferrer">
                   Sign Up
-                </Link>
+                </a>
               </p>
             </div>
           </div>
