@@ -9,7 +9,7 @@ export default function Footer() {
           <div className="space-y-4">
             <img src={logoText} alt="Authors Bureau" className="h-20 w-auto" />
             <p className="text-sm text-primary-foreground/70">
-              Where published authors are discovered and where their expertise becomes a business.
+              The #1 AI-powered platform that turns your book into 28 revenue streams.
             </p>
           </div>
 
