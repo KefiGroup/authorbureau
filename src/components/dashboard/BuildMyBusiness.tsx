@@ -622,6 +622,18 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
 
   // ─── Book Selection (STATE A & B) ─────────────────────────────
   if (!selectedBook) {
+    // Show loading skeleton while fetching books/analysis status
+    if (loadingBooks) {
+      return (
+        <div className="max-w-5xl space-y-6 pt-8">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-secondary" />
+            <p className="text-sm text-muted-foreground">Loading your books...</p>
+          </div>
+        </div>
+      );
+    }
+
     const hasAnalyzed = analyzedBooks.length > 0;
 
     return (
