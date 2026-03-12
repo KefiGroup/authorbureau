@@ -117,10 +117,6 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
   const { stats, refetch: refetchStats } = useAuthorStats(user?.id);
 
   // Journey state
-  const [journeyMicrosite, setJourneyMicrosite] = useState<JourneyStep>("current");
-  const [journeyPlan, setJourneyPlan] = useState<JourneyStep>("upcoming");
-  const [journeyBuild, setJourneyBuild] = useState<JourneyStep>("upcoming");
-  const [journeySell, setJourneySell] = useState<JourneyStep>("upcoming");
   const [booksAnalyzed, setBooksAnalyzed] = useState(0);
   const [hasBooks, setHasBooks] = useState(false);
   const [hasMicrosite, setHasMicrosite] = useState(false);
