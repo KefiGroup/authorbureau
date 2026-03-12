@@ -465,7 +465,7 @@ export default function Index() {
               {
                 step: "3",
                 title: "BRIDGE Your Audience",
-                tag: "BRIDGE",
+                tag: "BRIDGE CHANNELS",
                 desc: "Expand into audience-building channels: audiobooks, podcast tours, webinars, lead magnet funnels, affiliate programs, and media outreach. Abby creates everything including scripts, pitch kits, registration pages, and follow-up sequences.",
               },
               {
