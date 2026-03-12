@@ -389,9 +389,8 @@ export default function Index() {
                   {[
                     `${path.streams} revenue streams (${path.category})`,
                     `Time: ${path.time}`,
-                    `Year 1: ${path.year1}`,
-                    `Year 2+: ${path.year2}`,
-                    `ROI: ${path.roi}`,
+                    `Projected Year 1: ${path.year1}`,
+                    `Projected ROI: ${path.roi}`,
                   ].map((line) => (
                     <div key={line} className="flex items-start gap-2 text-sm">
                       <CheckCircle2 className={`h-4 w-4 mt-0.5 shrink-0 ${path.accent ? "text-secondary" : "text-secondary"}`} />
