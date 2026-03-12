@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -7,6 +7,7 @@ import {
   Sparkles, ExternalLink, Copy, CheckCircle2, Info,
   Globe, User, BookOpen, ShoppingBag, FileText, Calendar,
   Megaphone, Loader2, Link2, Download, AlertCircle, Crown, HelpCircle,
+  RefreshCw, X,
 } from "lucide-react";
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
