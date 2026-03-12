@@ -67,7 +67,9 @@ const PAGE_TOOLTIPS: Record<string, string> = {
 const ALWAYS_ON = new Set(["homepage", "about"]);
 
 export default function WebsiteBlueprintPage({ onNavigate }: Props) {
-  const { user } = useAuth();
+  const { user, tier, isAdmin } = useAuth();
+  const effectiveTier = isAdmin ? "enterprise" : tier;
+  const isPaidTier = effectiveTier === "starter" || effectiveTier === "pro" || effectiveTier === "enterprise";
 
   /* --- raw data for preview --- */
   const [profileData, setProfileData] = useState<any>(null);
@@ -87,6 +89,11 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
   /* --- link state --- */
   const [manusLink, setManusLink] = useState("");
   const [linkSaved, setLinkSaved] = useState(false);
+
+  /* --- domain state --- */
+  const [customDomain, setCustomDomain] = useState("");
+  const [domainCopied, setDomainCopied] = useState(false);
+  const [dnsHelpOpen, setDnsHelpOpen] = useState(false);
 
   /* ============================================
    * ON LOAD: Fetch raw data + run Phase 1
