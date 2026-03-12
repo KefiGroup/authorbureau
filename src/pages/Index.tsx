@@ -187,7 +187,7 @@ export default function Index() {
               The average self-published author earns just $1,000–$5,000 per year from book sales.
             </motion.p>
             <motion.p variants={fadeUp} custom={3} className="text-lg text-muted-foreground leading-relaxed mb-8">
-              But the top 3% of authors? They don't rely on royalties. They build businesses around their books — courses, coaching, speaking, memberships — and earn{" "}
+              But the top 3% of authors? They don't rely on royalties. They build businesses around their books with courses, coaching, speaking, and memberships, earning{" "}
               <strong className="text-foreground">$50,000 to $500,000+ per year</strong> from the same book.
             </motion.p>
             <motion.p variants={fadeUp} custom={4} className="text-xl font-heading font-bold text-secondary">
