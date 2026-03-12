@@ -111,7 +111,7 @@ export default function Auth() {
   const hasCallbackToken = location.hash?.includes("auth_token");
   useEffect(() => {
     if (!loading && !magicLinkProcessing && !user && !hasCallbackToken) {
-      window.location.href = "https://publishnow.io/#/auth";
+      window.location.href = publishNowAuthUrl;
     }
   }, [loading, magicLinkProcessing, user, hasCallbackToken]);
 
