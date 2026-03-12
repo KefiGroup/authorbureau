@@ -159,7 +159,7 @@ export default function Join() {
                   </div>
                   <h3 className="mb-2 font-heading text-xl font-bold">Application Submitted!</h3>
                   <p className="text-muted-foreground">
-                    We'll review your application and get back to you within 48 hours.
+                    Great — now redirecting you to secure sign up.
                   </p>
                 </motion.div>
               ) : (
