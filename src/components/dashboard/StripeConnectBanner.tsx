@@ -112,8 +112,11 @@ export default function StripeConnectBanner({ compact = false }: BannerProps) {
 
   const handleClick = async () => {
     setStarting(true);
-    await startOnboarding();
-    setStarting(false);
+    try {
+      await startOnboarding();
+    } finally {
+      setStarting(false);
+    }
   };
 
   if (compact) {
