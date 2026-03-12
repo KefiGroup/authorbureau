@@ -191,7 +191,51 @@ export default function Index() {
         </div>
       </section>
 
-      {/* ===== SECTION 3: MONETIZATION UNIVERSE + Flow Diagram ===== */}
+      {/* ===== WHY AUTHORS BUREAU — Comparison Table ===== */}
+      <section className="py-24 bg-muted/50 border-y border-border">
+        <div className="container">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} className="mb-16 text-center">
+            <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
+              Why Authors Bureau
+            </motion.p>
+            <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-5xl mb-4">
+              One Platform <span className="text-gradient-gold">Replaces Everything</span>
+            </motion.h2>
+            <motion.p variants={fadeUp} custom={2} className="text-lg text-muted-foreground max-w-3xl mx-auto">
+              Other platforms make you do the work. Authors Bureau does it for you.
+              Abby reads your book, researches your market, and builds your entire business: courses, coaching packages, email sequences, sales pages, and more. You just review and publish.
+            </motion.p>
+          </motion.div>
+
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0} variants={fadeUp} className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-4 px-4 font-heading font-bold text-sm">What You Need</th>
+                  <th className="text-left py-4 px-4 font-heading font-bold text-sm text-destructive">Without Authors Bureau</th>
+                  <th className="text-left py-4 px-4 font-heading font-bold text-sm text-secondary">With Authors Bureau</th>
+                </tr>
+              </thead>
+              <tbody>
+                {comparisonRows.map((row, i) => (
+                  <tr key={row.need} className={`border-b border-border/50 ${i === comparisonRows.length - 1 ? "font-semibold bg-muted/50" : ""}`}>
+                    <td className="py-3.5 px-4 text-sm font-medium">{row.need}</td>
+                    <td className="py-3.5 px-4 text-sm text-muted-foreground">{row.without}</td>
+                    <td className="py-3.5 px-4 text-sm text-secondary font-medium">{row.withAB}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </motion.div>
+
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0} variants={fadeUp} className="mt-10 text-center">
+            <Button asChild variant="outline" size="lg" className="rounded-full border-secondary text-secondary hover:bg-secondary hover:text-secondary-foreground">
+              <Link to="/how-it-works">See All 28 Revenue Streams <ArrowRight className="ml-2 h-4 w-4" /></Link>
+            </Button>
+          </motion.div>
+        </div>
+      </section>
+
       <section className="py-24 bg-muted/50 border-y border-border">
         <div className="container">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} className="mb-16 text-center">
