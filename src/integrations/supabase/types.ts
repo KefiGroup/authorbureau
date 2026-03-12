@@ -244,6 +244,7 @@ export type Database = {
           directory_status: string
           frameworks: Json | null
           genres: string[] | null
+          has_seen_journey_onboarding: boolean
           id: string
           instagram_url: string | null
           is_speaker: boolean | null
@@ -277,6 +278,7 @@ export type Database = {
           directory_status?: string
           frameworks?: Json | null
           genres?: string[] | null
+          has_seen_journey_onboarding?: boolean
           id?: string
           instagram_url?: string | null
           is_speaker?: boolean | null
@@ -310,6 +312,7 @@ export type Database = {
           directory_status?: string
           frameworks?: Json | null
           genres?: string[] | null
+          has_seen_journey_onboarding?: boolean
           id?: string
           instagram_url?: string | null
           is_speaker?: boolean | null

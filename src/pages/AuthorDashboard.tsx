@@ -32,6 +32,7 @@ import ReviewProductsPage from "@/components/dashboard/ReviewProductsPage";
 import AuthorCRMPage from "@/components/dashboard/AuthorCRMPage";
 import AuthorReadingClub from "@/components/dashboard/AuthorReadingClub";
 import AbbyConsultantBanner from "@/components/dashboard/AbbyConsultantBanner";
+import ABBYJourneyOnboarding from "@/components/dashboard/ABBYJourneyOnboarding";
 import { Loader2, Rocket, FileText, Video, Share2, CreditCard, Users, Trophy, Podcast, Building2, Bookmark, Award, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
@@ -127,6 +128,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
   const [stripeConnected, setStripeConnected] = useState(false);
   const [pendingReviewCount, setPendingReviewCount] = useState(0);
   const [analyzedBookList, setAnalyzedBookList] = useState<Array<{ id: string; title: string }>>([]);
+  const [showJourneyOnboarding, setShowJourneyOnboarding] = useState(false);
 
   // Derive journey state from centralized stats
   useEffect(() => {
@@ -146,6 +148,21 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
     setJourneyBuild(step3Done ? "done" : step2Done && (isPremium || isAdmin) ? "current" : "upcoming");
     setJourneySell("upcoming");
   }, [stats, isPremium, isAdmin]);
+
+  // Check if journey onboarding should show (first time user has an analyzed book)
+  useEffect(() => {
+    if (!user || !stats.analyzedCount) return;
+    (async () => {
+      const { data } = await supabase
+        .from("author_profiles")
+        .select("has_seen_journey_onboarding")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (data && !(data as any).has_seen_journey_onboarding) {
+        setShowJourneyOnboarding(true);
+      }
+    })();
+  }, [user, stats.analyzedCount]);
 
   // Fetch analyzed book list separately (lightweight, needed for navigation)
   useEffect(() => {
@@ -473,6 +490,20 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           {renderSection()}
         </main>
       </div>
+
+      {/* ABBY Journey Onboarding Modal */}
+      {showJourneyOnboarding && user && (
+        <ABBYJourneyOnboarding
+          userId={user.id}
+          onComplete={(selectedPath) => {
+            setShowJourneyOnboarding(false);
+            if (selectedPath) {
+              // Track path preference (analytics)
+              console.log("User selected path:", selectedPath);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
