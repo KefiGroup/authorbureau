@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Loader2, Wand2, GripVertical, ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
+import StepInstructions from "../shared/StepInstructions";
 import { CONTENT_TYPE_LABELS, CONTENT_TYPE_DESCRIPTIONS, type ContentType, type WorkbookSection } from "./types";
 import type { WorkbookStepProps } from "./types";
 import { toast } from "sonner";
