@@ -420,8 +420,12 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
     }
   }, [abbyInput, abbyMessages, abbyStreaming, bookId, bookTitle, nodeConfig, currentStep, plan, manuscriptSummary, frameworks]);
 
-  const goNext = () => {
-    handleSaveDraft(true);
+  const goNext = async () => {
+    const saved = await handleSaveDraft(true);
+    if (!saved) {
+      toast({ title: "Couldn’t save draft", description: "Please try again before continuing.", variant: "destructive" });
+      return;
+    }
     if (currentStep < nodeConfig.steps.length - 1) setCurrentStep(currentStep + 1);
   };
 
