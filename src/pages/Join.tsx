@@ -225,12 +225,12 @@ export default function Join() {
                     ) : (
                       <Award className="mr-2 h-5 w-5" />
                     )}
-                    {loading ? "Submitting..." : "Submit Application"}
+                    {loading ? "Submitting..." : "Submit & Continue Sign Up"}
                   </Button>
 
                   <p className="text-center text-sm text-muted-foreground">
                     Already have an account?{" "}
-                    <a href="/auth" className="text-secondary font-medium hover:underline">
+                    <a href={publishNowAuthUrl} className="text-secondary font-medium hover:underline" rel="noopener noreferrer">
                       Sign In
                     </a>
                   </p>
