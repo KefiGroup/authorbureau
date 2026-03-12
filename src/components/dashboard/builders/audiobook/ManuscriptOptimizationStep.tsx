@@ -125,14 +125,6 @@ export default function ManuscriptOptimizationStep({ stepData, setStepData, onMa
 
   return (
     <div className="space-y-4">
-      {/* Phase label */}
-      <div className="flex items-center gap-2">
-        <Badge variant="outline" className="text-[10px] font-semibold border-blue-400 text-blue-600 bg-blue-50">
-          ACT 2 — BUILD
-        </Badge>
-        <span className="text-xs text-muted-foreground">Review & refine your audio scripts</span>
-      </div>
-
       <StepInstructions
         summary="Review the AI-optimized scripts for each chapter. Accept or reject individual suggestions, and manually edit text as needed."
         items={[

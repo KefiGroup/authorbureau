@@ -92,14 +92,6 @@ export default function ChapterProductionStep({ stepData, setStepData, onMarkEdi
 
   return (
     <div className="space-y-5">
-      {/* Phase label */}
-      <div className="flex items-center gap-2">
-        <Badge variant="outline" className="text-[10px] font-semibold border-blue-400 text-blue-600 bg-blue-50">
-          ACT 2 — BUILD
-        </Badge>
-        <span className="text-xs text-muted-foreground">Generate audio for each chapter</span>
-      </div>
-
       <StepInstructions
         summary="Produce audio for each chapter using your chosen narration method. Generate AI audio, or upload your own recordings."
         items={[
