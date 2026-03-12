@@ -24,6 +24,7 @@ import { useAbbyPlan } from "@/hooks/useAbbyPlan";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import ROIBanner from "@/components/dashboard/ROIBanner";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
+import BuilderFirstVisitWelcome, { hasSeenBuilderFirstVisit, markBuilderFirstVisitSeen } from "./BuilderFirstVisitWelcome";
 import CourseStepRenderer from "./course/CourseStepRenderer";
 import HomeStudyStepRenderer from "./home-study/HomeStudyStepRenderer";
 import WorkbookStepRenderer from "./workbook/WorkbookStepRenderer";
