@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -7,6 +7,7 @@ import {
   Sparkles, ExternalLink, Copy, CheckCircle2, Info,
   Globe, User, BookOpen, ShoppingBag, FileText, Calendar,
   Megaphone, Loader2, Link2, Download, AlertCircle, Crown, HelpCircle,
+  RefreshCw, X,
 } from "lucide-react";
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
@@ -95,6 +96,31 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
   const [domainCopied, setDomainCopied] = useState(false);
   const [dnsHelpOpen, setDnsHelpOpen] = useState(false);
 
+  /* --- rebuild banner state --- */
+  const [rebuildNeeded, setRebuildNeeded] = useState(false);
+  const [completedNodeName, setCompletedNodeName] = useState<string | null>(null);
+  const [rebuildDismissed, setRebuildDismissed] = useState(false);
+  const initialAssetsLoaded = useRef(false);
+
+  /* --- asset type to friendly name map --- */
+  const ASSET_TYPE_LABELS: Record<string, string> = {
+    business_plan: "Business Plan",
+    workbook: "Workbook",
+    home_study_course: "Home Study Course",
+    audiobook_script: "Audiobook",
+    podcast: "Podcast",
+    course: "Online Course",
+    lead_magnet: "Lead Magnet",
+    social_media: "Social Media Calendar",
+    email_sequence: "Email Marketing",
+    webinar: "Webinar",
+    coaching: "Coaching Package",
+    media_kit: "Media Outreach Kit",
+    speaking: "Speaking Kit",
+    sales_page: "Book Sales Page",
+    website: "Website",
+  };
+
   /* ============================================
    * ON LOAD: Fetch raw data + run Phase 1
    * ============================================ */
@@ -164,6 +190,76 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
     })();
 
     return () => { cancelled = true; };
+  }, [user]);
+
+  /* ============================================
+   * REALTIME: Listen for new completed assets
+   * ============================================ */
+  useEffect(() => {
+    if (!user) return;
+
+    // Small delay to let initial Phase 1 load complete first
+    const timer = setTimeout(() => {
+      initialAssetsLoaded.current = true;
+    }, 5000);
+
+    const channel = supabase
+      .channel("website-asset-updates")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "generated_assets",
+          filter: `author_id=eq.${user.id}`,
+        },
+        async (payload) => {
+          // Only show banner after initial load is done (not on page load inserts)
+          if (!initialAssetsLoaded.current) return;
+
+          const assetType = (payload.new as any)?.asset_type;
+          // Skip the website asset itself to avoid circular notification
+          if (assetType === "website") return;
+
+          const nodeName = ASSET_TYPE_LABELS[assetType] || assetType?.replace(/_/g, " ") || "a new node";
+          setCompletedNodeName(nodeName);
+          setRebuildNeeded(true);
+          setRebuildDismissed(false);
+
+          // Silently re-run Phase 1 to update the blueprint
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.access_token) return;
+
+            const resp = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/abby-website-builder`,
+              {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${session.access_token}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ phase: "1" }),
+              }
+            );
+
+            if (resp.ok) {
+              const result: Phase1Result = await resp.json();
+              setAbbyPages(result.pages);
+              setPreviewData(result.preview_data);
+              setDesignData(null); // Invalidate cached Phase 2 data
+            }
+          } catch (err) {
+            console.error("Silent Phase 1 re-run failed:", err);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      clearTimeout(timer);
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   /* ---------- derived ---------- */
@@ -345,6 +441,45 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
           <div className="flex items-center gap-2 rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2">
             <AlertCircle className="h-4 w-4 text-destructive" />
             <p className="text-sm text-destructive">{phase1Error} — Using default recommendations.</p>
+          </div>
+        )}
+
+        {/* Rebuild notification banner */}
+        {rebuildNeeded && !rebuildDismissed && (
+          <div className="rounded-xl p-4 bg-gradient-to-r from-[#FDF6E9] to-[#FEF3C7] border border-[#E8D5A8]">
+            <div className="flex items-start gap-3">
+              <div className="shrink-0 mt-0.5">
+                <RefreshCw className="h-5 w-5 text-secondary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground">
+                  Your website is out of date. You've completed the <span className="font-bold">{completedNodeName}</span>! Rebuild your website to add the new page.
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Your blueprint has been updated automatically. Click rebuild to generate new specs.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setRebuildDismissed(true);
+                    setRebuildNeeded(false);
+                    handleBuildWithManus();
+                  }}
+                  className="bg-secondary text-secondary-foreground hover:bg-secondary/90 text-xs h-8 font-semibold"
+                >
+                  <RefreshCw className="h-3.5 w-3.5 mr-1" />
+                  Rebuild My Website
+                </Button>
+                <button
+                  onClick={() => setRebuildDismissed(true)}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
