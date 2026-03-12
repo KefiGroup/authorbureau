@@ -28,6 +28,7 @@ import MicrositeManager from "@/components/dashboard/MicrositeManager";
 import UniversalBuilderStudio from "@/components/dashboard/builders/UniversalBuilderStudio";
 import { BUILDER_NODE_MAP } from "@/components/dashboard/builders/builderNodeConfig";
 import ConnectStripePage from "@/components/dashboard/ConnectStripePage";
+import HowItWorksSection from "@/components/dashboard/HowItWorksSection";
 import ReviewProductsPage from "@/components/dashboard/ReviewProductsPage";
 import AuthorCRMPage from "@/components/dashboard/AuthorCRMPage";
 import AuthorReadingClub from "@/components/dashboard/AuthorReadingClub";
@@ -53,7 +54,7 @@ export type DashboardSection =
   | "retreats" | "certification" | "masterminds"
   | "email-marketing" | "subscribers" | "email-templates"
   | "revenue-streams" | "marketing-channels" | "authority-builders"
-  | "marketing" | "crm" | "author-crm" | "reading-club"
+  | "marketing" | "crm" | "author-crm" | "reading-club" | "how-it-works"
   | "analytics" | "microsite-manager"
   | "connect-stripe" | "review-products"
   | "book-sales" | "special-editions" | "lead-magnet"
@@ -258,6 +259,8 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         return <MyBooks isPremium={isPremium || isAdmin} onNavigate={handleNavigate} stripeConnected={stripeConnected} centralStats={stats} />;
       case "build-business":
         return <BuildMyBusiness onNavigate={handleNavigate} />;
+      case "how-it-works":
+        return <HowItWorksSection />;
       case "analytics":
         return <RevenueDashboard onNavigate={handleNavigate} />;
       case "microsite-manager":
