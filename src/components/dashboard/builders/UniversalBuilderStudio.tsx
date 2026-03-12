@@ -445,7 +445,11 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onNavigate?.("my-books")}
+            onClick={() => {
+              handleSaveDraft(true);
+              const categorySection = nodeConfig.category === "build" ? "build" : nodeConfig.category === "bridge" ? "bridge" : "yield";
+              onNavigate?.(categorySection);
+            }}
             className="text-muted-foreground hover:text-foreground shrink-0 -ml-2"
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
