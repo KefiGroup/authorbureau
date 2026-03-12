@@ -229,7 +229,7 @@ export default function Index() {
                 letter: "B",
                 label: "BRIDGE",
                 streams: 8,
-                desc: "Audience channels that bring people to you — audiobooks, podcasts, webinars, affiliates",
+                desc: "Audience channels that bring people to you: audiobooks, podcasts, webinars, affiliates",
                 color: "text-accent",
                 bg: "bg-accent/10 border-accent/20",
               },
