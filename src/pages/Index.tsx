@@ -552,10 +552,10 @@ export default function Index() {
 
               <div className="space-y-5 mb-8">
                 {[
-                  { icon: Award, title: "International Bestselling Author", desc: 'Author of "Be SUCKcessful" — Amazon Bestseller in Self-Help, Business Motivation & Personal Finance' },
-                  { icon: Building2, title: "Built the Largest Financial Education Company in SG & MY", desc: "Former Executive Director — Led startup to ASX listing (ASX:8I, 2014), oversaw spin-off to second ASX listing (ASX:8VI, 2018)" },
-                  { icon: GraduationCap, title: "25+ Years in Learning & Development", desc: "Master of Arts (Instructional Design & Technology), NTU Singapore — Mentored 10,000+ students" },
-                  { icon: Mic, title: "Recognized Speaker & Entrepreneur", desc: "Prominent female speaker in the investing sector — Entrepreneur since 2011" },
+                  { icon: Award, title: "International Bestselling Author", desc: 'Author of "Be SUCKcessful," Amazon Bestseller in Self-Help, Business Motivation & Personal Finance' },
+                  { icon: Building2, title: "Built the Largest Financial Education Company in SG & MY", desc: "Former Executive Director. Led startup to ASX listing (ASX:8I, 2014), oversaw spin-off to second ASX listing (ASX:8VI, 2018)" },
+                  { icon: GraduationCap, title: "25+ Years in Learning & Development", desc: "Master of Arts (Instructional Design & Technology), NTU Singapore. Mentored 10,000+ students" },
+                  { icon: Mic, title: "Recognized Speaker & Entrepreneur", desc: "Prominent female speaker in the investing sector. Entrepreneur since 2011" },
                 ].map((item, i) => (
                   <motion.div key={item.title} variants={fadeUp} custom={i + 3} className="flex gap-4 items-start border-b border-border/50 pb-4 last:border-0">
                     <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center">
