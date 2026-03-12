@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import type { AbbyPlan } from "@/components/dashboard/BusinessPlanCard";
+import BuilderFirstVisitWelcome, { hasSeenBuilderFirstVisit, markBuilderFirstVisitSeen } from "@/components/dashboard/builders/BuilderFirstVisitWelcome";
 
 interface Props {
   bookId: string;
