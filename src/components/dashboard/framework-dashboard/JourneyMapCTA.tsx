@@ -14,7 +14,7 @@ interface Props {
 }
 
 const steps = [
-  { key: "microsite", label: "Your Author Page", sub: "FREE", icon: Globe },
+  { key: "microsite", label: "Directory Profile", sub: "FREE", icon: Globe },
   { key: "plan", label: "Abby Business Plan", sub: "FREE", icon: Sparkles },
   { key: "build", label: "Build Products", sub: "From $47/mo", icon: Wrench },
   { key: "sell", label: "Sell & Grow", sub: "Keep ~92%", icon: TrendingUp },
