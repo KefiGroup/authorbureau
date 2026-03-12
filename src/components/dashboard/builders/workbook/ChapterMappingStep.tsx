@@ -147,6 +147,19 @@ export default function ChapterMappingStep({ stepData, setStepData, onMarkEdited
 
   return (
     <div className="space-y-4">
+      {/* Section instructions */}
+      <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground space-y-1.5">
+        <p className="font-medium text-foreground text-sm">How this works</p>
+        <p>Each book chapter is mapped to a workbook section. Sections define which <strong>content types</strong> (reflections, exercises, checklists, etc.) will be generated for that chapter in the next step.</p>
+        <ul className="list-disc list-inside space-y-0.5 ml-1">
+          <li><strong>Add Section</strong> — manually create a new workbook section for content not tied to a specific chapter.</li>
+          <li><strong>Regenerate</strong> — re-run AI to create a fresh mapping, replacing all current sections.</li>
+          <li><strong>Expand a section</strong> — click any workbook section to edit its title, chapter reference, and toggle content types on/off.</li>
+          <li><strong>Content type badges</strong> — click to include or exclude that type from the section's generated content.</li>
+          <li><strong>Remove Section</strong> — permanently delete a section you don't need.</li>
+        </ul>
+      </div>
+
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{sections.length} sections mapped</p>
         <div className="flex gap-2">
