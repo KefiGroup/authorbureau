@@ -67,6 +67,7 @@ export default function DashboardSidebar({
     { id: "overview", label: "Dashboard", icon: LayoutDashboard },
     { id: "my-books", label: "My Books Hub", icon: BookOpen, notificationCount: pendingReviewCount },
     { id: "build-business", label: "Analyze with Abby", icon: Sparkles },
+    { id: "how-it-works" as DashboardSection, label: "How It Works", icon: Crown, color: "text-[hsl(45,50%,54%)]" },
   ];
 
   // Section 2: Build Your Business
