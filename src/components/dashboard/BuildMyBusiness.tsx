@@ -11,6 +11,7 @@ import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import BusinessPlanActions, { isBusinessPlanMessage } from "@/components/dashboard/BusinessPlanActions";
 import BuildAuthorBusinessButton from "@/components/dashboard/BuildAuthorBusinessButton";
 import SavedBusinessPlan from "@/components/dashboard/SavedBusinessPlan";
+import FullPlanDialog from "@/components/dashboard/FullPlanDialog";
 import FrameworkInterviewModal, { type BuildMode } from "@/components/dashboard/FrameworkInterviewModal";
 import SubscriptionSalesPitch from "@/components/dashboard/framework-dashboard/SubscriptionSalesPitch";
 import ManuscriptUpload from "@/components/dashboard/ManuscriptUpload";
