@@ -149,6 +149,7 @@ export default function VoiceSelectionStep({ stepData, setStepData, onMarkEdited
   // AI Voice selection
   return (
     <div className="space-y-5">
+      <StepInstructions summary={VOICE_INSTRUCTIONS["ai-voice"].summary} items={VOICE_INSTRUCTIONS["ai-voice"].items} />
       {/* Filters */}
       <div className="flex gap-3 flex-wrap">
         <div>
