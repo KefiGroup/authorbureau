@@ -86,14 +86,16 @@ export default function Navbar() {
             </Button>
           ) : (
             <>
-              <Link
-                to="/auth"
+              <a
+                href={PUBLISHNOW_AUTH_URL}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-sm font-semibold text-secondary transition-colors hover:text-secondary/80"
               >
                 Sign In
-              </Link>
+              </a>
               <Button asChild variant="default" size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-none rounded-full">
-                <Link to="/get-featured">Get Featured</Link>
+                <a href={PUBLISHNOW_AUTH_URL} target="_blank" rel="noopener noreferrer">Sign Up</a>
               </Button>
             </>
           )}
