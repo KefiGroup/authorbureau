@@ -194,17 +194,35 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
   // Check tier access
   const hasAccess = isPremium || isAdmin || hasTierAccess(tier, nodeConfig.requiredTier);
 
-  // Auto-save timer
+  // Auto-save timer — save on every data change (debounced) + periodic interval
   const autoSaveRef = useRef<NodeJS.Timeout | null>(null);
+  const stepDataRef = useRef(stepData);
+  const currentStepRef = useRef(currentStep);
+  const editedStepsRef = useRef(editedSteps);
+  stepDataRef.current = stepData;
+  currentStepRef.current = currentStep;
+  editedStepsRef.current = editedSteps;
 
+  // Debounced auto-save on data change (5s after last edit)
+  const debounceSaveRef = useRef<NodeJS.Timeout | null>(null);
+  useEffect(() => {
+    if (Object.keys(stepData).length === 0) return;
+    if (debounceSaveRef.current) clearTimeout(debounceSaveRef.current);
+    debounceSaveRef.current = setTimeout(() => {
+      handleSaveDraft(true);
+    }, 5000);
+    return () => { if (debounceSaveRef.current) clearTimeout(debounceSaveRef.current); };
+  }, [stepData, currentStep]);
+
+  // Periodic auto-save every 30s as backup
   useEffect(() => {
     autoSaveRef.current = setInterval(() => {
-      if (Object.keys(stepData).length > 0) {
+      if (Object.keys(stepDataRef.current).length > 0) {
         handleSaveDraft(true);
       }
     }, 30000);
     return () => { if (autoSaveRef.current) clearInterval(autoSaveRef.current); };
-  }, [stepData]);
+  }, [user, bookId]);
 
   // Scroll chat to bottom
   useEffect(() => {
@@ -218,9 +236,9 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
       // Save to generated_assets as builder draft
       const content = JSON.stringify({
         nodeId: nodeConfig.id,
-        currentStep,
-        stepData,
-        editedSteps: Array.from(editedSteps),
+        currentStep: currentStepRef.current,
+        stepData: stepDataRef.current,
+        editedSteps: Array.from(editedStepsRef.current),
         savedAt: new Date().toISOString(),
       });
 
@@ -427,7 +445,11 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onNavigate?.("my-books")}
+            onClick={() => {
+              handleSaveDraft(true);
+              const categorySection = nodeConfig.category === "build" ? "build" : nodeConfig.category === "bridge" ? "bridge" : "yield";
+              onNavigate?.(categorySection);
+            }}
             className="text-muted-foreground hover:text-foreground shrink-0 -ml-2"
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
