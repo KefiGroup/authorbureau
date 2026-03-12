@@ -441,7 +441,7 @@ export default function Index() {
             </motion.h2>
             <motion.p variants={fadeUp} custom={2} className="text-lg text-muted-foreground max-w-3xl mx-auto">
               Other platforms make you do the work. Authors Bureau does it for you.
-              Abby reads your book, researches your market, and builds your entire business — courses, coaching packages, email sequences, sales pages, and more. You just review and publish.
+              Abby reads your book, researches your market, and builds your entire business: courses, coaching packages, email sequences, sales pages, and more. You just review and publish.
             </motion.p>
           </motion.div>
 
