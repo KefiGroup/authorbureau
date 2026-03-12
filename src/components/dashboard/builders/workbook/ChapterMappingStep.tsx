@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Loader2, Wand2, GripVertical, ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
-import { CONTENT_TYPE_LABELS, type ContentType, type WorkbookSection } from "./types";
+import { CONTENT_TYPE_LABELS, CONTENT_TYPE_DESCRIPTIONS, type ContentType, type WorkbookSection } from "./types";
 import type { WorkbookStepProps } from "./types";
 import { toast } from "sonner";
 import { generateWithAI } from "@/lib/ai-generate";
@@ -214,7 +214,7 @@ export default function ChapterMappingStep({ stepData, setStepData, onMarkEdited
                         <Input value={s.chapterRef} onChange={e => updateSection(s.id, { chapterRef: e.target.value })} className="h-8 text-xs" />
                       </div>
                       <div>
-                        <label className="text-[10px] font-medium block mb-1.5">Content Types</label>
+                        <label className="text-[10px] font-medium block mb-1.5">Content Types <span className="font-normal text-muted-foreground">(click to toggle)</span></label>
                         <div className="flex flex-wrap gap-1.5">
                           {ALL_CONTENT_TYPES.map(type => (
                             <Badge
@@ -222,11 +222,13 @@ export default function ChapterMappingStep({ stepData, setStepData, onMarkEdited
                               variant={s.contentTypes.includes(type) ? "default" : "outline"}
                               className="text-[9px] cursor-pointer"
                               onClick={() => toggleContentType(s.id, type)}
+                              title={CONTENT_TYPE_DESCRIPTIONS[type]}
                             >
                               {CONTENT_TYPE_LABELS[type]}
                             </Badge>
                           ))}
                         </div>
+                        <p className="text-[10px] text-muted-foreground mt-1.5 italic">Hover over a badge to see what it means</p>
                       </div>
                       <Button variant="ghost" size="sm" className="text-destructive text-xs" onClick={() => removeSection(s.id)}>
                         <Trash2 className="h-3 w-3 mr-1" /> Remove Section
