@@ -23,7 +23,7 @@ export default function Join() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  const navigate = useNavigate();
+  const publishNowAuthUrl = getPublishNowAuthUrl("/dashboard");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
