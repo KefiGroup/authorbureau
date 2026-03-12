@@ -290,7 +290,7 @@ export default function Index() {
                 step: "1",
                 title: "Upload Your Book",
                 tag: "FREE",
-                desc: "Upload your manuscript and get a professional author showcase page — completely free. Abby analyzes your book and creates a personalized business plan showing which of the 28 revenue streams are the best fit for your topic and audience.",
+                desc: "Upload your manuscript and get a professional author showcase page, completely free. Abby analyzes your book and creates a personalized business plan showing which of the 28 revenue streams are the best fit for your topic and audience.",
               },
               {
                 step: "2",
