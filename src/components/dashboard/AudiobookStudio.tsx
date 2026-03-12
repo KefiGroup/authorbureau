@@ -120,11 +120,38 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
       return;
     }
 
-    const chapterRegex = /(?:^|\n)(chapter\s+\d+[:\s].*|#{1,3}\s+.+)/gi;
-    const matches = [...manuscript.matchAll(chapterRegex)];
+    // Try multiple heading patterns to detect chapters
+    const headingPatterns = [
+      /(?:^|\n)(chapter\s+(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)[:\s\-–—].*)/gi,
+      /(?:^|\n)(#{1,3}\s+.+)/g,
+      /(?:^|\n)(CHAPTER\s+.+)/g,
+      /(?:^|\n)(Part\s+(?:\d+|One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten|Eleven|Twelve)[:\s\-–—].*)/gi,
+      /(?:^|\n)(\d+\.\s+[A-Z][^\n]{3,})/g,
+    ];
+
+    let matches: RegExpMatchArray[] = [];
+    for (const regex of headingPatterns) {
+      const found = [...manuscript.matchAll(regex)];
+      if (found.length >= 2) {
+        matches = found;
+        break;
+      }
+    }
+
+    // If still no matches, try splitting on lines that are short, all-caps or title-case, preceded by blank lines
+    if (matches.length < 2) {
+      const titleLineRegex = /(?:^|\n\n)([A-Z][A-Z\s\d:'\-–—]{4,80})\n/g;
+      const titleMatches = [...manuscript.matchAll(titleLineRegex)];
+      if (titleMatches.length >= 2) {
+        matches = titleMatches;
+      }
+    }
+
     let parsed: ChapterAudio[] = [];
 
     if (matches.length >= 2) {
+      // Sort by position in text to ensure correct order
+      matches.sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
       for (let i = 0; i < matches.length; i++) {
         const start = matches[i].index!;
         const end = i < matches.length - 1 ? matches[i + 1].index! : manuscript.length;
