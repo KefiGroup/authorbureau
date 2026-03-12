@@ -307,7 +307,7 @@ export default function Index() {
               {
                 step: "4",
                 title: "YIELD Your Empire",
-                tag: "$499/month",
+                tag: "YIELD",
                 desc: "Scale into premium offerings: 1-on-1 coaching, group coaching, masterminds, keynote speaking, training programs, retreats, certification programs, and more.",
               },
             ].map((item, i) => (
