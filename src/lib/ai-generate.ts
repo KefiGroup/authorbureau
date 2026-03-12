@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { getActiveToken } from "@/lib/get-active-token";
 
 const AI_GATEWAY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/business-consultant`;
 
@@ -10,7 +10,7 @@ export async function generateWithAI(
   prompt: string,
   opts?: { bookId?: string; isPremium?: boolean }
 ): Promise<string> {
-  const token = (await supabase.auth.getSession()).data?.session?.access_token;
+  const token = await getActiveToken();
   if (!token) throw new Error("Not authenticated");
 
   const resp = await fetch(AI_GATEWAY_URL, {
