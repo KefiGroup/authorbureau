@@ -5,7 +5,6 @@ import {
   Mic, MapPin, CheckCircle2, Sparkles, ChevronDown, Zap, TrendingUp,
   Star, Shield,
 } from "lucide-react";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import DynamicMeetOurAuthors from "@/components/DynamicMeetOurAuthors";
@@ -18,7 +17,6 @@ import { getPublishNowAuthUrl } from "@/lib/publishnow-auth";
 
 const SIGNUP_URL = getPublishNowAuthUrl("/dashboard");
 const getPlanUrl = (plan: string) => getPublishNowAuthUrl(`/dashboard?plan=${plan}`);
-
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -48,7 +46,6 @@ const pricingPaths = [
     category: "BUILD",
     time: "4–8 hours/week",
     year1: "$5,500–$15,500/year",
-    year2: "$15,500–$44,000/year",
     roi: "9x–26x return",
     cta: "Start Building →",
     badge: null,
@@ -63,7 +60,6 @@ const pricingPaths = [
     category: "BUILD + BRIDGE",
     time: "15–25 hours/week",
     year1: "$13,500–$39,500/year",
-    year2: "$39,500–$122,000/year",
     roi: "6x–51x return",
     cta: "Start Your Business →",
     badge: "MOST POPULAR",
@@ -78,7 +74,6 @@ const pricingPaths = [
     category: "BUILD + BRIDGE + YIELD",
     time: "Full-time (leveraged)",
     year1: "$68,500–$215,500/year",
-    year2: "$215,500–$781,000/year",
     roi: "11x–130x return",
     cta: "Build Your Empire →",
     badge: "BEST VALUE",
@@ -110,7 +105,6 @@ const jsonLd = {
 export default function Index() {
   return (
     <div className="min-h-screen">
-      {/* JSON-LD Structured Data */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -197,7 +191,7 @@ export default function Index() {
         </div>
       </section>
 
-      {/* ===== SECTION 3: THE SOLUTION — ABBY FRAMEWORK ===== */}
+      {/* ===== SECTION 3: MONETIZATION UNIVERSE + Flow Diagram ===== */}
       <section className="py-24 bg-muted/50 border-y border-border">
         <div className="container">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} className="mb-16 text-center">
@@ -261,6 +255,18 @@ export default function Index() {
             ))}
           </div>
 
+          {/* Flow Diagram Infographic */}
+          <motion.img
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            src="/images/journey-flow-diagram.png"
+            alt="How your 28 revenue streams connect — BUILD, BRIDGE, YIELD ecosystem"
+            className="w-full max-w-4xl mx-auto rounded-2xl shadow-xl mb-10"
+            loading="lazy"
+          />
+
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0} variants={fadeUp} className="text-center">
             <Button asChild variant="outline" size="lg" className="rounded-full border-secondary text-secondary hover:bg-secondary hover:text-secondary-foreground">
               <Link to="/how-it-works">Explore All 28 Revenue Streams <ArrowRight className="ml-2 h-4 w-4" /></Link>
@@ -269,265 +275,7 @@ export default function Index() {
         </div>
       </section>
 
-      {/* ===== SECTION 4: HOW IT WORKS — 4 Steps ===== */}
-      <section id="how-it-works" className="py-24">
-        <div className="container">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} className="mb-16 text-center">
-            <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
-              How It Works
-            </motion.p>
-            <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-5xl">
-              From Author to <span className="italic text-secondary">Authority</span> in 4 Steps
-            </motion.h2>
-            <motion.p variants={fadeUp} custom={2} className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-              Your book is the foundation. Abby does the rest. Here's how your journey unfolds:
-            </motion.p>
-          </motion.div>
-
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-            {[
-              {
-                step: "1",
-                title: "Upload Your Book",
-                tag: "FREE",
-                desc: "Upload your manuscript and get a professional author showcase page, completely free. Abby analyzes your book and creates a personalized business plan showing which of the 28 revenue streams are the best fit for your topic and audience.",
-              },
-              {
-                step: "2",
-                title: "BUILD Your Products",
-                tag: "BUILD",
-                desc: "Abby uses AI to create your first digital products: workbooks, online courses, email sequences, social media calendars, and your author website. All generated from your book content. You just review and approve.",
-              },
-              {
-                step: "3",
-                title: "BRIDGE Your Audience",
-                tag: "BRIDGE",
-                desc: "Expand into audience-building channels: audiobooks, podcast tours, webinars, lead magnet funnels, affiliate programs, and media outreach. Abby creates everything including scripts, pitch kits, registration pages, and follow-up sequences.",
-              },
-              {
-                step: "4",
-                title: "YIELD Your Empire",
-                tag: "YIELD",
-                desc: "Scale into premium offerings: 1-on-1 coaching, group coaching, masterminds, keynote speaking, training programs, retreats, certification programs, and more.",
-              },
-            ].map((item, i) => (
-              <motion.div
-                key={item.step}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                custom={i}
-                variants={fadeUp}
-                className="group rounded-2xl bg-card p-7 shadow-md hover:shadow-lg transition-all duration-300 border border-border/60 hover:border-secondary/30 hover:-translate-y-1"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-secondary/15 to-secondary/5 ring-1 ring-secondary/20 font-heading text-xl font-bold text-secondary">
-                    {item.step}
-                  </div>
-                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
-                    {item.tag}
-                  </span>
-                </div>
-                <h3 className="mb-2 font-heading text-lg font-bold">{item.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ===== SECTION 5: PRICING — Choose Your Path ===== */}
-      <section id="pricing" className="py-24 bg-muted/50 border-y border-border">
-        <div className="container">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} className="mb-16 text-center">
-            <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
-              Choose Your Path
-            </motion.p>
-            <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-5xl mb-4">
-              Which Author Are You?
-            </motion.h2>
-            <motion.p variants={fadeUp} custom={2} className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Whether you want a side income or a full-scale business, there's a path for you.
-              Every path includes Abby, your AI Business Consultant, who builds everything for you.
-            </motion.p>
-          </motion.div>
-
-          <div className="grid gap-8 lg:grid-cols-3">
-            {pricingPaths.map((path, i) => (
-              <motion.div
-                key={path.name}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                custom={i}
-                variants={fadeUp}
-                className={`relative rounded-2xl p-8 border transition-all duration-300 hover:-translate-y-1 ${
-                  path.accent
-                    ? "bg-primary text-primary-foreground border-secondary shadow-xl scale-[1.02]"
-                    : "bg-card border-border shadow-md"
-                }`}
-              >
-                {path.badge && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-4 py-1 text-xs font-bold text-secondary-foreground shadow-md">
-                      <Star className="h-3 w-3" /> {path.badge}
-                    </span>
-                  </div>
-                )}
-                <div className="text-center mb-6">
-                  <h3 className="font-heading text-xl font-bold mb-1">{path.name}</h3>
-                  <p className={`text-sm mb-4 ${path.accent ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-                    {path.tagline}
-                  </p>
-                  <div className="flex items-baseline justify-center gap-1">
-                    <span className="font-heading text-4xl font-bold">{path.price}</span>
-                    <span className={`text-sm ${path.accent ? "text-primary-foreground/60" : "text-muted-foreground"}`}>/month</span>
-                  </div>
-                </div>
-
-                <div className="space-y-3 mb-6">
-                  {[
-                    `${path.streams} revenue streams (${path.category})`,
-                    `Time: ${path.time}`,
-                    `Projected Year 1: ${path.year1}`,
-                    `Projected ROI: ${path.roi}`,
-                  ].map((line) => (
-                    <div key={line} className="flex items-start gap-2 text-sm">
-                      <CheckCircle2 className={`h-4 w-4 mt-0.5 shrink-0 ${path.accent ? "text-secondary" : "text-secondary"}`} />
-                      <span className={path.accent ? "text-primary-foreground/80" : "text-muted-foreground"}>{line}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <Button
-                  asChild
-                  size="lg"
-                  className={`w-full rounded-full font-semibold ${
-                    path.accent
-                      ? "bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-[var(--shadow-gold)]"
-                      : "bg-secondary text-secondary-foreground hover:bg-secondary/90"
-                  }`}
-                >
-                  <a href={getPlanUrl(path.planKey || "starter")} target="_blank" rel="noopener noreferrer">{path.cta}</a>
-                </Button>
-              </motion.div>
-            ))}
-          </div>
-
-          <motion.p
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            custom={0}
-            variants={fadeUp}
-            className="mt-8 text-center text-xs text-muted-foreground max-w-3xl mx-auto"
-          >
-            * Projected revenue based on industry benchmarks from Teachable, Udemy, ICF Coach, National Speakers Association, and mastermind.com reports.
-            Individual results vary based on book topic, audience size, and effort invested. These are not guarantees.
-          </motion.p>
-        </div>
-      </section>
-
-      {/* ===== SECTION 6: WHY AUTHORS BUREAU — Comparison Table ===== */}
-      <section className="py-24">
-        <div className="container">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} className="mb-16 text-center">
-            <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
-              Why Authors Bureau
-            </motion.p>
-            <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-5xl mb-4">
-              One Platform <span className="text-gradient-gold">Replaces Everything</span>
-            </motion.h2>
-            <motion.p variants={fadeUp} custom={2} className="text-lg text-muted-foreground max-w-3xl mx-auto">
-              Other platforms make you do the work. Authors Bureau does it for you.
-              Abby reads your book, researches your market, and builds your entire business: courses, coaching packages, email sequences, sales pages, and more. You just review and publish.
-            </motion.p>
-          </motion.div>
-
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0} variants={fadeUp} className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-4 px-4 font-heading font-bold text-sm">What You Need</th>
-                  <th className="text-left py-4 px-4 font-heading font-bold text-sm text-destructive">Without Authors Bureau</th>
-                  <th className="text-left py-4 px-4 font-heading font-bold text-sm text-secondary">With Authors Bureau</th>
-                </tr>
-              </thead>
-              <tbody>
-                {comparisonRows.map((row, i) => (
-                  <tr key={row.need} className={`border-b border-border/50 ${i === comparisonRows.length - 1 ? "font-semibold bg-muted/50" : ""}`}>
-                    <td className="py-3.5 px-4 text-sm font-medium">{row.need}</td>
-                    <td className="py-3.5 px-4 text-sm text-muted-foreground">{row.without}</td>
-                    <td className="py-3.5 px-4 text-sm text-secondary font-medium">{row.withAB}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </motion.div>
-
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0} variants={fadeUp} className="mt-10 text-center">
-            <Button asChild variant="outline" size="lg" className="rounded-full border-secondary text-secondary hover:bg-secondary hover:text-secondary-foreground">
-              <Link to="/how-it-works">See All 28 Revenue Streams <ArrowRight className="ml-2 h-4 w-4" /></Link>
-            </Button>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ===== SECTION 7: PRODUCT COMPARISON — Accordions ===== */}
-      <section className="py-24 bg-muted/30 border-y border-border">
-        <div className="container">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} className="mb-12 text-center">
-            <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
-              Know Your Products
-            </motion.p>
-            <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-4xl mb-4">
-              Not Sure What to Build First?
-            </motion.h2>
-            <motion.p variants={fadeUp} custom={2} className="text-muted-foreground max-w-2xl mx-auto">
-              Many authors confuse similar-sounding products. Here's a plain-English guide to help you understand the difference and which ones are right for your book.
-            </motion.p>
-          </motion.div>
-
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0} variants={fadeUp} className="mx-auto max-w-3xl">
-            <Accordion type="single" collapsible className="space-y-3">
-              <AccordionItem value="workbook-vs-course" className="rounded-xl border border-border bg-card px-6">
-                <AccordionTrigger className="font-heading font-semibold text-left">
-                  What's the difference between a Workbook, Home Study, and Online Course?
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground space-y-3 pb-4">
-                  <p><strong className="text-foreground">Workbook ($17–$47):</strong> A downloadable PDF with exercises. Think of it as homework from your book. The reader fills it in themselves. Sells on autopilot.</p>
-                  <p><strong className="text-foreground">Home Study ($47–$197):</strong> A self-paced bundle with your book, video lessons, and a workbook. Like a "course in a box" the reader does alone. No live interaction needed.</p>
-                  <p><strong className="text-foreground">Online Course ($97–$497):</strong> A structured learning experience with modules, quizzes and possibly a community. You may do live Q&A sessions. Higher price, higher value.</p>
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="coaching-types" className="rounded-xl border border-border bg-card px-6">
-                <AccordionTrigger className="font-heading font-semibold text-left">
-                  What's the difference between 1-on-1 Coaching, Group Coaching, and a Mastermind?
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground space-y-3 pb-4">
-                  <p><strong className="text-foreground">1-on-1 Coaching ($150–$500/session):</strong> Private sessions where you help one person. Highest price per hour, but limited by your time.</p>
-                  <p><strong className="text-foreground">Group Coaching ($97–$297/month):</strong> You coach 10–30 people at once via group call. Same expertise, more people, more income per hour.</p>
-                  <p><strong className="text-foreground">Mastermind ($5,000–$25,000/year):</strong> A premium peer group you facilitate. Members pay for access to each other AND you. Highest revenue per member.</p>
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="speaking-types" className="rounded-xl border border-border bg-card px-6">
-                <AccordionTrigger className="font-heading font-semibold text-left">
-                  What's the difference between Keynotes, In-House Speaking, and Training Programs?
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground space-y-3 pb-4">
-                  <p><strong className="text-foreground">Keynote ($2,500–$15,000):</strong> A single inspirational speech at a conference. You fly in, speak for 45–60 minutes, and leave. One-time fee.</p>
-                  <p><strong className="text-foreground">In-House Speaker ($1,500–$5,000):</strong> A company hires you to speak to their team. More intimate, often includes Q&A. Can lead to consulting contracts.</p>
-                  <p><strong className="text-foreground">Training Program ($5,000–$50,000):</strong> A multi-session program for a company. You deliver workshops over days or weeks. Highest total value per client.</p>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ===== SECTION 8: MEET THE FOUNDER ===== */}
+      {/* ===== SECTION 4: MEET THE FOUNDER ===== */}
       <section id="meet-the-founder" className="py-24">
         <div className="container">
           <div className="grid gap-12 lg:grid-cols-2 items-center">
@@ -584,10 +332,10 @@ export default function Index() {
         </div>
       </section>
 
-      {/* ===== SECTION 9: FEATURED AUTHORS ===== */}
+      {/* ===== SECTION 5: FEATURED AUTHORS ===== */}
       <DynamicMeetOurAuthors />
 
-      {/* ===== SECTION 10: FREE TIER — BOOK PAGE SHOWCASE ===== */}
+      {/* ===== SECTION 6: FREE TIER — BOOK PAGE SHOWCASE ===== */}
       <section className="py-24">
         <div className="container">
           <div className="grid gap-12 lg:grid-cols-2 items-center">
@@ -673,6 +421,300 @@ export default function Index() {
               </div>
             </motion.div>
           </div>
+        </div>
+      </section>
+
+      {/* ===== SECTION 7: HOW IT WORKS + Staircase Infographic ===== */}
+      <section id="how-it-works" className="py-24 bg-muted/50 border-y border-border">
+        <div className="container">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} className="mb-16 text-center">
+            <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
+              How It Works
+            </motion.p>
+            <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-5xl">
+              From Author to <span className="italic text-secondary">Authority</span> in 4 Steps
+            </motion.h2>
+            <motion.p variants={fadeUp} custom={2} className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
+              Your book is the foundation. Abby does the rest. Here's how your journey unfolds:
+            </motion.p>
+          </motion.div>
+
+          {/* Staircase Infographic */}
+          <motion.img
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            src="/images/journey-staircase.png"
+            alt="The ABBY Journey Framework — FREE to BUILD to BRIDGE to YIELD"
+            className="w-full max-w-5xl mx-auto rounded-2xl shadow-xl mb-12"
+            loading="lazy"
+          />
+
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                step: "1",
+                title: "Upload Your Book",
+                tag: "FREE",
+                desc: "Upload your manuscript and get a professional author showcase page, completely free. Abby analyzes your book and creates a personalized business plan showing which of the 28 revenue streams are the best fit for your topic and audience.",
+              },
+              {
+                step: "2",
+                title: "BUILD Your Products",
+                tag: "BUILD",
+                desc: "Abby uses AI to create your first digital products: workbooks, online courses, email sequences, social media calendars, and your author website. All generated from your book content. You just review and approve.",
+              },
+              {
+                step: "3",
+                title: "BRIDGE Your Audience",
+                tag: "BRIDGE",
+                desc: "Expand into audience-building channels: audiobooks, podcast tours, webinars, lead magnet funnels, affiliate programs, and media outreach. Abby creates everything including scripts, pitch kits, registration pages, and follow-up sequences.",
+              },
+              {
+                step: "4",
+                title: "YIELD Your Empire",
+                tag: "YIELD",
+                desc: "Scale into premium offerings: 1-on-1 coaching, group coaching, masterminds, keynote speaking, training programs, retreats, certification programs, and more.",
+              },
+            ].map((item, i) => (
+              <motion.div
+                key={item.step}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                custom={i}
+                variants={fadeUp}
+                className="group rounded-2xl bg-card p-7 shadow-md hover:shadow-lg transition-all duration-300 border border-border/60 hover:border-secondary/30 hover:-translate-y-1"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-secondary/15 to-secondary/5 ring-1 ring-secondary/20 font-heading text-xl font-bold text-secondary">
+                    {item.step}
+                  </div>
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                    {item.tag}
+                  </span>
+                </div>
+                <h3 className="mb-2 font-heading text-lg font-bold">{item.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ===== SECTION 8: KNOW YOUR PRODUCTS + Comparison Infographic ===== */}
+      <section className="py-24 border-b border-border">
+        <div className="container">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} className="mb-12 text-center">
+            <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
+              Know Your Products
+            </motion.p>
+            <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-4xl mb-4">
+              Not Sure What to Build First?
+            </motion.h2>
+            <motion.p variants={fadeUp} custom={2} className="text-muted-foreground max-w-2xl mx-auto">
+              Many authors confuse similar-sounding products. Here's a plain-English guide to help you understand the difference and which ones are right for your book.
+            </motion.p>
+          </motion.div>
+
+          {/* Comparison Infographic */}
+          <motion.img
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            src="/images/journey-comparison.png"
+            alt="Know Your Products — Learning, Coaching, and Speaking product comparison"
+            className="w-full max-w-5xl mx-auto rounded-2xl shadow-xl mb-12"
+            loading="lazy"
+          />
+
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0} variants={fadeUp} className="mx-auto max-w-3xl">
+            <Accordion type="single" collapsible className="space-y-3">
+              <AccordionItem value="workbook-vs-course" className="rounded-xl border border-border bg-card px-6">
+                <AccordionTrigger className="font-heading font-semibold text-left">
+                  What's the difference between a Workbook, Home Study, and Online Course?
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground space-y-3 pb-4">
+                  <p><strong className="text-foreground">Workbook ($17–$47):</strong> A downloadable PDF with exercises. Think of it as homework from your book. The reader fills it in themselves. Sells on autopilot.</p>
+                  <p><strong className="text-foreground">Home Study ($47–$197):</strong> A self-paced bundle with your book, video lessons, and a workbook. Like a "course in a box" the reader does alone. No live interaction needed.</p>
+                  <p><strong className="text-foreground">Online Course ($97–$497):</strong> A structured learning experience with modules, quizzes and possibly a community. You may do live Q&A sessions. Higher price, higher value.</p>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="coaching-types" className="rounded-xl border border-border bg-card px-6">
+                <AccordionTrigger className="font-heading font-semibold text-left">
+                  What's the difference between 1-on-1 Coaching, Group Coaching, and a Mastermind?
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground space-y-3 pb-4">
+                  <p><strong className="text-foreground">1-on-1 Coaching ($150–$500/session):</strong> Private sessions where you help one person. Highest price per hour, but limited by your time.</p>
+                  <p><strong className="text-foreground">Group Coaching ($97–$297/month):</strong> You coach 10–30 people at once via group call. Same expertise, more people, more income per hour.</p>
+                  <p><strong className="text-foreground">Mastermind ($5,000–$25,000/year):</strong> A premium peer group you facilitate. Members pay for access to each other AND you. Highest revenue per member.</p>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="speaking-types" className="rounded-xl border border-border bg-card px-6">
+                <AccordionTrigger className="font-heading font-semibold text-left">
+                  What's the difference between Keynotes, In-House Speaking, and Training Programs?
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground space-y-3 pb-4">
+                  <p><strong className="text-foreground">Keynote ($2,500–$15,000):</strong> A single inspirational speech at a conference. You fly in, speak for 45–60 minutes, and leave. One-time fee.</p>
+                  <p><strong className="text-foreground">In-House Speaker ($1,500–$5,000):</strong> A company hires you to speak to their team. More intimate, often includes Q&A. Can lead to consulting contracts.</p>
+                  <p><strong className="text-foreground">Training Program ($5,000–$50,000):</strong> A multi-session program for a company. You deliver workshops over days or weeks. Highest total value per client.</p>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ===== SECTION 9: WHY AUTHORS BUREAU — Comparison Table ===== */}
+      <section className="py-24">
+        <div className="container">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} className="mb-16 text-center">
+            <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
+              Why Authors Bureau
+            </motion.p>
+            <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-5xl mb-4">
+              One Platform <span className="text-gradient-gold">Replaces Everything</span>
+            </motion.h2>
+            <motion.p variants={fadeUp} custom={2} className="text-lg text-muted-foreground max-w-3xl mx-auto">
+              Other platforms make you do the work. Authors Bureau does it for you.
+              Abby reads your book, researches your market, and builds your entire business: courses, coaching packages, email sequences, sales pages, and more. You just review and publish.
+            </motion.p>
+          </motion.div>
+
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0} variants={fadeUp} className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-4 px-4 font-heading font-bold text-sm">What You Need</th>
+                  <th className="text-left py-4 px-4 font-heading font-bold text-sm text-destructive">Without Authors Bureau</th>
+                  <th className="text-left py-4 px-4 font-heading font-bold text-sm text-secondary">With Authors Bureau</th>
+                </tr>
+              </thead>
+              <tbody>
+                {comparisonRows.map((row, i) => (
+                  <tr key={row.need} className={`border-b border-border/50 ${i === comparisonRows.length - 1 ? "font-semibold bg-muted/50" : ""}`}>
+                    <td className="py-3.5 px-4 text-sm font-medium">{row.need}</td>
+                    <td className="py-3.5 px-4 text-sm text-muted-foreground">{row.without}</td>
+                    <td className="py-3.5 px-4 text-sm text-secondary font-medium">{row.withAB}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </motion.div>
+
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0} variants={fadeUp} className="mt-10 text-center">
+            <Button asChild variant="outline" size="lg" className="rounded-full border-secondary text-secondary hover:bg-secondary hover:text-secondary-foreground">
+              <Link to="/how-it-works">See All 28 Revenue Streams <ArrowRight className="ml-2 h-4 w-4" /></Link>
+            </Button>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ===== SECTION 10: CHOOSE YOUR PATH + Three Paths Infographic + Pricing ===== */}
+      <section id="pricing" className="py-24 bg-muted/50 border-y border-border">
+        <div className="container">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} className="mb-16 text-center">
+            <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
+              Choose Your Path
+            </motion.p>
+            <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-5xl mb-4">
+              Which Author Are You?
+            </motion.h2>
+            <motion.p variants={fadeUp} custom={2} className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Whether you want a side income or a full-scale business, there's a path for you.
+              Every path includes Abby, your AI Business Consultant, who builds everything for you.
+            </motion.p>
+          </motion.div>
+
+          {/* Three Paths Infographic */}
+          <motion.img
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            src="/images/journey-three-paths.png"
+            alt="Choose Your Path — Side Hustler, Serious Author, Empire Builder"
+            className="w-full max-w-5xl mx-auto rounded-2xl shadow-xl mb-12"
+            loading="lazy"
+          />
+
+          <div className="grid gap-8 lg:grid-cols-3">
+            {pricingPaths.map((path, i) => (
+              <motion.div
+                key={path.name}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                custom={i}
+                variants={fadeUp}
+                className={`relative rounded-2xl p-8 border transition-all duration-300 hover:-translate-y-1 ${
+                  path.accent
+                    ? "bg-primary text-primary-foreground border-secondary shadow-xl scale-[1.02]"
+                    : "bg-card border-border shadow-md"
+                }`}
+              >
+                {path.badge && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-4 py-1 text-xs font-bold text-secondary-foreground shadow-md">
+                      <Star className="h-3 w-3" /> {path.badge}
+                    </span>
+                  </div>
+                )}
+                <div className="text-center mb-6">
+                  <h3 className="font-heading text-xl font-bold mb-1">{path.name}</h3>
+                  <p className={`text-sm mb-4 ${path.accent ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                    {path.tagline}
+                  </p>
+                  <div className="flex items-baseline justify-center gap-1">
+                    <span className="font-heading text-4xl font-bold">{path.price}</span>
+                    <span className={`text-sm ${path.accent ? "text-primary-foreground/60" : "text-muted-foreground"}`}>/month</span>
+                  </div>
+                </div>
+
+                <div className="space-y-3 mb-6">
+                  {[
+                    `${path.streams} revenue streams (${path.category})`,
+                    `Time: ${path.time}`,
+                    `Projected Year 1: ${path.year1}`,
+                    `Projected ROI: ${path.roi}`,
+                  ].map((line) => (
+                    <div key={line} className="flex items-start gap-2 text-sm">
+                      <CheckCircle2 className={`h-4 w-4 mt-0.5 shrink-0 ${path.accent ? "text-secondary" : "text-secondary"}`} />
+                      <span className={path.accent ? "text-primary-foreground/80" : "text-muted-foreground"}>{line}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <Button
+                  asChild
+                  size="lg"
+                  className={`w-full rounded-full font-semibold ${
+                    path.accent
+                      ? "bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-[var(--shadow-gold)]"
+                      : "bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                  }`}
+                >
+                  <a href={getPlanUrl(path.planKey || "starter")} target="_blank" rel="noopener noreferrer">{path.cta}</a>
+                </Button>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.p
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            custom={0}
+            variants={fadeUp}
+            className="mt-8 text-center text-xs text-muted-foreground max-w-3xl mx-auto"
+          >
+            * Projected revenue based on industry benchmarks from Teachable, Udemy, ICF Coach, National Speakers Association, and mastermind.com reports.
+            Individual results vary based on book topic, audience size, and effort invested. These are not guarantees.
+          </motion.p>
         </div>
       </section>
 
