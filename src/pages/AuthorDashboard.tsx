@@ -460,40 +460,19 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
           onNavigate={handleNavigate}
         />
-        <div className="border-b border-border px-6 lg:px-8 bg-card">
-          <JourneyBreadcrumb
-            steps={[
-              {
-                label: journeyMicrosite === "done" ? "Profile Set Up ✓" : "1. Set Up Profile",
-                state: journeyMicrosite,
-                onClick: () => setActiveSection("profile"),
-              },
-              {
-                label: booksAnalyzed > 0 ? `2. Book Analyzed ✓` : "2. Analyze First Book",
-                state: journeyPlan,
-                onClick: () => setActiveSection("build-business"),
-              },
-              {
-                label: journeyBuild === "done" ? "3. Product Built ✓" : "3. Build First Product",
-                state: journeyBuild,
-                onClick: () => setActiveSection("revenue-streams"),
-              },
-              {
-                label: hasMicrosite ? "4. Website Live ✓" : "4. Build Website",
-                state: hasMicrosite ? "done" : (journeyBuild === "done" ? "current" : "upcoming"),
-                onClick: () => setActiveSection("microsite-manager" as DashboardSection),
-              },
-              {
-                label: stripeConnected ? "5. Stripe Connected ✓" : "5. Connect Stripe",
-                state: stripeConnected ? "done" : (hasMicrosite ? "current" : "upcoming"),
-                onClick: () => setActiveSection("connect-stripe" as DashboardSection),
-              },
-            ]}
-          />
-        </div>
         <main className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-4">
-          {activeSection !== "overview" && activeSection !== "build-business" && (
-            <AbbyConsultantBanner compact onAnalyze={() => setActiveSection("build-business")} />
+          {/* Onboarding banners for redirected pages */}
+          {activeSection === "profile" && (
+            <OnboardingBanner
+              message="Welcome to Authors Bureau! Let's set up your author profile first - this takes about 2 minutes."
+              storageKey="ab_onboarding_profile_banner"
+            />
+          )}
+          {activeSection === "my-books" && (
+            <OnboardingBanner
+              message="Great profile! Now let's add your first book. You can upload a manuscript or import from PublishNow."
+              storageKey="ab_onboarding_books_banner"
+            />
           )}
           {renderSection()}
         </main>
