@@ -3,8 +3,9 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Wand2, Mic, Bot, UserRound, Clock } from "lucide-react";
+import { Wand2, Mic, Bot, UserRound, Clock, TrendingUp } from "lucide-react";
 import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
+import StepInstructions from "../shared/StepInstructions";
 import type { AudiobookStepProps, NarrationType } from "./types";
 
 const NARRATION_STYLES: { value: NarrationType; label: string; desc: string; icon: React.ReactNode }[] = [
@@ -28,14 +29,41 @@ export default function AudiobookSetupStep({ stepData, setStepData, onMarkEdited
   };
 
   const wordCount = data.wordCount || 50000;
-  const estimatedHours = Math.round((wordCount / 9300) * 10) / 10; // ~9300 words/hr for audiobooks
+  const estimatedHours = Math.round((wordCount / 9300) * 10) / 10;
 
   return (
     <div className="space-y-6">
+      {/* Phase label */}
+      <div className="flex items-center gap-2">
+        <Badge variant="outline" className="text-[10px] font-semibold border-amber-400 text-amber-600 bg-amber-50">
+          ACT 1 — ANALYSE
+        </Badge>
+        <span className="text-xs text-muted-foreground">Strategic setup & positioning</span>
+      </div>
+
+      <StepInstructions
+        summary="Configure your audiobook's foundation — title, narration method, distribution channels, and pricing. Abby will guide you based on your genre and audience."
+        items={[
+          { label: "Audiobook Title", description: "Defaults to your book title. You can customize it for the audio edition." },
+          { label: "Narration Style", description: "Choose between AI voice (fastest), your own voice (most authentic), or a professional narrator (highest quality)." },
+          { label: "Distribution", description: "Select where you want to sell. Start with your platform, then expand to Audible and Google Play." },
+          { label: "Pricing", description: "Set your audiobook price. $14.99–$24.99 is the sweet spot for most non-fiction." },
+        ]}
+      />
+
       <AbbyRecommendationCard>
-        <p className="text-sm text-foreground leading-relaxed">
-          Audiobooks are the fastest-growing format — <strong>$4.5B market</strong>. With AI narration, you can have a professional-sounding audiobook ready in days, not months. I recommend starting with <strong>AI Voice</strong> to test demand.
-        </p>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 mb-1">
+            <TrendingUp className="h-4 w-4 text-secondary" />
+            <span className="text-sm font-semibold text-foreground">Abby's Market Analysis</span>
+          </div>
+          <p className="text-sm text-foreground leading-relaxed">
+            Audiobooks are the fastest-growing book format — <strong>$4.5B market growing 25% year-over-year</strong>. With AI narration, you can have a professional-sounding audiobook ready in days, not months.
+          </p>
+          <p className="text-sm text-foreground leading-relaxed">
+            I recommend starting with <strong>AI Voice</strong> to test demand quickly. If sales justify it, you can always re-record with a professional narrator later. For non-fiction, <strong>author-narrated audiobooks convert 40% better</strong> because readers connect with the expert's own voice.
+          </p>
+        </div>
       </AbbyRecommendationCard>
 
       {/* Title */}

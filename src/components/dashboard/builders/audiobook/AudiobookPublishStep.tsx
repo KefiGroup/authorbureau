@@ -2,9 +2,11 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Play, Pause, SkipBack, SkipForward, Download, ExternalLink, Headphones, Clock, BarChart3, BookOpen } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Download, ExternalLink, Headphones, Clock, BarChart3, BookOpen, Rocket, CheckCircle2 } from "lucide-react";
 import type { AudiobookStepProps, AudioChapter } from "./types";
 import AbbyCoachingTip from "@/components/dashboard/social-media/AbbyCoachingTip";
+import StepInstructions from "../shared/StepInstructions";
+import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 
 export default function AudiobookPublishStep({ stepData, bookTitle }: AudiobookStepProps) {
   const chapters: AudioChapter[] = stepData.chapters || [];
@@ -15,9 +17,54 @@ export default function AudiobookPublishStep({ stepData, bookTitle }: AudiobookS
   const totalMinutes = chapters.reduce((sum, ch) => sum + (ch.estimatedMinutes || 5), 0);
   const totalHours = Math.round(totalMinutes / 60 * 10) / 10;
   const readyChapters = chapters.filter(ch => ch.status === "audio-generated" || ch.status === "reviewed").length;
+  const distribution = (setup.distribution || ["platform"]) as string[];
 
   return (
     <div className="space-y-6">
+      {/* Phase label */}
+      <div className="flex items-center gap-2">
+        <Badge variant="outline" className="text-[10px] font-semibold border-green-400 text-green-600 bg-green-50">
+          ACT 3 — BRIDGE
+        </Badge>
+        <span className="text-xs text-muted-foreground">Preview, export & distribute</span>
+      </div>
+
+      <StepInstructions
+        summary="Preview your complete audiobook, verify all chapters are ready, then export and distribute to your chosen platforms."
+        items={[
+          { label: "Preview player", description: "Use the built-in player to listen through your audiobook and catch any issues." },
+          { label: "Export audio files", description: "Download your audio files as a ZIP package meeting 192kbps/44.1kHz standards." },
+          { label: "Publish", description: "Distribute to your selected platforms — your author website, Audible/ACX, or Google Play." },
+        ]}
+      />
+
+      <AbbyRecommendationCard>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 mb-1">
+            <Rocket className="h-4 w-4 text-secondary" />
+            <span className="text-sm font-semibold text-foreground">Abby's Distribution Strategy</span>
+          </div>
+          <p className="text-sm text-foreground leading-relaxed">
+            Your audiobook is <strong>~{totalHours} hours</strong> across <strong>{chapters.length} chapters</strong>. At <strong>${setup.price || "14.99"}</strong>, audiobooks on this platform earn an average of <strong>$300–$1,200/month</strong> in passive revenue.
+          </p>
+          {distribution.includes("acx") && (
+            <p className="text-sm text-foreground leading-relaxed">
+              For <strong>Audible/ACX</strong>: Upload via acx.com. Choose <strong>non-exclusive</strong> distribution to sell on multiple platforms simultaneously. Royalties: 25% non-exclusive, 40% exclusive.
+            </p>
+          )}
+          {distribution.includes("google-play") && (
+            <p className="text-sm text-foreground leading-relaxed">
+              For <strong>Google Play Books</strong>: Submit via the Google Play Books Partner Center. Google takes 48%, you keep 52%.
+            </p>
+          )}
+          {readyChapters < chapters.length && (
+            <p className="text-sm text-amber-700 font-medium">
+              ⚠ {chapters.length - readyChapters} chapter{chapters.length - readyChapters > 1 ? "s" : ""} still need audio. Complete them before publishing.
+            </p>
+          )}
+        </div>
+      </AbbyRecommendationCard>
+
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
         <Card className="p-4 text-center">
@@ -37,21 +84,21 @@ export default function AudiobookPublishStep({ stepData, bookTitle }: AudiobookS
         </Card>
       </div>
 
-      {/* Abby review */}
-      <AbbyCoachingTip
-        title="Abby's Final Review"
-        expandedByDefault
-        customContent={
-          <div className="space-y-2 text-xs text-muted-foreground">
-            <p>Your audiobook is <strong>~{totalHours} hours</strong> across <strong>{chapters.length} chapters</strong>.</p>
-            <p>Audiobooks on this platform earn an average of <strong>$300-$1,200/month</strong> in passive revenue.</p>
-            <p>At <strong>${setup.price || "14.99"}</strong>, you'd need about 20-80 sales/month to hit that target — very achievable with your existing audience.</p>
-            {readyChapters < chapters.length && (
-              <p className="text-amber-700">⚠ {chapters.length - readyChapters} chapters still need audio. Complete them before publishing.</p>
-            )}
+      {/* Distribution checklist */}
+      <Card className="p-4 space-y-3">
+        <h3 className="text-sm font-semibold">Distribution Checklist</h3>
+        {[
+          { label: "All chapters have audio", done: readyChapters === chapters.length },
+          { label: "Audio meets quality standards (192kbps / 44.1kHz)", done: readyChapters > 0 },
+          { label: "Cover art ready (3000x3000px recommended)", done: false },
+          { label: "Metadata & pricing set", done: !!setup.price },
+        ].map((item, i) => (
+          <div key={i} className="flex items-center gap-2 text-xs">
+            <CheckCircle2 className={`h-3.5 w-3.5 shrink-0 ${item.done ? "text-accent" : "text-muted-foreground/30"}`} />
+            <span className={item.done ? "text-foreground" : "text-muted-foreground"}>{item.label}</span>
           </div>
-        }
-      />
+        ))}
+      </Card>
 
       {/* Mini player preview */}
       <Card className="overflow-hidden">

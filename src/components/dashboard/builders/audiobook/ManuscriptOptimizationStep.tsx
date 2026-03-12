@@ -3,10 +3,12 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Wand2, Check, X, ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
+import { Loader2, Wand2, Check, X, ChevronLeft, ChevronRight, AlertTriangle, BookOpen } from "lucide-react";
 import type { AudiobookStepProps, AudioChapter, AudioSuggestion } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import StepInstructions from "../shared/StepInstructions";
+import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 
 export default function ManuscriptOptimizationStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, generationState, setGenerationState }: AudiobookStepProps) {
   const chapters: AudioChapter[] = stepData.chapters || [];
@@ -75,19 +77,53 @@ export default function ManuscriptOptimizationStep({ stepData, setStepData, onMa
 
   if (chapters.length === 0) {
     return (
-      <div className="text-center py-12">
-        <Wand2 className="h-10 w-10 text-muted-foreground/30 mx-auto mb-4" />
-        <h3 className="font-heading text-lg font-semibold mb-2">Optimize Manuscript for Audio</h3>
-        <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
-          AI will analyze your manuscript and create an audio-optimized version — removing visual references, simplifying complex passages, and adding pronunciation guides.
-        </p>
-        <Button onClick={handleGenerate} disabled={generationState !== "idle" && generationState !== "complete"}>
-          {generationState !== "idle" && generationState !== "complete" ? (
-            <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Analyzing…</>
-          ) : (
-            <><Wand2 className="h-4 w-4 mr-2" /> Optimize for Audio</>
-          )}
-        </Button>
+      <div className="space-y-6">
+        {/* Phase label */}
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-[10px] font-semibold border-blue-400 text-blue-600 bg-blue-50">
+            ACT 2 — BUILD
+          </Badge>
+          <span className="text-xs text-muted-foreground">Script preparation & optimization</span>
+        </div>
+
+        <StepInstructions
+          summary="AI analyzes your manuscript and creates an audio-optimized script. Visual references are removed, complex passages are simplified, and pronunciation guides are added."
+          items={[
+            { label: "Optimize for Audio", description: "Click the button below to let AI scan your manuscript and prepare it for narration." },
+            { label: "Review Suggestions", description: "After generation, review each AI suggestion — accept, reject, or manually edit the text." },
+            { label: "Edit Scripts", description: "Fine-tune the audio-optimized text for each chapter before moving to production." },
+          ]}
+        />
+
+        <AbbyRecommendationCard>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 mb-1">
+              <BookOpen className="h-4 w-4 text-secondary" />
+              <span className="text-sm font-semibold text-foreground">Abby's Production Notes</span>
+            </div>
+            <p className="text-sm text-foreground leading-relaxed">
+              Written text and spoken text are different. I'll scan your manuscript to find <strong>visual references</strong> ("as shown in Figure 3"), <strong>complex parentheticals</strong>, and <strong>hard-to-pronounce terms</strong> — then rewrite them for a smooth listening experience.
+            </p>
+            <p className="text-sm text-foreground leading-relaxed">
+              This step typically improves listener retention by <strong>15-25%</strong>. You'll review every change before it goes to production.
+            </p>
+          </div>
+        </AbbyRecommendationCard>
+
+        <div className="text-center py-6">
+          <Wand2 className="h-10 w-10 text-muted-foreground/30 mx-auto mb-4" />
+          <h3 className="font-heading text-lg font-semibold mb-2">Optimize Manuscript for Audio</h3>
+          <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+            AI will analyze your manuscript and create an audio-optimized version — removing visual references, simplifying complex passages, and adding pronunciation guides.
+          </p>
+          <Button onClick={handleGenerate} disabled={generationState !== "idle" && generationState !== "complete"}>
+            {generationState !== "idle" && generationState !== "complete" ? (
+              <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Analyzing…</>
+            ) : (
+              <><Wand2 className="h-4 w-4 mr-2" /> Optimize for Audio</>
+            )}
+          </Button>
+        </div>
       </div>
     );
   }
@@ -96,6 +132,23 @@ export default function ManuscriptOptimizationStep({ stepData, setStepData, onMa
 
   return (
     <div className="space-y-4">
+      {/* Phase label */}
+      <div className="flex items-center gap-2">
+        <Badge variant="outline" className="text-[10px] font-semibold border-blue-400 text-blue-600 bg-blue-50">
+          ACT 2 — BUILD
+        </Badge>
+        <span className="text-xs text-muted-foreground">Review & refine your audio scripts</span>
+      </div>
+
+      <StepInstructions
+        summary="Review the AI-optimized scripts for each chapter. Accept or reject individual suggestions, and manually edit text as needed."
+        items={[
+          { label: "Navigate chapters", description: "Use the arrows to move between chapters and review each one." },
+          { label: "Accept / Reject", description: "For each AI suggestion, click ✓ to accept or ✗ to reject the change." },
+          { label: "Edit directly", description: "You can edit the Audio-Optimized text directly in the right panel." },
+        ]}
+      />
+
       {/* Chapter nav */}
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" className="h-7 w-7" disabled={activeIdx === 0} onClick={() => setActiveIdx(activeIdx - 1)}>

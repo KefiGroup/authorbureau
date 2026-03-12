@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Play, Loader2, Upload, Clock, CheckCircle2, Circle, Wand2 } from "lucide-react";
+import { Play, Loader2, Upload, Clock, CheckCircle2, Circle, Wand2, Mic } from "lucide-react";
 import type { AudiobookStepProps, AudioChapter, NarrationType } from "./types";
 import { VOICE_OPTIONS } from "./types";
 import { toast } from "sonner";
+import StepInstructions from "../shared/StepInstructions";
+import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 
 export default function ChapterProductionStep({ stepData, setStepData, onMarkEdited, bookTitle }: AudiobookStepProps) {
   const chapters: AudioChapter[] = stepData.chapters || [];
@@ -76,14 +78,65 @@ export default function ChapterProductionStep({ stepData, setStepData, onMarkEdi
     }
   };
 
+  const readyCount = chapters.filter(c => c.status === "audio-generated" || c.status === "reviewed").length;
+
   if (chapters.length === 0) {
-    return <p className="text-sm text-muted-foreground text-center py-8">No chapters found. Go back and optimize your manuscript first.</p>;
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-[10px] font-semibold border-blue-400 text-blue-600 bg-blue-50">
+            ACT 2 — BUILD
+          </Badge>
+          <span className="text-xs text-muted-foreground">Audio production</span>
+        </div>
+        <p className="text-sm text-muted-foreground text-center py-8">No chapters found. Go back and optimize your manuscript first.</p>
+      </div>
+    );
   }
 
   const active = activeIdx !== null ? chapters[activeIdx] : null;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      {/* Phase label */}
+      <div className="flex items-center gap-2">
+        <Badge variant="outline" className="text-[10px] font-semibold border-blue-400 text-blue-600 bg-blue-50">
+          ACT 2 — BUILD
+        </Badge>
+        <span className="text-xs text-muted-foreground">Generate audio for each chapter</span>
+      </div>
+
+      <StepInstructions
+        summary="Produce audio for each chapter using your chosen narration method. Generate AI audio, or upload your own recordings."
+        items={[
+          { label: "Select a chapter", description: "Click any chapter in the list to expand its production panel." },
+          { label: "Generate / Upload audio", description: narration === "ai-voice" ? "Click 'Generate Audio' to create AI narration using your selected voice." : "Click 'Upload Audio' to attach your recorded audio file for each chapter." },
+          { label: "Review & approve", description: "Listen to each chapter's audio and click 'Mark Reviewed' when you're satisfied." },
+          { label: "Track progress", description: "The status badges show which chapters are done. Complete all chapters before publishing." },
+        ]}
+      />
+
+      <AbbyRecommendationCard>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 mb-1">
+            <Mic className="h-4 w-4 text-secondary" />
+            <span className="text-sm font-semibold text-foreground">Abby's Production Strategy</span>
+          </div>
+          <p className="text-sm text-foreground leading-relaxed">
+            {narration === "ai-voice" ? (
+              <>Generate chapters <strong>sequentially</strong> for consistent audio quality. The AI voice maintains better tone when chapters flow in order. You've selected <strong>{selectedVoice?.name || "a voice"}</strong> — review each chapter's audio before moving on.</>
+            ) : narration === "author" ? (
+              <>Record in <strong>20-30 minute sessions</strong> to keep your voice consistent. Drink room-temperature water between takes. Upload each chapter as you complete it — this lets you track progress visually.</>
+            ) : (
+              <>Work with your narrator to produce chapters in order. Upload each finished chapter here to track progress. Ensure audio meets <strong>192kbps / 44.1kHz</strong> standards for distribution.</>
+            )}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Progress: <strong>{readyCount}</strong> of <strong>{chapters.length}</strong> chapters complete
+          </p>
+        </div>
+      </AbbyRecommendationCard>
+
       {/* Chapter list */}
       <div className="space-y-1.5">
         {chapters.map((ch, idx) => (

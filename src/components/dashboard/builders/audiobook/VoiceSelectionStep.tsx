@@ -92,6 +92,10 @@ export default function VoiceSelectionStep({ stepData, setStepData, onMarkEdited
   if (narration === "author") {
     return (
       <div className="space-y-5">
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-[10px] font-semibold border-amber-400 text-amber-600 bg-amber-50">ACT 1 — ANALYSE</Badge>
+          <span className="text-xs text-muted-foreground">Voice & narration setup</span>
+        </div>
         <StepInstructions summary={VOICE_INSTRUCTIONS.author.summary} items={VOICE_INSTRUCTIONS.author.items} />
         <AbbyCoachingTip
           title="Recording Tips for Author Narration"
@@ -122,6 +126,10 @@ export default function VoiceSelectionStep({ stepData, setStepData, onMarkEdited
   if (narration === "professional") {
     return (
       <div className="space-y-5">
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-[10px] font-semibold border-amber-400 text-amber-600 bg-amber-50">ACT 1 — ANALYSE</Badge>
+          <span className="text-xs text-muted-foreground">Voice & narration setup</span>
+        </div>
         <StepInstructions summary={VOICE_INSTRUCTIONS.professional.summary} items={VOICE_INSTRUCTIONS.professional.items} />
         <AbbyCoachingTip
           title="Finding a Professional Narrator"
@@ -149,6 +157,10 @@ export default function VoiceSelectionStep({ stepData, setStepData, onMarkEdited
   // AI Voice selection
   return (
     <div className="space-y-5">
+      <div className="flex items-center gap-2">
+        <Badge variant="outline" className="text-[10px] font-semibold border-amber-400 text-amber-600 bg-amber-50">ACT 1 — ANALYSE</Badge>
+        <span className="text-xs text-muted-foreground">Voice & narration setup</span>
+      </div>
       <StepInstructions summary={VOICE_INSTRUCTIONS["ai-voice"].summary} items={VOICE_INSTRUCTIONS["ai-voice"].items} />
       {/* Filters */}
       <div className="flex gap-3 flex-wrap">
