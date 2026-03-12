@@ -76,10 +76,24 @@ export function useStripeConnect() {
       const { data, error } = await supabase.functions.invoke("stripe-connect", {
         body: { action: "onboard" },
       });
-      if (error) throw error;
-      if (data.url) window.open(data.url, "_blank");
+
+      if (error) {
+        const backendMessage = await getFunctionErrorMessage(error);
+        throw new Error(getStripeConnectErrorMessage(backendMessage));
+      }
+
+      if (!data?.url) {
+        throw new Error("Unable to start Stripe onboarding.");
+      }
+
+      const popup = window.open(data.url, "_blank", "noopener,noreferrer");
+      if (!popup) {
+        window.location.href = data.url;
+      }
     } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to start Stripe onboarding.";
       console.error("Stripe Connect onboarding failed:", err);
+      toast.error(message);
     }
   };
 
