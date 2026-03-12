@@ -1,0 +1,1 @@
+ALTER TABLE public.author_profiles ADD COLUMN IF NOT EXISTS has_seen_journey_onboarding boolean NOT NULL DEFAULT false;
