@@ -210,7 +210,7 @@ export default function Index() {
             </motion.h2>
             <motion.p variants={fadeUp} custom={2} className="mt-4 text-lg text-muted-foreground max-w-3xl mx-auto">
               Every non-fiction book contains enough expertise to power 28 different income streams.
-              Most authors never discover them. Abby, your AI Business Consultant, finds all 28 and builds them for you — automatically.
+              Most authors never discover them. Abby, your AI Business Consultant, finds all 28 and builds them for you automatically.
             </motion.p>
           </motion.div>
 
