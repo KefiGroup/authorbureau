@@ -55,8 +55,15 @@ export default function ContentGeneratorStep({ stepData, setStepData, onMarkEdit
 
     try {
       const rawText = await generateWithAI(
-        `Generate workbook content for the section "${section.title}" (mapped to "${section.chapterRef}") of a workbook for the book "${bookTitle}". Content types to include: ${section.contentTypes.join(", ")}. Return JSON with: intro (string), elements (array of {id, type, title, content}), takeaway (string). Each element should be 100-200 words. Return ONLY JSON.`,
-        { bookId, isPremium: true }
+        `Generate workbook content for the section "${section.title}" (mapped to "${section.chapterRef}") of a workbook for the book "${bookTitle}". Content types to include: ${section.contentTypes.join(", ")}. Return STRICT VALID JSON only (no markdown, no commentary) with shape: {"intro": string, "elements": [{"id": string, "type": string, "title": string, "content": string}], "takeaway": string}. Keep each element concise (60-100 words).`,
+        {
+          bookId,
+          isPremium: true,
+          builderMode: true,
+          builderId: "workbook",
+          builderLabel: "Workbook Builder",
+          builderStep: "Content Generator",
+        }
       );
 
       const cleaned = rawText

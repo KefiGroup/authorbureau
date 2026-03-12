@@ -30,7 +30,14 @@ export default function ChapterMappingStep({ stepData, setStepData, onMarkEdited
       const prompt = `You are an expert workbook designer. Given a book titled "${bookTitle}" (book_id: ${bookId}), generate a workbook chapter mapping. Return a JSON array of sections, each with: id, chapterRef (which book chapter it maps to), title, position, contentTypes (array from: reflection, exercise, checklist, action-plan, template, self-assessment, goal-setting). Generate 12-15 sections mapping to the book chapters. Return ONLY the JSON array, no other text.`;
 
       setGenerationState("generating");
-      const rawText = await generateWithAI(prompt, { bookId, isPremium: true });
+      const rawText = await generateWithAI(prompt, {
+        bookId,
+        isPremium: true,
+        builderMode: true,
+        builderId: "workbook",
+        builderLabel: "Workbook Builder",
+        builderStep: "Chapter Mapping",
+      });
 
       let parsed: WorkbookSection[] = [];
       try {
