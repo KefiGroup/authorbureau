@@ -81,3 +81,5 @@ project_id = "tubpbslfrxyfhldkcyyq"
     verify_jwt = false
   [functions.abby-website-builder]
     verify_jwt = false
+  [functions.save-author-profile]
+    verify_jwt = false

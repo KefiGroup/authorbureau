@@ -176,18 +176,32 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
     fetchProfile();
   }, [user]);
 
+  const getAuthToken = async (): Promise<string | null> => {
+    const { data: sharedSession } = await sharedSupabase.auth.getSession();
+    if (sharedSession?.session?.access_token) return sharedSession.session.access_token;
+    const { data: cloudSession } = await supabase.auth.getSession();
+    return cloudSession?.session?.access_token || null;
+  };
+
   const fetchProfile = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("author_profiles")
-        .select("*")
-        .eq("user_id", user!.id)
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (error) console.error("Error fetching profile:", error.message);
-      else if (data) {
+      const token = await getAuthToken();
+      if (!token) throw new Error("Not authenticated");
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/save-author-profile`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ action: "fetch" }),
+        }
+      );
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Failed to fetch profile");
+
+      const data = result.profile;
+      if (data) {
         setProfileExists(true);
         setProfile({
           pen_name: data.pen_name || "",
@@ -202,12 +216,12 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
           twitter_url: data.twitter_url || "",
           instagram_url: data.instagram_url || "",
           youtube_url: data.youtube_url || "",
-          amazon_author_profile_url: (data as any).amazon_author_profile_url || "",
+          amazon_author_profile_url: data.amazon_author_profile_url || "",
           genres: (data.genres as string[]) || [],
           directory_status: data.directory_status || "unlisted",
           author_slug: data.author_slug || "",
         });
-        setFrameworks(Array.isArray((data as any).frameworks) ? (data as any).frameworks : []);
+        setFrameworks(Array.isArray(data.frameworks) ? data.frameworks : []);
       }
     } catch (err) {
       console.error("Profile fetch failed:", err);
@@ -216,27 +230,15 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
     }
   };
 
-  // ── Save profile natively ──
+  // ── Save profile via edge function ──
   const handleSave = async () => {
     if (!user) return;
     setSaving(true);
     try {
-      // Generate slug from pen_name if not set, or use custom slug
+      const token = await getAuthToken();
+      if (!token) throw new Error("Not authenticated");
+
       let slug = (profile.author_slug || profile.pen_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")).replace(/(^-|-$)/g, "");
-
-      // Check for uniqueness
-      const { data: existing } = await supabase
-        .from("author_profiles")
-        .select("user_id")
-        .eq("author_slug", slug)
-        .neq("user_id", user.id)
-        .maybeSingle();
-
-      if (existing) {
-        toast({ title: "Slug already taken", description: `The URL "authorsbureau.com/authors/${slug}" is already in use. Please choose a different one.`, variant: "destructive" });
-        setSaving(false);
-        return;
-      }
 
       const payload = {
         pen_name: profile.pen_name.trim(),
@@ -257,20 +259,24 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
         frameworks: frameworks as any,
       };
 
-      if (profileExists) {
-        const { error } = await supabase
-          .from("author_profiles")
-          .update(payload)
-          .eq("user_id", user.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("author_profiles")
-          .insert({ ...payload, user_id: user.id });
-        if (error) throw error;
-        setProfileExists(true);
-      }
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/save-author-profile`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ action: "save", payload }),
+        }
+      );
+      const result = await res.json();
 
+      if (res.status === 409) {
+        toast({ title: "Slug already taken", description: `The URL "authorsbureau.com/authors/${slug}" is already in use. Please choose a different one.`, variant: "destructive" });
+        setSaving(false);
+        return;
+      }
+      if (!res.ok) throw new Error(result.error || "Save failed");
+
+      setProfileExists(true);
       setProfile(prev => ({ ...prev, author_slug: slug }));
       setEditMode(false);
       toast({ title: "Profile saved! ✅" });
