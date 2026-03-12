@@ -240,8 +240,8 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
             "Training Programs": "revenue-streams", "Affiliates": "marketing-channels",
             "Revenue Sharing / JV": "marketing-channels",
             "Retreats & Bootcamps": "authority-builders", "Certification": "authority-builders",
-            "Masterminds": "authority-builders", "Special Editions": "authority-builders",
-            "Book Sales at Events": "authority-builders", "Conventions / Conferences": "authority-builders",
+            "Masterminds": "authority-builders", "Special Editions": "special-editions",
+            "Book Sales at Events": "book-sales", "Conventions / Conferences": "authority-builders",
             "Fund Raising": "authority-builders", "Exhibitors / JV": "authority-builders",
           };
           const section = streamMap[label] || "revenue-streams";
