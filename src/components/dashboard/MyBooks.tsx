@@ -232,7 +232,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
   const handleBannerAction = (priority: number) => {
     switch (priority) {
       case 1: onNavigate?.("build-business"); break;
-      case 2: navigate("/dashboard/connect-stripe"); break;
+      case 2: onNavigate?.("connect-stripe"); break;
       case 3: onNavigate?.("build-business"); break;
       case 4: onNavigate?.("review-products"); break;
       case 5: {
