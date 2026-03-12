@@ -149,6 +149,21 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
     setJourneySell("upcoming");
   }, [stats, isPremium, isAdmin]);
 
+  // Check if journey onboarding should show (first time user has an analyzed book)
+  useEffect(() => {
+    if (!user || !stats.analyzedCount) return;
+    (async () => {
+      const { data } = await supabase
+        .from("author_profiles")
+        .select("has_seen_journey_onboarding")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (data && !(data as any).has_seen_journey_onboarding) {
+        setShowJourneyOnboarding(true);
+      }
+    })();
+  }, [user, stats.analyzedCount]);
+
   // Fetch analyzed book list separately (lightweight, needed for navigation)
   useEffect(() => {
     if (!user) return;
