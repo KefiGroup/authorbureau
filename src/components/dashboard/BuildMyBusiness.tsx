@@ -645,7 +645,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
               </h2>
               <p className="text-sm text-secondary font-semibold mb-2">Your AI Business Consultant</p>
               <p className="text-muted-foreground text-sm leading-relaxed max-w-md mx-auto">
-                I've helped 500+ authors turn their books into thriving businesses. Let me show you what's possible with yours.
+                Empowering thousands of authors to turn their books into thriving businesses. Let me show you what's possible with yours.
               </p>
             </div>
 
