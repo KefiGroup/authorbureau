@@ -133,6 +133,8 @@ CRITICAL RULES:
 Return ONLY a valid JSON object with this structure:
 {
   "project_name": "Author Website - [Real Author Name]",
+  "subdomain": "[author_context.website.subdomain or null]",
+  "custom_domain": "[author_context.website.custom_domain or null]",
   "design_system": {
     "primary_color": "#...",
     "secondary_color": "#...",
@@ -156,6 +158,8 @@ Return ONLY a valid JSON object with this structure:
     "og_image": "..."
   }
 }
+
+IMPORTANT: The "subdomain" and "custom_domain" fields MUST be pulled directly from the author_context.website object. Use the exact values provided — do not generate or guess them.
 
 For each page, include:
 - "title": page title
