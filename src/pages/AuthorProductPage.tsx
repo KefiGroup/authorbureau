@@ -295,7 +295,7 @@ export default function AuthorProductPage() {
                   className="font-semibold text-base px-8 py-3.5 rounded-lg transition-all hover:scale-105 hover:brightness-110"
                   style={{ background: "var(--theme-accent)", color: "var(--theme-accent-text)" }}
                 >
-                  {product.price != null && product.price > 0 ? "Buy Now" : "Get Started"}
+                  {getProductCTA(pType, displayName)}
                 </button>
                 <button
                   onClick={() => document.getElementById("product-details")?.scrollIntoView({ behavior: "smooth" })}
