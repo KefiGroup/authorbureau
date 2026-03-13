@@ -350,25 +350,7 @@ export default function HomeStudyReviewView({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
-              // Parse existing sales markdown into structured fields
-              const md = effectiveSalesPage || fullCourseMarkdown || "";
-              const lines = md.split("\n").filter(l => l.trim());
-              const h1 = lines.find(l => /^##?\s/.test(l));
-              setSalesHeadline(h1 ? h1.replace(/^#+\s*/, "") : title || "");
-              const h2 = lines.find(l => /^###\s/.test(l));
-              setSalesSubheadline(h2 ? h2.replace(/^#+\s*/, "") : "");
-              const bullets = lines.filter(l => /^[-*]\s/.test(l)).map(l => l.replace(/^[-*]\s*/, ""));
-              setSalesBullets(bullets.length > 0 ? bullets : [""]);
-              const bodyLines = lines.filter(l => !l.startsWith("#") && !l.startsWith("-") && !l.startsWith("*") && !l.startsWith(">"));
-              setSalesBody(bodyLines.join("\n").trim());
-              // Look for quoted testimonials
-              const quoteLines = lines.filter(l => l.startsWith(">"));
-              const testimonials = quoteLines.map(q => ({ name: "", quote: q.replace(/^>\s*/, "").replace(/^"/, "").replace(/"$/, "") }));
-              setSalesTestimonials(testimonials.length > 0 ? testimonials : []);
-              setSalesCta("Enroll Now");
-              setDrawerOpen("sales");
-            }}
+            onClick={() => openSalesEditor()}
           >
             <FileText className="h-3.5 w-3.5 mr-1" /> Edit Sales Page
           </Button>
