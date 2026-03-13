@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
+import MarkdownRenderer from "../MarkdownRenderer";
 import {
   ArrowLeft, Monitor, Smartphone, ChevronLeft, ChevronRight,
   BookOpen, Clock, CalendarDays, Award, Send, Save, Loader2,
@@ -27,6 +28,9 @@ interface HomeStudyReviewViewProps {
   onPublished: () => void;
 }
 
+const DRAFT_ASSET_TYPE = "builder_draft_home-study-course";
+const CONTENT_ASSET_TYPE = "builder_content_home-study-course";
+
 export default function HomeStudyReviewView({
   productId, bookId, bookTitle, productTitle, productTable, onBack, onPublished,
 }: HomeStudyReviewViewProps) {
@@ -42,6 +46,7 @@ export default function HomeStudyReviewView({
   const [setup, setSetup] = useState<Record<string, any>>({});
   const [days, setDays] = useState<StudyDay[]>([]);
   const [rawDraftContent, setRawDraftContent] = useState<string>("");
+  const [fullCourseMarkdown, setFullCourseMarkdown] = useState<string>("");
 
   // Editable fields
   const [title, setTitle] = useState("");
@@ -51,47 +56,110 @@ export default function HomeStudyReviewView({
   const [level, setLevel] = useState("Beginner");
 
   useEffect(() => {
-    loadContent();
-  }, []);
+    if (!user) return;
+    void loadContent();
+  }, [user, bookId, productId, productTable, productTitle]);
 
   const loadContent = async () => {
     if (!user) return;
     setLoading(true);
+
     try {
-      // Load from generated_assets (builder draft)
-      const { data: asset } = await supabase
-        .from("generated_assets")
-        .select("content")
-        .eq("author_id", user.id)
-        .eq("book_id", bookId)
-        .eq("asset_type", "builder_draft_home-study-course")
-        .maybeSingle();
+      const coursePromise =
+        productTable === "home_study_courses"
+          ? supabase
+              .from("home_study_courses")
+              .select("title, description, price, duration_days, study_schedule_json, content_markdown")
+              .eq("id", productId)
+              .eq("author_id", user.id)
+              .maybeSingle()
+          : Promise.resolve({ data: null, error: null });
 
-      if (asset?.content) {
-        setRawDraftContent(asset.content);
-        const parsed = JSON.parse(asset.content);
-        const sd = parsed.stepData || {};
-        const s = sd.setup || {};
-        const scheduleDays = sd.schedule?.days || [];
+      const [assetsResult, courseResult] = await Promise.all([
+        supabase
+          .from("generated_assets")
+          .select("asset_type, content")
+          .eq("author_id", user.id)
+          .eq("book_id", bookId)
+          .in("asset_type", [DRAFT_ASSET_TYPE, CONTENT_ASSET_TYPE]),
+        coursePromise,
+      ]);
 
-        setSetup(s);
-        setDays(scheduleDays);
-        setTitle(s.title || productTitle);
-        setDescription(s.description || "");
-        setPrice(s.price?.toString() || "");
-        setCommitment(s.commitment?.toString() || "30");
-        setLevel(s.level || "Beginner");
+      if (assetsResult.error) throw assetsResult.error;
+
+      const assets = assetsResult.data || [];
+      const draftAsset = assets.find((asset) => asset.asset_type === DRAFT_ASSET_TYPE);
+      const contentAsset = assets.find((asset) => asset.asset_type === CONTENT_ASSET_TYPE);
+      const courseRecord = (courseResult as any)?.data ?? null;
+
+      let nextSetup: Record<string, any> = {};
+      let nextDays: StudyDay[] = [];
+      let nextRawDraftContent = "";
+
+      if (draftAsset?.content) {
+        nextRawDraftContent = draftAsset.content;
+        try {
+          const parsed = JSON.parse(draftAsset.content);
+          const sd = parsed?.stepData || {};
+          nextSetup = sd.setup || {};
+          nextDays = Array.isArray(sd.schedule?.days) ? sd.schedule.days : [];
+        } catch (parseError) {
+          console.error("Failed to parse home study draft asset:", parseError);
+        }
       }
+
+      if (!nextDays.length) {
+        const tableSchedule = courseRecord?.study_schedule_json;
+        if (Array.isArray(tableSchedule)) {
+          nextDays = tableSchedule as StudyDay[];
+        } else if (Array.isArray(tableSchedule?.days)) {
+          nextDays = tableSchedule.days as StudyDay[];
+        }
+      }
+
+      const mergedSetup = {
+        ...nextSetup,
+        title: nextSetup.title || courseRecord?.title || productTitle,
+        description: nextSetup.description || courseRecord?.description || "",
+        price: nextSetup.price ?? courseRecord?.price ?? "",
+        duration: nextSetup.duration || courseRecord?.duration_days || 30,
+      };
+
+      const markdownFallback =
+        contentAsset?.content ||
+        courseRecord?.content_markdown ||
+        "";
+
+      setRawDraftContent(nextRawDraftContent);
+      setSetup(mergedSetup);
+      setDays(nextDays);
+      setFullCourseMarkdown(markdownFallback);
+      setTitle(mergedSetup.title || productTitle);
+      setDescription(mergedSetup.description || "");
+      setPrice(mergedSetup.price !== "" && mergedSetup.price !== null && mergedSetup.price !== undefined ? String(mergedSetup.price) : "");
+      setCommitment(mergedSetup.commitment ? String(mergedSetup.commitment) : "30");
+      setLevel(mergedSetup.level || "Beginner");
     } catch (err) {
       console.error("Failed to load home study content:", err);
+      toast({ title: "Could not load Home Study content", variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  const duration = parseInt(commitment) > 0 ? days.length || 30 : 30;
-  const totalPages = days.length + 2; // cover + days + certificate
-  const currentDay = previewPage > 0 && previewPage <= days.length ? days[previewPage - 1] : null;
-  const isCertPage = previewPage === totalPages - 1;
+  const hasStructuredDays = days.length > 0;
+  const fullCourseText = fullCourseMarkdown.trim();
+  const hasFullManuscript = /day\s*1/i.test(fullCourseText) || fullCourseText.length > 2000;
+  const canPublish = hasStructuredDays || hasFullManuscript;
+
+  const duration = hasStructuredDays ? days.length : Number(setup.duration) || 30;
+  const totalPages = hasStructuredDays ? days.length + 2 : 1;
+  const currentDay = hasStructuredDays && previewPage > 0 && previewPage <= days.length ? days[previewPage - 1] : null;
+  const isCertPage = hasStructuredDays && previewPage === totalPages - 1;
+
+  useEffect(() => {
+    setPreviewPage((prev) => Math.min(prev, Math.max(totalPages - 1, 0)));
+  }, [totalPages]);
 
   const handleSave = async () => {
     if (!user) return;
