@@ -260,6 +260,28 @@ export default function AuthorProductPage() {
     if (!productData) { setNotFound(true); setLoading(false); return; }
     setProduct(productData);
 
+    // Load sales page content from generated_assets
+    const assetTypeMap: Record<string, string> = {
+      homestudy: "builder_sales_page_home-study-course",
+      onlinecourse: "builder_sales_page_online-course",
+      workbook: "builder_sales_page_workbook",
+    };
+    const salesAssetType = assetTypeMap[pType];
+    if (salesAssetType) {
+      const { data: salesAsset } = await supabase
+        .from("generated_assets")
+        .select("content")
+        .eq("book_id", bookId)
+        .eq("author_id", profile.user_id)
+        .eq("asset_type", salesAssetType)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (salesAsset?.content) {
+        setSalesPageContent(salesAsset.content);
+      }
+    }
+
     // Load all sibling products for BookProductNav + related products
     const tables = [
       { table: "home_study_courses", status: "published", fields: "id, title, price, currency, description, cover_image_url", byBook: true },
