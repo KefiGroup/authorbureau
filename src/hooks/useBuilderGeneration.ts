@@ -357,7 +357,13 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
         }
       }
 
-      setState(prev => ({ ...prev, act: "act3_complete", pushResult }));
+      setState(prev => ({
+        ...prev,
+        act: "act3_complete",
+        generatedContent: contentToSave,
+        generatedSalesPage: salesPageText,
+        pushResult,
+      }));
       toast({ 
         title: "Content generated! 🎉", 
         description: pushResult?.pushed 
