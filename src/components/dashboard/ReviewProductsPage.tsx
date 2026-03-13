@@ -97,6 +97,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
   const [products, setProducts] = useState<DraftProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmProduct, setConfirmProduct] = useState<DraftProduct | null>(null);
   const [previewProduct, setPreviewProduct] = useState<DraftProduct | null>(null);
   const [previewContent, setPreviewContent] = useState<string | null>(null);
