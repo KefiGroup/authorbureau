@@ -124,6 +124,48 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
     }
   }
 
+  async function saveSlug() {
+    const clean = slugDraft.toLowerCase().replace(/[^a-z0-9-]/g, "").replace(/--+/g, "-").replace(/(^-|-$)/g, "");
+    if (!clean || clean.length < 2) {
+      setSlugError("Slug must be at least 2 characters");
+      return;
+    }
+    if (clean === profileData?.author_slug) {
+      setEditingSlug(false);
+      return;
+    }
+    setSavingSlug(true);
+    setSlugError("");
+
+    // Check uniqueness
+    const { data: existing } = await supabase
+      .from("author_profiles")
+      .select("user_id")
+      .eq("author_slug", clean)
+      .neq("user_id", user!.id)
+      .maybeSingle();
+
+    if (existing) {
+      setSlugError(`"${clean}" is already taken. Try another.`);
+      setSavingSlug(false);
+      return;
+    }
+
+    const { error } = await supabase
+      .from("author_profiles")
+      .update({ author_slug: clean })
+      .eq("user_id", user!.id);
+
+    setSavingSlug(false);
+    if (error) {
+      setSlugError("Failed to save. Try again.");
+    } else {
+      setProfileData((prev: any) => ({ ...prev, author_slug: clean }));
+      setEditingSlug(false);
+      toast({ title: "URL updated!" });
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
