@@ -707,7 +707,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                 )}
 
                 {/* Act 3 Complete: Show generated content */}
-                {builderGen.act === "act3_complete" && builderGen.generatedContent && (
+                {builderGen.act === "act3_complete" && builderGen.generatedContent && currentStep === 0 && (
                   <Card className="p-6 mb-6 border-accent/30 bg-accent/5">
                     <div className="flex items-center gap-2 mb-4">
                       <Check className="h-5 w-5 text-accent" />
