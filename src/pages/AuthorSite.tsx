@@ -63,6 +63,7 @@ interface ProductLink {
   type: "home_study" | "course" | "coaching" | "audiobook" | "podcast";
   price: number | null;
   currency: string | null;
+  description?: string | null;
   bookSlug?: string;
 }
 
@@ -121,6 +122,7 @@ export default function AuthorSite() {
   const { authorSlug } = useParams<{ authorSlug: string }>();
   const [author, setAuthor] = useState<AuthorData | null>(null);
   const [booksWithProducts, setBooksWithProducts] = useState<BookWithProducts[]>([]);
+  const [coachingServices, setCoachingServices] = useState<any[]>([]);
   const [relatedAuthors, setRelatedAuthors] = useState<RelatedAuthor[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -135,12 +137,14 @@ export default function AuthorSite() {
   const displayName = author?.pen_name || "Author";
   const c = theme.colors;
 
-  // Flatten all products across books
+  // Flatten all non-coaching products across books
   const allProducts = useMemo(() => {
     return booksWithProducts.flatMap((b) =>
-      b.products.map((p) => ({ ...p, bookSlug: b.slug, bookTitle: b.title }))
+      b.products.filter((p) => p.type !== "coaching").map((p) => ({ ...p, bookSlug: b.slug, bookTitle: b.title }))
     );
   }, [booksWithProducts]);
+
+  const hasWorkWithSection = coachingServices.length > 0 || allProducts.length > 0;
 
   // SEO
   const seoDescription = author?.tagline
@@ -210,11 +214,11 @@ export default function AuthorSite() {
 
     const [booksRes, homeStudyRes, coursesRes, coachingRes, audiobooksRes, podcastsRes] = await Promise.all([
       supabase.from("books").select("*").eq("author_id", profile.user_id).not("published_at", "is", null).order("created_at", { ascending: false }),
-      supabase.from("home_study_courses").select("id, title, price, currency, book_id").eq("author_id", profile.user_id).eq("status", "published"),
-      supabase.from("courses").select("id, title, price, currency, book_id").eq("author_id", profile.user_id).eq("status", "published"),
-      supabase.from("coaching_packages").select("id, title, price, currency").eq("author_id", profile.user_id).eq("status", "active"),
-      supabase.from("audiobooks").select("id, title, price, currency, book_id").eq("author_id", profile.user_id).eq("status", "published"),
-      supabase.from("podcasts").select("id, title, book_id").eq("author_id", profile.user_id).eq("status", "published"),
+      supabase.from("home_study_courses").select("id, title, price, currency, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
+      supabase.from("courses").select("id, title, price, currency, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
+      supabase.from("coaching_packages").select("id, title, price, currency, description, duration_minutes, sessions_count").eq("author_id", profile.user_id).eq("status", "active"),
+      supabase.from("audiobooks").select("id, title, price, currency, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
+      supabase.from("podcasts").select("id, title, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
     ]);
 
     const books = (booksRes.data || []) as any[];
@@ -226,17 +230,18 @@ export default function AuthorSite() {
 
     const enriched: BookWithProducts[] = books.map((book) => {
       const products: ProductLink[] = [];
-      homeStudy.filter((p) => p.book_id === book.id).forEach((p) => products.push({ id: p.id, title: p.title, type: "home_study", price: p.price, currency: p.currency }));
-      courses.filter((p) => p.book_id === book.id).forEach((p) => products.push({ id: p.id, title: p.title, type: "course", price: p.price, currency: p.currency }));
-      audiobooks.filter((p) => p.book_id === book.id).forEach((p) => products.push({ id: p.id, title: p.title, type: "audiobook", price: p.price, currency: p.currency }));
-      podcasts.filter((p) => p.book_id === book.id).forEach((p) => products.push({ id: p.id, title: p.title, type: "podcast", price: null, currency: null }));
+      homeStudy.filter((p) => p.book_id === book.id).forEach((p) => products.push({ id: p.id, title: p.title, type: "home_study", price: p.price, currency: p.currency, description: p.description }));
+      courses.filter((p) => p.book_id === book.id).forEach((p) => products.push({ id: p.id, title: p.title, type: "course", price: p.price, currency: p.currency, description: p.description }));
+      audiobooks.filter((p) => p.book_id === book.id).forEach((p) => products.push({ id: p.id, title: p.title, type: "audiobook", price: p.price, currency: p.currency, description: p.description }));
+      podcasts.filter((p) => p.book_id === book.id).forEach((p) => products.push({ id: p.id, title: p.title, type: "podcast", price: null, currency: null, description: p.description }));
       return { ...book, products };
     });
 
     if (coaching.length > 0 && enriched.length > 0) {
-      coaching.forEach((p) => enriched[0].products.push({ id: p.id, title: p.title, type: "coaching", price: p.price, currency: p.currency }));
+      coaching.forEach((p) => enriched[0].products.push({ id: p.id, title: p.title, type: "coaching", price: p.price, currency: p.currency, description: p.description }));
     }
 
+    setCoachingServices(coaching);
     setBooksWithProducts(enriched);
 
     // Fetch Related Authors (share at least one genre)
@@ -596,60 +601,139 @@ export default function AuthorSite() {
         </section>
       )}
 
-      {/* ===== SECTION 4: PRODUCTS & SERVICES ===== */}
-      {allProducts.length > 0 && (
-        <section className="py-14" style={{ background: `hsl(${c.heroBackground})`, color: `hsl(${c.heroForeground})` }}>
+      {/* ===== SECTION 4: WORK WITH [AUTHOR] ===== */}
+      {hasWorkWithSection && (
+        <section className="py-16" style={{ background: "var(--theme-card-bg)" }}>
           <div className="container max-w-5xl">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-              <h2 className="as-heading text-2xl md:text-3xl font-bold mb-8">
-                Products &amp; Services
+              <h2 className="theme-heading text-2xl md:text-[2rem] font-bold mb-10" style={{ color: "var(--theme-heading-text)" }}>
+                Work with {displayName}
               </h2>
             </motion.div>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {allProducts.map((product, idx) => {
-                const Icon = PRODUCT_ICONS[product.type] || BookOpen;
-                return (
-                  <motion.div
-                    key={product.id}
-                    initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={idx + 1}
-                  >
-                    <Link
-                      to={`/${authorSlug}/${product.bookSlug}/${PRODUCT_ROUTES[product.type]}`}
-                      className="group block p-5 transition-all hover:shadow-lg"
-                      style={{
-                        borderRadius: theme.borderRadius,
-                        border: `1px solid hsl(${c.heroForeground} / 0.1)`,
-                        background: `hsl(${c.heroForeground} / 0.05)`,
-                      }}
-                    >
+            {/* Services sub-section (coaching) */}
+            {coachingServices.length > 0 && (
+              <div className="mb-12">
+                <div className="space-y-4">
+                  {coachingServices.map((svc, idx) => (
+                    <motion.div key={svc.id} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={idx + 1}>
                       <div
-                        className="w-10 h-10 rounded-lg flex items-center justify-center mb-3"
-                        style={{ background: `hsl(${c.accent} / 0.15)` }}
+                        className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-5 rounded-xl transition-all hover:shadow-md"
+                        style={{
+                          background: "var(--theme-card-bg)",
+                          border: "1px solid var(--theme-card-border)",
+                          boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
+                        }}
                       >
-                        <Icon className="h-5 w-5" style={{ color: `hsl(${c.accent})` }} />
+                        <div
+                          className="w-11 h-11 rounded-lg flex items-center justify-center shrink-0"
+                          style={{ background: "var(--theme-accent)", opacity: 0.15 }}
+                        >
+                          <Users className="h-5 w-5" style={{ color: "var(--theme-accent)" }} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="theme-heading font-bold text-base mb-1" style={{ color: "var(--theme-heading-text)" }}>{svc.title}</h3>
+                          {svc.description && (
+                            <p className="text-sm leading-relaxed line-clamp-2" style={{ color: "var(--theme-body-text)" }}>{svc.description}</p>
+                          )}
+                          <div className="flex items-center gap-3 mt-2 text-xs" style={{ color: "var(--theme-muted-text)" }}>
+                            {svc.duration_minutes && <span>{svc.duration_minutes} min</span>}
+                            {svc.sessions_count && svc.sessions_count > 1 && <span>· {svc.sessions_count} sessions</span>}
+                            {svc.price != null && svc.price > 0 && (
+                              <span className="font-bold" style={{ color: "var(--theme-accent)" }}>
+                                ${svc.price}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <Link
+                          to={`/${authorSlug}#subscribe-section`}
+                          className="shrink-0 inline-flex items-center gap-1 px-5 py-2 rounded-lg text-sm font-semibold transition-all hover:brightness-110"
+                          style={{ background: "var(--theme-accent)", color: "var(--theme-accent-text)" }}
+                        >
+                          Inquire <ArrowRight className="h-3.5 w-3.5" />
+                        </Link>
                       </div>
-                      <h4 className="font-semibold text-sm mb-1 group-hover:underline">
-                        {product.title}
-                      </h4>
-                      <p className="text-xs mb-3" style={{ opacity: 0.5 }}>
-                        {PRODUCT_LABELS[product.type]} · {product.bookTitle}
-                      </p>
-                      <div className="flex items-center justify-between">
-                        {product.price != null && product.price > 0 ? (
-                          <span className="font-bold text-sm" style={{ color: `hsl(${c.accent})` }}>
-                            From ${product.price}
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Products sub-section */}
+            {allProducts.length > 0 && (
+              <div>
+                {coachingServices.length > 0 && (
+                  <h3 className="theme-heading text-lg font-bold mb-6" style={{ color: "var(--theme-heading-text)" }}>
+                    Products
+                  </h3>
+                )}
+                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                  {allProducts.slice(0, 6).map((product, idx) => {
+                    const PIcon = PRODUCT_ICONS[product.type] || BookOpen;
+                    const label = PRODUCT_LABELS[product.type] || product.type;
+                    return (
+                      <motion.div key={product.id} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={idx + 1}>
+                        <Link
+                          to={`/${authorSlug}/${product.bookSlug}/${PRODUCT_ROUTES[product.type]}`}
+                          className="group flex flex-col h-full p-5 rounded-xl transition-all hover:-translate-y-1 hover:shadow-lg"
+                          style={{
+                            background: "var(--theme-card-bg)",
+                            border: "1px solid var(--theme-card-border)",
+                            boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
+                          }}
+                        >
+                          {/* Badge */}
+                          <span
+                            className="inline-flex items-center gap-1.5 self-start rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wide mb-3"
+                            style={{ background: "var(--theme-accent)", color: "var(--theme-accent-text)" }}
+                          >
+                            <PIcon className="h-3 w-3" />
+                            {label}
                           </span>
-                        ) : (
-                          <span className="text-xs" style={{ opacity: 0.4 }}>Free</span>
-                        )}
-                        <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: `hsl(${c.accent})` }} />
-                      </div>
-                    </Link>
-                  </motion.div>
-                );
-              })}
-            </div>
+
+                          {/* Title */}
+                          <h4 className="theme-heading font-bold text-base mb-1.5 group-hover:underline" style={{ color: "var(--theme-heading-text)" }}>
+                            {product.title}
+                          </h4>
+
+                          {/* Description */}
+                          {product.description && (
+                            <p className="text-xs leading-relaxed line-clamp-2 mb-4 flex-1" style={{ color: "var(--theme-body-text)" }}>
+                              {product.description}
+                            </p>
+                          )}
+                          {!product.description && <div className="flex-1" />}
+
+                          {/* Price + CTA */}
+                          <div className="flex items-center justify-between mt-auto pt-3" style={{ borderTop: "1px solid var(--theme-card-border)" }}>
+                            {product.price != null && product.price > 0 ? (
+                              <span className="font-bold text-sm" style={{ color: "var(--theme-accent)" }}>${product.price}</span>
+                            ) : (
+                              <span className="font-bold text-sm" style={{ color: "var(--theme-accent)" }}>Free</span>
+                            )}
+                            <span
+                              className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-md transition-all group-hover:brightness-110"
+                              style={{ background: "var(--theme-primary)", color: "var(--theme-primary-text)" }}
+                            >
+                              View Product <ArrowRight className="h-3 w-3" />
+                            </span>
+                          </div>
+                        </Link>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+
+                {allProducts.length > 6 && (
+                  <div className="text-center mt-8">
+                    <span className="text-sm font-semibold cursor-pointer hover:underline" style={{ color: "var(--theme-accent)" }}>
+                      View All Products ({allProducts.length}) →
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </section>
       )}
