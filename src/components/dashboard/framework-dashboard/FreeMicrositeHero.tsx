@@ -41,7 +41,7 @@ export default function FreeMicrositeHero({
           </h2>
 
           <p className="text-sm md:text-base text-gray-700 leading-relaxed max-w-lg">
-            Get a polished landing page at <strong className="text-gray-900">authorsbureau.com/authors/{authorSlug || "your-name"}</strong> — 
+            Get a polished landing page at <strong className="text-gray-900">authorsbureau.com/{authorSlug || "your-name"}</strong> — 
             with your photo, bio, books, pricing, services, and social links. Share one link everywhere.
           </p>
 
@@ -49,12 +49,12 @@ export default function FreeMicrositeHero({
             <div className="flex items-center gap-2 bg-white/80 rounded-lg border border-amber-200 px-3 py-2 w-fit">
               <Globe className="h-3.5 w-3.5 text-green-600" />
               <a
-                href={`/authors/${authorSlug}`}
+                href={`/${authorSlug}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm font-medium text-amber-800 hover:underline"
               >
-                authorsbureau.com/authors/{authorSlug}
+                authorsbureau.com/{authorSlug}
               </a>
             </div>
           )}
@@ -98,7 +98,7 @@ export default function FreeMicrositeHero({
                 <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
               </div>
               <div className="flex-1 rounded-md bg-white border border-gray-200 px-2 py-0.5 text-[10px] text-gray-500 truncate">
-                authorsbureau.com/authors/{authorSlug || "your-name"}
+                authorsbureau.com/{authorSlug || "your-name"}
               </div>
             </div>
             {/* Page content */}

@@ -10,6 +10,7 @@ import AccountSettings from "./pages/AccountSettings";
 import GetFeatured from "./pages/GetFeatured";
 import Directory from "./pages/Directory";
 import AuthorProfile from "./pages/AuthorProfile";
+import { AuthorSlugRedirect } from "./pages/AuthorSlugRedirect";
 import DynamicBookMicrosite from "./pages/DynamicBookMicrosite";
 import CreateMicrosite from "./pages/CreateMicrosite";
 import Join from "./pages/Join";
@@ -67,7 +68,7 @@ const AppRoutes = () => (
       <Route path="/directory" element={<Directory />} />
       <Route path="/authors" element={<Navigate to="/directory" replace />} />
       <Route path="/get-featured" element={<GetFeatured />} />
-      <Route path="/authors/:slug" element={<AuthorProfile />} />
+      <Route path="/authors/:slug" element={<AuthorSlugRedirect />} />
       <Route path="/books/:slug" element={<BookSlugRedirect />} />
       <Route path="/create-microsite" element={<CreateMicrosite />} />
       <Route path="/join" element={<Join />} />
