@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowRight, Clock, BookOpen, GraduationCap, Users,
@@ -8,6 +8,7 @@ import {
   KeyRound, Video, Sparkles, Ticket
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { Input } from "@/components/ui/input";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { toast } from "@/hooks/use-toast";
@@ -140,6 +141,7 @@ function parseChecklistItems(description: string | null | undefined): string[] {
 
 export default function AuthorProductPage() {
   const { authorSlug, bookSlug, productType } = useParams<{ authorSlug: string; bookSlug: string; productType: string }>();
+  const navigate = useNavigate();
   const [author, setAuthor] = useState<any>(null);
   const [book, setBook] = useState<any>(null);
   const [product, setProduct] = useState<any>(null);
@@ -157,6 +159,47 @@ export default function AuthorProductPage() {
   const [subscribed, setSubscribed] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
   const [salesPageContent, setSalesPageContent] = useState<string | null>(null);
+  const [buying, setBuying] = useState(false);
+
+  const handleBuyNow = useCallback(async () => {
+    if (!product || !author || buying) return;
+    setBuying(true);
+    try {
+      const { data: sessionData } = await sharedSupabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
+      if (!token) {
+        // Redirect to auth with return URL
+        navigate(`/auth?redirect=/${authorSlug}/${bookSlug}/${productType}`);
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("create-product-checkout", {
+        body: {
+          productId: product.id,
+          productType: pType,
+          productTitle: product.title,
+          authorId: author.user_id,
+          price: product.price,
+          currency: product.currency || "USD",
+          bookSlug,
+          authorSlug,
+        },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (error || !data?.url) {
+        toast({ title: "Error", description: "Could not start checkout. Please try again.", variant: "destructive" });
+        return;
+      }
+
+      window.location.href = data.url;
+    } catch {
+      toast({ title: "Error", description: "Something went wrong. Please try again.", variant: "destructive" });
+    } finally {
+      setBuying(false);
+    }
+  }, [product, author, buying, authorSlug, bookSlug, productType]);
 
   const pType = productType as ProductType;
   const config = PRODUCT_CONFIG[pType];
@@ -496,14 +539,19 @@ export default function AuthorProductPage() {
               <div className="flex flex-col sm:flex-row items-center gap-3 justify-center md:justify-start">
                 <button
                   onClick={() => {
-                    const el = document.getElementById("product-cta-bottom");
-                    if (el) el.scrollIntoView({ behavior: "smooth" });
-                    else setContactOpen(true);
+                    if (product.price != null && product.price > 0 && ["homestudy", "onlinecourse", "workbook", "audiobook"].includes(pType)) {
+                      handleBuyNow();
+                    } else {
+                      const el = document.getElementById("product-cta-bottom");
+                      if (el) el.scrollIntoView({ behavior: "smooth" });
+                      else setContactOpen(true);
+                    }
                   }}
-                  className="font-bold text-base px-8 py-3.5 rounded-lg transition-all hover:scale-105 hover:brightness-110"
+                  disabled={buying}
+                  className="font-bold text-base px-8 py-3.5 rounded-lg transition-all hover:scale-105 hover:brightness-110 disabled:opacity-60"
                   style={{ background: v.accent, color: v.accentText, boxShadow: `0 4px 12px ${v.accent}4D` }}
                 >
-                  {ctaText}
+                  {buying ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : ctaText}
                 </button>
                 <button
                   onClick={() => document.getElementById("product-details")?.scrollIntoView({ behavior: "smooth" })}
@@ -836,11 +884,18 @@ export default function AuthorProductPage() {
                     </p>
                   )}
                   <button
-                    onClick={() => setContactOpen(true)}
-                    className="font-bold text-base px-8 py-3.5 rounded-lg transition-all hover:scale-105"
+                    onClick={() => {
+                      if (product.price != null && product.price > 0 && ["homestudy", "onlinecourse", "workbook", "audiobook"].includes(pType)) {
+                        handleBuyNow();
+                      } else {
+                        setContactOpen(true);
+                      }
+                    }}
+                    disabled={buying}
+                    className="font-bold text-base px-8 py-3.5 rounded-lg transition-all hover:scale-105 disabled:opacity-60"
                     style={{ background: v.accent, color: v.accentText }}
                   >
-                    {ctaText}
+                    {buying ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : ctaText}
                   </button>
                 </div>
 
@@ -939,10 +994,18 @@ export default function AuthorProductPage() {
             </span>
           </div>
           <button
-            className="rounded-full font-bold px-5 py-2 text-sm"
+            onClick={() => {
+              if (["homestudy", "onlinecourse", "workbook", "audiobook"].includes(pType)) {
+                handleBuyNow();
+              } else {
+                setContactOpen(true);
+              }
+            }}
+            disabled={buying}
+            className="rounded-full font-bold px-5 py-2 text-sm disabled:opacity-60"
             style={{ background: v.accent, color: v.accentText }}
           >
-            {ctaText}
+            {buying ? <Loader2 className="h-4 w-4 animate-spin" /> : ctaText}
           </button>
         </div>
       )}

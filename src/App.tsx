@@ -33,6 +33,8 @@ import AuthorBookPage from "./pages/AuthorBookPage";
 import BookSlugRedirect from "./pages/BookSlugRedirect";
 import ScrollToTop from "./components/ScrollToTop";
 import AbbyHelpChatbot from "./components/AbbyHelpChatbot";
+import PurchaseSuccess from "./pages/PurchaseSuccess";
+import ReaderPortal from "./pages/ReaderPortal";
 
 const queryClient = new QueryClient();
 
@@ -86,6 +88,8 @@ const AppRoutes = () => (
       <Route path="/solutions" element={<SolutionsIndex />} />
       <Route path="/solutions/:genre" element={<Solutions />} />
       <Route path="/sso" element={<SSO />} />
+      <Route path="/purchase-success" element={<PurchaseSuccess />} />
+      <Route path="/reader-portal" element={<ReaderPortal />} />
       <Route path="/:authorSlug/:bookSlug/:productType" element={<AuthorProductPage />} />
       <Route path="/:authorSlug/:bookSlug" element={<AuthorBookPage />} />
       <Route path="/:authorSlug" element={<AuthorSite />} />
