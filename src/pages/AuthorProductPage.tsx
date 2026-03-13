@@ -43,32 +43,7 @@ const fadeUp = {
   }),
 };
 
-/* ---------- Theme CSS injection ---------- */
-function ThemeStyle({ theme }: { theme: AuthorTheme }) {
-  const c = theme.colors;
-  return (
-    <>
-      <link rel="stylesheet" href={getThemeFontsUrl(theme)} />
-      <style>{`
-        .product-page {
-          --pp-hero-bg: ${c.heroBackground};
-          --pp-hero-fg: ${c.heroForeground};
-          --pp-accent: ${c.accent};
-          --pp-accent-fg: ${c.accentForeground};
-          --pp-card-border: ${c.cardBorder};
-          --pp-section-alt: ${c.sectionAlt};
-          --pp-footer-bg: ${c.footerBackground};
-          --pp-footer-fg: ${c.footerForeground};
-          --pp-heading-font: ${theme.headingFont};
-          --pp-body-font: ${theme.bodyFont};
-          --pp-radius: ${theme.borderRadius};
-        }
-        .product-page { font-family: var(--pp-body-font); }
-        .product-page .pp-heading { font-family: var(--pp-heading-font); }
-      `}</style>
-    </>
-  );
-}
+/* ThemeStyle removed — now handled by AuthorPageLayout */
 
 /** Parse description sentences into checklist items */
 function parseChecklistItems(description: string | null | undefined): string[] {
