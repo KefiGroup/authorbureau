@@ -15,6 +15,36 @@ import StaleContentBanner from "./StaleContentBanner";
 
 function generateId() { return crypto.randomUUID(); }
 
+function normalizeSchedulePayload(payload: any): Array<{
+  dayNumber: number;
+  weekNumber: number;
+  theme: string;
+  chapterRef: string;
+  reading: string;
+  exercise: string;
+  reflection: string;
+  isCatchUp: boolean;
+}> {
+  const rawDays = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.days)
+    ? payload.days
+    : Array.isArray(payload?.daily_schedule)
+    ? payload.daily_schedule
+    : [];
+
+  return rawDays.map((d: any, idx: number) => ({
+    dayNumber: Number(d?.dayNumber ?? idx + 1),
+    weekNumber: Number(d?.weekNumber ?? Math.floor(idx / 7) + 1),
+    theme: String(d?.theme ?? ""),
+    chapterRef: String(d?.chapterRef ?? ""),
+    reading: String(d?.reading ?? ""),
+    exercise: String(d?.exercise ?? ""),
+    reflection: String(d?.reflection ?? ""),
+    isCatchUp: Boolean(d?.isCatchUp ?? ((idx + 1) % 7 === 0)),
+  }));
+}
+
 export default function DailyScheduleStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, generationState, setGenerationState }: HomeStudyStepProps) {
   const { toast } = useToast();
   const setup = stepData.setup || {};
@@ -45,17 +75,7 @@ export default function DailyScheduleStep({ stepData, setStepData, onMarkEdited,
     try {
       setGenerationState("analyzing");
 
-      const result = await generateJSONWithAI<Array<{
-        dayNumber: number;
-        weekNumber: number;
-        theme: string;
-        chapterRef: string;
-        reading: string;
-        exercise: string;
-        reflection: string;
-        isCatchUp: boolean;
-      }>>(
-        `Generate a ${duration}-day home study schedule for the book "${bookTitle}".
+      const basePrompt = `Generate a ${duration}-day home study schedule for the book "${bookTitle}".
 Organize into weeks of 7 days. Day 7 of each week should be a catch-up/review day.
 
 Each day needs a specific theme, chapter reference from the book, reading assignment, exercise, and reflection prompt.
@@ -64,25 +84,58 @@ Make weekly themes progress from Awareness → Skills → Practice → Integrati
 Return a JSON array of ${duration} objects, each with:
 - "dayNumber": number
 - "weekNumber": number
-- "theme": string (specific to that day's learning focus)
-- "chapterRef": string (e.g. "Chapter 3")
-- "reading": string (specific reading assignment)
-- "exercise": string (short exercise description)
-- "reflection": string (journal prompt)
-- "isCatchUp": boolean (true only for day 7 of each week)
+- "theme": string
+- "chapterRef": string
+- "reading": string
+- "exercise": string
+- "reflection": string
+- "isCatchUp": boolean
 
-Return ONLY valid JSON.`,
-        { bookId, isPremium: true, builderMode: true, builderId: "home-study-course", builderLabel: "Home Study Course", builderStep: "Daily Schedule" }
-      );
+Return ONLY valid JSON.`;
+
+      const opts = {
+        bookId,
+        isPremium: true,
+        builderMode: true,
+        builderId: "home-study-course",
+        builderLabel: "Home Study Course",
+        builderStep: "Daily Schedule",
+      } as const;
+
+      let parsedDays = normalizeSchedulePayload(await generateJSONWithAI<any>(basePrompt, opts));
+
+      if (parsedDays.length === 0) {
+        parsedDays = normalizeSchedulePayload(
+          await generateJSONWithAI<any>(
+            `${basePrompt}\n\nSTRICT FORMAT: Start response with [ and end with ]. Do not include any prose, heading, or markdown.`,
+            opts,
+          ),
+        );
+      }
+
+      if (parsedDays.length === 0) {
+        throw new Error("No schedule data returned. Please retry.");
+      }
 
       setGenerationState("generating");
 
-      const generated: StudyDay[] = result.map(d => ({
+      const generated: StudyDay[] = parsedDays.slice(0, duration).map((d, idx) => ({
         id: generateId(),
-        ...d,
+        dayNumber: d.dayNumber || idx + 1,
+        weekNumber: d.weekNumber || Math.floor(idx / 7) + 1,
+        theme: d.theme,
+        chapterRef: d.chapterRef,
+        reading: d.reading,
         concept: "",
+        exercise: d.exercise,
+        reflection: d.reflection,
         audioScript: undefined,
+        isCatchUp: d.isCatchUp,
       }));
+
+      if (generated.length === 0) {
+        throw new Error("Generated schedule was empty.");
+      }
 
       setStepData(prev => ({
         ...prev,
@@ -97,10 +150,10 @@ Return ONLY valid JSON.`,
       setGenerationState("complete");
       const weeks = Math.ceil(duration / 7);
       toast({ title: "Schedule generated!", description: `${duration}-day program with ${weeks} weekly themes.` });
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       setGenerationState("error");
-      toast({ title: "Generation failed", variant: "destructive" });
+      toast({ title: "Generation failed", description: err?.message || "Please try again.", variant: "destructive" });
     }
   };
 

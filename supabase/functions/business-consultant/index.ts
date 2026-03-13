@@ -3356,7 +3356,14 @@ CRITICAL BUILDER RULES:
 - Reference progress_log to acknowledge what's already built and connect this product to existing ones.
 - Address the author by name from author_profile.name. NEVER use email.`;
 
-      maxTokens = 500;
+      const normalizedBuilderStep = (builderStep || "").toLowerCase();
+      if (builderId === "home-study-course" && normalizedBuilderStep.includes("daily schedule")) {
+        maxTokens = 2200;
+      } else if (builderId === "home-study-course" && normalizedBuilderStep.includes("daily content")) {
+        maxTokens = 3200;
+      } else {
+        maxTokens = 1200;
+      }
     } else {
       // ─── CONSULTATION MODE: Full V2 system prompt + author_context ────────────
       fullSystemPrompt = `${SYSTEM_PROMPT}
