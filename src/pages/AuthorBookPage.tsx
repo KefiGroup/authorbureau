@@ -270,6 +270,7 @@ export default function AuthorBookPage() {
       setSubscribed(true);
       toast({ title: "You're subscribed!", description: "Check your inbox for updates." });
       setEmail("");
+      setName("");
     }
   }
 
