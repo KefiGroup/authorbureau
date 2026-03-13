@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import HomeStudyExportModal from "./HomeStudyExportModal";
 import MarkdownRenderer from "./MarkdownRenderer";
+import HomeStudyReviewView from "./review/HomeStudyReviewView";
 import { ALL_BUILDER_NODES, type BuilderNodeConfig } from "../dashboard/builders/builderNodeConfig";
 import { toast } from "@/hooks/use-toast";
 
