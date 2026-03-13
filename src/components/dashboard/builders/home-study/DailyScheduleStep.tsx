@@ -72,7 +72,7 @@ Return a JSON array of ${duration} objects, each with:
 - "isCatchUp": boolean (true only for day 7 of each week)
 
 Return ONLY valid JSON.`,
-        { bookId, isPremium: true }
+        { bookId, isPremium: true, builderMode: true, builderId: "home-study-course", builderLabel: "Home Study Course", builderStep: "Daily Schedule" }
       );
 
       setGenerationState("generating");
