@@ -359,6 +359,17 @@ export default function AuthorSite() {
         vars={v}
         headingFont={theme.headingFont}
         bodyFont={theme.bodyFont}
+        onContactClick={() => setContactOpen(true)}
+      />
+
+      <AuthorContactModal
+        open={contactOpen}
+        onClose={() => setContactOpen(false)}
+        authorName={displayName}
+        authorId={author.user_id}
+        vars={{ ...v, bodyText: v.bodyText || "#4A4A4A" }}
+        headingFont={theme.headingFont}
+        bodyFont={theme.bodyFont}
       />
 
       {/* ===== SECTION 1: HERO BANNER ===== */}

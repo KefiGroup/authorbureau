@@ -356,6 +356,17 @@ export default function AuthorBookPage() {
         vars={v}
         headingFont={theme.headingFont}
         bodyFont={theme.bodyFont}
+        onContactClick={() => setContactOpen(true)}
+      />
+
+      <AuthorContactModal
+        open={contactOpen}
+        onClose={() => setContactOpen(false)}
+        authorName={authorName}
+        authorId={book.author_id}
+        vars={{ ...v, bodyText: v.bodyText || "#4A4A4A" }}
+        headingFont={theme.headingFont}
+        bodyFont={theme.bodyFont}
       />
 
       {/* Book-level product nav */}
