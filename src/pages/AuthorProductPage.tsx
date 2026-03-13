@@ -85,6 +85,10 @@ function isMarkdown(text: string): boolean {
   return /[#*_\-\n]/.test(text) && (text.includes("\n") || text.includes("**") || text.startsWith("#"));
 }
 
+function stripStars(text: string): string {
+  return text.replace(/^\*{2,}/, "").replace(/\*{2,}$/, "").trim();
+}
+
 function ProductMarkdown({ content }: { content: string }) {
   // Simple markdown renderer for sales page content
   const lines = content.split("\n");
@@ -93,20 +97,22 @@ function ProductMarkdown({ content }: { content: string }) {
       {lines.map((line, i) => {
         const trimmed = line.trim();
         if (!trimmed) return null;
-        if (trimmed.startsWith("### ")) return <h3 key={i} className="text-lg font-bold mt-4">{trimmed.slice(4)}</h3>;
-        if (trimmed.startsWith("## ")) return <h2 key={i} className="text-xl font-bold mt-5">{trimmed.slice(3)}</h2>;
-        if (trimmed.startsWith("# ")) return <h1 key={i} className="text-2xl font-bold mt-6">{trimmed.slice(2)}</h1>;
+        // Skip bracket CTA lines like [YES! I'm Ready...]
+        if (/^\[.+\]$/.test(trimmed)) return null;
+        if (trimmed.startsWith("### ")) return <h3 key={i} className="text-lg font-bold mt-4">{renderInline(stripStars(trimmed.slice(4)))}</h3>;
+        if (trimmed.startsWith("## ")) return <h2 key={i} className="text-xl font-bold mt-5">{renderInline(stripStars(trimmed.slice(3)))}</h2>;
+        if (trimmed.startsWith("# ")) return <h1 key={i} className="text-2xl font-bold mt-6">{renderInline(stripStars(trimmed.slice(2)))}</h1>;
         if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
-          return <li key={i} className="ml-4 list-disc text-sm">{renderInline(trimmed.slice(2))}</li>;
+          return <li key={i} className="ml-4 list-disc text-sm">{renderInline(stripStars(trimmed.slice(2)))}</li>;
         }
         if (/^\d+\.\s/.test(trimmed)) {
-          return <li key={i} className="ml-4 list-decimal text-sm">{renderInline(trimmed.replace(/^\d+\.\s/, ""))}</li>;
+          return <li key={i} className="ml-4 list-decimal text-sm">{renderInline(stripStars(trimmed.replace(/^\d+\.\s/, "")))}</li>;
         }
         if (trimmed.startsWith("> ")) {
-          return <blockquote key={i} className="border-l-4 border-accent pl-4 italic text-sm opacity-80">{renderInline(trimmed.slice(2))}</blockquote>;
+          return <blockquote key={i} className="border-l-4 border-accent pl-4 italic text-sm opacity-80">{renderInline(stripStars(trimmed.slice(2)))}</blockquote>;
         }
         if (trimmed.startsWith("---") || trimmed.startsWith("***")) return <hr key={i} className="my-4" />;
-        return <p key={i} className="text-sm leading-relaxed">{renderInline(trimmed)}</p>;
+        return <p key={i} className="text-sm leading-relaxed">{renderInline(stripStars(trimmed))}</p>;
       })}
     </div>
   );
@@ -150,6 +156,7 @@ export default function AuthorProductPage() {
   const [subscribing, setSubscribing] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
+  const [salesPageContent, setSalesPageContent] = useState<string | null>(null);
 
   const pType = productType as ProductType;
   const config = PRODUCT_CONFIG[pType];
@@ -258,6 +265,28 @@ export default function AuthorProductPage() {
 
     if (!productData) { setNotFound(true); setLoading(false); return; }
     setProduct(productData);
+
+    // Load sales page content from generated_assets
+    const assetTypeMap: Record<string, string> = {
+      homestudy: "builder_sales_page_home-study-course",
+      onlinecourse: "builder_sales_page_online-course",
+      workbook: "builder_sales_page_workbook",
+    };
+    const salesAssetType = assetTypeMap[pType];
+    if (salesAssetType) {
+      const { data: salesAsset } = await supabase
+        .from("generated_assets")
+        .select("content")
+        .eq("book_id", bookId)
+        .eq("author_id", profile.user_id)
+        .eq("asset_type", salesAssetType)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (salesAsset?.content) {
+        setSalesPageContent(salesAsset.content);
+      }
+    }
 
     // Load all sibling products for BookProductNav + related products
     const tables = [
@@ -466,6 +495,11 @@ export default function AuthorProductPage() {
               {/* CTAs */}
               <div className="flex flex-col sm:flex-row items-center gap-3 justify-center md:justify-start">
                 <button
+                  onClick={() => {
+                    const el = document.getElementById("product-cta-bottom");
+                    if (el) el.scrollIntoView({ behavior: "smooth" });
+                    else setContactOpen(true);
+                  }}
                   className="font-bold text-base px-8 py-3.5 rounded-lg transition-all hover:scale-105 hover:brightness-110"
                   style={{ background: v.accent, color: v.accentText, boxShadow: `0 4px 12px ${v.accent}4D` }}
                 >
@@ -634,6 +668,19 @@ export default function AuthorProductPage() {
         </section>
       )}
 
+      {/* ===== SALES PAGE CONTENT (from generated assets) ===== */}
+      {salesPageContent && (
+        <section className="py-14" style={{ background: v.cardBg }}>
+          <div className="container max-w-3xl">
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
+              <div className="prose prose-sm max-w-none" style={{ color: v.bodyText }}>
+                <ProductMarkdown content={salesPageContent} />
+              </div>
+            </motion.div>
+          </div>
+        </section>
+      )}
+
       {/* ===== SECTION 5: BASED ON THE BOOK ===== */}
       {book && (
         <section className="py-14" style={{ background: v.secondaryBg }}>
@@ -766,7 +813,7 @@ export default function AuthorProductPage() {
       )}
 
       {/* ===== SECTION 8: LEAD CAPTURE + CTA REPEAT ===== */}
-      <section className="py-14" style={{ background: v.primary }}>
+      <section id="product-cta-bottom" className="py-14" style={{ background: v.primary }}>
         <div className="container max-w-xl text-center">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
             {subscribed ? (
@@ -789,6 +836,7 @@ export default function AuthorProductPage() {
                     </p>
                   )}
                   <button
+                    onClick={() => setContactOpen(true)}
                     className="font-bold text-base px-8 py-3.5 rounded-lg transition-all hover:scale-105"
                     style={{ background: v.accent, color: v.accentText }}
                   >
