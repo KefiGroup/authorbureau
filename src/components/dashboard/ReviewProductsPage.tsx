@@ -392,7 +392,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
       <HomeStudyExportModal
         open={!!exportProduct}
         onOpenChange={() => setExportProduct(null)}
-        product={exportProduct}
+        product={exportProduct ? { title: exportProduct.title, type: exportProduct.nodeLabel, bookTitle: exportProduct.bookTitle, description: exportProduct.description } : null}
         fetchContent={exportProduct ? async () => {
           if (!user) return null;
           const { data: asset } = await supabase
