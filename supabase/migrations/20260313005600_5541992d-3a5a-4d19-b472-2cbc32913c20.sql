@@ -1,0 +1,1 @@
+ALTER TABLE public.author_profiles ADD COLUMN site_theme text NOT NULL DEFAULT 'classic-elegant';
