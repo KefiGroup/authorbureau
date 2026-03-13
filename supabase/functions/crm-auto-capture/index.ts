@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { email, name, source, source_detail, author_id } = await req.json();
+    const { email, name, source, source_detail, author_id, message } = await req.json();
 
     if (!email || !source) {
       return new Response(JSON.stringify({ error: "email and source required" }), {

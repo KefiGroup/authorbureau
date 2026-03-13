@@ -256,6 +256,45 @@ Deno.serve(async (req) => {
       return json({ contacts: enriched });
     }
 
+    // ─── Messages ───
+    if (action === "list-messages") {
+      const { data: msgs } = await client
+        .from("contact_messages")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      // Enrich with author names
+      const authorIds = [...new Set((msgs || []).map((m: any) => m.author_id))];
+      let authorMap = new Map<string, string>();
+      if (authorIds.length > 0) {
+        const { data: profiles } = await client
+          .from("author_profiles")
+          .select("user_id, pen_name")
+          .in("user_id", authorIds);
+        (profiles || []).forEach((p: any) => {
+          if (p.pen_name) authorMap.set(p.user_id, p.pen_name);
+        });
+      }
+
+      const enriched = (msgs || []).map((m: any) => ({
+        ...m,
+        author_name: authorMap.get(m.author_id) || null,
+      }));
+
+      return json({ messages: enriched });
+    }
+
+    if (action === "update-message") {
+      const { id, status, admin_notes } = params;
+      if (!id) return json({ error: "id required" }, 400);
+      const updateData: any = {};
+      if (status) updateData.status = status;
+      if (admin_notes !== undefined) updateData.admin_notes = admin_notes;
+      updateData.updated_at = new Date().toISOString();
+      await client.from("contact_messages").update(updateData).eq("id", id);
+      return json({ success: true });
+    }
+
     return json({ error: "Unknown action" }, 400);
   } catch (err) {
     return json({ error: (err as Error).message }, 500);
