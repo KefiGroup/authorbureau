@@ -8,6 +8,7 @@ import {
   KeyRound, Video, Sparkles, Ticket
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { Input } from "@/components/ui/input";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { toast } from "@/hooks/use-toast";
