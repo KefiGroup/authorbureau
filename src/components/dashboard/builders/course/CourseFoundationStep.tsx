@@ -3,7 +3,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Wand2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Wand2, Sparkles } from "lucide-react";
 import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 import type { CourseStepProps } from "./types";
 
@@ -20,7 +21,7 @@ const FORMATS = [
   { label: "Hybrid", value: "hybrid", desc: "Self-paced + live group calls" },
 ];
 
-export default function CourseFoundationStep({ stepData, setStepData, onMarkEdited, plan }: CourseStepProps) {
+export default function CourseFoundationStep({ stepData, setStepData, onMarkEdited, plan, onStartGeneration, builderAct }: CourseStepProps) {
   const data = stepData.foundation || {};
 
   const update = (field: string, value: any) => {
@@ -31,6 +32,8 @@ export default function CourseFoundationStep({ stepData, setStepData, onMarkEdit
     onMarkEdited("foundation");
   };
 
+  const canGenerate = builderAct === "idle" || !builderAct;
+
   return (
     <div className="space-y-6">
       <AbbyRecommendationCard>
@@ -38,6 +41,29 @@ export default function CourseFoundationStep({ stepData, setStepData, onMarkEdit
           Online courses are the <strong>#1 revenue stream</strong> for non-fiction authors. Your book's framework is perfect for a structured learning experience. I recommend the <strong>$97–$197 price point</strong> for your first course.
         </p>
       </AbbyRecommendationCard>
+
+      {/* Abby Generate CTA */}
+      {canGenerate && onStartGeneration && (
+        <Card className="p-5 border-secondary/30 bg-secondary/5">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-secondary/20 flex items-center justify-center shrink-0">
+              <Sparkles className="h-5 w-5 text-secondary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold">Let Abby design your entire course</p>
+              <p className="text-xs text-muted-foreground">
+                Abby will analyze your manuscript and propose a complete curriculum, pricing strategy, and sales copy — all for your review before generating.
+              </p>
+            </div>
+            <Button
+              onClick={onStartGeneration}
+              className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 shrink-0"
+            >
+              <Sparkles className="h-4 w-4 mr-2" /> Analyze with Abby
+            </Button>
+          </div>
+        </Card>
+      )}
 
       {/* Title */}
       <div className="space-y-2">

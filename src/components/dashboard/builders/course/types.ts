@@ -1,3 +1,5 @@
+import type { GenerationAct } from "@/hooks/useBuilderGeneration";
+
 export interface CourseStepProps {
   stepData: Record<string, any>;
   setStepData: React.Dispatch<React.SetStateAction<Record<string, any>>>;
@@ -8,6 +10,10 @@ export interface CourseStepProps {
   generationState: "idle" | "queued" | "analyzing" | "generating" | "complete" | "error";
   setGenerationState: (s: "idle" | "queued" | "analyzing" | "generating" | "complete" | "error") => void;
   userId: string;
+  onStartGeneration?: () => void;
+  builderAct?: GenerationAct;
+  manuscriptSummary?: string;
+  frameworks?: string;
 }
 
 export interface CourseModule {
