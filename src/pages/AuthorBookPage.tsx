@@ -297,7 +297,7 @@ export default function AuthorBookPage() {
 
   return (
     <AuthorPageLayout theme={theme} breadcrumbs={[
-      { label: "Authors", to: "/directory" },
+      { label: "Home", to: "/" },
       { label: authorName || "Author", to: `/${authorSlug}` },
       { label: book.title },
     ]}>
