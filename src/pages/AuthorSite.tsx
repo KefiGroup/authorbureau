@@ -682,7 +682,7 @@ export default function AuthorSite() {
 
             {/* Products sub-section */}
             {allProducts.length > 0 && (
-              <div>
+              <div id="products">
                 {coachingServices.length > 0 && (
                   <h3 className="theme-heading text-lg font-bold mb-6" style={{ color: "var(--theme-heading-text)" }}>
                     Products
