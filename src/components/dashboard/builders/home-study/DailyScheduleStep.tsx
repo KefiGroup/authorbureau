@@ -96,7 +96,7 @@ Return ONLY valid JSON.`,
     }
   };
 
-  if (days.length === 0 && generationState === "idle") {
+  if (days.length === 0 && (generationState === "idle" || generationState === "complete" || generationState === "error")) {
     return (
       <div className="text-center py-12">
         <CalendarDays className="h-12 w-12 text-muted-foreground/20 mx-auto mb-4" />
