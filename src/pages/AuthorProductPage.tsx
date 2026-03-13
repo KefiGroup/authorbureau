@@ -19,7 +19,7 @@ const PRODUCT_CONFIG: Record<ProductType, { table: string; label: string; icon: 
 };
 
 export default function AuthorProductPage() {
-  const { authorSlug, productType } = useParams<{ authorSlug: string; productType: string }>();
+  const { authorSlug, bookSlug, productType } = useParams<{ authorSlug: string; bookSlug: string; productType: string }>();
   const [author, setAuthor] = useState<any>(null);
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
