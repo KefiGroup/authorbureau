@@ -151,6 +151,7 @@ export default function HomeStudyReviewView({
       setSetup(mergedSetup);
       setDays(nextDays);
       setFullCourseMarkdown(markdownFallback);
+      setSalesPageMarkdown(salesPageRaw || "");
       setTitle(mergedSetup.title || productTitle);
       setDescription(mergedSetup.description || "");
       setPrice(mergedSetup.price !== "" && mergedSetup.price !== null && mergedSetup.price !== undefined ? String(mergedSetup.price) : "");
