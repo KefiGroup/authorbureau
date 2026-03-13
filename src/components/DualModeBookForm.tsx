@@ -564,6 +564,9 @@ export default function DualModeBookForm({
             </div>
           )}
 
+          {/* Genre-based Recommendations */}
+          <GenreRecommendationPreview genre={form.genre} />
+
           {/* Website Look & Feel */}
           <SiteThemePicker compact />
 
