@@ -29,8 +29,20 @@ export default function DailyContentStep({ stepData, setStepData, onMarkEdited, 
   const currentDay = days[selectedIdx];
 
   const updateDay = (field: string, value: any) => {
-    const newDays = days.map((d, i) => i === selectedIdx ? { ...d, [field]: value } : d);
-    setStepData(prev => ({ ...prev, schedule: { ...prev.schedule, days: newDays } }));
+    setStepData(prev => {
+      const prevDays: StudyDay[] = prev.schedule?.days || [];
+      const newDays = prevDays.map((d, i) => i === selectedIdx ? { ...d, [field]: value } : d);
+      return { ...prev, schedule: { ...prev.schedule, days: newDays } };
+    });
+    onMarkEdited("content");
+  };
+
+  const updateDayBatch = (fields: Partial<StudyDay>) => {
+    setStepData(prev => {
+      const prevDays: StudyDay[] = prev.schedule?.days || [];
+      const newDays = prevDays.map((d, i) => i === selectedIdx ? { ...d, ...fields } : d);
+      return { ...prev, schedule: { ...prev.schedule, days: newDays } };
+    });
     onMarkEdited("content");
   };
 
