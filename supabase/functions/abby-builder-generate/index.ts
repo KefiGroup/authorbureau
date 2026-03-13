@@ -645,7 +645,7 @@ SELF-CHECK BEFORE FINALIZING:
             { role: "system", content: generatePrompt },
             { role: "user", content: `Generate all the content for my approved ${builderLabel || builderId}. Make it comprehensive and production-ready.` },
           ],
-          temperature: 0.75,
+          temperature: 0.55,
           max_completion_tokens: 16000,
           stream: true,
         }),
