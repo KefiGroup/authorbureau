@@ -66,7 +66,7 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
   const stripeFees = grossSales > 0 ? grossSales * 0.029 + 0.3 : 0;
   const earnings = grossSales - platformFee - stripeFees;
 
-  const micrositeUrl = slug ? `${window.location.origin}/authors/${slug}` : null;
+  const micrositeUrl = slug ? `${window.location.origin}/${slug}` : null;
 
   const copyLink = () => {
     if (micrositeUrl) {
