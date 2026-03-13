@@ -28,6 +28,8 @@ import Solutions from "./pages/Solutions";
 import SolutionsIndex from "./pages/SolutionsIndex";
 import AuthorSite from "./pages/AuthorSite";
 import AuthorProductPage from "./pages/AuthorProductPage";
+import AuthorBookPage from "./pages/AuthorBookPage";
+import BookSlugRedirect from "./pages/BookSlugRedirect";
 import ScrollToTop from "./components/ScrollToTop";
 import AbbyHelpChatbot from "./components/AbbyHelpChatbot";
 
@@ -66,7 +68,7 @@ const AppRoutes = () => (
       <Route path="/authors" element={<Navigate to="/directory" replace />} />
       <Route path="/get-featured" element={<GetFeatured />} />
       <Route path="/authors/:slug" element={<AuthorProfile />} />
-      <Route path="/books/:slug" element={<DynamicBookMicrosite />} />
+      <Route path="/books/:slug" element={<BookSlugRedirect />} />
       <Route path="/create-microsite" element={<CreateMicrosite />} />
       <Route path="/join" element={<Join />} />
       <Route path="/auth" element={<Auth />} />
@@ -84,6 +86,7 @@ const AppRoutes = () => (
       <Route path="/solutions/:genre" element={<Solutions />} />
       <Route path="/sso" element={<SSO />} />
       <Route path="/:authorSlug/:bookSlug/:productType" element={<AuthorProductPage />} />
+      <Route path="/:authorSlug/:bookSlug" element={<AuthorBookPage />} />
       <Route path="/:authorSlug" element={<AuthorSite />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
