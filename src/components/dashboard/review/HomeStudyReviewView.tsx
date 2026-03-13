@@ -28,8 +28,6 @@ interface HomeStudyReviewViewProps {
   onPublished: () => void;
 }
 
-const DRAFT_ASSET_TYPE = "builder_draft_home-study-course";
-const CONTENT_ASSET_TYPE = "builder_content_home-study-course";
 
 export default function HomeStudyReviewView({
   productId, bookId, bookTitle, productTitle, productTable, onBack, onPublished,
