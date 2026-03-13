@@ -116,35 +116,8 @@ export default function AbbyProposal({ proposal, builderLabel, bookTitle, onAppr
         )}
       </Card>
 
-      {/* Value Ladder + Price + Audience row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Card className="p-4 text-center">
-          <DollarSign className="h-5 w-5 text-accent mx-auto mb-1" />
-          <p className="text-xl font-bold">${proposal.recommended_price}</p>
-          <p className="text-[10px] text-muted-foreground">
-            {proposal.price_justification || "Recommended price"}
-          </p>
-        </Card>
-        <Card className="p-4 text-center">
-          <Users className="h-5 w-5 text-primary mx-auto mb-1" />
-          <p className="text-xs font-medium leading-relaxed">
-            {proposal.target_audience}
-          </p>
-        </Card>
-        <Card className={`p-4 text-center border ${vl.color}`}>
-          <Zap className="h-5 w-5 mx-auto mb-1" />
-          <p className="text-xs font-bold">{vl.label}</p>
-          <p className="text-[10px] opacity-70">Value Ladder Position</p>
-        </Card>
-      </div>
 
-      {/* Revenue projection */}
-      {proposal.revenue_projection && (
-        <Card className="p-3 bg-accent/5 border-accent/20">
-          <p className="text-xs font-semibold text-accent mb-0.5">📈 Revenue Projection</p>
-          <p className="text-sm text-muted-foreground">{proposal.revenue_projection}</p>
-        </Card>
-      )}
+
 
       {/* Transformation promises */}
       {proposal.transformation_promises && proposal.transformation_promises.length > 0 && (
