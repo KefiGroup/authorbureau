@@ -104,6 +104,7 @@ export default function AuthorProductPage() {
   const [notFound, setNotFound] = useState(false);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
+  const [subMessage, setSubMessage] = useState("");
   const [subscribing, setSubscribing] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
@@ -260,26 +261,36 @@ export default function AuthorProductPage() {
 
   async function handleSubscribe(e: React.FormEvent) {
     e.preventDefault();
-    if (!email.trim() || !author) return;
+    if (!email.trim() || !name.trim() || !author) return;
     setSubscribing(true);
-    const { error } = await supabase.from("author_subscribers").insert({
+
+    await supabase.functions.invoke("crm-auto-capture", {
+      body: {
+        email: email.trim(),
+        name: name.trim(),
+        source: "subscribe_form",
+        source_detail: `product_page: ${authorSlug}/${bookSlug}/${productType}${subMessage.trim() ? ` | Message: ${subMessage.trim().slice(0, 200)}` : ""}`,
+        author_id: author.user_id,
+      },
+    });
+
+    const { error } = await supabase.from("author_subscribers").upsert({
       author_id: author.user_id,
-      email: email.trim(),
-      name: name.trim() || null,
+      email: email.trim().toLowerCase(),
+      name: name.trim(),
       source: "product_page",
       source_detail: `${authorSlug}/${bookSlug}/${productType}`,
-    });
+      status: "active",
+    }, { onConflict: "author_id,email" });
     setSubscribing(false);
-    if (error?.code === "23505") {
-      toast({ title: "You're already subscribed!", description: "You're already on the list." });
-      setSubscribed(true);
-    } else if (error) {
+    if (error) {
       toast({ title: "Error", description: "Could not subscribe. Try again.", variant: "destructive" });
     } else {
       setSubscribed(true);
       toast({ title: "Subscribed!", description: "You'll receive updates soon." });
       setEmail("");
       setName("");
+      setSubMessage("");
     }
   }
 
@@ -755,9 +766,10 @@ export default function AuthorProductPage() {
                   <form onSubmit={handleSubscribe} className="flex flex-col gap-3 max-w-sm mx-auto">
                     <input
                       type="text"
-                      placeholder="First name (optional)"
+                      placeholder="Your name *"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
+                      required
                       className="h-11 text-sm w-full outline-none"
                       style={{
                         borderRadius: "8px",
@@ -769,11 +781,26 @@ export default function AuthorProductPage() {
                     />
                     <input
                       type="email"
-                      placeholder="your@email.com"
+                      placeholder="your@email.com *"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
                       className="h-11 text-sm w-full outline-none"
+                      style={{
+                        borderRadius: "8px",
+                        border: `1px solid ${v.accent}4D`,
+                        padding: "10px 14px",
+                        background: "rgba(255,255,255,0.08)",
+                        color: v.primaryText,
+                      }}
+                    />
+                    <textarea
+                      placeholder="Message (optional)"
+                      value={subMessage}
+                      onChange={(e) => setSubMessage(e.target.value)}
+                      maxLength={2000}
+                      rows={3}
+                      className="text-sm w-full outline-none resize-none"
                       style={{
                         borderRadius: "8px",
                         border: `1px solid ${v.accent}4D`,
