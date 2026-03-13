@@ -419,9 +419,35 @@ export default function AuthorBookPage() {
                 About This Book
               </h2>
               <div className="text-base leading-relaxed space-y-4" style={{ color: `hsl(${c.heroBackground} / 0.7)` }}>
-                {book.description.split(/\n\n+/).filter(Boolean).map((p, i) => (
-                  <p key={i}>{p}</p>
-                ))}
+                {book.description.split(/\n\n+/).filter(Boolean).map((paragraph, i) => {
+                  // Check if paragraph contains bullet-like patterns
+                  const lines = paragraph.split(/\n/).filter(Boolean);
+                  const isBulletList = lines.every(line => /^\s*[-*•]\s+/.test(line));
+                  if (isBulletList) {
+                    return (
+                      <ul key={i} className="list-disc pl-5 space-y-1.5">
+                        {lines.map((line, j) => (
+                          <li key={j}>{line.replace(/^\s*[-*•]\s+/, "")}</li>
+                        ))}
+                      </ul>
+                    );
+                  }
+                  // Handle inline line breaks
+                  const parts = paragraph.split(/\n/);
+                  if (parts.length > 1) {
+                    return (
+                      <div key={i}>
+                        {parts.map((part, j) => {
+                          if (/^\s*[-*•]\s+/.test(part)) {
+                            return <li key={j} className="list-disc ml-5">{part.replace(/^\s*[-*•]\s+/, "")}</li>;
+                          }
+                          return <p key={j} className={j > 0 ? "mt-2" : ""}>{part}</p>;
+                        })}
+                      </div>
+                    );
+                  }
+                  return <p key={i}>{paragraph}</p>;
+                })}
               </div>
             </motion.div>
           </div>
@@ -505,7 +531,7 @@ export default function AuthorBookPage() {
           <div className="container max-w-3xl">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
               <h2 className="bp-heading text-xl md:text-2xl font-bold mb-6" style={{ color: `hsl(${c.heroBackground})` }}>
-                More Books by {authorName}
+                {otherBooks.length === 1 ? "Also by" : "More Books by"} {authorName}
               </h2>
               <div className="flex gap-4 overflow-x-auto pb-2">
                 {otherBooks.map((ob) => (
@@ -624,10 +650,10 @@ export default function AuthorBookPage() {
               <>
                 <Mail className="h-10 w-10 mx-auto mb-4" style={{ color: `hsl(${c.accent})` }} />
                 <h2 className="bp-heading text-2xl font-bold mb-3" style={{ color: `hsl(${c.heroBackground})` }}>
-                  Stay Updated on {book.title}
+                  Enjoyed {book.title}?
                 </h2>
                 <p className="text-sm mb-8" style={{ color: `hsl(${c.heroBackground} / 0.6)` }}>
-                  Enter your email to receive updates from {authorName}.
+                  Subscribe for bonus content, new releases, and exclusive resources from {authorName}.
                 </p>
                 <form onSubmit={handleSubscribe} className="flex flex-col gap-3 max-w-md mx-auto">
                   <Input

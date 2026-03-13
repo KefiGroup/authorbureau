@@ -42,6 +42,25 @@ const fadeUp = {
   }),
 };
 
+function getProductCTA(pType: string, authorName: string): string {
+  const ctaMap: Record<string, string> = {
+    workbook: "Get the Workbook",
+    onlinecourse: "Enroll Now",
+    homestudy: "Enroll Now",
+    coaching: "Book a Session",
+    group_coaching: "Join the Group",
+    membership: "Become a Member",
+    webinar: "Register Now",
+    speaking: `Book ${authorName}`,
+    keynote: `Book ${authorName}`,
+    consulting: "Schedule a Consultation",
+    masterminds: "Apply Now",
+    retreat: "Reserve Your Spot",
+    bootcamp: "Reserve Your Spot",
+  };
+  return ctaMap[pType] || "Get Access";
+}
+
 function parseChecklistItems(description: string | null | undefined): string[] {
   if (!description) return [];
   const items = description
@@ -295,7 +314,7 @@ export default function AuthorProductPage() {
                   className="font-semibold text-base px-8 py-3.5 rounded-lg transition-all hover:scale-105 hover:brightness-110"
                   style={{ background: "var(--theme-accent)", color: "var(--theme-accent-text)" }}
                 >
-                  {product.price != null && product.price > 0 ? "Buy Now" : "Get Started"}
+                  {getProductCTA(pType, displayName)}
                 </button>
                 <button
                   onClick={() => document.getElementById("product-details")?.scrollIntoView({ behavior: "smooth" })}
@@ -609,7 +628,7 @@ export default function AuthorProductPage() {
             className="rounded-full font-semibold px-5 py-2 text-sm"
             style={{ background: "var(--theme-accent)", color: "var(--theme-accent-text)" }}
           >
-            Buy Now
+            {getProductCTA(pType, displayName)}
           </button>
         </div>
       )}

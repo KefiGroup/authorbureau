@@ -364,13 +364,20 @@ export default function AuthorSite() {
                 {displayName}
               </motion.h1>
 
-              {author.tagline && (
-                <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-                  className="text-lg md:text-xl mb-5" style={{ opacity: 0.8 }}
-                >
-                  {author.tagline}
-                </motion.p>
-              )}
+              {/* Dynamic one-liner */}
+              <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+                className="text-lg md:text-xl mb-5" style={{ opacity: 0.85 }}
+              >
+                {(() => {
+                  const hasBestseller = booksWithProducts.some(b => b.badges && b.badges.length > 0);
+                  const uniqueGenres = [...new Set(booksWithProducts.map(b => b.genre).filter(Boolean))] as string[];
+                  const genreStr = uniqueGenres.length > 0 ? ` in ${uniqueGenres.join(", ")}` : "";
+                  const prefix = hasBestseller ? "a bestselling author" : "an author";
+                  return totalBooks > 0
+                    ? `${displayName} is ${prefix} of ${totalBooks} book${totalBooks !== 1 ? "s" : ""}${genreStr}.`
+                    : (author.tagline || "");
+                })()}
+              </motion.p>
 
               {/* Social Links */}
               {socialLinks.length > 0 && (
@@ -462,12 +469,17 @@ export default function AuthorSite() {
                 About {displayName}
               </h2>
 
+              {/* Show short bio by default, expand to full */}
               <div className="leading-relaxed text-base space-y-4" style={{ color: `hsl(${c.heroBackground} / 0.7)` }}>
-                {displayBioParagraphs.map((p, i) => (
-                  <p key={i}>{p}</p>
-                ))}
+                {!bioExpanded && author.bio_short ? (
+                  <p>{author.bio_short}</p>
+                ) : (
+                  displayBioParagraphs.map((p, i) => (
+                    <p key={i}>{p}</p>
+                  ))
+                )}
               </div>
-              {shouldTruncateBio && (
+              {author.bio_long && author.bio_short && (
                 <button
                   onClick={() => setBioExpanded(!bioExpanded)}
                   className="mt-3 inline-flex items-center gap-1 text-sm font-semibold transition-colors"
@@ -507,7 +519,7 @@ export default function AuthorSite() {
           <div className="container max-w-5xl">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
               <h2 className="as-heading text-2xl md:text-3xl font-bold mb-10" style={{ color: `hsl(${c.heroBackground})` }}>
-                Books by {displayName}
+                {totalBooks >= 3 ? "Published Works by" : "Books by"} {displayName}
               </h2>
             </motion.div>
 
@@ -755,7 +767,11 @@ export default function AuthorSite() {
                   Stay Connected with {displayName}
                 </h2>
                 <p className="text-sm mb-8" style={{ color: `hsl(${c.heroBackground} / 0.6)` }}>
-                  Get exclusive updates, free chapters, and early access to new releases.
+                  {hasWorkWithSection
+                    ? `Get exclusive updates, early access to new products, and insights from ${displayName}.`
+                    : totalProducts > 0
+                      ? `Get exclusive updates, free chapters, and early access to new releases and resources.`
+                      : `Get exclusive updates, free chapters, and early access to new releases.`}
                 </p>
                 <form onSubmit={handleSubscribe} className="flex flex-col gap-3 max-w-md mx-auto">
                   <Input
