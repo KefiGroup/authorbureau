@@ -52,6 +52,7 @@ interface ProductData {
   type: "home_study" | "course" | "coaching";
   slug: string;
   cover_image_url?: string | null;
+  book_slug: string;
 }
 
 const fadeUp = {
