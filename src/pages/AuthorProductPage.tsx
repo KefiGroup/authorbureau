@@ -807,7 +807,7 @@ export default function AuthorProductPage() {
       )}
 
       {/* ===== SECTION 8: LEAD CAPTURE + CTA REPEAT ===== */}
-      <section className="py-14" style={{ background: v.primary }}>
+      <section id="product-cta-bottom" className="py-14" style={{ background: v.primary }}>
         <div className="container max-w-xl text-center">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
             {subscribed ? (
