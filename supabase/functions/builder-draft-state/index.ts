@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    const action = body?.action as "load" | "save" | undefined;
+    const action = body?.action as "load" | "save" | "publish_home_study" | undefined;
     const bookId = body?.bookId as string | undefined;
     const nodeId = body?.nodeId as string | undefined;
 
@@ -190,6 +190,71 @@ Deno.serve(async (req) => {
       }
 
       return new Response(JSON.stringify({ ok: true, savedAt }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "publish_home_study") {
+      const payload = (body?.payload || {}) as {
+        title?: string;
+        description?: string;
+        content_markdown?: string;
+        duration_days?: number;
+        price?: number | null;
+      };
+
+      const title = (payload.title || "").trim() || `${bookId} — Home Study Course`;
+      const description = typeof payload.description === "string" ? payload.description : "";
+      const content_markdown = typeof payload.content_markdown === "string" ? payload.content_markdown : "";
+      const duration_days = Number.isFinite(payload.duration_days)
+        ? Number(payload.duration_days)
+        : 30;
+      const parsedPrice = payload.price === null || payload.price === undefined
+        ? null
+        : Number(payload.price);
+      const price = Number.isFinite(parsedPrice as number) ? parsedPrice : null;
+
+      const { data: existing, error: fetchErr } = await cloudAdmin
+        .from("home_study_courses")
+        .select("id")
+        .eq("author_id", book.author_id)
+        .eq("book_id", bookId)
+        .maybeSingle();
+
+      if (fetchErr) throw fetchErr;
+
+      const productRecord = {
+        author_id: book.author_id,
+        book_id: bookId,
+        title,
+        description,
+        status: "ready_for_review",
+        content_markdown,
+        duration_days,
+        price,
+      };
+
+      if (existing?.id) {
+        const { error: updateErr } = await cloudAdmin
+          .from("home_study_courses")
+          .update(productRecord)
+          .eq("id", existing.id);
+        if (updateErr) throw updateErr;
+
+        return new Response(JSON.stringify({ ok: true, id: existing.id }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: inserted, error: insertErr } = await cloudAdmin
+        .from("home_study_courses")
+        .insert(productRecord)
+        .select("id")
+        .single();
+
+      if (insertErr) throw insertErr;
+
+      return new Response(JSON.stringify({ ok: true, id: inserted.id }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
