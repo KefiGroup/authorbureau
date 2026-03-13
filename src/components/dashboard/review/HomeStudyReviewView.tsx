@@ -227,25 +227,25 @@ export default function HomeStudyReviewView({
     setPreviewPage((prev) => Math.min(prev, Math.max(totalPages - 1, 0)));
   }, [totalPages]);
 
+  const stripMd = (s: string) => s.replace(/\*\*(.+?)\*\*/g, "$1").replace(/\*(.+?)\*/g, "$1").replace(/__(.+?)__/g, "$1").replace(/_(.+?)_/g, "$1").replace(/`(.+?)`/g, "$1").replace(/^#+\s*/gm, "").replace(/^\s*>\s*/gm, "").trim();
+
   const openSalesEditor = useCallback(() => {
     const md = effectiveSalesPage || "";
     if (md.trim()) {
-      // Parse existing sales markdown into structured fields
       const lines = md.split("\n").filter(l => l.trim());
       const h1 = lines.find(l => /^##?\s/.test(l));
-      setSalesHeadline(h1 ? h1.replace(/^#+\s*/, "") : title || "");
+      setSalesHeadline(stripMd(h1 || title || ""));
       const h2 = lines.find(l => /^###\s/.test(l));
-      setSalesSubheadline(h2 ? h2.replace(/^#+\s*/, "") : "");
-      const bullets = lines.filter(l => /^[-*]\s/.test(l)).map(l => l.replace(/^[-*]\s*/, ""));
+      setSalesSubheadline(stripMd(h2 || ""));
+      const bullets = lines.filter(l => /^[-*]\s/.test(l)).map(l => stripMd(l.replace(/^[-*]\s*/, "")));
       setSalesBullets(bullets.length > 0 ? bullets : [""]);
       const bodyLines = lines.filter(l => !l.startsWith("#") && !l.startsWith("-") && !l.startsWith("*") && !l.startsWith(">"));
-      setSalesBody(bodyLines.join("\n").trim());
+      setSalesBody(stripMd(bodyLines.join("\n")));
       const quoteLines = lines.filter(l => l.startsWith(">"));
-      const testimonials = quoteLines.map(q => ({ name: "", quote: q.replace(/^>\s*/, "").replace(/^"/, "").replace(/"$/, "") }));
+      const testimonials = quoteLines.map(q => ({ name: "", quote: stripMd(q.replace(/^>\s*/, "").replace(/^"/, "").replace(/"$/, "")) }));
       setSalesTestimonials(testimonials.length > 0 ? testimonials : []);
       setSalesCta("Enroll Now");
     } else {
-      // Pre-populate from course metadata when no sales content exists
       setSalesHeadline(title || productTitle || "");
       setSalesSubheadline(description ? description.slice(0, 120) : `A ${duration}-day guided self-study program`);
       setSalesBody(description || `Transform your understanding with this structured ${duration}-day home study program based on "${bookTitle}". Each day includes focused reading, practical exercises, guided reflection, and a concrete action plan.`);
