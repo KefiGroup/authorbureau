@@ -78,13 +78,10 @@ export default function ProgramSetupStep({ stepData, setStepData, onMarkEdited, 
     <div className="space-y-6">
       {/* Journey overview */}
       <Card className="p-5 border-border/60 bg-muted/30">
-        <h4 className="font-heading text-sm font-bold mb-3">🗺️ Your Home Study Builder Journey</h4>
+        <h4 className="font-heading text-sm font-bold mb-3">🗺️ How It Works</h4>
         <ol className="space-y-1.5 text-xs text-muted-foreground list-decimal list-inside">
-          <li><span className="font-medium text-foreground">Program Setup</span> — Abby analyzes your manuscript and designs the program structure, title, pricing, and curriculum.</li>
-          <li><span className="font-medium text-foreground">Daily Schedule</span> — Review and edit the day-by-day schedule with themes and chapter references.</li>
-          <li><span className="font-medium text-foreground">Daily Content</span> — Generate readings, exercises, reflections, and action plans for each day.</li>
-          <li><span className="font-medium text-foreground">Materials & Packaging</span> — Finalize downloadable assets and supplementary materials.</li>
-          <li><span className="font-medium text-foreground">Preview & Publish</span> — Review everything and publish to your website.</li>
+          <li><span className="font-medium text-foreground">Program Setup</span> — Abby analyzes your manuscript and generates the full program: title, pricing, and all daily content.</li>
+          <li><span className="font-medium text-foreground">Edit & Publish</span> — Review every day's reading, exercise, reflection, and action plan. Edit anything, then publish.</li>
         </ol>
       </Card>
 
