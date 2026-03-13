@@ -477,6 +477,12 @@ export default function HomeStudyReviewView({
                       <p className="text-[10px] font-bold text-secondary uppercase tracking-wider mb-1">🪞 Reflection</p>
                       <p className="text-xs text-muted-foreground">{currentDay.reflection}</p>
                     </div>
+                    {currentDay.actionPlan && (
+                      <div className="p-3 bg-primary/5 rounded-lg border border-primary/10">
+                        <p className="text-[10px] font-bold text-primary uppercase tracking-wider mb-1">🎯 Action Plan</p>
+                        <p className="text-xs text-muted-foreground whitespace-pre-line">{currentDay.actionPlan}</p>
+                      </div>
+                    )}
                     <div className="flex items-center gap-2 pt-2">
                       <div className="w-5 h-5 rounded border-2 border-muted-foreground/20" />
                       <span className="text-xs text-muted-foreground">I completed Day {currentDay.dayNumber}</span>

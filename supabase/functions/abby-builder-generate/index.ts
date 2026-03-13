@@ -80,7 +80,7 @@ DESIGN:
 1. PROGRAM_TITLE: 3 options. Pattern: "[Duration]-Day [Outcome] Challenge" or "The [Book] Study Guide"
 2. DURATION: 7, 14, 21, or 30 days based on book content depth
 3. DAILY_COMMITMENT: 15-30 minutes per day
-4. DAILY_SCHEDULE: For each day: theme, reading assignment, key concept, exercise, reflection prompt
+4. DAILY_SCHEDULE: For each day: theme, reading assignment, key concept, exercise, reflection prompt, action plan (3-5 concrete tasks to apply the lesson today)
 5. PRICING: If tripwire ($27-$47) or standalone ($97-$147)
 6. UPSELL_PATHWAY: What comes after completion
 7. MATERIALS: Progress tracker, daily emails, completion certificate
