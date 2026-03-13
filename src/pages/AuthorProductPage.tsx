@@ -539,14 +539,19 @@ export default function AuthorProductPage() {
               <div className="flex flex-col sm:flex-row items-center gap-3 justify-center md:justify-start">
                 <button
                   onClick={() => {
-                    const el = document.getElementById("product-cta-bottom");
-                    if (el) el.scrollIntoView({ behavior: "smooth" });
-                    else setContactOpen(true);
+                    if (product.price != null && product.price > 0 && ["homestudy", "onlinecourse", "workbook", "audiobook"].includes(pType)) {
+                      handleBuyNow();
+                    } else {
+                      const el = document.getElementById("product-cta-bottom");
+                      if (el) el.scrollIntoView({ behavior: "smooth" });
+                      else setContactOpen(true);
+                    }
                   }}
-                  className="font-bold text-base px-8 py-3.5 rounded-lg transition-all hover:scale-105 hover:brightness-110"
+                  disabled={buying}
+                  className="font-bold text-base px-8 py-3.5 rounded-lg transition-all hover:scale-105 hover:brightness-110 disabled:opacity-60"
                   style={{ background: v.accent, color: v.accentText, boxShadow: `0 4px 12px ${v.accent}4D` }}
                 >
-                  {ctaText}
+                  {buying ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : ctaText}
                 </button>
                 <button
                   onClick={() => document.getElementById("product-details")?.scrollIntoView({ behavior: "smooth" })}
