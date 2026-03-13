@@ -346,6 +346,87 @@ Deno.serve(async (req) => {
         });
       }
 
+      /* ─── DELETE PRODUCT ───────────────────────────────────── */
+      if (action === "delete-product") {
+        const { productId, table, nodeId: deleteNodeId, bookId: deleteBookId } = body;
+        if (!productId || !table) {
+          return new Response(JSON.stringify({ error: "productId and table required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        let resolvedBookId: string | null = deleteBookId || null;
+        let resolvedNodeId: string | null = deleteNodeId || null;
+
+        if (table === "generated_assets") {
+          const { data: asset } = await cloudAdmin
+            .from("generated_assets")
+            .select("id, author_id, book_id, asset_type")
+            .eq("id", productId)
+            .maybeSingle();
+
+          if (!asset || !allUserIds.includes(asset.author_id)) {
+            return new Response(JSON.stringify({ error: "Product not found or unauthorized" }), {
+              status: 403,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+
+          resolvedBookId = resolvedBookId || asset.book_id;
+          if (!resolvedNodeId && typeof asset.asset_type === "string" && asset.asset_type.startsWith("builder_draft_")) {
+            resolvedNodeId = asset.asset_type.replace("builder_draft_", "");
+          }
+
+          const { error: deleteErr } = await cloudAdmin
+            .from("generated_assets")
+            .delete()
+            .eq("id", productId);
+          if (deleteErr) throw deleteErr;
+        } else {
+          const { data: product } = await cloudAdmin
+            .from(table)
+            .select("id, author_id, book_id")
+            .eq("id", productId)
+            .maybeSingle();
+
+          if (!product || !allUserIds.includes(product.author_id)) {
+            return new Response(JSON.stringify({ error: "Product not found or unauthorized" }), {
+              status: 403,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+
+          resolvedBookId = resolvedBookId || product.book_id || null;
+          resolvedNodeId = resolvedNodeId || Object.entries(NODE_DB_TABLES).find(([, t]) => t === table)?.[0] || null;
+
+          const { error: deleteErr } = await cloudAdmin
+            .from(table)
+            .delete()
+            .eq("id", productId);
+          if (deleteErr) throw deleteErr;
+        }
+
+        if (resolvedNodeId && resolvedBookId) {
+          const { error: cleanupErr } = await cloudAdmin
+            .from("generated_assets")
+            .delete()
+            .eq("book_id", resolvedBookId)
+            .in("author_id", allUserIds)
+            .in("asset_type", [
+              `builder_draft_${resolvedNodeId}`,
+              `builder_content_${resolvedNodeId}`,
+              `builder_sales_page_${resolvedNodeId}`,
+            ]);
+
+          if (cleanupErr) throw cleanupErr;
+        }
+
+        return new Response(JSON.stringify({ ok: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       /* ─── PUBLISH PRODUCT ──────────────────────────────────── */
       if (action === "publish-product") {
         const { productId, table } = body;
