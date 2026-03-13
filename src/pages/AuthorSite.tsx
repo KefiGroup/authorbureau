@@ -117,6 +117,82 @@ const SOCIAL_LINKS = [
 
 /* ThemeStyle removed — now handled by AuthorPageLayout */
 
+/* ---------- Anchor Nav ---------- */
+const ANCHOR_ITEMS = [
+  { id: "about", label: "About", key: "hasBio" },
+  { id: "books-section", label: "Books", key: "hasBooks" },
+  { id: "services", label: "Services", key: "hasServices" },
+  { id: "products", label: "Products", key: "hasProducts" },
+  { id: "subscribe-section", label: "Contact", key: "always" },
+] as const;
+
+function AnchorNav({ hasBio, hasBooks, hasServices, hasProducts }: {
+  hasBio: boolean; hasBooks: boolean; hasServices: boolean; hasProducts: boolean;
+}) {
+  const flags: Record<string, boolean> = { hasBio, hasBooks, hasServices, hasProducts, always: true };
+  const visibleItems = ANCHOR_ITEMS.filter(item => flags[item.key]);
+  const [activeId, setActiveId] = useState<string>("");
+
+  useEffect(() => {
+    if (visibleItems.length < 3) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.filter(e => e.isIntersecting);
+        if (visible.length > 0) {
+          setActiveId(visible[0].target.id);
+        }
+      },
+      { rootMargin: "-120px 0px -60% 0px", threshold: 0 }
+    );
+    visibleItems.forEach(item => {
+      const el = document.getElementById(item.id);
+      if (el) observer.observe(el);
+    });
+    return () => observer.disconnect();
+  }, [visibleItems.length]);
+
+  if (visibleItems.length < 3) return null;
+
+  return (
+    <nav
+      className="sticky z-[90] overflow-x-auto scrollbar-none"
+      style={{
+        top: "64px",
+        background: "var(--theme-card-bg)",
+        borderBottom: "1px solid var(--theme-card-border)",
+      }}
+    >
+      <div className="container max-w-5xl flex items-center gap-8 whitespace-nowrap py-0">
+        {visibleItems.map(item => {
+          const isActive = activeId === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => {
+                const el = document.getElementById(item.id);
+                if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+              className="relative py-3 text-[0.9rem] transition-colors shrink-0"
+              style={{
+                color: isActive ? "var(--theme-accent)" : "var(--theme-muted-text)",
+                fontWeight: isActive ? 700 : 500,
+              }}
+            >
+              {item.label}
+              {isActive && (
+                <span
+                  className="absolute bottom-0 left-0 right-0 h-[2px]"
+                  style={{ background: "var(--theme-accent)" }}
+                />
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
+
 /* ============================================ */
 export default function AuthorSite() {
   const { authorSlug } = useParams<{ authorSlug: string }>();
