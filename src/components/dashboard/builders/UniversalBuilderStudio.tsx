@@ -634,7 +634,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
               return (
                 <div key={step.id} className="flex items-center">
                   <button
-                    onClick={() => { handleSaveDraft(true); setCurrentStep(idx); }}
+                    onClick={() => goToStep(idx)}
                     className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
                       isCurrent
                         ? "bg-secondary text-secondary-foreground"
