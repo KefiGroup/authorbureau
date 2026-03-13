@@ -37,6 +37,34 @@ interface HomeStudyReviewViewProps {
   onPublished: () => void;
 }
 
+const getActionPlanFallback = (day: Partial<StudyDay>) => {
+  const reading = day.reading || day.chapterRef || "today's assigned chapter";
+  const exercise = day.exercise || "Complete today's exercise";
+  const reflection = day.reflection || "Write your daily reflection";
+
+  const exerciseShort = exercise.split(/[.!?\n]/).find(Boolean)?.trim() || exercise;
+  const reflectionShort = reflection.split(/[!?\n]/).find(Boolean)?.trim() || reflection;
+
+  return [
+    `- [ ] Complete today's reading: ${reading}`,
+    `- [ ] Do today's exercise: ${exerciseShort}`,
+    `- [ ] Journal your reflection: ${reflectionShort}`,
+  ].join("\n");
+};
+
+const normalizeStudyDay = (day: StudyDay): StudyDay => {
+  const actionPlan =
+    (day as any).actionPlan ||
+    (day as any).action_plan ||
+    (day as any).actionItems ||
+    (day as any).action_items ||
+    "";
+
+  return {
+    ...day,
+    actionPlan: String(actionPlan).trim() || getActionPlanFallback(day),
+  };
+};
 
 export default function HomeStudyReviewView({
   productId, bookId, bookTitle, productTitle, productTable, onBack, onPublished,
@@ -160,7 +188,7 @@ export default function HomeStudyReviewView({
 
       setRawDraftContent(nextRawDraftContent);
       setSetup(mergedSetup);
-      setDays(nextDays);
+      setDays(nextDays.map(normalizeStudyDay));
       setFullCourseMarkdown(markdownFallback);
       setSalesPageMarkdown(salesPageRaw || "");
       setTitle(mergedSetup.title || productTitle);
