@@ -662,6 +662,19 @@ export default function AuthorProductPage() {
         </section>
       )}
 
+      {/* ===== SALES PAGE CONTENT (from generated assets) ===== */}
+      {salesPageContent && (
+        <section className="py-14" style={{ background: v.cardBg }}>
+          <div className="container max-w-3xl">
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
+              <div className="prose prose-sm max-w-none" style={{ color: v.bodyText }}>
+                <ProductMarkdown content={salesPageContent} />
+              </div>
+            </motion.div>
+          </div>
+        </section>
+      )}
+
       {/* ===== SECTION 5: BASED ON THE BOOK ===== */}
       {book && (
         <section className="py-14" style={{ background: v.secondaryBg }}>
