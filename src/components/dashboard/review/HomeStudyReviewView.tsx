@@ -194,6 +194,15 @@ export default function HomeStudyReviewView({
   };
 
   const handlePublish = async () => {
+    if (!canPublish) {
+      toast({
+        title: "Home Study content is incomplete",
+        description: "Generate your daily lessons in the Home Study Builder before publishing.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setPublishing(true);
     try {
       const token = await getActiveToken();
