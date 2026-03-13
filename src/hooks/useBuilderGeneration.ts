@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { executeCrossBuilderPushes } from "@/lib/cross-builder-push";
 import { getPushesForBuilder } from "@/lib/cross-builder-registry";
+import { getActiveToken } from "@/lib/get-active-token";
 
 /**
  * Robust split of AI output into sales page and content.
@@ -145,8 +146,41 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
   const abortRef = useRef<AbortController | null>(null);
 
   const getToken = async (): Promise<string> => {
-    const { data } = await supabase.auth.getSession();
-    return data?.session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const token = await getActiveToken();
+    if (!token) throw new Error("Not authenticated. Please sign in again.");
+    return token;
+  };
+
+  const getFunctionsBaseUrl = () => {
+    const url = (supabase as any)?.supabaseUrl || import.meta.env.VITE_SUPABASE_URL;
+    if (!url) throw new Error("Backend URL is missing");
+    return url;
+  };
+
+  const fetchBuilderEndpoint = async (payload: Record<string, any>, signal?: AbortSignal) => {
+    const token = await getToken();
+    const baseUrl = getFunctionsBaseUrl();
+
+    let lastError: unknown = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        return await fetch(`${baseUrl}/functions/v1/abby-builder-generate`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+          signal,
+        });
+      } catch (err: any) {
+        lastError = err;
+        if (signal?.aborted || err?.name === "AbortError") throw err;
+        if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+
+    throw lastError instanceof Error ? lastError : new Error("Failed to reach Abby service");
   };
 
   // ── ACT 1: Analyze ─────────────────────────────────────────────
@@ -154,18 +188,12 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
     setState({ act: "act1_loading", proposal: null, generatedContent: "", generatedSalesPage: "", error: null, pushResult: null });
 
     try {
-      const token = await getToken();
-      const resp = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/abby-builder-generate`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ act: 1, builderId, bookId, builderLabel }),
-        }
-      );
+      const resp = await fetchBuilderEndpoint({
+        act: 1,
+        builderId,
+        bookId,
+        builderLabel,
+      });
 
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({ error: "Unknown error" }));
@@ -187,8 +215,11 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
       toast({ title: "Abby's proposal is ready!", description: "Review and approve to generate all content." });
     } catch (err: any) {
       console.error("Act 1 error:", err);
-      setState(prev => ({ ...prev, act: "error", error: err.message }));
-      toast({ title: "Analysis failed", description: err.message, variant: "destructive" });
+      const message = err?.message?.toLowerCase?.().includes("failed to fetch")
+        ? "Connection issue while reaching Abby. Please retry."
+        : err.message;
+      setState(prev => ({ ...prev, act: "error", error: message }));
+      toast({ title: "Analysis failed", description: message, variant: "destructive" });
     }
   }, [builderId, builderLabel, toast]);
 
@@ -200,24 +231,15 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
     abortRef.current = controller;
 
     try {
-      const token = await getToken();
-      const resp = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/abby-builder-generate`,
+      const resp = await fetchBuilderEndpoint(
         {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            act: 3,
-            builderId,
-            bookId,
-            builderLabel,
-            approvedProposal,
-          }),
-          signal: controller.signal,
-        }
+          act: 3,
+          builderId,
+          bookId,
+          builderLabel,
+          approvedProposal,
+        },
+        controller.signal,
       );
 
       if (!resp.ok) {
@@ -373,8 +395,11 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
     } catch (err: any) {
       if (err.name === "AbortError") return;
       console.error("Act 3 error:", err);
-      setState(prev => ({ ...prev, act: "error", error: err.message }));
-      toast({ title: "Generation failed", description: err.message, variant: "destructive" });
+      const message = err?.message?.toLowerCase?.().includes("failed to fetch")
+        ? "Connection issue while reaching Abby. Please retry."
+        : err.message;
+      setState(prev => ({ ...prev, act: "error", error: message }));
+      toast({ title: "Generation failed", description: message, variant: "destructive" });
     }
   }, [builderId, builderLabel, toast]);
 
