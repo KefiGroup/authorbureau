@@ -515,20 +515,20 @@ export default function HomeStudyReviewView({
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">📄 Sales Page</p>
                       <div className="prose prose-sm dark:prose-invert max-w-none">
-                        <MarkdownRenderer content={salesPageMarkdown} />
+                        <MarkdownRenderer content={effectiveSalesPage} />
                       </div>
                     </div>
                     <Separator />
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">📚 Home Study Content</p>
                       <div className="prose prose-sm dark:prose-invert max-w-none">
-                        <MarkdownRenderer content={fullCourseMarkdown} />
+                        <MarkdownRenderer content={effectiveContent} />
                       </div>
                     </div>
                   </div>
                 ) : (
                   <div className="prose prose-sm dark:prose-invert max-w-none">
-                    <MarkdownRenderer content={fullCourseMarkdown} />
+                    <MarkdownRenderer content={effectiveContent} />
                   </div>
                 )
               ) : (
