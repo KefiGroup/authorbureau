@@ -994,10 +994,18 @@ export default function AuthorProductPage() {
             </span>
           </div>
           <button
-            className="rounded-full font-bold px-5 py-2 text-sm"
+            onClick={() => {
+              if (["homestudy", "onlinecourse", "workbook", "audiobook"].includes(pType)) {
+                handleBuyNow();
+              } else {
+                setContactOpen(true);
+              }
+            }}
+            disabled={buying}
+            className="rounded-full font-bold px-5 py-2 text-sm disabled:opacity-60"
             style={{ background: v.accent, color: v.accentText }}
           >
-            {ctaText}
+            {buying ? <Loader2 className="h-4 w-4 animate-spin" /> : ctaText}
           </button>
         </div>
       )}
