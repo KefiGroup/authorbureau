@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { toast } from "@/hooks/use-toast";
-import { getThemeById, getThemeFontsUrl, type AuthorTheme } from "@/lib/author-themes";
+import { getThemeById, type AuthorTheme } from "@/lib/author-themes";
+import AuthorPageLayout from "@/components/public/AuthorPageLayout";
 import NotFound from "./NotFound";
 
 type ProductType = "homestudy" | "onlinecourse" | "workbook" | "coaching" | "audiobook" | "podcast" | "book";
