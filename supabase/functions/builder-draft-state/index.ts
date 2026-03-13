@@ -491,6 +491,7 @@ Deno.serve(async (req) => {
         content_markdown?: string;
         duration_days?: number;
         price?: number | null;
+        study_schedule_json?: any;
       };
 
       const title = (payload.title || "").trim() || `${bookId} — Home Study Course`;
@@ -504,6 +505,17 @@ Deno.serve(async (req) => {
         : Number(payload.price);
       const price = Number.isFinite(parsedPrice as number) ? parsedPrice : null;
 
+      // Parse content_markdown as JSON to extract structured days for study_schedule_json
+      let study_schedule_json = payload.study_schedule_json || null;
+      if (!study_schedule_json && content_markdown) {
+        try {
+          const parsed = JSON.parse(content_markdown);
+          if (Array.isArray(parsed)) {
+            study_schedule_json = { days: parsed };
+          }
+        } catch { /* not JSON, that's fine */ }
+      }
+
       const { data: existing, error: fetchErr } = await cloudAdmin
         .from("home_study_courses")
         .select("id")
@@ -513,7 +525,7 @@ Deno.serve(async (req) => {
 
       if (fetchErr) throw fetchErr;
 
-      const productRecord = {
+      const productRecord: Record<string, any> = {
         author_id: book.author_id,
         book_id: bookId,
         title,
@@ -523,6 +535,9 @@ Deno.serve(async (req) => {
         duration_days,
         price,
       };
+      if (study_schedule_json) {
+        productRecord.study_schedule_json = study_schedule_json;
+      }
 
       if (existing?.id) {
         const { error: updateErr } = await cloudAdmin
