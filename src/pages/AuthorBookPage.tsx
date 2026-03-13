@@ -679,19 +679,8 @@ export default function AuthorBookPage() {
         </div>
       )}
 
-      {/* ===== FOOTER ===== */}
-      <footer className="py-8" style={{ background: `hsl(${c.footerBackground})`, color: `hsl(${c.footerForeground})` }}>
-        <div className="container max-w-5xl flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
-          <span>&copy; {new Date().getFullYear()} {authorName}. All rights reserved.</span>
-          <span>
-            Powered by{" "}
-            <Link to="/" className="hover:underline font-medium" style={{ color: `hsl(${c.accent})` }}>Authors Bureau</Link>
-          </span>
-        </div>
-      </footer>
-
       {/* Bottom padding for sticky CTA on mobile */}
       {book.amazon_url && <div className="h-16 md:hidden" />}
-    </div>
+    </AuthorPageLayout>
   );
 }
