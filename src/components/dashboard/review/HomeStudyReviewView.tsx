@@ -55,12 +55,7 @@ export default function HomeStudyReviewView({
   const [commitment, setCommitment] = useState("30");
   const [level, setLevel] = useState("Beginner");
 
-  useEffect(() => {
-    if (!user) return;
-    void loadContent();
-  }, [user, bookId, productId, productTable, productTitle]);
-
-  const loadContent = async () => {
+  const loadContent = useCallback(async () => {
     if (!user) return;
     setLoading(true);
 
