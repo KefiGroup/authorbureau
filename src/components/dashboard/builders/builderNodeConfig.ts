@@ -955,6 +955,24 @@ const trainingProgramsBuilder: BuilderNodeConfig = {
   ],
 };
 
+// ─── Auto-assign 3-Act phases to all steps ─────────────────────────
+function assignActPhases(node: BuilderNodeConfig): BuilderNodeConfig {
+  const steps = node.steps.map((step, i) => {
+    if (step.act) return step; // already assigned
+    const total = node.steps.length;
+    let act: 1 | 2 | 3;
+    if (i === 0) {
+      act = 1; // First step is always Act 1 (Analyse)
+    } else if (i === total - 1) {
+      act = 3; // Last step is always Act 3 (Bridge/Yield)
+    } else {
+      act = 2; // Middle steps are Act 2 (Build)
+    }
+    return { ...step, act };
+  });
+  return { ...node, steps };
+}
+
 // ─── EXPORT ALL NODES ────────────────────────────────────────────────
 
 export const ALL_BUILDER_NODES: BuilderNodeConfig[] = [
@@ -995,7 +1013,7 @@ export const ALL_BUILDER_NODES: BuilderNodeConfig[] = [
   whitelabelBuilder,
   eventsBuilder,
   franchiseBuilder,
-];
+].map(assignActPhases);
 
 export const BUILDER_NODE_MAP: Record<string, BuilderNodeConfig> = {};
 ALL_BUILDER_NODES.forEach((n) => {

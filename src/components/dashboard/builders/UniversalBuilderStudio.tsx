@@ -755,16 +755,16 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                           <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
                             {currentStepConfig.description}
                           </p>
-                          {builderGen.act === "idle" && (currentStepConfig.id === "generate" || currentStepConfig.id === "script" || currentStepConfig.id === "curriculum" || currentStepConfig.id === "foundation") ? (
+                          {builderGen.act === "idle" && currentStep === 0 ? (
                             <Button
                               className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90"
                               onClick={() => builderGen.startAct1(bookId)}
                             >
-                              <Sparkles className="h-4 w-4 mr-2" /> Generate with AI
+                              <Sparkles className="h-4 w-4 mr-2" /> Analyze with Abby
                             </Button>
                           ) : builderGen.act === "idle" ? (
                             <p className="text-xs text-muted-foreground/50">
-                              Builder step content will be populated by AI generation
+                              Complete Step 1 with Abby to populate this content
                             </p>
                           ) : null}
                         </div>
