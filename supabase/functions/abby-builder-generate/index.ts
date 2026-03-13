@@ -84,7 +84,13 @@ DESIGN:
 5. PRICING: If tripwire ($27-$47) or standalone ($97-$147)
 6. UPSELL_PATHWAY: What comes after completion
 7. MATERIALS: Progress tracker, daily emails, completion certificate
-8. CROSS_BUILDER_PREVIEW: Daily emails→Email, sales page→Website, exercises→Workbook`,
+8. CROSS_BUILDER_PREVIEW: Daily emails→Email, sales page→Website
+
+IMPORTANT — WORKBOOK REFERENCES:
+- Do NOT include a free downloadable workbook or companion workbook as part of this course.
+- The Workbook is a SEPARATE purchasable product in the author's ecosystem.
+- If you mention a workbook, frame it as a recommended add-on purchase: "Get the companion workbook to deepen your results" with a call-to-action to buy it separately.
+- Never say "Download Your Workbook Here" or provide a download link for a workbook.`,
 
   "audiobook": `You are Abby, expert in audiobook production. Prepare this manuscript for audiobook production.
 
