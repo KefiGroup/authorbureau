@@ -1,15 +1,15 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Globe, Copy, CheckCircle2, ExternalLink, BookOpen,
-  GraduationCap, Users, Headphones, Loader2, Palette, Check,
+  GraduationCap, Users, Headphones, Loader2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { AUTHOR_THEMES, getThemeById, type AuthorTheme } from "@/lib/author-themes";
+import SiteThemePicker from "@/components/dashboard/SiteThemePicker";
 
 /* ---------- Types ---------- */
 interface BookProduct {
@@ -46,8 +46,6 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
   const [loading, setLoading] = useState(true);
   const [urlCopied, setUrlCopied] = useState(false);
   const [customDomain, setCustomDomain] = useState("");
-  const [selectedTheme, setSelectedTheme] = useState("classic-elegant");
-  const [savingTheme, setSavingTheme] = useState(false);
 
   const authorSlug = profileData?.author_slug || "your-slug";
   const siteUrl = `https://authorsbureau.com/${authorSlug}`;
@@ -69,7 +67,6 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
 
     const profile = profileRes.data;
     setProfileData(profile);
-    if (profile?.site_theme) setSelectedTheme(profile.site_theme);
     if (profile?.website_url) setCustomDomain(profile.website_url.replace(/^https?:\/\//, ""));
 
     const books = (booksRes.data || []) as any[];
@@ -88,7 +85,6 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
       return { ...book, products };
     });
 
-    // Attach coaching to first book
     if (coaching.length > 0 && enriched.length > 0) {
       coaching.forEach((p: any) => {
         enriched[0].products.push({ id: p.id, title: p.title, type: "coaching", status: p.status, route: "coaching" });
@@ -97,21 +93,6 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
 
     setBooksWithStatus(enriched);
     setLoading(false);
-  }
-
-  async function saveTheme(themeId: string) {
-    setSelectedTheme(themeId);
-    setSavingTheme(true);
-    const { error } = await supabase
-      .from("author_profiles")
-      .update({ site_theme: themeId } as any)
-      .eq("user_id", user!.id);
-    setSavingTheme(false);
-    if (error) {
-      toast({ title: "Error saving theme", variant: "destructive" });
-    } else {
-      toast({ title: "Theme updated! Your site will reflect this immediately." });
-    }
   }
 
   async function saveDomain() {
@@ -128,8 +109,6 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
     }
   }
 
-  const currentTheme = useMemo(() => getThemeById(selectedTheme), [selectedTheme]);
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -139,9 +118,6 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
   }
 
   const isLive = profileData?.directory_status === "listed" || profileData?.directory_status === "featured";
-  const publishedBooks = booksWithStatus.filter((b) =>
-    booksWithStatus.length > 0 // all books show
-  );
 
   return (
     <div className="max-w-6xl space-y-6">
@@ -299,55 +275,8 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
             )}
           </Card>
 
-          {/* Theme Picker */}
-          <Card className="p-4 border-border">
-            <div className="flex items-center gap-2 mb-3">
-              <Palette className="h-4 w-4 text-secondary" />
-              <h3 className="font-heading font-bold text-sm">Look & Feel</h3>
-            </div>
-            <p className="text-[10px] text-muted-foreground mb-3">
-              Choose a style that matches your genre and brand.
-            </p>
-
-            <div className="grid grid-cols-2 gap-2 max-h-[400px] overflow-y-auto pr-1">
-              {AUTHOR_THEMES.map((theme) => {
-                const isActive = selectedTheme === theme.id;
-                return (
-                  <button
-                    key={theme.id}
-                    onClick={() => saveTheme(theme.id)}
-                    className={`relative text-left p-2.5 rounded-lg border transition-all ${
-                      isActive
-                        ? "border-secondary ring-2 ring-secondary/20"
-                        : "border-border hover:border-secondary/40"
-                    }`}
-                  >
-                    {isActive && (
-                      <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-secondary flex items-center justify-center">
-                        <Check className="h-2.5 w-2.5 text-secondary-foreground" />
-                      </div>
-                    )}
-
-                    {/* Mini color swatch */}
-                    <div className="flex gap-1 mb-2">
-                      <div className="w-5 h-5 rounded-full" style={{ background: `hsl(${theme.colors.heroBackground})` }} />
-                      <div className="w-5 h-5 rounded-full" style={{ background: `hsl(${theme.colors.accent})` }} />
-                      <div className="w-5 h-5 rounded-full border border-border" style={{ background: `hsl(${theme.colors.sectionAlt})` }} />
-                    </div>
-
-                    <p className="text-[11px] font-semibold leading-tight">{theme.name}</p>
-                    <p className="text-[9px] text-muted-foreground leading-tight mt-0.5">{theme.genre}</p>
-                  </button>
-                );
-              })}
-            </div>
-
-            {savingTheme && (
-              <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                <Loader2 className="h-3 w-3 animate-spin" /> Saving...
-              </div>
-            )}
-          </Card>
+          {/* Theme Picker — shared component */}
+          <SiteThemePicker />
         </div>
       </div>
     </div>
