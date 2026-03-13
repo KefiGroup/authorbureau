@@ -489,6 +489,11 @@ export default function AuthorProductPage() {
               {/* CTAs */}
               <div className="flex flex-col sm:flex-row items-center gap-3 justify-center md:justify-start">
                 <button
+                  onClick={() => {
+                    const el = document.getElementById("product-cta-bottom");
+                    if (el) el.scrollIntoView({ behavior: "smooth" });
+                    else setContactOpen(true);
+                  }}
                   className="font-bold text-base px-8 py-3.5 rounded-lg transition-all hover:scale-105 hover:brightness-110"
                   style={{ background: v.accent, color: v.accentText, boxShadow: `0 4px 12px ${v.accent}4D` }}
                 >
