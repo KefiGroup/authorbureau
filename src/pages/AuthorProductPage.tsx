@@ -3,7 +3,9 @@ import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowRight, Clock, BookOpen, GraduationCap, Users,
-  Headphones, Mic, Loader2, Star, Mail, CheckCircle2, Check
+  Headphones, Mic, Loader2, Star, Mail, CheckCircle2, Check,
+  Briefcase, Brain, Target, Mountain, Award, Presentation,
+  KeyRound, Video, Sparkles, Ticket
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -16,24 +18,58 @@ import AuthorBrandedNav from "@/components/public/AuthorBrandedNav";
 import BookProductNav, { getProductTabMeta } from "@/components/public/BookProductNav";
 import NotFound from "./NotFound";
 
-type ProductType = "homestudy" | "onlinecourse" | "workbook" | "coaching" | "audiobook" | "podcast" | "book";
+type ProductType =
+  | "homestudy" | "onlinecourse" | "workbook" | "coaching" | "audiobook" | "podcast" | "book"
+  | "group_coaching" | "consulting" | "mastermind" | "speaking" | "keynote" | "training"
+  | "webinar" | "membership" | "retreat" | "bootcamp" | "certification" | "convention"
+  | "special_edition" | "big_ticket" | "coaching_membership";
 
-const PRODUCT_CONFIG: Record<ProductType, { table: string; label: string; icon: any; statusField: string; statusValue: string }> = {
+const PRODUCT_CONFIG: Record<ProductType, { table: string; label: string; icon: any; statusField: string; statusValue: string; typeFilter?: string }> = {
   homestudy: { table: "home_study_courses", label: "Home Study Course", icon: BookOpen, statusField: "status", statusValue: "published" },
   onlinecourse: { table: "courses", label: "Online Course", icon: GraduationCap, statusField: "status", statusValue: "published" },
   workbook: { table: "home_study_courses", label: "Workbook", icon: BookOpen, statusField: "status", statusValue: "published" },
-  coaching: { table: "coaching_packages", label: "Coaching", icon: Users, statusField: "status", statusValue: "active" },
+  coaching: { table: "coaching_packages", label: "1-on-1 Coaching", icon: Target, statusField: "status", statusValue: "active", typeFilter: "one_on_one" },
+  group_coaching: { table: "coaching_packages", label: "Group Coaching", icon: Users, statusField: "status", statusValue: "active", typeFilter: "group" },
+  consulting: { table: "coaching_packages", label: "Consulting", icon: Briefcase, statusField: "status", statusValue: "active", typeFilter: "consulting" },
+  mastermind: { table: "coaching_packages", label: "Mastermind", icon: Brain, statusField: "status", statusValue: "active", typeFilter: "mastermind" },
+  big_ticket: { table: "coaching_packages", label: "Big Ticket", icon: Sparkles, statusField: "status", statusValue: "active", typeFilter: "big_ticket" },
+  coaching_membership: { table: "coaching_packages", label: "Coaching Membership", icon: KeyRound, statusField: "status", statusValue: "active", typeFilter: "coaching_membership" },
+  speaking: { table: "speaking_topics", label: "Speaking", icon: Presentation, statusField: "status", statusValue: "active" },
+  keynote: { table: "speaking_topics", label: "Keynote", icon: Presentation, statusField: "status", statusValue: "active" },
+  training: { table: "speaking_topics", label: "Corporate Training", icon: Presentation, statusField: "status", statusValue: "active" },
   audiobook: { table: "audiobooks", label: "Audiobook", icon: Headphones, statusField: "status", statusValue: "published" },
   podcast: { table: "podcasts", label: "Podcast", icon: Mic, statusField: "status", statusValue: "published" },
+  webinar: { table: "coaching_packages", label: "Webinar", icon: Video, statusField: "status", statusValue: "active", typeFilter: "webinar" },
+  membership: { table: "coaching_packages", label: "Membership", icon: KeyRound, statusField: "status", statusValue: "active", typeFilter: "membership" },
+  retreat: { table: "coaching_packages", label: "Retreat", icon: Mountain, statusField: "status", statusValue: "active", typeFilter: "retreat" },
+  bootcamp: { table: "coaching_packages", label: "Bootcamp", icon: Mountain, statusField: "status", statusValue: "active", typeFilter: "bootcamp" },
+  certification: { table: "coaching_packages", label: "Certification", icon: Award, statusField: "status", statusValue: "active", typeFilter: "certification" },
+  convention: { table: "coaching_packages", label: "Convention", icon: Ticket, statusField: "status", statusValue: "active", typeFilter: "convention" },
+  special_edition: { table: "books", label: "Special Edition", icon: Sparkles, statusField: "published_at", statusValue: "not_null" },
   book: { table: "books", label: "Book", icon: BookOpen, statusField: "published_at", statusValue: "not_null" },
 };
 
 const PRODUCT_ROUTE_MAP: Record<string, string> = {
   home_study_courses: "homestudy",
   courses: "onlinecourse",
-  coaching_packages: "coaching",
   audiobooks: "audiobook",
   podcasts: "podcast",
+};
+
+// Map coaching_packages.type to product route
+const COACHING_TYPE_TO_ROUTE: Record<string, string> = {
+  one_on_one: "coaching",
+  group: "group_coaching",
+  consulting: "consulting",
+  mastermind: "mastermind",
+  big_ticket: "big_ticket",
+  coaching_membership: "coaching_membership",
+  webinar: "webinar",
+  membership: "membership",
+  retreat: "retreat",
+  bootcamp: "bootcamp",
+  certification: "certification",
+  convention: "convention",
 };
 
 const fadeUp = {
@@ -159,13 +195,19 @@ export default function AuthorProductPage() {
     const bookId = bookRes.data.id;
 
     let query = supabase.from(config.table as any).select("*").eq("author_id", profile.user_id);
-    if (pType !== "coaching") {
+    // Only filter by book_id for book-linked tables (not coaching or speaking)
+    const noBookIdTables = ["coaching_packages", "speaking_topics"];
+    if (!noBookIdTables.includes(config.table)) {
       query = query.eq("book_id", bookId);
     }
     if (config.statusField === "published_at") {
       query = query.not("published_at", "is", null);
     } else {
       query = query.eq(config.statusField, config.statusValue);
+    }
+    // Apply type filter for coaching subtypes
+    if ((config as any).typeFilter && config.table === "coaching_packages") {
+      query = query.eq("type", (config as any).typeFilter);
     }
     const { data: productData } = await query.limit(1).maybeSingle();
 
@@ -174,24 +216,37 @@ export default function AuthorProductPage() {
 
     // Load all sibling products for BookProductNav + related products
     const tables = [
-      { table: "home_study_courses", status: "published", fields: "id, title, price, currency, description, cover_image_url" },
-      { table: "courses", status: "published", fields: "id, title, price, currency, description, cover_image_url" },
-      { table: "audiobooks", status: "published", fields: "id, title, price, currency, description" },
-      { table: "podcasts", status: "published", fields: "id, title, description" },
+      { table: "home_study_courses", status: "published", fields: "id, title, price, currency, description, cover_image_url", byBook: true },
+      { table: "courses", status: "published", fields: "id, title, price, currency, description, cover_image_url", byBook: true },
+      { table: "audiobooks", status: "published", fields: "id, title, price, currency, description", byBook: true },
+      { table: "podcasts", status: "published", fields: "id, title, description", byBook: true },
+      { table: "coaching_packages", status: "active", fields: "id, title, price, currency, description, type", byBook: false },
+      { table: "speaking_topics", status: "active", fields: "id, title, fee, fee_currency, description", byBook: false },
     ];
     const results = await Promise.all(
-      tables.map(t => supabase.from(t.table as any).select(t.fields).eq("book_id", bookId).eq("status", t.status))
+      tables.map(t => {
+        let q = supabase.from(t.table as any).select(t.fields).eq("author_id", profile.user_id).eq("status", t.status);
+        if (t.byBook) q = q.eq("book_id", bookId);
+        return q;
+      })
     );
 
     const relProds: any[] = [];
     const navTabs: { label: string; icon: string; route: string }[] = [];
     results.forEach((res, i) => {
       (res.data || []).forEach((p: any) => {
-        const route = PRODUCT_ROUTE_MAP[tables[i].table] || "";
+        let route = "";
+        if (tables[i].table === "coaching_packages") {
+          route = COACHING_TYPE_TO_ROUTE[p.type] || "coaching";
+        } else if (tables[i].table === "speaking_topics") {
+          route = "speaking";
+        } else {
+          route = PRODUCT_ROUTE_MAP[tables[i].table] || "";
+        }
         const meta = getProductTabMeta(route);
         navTabs.push({ label: meta.label, icon: meta.icon, route });
         if (route !== pType) {
-          relProds.push({ ...p, route, type: route });
+          relProds.push({ ...p, route, type: route, price: p.price || p.fee });
         }
       });
     });
