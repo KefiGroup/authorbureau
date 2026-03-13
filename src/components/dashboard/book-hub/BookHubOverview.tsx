@@ -472,6 +472,9 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
         />
       )}
 
+      {/* Website Theme Picker — choose look & feel early */}
+      <SiteThemePicker compact />
+
       {/* ABBY Framework Visual */}
       <ABBYFrameworkVisual
         hasConsultation={isAnalyzed}
