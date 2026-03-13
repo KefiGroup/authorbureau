@@ -153,6 +153,7 @@ Make content specific to the book topic and day theme. Return ONLY valid JSON.`,
             <TabsTrigger value="concept" className="text-xs">📖 Reading</TabsTrigger>
             <TabsTrigger value="exercise" className="text-xs">🏋️ Exercise</TabsTrigger>
             <TabsTrigger value="reflection" className="text-xs">🪞 Reflection</TabsTrigger>
+            <TabsTrigger value="actionPlan" className="text-xs">🎯 Action Plan</TabsTrigger>
             {hasAudio && <TabsTrigger value="audio" className="text-xs">🎙️ Audio Script</TabsTrigger>}
           </TabsList>
 
