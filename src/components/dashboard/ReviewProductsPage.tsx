@@ -191,6 +191,45 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
     }
   };
 
+  const handleDelete = async (product: DraftProduct) => {
+    if (!window.confirm(`Delete "${product.title}"? This will remove the generated draft and review record.`)) return;
+
+    setDeletingId(product.id);
+    try {
+      const token = await getActiveToken();
+      if (!token) throw new Error("Not authenticated");
+
+      const resp = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/builder-draft-state`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            action: "delete-product",
+            productId: product.id,
+            table: product.table,
+            nodeId: product.nodeId,
+            bookId: product.bookId,
+          }),
+        }
+      );
+
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result.error || "Delete failed");
+
+      setProducts((prev) => prev.filter((p) => p.id !== product.id));
+      toast({ title: "Draft deleted" });
+    } catch (err) {
+      toast({
+        title: "Delete failed",
+        description: err instanceof Error ? err.message : "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const handlePreview = async (product: DraftProduct) => {
     setPreviewProduct(product);
     setPreviewContent(null);
