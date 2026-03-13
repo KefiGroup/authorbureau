@@ -195,13 +195,19 @@ export default function AuthorProductPage() {
     const bookId = bookRes.data.id;
 
     let query = supabase.from(config.table as any).select("*").eq("author_id", profile.user_id);
-    if (pType !== "coaching") {
+    // Only filter by book_id for book-linked tables (not coaching or speaking)
+    const noBookIdTables = ["coaching_packages", "speaking_topics"];
+    if (!noBookIdTables.includes(config.table)) {
       query = query.eq("book_id", bookId);
     }
     if (config.statusField === "published_at") {
       query = query.not("published_at", "is", null);
     } else {
       query = query.eq(config.statusField, config.statusValue);
+    }
+    // Apply type filter for coaching subtypes
+    if ((config as any).typeFilter && config.table === "coaching_packages") {
+      query = query.eq("type", (config as any).typeFilter);
     }
     const { data: productData } = await query.limit(1).maybeSingle();
 
@@ -210,24 +216,37 @@ export default function AuthorProductPage() {
 
     // Load all sibling products for BookProductNav + related products
     const tables = [
-      { table: "home_study_courses", status: "published", fields: "id, title, price, currency, description, cover_image_url" },
-      { table: "courses", status: "published", fields: "id, title, price, currency, description, cover_image_url" },
-      { table: "audiobooks", status: "published", fields: "id, title, price, currency, description" },
-      { table: "podcasts", status: "published", fields: "id, title, description" },
+      { table: "home_study_courses", status: "published", fields: "id, title, price, currency, description, cover_image_url", byBook: true },
+      { table: "courses", status: "published", fields: "id, title, price, currency, description, cover_image_url", byBook: true },
+      { table: "audiobooks", status: "published", fields: "id, title, price, currency, description", byBook: true },
+      { table: "podcasts", status: "published", fields: "id, title, description", byBook: true },
+      { table: "coaching_packages", status: "active", fields: "id, title, price, currency, description, type", byBook: false },
+      { table: "speaking_topics", status: "active", fields: "id, title, fee, fee_currency, description", byBook: false },
     ];
     const results = await Promise.all(
-      tables.map(t => supabase.from(t.table as any).select(t.fields).eq("book_id", bookId).eq("status", t.status))
+      tables.map(t => {
+        let q = supabase.from(t.table as any).select(t.fields).eq("author_id", profile.user_id).eq("status", t.status);
+        if (t.byBook) q = q.eq("book_id", bookId);
+        return q;
+      })
     );
 
     const relProds: any[] = [];
     const navTabs: { label: string; icon: string; route: string }[] = [];
     results.forEach((res, i) => {
       (res.data || []).forEach((p: any) => {
-        const route = PRODUCT_ROUTE_MAP[tables[i].table] || "";
+        let route = "";
+        if (tables[i].table === "coaching_packages") {
+          route = COACHING_TYPE_TO_ROUTE[p.type] || "coaching";
+        } else if (tables[i].table === "speaking_topics") {
+          route = "speaking";
+        } else {
+          route = PRODUCT_ROUTE_MAP[tables[i].table] || "";
+        }
         const meta = getProductTabMeta(route);
         navTabs.push({ label: meta.label, icon: meta.icon, route });
         if (route !== pType) {
-          relProds.push({ ...p, route, type: route });
+          relProds.push({ ...p, route, type: route, price: p.price || p.fee });
         }
       });
     });

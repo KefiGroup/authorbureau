@@ -226,21 +226,42 @@ export default function AuthorBookPage() {
     setBook(bookData as unknown as Book);
 
     const bookId = bookData.id;
-    const [hsRes, cRes, abRes, podRes, otherBooksRes, allBooksRes, coachRes] = await Promise.all([
+    const [hsRes, cRes, abRes, podRes, otherBooksRes, allBooksRes, coachRes, speakRes] = await Promise.all([
       supabase.from("home_study_courses").select("id, title, price, currency, description").eq("book_id", bookId).eq("status", "published"),
       supabase.from("courses").select("id, title, price, currency, description").eq("book_id", bookId).eq("status", "published"),
       supabase.from("audiobooks").select("id, title, price, currency, description").eq("book_id", bookId).eq("status", "published"),
       supabase.from("podcasts").select("id, title, description").eq("book_id", bookId).eq("status", "published"),
       supabase.from("books").select("id, title, slug, cover_image_url").eq("author_id", profile.user_id).not("published_at", "is", null).neq("id", bookId).limit(4),
       supabase.from("books").select("slug, title, cover_image_url, genre").eq("author_id", profile.user_id).not("published_at", "is", null).order("created_at", { ascending: false }),
-      supabase.from("coaching_packages").select("id, title, price, currency, description").eq("author_id", profile.user_id).eq("status", "active"),
+      supabase.from("coaching_packages").select("id, title, price, currency, description, type").eq("author_id", profile.user_id).eq("status", "active"),
+      supabase.from("speaking_topics").select("id, title, fee, fee_currency, description").eq("author_id", profile.user_id).eq("status", "active"),
     ]);
+
+    const COACHING_TYPE_TO_ROUTE: Record<string, string> = {
+      one_on_one: "coaching",
+      group: "group_coaching",
+      consulting: "consulting",
+      mastermind: "mastermind",
+      big_ticket: "big_ticket",
+      coaching_membership: "coaching_membership",
+      webinar: "webinar",
+      membership: "membership",
+      retreat: "retreat",
+      bootcamp: "bootcamp",
+      certification: "certification",
+      convention: "convention",
+    };
 
     const prods: ProductLink[] = [];
     (hsRes.data || []).forEach((p: any) => prods.push({ type: "homestudy", title: p.title, route: "homestudy", price: p.price ? `$${p.price}` : undefined, description: p.description }));
     (cRes.data || []).forEach((p: any) => prods.push({ type: "onlinecourse", title: p.title, route: "onlinecourse", price: p.price ? `$${p.price}` : undefined, description: p.description }));
     (abRes.data || []).forEach((p: any) => prods.push({ type: "audiobook", title: p.title, route: "audiobook", price: p.price ? `$${p.price}` : undefined, description: p.description }));
     (podRes.data || []).forEach((p: any) => prods.push({ type: "podcast", title: p.title, route: "podcast", description: p.description }));
+    (coachRes.data || []).forEach((p: any) => {
+      const route = COACHING_TYPE_TO_ROUTE[p.type] || "coaching";
+      prods.push({ type: route, title: p.title, route, price: p.price ? `$${p.price}` : undefined, description: p.description });
+    });
+    (speakRes.data || []).forEach((p: any) => prods.push({ type: "speaking", title: p.title, route: "speaking", price: p.fee ? `$${p.fee}` : undefined, description: p.description }));
 
     setProducts(prods);
     setOtherBooks((otherBooksRes.data || []) as OtherBook[]);
