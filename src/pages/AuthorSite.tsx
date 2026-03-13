@@ -103,17 +103,20 @@ export default function AuthorSite() {
     // Fetch books and products in parallel
     const [booksRes, homeStudyRes, coursesRes, coachingRes] = await Promise.all([
       supabase.from("books").select("*").eq("author_id", profile.user_id).not("published_at", "is", null).order("created_at", { ascending: false }),
-      supabase.from("home_study_courses").select("id, title, description, price, currency, cover_image_url").eq("author_id", profile.user_id).eq("status", "published"),
-      supabase.from("courses").select("id, title, description, price, currency, cover_image_url").eq("author_id", profile.user_id).eq("status", "published"),
+      supabase.from("home_study_courses").select("id, title, description, price, currency, cover_image_url, book_id, books!home_study_courses_book_id_fkey(slug)").eq("author_id", profile.user_id).eq("status", "published"),
+      supabase.from("courses").select("id, title, description, price, currency, cover_image_url, book_id, books!courses_book_id_fkey(slug)").eq("author_id", profile.user_id).eq("status", "published"),
       supabase.from("coaching_packages").select("id, title, description, price, currency").eq("author_id", profile.user_id).eq("status", "active"),
     ]);
 
     setBooks((booksRes.data || []) as BookData[]);
 
+    // Get first book slug for coaching (fallback)
+    const firstBookSlug = (booksRes.data && booksRes.data.length > 0) ? (booksRes.data[0] as any).slug : "";
+
     const allProducts: ProductData[] = [
-      ...(homeStudyRes.data || []).map((p: any) => ({ ...p, type: "home_study" as const, slug: "homestudy" })),
-      ...(coursesRes.data || []).map((p: any) => ({ ...p, type: "course" as const, slug: "onlinecourse" })),
-      ...(coachingRes.data || []).map((p: any) => ({ ...p, type: "coaching" as const, slug: "coaching" })),
+      ...(homeStudyRes.data || []).map((p: any) => ({ ...p, type: "home_study" as const, slug: "homestudy", book_slug: p.books?.slug || "" })),
+      ...(coursesRes.data || []).map((p: any) => ({ ...p, type: "course" as const, slug: "onlinecourse", book_slug: p.books?.slug || "" })),
+      ...(coachingRes.data || []).map((p: any) => ({ ...p, type: "coaching" as const, slug: "coaching", book_slug: firstBookSlug })),
     ];
     setProducts(allProducts);
     setLoading(false);
