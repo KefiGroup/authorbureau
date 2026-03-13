@@ -134,19 +134,27 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
   
   // 3-Act generation engine (replaces old mock generationState)
   const builderGen = useBuilderGeneration(nodeConfig.id, nodeConfig.label);
-  // Derive legacy generationState for child renderers that still use it
-  const generationState = (() => {
-    switch (builderGen.act) {
-      case "idle": return "idle" as const;
-      case "act1_loading": return "analyzing" as const;
-      case "act2_proposal": return "idle" as const;
-      case "act3_generating": return "generating" as const;
-      case "act3_complete": return "complete" as const;
-      case "error": return "error" as const;
-      default: return "idle" as const;
-    }
-  })();
-  const setGenerationState = (_s: string) => {};
+  const [legacyGenerationState, setLegacyGenerationState] = useState<"idle" | "queued" | "analyzing" | "generating" | "complete" | "error">("idle");
+
+  // Legacy state is used by custom step renderers (e.g. schedule generation)
+  const generationState = legacyGenerationState !== "idle"
+    ? legacyGenerationState
+    : (() => {
+        switch (builderGen.act) {
+          case "idle": return "idle" as const;
+          case "act1_loading": return "analyzing" as const;
+          case "act2_proposal": return "idle" as const;
+          case "act3_generating": return "generating" as const;
+          case "act3_complete": return "complete" as const;
+          case "error": return "error" as const;
+          default: return "idle" as const;
+        }
+      })();
+
+  const setGenerationState = (nextState: string) => {
+    setLegacyGenerationState(nextState as "idle" | "queued" | "analyzing" | "generating" | "complete" | "error");
+  };
+
   const splitPreview = splitSalesAndContent(builderGen.generatedContent || "");
   const previewSalesText = builderGen.generatedSalesPage || splitPreview.salesPageText;
   const previewContentText = splitPreview.contentText || builderGen.generatedContent;
