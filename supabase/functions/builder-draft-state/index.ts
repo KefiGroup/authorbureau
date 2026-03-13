@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    const action = body?.action as "load" | "save" | undefined;
+    const action = body?.action as "load" | "save" | "publish_home_study" | undefined;
     const bookId = body?.bookId as string | undefined;
     const nodeId = body?.nodeId as string | undefined;
 
