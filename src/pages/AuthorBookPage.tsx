@@ -256,6 +256,7 @@ export default function AuthorBookPage() {
     const { error } = await supabase.from("author_subscribers").insert({
       author_id: authorProfile.user_id,
       email: email.trim(),
+      name: name.trim() || null,
       source: "book_page",
       source_detail: `${authorSlug}/${bookSlug}`,
     });
