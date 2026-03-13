@@ -232,13 +232,9 @@ export default function HomeStudyReviewView({
     if (!user) return;
     setSaving(true);
     try {
-      // Update the sales page portion in the full markdown
-      const newMarkdown = splitContent.curriculum
-        ? `${salesDraft}\n\n---\n\n${splitContent.curriculum}`
-        : salesDraft;
-      setFullCourseMarkdown(newMarkdown);
+      setSalesPageMarkdown(salesDraft);
 
-      // Save to generated_assets via edge function
+      // Save sales page as separate asset via edge function
       const token = await getActiveToken();
       if (!token) throw new Error("Not authenticated");
 
@@ -248,10 +244,10 @@ export default function HomeStudyReviewView({
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({
-            action: "save-content",
+            action: "save-sales-page",
             bookId,
             nodeId: "home-study-course",
-            content: newMarkdown,
+            content: salesDraft,
           }),
         }
       );
