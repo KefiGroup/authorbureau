@@ -20,6 +20,7 @@ import { useAbbyPlan } from "@/hooks/useAbbyPlan";
 import { useMarketResearch } from "@/hooks/useMarketResearch";
 import type { SubscriptionTier } from "@/hooks/useAuth";
 import { hasTierAccess } from "@/hooks/useAuth";
+import SiteThemePicker from "@/components/dashboard/SiteThemePicker";
 
 interface PlanSection {
   key: string;
@@ -471,6 +472,9 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
           onNavigate={(section) => onNavigateTab(section)}
         />
       )}
+
+      {/* Website Theme Picker — choose look & feel early */}
+      <SiteThemePicker compact />
 
       {/* ABBY Framework Visual */}
       <ABBYFrameworkVisual
