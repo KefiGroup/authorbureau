@@ -17,6 +17,7 @@ import AdminCRMTab from "@/components/admin/AdminCRMTab";
 import ReadingClubTab from "@/components/admin/ReadingClubTab";
 import SupportTab from "@/components/admin/SupportTab";
 import AdminMessagesTab from "@/components/admin/AdminMessagesTab";
+import AdminPayoutsDashboard from "@/components/admin/AdminPayoutsDashboard";
 
 import type { AdminStats, AdminBook, AdminInfo } from "@/types/admin";
 
