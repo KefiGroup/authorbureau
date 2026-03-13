@@ -885,6 +885,7 @@ const eventsBuilder: BuilderNodeConfig = {
   dbTable: "generated_assets",
   icon: "Calendar",
   color: "text-amber-500",
+  customRenderer: "events",
   abbyGreeting: "Hosting events positions you as a leader in your space. Let's plan a summit or conference.",
   abbyPublishMessage: "Your event blueprint is ready! Start with a virtual summit to test your concept before going live.",
   loadingMessages: [
