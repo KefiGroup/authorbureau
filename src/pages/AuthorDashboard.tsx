@@ -350,6 +350,8 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         return <ReviewProductsPage onNavigate={handleNavigate} />;
       case "author-crm":
         return gate("My Contacts", <AuthorCRMPage onNavigate={handleNavigate} />, "pro");
+      case "messages":
+        return <AuthorMessagesPage />;
       case "reading-club":
         return <AuthorReadingClub onNavigate={handleNavigate} />;
       case "book-sales":
