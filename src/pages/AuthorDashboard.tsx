@@ -28,6 +28,7 @@ import UniversalBuilderStudio from "@/components/dashboard/builders/UniversalBui
 import { BUILDER_NODE_MAP } from "@/components/dashboard/builders/builderNodeConfig";
 import ConnectStripePage from "@/components/dashboard/ConnectStripePage";
 import HowItWorksSection from "@/components/dashboard/HowItWorksSection";
+import PayoutSettingsPage from "@/components/dashboard/PayoutSettingsPage";
 import ReviewProductsPage from "@/components/dashboard/ReviewProductsPage";
 import AuthorCRMPage from "@/components/dashboard/AuthorCRMPage";
 import AuthorMessagesPage from "@/components/dashboard/AuthorMessagesPage";
@@ -56,7 +57,7 @@ export type DashboardSection =
   | "revenue-streams" | "marketing-channels" | "authority-builders"
   | "marketing" | "crm" | "author-crm" | "messages" | "reading-club" | "how-it-works"
   | "analytics" | "microsite-manager"
-  | "connect-stripe" | "review-products"
+  | "connect-stripe" | "payout-settings" | "review-products"
   | "book-sales" | "special-editions" | "lead-magnet"
   // Universal builder nodes
   | "builder";
@@ -392,6 +393,8 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         , "pro");
       case "connect-stripe":
         return <ConnectStripePage />;
+      case "payout-settings":
+        return <PayoutSettingsPage />;
       case "overview":
         return (
           <ABBYFrameworkDashboard

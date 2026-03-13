@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, User, BookOpen, Sparkles,
   ChevronLeft, ChevronRight, Crown, ExternalLink, PenLine, BookMarked,
-  Lock, Globe, BarChart3, Contact, DollarSign, Radio, Award, CreditCard, Package,
+  Lock, Globe, BarChart3, Contact, DollarSign, Radio, Award, CreditCard, Package, Wallet,
   BookHeart, HelpCircle, ChevronDown, ChevronUp, MessageSquare,
 } from "lucide-react";
 import { useState } from "react";
@@ -139,6 +139,10 @@ export default function DashboardSidebar({
     {
       id: "connect-stripe" as DashboardSection, label: stripeConnected ? "Stripe Connected" : "Connect Stripe",
       icon: CreditCard,
+    },
+    {
+      id: "payout-settings" as DashboardSection, label: "Payout Settings",
+      icon: Wallet,
     },
   ];
 
