@@ -49,7 +49,7 @@ interface BookWithProducts {
 interface ProductLink {
   id: string;
   title: string;
-  type: "home_study" | "course" | "coaching" | "audiobook";
+  type: "home_study" | "course" | "coaching" | "audiobook" | "podcast";
   price: number | null;
   currency: string | null;
 }
