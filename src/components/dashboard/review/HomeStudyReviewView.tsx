@@ -692,7 +692,7 @@ export default function HomeStudyReviewView({
               <Textarea
                 value={salesBody}
                 onChange={(e) => setSalesBody(e.target.value)}
-                rows={6}
+                rows={12}
                 className="mt-1 text-sm"
                 placeholder="Describe your program, who it's for, and the transformation they'll experience..."
               />
