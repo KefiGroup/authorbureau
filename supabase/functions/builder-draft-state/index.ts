@@ -536,6 +536,38 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "save-sales-page" || action === "save-content") {
+      const contentToSave = body?.content as string;
+      if (!contentToSave) {
+        return new Response(JSON.stringify({ error: "content is required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const saveAssetType = action === "save-sales-page"
+        ? `builder_sales_page_${nodeId}`
+        : `builder_content_${nodeId}`;
+
+      const { error: upsertErr } = await cloudAdmin
+        .from("generated_assets")
+        .upsert(
+          {
+            author_id: book.author_id,
+            book_id: bookId,
+            asset_type: saveAssetType,
+            content: contentToSave,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "book_id,asset_type" }
+        );
+
+      if (upsertErr) throw upsertErr;
+
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action === "publish_home_study") {
       const payload = (body?.payload || {}) as {
         title?: string;
