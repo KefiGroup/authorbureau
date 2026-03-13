@@ -252,6 +252,7 @@ export default function AdminDashboard() {
     { key: "authors", label: "Authors", icon: UserCheck },
     { key: "books", label: "Books", icon: BookOpen },
     { key: "crm", label: "CRM", icon: Users },
+    { key: "messages", label: "Messages", icon: MessageSquare },
     { key: "reading-club", label: "Reading Club", icon: BookMarked },
     { key: "support", label: "Support", icon: Headphones },
     { key: "admins", label: "Admins", icon: ShieldCheck, superOnly: true },
