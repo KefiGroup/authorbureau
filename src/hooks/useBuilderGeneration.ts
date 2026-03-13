@@ -180,11 +180,8 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
       const session = await supabase.auth.getSession();
       const userId = session.data?.session?.user?.id;
       if (userId && bookId) {
-        // Split sales page from content using delimiters
-        const salesPageMatch = accumulated.match(/===SALES_PAGE_START===([\s\S]*?)===SALES_PAGE_END===/);
-        const contentMatch = accumulated.match(/===CONTENT_START===([\s\S]*?)===CONTENT_END===/);
-        const salesPageText = salesPageMatch?.[1]?.trim() || "";
-        const contentText = contentMatch?.[1]?.trim() || "";
+        // Robust split: try multiple strategies
+        const { salesPageText, contentText } = splitSalesAndContent(accumulated);
 
         // Save sales page as separate asset
         if (salesPageText) {
@@ -208,7 +205,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
         }
 
         // Save product content as separate asset
-        const contentToSave = contentText || accumulated; // fallback to full output if no delimiters
+        const contentToSave = contentText || accumulated;
         try {
           const { error: upsertErr } = await supabase.from("generated_assets" as any).upsert({
             book_id: bookId,
