@@ -83,6 +83,8 @@ const AppRoutes = () => (
       <Route path="/solutions" element={<SolutionsIndex />} />
       <Route path="/solutions/:genre" element={<Solutions />} />
       <Route path="/sso" element={<SSO />} />
+      <Route path="/:authorSlug/:productType" element={<AuthorProductPage />} />
+      <Route path="/:authorSlug" element={<AuthorSite />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   </>
