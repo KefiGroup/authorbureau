@@ -1,14 +1,14 @@
 import { type ReactNode } from "react";
-import AuthorPageNav from "./AuthorPageNav";
+import { Link } from "react-router-dom";
 import AuthorBreadcrumbs from "./AuthorBreadcrumbs";
-import AuthorPageFooter from "./AuthorPageFooter";
 import { getThemeFontsUrl, getThemeCSSVars, type AuthorTheme } from "@/lib/author-themes";
 
 /**
  * Shared layout wrapper for all public author pages.
  * - Injects theme CSS variables into a wrapper div
  * - Loads only the required Google Fonts
- * - Renders the global nav bar, breadcrumbs, and footer
+ * - Renders breadcrumbs and "Powered by" footer badge
+ * - NO global platform nav — author pages use AuthorBrandedNav instead
  */
 export default function AuthorPageLayout({
   theme,
@@ -38,17 +38,27 @@ export default function AuthorPageLayout({
         }
       `}</style>
 
-      <div className="min-h-screen flex flex-col">
-        <AuthorPageNav />
-
-        <div className="author-theme-root flex-1" style={{ background: "var(--theme-secondary-bg)" }}>
-          {breadcrumbs && breadcrumbs.length > 0 && (
-            <AuthorBreadcrumbs items={breadcrumbs} />
-          )}
+      <div className="author-theme-root min-h-screen flex flex-col" style={{ background: "var(--theme-secondary-bg)" }}>
+        {breadcrumbs && breadcrumbs.length > 0 && (
+          <AuthorBreadcrumbs items={breadcrumbs} />
+        )}
+        <div className="flex-1">
           {children}
         </div>
 
-        <AuthorPageFooter />
+        {/* Powered by Authors Bureau — only fixed-color element */}
+        <footer
+          className="py-6 text-center"
+          style={{ background: "var(--theme-primary)" }}
+        >
+          <Link
+            to="/"
+            className="text-xs transition-opacity hover:opacity-80"
+            style={{ color: "#888888" }}
+          >
+            Powered by Authors Bureau
+          </Link>
+        </footer>
       </div>
     </>
   );

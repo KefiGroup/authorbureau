@@ -2,16 +2,18 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  ArrowRight, Clock, Calendar, BookOpen, GraduationCap, Users,
-  Headphones, Mic, Loader2, Star, Play, Mail, CheckCircle2, Check
+  ArrowRight, Clock, BookOpen, GraduationCap, Users,
+  Headphones, Mic, Loader2, Star, Mail, CheckCircle2, Check
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { toast } from "@/hooks/use-toast";
 import { getThemeById, type AuthorTheme } from "@/lib/author-themes";
+import { getProductCTAText, getProductTagline, getWhatsIncludedHeading, getAutoPersonas, getProductCardCTAText } from "@/lib/product-copy";
 import AuthorPageLayout from "@/components/public/AuthorPageLayout";
+import AuthorBrandedNav from "@/components/public/AuthorBrandedNav";
+import BookProductNav, { getProductTabMeta } from "@/components/public/BookProductNav";
 import NotFound from "./NotFound";
 
 type ProductType = "homestudy" | "onlinecourse" | "workbook" | "coaching" | "audiobook" | "podcast" | "book";
@@ -42,25 +44,6 @@ const fadeUp = {
   }),
 };
 
-function getProductCTA(pType: string, authorName: string): string {
-  const ctaMap: Record<string, string> = {
-    workbook: "Get the Workbook",
-    onlinecourse: "Enroll Now",
-    homestudy: "Enroll Now",
-    coaching: "Book a Session",
-    group_coaching: "Join the Group",
-    membership: "Become a Member",
-    webinar: "Register Now",
-    speaking: `Book ${authorName}`,
-    keynote: `Book ${authorName}`,
-    consulting: "Schedule a Consultation",
-    masterminds: "Apply Now",
-    retreat: "Reserve Your Spot",
-    bootcamp: "Reserve Your Spot",
-  };
-  return ctaMap[pType] || "Get Access";
-}
-
 function parseChecklistItems(description: string | null | undefined): string[] {
   if (!description) return [];
   const items = description
@@ -76,6 +59,9 @@ export default function AuthorProductPage() {
   const [book, setBook] = useState<any>(null);
   const [product, setProduct] = useState<any>(null);
   const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
+  const [allAuthorBooks, setAllAuthorBooks] = useState<any[]>([]);
+  const [allBookProducts, setAllBookProducts] = useState<{ label: string; icon: string; route: string }[]>([]);
+  const [coachingServices, setCoachingServices] = useState<any[]>([]);
   const [theme, setTheme] = useState<AuthorTheme | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -88,6 +74,7 @@ export default function AuthorProductPage() {
   const config = PRODUCT_CONFIG[pType];
 
   const displayName = author?.pen_name || "Author";
+  const authorFirstName = displayName.split(" ")[0];
   const bookTitle = book?.title || "Book";
 
   const productDescFirstSentence = product?.description ? (product.description.split(/[.!?]\s/)[0] + ".") : "";
@@ -158,19 +145,22 @@ export default function AuthorProductPage() {
     setAuthor(profile);
     setTheme(getThemeById(profile.site_theme || "classic-elegant"));
 
-    const { data: bookData } = await supabase
-      .from("books")
-      .select("id, title, slug, cover_image_url, author_name")
-      .eq("author_id", profile.user_id)
-      .eq("slug", bookSlug)
-      .maybeSingle();
+    const [bookRes, allBooksRes, coachRes] = await Promise.all([
+      supabase.from("books").select("id, title, slug, cover_image_url, author_name, description, genre").eq("author_id", profile.user_id).eq("slug", bookSlug).maybeSingle(),
+      supabase.from("books").select("slug, title, cover_image_url, genre").eq("author_id", profile.user_id).not("published_at", "is", null).order("created_at", { ascending: false }),
+      supabase.from("coaching_packages").select("id, title").eq("author_id", profile.user_id).eq("status", "active"),
+    ]);
 
-    if (!bookData) { setNotFound(true); setLoading(false); return; }
-    setBook(bookData);
+    if (!bookRes.data) { setNotFound(true); setLoading(false); return; }
+    setBook(bookRes.data);
+    setAllAuthorBooks(allBooksRes.data || []);
+    setCoachingServices(coachRes.data || []);
+
+    const bookId = bookRes.data.id;
 
     let query = supabase.from(config.table as any).select("*").eq("author_id", profile.user_id);
     if (pType !== "coaching") {
-      query = query.eq("book_id", bookData.id);
+      query = query.eq("book_id", bookId);
     }
     if (config.statusField === "published_at") {
       query = query.not("published_at", "is", null);
@@ -182,7 +172,7 @@ export default function AuthorProductPage() {
     if (!productData) { setNotFound(true); setLoading(false); return; }
     setProduct(productData);
 
-    const relProds: any[] = [];
+    // Load all sibling products for BookProductNav + related products
     const tables = [
       { table: "home_study_courses", status: "published", fields: "id, title, price, currency, description, cover_image_url" },
       { table: "courses", status: "published", fields: "id, title, price, currency, description, cover_image_url" },
@@ -190,16 +180,23 @@ export default function AuthorProductPage() {
       { table: "podcasts", status: "published", fields: "id, title, description" },
     ];
     const results = await Promise.all(
-      tables.map(t => supabase.from(t.table as any).select(t.fields).eq("book_id", bookData.id).eq("status", t.status))
+      tables.map(t => supabase.from(t.table as any).select(t.fields).eq("book_id", bookId).eq("status", t.status))
     );
+
+    const relProds: any[] = [];
+    const navTabs: { label: string; icon: string; route: string }[] = [];
     results.forEach((res, i) => {
       (res.data || []).forEach((p: any) => {
         const route = PRODUCT_ROUTE_MAP[tables[i].table] || "";
+        const meta = getProductTabMeta(route);
+        navTabs.push({ label: meta.label, icon: meta.icon, route });
         if (route !== pType) {
           relProds.push({ ...p, route, type: route });
         }
       });
     });
+
+    setAllBookProducts(navTabs);
     setRelatedProducts(relProds.slice(0, 3));
     setLoading(false);
   }
@@ -239,10 +236,16 @@ export default function AuthorProductPage() {
 
   if (notFound || !product || !author || !config || !theme) return <NotFound />;
 
+  const v = theme.vars;
   const Icon = config.icon;
   const authorBio = author.bio_short || "";
   const productImage = product.cover_image_url || book?.cover_image_url || null;
   const checklistItems = parseChecklistItems(product.description);
+  const tagline = getProductTagline(pType, bookTitle, authorFirstName);
+  const whatsIncludedHeading = getWhatsIncludedHeading(pType);
+  const personas = getAutoPersonas(book?.genre || null, pType, bookTitle);
+  const ctaText = getProductCTAText(pType, authorFirstName);
+  const bookDescShort = book?.description ? book.description.split(/[.!?]\s/).slice(0, 2).join(". ") + "." : "";
 
   return (
     <AuthorPageLayout theme={theme} breadcrumbs={[
@@ -252,14 +255,37 @@ export default function AuthorProductPage() {
       { label: product.title },
     ]}>
 
+      {/* Author-branded nav */}
+      <AuthorBrandedNav
+        authorSlug={authorSlug!}
+        authorName={displayName}
+        authorPhotoUrl={author.photo_url}
+        books={allAuthorBooks}
+        hasServices={coachingServices.length > 0}
+        vars={v}
+        headingFont={theme.headingFont}
+        bodyFont={theme.bodyFont}
+      />
+
+      {/* Book-level product nav */}
+      {allBookProducts.length > 0 && (
+        <BookProductNav
+          authorSlug={authorSlug!}
+          bookSlug={bookSlug!}
+          products={allBookProducts}
+          vars={v}
+          bodyFont={theme.bodyFont}
+        />
+      )}
+
       {/* ===== SECTION 1: HERO ===== */}
       <section
         className="relative overflow-hidden"
-        style={{ background: "var(--theme-primary)", color: "var(--theme-primary-text)" }}
+        style={{ background: v.primary }}
       >
         <div className="relative container max-w-5xl py-12 md:py-20">
           <div className="flex flex-col md:flex-row items-center gap-8 md:gap-14">
-            {/* LEFT 40%: Product Image */}
+            {/* LEFT: Product Image */}
             <motion.div
               initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6 }}
               className="w-full md:w-[40%] shrink-0 flex justify-center"
@@ -269,73 +295,77 @@ export default function AuthorProductPage() {
                   src={productImage}
                   alt={product.title}
                   className="w-56 md:w-full max-w-xs rounded-lg"
-                  style={{ boxShadow: "8px 8px 32px rgba(0,0,0,0.35)" }}
+                  style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.2)" }}
                 />
               ) : (
                 <div
                   className="w-56 md:w-full max-w-xs aspect-[3/4] rounded-lg flex flex-col items-center justify-center gap-4"
-                  style={{ background: "linear-gradient(135deg, var(--theme-primary), var(--theme-accent))" }}
+                  style={{ background: `linear-gradient(135deg, ${v.primary}, ${v.accent})` }}
                 >
-                  <Icon className="h-16 w-16" style={{ color: "var(--theme-primary-text)", opacity: 0.4 }} />
-                  <span className="theme-heading text-lg font-bold text-center px-4" style={{ color: "var(--theme-primary-text)", opacity: 0.6 }}>
+                  <Icon className="h-16 w-16" style={{ color: `${v.primaryText}66` }} />
+                  <span className="text-lg font-bold text-center px-4" style={{ color: `${v.primaryText}99`, fontFamily: theme.headingFont }}>
                     {product.title}
                   </span>
                 </div>
               )}
             </motion.div>
 
-            {/* RIGHT 60%: Product Details */}
+            {/* RIGHT: Product Details */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="flex-1 text-center md:text-left">
               {/* Product type badge */}
               <span
                 className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-wide mb-4"
-                style={{ background: "var(--theme-accent)", color: "var(--theme-accent-text)" }}
+                style={{ background: v.accent, color: v.accentText }}
               >
                 <Icon className="h-3.5 w-3.5" />
                 {config.label}
               </span>
 
-              <h1 className="theme-heading text-3xl md:text-[2.5rem] leading-tight font-bold mb-4" style={{ color: "var(--theme-primary-text)" }}>
+              <h1 className="text-3xl md:text-[2.5rem] leading-tight font-bold mb-4" style={{ color: v.primaryText, fontFamily: theme.headingFont }}>
                 {product.title}
               </h1>
 
-              {product.description && (
-                <p className="text-lg mb-6 max-w-xl" style={{ color: "var(--theme-primary-text)", opacity: 0.85 }}>
-                  {product.description.slice(0, 180)}{product.description.length > 180 ? "..." : ""}
-                </p>
-              )}
+              {/* Dynamic tagline */}
+              <p className="text-lg mb-6 max-w-xl" style={{ color: `${v.primaryText}D9` }}>
+                {tagline}
+              </p>
 
               {/* Price */}
               <div className="mb-6">
                 {product.price != null && product.price > 0 ? (
-                  <span className="theme-heading text-[2rem] font-bold" style={{ color: "var(--theme-primary-text)" }}>
+                  <span className="text-[2rem] font-bold" style={{ color: v.primaryText, fontFamily: theme.headingFont }}>
                     {(product.currency || "USD") === "USD" ? "$" : product.currency}{product.price}
                   </span>
                 ) : (
-                  <span className="theme-heading text-2xl font-bold" style={{ color: "var(--theme-primary-text)" }}>Free</span>
+                  <span className="text-2xl font-bold" style={{ color: v.primaryText, fontFamily: theme.headingFont }}>Free</span>
                 )}
               </div>
 
               {/* CTAs */}
               <div className="flex flex-col sm:flex-row items-center gap-3 justify-center md:justify-start">
                 <button
-                  className="font-semibold text-base px-8 py-3.5 rounded-lg transition-all hover:scale-105 hover:brightness-110"
-                  style={{ background: "var(--theme-accent)", color: "var(--theme-accent-text)" }}
+                  className="font-bold text-base px-8 py-3.5 rounded-lg transition-all hover:scale-105 hover:brightness-110"
+                  style={{ background: v.accent, color: v.accentText, boxShadow: `0 4px 12px ${v.accent}4D` }}
                 >
-                  {getProductCTA(pType, displayName)}
+                  {ctaText}
                 </button>
                 <button
                   onClick={() => document.getElementById("product-details")?.scrollIntoView({ behavior: "smooth" })}
-                  className="font-semibold text-base px-6 py-3 rounded-lg transition-all hover:opacity-80"
+                  className="font-medium text-base px-6 py-3 rounded-lg transition-all"
                   style={{
                     background: "transparent",
-                    border: "1.5px solid var(--theme-primary-text)",
-                    color: "var(--theme-primary-text)",
+                    border: `2px solid ${v.accent}`,
+                    color: v.accent,
                   }}
                 >
                   Learn More
                 </button>
               </div>
+
+              {/* Trust line */}
+              <p className="mt-4 text-xs" style={{ color: `${v.primaryText}99` }}>
+                {["coaching", "consulting", "mastermind"].includes(pType) ? "Limited spots available" : "Secure checkout · 30-day money-back guarantee"}
+              </p>
             </motion.div>
           </div>
         </div>
@@ -343,22 +373,22 @@ export default function AuthorProductPage() {
 
       {/* ===== SECTION 2: WHAT'S INCLUDED ===== */}
       {checklistItems.length > 0 && (
-        <section id="product-details" className="py-16" style={{ background: "var(--theme-card-bg)" }}>
+        <section id="product-details" className="py-16" style={{ background: v.cardBg }}>
           <div className="container max-w-3xl">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-              <h2 className="theme-heading text-2xl md:text-3xl font-bold mb-8" style={{ color: "var(--theme-heading-text)" }}>
-                What's Included
+              <h2 className="text-2xl md:text-3xl font-bold mb-8" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
+                {whatsIncludedHeading}
               </h2>
               <div className="space-y-4">
                 {checklistItems.map((item, i) => (
                   <div key={i} className="flex items-start gap-3">
                     <div
                       className="mt-0.5 w-6 h-6 rounded-full flex items-center justify-center shrink-0"
-                      style={{ background: "var(--theme-accent)", opacity: 0.9 }}
+                      style={{ background: v.accent }}
                     >
-                      <Check className="h-3.5 w-3.5" style={{ color: "var(--theme-accent-text)" }} />
+                      <Check className="h-3.5 w-3.5" style={{ color: v.accentText }} />
                     </div>
-                    <p className="text-sm leading-relaxed" style={{ color: "var(--theme-body-text)" }}>{item}</p>
+                    <p className="text-sm leading-relaxed" style={{ color: v.bodyText }}>{item}</p>
                   </div>
                 ))}
               </div>
@@ -367,36 +397,58 @@ export default function AuthorProductPage() {
         </section>
       )}
 
-      {/* ===== SECTION 3: TYPE-SPECIFIC CONTENT ===== */}
+      {/* ===== SECTION 3: WHO IS THIS FOR ===== */}
+      <section className="py-14" style={{ background: v.secondaryBg }}>
+        <div className="container max-w-3xl">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
+            <h2 className="text-2xl font-bold mb-2" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
+              Is This For You?
+            </h2>
+            <p className="text-sm mb-8" style={{ color: v.mutedText }}>
+              This {config.label.toLowerCase()} is perfect for you if...
+            </p>
+            <div className="grid gap-4 sm:grid-cols-3">
+              {personas.map((persona, i) => (
+                <div
+                  key={i}
+                  className="p-5 rounded-xl"
+                  style={{ background: v.cardBg, border: `1px solid ${v.cardBorder}` }}
+                >
+                  <Check className="h-5 w-5 mb-3" style={{ color: v.accent }} />
+                  <p className="text-sm" style={{ color: v.bodyText }}>{persona}</p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ===== SECTION 4: TYPE-SPECIFIC CONTENT ===== */}
       {(product.description || product.study_schedule_json || product.content_markdown || pType === "onlinecourse" || pType === "audiobook" || pType === "podcast") && (
-        <section className="py-14" style={{ background: "var(--theme-secondary-bg)" }}>
+        <section className="py-14" style={{ background: v.cardBg }}>
           <div className="container max-w-4xl space-y-6">
-            {/* About This Product */}
             {product.description && (
               <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-                <div className="p-6 rounded-lg" style={{ background: "var(--theme-card-bg)", border: "1px solid var(--theme-card-border)", borderRadius: theme.borderRadius }}>
-                  <h2 className="theme-heading text-xl font-bold mb-4" style={{ color: "var(--theme-heading-text)" }}>
+                <div className="p-6 rounded-lg" style={{ background: v.cardBg, border: `1px solid ${v.cardBorder}`, borderRadius: theme.borderRadius }}>
+                  <h2 className="text-xl font-bold mb-4" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
                     About This {config.label}
                   </h2>
-                  <p className="text-sm leading-relaxed" style={{ color: "var(--theme-body-text)" }}>
-                    {product.description}
-                  </p>
+                  <p className="text-sm leading-relaxed" style={{ color: v.bodyText }}>{product.description}</p>
                 </div>
               </motion.div>
             )}
 
-            {/* Home Study schedule */}
             {pType === "homestudy" && product.study_schedule_json && Array.isArray(product.study_schedule_json) && (
               <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={1}>
-                <div className="p-6 rounded-lg" style={{ background: "var(--theme-card-bg)", border: "1px solid var(--theme-card-border)", borderRadius: theme.borderRadius }}>
-                  <h3 className="theme-heading font-bold text-lg mb-4" style={{ color: "var(--theme-heading-text)" }}>Study Schedule</h3>
+                <div className="p-6 rounded-lg" style={{ background: v.cardBg, border: `1px solid ${v.cardBorder}`, borderRadius: theme.borderRadius }}>
+                  <h3 className="font-bold text-lg mb-4" style={{ color: v.headingText, fontFamily: theme.headingFont }}>Study Schedule</h3>
                   <div className="space-y-3">
                     {(product.study_schedule_json as any[]).slice(0, 10).map((day: any, i: number) => (
                       <div key={i} className="flex gap-3 text-sm">
-                        <div className="flex-shrink-0 w-16 text-xs font-semibold" style={{ color: "var(--theme-accent)" }}>{day.day || `Day ${i + 1}`}</div>
+                        <div className="flex-shrink-0 w-16 text-xs font-semibold" style={{ color: v.accent }}>{day.day || `Day ${i + 1}`}</div>
                         <div>
-                          <p className="font-medium" style={{ color: "var(--theme-heading-text)" }}>{day.title || day.topic}</p>
-                          {day.description && <p className="text-xs mt-0.5" style={{ color: "var(--theme-muted-text)" }}>{day.description}</p>}
+                          <p className="font-medium" style={{ color: v.headingText }}>{day.title || day.topic}</p>
+                          {day.description && <p className="text-xs mt-0.5" style={{ color: v.mutedText }}>{day.description}</p>}
                         </div>
                       </div>
                     ))}
@@ -409,24 +461,24 @@ export default function AuthorProductPage() {
 
             {pType === "audiobook" && (
               <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={1}>
-                <div className="p-6 rounded-lg" style={{ background: "var(--theme-card-bg)", border: "1px solid var(--theme-card-border)", borderRadius: theme.borderRadius }}>
-                  <h3 className="theme-heading font-bold text-lg mb-4" style={{ color: "var(--theme-heading-text)" }}>Audiobook Details</h3>
+                <div className="p-6 rounded-lg" style={{ background: v.cardBg, border: `1px solid ${v.cardBorder}`, borderRadius: theme.borderRadius }}>
+                  <h3 className="font-bold text-lg mb-4" style={{ color: v.headingText, fontFamily: theme.headingFont }}>Audiobook Details</h3>
                   <div className="space-y-2 text-sm">
                     {product.narrator_credit && (
                       <div className="flex items-center gap-2">
-                        <Mic className="h-4 w-4" style={{ color: "var(--theme-accent)" }} />
-                        <span style={{ color: "var(--theme-body-text)" }}>Narrated by: <strong>{product.narrator_credit}</strong></span>
+                        <Mic className="h-4 w-4" style={{ color: v.accent }} />
+                        <span style={{ color: v.bodyText }}>Narrated by: <strong>{product.narrator_credit}</strong></span>
                       </div>
                     )}
                     {product.duration_minutes && (
                       <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4" style={{ color: "var(--theme-accent)" }} />
-                        <span style={{ color: "var(--theme-body-text)" }}>{Math.floor(product.duration_minutes / 60)}h {product.duration_minutes % 60}m</span>
+                        <Clock className="h-4 w-4" style={{ color: v.accent }} />
+                        <span style={{ color: v.bodyText }}>{Math.floor(product.duration_minutes / 60)}h {product.duration_minutes % 60}m</span>
                       </div>
                     )}
                     {product.audio_url && (
                       <div className="pt-3">
-                        <p className="text-xs font-semibold mb-2" style={{ color: "var(--theme-muted-text)" }}>Preview</p>
+                        <p className="text-xs font-semibold mb-2" style={{ color: v.mutedText }}>Preview</p>
                         <audio controls className="w-full">
                           <source src={product.audio_url} />
                         </audio>
@@ -441,9 +493,9 @@ export default function AuthorProductPage() {
 
             {product.content_markdown && (
               <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={2}>
-                <div className="p-6 rounded-lg" style={{ background: "var(--theme-card-bg)", border: "1px solid var(--theme-card-border)", borderRadius: theme.borderRadius }}>
-                  <h3 className="theme-heading font-bold text-lg mb-3" style={{ color: "var(--theme-heading-text)" }}>What You'll Learn</h3>
-                  <div className="prose prose-sm max-w-none" style={{ color: "var(--theme-body-text)" }}>
+                <div className="p-6 rounded-lg" style={{ background: v.cardBg, border: `1px solid ${v.cardBorder}`, borderRadius: theme.borderRadius }}>
+                  <h3 className="font-bold text-lg mb-3" style={{ color: v.headingText, fontFamily: theme.headingFont }}>What You'll Learn</h3>
+                  <div className="prose prose-sm max-w-none" style={{ color: v.bodyText }}>
                     {product.content_markdown.slice(0, 1000)}
                     {product.content_markdown.length > 1000 && "..."}
                   </div>
@@ -454,68 +506,83 @@ export default function AuthorProductPage() {
         </section>
       )}
 
-      {/* ===== SECTION 4: BASED ON THE BOOK ===== */}
+      {/* ===== SECTION 5: BASED ON THE BOOK ===== */}
       {book && (
-        <section className="py-12" style={{ background: "var(--theme-card-bg)" }}>
+        <section className="py-14" style={{ background: v.secondaryBg }}>
           <div className="container max-w-3xl">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-              <h2 className="theme-heading text-xl font-bold mb-6" style={{ color: "var(--theme-heading-text)" }}>
+              <h2 className="text-xl font-bold mb-6" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
                 Based on the Book
               </h2>
-              <Link
-                to={`/${authorSlug}/${bookSlug}`}
-                className="flex items-center gap-5 p-4 rounded-lg transition-all hover:shadow-md group"
-                style={{ background: "var(--theme-card-bg)", border: "1px solid var(--theme-card-border)", borderRadius: theme.borderRadius }}
+              <div
+                className="flex flex-col sm:flex-row items-start gap-5 p-5 rounded-xl"
+                style={{ background: v.cardBg, border: `1px solid ${v.cardBorder}` }}
               >
                 {book.cover_image_url ? (
-                  <img src={book.cover_image_url} alt={book.title} className="w-20 h-auto rounded shadow-sm shrink-0" />
+                  <img src={book.cover_image_url} alt={book.title} className="w-[120px] h-auto rounded shadow-md shrink-0" />
                 ) : (
-                  <div className="w-20 h-28 rounded flex items-center justify-center shrink-0" style={{ background: "var(--theme-secondary-bg)" }}>
-                    <BookOpen className="h-8 w-8" style={{ color: "var(--theme-muted-text)" }} />
+                  <div className="w-[120px] h-40 rounded flex items-center justify-center shrink-0" style={{ background: v.secondaryBg }}>
+                    <BookOpen className="h-8 w-8" style={{ color: v.mutedText }} />
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <h3 className="theme-heading font-bold text-base group-hover:underline" style={{ color: "var(--theme-heading-text)" }}>{book.title}</h3>
-                  <p className="text-sm mt-1" style={{ color: "var(--theme-muted-text)" }}>by {displayName}</p>
+                  <h3 className="font-bold text-lg mb-1" style={{ color: v.headingText, fontFamily: theme.headingFont }}>{book.title}</h3>
+                  <p className="text-sm mb-3" style={{ color: v.mutedText }}>by {displayName}</p>
+                  {bookDescShort && (
+                    <p className="text-sm leading-relaxed mb-4" style={{ color: v.bodyText }}>
+                      This {config.label.toLowerCase()} is based on {book.title}. {bookDescShort}
+                    </p>
+                  )}
+                  <Link
+                    to={`/${authorSlug}/${bookSlug}`}
+                    className="inline-flex items-center gap-1 text-sm font-semibold hover:underline"
+                    style={{ color: v.accent }}
+                  >
+                    Read more about the book <ArrowRight className="h-4 w-4" />
+                  </Link>
                 </div>
-                <span className="text-sm font-semibold shrink-0 hidden sm:flex items-center gap-1" style={{ color: "var(--theme-accent)" }}>
-                  View Book <ArrowRight className="h-4 w-4" />
-                </span>
-              </Link>
+              </div>
             </motion.div>
           </div>
         </section>
       )}
 
-      {/* ===== SECTION 5: ABOUT THE AUTHOR ===== */}
+      {/* ===== SECTION 6: ABOUT THE AUTHOR ===== */}
       {(authorBio || author.photo_url) && (
-        <section className="py-14" style={{ background: "var(--theme-secondary-bg)" }}>
+        <section className="py-14" style={{ background: v.cardBg }}>
           <div className="container max-w-3xl">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-              <h2 className="theme-heading text-xl font-bold mb-6" style={{ color: "var(--theme-heading-text)" }}>About the Author</h2>
+              <h2 className="text-xl font-bold mb-6" style={{ color: v.headingText, fontFamily: theme.headingFont }}>About the Author</h2>
               <div className="flex flex-col sm:flex-row gap-5 items-start">
-                {author.photo_url && (
+                {author.photo_url ? (
                   <img
                     src={author.photo_url}
                     alt={displayName}
-                    className="w-16 h-16 rounded-full object-cover shrink-0"
-                    style={{ border: "2px solid var(--theme-accent)" }}
+                    className="w-20 h-20 rounded-full object-cover shrink-0"
+                    style={{ border: `3px solid ${v.accent}` }}
                   />
+                ) : (
+                  <div
+                    className="w-20 h-20 rounded-full shrink-0 flex items-center justify-center"
+                    style={{ background: v.accent }}
+                  >
+                    <span className="text-2xl font-bold" style={{ color: v.accentText }}>{displayName.charAt(0)}</span>
+                  </div>
                 )}
                 <div className="flex-1">
-                  <h3 className="theme-heading font-bold text-lg mb-1" style={{ color: "var(--theme-heading-text)" }}>{displayName}</h3>
+                  <h3 className="font-bold text-lg mb-1" style={{ color: v.headingText, fontFamily: theme.headingFont }}>{displayName}</h3>
                   {author.tagline && (
-                    <p className="text-sm mb-3" style={{ color: "var(--theme-muted-text)" }}>{author.tagline}</p>
+                    <p className="text-sm mb-3" style={{ color: v.mutedText }}>{author.tagline}</p>
                   )}
                   {authorBio && (
-                    <p className="text-sm leading-relaxed mb-4" style={{ color: "var(--theme-body-text)" }}>
+                    <p className="text-sm leading-relaxed mb-4" style={{ color: v.bodyText }}>
                       {authorBio.length > 200 ? authorBio.slice(0, 200) + "..." : authorBio}
                     </p>
                   )}
                   <Link
                     to={`/${authorSlug}`}
                     className="inline-flex items-center gap-1 text-sm font-semibold hover:underline"
-                    style={{ color: "var(--theme-accent)" }}
+                    style={{ color: v.accent }}
                   >
                     View Full Profile <ArrowRight className="h-4 w-4" />
                   </Link>
@@ -526,34 +593,41 @@ export default function AuthorProductPage() {
         </section>
       )}
 
-      {/* ===== SECTION 6: MORE PRODUCTS FROM THIS BOOK ===== */}
+      {/* ===== SECTION 7: MORE FROM THIS BOOK ===== */}
       {relatedProducts.length > 0 && (
-        <section className="py-14" style={{ background: "var(--theme-card-bg)" }}>
+        <section className="py-14" style={{ background: v.secondaryBg }}>
           <div className="container max-w-4xl">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-              <h2 className="theme-heading text-xl md:text-2xl font-bold mb-6" style={{ color: "var(--theme-heading-text)" }}>
-                More Products from This Book
+              <h2 className="text-xl md:text-2xl font-bold mb-2" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
+                More from {bookTitle}
               </h2>
+              <p className="text-sm mb-6" style={{ color: v.mutedText }}>
+                Explore other resources {authorFirstName} has created from this book.
+              </p>
             </motion.div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {relatedProducts.map((rp, i) => {
                 const RpIcon = PRODUCT_CONFIG[rp.route as ProductType]?.icon || BookOpen;
                 const rpLabel = PRODUCT_CONFIG[rp.route as ProductType]?.label || rp.route;
+                const rpCTA = getProductCardCTAText(rp.route);
                 return (
                   <motion.div key={rp.id} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i + 1}>
                     <Link
                       to={`/${authorSlug}/${bookSlug}/${rp.route}`}
-                      className="group block p-5 transition-all hover:shadow-lg"
-                      style={{ borderRadius: theme.borderRadius, border: "1px solid var(--theme-card-border)", background: "var(--theme-card-bg)" }}
+                      className="group block p-5 transition-all hover:shadow-lg rounded-xl"
+                      style={{ border: `1px solid ${v.cardBorder}`, background: v.cardBg }}
                     >
-                      <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3" style={{ background: "var(--theme-accent)", opacity: 0.12 }}>
-                        <RpIcon className="h-5 w-5" style={{ color: "var(--theme-accent)" }} />
+                      <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3" style={{ background: `${v.accent}1A` }}>
+                        <RpIcon className="h-5 w-5" style={{ color: v.accent }} />
                       </div>
-                      <h4 className="font-semibold text-sm mb-1 group-hover:underline" style={{ color: "var(--theme-heading-text)" }}>{rp.title}</h4>
-                      <p className="text-xs mb-2" style={{ color: "var(--theme-muted-text)" }}>{rpLabel}</p>
+                      <h4 className="font-semibold text-sm mb-1 group-hover:underline" style={{ color: v.headingText }}>{rp.title}</h4>
+                      <p className="text-xs mb-2" style={{ color: v.mutedText }}>{rpLabel}</p>
                       {rp.price != null && rp.price > 0 && (
-                        <span className="font-bold text-sm" style={{ color: "var(--theme-accent)" }}>${rp.price}</span>
+                        <span className="font-bold text-sm" style={{ color: v.accent }}>${rp.price}</span>
                       )}
+                      <div className="mt-3">
+                        <span className="text-xs font-bold" style={{ color: v.accent }}>{rpCTA}</span>
+                      </div>
                     </Link>
                   </motion.div>
                 );
@@ -563,58 +637,98 @@ export default function AuthorProductPage() {
         </section>
       )}
 
-      {/* ===== SECTION 7: LEAD CAPTURE ===== */}
-      <section className="py-14" style={{ background: "var(--theme-secondary-bg)" }}>
+      {/* ===== SECTION 8: LEAD CAPTURE + CTA REPEAT ===== */}
+      <section className="py-14" style={{ background: v.primary }}>
         <div className="container max-w-xl text-center">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
             {subscribed ? (
               <div className="py-6">
-                <CheckCircle2 className="h-12 w-12 mx-auto mb-4" style={{ color: "var(--theme-accent)" }} />
-                <h3 className="theme-heading text-xl font-bold mb-2" style={{ color: "var(--theme-heading-text)" }}>You're subscribed!</h3>
-                <p className="text-sm" style={{ color: "var(--theme-muted-text)" }}>You'll receive updates soon.</p>
+                <CheckCircle2 className="h-12 w-12 mx-auto mb-4" style={{ color: v.accent }} />
+                <h3 className="text-xl font-bold mb-2" style={{ color: v.primaryText, fontFamily: theme.headingFont }}>You're subscribed!</h3>
+                <p className="text-sm" style={{ color: `${v.primaryText}BF` }}>You'll receive updates soon.</p>
               </div>
             ) : (
-              <>
-                <Mail className="h-10 w-10 mx-auto mb-4" style={{ color: "var(--theme-accent)" }} />
-                <h2 className="theme-heading text-2xl font-bold mb-3" style={{ color: "var(--theme-heading-text)" }}>
-                  Stay Updated
-                </h2>
-                <p className="text-sm mb-8" style={{ color: "var(--theme-muted-text)" }}>
-                  Get the latest updates and insights from {displayName}.
-                </p>
-                <form onSubmit={handleSubscribe} className="flex flex-col gap-3 max-w-md mx-auto">
-                  <Input
-                    type="text"
-                    placeholder="First name (optional)"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="h-11 text-base"
-                    style={{ borderRadius: theme.borderRadius, borderColor: "var(--theme-card-border)", background: "var(--theme-card-bg)" }}
-                  />
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <Input
+              <div className="space-y-8">
+                {/* CTA Repeat */}
+                <div>
+                  <h2 className="text-xl font-bold mb-3" style={{ color: v.primaryText, fontFamily: theme.headingFont }}>
+                    Ready to Get Started?
+                  </h2>
+                  <p className="text-lg font-bold mb-2" style={{ color: v.primaryText }}>{product.title}</p>
+                  {product.price != null && product.price > 0 && (
+                    <p className="text-2xl font-bold mb-4" style={{ color: v.accent }}>
+                      {(product.currency || "USD") === "USD" ? "$" : product.currency}{product.price}
+                    </p>
+                  )}
+                  <button
+                    className="font-bold text-base px-8 py-3.5 rounded-lg transition-all hover:scale-105"
+                    style={{ background: v.accent, color: v.accentText }}
+                  >
+                    {ctaText}
+                  </button>
+                </div>
+
+                {/* Divider */}
+                <div className="flex items-center gap-4">
+                  <div className="flex-1 h-px" style={{ background: `${v.accent}33` }} />
+                  <span className="text-xs" style={{ color: `${v.primaryText}66` }}>or</span>
+                  <div className="flex-1 h-px" style={{ background: `${v.accent}33` }} />
+                </div>
+
+                {/* Lead Capture */}
+                <div>
+                  <Mail className="h-8 w-8 mx-auto mb-3" style={{ color: v.accent }} />
+                  <h3 className="text-lg font-bold mb-2" style={{ color: v.primaryText, fontFamily: theme.headingFont }}>
+                    Stay Connected with {authorFirstName}
+                  </h3>
+                  <p className="text-sm mb-5" style={{ color: `${v.primaryText}BF` }}>
+                    Get exclusive updates, bonus content, and early access to new resources.
+                  </p>
+                  <form onSubmit={handleSubscribe} className="flex flex-col gap-3 max-w-sm mx-auto">
+                    <input
+                      type="text"
+                      placeholder="First name (optional)"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="h-11 text-sm w-full outline-none"
+                      style={{
+                        borderRadius: "8px",
+                        border: `1px solid ${v.accent}4D`,
+                        padding: "10px 14px",
+                        background: "rgba(255,255,255,0.08)",
+                        color: v.primaryText,
+                      }}
+                    />
+                    <input
                       type="email"
                       placeholder="your@email.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
-                      className="h-12 text-base flex-1"
-                      style={{ borderRadius: theme.borderRadius, borderColor: "var(--theme-card-border)", background: "var(--theme-card-bg)" }}
+                      className="h-11 text-sm w-full outline-none"
+                      style={{
+                        borderRadius: "8px",
+                        border: `1px solid ${v.accent}4D`,
+                        padding: "10px 14px",
+                        background: "rgba(255,255,255,0.08)",
+                        color: v.primaryText,
+                      }}
                     />
                     <button
                       type="submit"
                       disabled={subscribing}
-                      className="shrink-0 h-12 px-6 font-semibold rounded-lg transition-all hover:brightness-110 disabled:opacity-50"
-                      style={{ background: "var(--theme-accent)", color: "var(--theme-accent-text)", borderRadius: theme.borderRadius }}
+                      className="w-full h-11 font-bold text-sm transition-all hover:brightness-110"
+                      style={{
+                        background: v.accent,
+                        color: v.accentText,
+                        borderRadius: "8px",
+                      }}
                     >
                       {subscribing ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Subscribe"}
                     </button>
-                  </div>
-                </form>
-                <p className="text-xs mt-4" style={{ color: "var(--theme-muted-text)" }}>
-                  We respect your privacy. Unsubscribe anytime.
-                </p>
-              </>
+                  </form>
+                </div>
+              </div>
             )}
           </motion.div>
         </div>
@@ -624,19 +738,19 @@ export default function AuthorProductPage() {
       {product.price != null && product.price > 0 && (
         <div
           className="fixed bottom-0 left-0 right-0 z-50 md:hidden py-3 px-4 flex items-center justify-between shadow-2xl"
-          style={{ background: "var(--theme-primary)", borderTop: "1px solid var(--theme-card-border)" }}
+          style={{ background: v.primary, borderTop: `1px solid ${v.cardBorder}` }}
         >
           <div>
-            <span className="text-[10px] uppercase tracking-wider" style={{ color: "var(--theme-primary-text)", opacity: 0.5 }}>Price</span>
-            <span className="theme-heading block text-lg font-bold" style={{ color: "var(--theme-accent)" }}>
+            <span className="text-[10px] uppercase tracking-wider" style={{ color: `${v.primaryText}80` }}>Price</span>
+            <span className="block text-lg font-bold" style={{ color: v.accent }}>
               {(product.currency || "USD") === "USD" ? "$" : product.currency}{product.price}
             </span>
           </div>
           <button
-            className="rounded-full font-semibold px-5 py-2 text-sm"
-            style={{ background: "var(--theme-accent)", color: "var(--theme-accent-text)" }}
+            className="rounded-full font-bold px-5 py-2 text-sm"
+            style={{ background: v.accent, color: v.accentText }}
           >
-            {getProductCTA(pType, displayName)}
+            {ctaText}
           </button>
         </div>
       )}
@@ -662,28 +776,30 @@ function CourseModules({ courseId, theme }: { courseId: string; theme: AuthorThe
 
   if (modules.length === 0) return null;
 
+  const v = theme.vars;
+
   return (
     <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={1}>
-      <div className="p-6 rounded-lg" style={{ background: "var(--theme-card-bg)", border: "1px solid var(--theme-card-border)", borderRadius: theme.borderRadius }}>
-        <h3 className="theme-heading font-bold text-lg mb-4" style={{ color: "var(--theme-heading-text)" }}>Course Curriculum</h3>
+      <div className="p-6 rounded-lg" style={{ background: v.cardBg, border: `1px solid ${v.cardBorder}`, borderRadius: theme.borderRadius }}>
+        <h3 className="font-bold text-lg mb-4" style={{ color: v.headingText, fontFamily: theme.headingFont }}>Course Curriculum</h3>
         <div className="space-y-4">
           {modules.map((mod, i) => (
             <div key={mod.id}>
               <div className="flex items-center gap-2 mb-2">
                 <span
                   className="flex-shrink-0 w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center"
-                  style={{ background: "var(--theme-accent)", color: "var(--theme-accent-text)", opacity: 0.85 }}
+                  style={{ background: v.accent, color: v.accentText }}
                 >
                   {i + 1}
                 </span>
-                <h4 className="font-semibold text-sm" style={{ color: "var(--theme-heading-text)" }}>{mod.title}</h4>
+                <h4 className="font-semibold text-sm" style={{ color: v.headingText }}>{mod.title}</h4>
               </div>
-              {mod.description && <p className="text-xs ml-9 mb-1" style={{ color: "var(--theme-muted-text)" }}>{mod.description}</p>}
+              {mod.description && <p className="text-xs ml-9 mb-1" style={{ color: v.mutedText }}>{mod.description}</p>}
               {mod.course_lessons && mod.course_lessons.length > 0 && (
                 <ul className="ml-9 space-y-1">
                   {mod.course_lessons.sort((a: any, b: any) => a.position - b.position).map((lesson: any) => (
-                    <li key={lesson.id} className="text-xs flex items-center gap-1.5" style={{ color: "var(--theme-muted-text)" }}>
-                      <Star className="h-2.5 w-2.5" style={{ color: "var(--theme-accent)" }} />
+                    <li key={lesson.id} className="text-xs flex items-center gap-1.5" style={{ color: v.mutedText }}>
+                      <Star className="h-2.5 w-2.5" style={{ color: v.accent }} />
                       {lesson.title}
                     </li>
                   ))}
@@ -712,30 +828,29 @@ function PodcastEpisodes({ podcastId, theme }: { podcastId: string; theme: Autho
 
   if (episodes.length === 0) return null;
 
+  const v = theme.vars;
+
   return (
     <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={1}>
-      <div className="p-6 rounded-lg" style={{ background: "var(--theme-card-bg)", border: "1px solid var(--theme-card-border)", borderRadius: theme.borderRadius }}>
-        <h3 className="theme-heading font-bold text-lg mb-4" style={{ color: "var(--theme-heading-text)" }}>Episodes</h3>
+      <div className="p-6 rounded-lg" style={{ background: v.cardBg, border: `1px solid ${v.cardBorder}`, borderRadius: theme.borderRadius }}>
+        <h3 className="font-bold text-lg mb-4" style={{ color: v.headingText, fontFamily: theme.headingFont }}>Episodes</h3>
         <div className="space-y-3">
           {episodes.map((ep) => (
-            <div key={ep.id} className="flex gap-3 p-3 rounded-lg" style={{ border: "1px solid var(--theme-card-border)" }}>
+            <div key={ep.id} className="flex gap-3 p-3 rounded-lg" style={{ border: `1px solid ${v.cardBorder}` }}>
               <span
                 className="flex-shrink-0 w-8 h-8 rounded-full text-xs font-bold flex items-center justify-center"
-                style={{ background: "var(--theme-accent)", color: "var(--theme-accent-text)", opacity: 0.85 }}
+                style={{ background: v.accent, color: v.accentText }}
               >
                 {ep.episode_number}
               </span>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium" style={{ color: "var(--theme-heading-text)" }}>{ep.title}</p>
-                {ep.description && <p className="text-xs mt-0.5 line-clamp-2" style={{ color: "var(--theme-muted-text)" }}>{ep.description}</p>}
-                <div className="flex items-center gap-3 mt-1.5 text-[11px]" style={{ color: "var(--theme-muted-text)" }}>
+                <p className="text-sm font-medium" style={{ color: v.headingText }}>{ep.title}</p>
+                {ep.description && <p className="text-xs mt-0.5 line-clamp-2" style={{ color: v.mutedText }}>{ep.description}</p>}
+                <div className="flex items-center gap-3 mt-1.5 text-[11px]" style={{ color: v.mutedText }}>
                   {ep.duration_minutes && (
-                    <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{ep.duration_minutes} min</span>
-                  )}
-                  {ep.audio_url && (
-                    <a href={ep.audio_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:underline" style={{ color: "var(--theme-accent)" }}>
-                      <Play className="h-3 w-3" /> Listen
-                    </a>
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" /> {ep.duration_minutes} min
+                    </span>
                   )}
                 </div>
               </div>

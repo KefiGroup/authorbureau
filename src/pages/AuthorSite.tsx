@@ -1,18 +1,18 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  BookOpen, Mail, ArrowRight, Star, ExternalLink, Loader2,
+  BookOpen, Mail, ArrowRight, Star, Loader2,
   GraduationCap, Users, Headphones, Mic, Globe, ChevronDown,
   Linkedin, Twitter, Instagram, Youtube
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { toast } from "@/hooks/use-toast";
 import { getThemeById, type AuthorTheme } from "@/lib/author-themes";
+import { getProductCardCTAText } from "@/lib/product-copy";
 import AuthorPageLayout from "@/components/public/AuthorPageLayout";
+import AuthorBrandedNav from "@/components/public/AuthorBrandedNav";
 import NotFound from "./NotFound";
 
 /* ---------- Types ---------- */
@@ -114,83 +114,6 @@ const SOCIAL_LINKS = [
   { key: "instagram_url", icon: Instagram, label: "Instagram" },
   { key: "youtube_url", icon: Youtube, label: "YouTube" },
 ] as const;
-
-/* ---------- Anchor Nav ---------- */
-const ANCHOR_ITEMS = [
-  { id: "about", label: "About", key: "hasBio" },
-  { id: "books-section", label: "Books", key: "hasBooks" },
-  { id: "services", label: "Services", key: "hasServices" },
-  { id: "products", label: "Products", key: "hasProducts" },
-  { id: "subscribe-section", label: "Contact", key: "always" },
-] as const;
-
-function AnchorNav({ hasBio, hasBooks, hasServices, hasProducts, v }: {
-  hasBio: boolean; hasBooks: boolean; hasServices: boolean; hasProducts: boolean;
-  v: AuthorTheme["vars"];
-}) {
-  const flags: Record<string, boolean> = { hasBio, hasBooks, hasServices, hasProducts, always: true };
-  const visibleItems = ANCHOR_ITEMS.filter(item => flags[item.key]);
-  const [activeId, setActiveId] = useState<string>("");
-
-  useEffect(() => {
-    if (visibleItems.length < 3) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries.filter(e => e.isIntersecting);
-        if (visible.length > 0) {
-          setActiveId(visible[0].target.id);
-        }
-      },
-      { rootMargin: "-120px 0px -60% 0px", threshold: 0 }
-    );
-    visibleItems.forEach(item => {
-      const el = document.getElementById(item.id);
-      if (el) observer.observe(el);
-    });
-    return () => observer.disconnect();
-  }, [visibleItems.length]);
-
-  if (visibleItems.length < 3) return null;
-
-  return (
-    <nav
-      className="sticky z-[90] overflow-x-auto scrollbar-none"
-      style={{
-        top: "64px",
-        background: v.cardBg,
-        borderBottom: `1px solid ${v.cardBorder}`,
-      }}
-    >
-      <div className="container max-w-5xl flex items-center gap-8 whitespace-nowrap py-0">
-        {visibleItems.map(item => {
-          const isActive = activeId === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => {
-                const el = document.getElementById(item.id);
-                if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-              }}
-              className="relative py-3 text-[0.9rem] transition-colors shrink-0"
-              style={{
-                color: isActive ? v.accent : v.mutedText,
-                fontWeight: isActive ? 700 : 500,
-              }}
-            >
-              {item.label}
-              {isActive && (
-                <span
-                  className="absolute bottom-0 left-0 right-0 h-[2px]"
-                  style={{ background: v.accent }}
-                />
-              )}
-            </button>
-          );
-        })}
-      </div>
-    </nav>
-  );
-}
 
 /* ============================================ */
 export default function AuthorSite() {
@@ -325,7 +248,7 @@ export default function AuthorSite() {
     setCoachingServices(coaching);
     setBooksWithProducts(enriched);
 
-    // Fetch Related Authors (share at least one genre)
+    // Fetch Related Authors
     const authorGenres = profile.genres || [];
     if (authorGenres.length > 0) {
       const { data: related } = await supabase
@@ -397,7 +320,6 @@ export default function AuthorSite() {
     (s) => (author as any)[s.key]
   );
 
-  // Helper: get lowest price for a book
   function getLowestPrice(book: BookWithProducts): string | null {
     const prices = [book.kindle_price, book.paperback_price, book.price].filter(Boolean) as string[];
     if (prices.length === 0) return null;
@@ -407,24 +329,47 @@ export default function AuthorSite() {
     return `$${min.toFixed(2)}`;
   }
 
+  // Dynamic heading for Work With section
+  const workWithHeading = coachingServices.length > 0 && allProducts.length > 0
+    ? `Work with ${displayName}`
+    : coachingServices.length > 0
+      ? `Work with ${displayName}`
+      : `Resources by ${displayName}`;
+  const workWithSubheading = coachingServices.length > 0 && allProducts.length > 0
+    ? `Beyond the books - coaching, courses, and resources to accelerate your growth.`
+    : coachingServices.length > 0
+      ? `Personalized guidance from the author - speaking, coaching, and consulting.`
+      : `Hands-on tools and programs built from ${displayName}'s books.`;
+
   return (
     <AuthorPageLayout theme={theme} breadcrumbs={[
       { label: "Home", to: "/" },
-      { label: "Authors Directory", to: "/directory" },
       { label: displayName },
     ]}>
+
+      {/* Author-branded nav */}
+      <AuthorBrandedNav
+        authorSlug={authorSlug!}
+        authorName={displayName}
+        authorPhotoUrl={author.photo_url}
+        books={booksWithProducts.map(b => ({ slug: b.slug, title: b.title, cover_image_url: b.cover_image_url, genre: b.genre }))}
+        hasServices={coachingServices.length > 0}
+        vars={v}
+        headingFont={theme.headingFont}
+        bodyFont={theme.bodyFont}
+      />
 
       {/* ===== SECTION 1: HERO BANNER ===== */}
       <section
         className="relative overflow-hidden"
         style={{
-          background: `${v.primary}`,
+          background: v.primary,
           backgroundImage: `radial-gradient(ellipse at 30% 50%, ${v.accent}0D 0%, transparent 70%)`,
         }}
       >
         <div className="relative container max-w-5xl py-16 md:py-24">
           <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
-            {/* Author Photo — rounded rectangle */}
+            {/* Author Photo */}
             {author.photo_url ? (
               <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}>
                 <img
@@ -435,7 +380,6 @@ export default function AuthorSite() {
                     border: `3px solid ${v.accent}`,
                     borderRadius: "16px",
                     boxShadow: "0 12px 30px rgba(0, 0, 0, 0.3)",
-                    opacity: 1,
                   }}
                 />
               </motion.div>
@@ -449,7 +393,7 @@ export default function AuthorSite() {
                     boxShadow: "0 12px 30px rgba(0, 0, 0, 0.3)",
                   }}
                 >
-                  <span className="text-[3rem] font-bold" style={{ color: v.primaryText }}>
+                  <span className="text-[3rem] font-bold" style={{ color: v.accentText }}>
                     {displayName.charAt(0)}
                   </span>
                 </div>
@@ -469,7 +413,7 @@ export default function AuthorSite() {
               {/* Dynamic one-liner */}
               <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
                 className="text-lg md:text-xl mb-5"
-                style={{ color: "#E8E0D0" }}
+                style={{ color: `${v.primaryText}D9` }}
               >
                 {(() => {
                   const hasBestseller = booksWithProducts.some(b => b.badges && b.badges.length > 0);
@@ -485,7 +429,7 @@ export default function AuthorSite() {
               {/* Tagline */}
               {author.tagline && totalBooks > 0 && (
                 <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}
-                  className="text-base mb-4" style={{ color: "#E8E0D0" }}
+                  className="text-base mb-4" style={{ color: `${v.primaryText}D9` }}
                 >
                   {author.tagline}
                 </motion.p>
@@ -526,7 +470,7 @@ export default function AuthorSite() {
                 {booksWithProducts.length > 0 && (
                   <button
                     onClick={() => document.getElementById("books-section")?.scrollIntoView({ behavior: "smooth" })}
-                    className="inline-flex items-center gap-2 font-bold rounded-lg transition-all"
+                    className="inline-flex items-center gap-2 font-bold rounded-lg transition-all hover:scale-105"
                     style={{
                       background: v.accent,
                       color: v.accentText,
@@ -555,7 +499,7 @@ export default function AuthorSite() {
             </div>
           </div>
 
-          {/* Stats Strip — only non-zero values */}
+          {/* Stats Strip */}
           {(totalBooks > 0 || totalProducts > 0) && (
             <motion.div
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
@@ -565,13 +509,13 @@ export default function AuthorSite() {
               {totalBooks > 0 && (
                 <div className="text-center md:text-left">
                   <span className="text-2xl md:text-3xl font-bold" style={{ color: v.accent, fontFamily: theme.headingFont }}>{totalBooks}</span>
-                  <span className="block text-xs mt-1" style={{ color: "#E8E0D0" }}>Books Published</span>
+                  <span className="block text-xs mt-1" style={{ color: `${v.primaryText}D9` }}>Books Published</span>
                 </div>
               )}
               {totalProducts > 0 && (
                 <div className="text-center md:text-left">
                   <span className="text-2xl md:text-3xl font-bold" style={{ color: v.accent, fontFamily: theme.headingFont }}>{totalProducts}</span>
-                  <span className="block text-xs mt-1" style={{ color: "#E8E0D0" }}>Products Available</span>
+                  <span className="block text-xs mt-1" style={{ color: `${v.primaryText}D9` }}>Products Available</span>
                 </div>
               )}
             </motion.div>
@@ -579,18 +523,9 @@ export default function AuthorSite() {
         </div>
       </section>
 
-      {/* ===== ANCHOR NAV ===== */}
-      <AnchorNav
-        hasBio={!!bioText}
-        hasBooks={booksWithProducts.length > 0}
-        hasServices={coachingServices.length > 0}
-        hasProducts={allProducts.length > 0}
-        v={v}
-      />
-
       {/* ===== SECTION 2: ABOUT ===== */}
       {bioText && (
-        <section id="about" className="py-14 md:py-20" style={{ background: "#FFFFFF" }}>
+        <section id="about" className="py-14 md:py-20" style={{ background: v.cardBg }}>
           <div className="container max-w-4xl">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
               <h2 className="text-2xl md:text-[2rem] font-bold mb-6" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
@@ -625,8 +560,8 @@ export default function AuthorSite() {
                       key={i}
                       className="px-3 py-1.5 text-xs font-medium rounded-full"
                       style={{
-                        background: "#F0E6D3",
-                        color: "#6B5B3E",
+                        background: v.secondaryBg,
+                        color: v.bodyText,
                         border: `1px solid ${v.accent}`,
                       }}
                     >
@@ -640,7 +575,7 @@ export default function AuthorSite() {
         </section>
       )}
 
-      {/* ===== SECTION 3: BOOKS (Horizontal Cards) ===== */}
+      {/* ===== SECTION 3: BOOKS ===== */}
       {booksWithProducts.length > 0 && (
         <section id="books-section" className="py-14 md:py-20" style={{ background: v.secondaryBg }}>
           <div className="container max-w-5xl">
@@ -665,7 +600,7 @@ export default function AuthorSite() {
                       style={{
                         borderRadius: "12px",
                         border: `1px solid ${v.cardBorder}`,
-                        background: "#FFFFFF",
+                        background: v.cardBg,
                         boxShadow: "0 4px 16px rgba(0, 0, 0, 0.06)",
                       }}
                       onMouseEnter={(e) => {
@@ -677,7 +612,7 @@ export default function AuthorSite() {
                         e.currentTarget.style.transform = "translateY(0)";
                       }}
                     >
-                      {/* Book Cover (Left) */}
+                      {/* Book Cover */}
                       <Link to={`/${authorSlug}/${book.slug}`} className="shrink-0 md:w-44">
                         {book.cover_image_url ? (
                           <img
@@ -685,7 +620,6 @@ export default function AuthorSite() {
                             alt={book.title}
                             loading="lazy"
                             className="w-full h-48 md:h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                            style={{ opacity: 1, boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}
                           />
                         ) : (
                           <div
@@ -693,14 +627,14 @@ export default function AuthorSite() {
                             style={{ background: `linear-gradient(135deg, ${v.primary}, ${v.accent})` }}
                           >
                             <span className="text-xs uppercase tracking-wider mb-2" style={{ color: "rgba(255,255,255,0.6)" }}>Book</span>
-                            <span className="text-center font-semibold text-sm leading-snug" style={{ color: "#FFFFFF", fontFamily: theme.headingFont }}>
+                            <span className="text-center font-semibold text-sm leading-snug" style={{ color: v.primaryText, fontFamily: theme.headingFont }}>
                               {book.title}
                             </span>
                           </div>
                         )}
                       </Link>
 
-                      {/* Info (Center) */}
+                      {/* Info */}
                       <div className="flex-1 p-6 flex flex-col justify-center min-w-0">
                         <Link to={`/${authorSlug}/${book.slug}`}>
                           <h3 className="font-bold text-xl mb-1 group-hover:underline" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
@@ -715,7 +649,6 @@ export default function AuthorSite() {
                             {shortDesc}
                           </p>
                         )}
-                        {/* Badges */}
                         {book.badges && book.badges.length > 0 && (
                           <div className="flex flex-wrap gap-1.5">
                             {book.badges.map((badge) => (
@@ -731,7 +664,7 @@ export default function AuthorSite() {
                         )}
                       </div>
 
-                      {/* Price + CTA (Right) */}
+                      {/* Price + CTA */}
                       <div className="shrink-0 p-6 flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-3 md:border-l" style={{ borderColor: v.cardBorder }}>
                         {lowestPrice && (
                           <span className="text-lg font-bold" style={{ color: v.accent, fontFamily: theme.headingFont }}>
@@ -761,17 +694,23 @@ export default function AuthorSite() {
 
       {/* ===== SECTION 4: WORK WITH [AUTHOR] ===== */}
       {hasWorkWithSection && (
-        <section id="services" className="py-16 md:py-20" style={{ background: "#FFFFFF" }}>
+        <section id="services" className="py-16 md:py-20" style={{ background: v.cardBg }}>
           <div className="container max-w-5xl">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-              <h2 className="text-2xl md:text-[2rem] font-bold mb-10" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
-                Work with {displayName}
+              <h2 className="text-2xl md:text-[2rem] font-bold mb-2" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
+                {workWithHeading}
               </h2>
+              <p className="text-base mb-10" style={{ color: v.mutedText }}>
+                {workWithSubheading}
+              </p>
             </motion.div>
 
             {/* Services sub-section (coaching) */}
             {coachingServices.length > 0 && (
               <div className="mb-12">
+                <h3 className="text-lg font-bold mb-6" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
+                  Services & Expertise
+                </h3>
                 <div className="space-y-4">
                   {coachingServices.map((svc, idx) => (
                     <motion.div key={svc.id} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={idx + 1}>
@@ -823,13 +762,14 @@ export default function AuthorSite() {
               <div id="products">
                 {coachingServices.length > 0 && (
                   <h3 className="text-lg font-bold mb-6" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
-                    Products
+                    Courses, Workbooks & More
                   </h3>
                 )}
                 <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                   {allProducts.slice(0, 6).map((product, idx) => {
                     const PIcon = PRODUCT_ICONS[product.type] || BookOpen;
                     const label = PRODUCT_LABELS[product.type] || product.type;
+                    const ctaText = getProductCardCTAText(PRODUCT_ROUTES[product.type] || product.type);
                     return (
                       <motion.div key={product.id} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={idx + 1}>
                         <Link
@@ -841,7 +781,6 @@ export default function AuthorSite() {
                             boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
                           }}
                         >
-                          {/* Badge */}
                           <span
                             className="inline-flex items-center gap-1.5 self-start rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wide mb-3"
                             style={{ background: v.accent, color: v.accentText }}
@@ -849,21 +788,15 @@ export default function AuthorSite() {
                             <PIcon className="h-3 w-3" />
                             {label}
                           </span>
-
-                          {/* Title */}
                           <h4 className="font-bold text-base mb-1.5 group-hover:underline" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
                             {product.title}
                           </h4>
-
-                          {/* Description */}
                           {product.description && (
                             <p className="text-xs leading-relaxed line-clamp-2 mb-4 flex-1" style={{ color: v.bodyText }}>
                               {product.description}
                             </p>
                           )}
                           {!product.description && <div className="flex-1" />}
-
-                          {/* Price + CTA */}
                           <div className="flex items-center justify-between mt-auto pt-3" style={{ borderTop: `1px solid ${v.cardBorder}` }}>
                             {product.price != null && product.price > 0 ? (
                               <span className="font-bold text-sm" style={{ color: v.accent }}>${product.price}</span>
@@ -874,7 +807,7 @@ export default function AuthorSite() {
                               className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-md transition-all group-hover:brightness-110"
                               style={{ background: v.primary, color: v.primaryText }}
                             >
-                              View Product <ArrowRight className="h-3 w-3" />
+                              {ctaText}
                             </span>
                           </div>
                         </Link>
@@ -886,7 +819,7 @@ export default function AuthorSite() {
                 {allProducts.length > 6 && (
                   <div className="text-center mt-8">
                     <span className="text-sm font-semibold cursor-pointer hover:underline" style={{ color: v.accent }}>
-                      View All Products ({allProducts.length}) →
+                      View All Resources ({allProducts.length}) →
                     </span>
                   </div>
                 )}
@@ -898,7 +831,6 @@ export default function AuthorSite() {
 
       {/* ===== SECTION 5: LEAD CAPTURE ===== */}
       <section id="subscribe-section" className="relative py-14 md:py-20" style={{ background: v.secondaryBg }}>
-        {/* Decorative gold line at top */}
         <div className="absolute top-0 left-0 right-0 h-[1px]" style={{ background: v.accent }} />
 
         <div className="container max-w-xl text-center">
@@ -916,11 +848,7 @@ export default function AuthorSite() {
                   Stay Connected with {displayName}
                 </h2>
                 <p className="text-base mb-8" style={{ color: v.bodyText }}>
-                  {hasWorkWithSection
-                    ? `Get exclusive updates, early access to new products, and insights from ${displayName}.`
-                    : totalProducts > 0
-                      ? `Get exclusive updates, free chapters, and early access to new releases and resources.`
-                      : `Get exclusive updates, free chapters, and early access to new releases.`}
+                  Get exclusive updates, early access to new products, and insights from {displayName}.
                 </p>
                 <form onSubmit={handleSubscribe} className="flex flex-col gap-3 max-w-md mx-auto">
                   <input
@@ -933,7 +861,7 @@ export default function AuthorSite() {
                       borderRadius: "8px",
                       border: `2px solid ${v.cardBorder}`,
                       padding: "14px 16px",
-                      background: "#FFFFFF",
+                      background: v.cardBg,
                       color: v.headingText,
                     }}
                   />
@@ -948,14 +876,14 @@ export default function AuthorSite() {
                       borderRadius: "8px",
                       border: `2px solid ${v.cardBorder}`,
                       padding: "14px 16px",
-                      background: "#FFFFFF",
+                      background: v.cardBg,
                       color: v.headingText,
                     }}
                   />
                   <button
                     type="submit"
                     disabled={subscribing}
-                    className="w-full h-12 font-bold text-base transition-all"
+                    className="w-full h-12 font-bold text-base transition-all hover:brightness-110"
                     style={{
                       background: v.accent,
                       color: v.accentText,
@@ -989,7 +917,7 @@ export default function AuthorSite() {
                 <motion.div key={ra.author_slug} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={idx + 1}>
                   <Link
                     to={`/${ra.author_slug}`}
-                    className="flex flex-col items-center text-center p-6 rounded-xl group transition-all hover:border-opacity-100"
+                    className="flex flex-col items-center text-center p-6 rounded-xl group transition-all"
                     style={{
                       background: "rgba(255,255,255,0.05)",
                       border: `1px solid ${v.accent}33`,
