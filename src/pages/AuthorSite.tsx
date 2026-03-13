@@ -322,7 +322,10 @@ export default function AuthorSite() {
   }
 
   return (
-    <AuthorPageLayout theme={theme} authorName={displayName} authorSlug={authorSlug}>
+    <AuthorPageLayout theme={theme} breadcrumbs={[
+      { label: "Authors", to: "/directory" },
+      { label: displayName },
+    ]}>
 
       {/* ===== SECTION 1: HERO BANNER ===== */}
       <section className="relative overflow-hidden" style={{ background: `linear-gradient(135deg, hsl(${c.heroBackground}), hsl(${c.heroBackground} / 0.92))`, color: `hsl(${c.heroForeground})` }}>

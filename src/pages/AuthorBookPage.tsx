@@ -282,7 +282,11 @@ export default function AuthorBookPage() {
     : null;
 
   return (
-    <AuthorPageLayout theme={theme} authorName={authorName} authorSlug={authorSlug} bookTitle={book.title} bookSlug={bookSlug}>
+    <AuthorPageLayout theme={theme} breadcrumbs={[
+      { label: "Authors", to: "/directory" },
+      { label: authorName || "Author", to: `/${authorSlug}` },
+      { label: book.title },
+    ]}>
 
       {/* ===== SECTION 1: HERO ===== */}
       <section className="relative overflow-hidden" style={{ background: `linear-gradient(135deg, hsl(${c.heroBackground}), hsl(${c.heroBackground} / 0.92))`, color: `hsl(${c.heroForeground})` }}>

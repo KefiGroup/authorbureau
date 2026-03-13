@@ -224,7 +224,12 @@ export default function AuthorProductPage() {
   const checklistItems = parseChecklistItems(product.description);
 
   return (
-    <AuthorPageLayout theme={theme} authorName={displayName} authorSlug={authorSlug} bookTitle={bookTitle} bookSlug={bookSlug} productTitle={product.title}>
+    <AuthorPageLayout theme={theme} breadcrumbs={[
+      { label: "Authors", to: "/directory" },
+      { label: displayName || "Author", to: `/${authorSlug}` },
+      { label: bookTitle || "Book", to: `/${authorSlug}/${bookSlug}` },
+      { label: product.title },
+    ]}>
 
       {/* ===== HERO (Split Layout: Image LEFT, Text RIGHT) ===== */}
       <section className="relative overflow-hidden" style={{ background: `linear-gradient(135deg, hsl(${c.heroBackground}), hsl(${c.heroBackground} / 0.92))`, color: `hsl(${c.heroForeground})` }}>
