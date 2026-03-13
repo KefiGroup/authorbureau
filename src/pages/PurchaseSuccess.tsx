@@ -57,8 +57,8 @@ export default function PurchaseSuccess() {
 
         {status === "success" && (
           <>
-            <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto">
-              <CheckCircle2 className="h-10 w-10 text-green-600" />
+            <div className="w-20 h-20 rounded-full bg-accent/20 flex items-center justify-center mx-auto">
+              <CheckCircle2 className="h-10 w-10 text-accent" />
             </div>
             <h1 className="text-2xl font-bold text-foreground">Purchase Confirmed!</h1>
             <p className="text-muted-foreground">
