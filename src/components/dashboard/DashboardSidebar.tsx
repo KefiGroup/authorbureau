@@ -105,6 +105,13 @@ export default function DashboardSidebar({
       lockMessage: (!bypassLocks && !tierAccess("enterprise")) ? "Requires Enterprise" : undefined,
     },
     {
+      id: "review-products" as DashboardSection, label: "Review & Publish",
+      icon: Package,
+      subtitle: "Approve & Go Live",
+      tooltip: "Review AI-generated products and publish them to your microsite.",
+      notificationCount: pendingReviewCount,
+    },
+    {
       id: "reading-club" as DashboardSection, label: "Reading Club", icon: BookHeart,
     },
   ];
