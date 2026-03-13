@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Check, Monitor, Smartphone, Download, Rocket, TrendingUp, Sparkles } from "lucide-react";
 import StepInstructions from "./StepInstructions";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/shared-backend";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface ChecklistItem {
   label: string;
