@@ -63,26 +63,58 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
 
   async function loadData() {
     setLoading(true);
-    const [profileRes, booksRes, homeStudyRes, coursesRes, coachingRes, audiobooksRes, podcastsRes] = await Promise.all([
+
+    // Fetch profile (local Cloud table) and books (via edge function for proper ownership)
+    const [profileRes, booksResult] = await Promise.all([
       supabase.from("author_profiles").select("*").eq("user_id", user!.id).maybeSingle(),
-      supabase.from("books").select("id, title, slug, cover_image_url").eq("author_id", user!.id).order("created_at", { ascending: false }),
-      supabase.from("home_study_courses").select("id, title, book_id, status").eq("author_id", user!.id),
-      supabase.from("courses").select("id, title, book_id, status").eq("author_id", user!.id),
-      supabase.from("coaching_packages").select("id, title, status").eq("author_id", user!.id),
-      supabase.from("audiobooks").select("id, title, book_id, status").eq("author_id", user!.id),
-      supabase.from("podcasts").select("id, title, book_id, status").eq("author_id", user!.id),
+      (async () => {
+        try {
+          const token = await getActiveToken();
+          if (!token) return { books: [] };
+          const response = await fetchWithTimeout(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            }
+          );
+          const result = await response.json();
+          if (!response.ok) return { books: [] };
+          return { books: result.books || [] };
+        } catch {
+          return { books: [] };
+        }
+      })(),
     ]);
 
     const profile = profileRes.data;
     setProfileData(profile);
     if (profile?.website_url) setCustomDomain(profile.website_url.replace(/^https?:\/\//, ""));
 
-    const books = (booksRes.data || []) as any[];
-    const homeStudy = (homeStudyRes.data || []) as any[];
-    const courses = (coursesRes.data || []) as any[];
-    const coaching = (coachingRes.data || []) as any[];
-    const audiobooks = (audiobooksRes.data || []) as any[];
-    const podcasts = (podcastsRes.data || []) as any[];
+    const books = booksResult.books as any[];
+    const bookIds = books.map((b: any) => b.id);
+
+    // Fetch products for these books
+    let homeStudy: any[] = [];
+    let courses: any[] = [];
+    let coaching: any[] = [];
+    let audiobooks: any[] = [];
+    let podcasts: any[] = [];
+
+    if (bookIds.length > 0) {
+      const [hsRes, cRes, coachRes, abRes, podRes] = await Promise.all([
+        supabase.from("home_study_courses").select("id, title, book_id, status").eq("author_id", user!.id),
+        supabase.from("courses").select("id, title, book_id, status").eq("author_id", user!.id),
+        supabase.from("coaching_packages").select("id, title, status").eq("author_id", user!.id),
+        supabase.from("audiobooks").select("id, title, book_id, status").eq("author_id", user!.id),
+        supabase.from("podcasts").select("id, title, book_id, status").eq("author_id", user!.id),
+      ]);
+      homeStudy = hsRes.data || [];
+      courses = cRes.data || [];
+      coaching = coachRes.data || [];
+      audiobooks = abRes.data || [];
+      podcasts = podRes.data || [];
+    }
 
     const enriched: BookWithStatus[] = books.map((book: any) => {
       const products: BookProduct[] = [];
