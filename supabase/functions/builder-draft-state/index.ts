@@ -124,7 +124,7 @@ Deno.serve(async (req) => {
     const nodeId = body?.nodeId as string | undefined;
 
     // ── Actions that don't require bookId/nodeId ──
-    if (action === "list-drafts" || action === "publish-product" || action === "preview-product") {
+    if (action === "list-drafts" || action === "publish-product" || action === "preview-product" || action === "get-product-detail") {
       const identity = await resolveIdentity(token);
       if (!identity) {
         return new Response(JSON.stringify({ error: "Invalid session" }), {
@@ -290,6 +290,45 @@ Deno.serve(async (req) => {
         }
 
         return new Response(JSON.stringify({ preview: preview || null }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      /* ─── GET PRODUCT DETAIL (for review view) ─────────────── */
+      if (action === "get-product-detail") {
+        const { productId, table, nodeId: detailNodeId, bookId: detailBookId } = body;
+        const result: Record<string, any> = {};
+
+        // 1) Load from product table (e.g. home_study_courses)
+        if (productId && table && table !== "generated_assets") {
+          const { data: product } = await cloudAdmin
+            .from(table)
+            .select("*")
+            .eq("id", productId)
+            .maybeSingle();
+          if (product && allUserIds.includes(product.author_id)) {
+            result.product = product;
+          }
+        }
+
+        // 2) Load draft & content from generated_assets
+        if (detailNodeId && detailBookId) {
+          const draftType = `builder_draft_${detailNodeId}`;
+          const contentType = `builder_content_${detailNodeId}`;
+          const { data: assets } = await cloudAdmin
+            .from("generated_assets")
+            .select("asset_type, content")
+            .eq("book_id", detailBookId)
+            .in("asset_type", [draftType, contentType])
+            .in("author_id", allUserIds);
+
+          for (const asset of assets || []) {
+            if (asset.asset_type === draftType) result.draftContent = asset.content;
+            if (asset.asset_type === contentType) result.generatedContent = asset.content;
+          }
+        }
+
+        return new Response(JSON.stringify(result), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -491,6 +530,7 @@ Deno.serve(async (req) => {
         content_markdown?: string;
         duration_days?: number;
         price?: number | null;
+        study_schedule_json?: any;
       };
 
       const title = (payload.title || "").trim() || `${bookId} — Home Study Course`;
@@ -504,6 +544,17 @@ Deno.serve(async (req) => {
         : Number(payload.price);
       const price = Number.isFinite(parsedPrice as number) ? parsedPrice : null;
 
+      // Parse content_markdown as JSON to extract structured days for study_schedule_json
+      let study_schedule_json = payload.study_schedule_json || null;
+      if (!study_schedule_json && content_markdown) {
+        try {
+          const parsed = JSON.parse(content_markdown);
+          if (Array.isArray(parsed)) {
+            study_schedule_json = { days: parsed };
+          }
+        } catch { /* not JSON, that's fine */ }
+      }
+
       const { data: existing, error: fetchErr } = await cloudAdmin
         .from("home_study_courses")
         .select("id")
@@ -513,7 +564,7 @@ Deno.serve(async (req) => {
 
       if (fetchErr) throw fetchErr;
 
-      const productRecord = {
+      const productRecord: Record<string, any> = {
         author_id: book.author_id,
         book_id: bookId,
         title,
@@ -523,6 +574,9 @@ Deno.serve(async (req) => {
         duration_days,
         price,
       };
+      if (study_schedule_json) {
+        productRecord.study_schedule_json = study_schedule_json;
+      }
 
       if (existing?.id) {
         const { error: updateErr } = await cloudAdmin
