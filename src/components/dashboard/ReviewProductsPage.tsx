@@ -15,7 +15,7 @@ import {
   Video, Users, Mic, Target, DollarSign, Award, Globe,
   Megaphone, Heart, Building2, Network, Zap, Star,
   BookMarked, ShieldCheck, Crown, Ticket, Briefcase,
-  CircleDot, ArrowRight, Sparkles, BarChart3,
+  CircleDot, ArrowRight, Sparkles, BarChart3, Trash2,
 } from "lucide-react";
 import HomeStudyExportModal from "./HomeStudyExportModal";
 import MarkdownRenderer from "./MarkdownRenderer";
@@ -97,6 +97,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
   const [products, setProducts] = useState<DraftProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmProduct, setConfirmProduct] = useState<DraftProduct | null>(null);
   const [previewProduct, setPreviewProduct] = useState<DraftProduct | null>(null);
   const [previewContent, setPreviewContent] = useState<string | null>(null);
@@ -187,6 +188,45 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
       toast({ title: "Publish failed", description: err instanceof Error ? err.message : "Please try again", variant: "destructive" });
     } finally {
       setPublishing(null);
+    }
+  };
+
+  const handleDelete = async (product: DraftProduct) => {
+    if (!window.confirm(`Delete "${product.title}"? This will remove the generated draft and review record.`)) return;
+
+    setDeletingId(product.id);
+    try {
+      const token = await getActiveToken();
+      if (!token) throw new Error("Not authenticated");
+
+      const resp = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/builder-draft-state`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            action: "delete-product",
+            productId: product.id,
+            table: product.table,
+            nodeId: product.nodeId,
+            bookId: product.bookId,
+          }),
+        }
+      );
+
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result.error || "Delete failed");
+
+      setProducts((prev) => prev.filter((p) => p.id !== product.id));
+      toast({ title: "Draft deleted" });
+    } catch (err) {
+      toast({
+        title: "Delete failed",
+        description: err instanceof Error ? err.message : "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -317,6 +357,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
                   key={product.id}
                   product={product}
                   publishing={publishing}
+                  deletingId={deletingId}
                   onPreview={() => {
                     // Home study gets full-page preview
                     if (product.nodeId === "home-study-course") {
@@ -333,6 +374,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
                       onNavigate?.(NODE_TO_ROUTE[product.nodeId] || product.nodeId);
                     }
                   }}
+                  onDelete={() => handleDelete(product)}
                   onPublish={() => setConfirmProduct(product)}
                   onExport={product.table === "home_study_courses" ? () => setExportProduct(product) : undefined}
                 />
@@ -491,15 +533,19 @@ function SummaryCard({ label, value, icon: Icon, accent }: { label: string; valu
 function ProductCard({
   product,
   publishing,
+  deletingId,
   onPreview,
   onEdit,
+  onDelete,
   onPublish,
   onExport,
 }: {
   product: DraftProduct;
   publishing: string | null;
+  deletingId: string | null;
   onPreview: () => void;
   onEdit: () => void;
+  onDelete: () => void;
   onPublish: () => void;
   onExport?: () => void;
 }) {
@@ -572,10 +618,23 @@ function ProductCard({
             </Button>
           )}
           <Button
+            variant="outline"
+            size="sm"
+            className="text-xs h-7 w-full justify-start text-destructive hover:text-destructive"
+            onClick={onDelete}
+            disabled={publishing === product.id || deletingId === product.id}
+          >
+            {deletingId === product.id ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <><Trash2 className="h-3 w-3 mr-1.5" /> Delete</>
+            )}
+          </Button>
+          <Button
             size="sm"
             className="text-xs h-7 w-full justify-start bg-accent text-accent-foreground hover:bg-accent/90"
             onClick={onPublish}
-            disabled={publishing === product.id}
+            disabled={publishing === product.id || deletingId === product.id}
           >
             {publishing === product.id ? (
               <Loader2 className="h-3 w-3 animate-spin" />

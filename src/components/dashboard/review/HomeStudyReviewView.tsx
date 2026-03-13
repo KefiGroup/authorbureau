@@ -35,6 +35,31 @@ interface HomeStudyReviewViewProps {
   onPublished: () => void;
 }
 
+function splitSalesAndContent(markdown: string): { sales: string; content: string } {
+  const text = (markdown || "").trim();
+  if (!text) return { sales: "", content: "" };
+
+  const salesMarker = text.match(/===SALES_PAGE_START===([\s\S]*?)===SALES_PAGE_END===/i);
+  const contentMarker = text.match(/===CONTENT_START===([\s\S]*?)===CONTENT_END===/i);
+  if (salesMarker && contentMarker) {
+    return {
+      sales: salesMarker[1].trim(),
+      content: contentMarker[1].trim(),
+    };
+  }
+
+  const dayStart = text.search(/\n#+\s*Day\s*1\b|\nDay\s*1\b/i);
+  const salesHeader = text.search(/\n#+\s*Sales\s*Page\s*Copy\b|\nSales\s*Page\s*Copy\b/i);
+  if (salesHeader >= 0 && dayStart > salesHeader) {
+    return {
+      sales: text.slice(salesHeader).trim(),
+      content: text.slice(dayStart).trim(),
+    };
+  }
+
+  return { sales: "", content: text };
+}
+
 export default function HomeStudyReviewView({
   productId, bookId, bookTitle, productTitle, productTable, onBack, onPublished,
 }: HomeStudyReviewViewProps) {
@@ -171,8 +196,11 @@ export default function HomeStudyReviewView({
   }, [user, loadContent]);
 
   const hasStructuredDays = days.length > 0;
-  const fullCourseText = fullCourseMarkdown.trim();
-  const hasSalesPage = salesPageMarkdown.trim().length > 50;
+  const splitFromCombined = splitSalesAndContent(fullCourseMarkdown);
+  const effectiveSalesPage = salesPageMarkdown.trim() || splitFromCombined.sales;
+  const effectiveContent = splitFromCombined.content || fullCourseMarkdown;
+  const fullCourseText = effectiveContent.trim();
+  const hasSalesPage = effectiveSalesPage.trim().length > 50;
   const hasFullManuscript = /day\s*1/i.test(fullCourseText) || fullCourseText.length > 2000;
   const canPublish = hasStructuredDays || hasFullManuscript;
 
@@ -321,7 +349,7 @@ export default function HomeStudyReviewView({
             variant="outline"
             size="sm"
             onClick={() => {
-              setSalesDraft(salesPageMarkdown || fullCourseMarkdown);
+              setSalesDraft(effectiveSalesPage || fullCourseMarkdown);
               setDrawerOpen("sales");
             }}
           >
@@ -487,20 +515,20 @@ export default function HomeStudyReviewView({
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">📄 Sales Page</p>
                       <div className="prose prose-sm dark:prose-invert max-w-none">
-                        <MarkdownRenderer content={salesPageMarkdown} />
+                        <MarkdownRenderer content={effectiveSalesPage} />
                       </div>
                     </div>
                     <Separator />
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">📚 Home Study Content</p>
                       <div className="prose prose-sm dark:prose-invert max-w-none">
-                        <MarkdownRenderer content={fullCourseMarkdown} />
+                        <MarkdownRenderer content={effectiveContent} />
                       </div>
                     </div>
                   </div>
                 ) : (
                   <div className="prose prose-sm dark:prose-invert max-w-none">
-                    <MarkdownRenderer content={fullCourseMarkdown} />
+                    <MarkdownRenderer content={effectiveContent} />
                   </div>
                 )
               ) : (
@@ -534,7 +562,7 @@ export default function HomeStudyReviewView({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => { setSalesDraft(salesPageMarkdown || fullCourseMarkdown); setDrawerOpen("sales"); }}>
+          <Button variant="outline" size="sm" onClick={() => { setSalesDraft(effectiveSalesPage || fullCourseMarkdown); setDrawerOpen("sales"); }}>
             <FileText className="h-3.5 w-3.5 mr-1" /> Edit Sales Page
           </Button>
           <Button variant="outline" size="sm" onClick={() => setDrawerOpen("content")}>
