@@ -64,6 +64,11 @@ export default function ProgramSetupStep({ stepData, setStepData, onMarkEdited, 
     );
   }
 
+  // Hide CTA when Abby is actively working
+  if (!isIdle && !isComplete) {
+    return null;
+  }
+
   // Default: show the "Let Abby Design" CTA
   return (
     <div className="space-y-6">
