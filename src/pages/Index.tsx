@@ -383,7 +383,7 @@ export default function Index() {
                   </div>
                   <div className="flex-1 text-center">
                     <span className="inline-block rounded-full bg-background border border-border px-4 py-1 text-xs text-muted-foreground">
-                      authorsbureau.com/books/be-suckcessful
+                      authorsbureau.com/paulineteo/be-suckcessful
                     </span>
                   </div>
                 </div>
