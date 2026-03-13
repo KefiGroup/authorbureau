@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import SiteThemePicker from "@/components/dashboard/SiteThemePicker";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
 /* ---------- Types ---------- */
 interface BookProduct {
