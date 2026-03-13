@@ -103,6 +103,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [exportProduct, setExportProduct] = useState<DraftProduct | null>(null);
   const [activeTab, setActiveTab] = useState("all");
+  const [detailProduct, setDetailProduct] = useState<DraftProduct | null>(null);
 
   useEffect(() => {
     if (!user) return;
