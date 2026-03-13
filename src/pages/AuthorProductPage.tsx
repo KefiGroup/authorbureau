@@ -169,6 +169,38 @@ export default function AuthorProductPage() {
               {/* For Courses - show modules */}
               {pType === "onlinecourse" && product.id && <CourseModules courseId={product.id} />}
 
+              {/* For Audiobook - show details */}
+              {pType === "audiobook" && (
+                <Card className="p-5">
+                  <h3 className="font-heading font-bold text-lg mb-4">Audiobook Details</h3>
+                  <div className="space-y-2 text-sm">
+                    {product.narrator_credit && (
+                      <div className="flex items-center gap-2">
+                        <Mic className="h-4 w-4 text-muted-foreground" />
+                        <span>Narrated by: <strong>{product.narrator_credit}</strong></span>
+                      </div>
+                    )}
+                    {product.duration_minutes && (
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span>{Math.floor(product.duration_minutes / 60)}h {product.duration_minutes % 60}m</span>
+                      </div>
+                    )}
+                    {product.audio_url && (
+                      <div className="pt-3">
+                        <p className="text-xs font-semibold text-muted-foreground mb-2">Preview</p>
+                        <audio controls className="w-full">
+                          <source src={product.audio_url} />
+                        </audio>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              )}
+
+              {/* For Podcast - show episodes */}
+              {pType === "podcast" && product.id && <PodcastEpisodes podcastId={product.id} />}
+
               {/* Content markdown preview */}
               {product.content_markdown && (
                 <Card className="p-5">
