@@ -106,6 +106,7 @@ export default function AuthorProductPage() {
   const [name, setName] = useState("");
   const [subscribing, setSubscribing] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
 
   const pType = productType as ProductType;
   const config = PRODUCT_CONFIG[pType];
