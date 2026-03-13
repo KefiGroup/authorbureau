@@ -319,18 +319,20 @@ export function useReviewProductCount() {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      // Parallel count queries for performance (BUG-058)
-      const results = await Promise.all(
-        TABLES.map(async (table) => {
-          const { count: c } = await supabase
-            .from(table)
-            .select("id", { count: "exact", head: true })
-            .eq("author_id", user.id)
-            .in("status", ["draft", "ready_for_review"]);
-          return c || 0;
-        })
-      );
-      setCount(results.reduce((a, b) => a + b, 0));
+      try {
+        const token = await getActiveToken();
+        if (!token) return;
+        const resp = await fetchWithTimeout(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/builder-draft-state`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ action: "list-drafts" }),
+          }
+        );
+        const result = await resp.json();
+        setCount((result.drafts || []).length);
+      } catch { setCount(0); }
     })();
   }, [user]);
 
