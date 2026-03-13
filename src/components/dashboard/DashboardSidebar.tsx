@@ -118,6 +118,10 @@ export default function DashboardSidebar({
       icon: Contact,
       lockMessage: !tierAccess("pro") ? "Upgrade to Pro to access your CRM" : undefined,
     },
+    {
+      id: "messages" as DashboardSection, label: "Messages",
+      icon: MessageSquare,
+    },
   ];
 
   // REVENUE
