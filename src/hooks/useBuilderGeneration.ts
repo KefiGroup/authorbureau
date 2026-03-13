@@ -151,7 +151,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
 
   // ── ACT 1: Analyze ─────────────────────────────────────────────
   const startAct1 = useCallback(async (bookId: string) => {
-    setState({ act: "act1_loading", proposal: null, generatedContent: "", error: null, pushResult: null });
+    setState({ act: "act1_loading", proposal: null, generatedContent: "", generatedSalesPage: "", error: null, pushResult: null });
 
     try {
       const token = await getToken();
@@ -179,6 +179,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
         act: "act2_proposal",
         proposal: data.proposal,
         generatedContent: "",
+        generatedSalesPage: "",
         error: null,
         pushResult: null,
       });
@@ -193,7 +194,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
 
   // ── ACT 3: Generate ────────────────────────────────────────────
   const startAct3 = useCallback(async (bookId: string, approvedProposal: BuilderProposal) => {
-    setState(prev => ({ ...prev, act: "act3_generating", generatedContent: "", error: null }));
+    setState(prev => ({ ...prev, act: "act3_generating", generatedContent: "", generatedSalesPage: "", error: null }));
 
     const controller = new AbortController();
     abortRef.current = controller;
