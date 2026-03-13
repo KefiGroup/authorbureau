@@ -174,8 +174,8 @@ export default function HomeStudyReviewView({
 
   const hasStructuredDays = days.length > 0;
   const splitFromCombined = splitSalesAndContent(fullCourseMarkdown);
-  const effectiveSalesPage = salesPageMarkdown.trim() || splitFromCombined.sales;
-  const effectiveContent = splitFromCombined.content || fullCourseMarkdown;
+  const effectiveSalesPage = salesPageMarkdown.trim() || splitFromCombined.salesPageText;
+  const effectiveContent = splitFromCombined.contentText || fullCourseMarkdown;
   const fullCourseText = effectiveContent.trim();
   const hasSalesPage = effectiveSalesPage.trim().length > 50;
   const hasFullManuscript = /day\s*1/i.test(fullCourseText) || fullCourseText.length > 2000;
