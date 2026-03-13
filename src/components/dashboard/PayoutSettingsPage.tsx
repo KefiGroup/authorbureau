@@ -1,0 +1,328 @@
+import { useState, useEffect } from "react";
+import { Loader2, Wallet, CreditCard, DollarSign, Globe, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/components/AuthProvider";
+import { toast } from "sonner";
+
+type PayoutMethod = "stripe" | "paypal" | "wise";
+
+interface PayoutSettings {
+  payout_method: PayoutMethod;
+  paypal_email: string;
+  wise_email: string;
+  wise_account_number: string;
+  wise_routing_number: string;
+  wise_currency: string;
+  refund_window_days: number;
+}
+
+const DEFAULT_SETTINGS: PayoutSettings = {
+  payout_method: "stripe",
+  paypal_email: "",
+  wise_email: "",
+  wise_account_number: "",
+  wise_routing_number: "",
+  wise_currency: "USD",
+  refund_window_days: 14,
+};
+
+const PAYOUT_OPTIONS: { value: PayoutMethod; label: string; icon: typeof CreditCard; description: string }[] = [
+  { value: "stripe", label: "Stripe", icon: CreditCard, description: "Direct transfer to your connected Stripe account. Fastest option." },
+  { value: "paypal", label: "PayPal", icon: DollarSign, description: "Payout sent to your PayPal email. Available worldwide." },
+  { value: "wise", label: "Wise", icon: Globe, description: "Bank transfer via Wise. Best rates for international authors." },
+];
+
+export default function PayoutSettingsPage() {
+  const { user } = useAuth();
+  const [settings, setSettings] = useState<PayoutSettings>(DEFAULT_SETTINGS);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [hasStripeConnect, setHasStripeConnect] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    loadSettings();
+  }, [user?.id]);
+
+  const loadSettings = async () => {
+    try {
+      // Check Stripe Connect status
+      const { data: profile } = await supabase
+        .from("author_profiles")
+        .select("stripe_onboarding_complete")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      setHasStripeConnect(!!profile?.stripe_onboarding_complete);
+
+      // Load payout settings
+      const { data } = await supabase
+        .from("author_payout_settings" as any)
+        .select("*")
+        .eq("author_id", user!.id)
+        .maybeSingle();
+
+      if (data) {
+        setSettings({
+          payout_method: (data as any).payout_method || "stripe",
+          paypal_email: (data as any).paypal_email || "",
+          wise_email: (data as any).wise_email || "",
+          wise_account_number: (data as any).wise_account_number || "",
+          wise_routing_number: (data as any).wise_routing_number || "",
+          wise_currency: (data as any).wise_currency || "USD",
+          refund_window_days: (data as any).refund_window_days || 14,
+        });
+      }
+    } catch (err) {
+      console.error("Failed to load payout settings:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!user?.id) return;
+
+    // Validation
+    if (settings.payout_method === "stripe" && !hasStripeConnect) {
+      toast.error("Please connect your Stripe account first");
+      return;
+    }
+    if (settings.payout_method === "paypal" && !settings.paypal_email) {
+      toast.error("Please enter your PayPal email");
+      return;
+    }
+    if (settings.payout_method === "wise" && !settings.wise_email) {
+      toast.error("Please enter your Wise email");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const payload = {
+        author_id: user.id,
+        payout_method: settings.payout_method,
+        paypal_email: settings.paypal_email || null,
+        wise_email: settings.wise_email || null,
+        wise_account_number: settings.wise_account_number || null,
+        wise_routing_number: settings.wise_routing_number || null,
+        wise_currency: settings.wise_currency,
+        refund_window_days: settings.refund_window_days,
+      };
+
+      const { error } = await supabase
+        .from("author_payout_settings" as any)
+        .upsert(payload as any, { onConflict: "author_id" });
+
+      if (error) throw error;
+      toast.success("Payout settings saved!");
+    } catch (err) {
+      console.error("Failed to save payout settings:", err);
+      toast.error("Failed to save settings");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-3xl mx-auto space-y-8">
+      {/* Header */}
+      <div className="text-center space-y-2">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-secondary/10 mx-auto mb-2">
+          <Wallet className="h-8 w-8 text-secondary" />
+        </div>
+        <h1 className="font-heading text-3xl font-bold">Payout Settings</h1>
+        <p className="text-muted-foreground max-w-md mx-auto">
+          Choose how you'd like to receive your earnings. You keep 92% of every sale.
+        </p>
+      </div>
+
+      {/* Payout Method Selection */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Payout Method</CardTitle>
+          <CardDescription>Select your preferred way to receive payments</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <RadioGroup
+            value={settings.payout_method}
+            onValueChange={(v) => setSettings(s => ({ ...s, payout_method: v as PayoutMethod }))}
+            className="space-y-3"
+          >
+            {PAYOUT_OPTIONS.map((opt) => {
+              const Icon = opt.icon;
+              const isSelected = settings.payout_method === opt.value;
+              const isDisabled = opt.value === "stripe" && !hasStripeConnect;
+
+              return (
+                <label
+                  key={opt.value}
+                  className={`flex items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                    isSelected
+                      ? "border-secondary bg-secondary/5"
+                      : "border-border hover:border-muted-foreground/30"
+                  } ${isDisabled ? "opacity-50" : ""}`}
+                >
+                  <RadioGroupItem value={opt.value} disabled={isDisabled} className="mt-1" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <Icon className="h-4 w-4 text-secondary" />
+                      <span className="font-semibold">{opt.label}</span>
+                      {opt.value === "stripe" && hasStripeConnect && (
+                        <CheckCircle2 className="h-4 w-4 text-accent" />
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-0.5">{opt.description}</p>
+                    {opt.value === "stripe" && !hasStripeConnect && (
+                      <p className="text-xs text-destructive mt-1">
+                        Connect your Stripe account first to use this option
+                      </p>
+                    )}
+                  </div>
+                </label>
+              );
+            })}
+          </RadioGroup>
+        </CardContent>
+      </Card>
+
+      {/* PayPal Details */}
+      {settings.payout_method === "paypal" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">PayPal Details</CardTitle>
+            <CardDescription>Enter the PayPal email where you want to receive payments</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="paypal-email">PayPal Email</Label>
+              <Input
+                id="paypal-email"
+                type="email"
+                placeholder="your@paypal-email.com"
+                value={settings.paypal_email}
+                onChange={(e) => setSettings(s => ({ ...s, paypal_email: e.target.value }))}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Wise Details */}
+      {settings.payout_method === "wise" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Wise Details</CardTitle>
+            <CardDescription>Enter your Wise account information for bank transfers</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="wise-email">Wise Account Email</Label>
+              <Input
+                id="wise-email"
+                type="email"
+                placeholder="your@wise-email.com"
+                value={settings.wise_email}
+                onChange={(e) => setSettings(s => ({ ...s, wise_email: e.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="wise-account">Account Number (optional)</Label>
+                <Input
+                  id="wise-account"
+                  placeholder="Account number"
+                  value={settings.wise_account_number}
+                  onChange={(e) => setSettings(s => ({ ...s, wise_account_number: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="wise-routing">Routing Number (optional)</Label>
+                <Input
+                  id="wise-routing"
+                  placeholder="Routing number"
+                  value={settings.wise_routing_number}
+                  onChange={(e) => setSettings(s => ({ ...s, wise_routing_number: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="wise-currency">Preferred Currency</Label>
+              <Select
+                value={settings.wise_currency}
+                onValueChange={(v) => setSettings(s => ({ ...s, wise_currency: v }))}
+              >
+                <SelectTrigger id="wise-currency">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USD">USD — US Dollar</SelectItem>
+                  <SelectItem value="EUR">EUR — Euro</SelectItem>
+                  <SelectItem value="GBP">GBP — British Pound</SelectItem>
+                  <SelectItem value="AUD">AUD — Australian Dollar</SelectItem>
+                  <SelectItem value="CAD">CAD — Canadian Dollar</SelectItem>
+                  <SelectItem value="INR">INR — Indian Rupee</SelectItem>
+                  <SelectItem value="SGD">SGD — Singapore Dollar</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Refund Window */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Refund Window</CardTitle>
+          <CardDescription>
+            Earnings become available for payout after this period to allow for refund processing
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Select
+            value={String(settings.refund_window_days)}
+            onValueChange={(v) => setSettings(s => ({ ...s, refund_window_days: Number(v) }))}
+          >
+            <SelectTrigger className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7">7 days</SelectItem>
+              <SelectItem value="14">14 days (recommended)</SelectItem>
+              <SelectItem value="21">21 days</SelectItem>
+              <SelectItem value="30">30 days</SelectItem>
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
+
+      <Separator />
+
+      {/* Save */}
+      <div className="flex justify-end">
+        <Button
+          size="lg"
+          className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
+          onClick={handleSave}
+          disabled={saving}
+        >
+          {saving ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Saving...</> : "Save Payout Settings"}
+        </Button>
+      </div>
+    </div>
+  );
+}
