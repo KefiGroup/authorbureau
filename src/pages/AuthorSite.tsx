@@ -519,7 +519,7 @@ export default function AuthorSite() {
           <div className="container max-w-5xl">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
               <h2 className="as-heading text-2xl md:text-3xl font-bold mb-10" style={{ color: `hsl(${c.heroBackground})` }}>
-                Books by {displayName}
+                {totalBooks >= 3 ? "Published Works by" : "Books by"} {displayName}
               </h2>
             </motion.div>
 
