@@ -125,20 +125,41 @@ Deno.serve(async (req) => {
       amazonAuthorUrl: author.amazon_author_profile_url,
       locationCity: author.location_city,
       locationCountry: author.location_country,
-      books: (books || []).map((b: any) => ({
-        slug: b.slug,
-        title: b.title,
-        subtitle: b.subtitle || "",
-        description: b.description || "",
-        coverImage: b.cover_image_url || "",
-        amazonUrl: b.amazon_url || "",
-        badges: b.badges || [],
-        genre: b.genre || "",
-        price: b.price || undefined,
-        kindlePrice: b.kindle_price || undefined,
-        paperbackPrice: b.paperback_price || undefined,
-        pages: b.pages || undefined,
-        rating: b.rating ? Number(b.rating) : undefined,
+      books: (books || []).map((b: any) => {
+        const bookProducts: any[] = [];
+        homeStudy.filter((p: any) => p.book_id === b.id).forEach((p: any) => {
+          bookProducts.push({ id: p.id, title: p.title, type: "home_study", price: p.price, currency: p.currency });
+        });
+        courses.filter((p: any) => p.book_id === b.id).forEach((p: any) => {
+          bookProducts.push({ id: p.id, title: p.title, type: "course", price: p.price, currency: p.currency });
+        });
+        audiobooks.filter((p: any) => p.book_id === b.id).forEach((p: any) => {
+          bookProducts.push({ id: p.id, title: p.title, type: "audiobook", price: p.price, currency: p.currency });
+        });
+        podcasts.filter((p: any) => p.book_id === b.id).forEach((p: any) => {
+          bookProducts.push({ id: p.id, title: p.title, type: "podcast", price: null, currency: null });
+        });
+
+        return {
+          slug: b.slug,
+          title: b.title,
+          subtitle: b.subtitle || "",
+          description: b.description || "",
+          coverImage: b.cover_image_url || "",
+          amazonUrl: b.amazon_url || "",
+          badges: b.badges || [],
+          genre: b.genre || "",
+          price: b.price || undefined,
+          kindlePrice: b.kindle_price || undefined,
+          paperbackPrice: b.paperback_price || undefined,
+          pages: b.pages || undefined,
+          rating: b.rating ? Number(b.rating) : undefined,
+          products: bookProducts,
+        };
+      }),
+      // Coaching packages (not book-scoped)
+      coaching: coaching.map((p: any) => ({
+        id: p.id, title: p.title, price: p.price, currency: p.currency,
       })),
     };
 
