@@ -138,6 +138,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
     act: "idle",
     proposal: null,
     generatedContent: "",
+    generatedSalesPage: "",
     error: null,
     pushResult: null,
   });
