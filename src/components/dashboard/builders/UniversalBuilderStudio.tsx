@@ -931,7 +931,8 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                   setTimeout(() => onNavigate?.("review-products"), 800);
                 }
               } : goNext}
-              className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold px-6"
+              variant="secondary"
+              className="rounded-full font-semibold px-6 shadow-sm"
             >
               {isLastStep ? (
                 saving ? <><Loader2 className="h-4 w-4 animate-spin mr-1" /> Publishing&hellip;</> : <>Publish</>
