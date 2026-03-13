@@ -152,17 +152,21 @@ export default function AuthorSite() {
     setAuthor(profile as unknown as AuthorData);
 
     // Fetch books and all product types in parallel
-    const [booksRes, homeStudyRes, coursesRes, coachingRes] = await Promise.all([
+    const [booksRes, homeStudyRes, coursesRes, coachingRes, audiobooksRes, podcastsRes] = await Promise.all([
       supabase.from("books").select("*").eq("author_id", profile.user_id).not("published_at", "is", null).order("created_at", { ascending: false }),
       supabase.from("home_study_courses").select("id, title, price, currency, book_id").eq("author_id", profile.user_id).eq("status", "published"),
       supabase.from("courses").select("id, title, price, currency, book_id").eq("author_id", profile.user_id).eq("status", "published"),
       supabase.from("coaching_packages").select("id, title, price, currency").eq("author_id", profile.user_id).eq("status", "active"),
+      supabase.from("audiobooks").select("id, title, price, currency, book_id").eq("author_id", profile.user_id).eq("status", "published"),
+      supabase.from("podcasts").select("id, title, book_id").eq("author_id", profile.user_id).eq("status", "published"),
     ]);
 
     const books = (booksRes.data || []) as any[];
     const homeStudy = (homeStudyRes.data || []) as any[];
     const courses = (coursesRes.data || []) as any[];
     const coaching = (coachingRes.data || []) as any[];
+    const audiobooks = (audiobooksRes.data || []) as any[];
+    const podcasts = (podcastsRes.data || []) as any[];
 
     // Group products under books
     const enriched: BookWithProducts[] = books.map((book) => {
@@ -173,6 +177,12 @@ export default function AuthorSite() {
       });
       courses.filter((p) => p.book_id === book.id).forEach((p) => {
         products.push({ id: p.id, title: p.title, type: "course", price: p.price, currency: p.currency });
+      });
+      audiobooks.filter((p) => p.book_id === book.id).forEach((p) => {
+        products.push({ id: p.id, title: p.title, type: "audiobook", price: p.price, currency: p.currency });
+      });
+      podcasts.filter((p) => p.book_id === book.id).forEach((p) => {
+        products.push({ id: p.id, title: p.title, type: "podcast", price: null, currency: null });
       });
 
       return { ...book, products };

@@ -315,3 +315,49 @@ function CourseModules({ courseId }: { courseId: string }) {
     </Card>
   );
 }
+
+// Sub-component for podcast episodes
+function PodcastEpisodes({ podcastId }: { podcastId: string }) {
+  const [episodes, setEpisodes] = useState<any[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from("podcast_episodes")
+      .select("id, title, description, episode_number, duration_minutes, audio_url, status")
+      .eq("podcast_id", podcastId)
+      .eq("status", "published")
+      .order("episode_number")
+      .then(({ data }) => setEpisodes(data || []));
+  }, [podcastId]);
+
+  if (episodes.length === 0) return null;
+
+  return (
+    <Card className="p-5">
+      <h3 className="font-heading font-bold text-lg mb-4">Episodes</h3>
+      <div className="space-y-3">
+        {episodes.map((ep) => (
+          <div key={ep.id} className="flex gap-3 p-3 rounded-lg border border-border">
+            <span className="flex-shrink-0 w-8 h-8 rounded-full bg-secondary/10 text-secondary text-xs font-bold flex items-center justify-center">
+              {ep.episode_number}
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium">{ep.title}</p>
+              {ep.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{ep.description}</p>}
+              <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-foreground">
+                {ep.duration_minutes && (
+                  <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{ep.duration_minutes} min</span>
+                )}
+                {ep.audio_url && (
+                  <a href={ep.audio_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-secondary hover:underline">
+                    <Play className="h-3 w-3" /> Listen
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
