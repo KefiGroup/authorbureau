@@ -215,8 +215,11 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
       toast({ title: "Abby's proposal is ready!", description: "Review and approve to generate all content." });
     } catch (err: any) {
       console.error("Act 1 error:", err);
-      setState(prev => ({ ...prev, act: "error", error: err.message }));
-      toast({ title: "Analysis failed", description: err.message, variant: "destructive" });
+      const message = err?.message?.toLowerCase?.().includes("failed to fetch")
+        ? "Connection issue while reaching Abby. Please retry."
+        : err.message;
+      setState(prev => ({ ...prev, act: "error", error: message }));
+      toast({ title: "Analysis failed", description: message, variant: "destructive" });
     }
   }, [builderId, builderLabel, toast]);
 
