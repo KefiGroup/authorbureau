@@ -122,6 +122,7 @@ export default function AuthorSite() {
   const { authorSlug } = useParams<{ authorSlug: string }>();
   const [author, setAuthor] = useState<AuthorData | null>(null);
   const [booksWithProducts, setBooksWithProducts] = useState<BookWithProducts[]>([]);
+  const [coachingServices, setCoachingServices] = useState<any[]>([]);
   const [relatedAuthors, setRelatedAuthors] = useState<RelatedAuthor[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
