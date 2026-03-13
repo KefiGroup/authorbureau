@@ -13,6 +13,7 @@ export function getProductCTAText(type: string, authorFirstName: string): string
     coaching: "Book a Session",
     group_coaching: "Join the Group",
     membership: "Become a Member",
+    coaching_membership: "Become a Member",
     webinar: "Register Now",
     speaking: `Book ${authorFirstName}`,
     keynote: `Book ${authorFirstName}`,
@@ -25,6 +26,7 @@ export function getProductCTAText(type: string, authorFirstName: string): string
     convention: "Get Tickets",
     special_edition: "Order Now",
     podcast: "Listen Now",
+    big_ticket: "Get Access",
   };
   return map[type] || "Get Access";
 }
