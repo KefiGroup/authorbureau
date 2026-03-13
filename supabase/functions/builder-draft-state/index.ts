@@ -96,6 +96,49 @@ async function resolveAllUserIds(cloudAdmin: any, identity: { userId: string; em
   return allUserIds;
 }
 
+function splitSalesAndContent(markdown: string): { sales: string; content: string } {
+  const text = (markdown || "").replace(/\r\n/g, "\n").trim();
+  if (!text) return { sales: "", content: "" };
+
+  const stripMarkers = (s: string) =>
+    s
+      .replace(/={3,}\s*(SALES[_ ]?PAGE[_ ]?START|SALES[_ ]?PAGE[_ ]?END|CONTENT[_ ]?START|CONTENT[_ ]?END)\s*={3,}/gi, "")
+      .trim();
+
+  const salesMatch = text.match(/={3,}\s*SALES[_ ]?PAGE[_ ]?START\s*={3,}([\s\S]*?)={3,}\s*SALES[_ ]?PAGE[_ ]?END\s*={3,}/i);
+  const contentMatch = text.match(/={3,}\s*CONTENT[_ ]?START\s*={3,}([\s\S]*?)={3,}\s*CONTENT[_ ]?END\s*={3,}/i);
+  if (salesMatch?.[1] && contentMatch?.[1]) {
+    return { sales: stripMarkers(salesMatch[1]), content: stripMarkers(contentMatch[1]) };
+  }
+
+  const salesStart = text.search(/={3,}\s*SALES[_ ]?PAGE[_ ]?START\s*={3,}/i);
+  const salesEnd = text.search(/={3,}\s*SALES[_ ]?PAGE[_ ]?END\s*={3,}/i);
+  const contentStart = text.search(/={3,}\s*CONTENT[_ ]?START\s*={3,}/i);
+
+  if (salesStart >= 0 && contentStart > salesStart) {
+    const sales = stripMarkers(text.slice(salesStart, contentStart));
+    const content = stripMarkers(text.slice(contentStart));
+    if (sales && content) return { sales, content };
+  }
+
+  if (salesStart >= 0 && salesEnd > salesStart) {
+    const sales = stripMarkers(text.slice(salesStart, salesEnd));
+    const rest = stripMarkers(text.slice(salesEnd));
+    if (sales && rest) return { sales, content: rest };
+  }
+
+  const salesHeader = text.search(/(^|\n)#{1,6}\s*(sales\s*page|landing\s*page|offer\s*page|marketing\s*copy)\b/i);
+  const contentHeader = text.search(/(^|\n)#{1,6}\s*(day\s*1\b|module\s*1\b|lesson\s*1\b|curriculum\b|course\s*content\b)/i);
+  if (salesHeader >= 0 && contentHeader > salesHeader) {
+    return {
+      sales: stripMarkers(text.slice(salesHeader, contentHeader)),
+      content: stripMarkers(text.slice(contentHeader)),
+    };
+  }
+
+  return { sales: "", content: stripMarkers(text) };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
