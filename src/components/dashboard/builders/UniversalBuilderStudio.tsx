@@ -131,6 +131,7 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
   const [stepData, setStepData] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [draftLoadAttempt, setDraftLoadAttempt] = useState(0);
   
   // 3-Act generation engine (replaces old mock generationState)
   const builderGen = useBuilderGeneration(nodeConfig.id, nodeConfig.label);
