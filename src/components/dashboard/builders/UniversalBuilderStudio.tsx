@@ -12,7 +12,7 @@ import CrossBuilderNotifications from "./CrossBuilderNotifications";
 import CrossBuilderPushSummary from "./CrossBuilderPushSummary";
 import BuilderUpgradeGate from "./BuilderUpgradeGate";
 import { BUILDER_SYSTEM_PROMPTS } from "./builderSystemPrompts";
-import { useBuilderGeneration } from "@/hooks/useBuilderGeneration";
+import { useBuilderGeneration, splitSalesAndContent } from "@/hooks/useBuilderGeneration";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
