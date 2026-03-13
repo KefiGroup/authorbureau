@@ -677,7 +677,8 @@ export default function AuthorBookPage() {
                     style={{ background: `hsl(${c.accent})`, color: `hsl(${c.accentForeground})`, borderRadius: theme.borderRadius }}
                   >
                     {subscribing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Subscribe"}
-                  </Button>
+                    </Button>
+                  </div>
                 </form>
                 <p className="text-xs mt-4" style={{ color: `hsl(${c.heroBackground} / 0.3)` }}>
                   We respect your privacy. Unsubscribe anytime.
