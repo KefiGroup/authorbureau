@@ -591,10 +591,13 @@ ${contextBlock}
 GENERATE EVERYTHING:
 For the "${approvedProposal.recommended_title || approvedProposal.title_options?.[0]}" ${builderLabel || builderId}:
 
-CRITICAL OUTPUT FORMAT: You MUST structure your output in TWO clearly separated sections using these EXACT delimiters:
+⚠️ MANDATORY OUTPUT FORMAT — YOU MUST FOLLOW THIS EXACTLY ⚠️
+Your output MUST contain EXACTLY these delimiter lines. The system parses them programmatically. If you omit them, the product will be broken.
 
+Your FIRST line of output must be:
 ===SALES_PAGE_START===
-Write the complete sales/landing page copy here. Include:
+
+Then write the complete sales/landing page copy:
 - Compelling headline and sub-headline
 - Hero section with transformation promise
 - Pain points and "Are You Ready" sections
@@ -604,10 +607,14 @@ Write the complete sales/landing page copy here. Include:
 - FAQ section
 - Call-to-action / Enroll Now section
 Use the author's voice. This is what the PUBLIC sees BEFORE they buy.
+
+Then write this line EXACTLY:
 ===SALES_PAGE_END===
 
+Then write this line EXACTLY:
 ===CONTENT_START===
-Write ALL the actual product content here. This is what BUYERS get AFTER purchase. Include:
+
+Then write ALL the actual product content (what BUYERS get AFTER purchase):
 1. Welcome/Introduction email or message (personalize with "Dear [Participant Name]")
 2. Complete content for every section/module/day in the structure
 3. For each item, write full professional content (800-1200 words for lessons, 200-400 for exercises)
@@ -615,9 +622,11 @@ Write ALL the actual product content here. This is what BUYERS get AFTER purchas
 5. Use the author's voice and the book's terminology throughout
 6. Reference specific chapters, quotes, and frameworks from the manuscript
 7. Completion/certificate section
+
+Then write this line EXACTLY:
 ===CONTENT_END===
 
-Format each section as structured markdown with clear headers. The sales page and content MUST be in separate sections with the delimiters above. Do NOT mix them.`;
+REMEMBER: All 4 delimiter lines (===SALES_PAGE_START===, ===SALES_PAGE_END===, ===CONTENT_START===, ===CONTENT_END===) are REQUIRED. Do NOT skip any of them. Do NOT put content outside of these sections.`;
 
       const response = await fetch(AI_URL, {
         method: "POST",
