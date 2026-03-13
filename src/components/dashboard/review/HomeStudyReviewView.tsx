@@ -12,9 +12,16 @@ import { toast } from "@/hooks/use-toast";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import MarkdownRenderer from "../MarkdownRenderer";
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import {
   ArrowLeft, Monitor, Smartphone, ChevronLeft, ChevronRight,
   BookOpen, Clock, CalendarDays, Award, Send, Save, Loader2,
-  DollarSign, Edit3, Eye, CheckCircle2,
+  DollarSign, Edit3, Eye, CheckCircle2, FileText, GraduationCap,
 } from "lucide-react";
 import type { StudyDay } from "../builders/home-study/types";
 
@@ -28,7 +35,6 @@ interface HomeStudyReviewViewProps {
   onPublished: () => void;
 }
 
-
 export default function HomeStudyReviewView({
   productId, bookId, bookTitle, productTitle, productTable, onBack, onPublished,
 }: HomeStudyReviewViewProps) {
@@ -36,7 +42,7 @@ export default function HomeStudyReviewView({
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [mode, setMode] = useState<"preview" | "edit">("preview");
+  const [drawerOpen, setDrawerOpen] = useState<"sales" | "content" | null>(null);
   const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
   const [previewPage, setPreviewPage] = useState(0);
 
@@ -53,12 +59,14 @@ export default function HomeStudyReviewView({
   const [commitment, setCommitment] = useState("30");
   const [level, setLevel] = useState("Beginner");
 
+  // Drawer-local draft for sales page markdown
+  const [salesDraft, setSalesDraft] = useState("");
+
   const loadContent = useCallback(async () => {
     if (!user) return;
     setLoading(true);
 
     try {
-      // Load all data via edge function (bypasses RLS, uses admin access)
       const token = await getActiveToken();
       if (!token) throw new Error("Not authenticated");
 
@@ -86,7 +94,6 @@ export default function HomeStudyReviewView({
       let nextDays: StudyDay[] = [];
       let nextRawDraftContent = "";
 
-      // Parse the builder draft from generated_assets
       if (draftContentRaw) {
         nextRawDraftContent = draftContentRaw;
         try {
@@ -99,7 +106,6 @@ export default function HomeStudyReviewView({
         }
       }
 
-      // Fallback: try study_schedule_json from the table
       if (!nextDays.length && courseRecord?.study_schedule_json) {
         const tableSchedule = courseRecord.study_schedule_json;
         if (Array.isArray(tableSchedule)) {
@@ -109,7 +115,6 @@ export default function HomeStudyReviewView({
         }
       }
 
-      // Fallback: try parsing content_markdown as JSON (builder stores days as JSON.stringify)
       if (!nextDays.length && courseRecord?.content_markdown) {
         try {
           const parsed = JSON.parse(courseRecord.content_markdown);
@@ -117,11 +122,10 @@ export default function HomeStudyReviewView({
             nextDays = parsed as StudyDay[];
           }
         } catch {
-          // It's real markdown, not JSON — handled below
+          // It's real markdown, not JSON
         }
       }
 
-      // Merge setup: prioritise draft setup → course table record → prop fallbacks
       const mergedSetup = {
         ...draftSetup,
         title: draftSetup.title || courseRecord?.title || productTitle,
@@ -132,12 +136,10 @@ export default function HomeStudyReviewView({
         level: draftSetup.level || "Beginner",
       };
 
-      // Full markdown fallback for preview
       let markdownFallback = generatedContentRaw || "";
       if (!markdownFallback && courseRecord?.content_markdown) {
         try {
           JSON.parse(courseRecord.content_markdown);
-          // It's JSON, not markdown — skip
         } catch {
           markdownFallback = courseRecord.content_markdown;
         }
@@ -173,7 +175,6 @@ export default function HomeStudyReviewView({
   // Split sales page from curriculum content
   const splitContent = (() => {
     if (!fullCourseText) return { salesPage: "", curriculum: "" };
-    // Common split patterns between sales copy and curriculum
     const splitPatterns = [
       /\n(?=#{1,2}\s*(?:Home Study|Study Guide|Course Curriculum|Daily Lessons|Program Structure|Week\s*1|Day\s*1\b))/i,
       /\n---+\n/,
@@ -187,7 +188,6 @@ export default function HomeStudyReviewView({
         };
       }
     }
-    // If no split found, check if it looks like it starts with sales copy
     if (/^#\s*Sales\s*Page/i.test(fullCourseText)) {
       return { salesPage: fullCourseText, curriculum: "" };
     }
@@ -218,7 +218,6 @@ export default function HomeStudyReviewView({
       setRawDraftContent(newContent);
       setSetup(parsed.stepData.setup);
 
-      // Save via edge function (bypasses RLS)
       const token = await getActiveToken();
       if (!token) throw new Error("Not authenticated");
 
@@ -241,7 +240,43 @@ export default function HomeStudyReviewView({
       );
 
       toast({ title: "Saved!", description: "Your changes have been saved." });
-      setMode("preview");
+      setDrawerOpen(null);
+    } catch {
+      toast({ title: "Save failed", variant: "destructive" });
+    }
+    setSaving(false);
+  };
+
+  const handleSaveSalesPage = async () => {
+    if (!user) return;
+    setSaving(true);
+    try {
+      // Update the sales page portion in the full markdown
+      const newMarkdown = splitContent.curriculum
+        ? `${salesDraft}\n\n---\n\n${splitContent.curriculum}`
+        : salesDraft;
+      setFullCourseMarkdown(newMarkdown);
+
+      // Save to generated_assets via edge function
+      const token = await getActiveToken();
+      if (!token) throw new Error("Not authenticated");
+
+      await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/builder-draft-state`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            action: "save-content",
+            bookId,
+            nodeId: "home-study-course",
+            content: newMarkdown,
+          }),
+        }
+      );
+
+      toast({ title: "Sales page saved!" });
+      setDrawerOpen(null);
     } catch {
       toast({ title: "Save failed", variant: "destructive" });
     }
@@ -306,284 +341,204 @@ export default function HomeStudyReviewView({
         </div>
         <div className="flex items-center gap-2">
           <Button
-            variant={mode === "preview" ? "default" : "outline"}
+            variant="outline"
             size="sm"
-            onClick={() => setMode("preview")}
+            onClick={() => {
+              setSalesDraft(splitContent.salesPage || fullCourseMarkdown);
+              setDrawerOpen("sales");
+            }}
           >
-            <Eye className="h-3.5 w-3.5 mr-1" /> Preview
+            <FileText className="h-3.5 w-3.5 mr-1" /> Edit Sales Page
           </Button>
           <Button
-            variant={mode === "edit" ? "default" : "outline"}
+            variant="outline"
             size="sm"
-            onClick={() => setMode("edit")}
+            onClick={() => setDrawerOpen("content")}
           >
-            <Edit3 className="h-3.5 w-3.5 mr-1" /> Edit Details
+            <GraduationCap className="h-3.5 w-3.5 mr-1" /> Edit Content
           </Button>
         </div>
       </div>
 
-      {mode === "edit" ? (
-        /* ── EDIT MODE ──────────────────────────────────────── */
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card className="p-6 space-y-4">
-            <h3 className="font-heading font-semibold text-sm">Course Details</h3>
-            <div className="space-y-3">
-              <div>
-                <Label className="text-xs">Title</Label>
-                <Input value={title} onChange={e => setTitle(e.target.value)} />
+      {/* ── PREVIEW MODE ──────────────────────────────────── */}
+      <div className="space-y-4">
+        {hasStructuredDays ? (
+          <>
+            {/* View toggle + pagination */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => setPreviewPage(Math.max(0, previewPage - 1))} disabled={previewPage === 0} className="text-xs">
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  Page {previewPage + 1} of {totalPages}
+                </span>
+                <Button variant="outline" size="sm" onClick={() => setPreviewPage(Math.min(totalPages - 1, previewPage + 1))} disabled={previewPage === totalPages - 1} className="text-xs">
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
               </div>
-              <div>
-                <Label className="text-xs">Description</Label>
-                <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={4} />
+              <div className="flex items-center gap-1 border border-border rounded-lg overflow-hidden">
+                <button onClick={() => setViewMode("desktop")} className={`p-1.5 ${viewMode === "desktop" ? "bg-secondary text-secondary-foreground" : "text-muted-foreground"}`}>
+                  <Monitor className="h-3.5 w-3.5" />
+                </button>
+                <button onClick={() => setViewMode("mobile")} className={`p-1.5 ${viewMode === "mobile" ? "bg-secondary text-secondary-foreground" : "text-muted-foreground"}`}>
+                  <Smartphone className="h-3.5 w-3.5" />
+                </button>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs">Price ($)</Label>
-                  <div className="relative">
-                    <DollarSign className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                    <Input value={price} onChange={e => setPrice(e.target.value)} className="pl-8" placeholder="47" />
+            </div>
+
+            {/* Course Preview */}
+            <div className={`mx-auto border border-border rounded-xl overflow-hidden bg-card shadow-lg ${viewMode === "mobile" ? "max-w-sm" : "max-w-2xl"}`}>
+              {previewPage === 0 ? (
+                /* Cover */
+                <div className="bg-gradient-to-b from-secondary/10 to-transparent p-8 text-center min-h-[450px] flex flex-col items-center justify-center">
+                  <Badge variant="secondary" className="text-[10px] mb-4">
+                    {duration}-Day Program
+                  </Badge>
+                  <h1 className="font-heading text-2xl font-bold mb-2">{title || "Home Study Course"}</h1>
+                  <p className="text-sm text-muted-foreground mb-4 max-w-md">{description || "A guided self-paced learning experience"}</p>
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1"><CalendarDays className="h-3 w-3" /> {duration} days</span>
+                    <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {commitment} min/day</span>
+                    <span className="flex items-center gap-1"><BookOpen className="h-3 w-3" /> {level}</span>
                   </div>
-                </div>
-                <div>
-                  <Label className="text-xs">Daily Commitment (min)</Label>
-                  <Input value={commitment} onChange={e => setCommitment(e.target.value)} type="number" />
-                </div>
-              </div>
-              <div>
-                <Label className="text-xs">Level</Label>
-                <Input value={level} onChange={e => setLevel(e.target.value)} placeholder="Beginner" />
-              </div>
-            </div>
-            <div className="flex gap-2 pt-2">
-              <Button onClick={handleSave} disabled={saving} className="flex-1">
-                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
-                Save Changes
-              </Button>
-              <Button variant="outline" onClick={() => setMode("preview")}>Cancel</Button>
-            </div>
-          </Card>
-
-          <Card className="p-6 space-y-4">
-            <h3 className="font-heading font-semibold text-sm">Course Summary</h3>
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between py-2 border-b border-border">
-                <span className="text-muted-foreground">Total Days</span>
-                <span className="font-medium">{days.length}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b border-border">
-                <span className="text-muted-foreground">Weeks</span>
-                <span className="font-medium">{days.length > 0 ? days[days.length - 1]?.weekNumber || Math.ceil(days.length / 7) : 0}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b border-border">
-                <span className="text-muted-foreground">Catch-Up Days</span>
-                <span className="font-medium">{days.filter(d => d.isCatchUp).length}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b border-border">
-                <span className="text-muted-foreground">Study Days</span>
-                <span className="font-medium">{days.filter(d => !d.isCatchUp).length}</span>
-              </div>
-              <div className="flex justify-between py-2">
-                <span className="text-muted-foreground">Revenue (20 students/mo)</span>
-                <span className="font-bold text-secondary">${price ? parseInt(price) * 20 : 0}/mo</span>
-              </div>
-            </div>
-
-            {/* Day list */}
-            <div className="mt-4">
-              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Daily Themes</h4>
-              <div className="max-h-64 overflow-y-auto space-y-1 pr-1">
-                {days.map(day => (
-                  <div key={day.id || day.dayNumber} className="flex items-center gap-2 text-xs py-1 border-b border-border/50">
-                    <Badge variant={day.isCatchUp ? "outline" : "secondary"} className="text-[9px] w-14 justify-center shrink-0">
-                      {day.isCatchUp ? "☕ Rest" : `Day ${day.dayNumber}`}
-                    </Badge>
-                    <span className="truncate text-muted-foreground">{day.theme}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </Card>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {hasStructuredDays ? (
-            <>
-              {/* View toggle + pagination */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setPreviewPage(Math.max(0, previewPage - 1))} disabled={previewPage === 0} className="text-xs">
-                    <ChevronLeft className="h-3.5 w-3.5" />
-                  </Button>
-                  <span className="text-xs text-muted-foreground">
-                    Page {previewPage + 1} of {totalPages}
-                  </span>
-                  <Button variant="outline" size="sm" onClick={() => setPreviewPage(Math.min(totalPages - 1, previewPage + 1))} disabled={previewPage === totalPages - 1} className="text-xs">
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-                <div className="flex items-center gap-1 border border-border rounded-lg overflow-hidden">
-                  <button onClick={() => setViewMode("desktop")} className={`p-1.5 ${viewMode === "desktop" ? "bg-secondary text-secondary-foreground" : "text-muted-foreground"}`}>
-                    <Monitor className="h-3.5 w-3.5" />
-                  </button>
-                  <button onClick={() => setViewMode("mobile")} className={`p-1.5 ${viewMode === "mobile" ? "bg-secondary text-secondary-foreground" : "text-muted-foreground"}`}>
-                    <Smartphone className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Course Preview */}
-              <div className={`mx-auto border border-border rounded-xl overflow-hidden bg-card shadow-lg ${viewMode === "mobile" ? "max-w-sm" : "max-w-2xl"}`}>
-                {previewPage === 0 ? (
-                  /* Cover */
-                  <div className="bg-gradient-to-b from-secondary/10 to-transparent p-8 text-center min-h-[450px] flex flex-col items-center justify-center">
-                    <Badge variant="secondary" className="text-[10px] mb-4">
-                      {duration}-Day Program
-                    </Badge>
-                    <h1 className="font-heading text-2xl font-bold mb-2">{title || "Home Study Course"}</h1>
-                    <p className="text-sm text-muted-foreground mb-4 max-w-md">{description || "A guided self-paced learning experience"}</p>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1"><CalendarDays className="h-3 w-3" /> {duration} days</span>
-                      <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {commitment} min/day</span>
-                      <span className="flex items-center gap-1"><BookOpen className="h-3 w-3" /> {level}</span>
+                  {price && (
+                    <div className="mt-4">
+                      <Badge className="bg-secondary text-secondary-foreground text-sm px-4 py-1">${price}</Badge>
                     </div>
-                    {price && (
-                      <div className="mt-4">
-                        <Badge className="bg-secondary text-secondary-foreground text-sm px-4 py-1">${price}</Badge>
+                  )}
+                  <div className="mt-6 p-4 bg-muted/30 rounded-lg max-w-sm">
+                    <p className="text-xs text-muted-foreground">
+                      <strong>How to use this guide:</strong> Spend {commitment} minutes each day completing the reading,
+                      exercise, and reflection. Check off each day on your progress tracker.
+                    </p>
+                  </div>
+                </div>
+              ) : isCertPage ? (
+                /* Certificate */
+                <div className="p-8 text-center min-h-[450px] flex flex-col items-center justify-center">
+                  <Award className="h-12 w-12 text-secondary mb-4" />
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-secondary mb-2">Certificate of Completion</p>
+                  <h2 className="font-heading text-xl font-bold mb-1">{title || "Home Study Course"}</h2>
+                  <p className="text-sm text-muted-foreground mb-4">{duration}-Day Program</p>
+                  <div className="border-t border-b border-border py-3 my-4 w-48">
+                    <p className="text-xs text-muted-foreground">[Student Name]</p>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">Completed on [Date]</p>
+                </div>
+              ) : currentDay ? (
+                /* Day page */
+                <div className="p-6 min-h-[450px]">
+                  <div className="flex items-center justify-between mb-4">
+                    <Badge variant={currentDay.isCatchUp ? "outline" : "secondary"} className="text-[10px]">
+                      {currentDay.isCatchUp ? "☕ Catch-Up Day" : `Day ${currentDay.dayNumber}`}
+                    </Badge>
+                    <span className="text-[10px] text-muted-foreground">Week {currentDay.weekNumber}</span>
+                  </div>
+                  <h3 className="font-heading text-lg font-bold mb-4">{currentDay.theme}</h3>
+                  <div className="space-y-4">
+                    <div className="p-3 bg-muted/20 rounded-lg">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">📖 Today's Reading</p>
+                      <p className="text-xs">{currentDay.reading || currentDay.chapterRef}</p>
+                    </div>
+                    {currentDay.concept && (
+                      <div>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">💡 Key Concept</p>
+                        <p className="text-xs text-muted-foreground whitespace-pre-line line-clamp-6">{currentDay.concept}</p>
                       </div>
                     )}
-                    <div className="mt-6 p-4 bg-muted/30 rounded-lg max-w-sm">
-                      <p className="text-xs text-muted-foreground">
-                        <strong>How to use this guide:</strong> Spend {commitment} minutes each day completing the reading,
-                        exercise, and reflection. Check off each day on your progress tracker.
-                      </p>
+                    <div className="p-3 bg-accent/5 rounded-lg border border-accent/10">
+                      <p className="text-[10px] font-bold text-accent uppercase tracking-wider mb-1">🏋️ Exercise</p>
+                      <p className="text-xs text-muted-foreground">{currentDay.exercise}</p>
+                    </div>
+                    <div className="p-3 bg-secondary/10 rounded-lg border border-secondary/20">
+                      <p className="text-[10px] font-bold text-secondary uppercase tracking-wider mb-1">🪞 Reflection</p>
+                      <p className="text-xs text-muted-foreground">{currentDay.reflection}</p>
+                    </div>
+                    <div className="flex items-center gap-2 pt-2">
+                      <div className="w-5 h-5 rounded border-2 border-muted-foreground/20" />
+                      <span className="text-xs text-muted-foreground">I completed Day {currentDay.dayNumber}</span>
                     </div>
                   </div>
-                ) : isCertPage ? (
-                  /* Certificate */
-                  <div className="p-8 text-center min-h-[450px] flex flex-col items-center justify-center">
-                    <Award className="h-12 w-12 text-secondary mb-4" />
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-secondary mb-2">Certificate of Completion</p>
-                    <h2 className="font-heading text-xl font-bold mb-1">{title || "Home Study Course"}</h2>
-                    <p className="text-sm text-muted-foreground mb-4">{duration}-Day Program</p>
-                    <div className="border-t border-b border-border py-3 my-4 w-48">
-                      <p className="text-xs text-muted-foreground">[Student Name]</p>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground">Completed on [Date]</p>
-                  </div>
-                ) : currentDay ? (
-                  /* Day page */
-                  <div className="p-6 min-h-[450px]">
-                    <div className="flex items-center justify-between mb-4">
-                      <Badge variant={currentDay.isCatchUp ? "outline" : "secondary"} className="text-[10px]">
-                        {currentDay.isCatchUp ? "☕ Catch-Up Day" : `Day ${currentDay.dayNumber}`}
-                      </Badge>
-                      <span className="text-[10px] text-muted-foreground">Week {currentDay.weekNumber}</span>
-                    </div>
-                    <h3 className="font-heading text-lg font-bold mb-4">{currentDay.theme}</h3>
-                    <div className="space-y-4">
-                      <div className="p-3 bg-muted/20 rounded-lg">
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">📖 Today's Reading</p>
-                        <p className="text-xs">{currentDay.reading || currentDay.chapterRef}</p>
-                      </div>
-                      {currentDay.concept && (
-                        <div>
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">💡 Key Concept</p>
-                          <p className="text-xs text-muted-foreground whitespace-pre-line line-clamp-6">{currentDay.concept}</p>
-                        </div>
-                      )}
-                      <div className="p-3 bg-accent/5 rounded-lg border border-accent/10">
-                        <p className="text-[10px] font-bold text-accent uppercase tracking-wider mb-1">🏋️ Exercise</p>
-                        <p className="text-xs text-muted-foreground">{currentDay.exercise}</p>
-                      </div>
-                      <div className="p-3 bg-secondary/10 rounded-lg border border-secondary/20">
-                        <p className="text-[10px] font-bold text-secondary uppercase tracking-wider mb-1">🪞 Reflection</p>
-                        <p className="text-xs text-muted-foreground">{currentDay.reflection}</p>
-                      </div>
-                      <div className="flex items-center gap-2 pt-2">
-                        <div className="w-5 h-5 rounded border-2 border-muted-foreground/20" />
-                        <span className="text-xs text-muted-foreground">I completed Day {currentDay.dayNumber}</span>
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
+                </div>
+              ) : null}
+            </div>
 
-              {/* Quick page thumbnails */}
-              <div className="flex items-center gap-1 justify-center flex-wrap">
+            {/* Quick page thumbnails */}
+            <div className="flex items-center gap-1 justify-center flex-wrap">
+              <button
+                onClick={() => setPreviewPage(0)}
+                className={`text-[9px] px-2 py-1 rounded ${previewPage === 0 ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+              >
+                Cover
+              </button>
+              {days.slice(0, 15).map((day, idx) => (
                 <button
-                  onClick={() => setPreviewPage(0)}
-                  className={`text-[9px] px-2 py-1 rounded ${previewPage === 0 ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+                  key={day.id || idx}
+                  onClick={() => setPreviewPage(idx + 1)}
+                  className={`text-[9px] px-2 py-1 rounded ${previewPage === idx + 1 ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
                 >
-                  Cover
+                  {day.isCatchUp ? "☕" : `D${day.dayNumber}`}
                 </button>
-                {days.slice(0, 15).map((day, idx) => (
+              ))}
+              {days.length > 15 && <span className="text-[9px] text-muted-foreground">+{days.length - 15} more</span>}
+              <button
+                onClick={() => setPreviewPage(totalPages - 1)}
+                className={`text-[9px] px-2 py-1 rounded ${isCertPage ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+              >
+                Certificate
+              </button>
+            </div>
+          </>
+        ) : (
+          <Card className="border-border overflow-hidden">
+            <div className="border-b border-border bg-muted/30 p-4">
+              <p className="text-sm font-semibold">Full Home Study Course Preview</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {hasFullManuscript
+                  ? "Showing your complete generated Home Study curriculum."
+                  : "No day-by-day lessons were found yet. Go back to the Home Study Builder to generate the daily schedule and content."}
+              </p>
+              {hasFullManuscript && splitContent.salesPage && splitContent.curriculum && (
+                <div className="flex items-center gap-1 mt-3">
                   <button
-                    key={day.id || idx}
-                    onClick={() => setPreviewPage(idx + 1)}
-                    className={`text-[9px] px-2 py-1 rounded ${previewPage === idx + 1 ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+                    onClick={() => setManuscriptTab("curriculum")}
+                    className={`text-xs px-3 py-1.5 rounded-md font-medium transition-colors ${manuscriptTab === "curriculum" ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
                   >
-                    {day.isCatchUp ? "☕" : `D${day.dayNumber}`}
+                    📚 Curriculum
                   </button>
-                ))}
-                {days.length > 15 && <span className="text-[9px] text-muted-foreground">+{days.length - 15} more</span>}
-                <button
-                  onClick={() => setPreviewPage(totalPages - 1)}
-                  className={`text-[9px] px-2 py-1 rounded ${isCertPage ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
-                >
-                  Certificate
-                </button>
-              </div>
-            </>
-          ) : (
-            <Card className="border-border overflow-hidden">
-              <div className="border-b border-border bg-muted/30 p-4">
-                <p className="text-sm font-semibold">Full Home Study Course Preview</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {hasFullManuscript
-                    ? "Showing your complete generated Home Study curriculum."
-                    : "No day-by-day lessons were found yet. Go back to the Home Study Builder to generate the daily schedule and content."}
-                </p>
-                {hasFullManuscript && splitContent.salesPage && splitContent.curriculum && (
-                  <div className="flex items-center gap-1 mt-3">
-                    <button
-                      onClick={() => setManuscriptTab("curriculum")}
-                      className={`text-xs px-3 py-1.5 rounded-md font-medium transition-colors ${manuscriptTab === "curriculum" ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
-                    >
-                      📚 Curriculum
-                    </button>
-                    <button
-                      onClick={() => setManuscriptTab("sales")}
-                      className={`text-xs px-3 py-1.5 rounded-md font-medium transition-colors ${manuscriptTab === "sales" ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
-                    >
-                      📄 Sales Page Copy
-                    </button>
-                  </div>
-                )}
-              </div>
-              <div className="max-h-[68vh] overflow-y-auto p-6">
-                {hasFullManuscript ? (
-                  <div className="prose prose-sm dark:prose-invert max-w-none">
-                    <MarkdownRenderer
-                      content={
-                        splitContent.salesPage && splitContent.curriculum
-                          ? manuscriptTab === "curriculum"
-                            ? splitContent.curriculum
-                            : splitContent.salesPage
-                          : fullCourseMarkdown
-                      }
-                    />
-                  </div>
-                ) : (
-                  <div className="py-12 text-center">
-                    <BookOpen className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-                    <p className="text-sm text-muted-foreground">This draft currently only has setup details (cover + certificate metadata).</p>
-                  </div>
-                )}
-              </div>
-            </Card>
-          )}
-        </div>
-      )}
+                  <button
+                    onClick={() => setManuscriptTab("sales")}
+                    className={`text-xs px-3 py-1.5 rounded-md font-medium transition-colors ${manuscriptTab === "sales" ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
+                  >
+                    📄 Sales Page Copy
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className="max-h-[68vh] overflow-y-auto p-6">
+              {hasFullManuscript ? (
+                <div className="prose prose-sm dark:prose-invert max-w-none">
+                  <MarkdownRenderer
+                    content={
+                      splitContent.salesPage && splitContent.curriculum
+                        ? manuscriptTab === "curriculum"
+                          ? splitContent.curriculum
+                          : splitContent.salesPage
+                        : fullCourseMarkdown
+                    }
+                  />
+                </div>
+              ) : (
+                <div className="py-12 text-center">
+                  <BookOpen className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground">This draft currently only has setup details (cover + certificate metadata).</p>
+                </div>
+              )}
+            </div>
+          </Card>
+        )}
+      </div>
 
       {/* Bottom action bar */}
       <Card className="p-4 flex items-center justify-between bg-muted/30 border-secondary/20">
@@ -605,8 +560,11 @@ export default function HomeStudyReviewView({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setMode("edit")}>
-            <Edit3 className="h-3.5 w-3.5 mr-1" /> Edit
+          <Button variant="outline" size="sm" onClick={() => { setSalesDraft(splitContent.salesPage || fullCourseMarkdown); setDrawerOpen("sales"); }}>
+            <FileText className="h-3.5 w-3.5 mr-1" /> Edit Sales Page
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setDrawerOpen("content")}>
+            <GraduationCap className="h-3.5 w-3.5 mr-1" /> Edit Content
           </Button>
           {canPublish && (
             <Button
@@ -621,6 +579,140 @@ export default function HomeStudyReviewView({
           )}
         </div>
       </Card>
+
+      {/* ── EDIT SALES PAGE DRAWER ──────────────────────── */}
+      <Sheet open={drawerOpen === "sales"} onOpenChange={(open) => !open && setDrawerOpen(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <FileText className="h-4 w-4" /> Edit Sales Page
+            </SheetTitle>
+            <SheetDescription>
+              Edit the sales copy that buyers see before purchasing your Home Study Course.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="space-y-4 mt-6">
+            <div>
+              <Label className="text-xs font-semibold">Sales Page Content (Markdown)</Label>
+              <Textarea
+                value={salesDraft}
+                onChange={(e) => setSalesDraft(e.target.value)}
+                rows={24}
+                className="mt-1.5 font-mono text-xs leading-relaxed"
+                placeholder="# Your Sales Page Headline..."
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Supports Markdown: **bold**, *italic*, ## headings, - bullet lists
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={handleSaveSalesPage} disabled={saving} className="flex-1">
+                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
+                Save Sales Page
+              </Button>
+              <Button variant="outline" onClick={() => setDrawerOpen(null)}>Cancel</Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* ── EDIT CONTENT DRAWER ─────────────────────────── */}
+      <Sheet open={drawerOpen === "content"} onOpenChange={(open) => !open && setDrawerOpen(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <GraduationCap className="h-4 w-4" /> Edit Course Content
+            </SheetTitle>
+            <SheetDescription>
+              Update course details, pricing, and review the daily curriculum structure.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="space-y-6 mt-6">
+            {/* Course details */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Course Details</h4>
+              <div>
+                <Label className="text-xs">Title</Label>
+                <Input value={title} onChange={e => setTitle(e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs">Description</Label>
+                <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Price ($)</Label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input value={price} onChange={e => setPrice(e.target.value)} className="pl-8" placeholder="47" />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs">Daily Commitment (min)</Label>
+                  <Input value={commitment} onChange={e => setCommitment(e.target.value)} type="number" />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Level</Label>
+                <Input value={level} onChange={e => setLevel(e.target.value)} placeholder="Beginner" />
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Course summary */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Course Summary</h4>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="flex justify-between p-2 bg-muted/30 rounded">
+                  <span className="text-muted-foreground text-xs">Total Days</span>
+                  <span className="font-medium text-xs">{days.length}</span>
+                </div>
+                <div className="flex justify-between p-2 bg-muted/30 rounded">
+                  <span className="text-muted-foreground text-xs">Weeks</span>
+                  <span className="font-medium text-xs">{days.length > 0 ? days[days.length - 1]?.weekNumber || Math.ceil(days.length / 7) : 0}</span>
+                </div>
+                <div className="flex justify-between p-2 bg-muted/30 rounded">
+                  <span className="text-muted-foreground text-xs">Catch-Up Days</span>
+                  <span className="font-medium text-xs">{days.filter(d => d.isCatchUp).length}</span>
+                </div>
+                <div className="flex justify-between p-2 bg-muted/30 rounded">
+                  <span className="text-muted-foreground text-xs">Study Days</span>
+                  <span className="font-medium text-xs">{days.filter(d => !d.isCatchUp).length}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Daily themes list */}
+            {days.length > 0 && (
+              <>
+                <Separator />
+                <div>
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Daily Themes</h4>
+                  <div className="max-h-64 overflow-y-auto space-y-1 pr-1">
+                    {days.map(day => (
+                      <div key={day.id || day.dayNumber} className="flex items-center gap-2 text-xs py-1.5 border-b border-border/50">
+                        <Badge variant={day.isCatchUp ? "outline" : "secondary"} className="text-[9px] w-14 justify-center shrink-0">
+                          {day.isCatchUp ? "☕ Rest" : `Day ${day.dayNumber}`}
+                        </Badge>
+                        <span className="truncate text-muted-foreground">{day.theme}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+            <div className="flex gap-2 pt-2">
+              <Button onClick={handleSave} disabled={saving} className="flex-1">
+                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
+                Save Changes
+              </Button>
+              <Button variant="outline" onClick={() => setDrawerOpen(null)}>Cancel</Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
