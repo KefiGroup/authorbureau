@@ -147,6 +147,9 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
     }
   })();
   const setGenerationState = (_s: string) => {};
+  const splitPreview = splitSalesAndContent(builderGen.generatedContent || "");
+  const previewSalesText = builderGen.generatedSalesPage || splitPreview.salesPageText;
+  const previewContentText = splitPreview.contentText || builderGen.generatedContent;
   const [editedSteps, setEditedSteps] = useState<Set<string>>(new Set());
   const [resolvedBookCoverUrl, setResolvedBookCoverUrl] = useState<string | null>(bookCoverUrl);
 
