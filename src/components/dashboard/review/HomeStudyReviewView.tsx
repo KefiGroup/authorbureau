@@ -253,11 +253,11 @@ export default function HomeStudyReviewView({
       // Extract FAQ pairs (Q: ... A: ...)
       const faqs: { question: string; answer: string }[] = [];
       for (let i = 0; i < lines.length; i++) {
-        const qMatch = lines[i].match(/^\*?\*?Q:\s*(.*)/i) || lines[i].match(/^\*?\*?Question:\s*(.*)/i);
+        const qMatch = lines[i].match(/^\*{0,2}Q:\s*(.*)/i) || lines[i].match(/^\*{0,2}Question:\s*(.*)/i);
         if (qMatch) {
           const aLine = lines[i + 1];
-          const aMatch = aLine?.match(/^\*?\*?A:\s*(.*)/i) || aLine?.match(/^\*?\*?Answer:\s*(.*)/i);
-          faqs.push({ question: stripMd(qMatch[1]), answer: aMatch ? stripMd(aMatch[1]) : "" });
+          const aMatch = aLine?.match(/^\*{0,2}A:\s*(.*)/i) || aLine?.match(/^\*{0,2}Answer:\s*(.*)/i);
+          faqs.push({ question: stripMd(qMatch[1].replace(/\*+$/g, "").trim()), answer: aMatch ? stripMd(aMatch[1].replace(/\*+$/g, "").trim()) : "" });
         }
       }
       setSalesFaqs(faqs);
