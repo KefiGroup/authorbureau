@@ -198,24 +198,56 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
               <div className={`w-2 h-2 rounded-full ${isLive ? "bg-green-500" : "bg-muted-foreground/30"}`} />
               <span className="text-xs font-semibold">{isLive ? "Live" : "Not Published"}</span>
             </div>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="flex-1 rounded-md border border-border bg-muted/50 px-3 py-2 text-sm font-medium text-foreground select-all truncate">
-                {siteUrl}
+
+            {/* Editable URL */}
+            {editingSlug ? (
+              <div className="mb-3">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">authorsbureau.com/</span>
+                  <Input
+                    value={slugDraft}
+                    onChange={(e) => {
+                      const val = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "").replace(/--+/g, "-");
+                      setSlugDraft(val);
+                      setSlugError("");
+                    }}
+                    className="text-sm h-8 flex-1 font-medium"
+                    placeholder="your-name"
+                    autoFocus
+                    onKeyDown={(e) => { if (e.key === "Enter") saveSlug(); if (e.key === "Escape") setEditingSlug(false); }}
+                  />
+                  <Button variant="outline" size="sm" className="h-8 w-8 p-0 shrink-0" onClick={saveSlug} disabled={savingSlug}>
+                    {savingSlug ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 shrink-0" onClick={() => { setEditingSlug(false); setSlugError(""); }}>
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+                {slugError && <p className="text-[11px] text-destructive mt-1">{slugError}</p>}
               </div>
-              <Button variant="outline" size="sm" className="shrink-0" onClick={() => {
-                navigator.clipboard.writeText(siteUrl);
-                setUrlCopied(true);
-                setTimeout(() => setUrlCopied(false), 2000);
-                toast({ title: "URL copied!" });
-              }}>
-                {urlCopied ? <CheckCircle2 className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
-              </Button>
-              <Button variant="outline" size="sm" className="shrink-0" asChild>
-                <a href={siteUrl} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </a>
-              </Button>
-            </div>
+            ) : (
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex-1 rounded-md border border-border bg-muted/50 px-3 py-2 text-sm font-medium text-foreground select-all truncate">
+                  {siteUrl}
+                </div>
+                <Button variant="outline" size="sm" className="shrink-0" onClick={() => { setSlugDraft(authorSlug === "your-slug" ? "" : authorSlug); setEditingSlug(true); setSlugError(""); }}>
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+                <Button variant="outline" size="sm" className="shrink-0" onClick={() => {
+                  navigator.clipboard.writeText(siteUrl);
+                  setUrlCopied(true);
+                  setTimeout(() => setUrlCopied(false), 2000);
+                  toast({ title: "URL copied!" });
+                }}>
+                  {urlCopied ? <CheckCircle2 className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+                </Button>
+                <Button variant="outline" size="sm" className="shrink-0" asChild>
+                  <a href={siteUrl} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                </Button>
+              </div>
+            )}
 
             {/* Custom Domain */}
             <div className="pt-3 border-t border-border">
