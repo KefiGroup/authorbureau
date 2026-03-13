@@ -339,6 +339,7 @@ const leadMagnetBuilder: BuilderNodeConfig = {
   dbTable: "generated_assets",
   icon: "Magnet",
   color: "text-emerald-500",
+  customRenderer: "lead-magnet",
   abbyGreeting: "A compelling lead magnet is the foundation of your email list. Let's create one that converts visitors into subscribers.",
   abbyPublishMessage: "Your lead magnet is ready! Add it to your microsite and start building your email list.",
   loadingMessages: [
@@ -559,6 +560,7 @@ const licensingBuilder: BuilderNodeConfig = {
   dbTable: "generated_assets",
   icon: "FileKey",
   color: "text-violet-500",
+  customRenderer: "licensing",
   abbyGreeting: "Licensing your content creates passive income from work you've already done. Let's structure your licensing offerings.",
   abbyPublishMessage: "Your licensing packages are ready! Start approaching organizations in your niche.",
   loadingMessages: [
@@ -585,6 +587,7 @@ const communityBuilder: BuilderNodeConfig = {
   dbTable: "generated_assets",
   icon: "MessageCircle",
   color: "text-violet-500",
+  customRenderer: "community",
   abbyGreeting: "A community turns readers into lifelong advocates. Let's design an engaging community experience.",
   abbyPublishMessage: "Your community blueprint is ready! Launch on Circle, Discord, or Facebook Groups.",
   loadingMessages: [
@@ -828,6 +831,7 @@ const revenueShareBuilder: BuilderNodeConfig = {
   dbTable: "generated_assets",
   icon: "TrendingUp",
   color: "text-amber-500",
+  customRenderer: "revenue-share",
   abbyGreeting: "Revenue sharing aligns incentives and creates win-win partnerships. Let's structure your offers.",
   abbyPublishMessage: "Your revenue sharing framework is ready! Approach potential partners with a clear value proposition.",
   loadingMessages: [
@@ -854,6 +858,7 @@ const whitelabelBuilder: BuilderNodeConfig = {
   dbTable: "generated_assets",
   icon: "Layers",
   color: "text-amber-500",
+  customRenderer: "white-label",
   abbyGreeting: "White-labeling your content lets others sell it under their brand — pure passive income for you.",
   abbyPublishMessage: "Your white-label packages are designed! Target coaching companies and training organizations.",
   loadingMessages: [
@@ -880,6 +885,7 @@ const eventsBuilder: BuilderNodeConfig = {
   dbTable: "generated_assets",
   icon: "Calendar",
   color: "text-amber-500",
+  customRenderer: "events",
   abbyGreeting: "Hosting events positions you as a leader in your space. Let's plan a summit or conference.",
   abbyPublishMessage: "Your event blueprint is ready! Start with a virtual summit to test your concept before going live.",
   loadingMessages: [
@@ -906,6 +912,7 @@ const franchiseBuilder: BuilderNodeConfig = {
   dbTable: "generated_assets",
   icon: "Network",
   color: "text-amber-500",
+  customRenderer: "franchise",
   abbyGreeting: "A franchise model scales your methodology through trained practitioners. This is legacy-building territory.",
   abbyPublishMessage: "Your franchise blueprint is designed! This is a long-term play that builds your legacy and impact.",
   loadingMessages: [
