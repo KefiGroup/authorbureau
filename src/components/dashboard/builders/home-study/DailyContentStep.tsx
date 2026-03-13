@@ -20,8 +20,8 @@ export default function DailyContentStep({ stepData, setStepData, onMarkEdited, 
     return (
       <div className="text-center py-12">
         <BookOpen className="h-12 w-12 text-muted-foreground/20 mx-auto mb-4" />
-        <h3 className="font-heading text-lg font-semibold mb-2">Complete Step 2 First</h3>
-        <p className="text-sm text-muted-foreground">Generate your daily schedule before adding detailed content.</p>
+        <h3 className="font-heading text-lg font-semibold mb-2">Generate Your Schedule First</h3>
+        <p className="text-sm text-muted-foreground">Go back to Program Setup and generate your daily schedule before adding detailed content.</p>
       </div>
     );
   }
