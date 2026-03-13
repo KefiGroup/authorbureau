@@ -274,9 +274,14 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
           <Card className="p-4 border-border">
             <h3 className="font-heading font-bold text-sm mb-4">Your Pages</h3>
             {booksWithStatus.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">
-                No books added yet. Add a book to start building your site.
-              </p>
+              <div className="py-6 text-center space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Your published books and products will appear here automatically.
+                </p>
+                <Button variant="outline" size="sm" onClick={() => onNavigate?.("books")}>
+                  Go to My Book Hub
+                </Button>
+              </div>
             ) : (
               <div className="space-y-3">
                 {booksWithStatus.map((book) => (
