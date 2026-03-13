@@ -229,6 +229,25 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
     review: products.filter(p => p.status === "ready_for_review").length,
   }), [products]);
 
+  // If viewing a specific product detail (Home Study, etc.)
+  if (detailProduct) {
+    if (detailProduct.nodeId === "home-study-course") {
+      return (
+        <HomeStudyReviewView
+          productId={detailProduct.id}
+          bookId={detailProduct.bookId}
+          bookTitle={detailProduct.bookTitle}
+          productTitle={detailProduct.title}
+          productTable={detailProduct.table}
+          onBack={() => setDetailProduct(null)}
+          onPublished={() => { setDetailProduct(null); fetchDrafts(); }}
+        />
+      );
+    }
+    // For other product types, fall back to clearing and showing list
+    setDetailProduct(null);
+  }
+
   return (
     <div className="max-w-5xl space-y-6">
       {/* ── Header ───────────────────────────────────────────── */}
