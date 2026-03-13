@@ -696,7 +696,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                       </motion.div>
                       <div>
                         <p className="text-sm font-bold">Abby is generating your {nodeConfig.label.toLowerCase()}...</p>
-                        <p className="text-xs text-muted-foreground">This may take 30-60 seconds. Don\u2019t navigate away.</p>
+                        <p className="text-xs text-muted-foreground">This may take 30–60 seconds. Don't navigate away.</p>
                       </div>
                     </div>
                     {builderGen.generatedContent && (
