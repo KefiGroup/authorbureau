@@ -59,9 +59,112 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    const action = body?.action as "load" | "save" | "publish_home_study" | undefined;
+    const action = body?.action as string | undefined;
     const bookId = body?.bookId as string | undefined;
     const nodeId = body?.nodeId as string | undefined;
+
+    // ── Actions that don't require bookId/nodeId ──
+    if (action === "list-drafts" || action === "publish-product") {
+      const identity = await resolveIdentity(token);
+      if (!identity) {
+        return new Response(JSON.stringify({ error: "Invalid session" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const cloudAdmin = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+
+      // Resolve all user IDs for this author (cross-platform)
+      const { data: profile } = await cloudAdmin
+        .from("author_profiles")
+        .select("pen_name, user_id")
+        .eq("user_id", identity.userId)
+        .maybeSingle();
+
+      const allUserIds: string[] = [identity.userId];
+      if (profile?.pen_name) {
+        const { data: siblings } = await cloudAdmin
+          .from("author_profiles")
+          .select("user_id")
+          .eq("pen_name", profile.pen_name)
+          .neq("user_id", identity.userId);
+        for (const s of siblings || []) allUserIds.push(s.user_id);
+      }
+
+      if (action === "list-drafts") {
+        const tables = ["courses", "home_study_courses", "audiobooks", "podcasts", "social_media_content", "email_flows", "coaching_packages"] as const;
+        const allDrafts: any[] = [];
+
+        await Promise.all(
+          tables.map(async (table) => {
+            const { data } = await cloudAdmin
+              .from(table)
+              .select("id, title, book_id, created_at, status, description")
+              .in("author_id", allUserIds)
+              .in("status", ["draft", "ready_for_review"]);
+            for (const item of data || []) {
+              allDrafts.push({ ...item, table });
+            }
+          })
+        );
+
+        // Get book titles
+        const bookIds = [...new Set(allDrafts.map(d => d.book_id).filter(Boolean))];
+        const titleMap: Record<string, string> = {};
+        if (bookIds.length > 0) {
+          const { data: books } = await cloudAdmin.from("books").select("id, title").in("id", bookIds);
+          for (const b of books || []) titleMap[b.id] = b.title;
+        }
+
+        const enriched = allDrafts.map(d => ({
+          ...d,
+          bookTitle: titleMap[d.book_id] || "Unknown Book",
+        }));
+
+        return new Response(JSON.stringify({ drafts: enriched }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (action === "publish-product") {
+        const { productId, table } = body;
+        if (!productId || !table) {
+          return new Response(JSON.stringify({ error: "productId and table required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Verify ownership
+        const { data: product } = await cloudAdmin
+          .from(table)
+          .select("id, author_id")
+          .eq("id", productId)
+          .maybeSingle();
+
+        if (!product || !allUserIds.includes(product.author_id)) {
+          return new Response(JSON.stringify({ error: "Product not found or unauthorized" }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const { error: updateErr } = await cloudAdmin
+          .from(table)
+          .update({ status: "published" })
+          .eq("id", productId);
+
+        if (updateErr) throw updateErr;
+
+        return new Response(JSON.stringify({ ok: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     if (!action || !bookId || !nodeId) {
       return new Response(JSON.stringify({ error: "action, bookId, and nodeId are required" }), {

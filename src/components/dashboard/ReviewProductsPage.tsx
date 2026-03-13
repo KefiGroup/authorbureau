@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -73,46 +74,31 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
     setLoading(true);
 
     try {
-      // Fetch all tables in parallel for performance (BUG-058)
-      const results = await Promise.all(
-        TABLES.map(async (table) => {
-          const { data } = await supabase
-            .from(table)
-            .select("id, title, book_id, created_at, status, description")
-            .eq("author_id", user.id)
-            .in("status", ["draft", "ready_for_review"]);
-          return { table, data: data || [] };
-        })
-      );
+      const token = await getActiveToken();
+      if (!token) throw new Error("Not authenticated");
 
-      const drafts: DraftProduct[] = [];
-      for (const { table, data } of results) {
-        for (const item of data as any[]) {
-          drafts.push({
-            id: item.id,
-            title: item.title,
-            type: typeLabels[table] || table,
-            bookTitle: "",
-            bookId: item.book_id,
-            table,
-            status: item.status,
-            description: item.description || undefined,
-            createdAt: item.created_at,
-          });
+      const resp = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/builder-draft-state`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ action: "list-drafts" }),
         }
-      }
+      );
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result.error || "Failed to load");
 
-      // Get book titles in a single query
-      const bookIds = [...new Set(drafts.map(d => d.bookId).filter(Boolean))];
-      if (bookIds.length > 0) {
-        const { data: books } = await supabase
-          .from("books")
-          .select("id, title")
-          .in("id", bookIds);
-        const titleMap: Record<string, string> = {};
-        (books || []).forEach((b: any) => { titleMap[b.id] = b.title; });
-        drafts.forEach(d => { d.bookTitle = titleMap[d.bookId] || "Unknown Book"; });
-      }
+      const drafts: DraftProduct[] = (result.drafts || []).map((item: any) => ({
+        id: item.id,
+        title: item.title,
+        type: typeLabels[item.table] || item.table,
+        bookTitle: item.bookTitle || "Unknown Book",
+        bookId: item.book_id,
+        table: item.table,
+        status: item.status,
+        description: item.description || undefined,
+        createdAt: item.created_at,
+      }));
 
       setProducts(drafts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
     } catch (err) {
@@ -126,12 +112,20 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
     setPublishing(product.id);
     setConfirmProduct(null);
     try {
-      // Update status to "published" (the only way a product becomes "live") — BUG-059
-      const { error } = await supabase
-        .from(product.table as any)
-        .update({ status: "published" })
-        .eq("id", product.id);
-      if (error) throw error;
+      const token = await getActiveToken();
+      if (!token) throw new Error("Not authenticated");
+
+      const resp = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/builder-draft-state`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ action: "publish-product", productId: product.id, table: product.table }),
+        }
+      );
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result.error || "Publish failed");
+
       toast({ title: "Published! ✅", description: `${product.title} is now live on your microsite.` });
       setProducts(prev => prev.filter(p => p.id !== product.id));
     } catch (err) {
@@ -325,18 +319,20 @@ export function useReviewProductCount() {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      // Parallel count queries for performance (BUG-058)
-      const results = await Promise.all(
-        TABLES.map(async (table) => {
-          const { count: c } = await supabase
-            .from(table)
-            .select("id", { count: "exact", head: true })
-            .eq("author_id", user.id)
-            .in("status", ["draft", "ready_for_review"]);
-          return c || 0;
-        })
-      );
-      setCount(results.reduce((a, b) => a + b, 0));
+      try {
+        const token = await getActiveToken();
+        if (!token) return;
+        const resp = await fetchWithTimeout(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/builder-draft-state`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ action: "list-drafts" }),
+          }
+        );
+        const result = await resp.json();
+        setCount((result.drafts || []).length);
+      } catch { setCount(0); }
     })();
   }, [user]);
 
