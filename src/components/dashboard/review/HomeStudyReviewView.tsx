@@ -175,23 +175,51 @@ export default function HomeStudyReviewView({
   // Split sales page from curriculum content
   const splitContent = (() => {
     if (!fullCourseText) return { salesPage: "", curriculum: "" };
-    const splitPatterns = [
-      /\n(?=#{1,2}\s*(?:Home Study|Study Guide|Course Curriculum|Daily Lessons|Program Structure|Week\s*1|Day\s*1\b))/i,
+
+    const normalized = fullCourseText.replace(/\r\n/g, "\n");
+
+    // 1) Prefer explicit Sales Page -> Curriculum boundaries
+    const salesMarker = normalized.search(/(?:^|\n)#{0,3}\s*Sales\s*Page\s*Copy\b/i);
+    const curriculumMarkers = [
+      /\n#{1,3}\s*(?:Home\s*Study\s*(?:Course\s*)?(?:Content|Curriculum|Guide)|Course\s*Content|Curriculum(?:\s*Manuscript)?|Daily\s*Lessons|Lesson\s*Plan|Program\s*Content|Workbook\s*Content|Week\s*1\b|Day\s*1\b)/i,
+      /\n(?:Day|DAY)\s*1\s*[:\-]/,
+      /\n\*\*(?:Day|DAY)\s*1\b/i,
+    ];
+
+    if (salesMarker >= 0) {
+      for (const marker of curriculumMarkers) {
+        const relativeMatch = normalized.slice(salesMarker + 1).search(marker);
+        if (relativeMatch > 120) {
+          const absoluteMatch = salesMarker + 1 + relativeMatch;
+          return {
+            salesPage: normalized.slice(0, absoluteMatch).trim(),
+            curriculum: normalized.slice(absoluteMatch).trim(),
+          };
+        }
+      }
+    }
+
+    // 2) Generic fallback split for mixed manuscripts
+    const genericSplitPatterns = [
+      /\n(?=#{1,3}\s*(?:Home\s*Study|Study\s*Guide|Course\s*Curriculum|Daily\s*Lessons|Program\s*Structure|Week\s*1|Day\s*1\b))/i,
       /\n---+\n/,
     ];
-    for (const pattern of splitPatterns) {
-      const match = fullCourseText.search(pattern);
+
+    for (const pattern of genericSplitPatterns) {
+      const match = normalized.search(pattern);
       if (match > 200) {
         return {
-          salesPage: fullCourseText.slice(0, match).trim(),
-          curriculum: fullCourseText.slice(match).trim(),
+          salesPage: normalized.slice(0, match).trim(),
+          curriculum: normalized.slice(match).trim(),
         };
       }
     }
-    if (/^#\s*Sales\s*Page/i.test(fullCourseText)) {
-      return { salesPage: fullCourseText, curriculum: "" };
+
+    if (/^#\s*Sales\s*Page/i.test(normalized)) {
+      return { salesPage: normalized, curriculum: "" };
     }
-    return { salesPage: "", curriculum: fullCourseText };
+
+    return { salesPage: "", curriculum: normalized };
   })();
   const [manuscriptTab, setManuscriptTab] = useState<"curriculum" | "sales">("curriculum");
 
