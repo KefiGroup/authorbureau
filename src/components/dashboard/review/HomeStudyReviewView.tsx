@@ -177,51 +177,45 @@ export default function HomeStudyReviewView({
     if (!fullCourseText) return { salesPage: "", curriculum: "" };
 
     const normalized = fullCourseText.replace(/\r\n/g, "\n");
+    const salesMarker = normalized.search(/(?:^|\n)(?:#{0,3}\s*)?(?:Sales\s*Page\s*Copy|Sales\s*Page)\b/i);
 
-    // 1) Prefer explicit Sales Page -> Curriculum boundaries
-    const salesMarker = normalized.search(/(?:^|\n)#{0,3}\s*Sales\s*Page\s*Copy\b/i);
     const curriculumMarkers = [
-      /\n#{1,3}\s*(?:Home\s*Study\s*(?:Course\s*)?(?:Content|Curriculum|Guide)|Course\s*Content|Curriculum(?:\s*Manuscript)?|Daily\s*Lessons|Lesson\s*Plan|Program\s*Content|Workbook\s*Content|Week\s*1\b|Day\s*1\b)/i,
-      /\n(?:Day|DAY)\s*1\s*[:\-]/,
-      /\n\*\*(?:Day|DAY)\s*1\b/i,
+      /(?:^|\n)(?:#{0,3}\s*)?(?:\d{1,3}-Day[^\n]*Daily\s*Content\s*Plan|Daily\s*Content\s*Plan|Home\s*Study\s*(?:Course\s*)?(?:Content|Curriculum|Guide)|Course\s*Content|Curriculum(?:\s*Manuscript)?|Daily\s*Lessons|Lesson\s*Plan|Program\s*Content|Workbook\s*Content|Introduction\s*Email\b|Week\s*1\b|Day\s*1\b)/i,
+      /(?:^|\n)(?:Day|DAY)\s*1\s*[:\-]/,
+      /(?:^|\n)\*\*(?:Day|DAY)\s*1\b/i,
     ];
 
-    if (salesMarker >= 0) {
-      for (const marker of curriculumMarkers) {
-        const relativeMatch = normalized.slice(salesMarker + 1).search(marker);
-        if (relativeMatch > 120) {
-          const absoluteMatch = salesMarker + 1 + relativeMatch;
-          return {
-            salesPage: normalized.slice(0, absoluteMatch).trim(),
-            curriculum: normalized.slice(absoluteMatch).trim(),
-          };
-        }
+    const searchStart = salesMarker >= 0 ? salesMarker + 1 : 0;
+    const minDistance = salesMarker >= 0 ? 120 : 260;
+    let splitAt: number | null = null;
+
+    for (const marker of curriculumMarkers) {
+      const relativeMatch = normalized.slice(searchStart).search(marker);
+      if (relativeMatch > minDistance) {
+        const absoluteMatch = searchStart + relativeMatch;
+        if (splitAt === null || absoluteMatch < splitAt) splitAt = absoluteMatch;
       }
     }
 
-    // 2) Generic fallback split for mixed manuscripts
-    const genericSplitPatterns = [
-      /\n(?=#{1,3}\s*(?:Home\s*Study|Study\s*Guide|Course\s*Curriculum|Daily\s*Lessons|Program\s*Structure|Week\s*1|Day\s*1\b))/i,
-      /\n---+\n/,
-    ];
-
-    for (const pattern of genericSplitPatterns) {
-      const match = normalized.search(pattern);
-      if (match > 200) {
-        return {
-          salesPage: normalized.slice(0, match).trim(),
-          curriculum: normalized.slice(match).trim(),
-        };
-      }
+    if (splitAt !== null) {
+      return {
+        salesPage: normalized.slice(0, splitAt).trim(),
+        curriculum: normalized.slice(splitAt).trim(),
+      };
     }
 
-    if (/^#\s*Sales\s*Page/i.test(normalized)) {
-      return { salesPage: normalized, curriculum: "" };
+    // Generic fallback
+    const genericMatch = normalized.search(/\n---+\n/);
+    if (genericMatch > 200) {
+      return {
+        salesPage: normalized.slice(0, genericMatch).trim(),
+        curriculum: normalized.slice(genericMatch).trim(),
+      };
     }
 
     return { salesPage: "", curriculum: normalized };
   })();
-  const [manuscriptTab, setManuscriptTab] = useState<"curriculum" | "sales">("curriculum");
+  const hasSeparatedManuscript = Boolean(splitContent.salesPage && splitContent.curriculum);
 
   const duration = hasStructuredDays ? days.length : Number(setup.duration) || 30;
   const totalPages = hasStructuredDays ? days.length + 2 : 1;
