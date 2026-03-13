@@ -23,6 +23,7 @@ export interface StudyDay {
   concept: string;
   exercise: string;
   reflection: string;
+  actionPlan?: string;
   audioScript?: string;
   isCatchUp?: boolean;
 }

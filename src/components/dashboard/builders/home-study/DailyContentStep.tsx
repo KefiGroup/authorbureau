@@ -29,8 +29,20 @@ export default function DailyContentStep({ stepData, setStepData, onMarkEdited, 
   const currentDay = days[selectedIdx];
 
   const updateDay = (field: string, value: any) => {
-    const newDays = days.map((d, i) => i === selectedIdx ? { ...d, [field]: value } : d);
-    setStepData(prev => ({ ...prev, schedule: { ...prev.schedule, days: newDays } }));
+    setStepData(prev => {
+      const prevDays: StudyDay[] = prev.schedule?.days || [];
+      const newDays = prevDays.map((d, i) => i === selectedIdx ? { ...d, [field]: value } : d);
+      return { ...prev, schedule: { ...prev.schedule, days: newDays } };
+    });
+    onMarkEdited("content");
+  };
+
+  const updateDayBatch = (fields: Partial<StudyDay>) => {
+    setStepData(prev => {
+      const prevDays: StudyDay[] = prev.schedule?.days || [];
+      const newDays = prevDays.map((d, i) => i === selectedIdx ? { ...d, ...fields } : d);
+      return { ...prev, schedule: { ...prev.schedule, days: newDays } };
+    });
     onMarkEdited("content");
   };
 
@@ -45,6 +57,7 @@ export default function DailyContentStep({ stepData, setStepData, onMarkEdited, 
         concept: string;
         exercise: string;
         reflection: string;
+        actionPlan: string;
         audioScript?: string;
       }>(
         `Generate detailed daily content for Day ${currentDay.dayNumber} of a home study program based on the book "${bookTitle}".
@@ -57,6 +70,7 @@ Return a JSON object with:
 - "concept": string (markdown, 200-300 words, with sections: Core Idea, Why This Matters, Today's Focus)
 - "exercise": string (markdown, practical exercise with numbered steps, ${commitment} minutes)
 - "reflection": string (markdown, evening journal prompts, 4 questions)
+- "actionPlan": string (markdown, 3-5 concrete action items the reader should complete today, with checkboxes using "- [ ]" syntax)
 ${hasAudio ? '- "audioScript": string (narration script with [INTRO MUSIC], [PAUSE], [OUTRO] markers, 200 words)' : ""}
 
 Make content specific to the book topic and day theme. Return ONLY valid JSON.`,
@@ -65,12 +79,16 @@ Make content specific to the book topic and day theme. Return ONLY valid JSON.`,
 
       setGenerationState("generating");
 
-      updateDay("concept", result.concept);
-      updateDay("exercise", result.exercise);
-      updateDay("reflection", result.reflection);
+      const batch: Partial<StudyDay> = {
+        concept: result.concept,
+        exercise: result.exercise,
+        reflection: result.reflection,
+        actionPlan: result.actionPlan,
+      };
       if (hasAudio && result.audioScript) {
-        updateDay("audioScript", result.audioScript);
+        batch.audioScript = result.audioScript;
       }
+      updateDayBatch(batch);
 
       setGenerationState("complete");
       toast({ title: "Day content generated!", description: `Content for Day ${currentDay.dayNumber} is ready.` });
@@ -135,6 +153,7 @@ Make content specific to the book topic and day theme. Return ONLY valid JSON.`,
             <TabsTrigger value="concept" className="text-xs">📖 Reading</TabsTrigger>
             <TabsTrigger value="exercise" className="text-xs">🏋️ Exercise</TabsTrigger>
             <TabsTrigger value="reflection" className="text-xs">🪞 Reflection</TabsTrigger>
+            <TabsTrigger value="actionPlan" className="text-xs">🎯 Action Plan</TabsTrigger>
             {hasAudio && <TabsTrigger value="audio" className="text-xs">🎙️ Audio Script</TabsTrigger>}
           </TabsList>
 
@@ -178,6 +197,19 @@ Make content specific to the book topic and day theme. Return ONLY valid JSON.`,
                 value={currentDay.reflection || ""}
                 onChange={(e) => updateDay("reflection", e.target.value)}
                 placeholder="Journal prompts and reflection questions..."
+                rows={8}
+                className="font-mono text-sm"
+              />
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="actionPlan">
+            <Card className="p-4">
+              <p className="text-xs font-semibold text-muted-foreground mb-2">Action Plan (Today's Tasks)</p>
+              <Textarea
+                value={currentDay.actionPlan || ""}
+                onChange={(e) => updateDay("actionPlan", e.target.value)}
+                placeholder="Concrete action items for today..."
                 rows={8}
                 className="font-mono text-sm"
               />

@@ -74,9 +74,20 @@ export default function ProgramSetupStep({ stepData, setStepData, onMarkEdited, 
     return null;
   }
 
-  // Default: show the "Let Abby Design" CTA
   return (
     <div className="space-y-6">
+      {/* Journey overview */}
+      <Card className="p-5 border-border/60 bg-muted/30">
+        <h4 className="font-heading text-sm font-bold mb-3">🗺️ Your Home Study Builder Journey</h4>
+        <ol className="space-y-1.5 text-xs text-muted-foreground list-decimal list-inside">
+          <li><span className="font-medium text-foreground">Program Setup</span> — Abby analyzes your manuscript and designs the program structure, title, pricing, and curriculum.</li>
+          <li><span className="font-medium text-foreground">Daily Schedule</span> — Review and edit the day-by-day schedule with themes and chapter references.</li>
+          <li><span className="font-medium text-foreground">Daily Content</span> — Generate readings, exercises, reflections, and action plans for each day.</li>
+          <li><span className="font-medium text-foreground">Materials & Packaging</span> — Finalize downloadable assets and supplementary materials.</li>
+          <li><span className="font-medium text-foreground">Preview & Publish</span> — Review everything and publish to your website.</li>
+        </ol>
+      </Card>
+
       <Card className="p-8 border-secondary/30 bg-gradient-to-br from-secondary/5 to-secondary/10 text-center">
         <div className="w-16 h-16 rounded-2xl bg-secondary/15 flex items-center justify-center mx-auto mb-5">
           <Sparkles className="h-8 w-8 text-secondary" />
