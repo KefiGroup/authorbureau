@@ -309,8 +309,10 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
   }, [abbyMessages]);
 
   // Load saved draft on mount
+  const draftLoadedRef = useRef(false);
   useEffect(() => {
-    if (!user || !bookId) return;
+    if (!user || !bookId || draftLoadedRef.current) return;
+    draftLoadedRef.current = true;
 
     let isMounted = true;
     (async () => {
