@@ -63,6 +63,7 @@ interface ProductLink {
   type: "home_study" | "course" | "coaching" | "audiobook" | "podcast";
   price: number | null;
   currency: string | null;
+  description?: string | null;
   bookSlug?: string;
 }
 
