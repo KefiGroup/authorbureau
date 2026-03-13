@@ -110,13 +110,45 @@ export async function generateWithAI(
 
 /**
  * Calls generateWithAI and parses the result as JSON.
- * Strips markdown code fences if present.
+ * Uses resilient parsing to handle extra prose/markdown wrappers.
  */
 export async function generateJSONWithAI<T = any>(
   prompt: string,
   opts?: GenerateWithAIOptions
 ): Promise<T> {
   const raw = await generateWithAI(prompt, opts);
-  const cleaned = raw.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
-  return JSON.parse(cleaned);
+  const cleaned = raw
+    .replace(/^```(?:json)?\s*\n?/i, "")
+    .replace(/\n?```\s*$/i, "")
+    .trim();
+
+  const candidates: string[] = [cleaned];
+
+  const arrayMatch = cleaned.match(/\[[\s\S]*\]/);
+  if (arrayMatch?.[0]) candidates.push(arrayMatch[0]);
+
+  const objectMatch = cleaned.match(/\{[\s\S]*\}/);
+  if (objectMatch?.[0]) candidates.push(objectMatch[0]);
+
+  const seen = new Set<string>();
+  for (const candidate of candidates) {
+    const normalized = candidate.trim();
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+
+    try {
+      return JSON.parse(normalized) as T;
+    } catch {
+      // Retry with common cleanup for trailing commas.
+    }
+
+    try {
+      const noTrailingCommas = normalized.replace(/,\s*([}\]])/g, "$1");
+      return JSON.parse(noTrailingCommas) as T;
+    } catch {
+      // Try next candidate.
+    }
+  }
+
+  throw new Error("Could not parse structured JSON from AI response.");
 }
