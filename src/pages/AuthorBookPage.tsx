@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   BookOpen, ExternalLink, Loader2, ArrowRight, GraduationCap, Users,
-  Headphones, Mic, Star, Mail, ChevronDown, CheckCircle2
+  Headphones, Mic, Star, Mail, CheckCircle2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,7 +36,6 @@ interface Book {
   author_bio?: string;
   author_photo_url?: string;
   bestseller_proof_url?: string;
-  published_at?: string;
 }
 
 interface ProductLink {
@@ -123,8 +122,9 @@ export default function AuthorBookPage() {
   const c = theme?.colors;
 
   // SEO
-  const seoTitle = book ? `${book.title} by ${book.author_name || authorProfile?.pen_name || "Author"} | Authors Bureau` : "Book | Authors Bureau";
-  const seoDesc = book?.description?.slice(0, 150) ? `${book.title}: ${book.description.slice(0, 150)}. By ${book.author_name || "Author"}.` : "";
+  const authorName = book?.author_name || authorProfile?.pen_name || "Author";
+  const seoTitle = book ? `${book.title} by ${authorName} | Authors Bureau` : "Book | Authors Bureau";
+  const seoDesc = book?.description?.slice(0, 150) ? `${book.title}: ${book.description.slice(0, 150)}...` : "";
   const canonicalUrl = `https://authorsbureau.com/${authorSlug}/${bookSlug}`;
 
   useDocumentMeta({
@@ -142,7 +142,7 @@ export default function AuthorBookPage() {
           name: book.title,
           author: {
             "@type": "Person",
-            name: book.author_name || authorProfile?.pen_name || "Author",
+            name: authorName,
             url: `https://authorsbureau.com/${authorSlug}`,
           },
           numberOfPages: book.pages || undefined,
@@ -250,12 +250,17 @@ export default function AuthorBookPage() {
 
   async function handleSubscribe(e: React.FormEvent) {
     e.preventDefault();
-    if (!email.trim() || !book) return;
+    if (!email.trim() || !book || !authorProfile) return;
     setSubscribing(true);
-    const { error } = await supabase.from("newsletter_signups" as any).insert({ book_id: book.id, email: email.trim() } as any);
+    const { error } = await supabase.from("author_subscribers").insert({
+      author_id: authorProfile.user_id,
+      email: email.trim(),
+      source: "book_page",
+      source_detail: `${authorSlug}/${bookSlug}`,
+    });
     setSubscribing(false);
     if (error?.code === "23505") {
-      toast({ title: "Already subscribed!", description: "You're already on the list." });
+      toast({ title: "You're already subscribed!", description: "You're already on the list." });
       setSubscribed(true);
     } else if (error) {
       toast({ title: "Error", description: "Could not subscribe. Try again.", variant: "destructive" });
@@ -278,16 +283,24 @@ export default function AuthorBookPage() {
 
   const badgeList = Array.isArray(book.badges) ? book.badges : [];
   const isAmazonLink = book.amazon_url?.includes("amazon.com") || book.amazon_url?.includes("a.co");
-  const authorName = book.author_name || authorProfile?.pen_name || "Author";
   const authorBio = book.author_bio || authorProfile?.bio_short || "";
   const authorPhoto = book.author_photo_url || authorProfile?.photo_url || "";
 
-  // Price formats
+  // Price formats — only show fields with values
   const priceFormats = [
     book.kindle_price ? { label: "Kindle", value: book.kindle_price } : null,
     book.paperback_price ? { label: "Paperback", value: book.paperback_price } : null,
     book.price ? { label: book.kindle_price || book.paperback_price ? "Hardcover" : "Price", value: book.price } : null,
   ].filter(Boolean) as { label: string; value: string }[];
+
+  // Lowest price for sticky CTA
+  const lowestPrice = priceFormats.length > 0
+    ? priceFormats.reduce((min, pf) => {
+        const val = parseFloat(pf.value.replace(/[^0-9.]/g, ""));
+        const minVal = parseFloat(min.value.replace(/[^0-9.]/g, ""));
+        return !isNaN(val) && val < minVal ? pf : min;
+      }, priceFormats[0])
+    : null;
 
   return (
     <div className="book-page min-h-screen" style={{ background: `hsl(${c.sectionAlt})` }}>
@@ -384,11 +397,10 @@ export default function AuthorBookPage() {
                 </div>
               )}
 
-              {/* Quick Stats */}
+              {/* Quick Stats — only fields with values, NO published date */}
               <div className="flex flex-wrap gap-4 mb-5 justify-center md:justify-start text-sm" style={{ opacity: 0.6 }}>
                 {book.pages && <span>Pages: {book.pages}</span>}
                 {book.genre && <span>Genre: {book.genre}</span>}
-                {book.published_at && <span>Published: {new Date(book.published_at).getFullYear()}</span>}
               </div>
 
               {/* Price Display */}
@@ -421,7 +433,7 @@ export default function AuthorBookPage() {
                   className="rounded-full font-semibold px-6 h-11"
                   style={{ borderColor: `hsl(${c.heroForeground} / 0.3)`, color: `hsl(${c.heroForeground})`, background: "transparent" }}
                 >
-                  <Mail className="mr-2 h-4 w-4" /> Get a Free Chapter
+                  <Mail className="mr-2 h-4 w-4" /> Get Updates
                 </Button>
               </div>
             </motion.div>
@@ -437,9 +449,11 @@ export default function AuthorBookPage() {
               <h2 className="bp-heading text-2xl md:text-3xl font-bold mb-6" style={{ color: `hsl(${c.heroBackground})` }}>
                 About This Book
               </h2>
-              <p className="text-base leading-relaxed whitespace-pre-wrap" style={{ color: `hsl(${c.heroBackground} / 0.7)` }}>
-                {book.description}
-              </p>
+              <div className="text-base leading-relaxed space-y-4" style={{ color: `hsl(${c.heroBackground} / 0.7)` }}>
+                {book.description.split(/\n\n+/).filter(Boolean).map((p, i) => (
+                  <p key={i}>{p}</p>
+                ))}
+              </div>
             </motion.div>
           </div>
         </section>
@@ -447,29 +461,29 @@ export default function AuthorBookPage() {
 
       {/* ===== SECTION 3: BESTSELLER PROOF ===== */}
       {book.bestseller_proof_url && (
-        <section className="py-14" style={{ borderBottom: `1px solid hsl(${c.cardBorder})` }}>
+        <section className="py-14" style={{ background: `hsl(${c.heroBackground})`, color: `hsl(${c.heroForeground})` }}>
           <div className="container max-w-3xl">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-              <h2 className="bp-heading text-xl md:text-2xl font-bold mb-6" style={{ color: `hsl(${c.heroBackground})` }}>
+              <h2 className="bp-heading text-xl md:text-2xl font-bold mb-6">
                 <Star className="inline h-5 w-5 mr-2" style={{ color: `hsl(${c.accent})` }} />
-                Amazon Bestseller
+                Amazon Bestseller Proof
               </h2>
               <div
                 className="rounded-lg overflow-hidden shadow-lg p-1"
-                style={{ background: "white", border: `1px solid hsl(${c.cardBorder})`, borderRadius: theme.borderRadius }}
+                style={{ background: "white", borderRadius: theme.borderRadius }}
               >
                 {/* Browser mockup frame */}
-                <div className="flex items-center gap-1.5 px-3 py-2 rounded-t-md" style={{ background: `hsl(${c.sectionAlt})` }}>
+                <div className="flex items-center gap-1.5 px-3 py-2 rounded-t-md" style={{ background: "#f5f5f5" }}>
                   <div className="w-2.5 h-2.5 rounded-full" style={{ background: "#ef4444" }} />
                   <div className="w-2.5 h-2.5 rounded-full" style={{ background: "#eab308" }} />
                   <div className="w-2.5 h-2.5 rounded-full" style={{ background: "#22c55e" }} />
-                  <span className="ml-2 text-[10px] flex-1 text-center truncate" style={{ color: `hsl(${c.heroBackground} / 0.4)` }}>
+                  <span className="ml-2 text-[10px] flex-1 text-center truncate text-gray-400">
                     amazon.com
                   </span>
                 </div>
                 <img src={book.bestseller_proof_url} alt={`${book.title} bestseller proof`} className="w-full" />
               </div>
-              <p className="text-sm text-center mt-4" style={{ color: `hsl(${c.heroBackground} / 0.5)` }}>
+              <p className="text-sm text-center mt-4" style={{ opacity: 0.5 }}>
                 {book.title} reached #1 on Amazon Best Sellers
               </p>
             </motion.div>
@@ -477,7 +491,84 @@ export default function AuthorBookPage() {
         </section>
       )}
 
-      {/* ===== SECTION 4: CONTINUE YOUR JOURNEY (Products) ===== */}
+      {/* ===== SECTION 4: ABOUT THE AUTHOR ===== */}
+      {(authorBio || authorPhoto) && (
+        <section className="py-14" style={{ borderBottom: `1px solid hsl(${c.cardBorder})` }}>
+          <div className="container max-w-3xl">
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
+              <h2 className="bp-heading text-xl md:text-2xl font-bold mb-6" style={{ color: `hsl(${c.heroBackground})` }}>About the Author</h2>
+              <div className="flex flex-col sm:flex-row gap-5 items-start">
+                {authorPhoto && (
+                  <img
+                    src={authorPhoto}
+                    alt={authorName}
+                    className="w-20 h-20 rounded-full object-cover shrink-0"
+                    style={{ borderColor: `hsl(${c.accent} / 0.3)`, borderWidth: "3px", borderStyle: "solid" }}
+                  />
+                )}
+                <div className="flex-1">
+                  <h3 className="bp-heading font-bold text-lg mb-1" style={{ color: `hsl(${c.heroBackground})` }}>{authorName}</h3>
+                  {authorProfile?.tagline && (
+                    <p className="text-sm mb-3" style={{ color: `hsl(${c.heroBackground} / 0.5)` }}>{authorProfile.tagline}</p>
+                  )}
+                  {authorBio && (
+                    <p className="text-sm leading-relaxed mb-4" style={{ color: `hsl(${c.heroBackground} / 0.6)` }}>
+                      {authorBio.length > 200 ? authorBio.slice(0, 200) + "..." : authorBio}
+                    </p>
+                  )}
+                  <Link
+                    to={`/${authorSlug}`}
+                    className="inline-flex items-center gap-1 text-sm font-semibold transition-colors hover:underline"
+                    style={{ color: `hsl(${c.accent})` }}
+                  >
+                    View Full Profile <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+      )}
+
+      {/* ===== SECTION 5: MORE BOOKS BY AUTHOR ===== */}
+      {otherBooks.length > 0 && (
+        <section className="py-14" style={{ borderBottom: `1px solid hsl(${c.cardBorder})` }}>
+          <div className="container max-w-3xl">
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
+              <h2 className="bp-heading text-xl md:text-2xl font-bold mb-6" style={{ color: `hsl(${c.heroBackground})` }}>
+                More Books by {authorName}
+              </h2>
+              <div className="flex gap-4 overflow-x-auto pb-2">
+                {otherBooks.map((ob) => (
+                  <Link
+                    key={ob.id}
+                    to={`/${authorSlug}/${ob.slug}`}
+                    className="shrink-0 group"
+                  >
+                    {ob.cover_image_url ? (
+                      <img
+                        src={ob.cover_image_url}
+                        alt={ob.title}
+                        className="w-24 h-36 rounded-md object-cover shadow-md group-hover:shadow-lg transition-shadow"
+                      />
+                    ) : (
+                      <div
+                        className="w-24 h-36 rounded-md flex items-center justify-center"
+                        style={{ background: `hsl(${c.heroBackground} / 0.05)` }}
+                      >
+                        <BookOpen className="h-6 w-6" style={{ color: `hsl(${c.cardBorder})` }} />
+                      </div>
+                    )}
+                    <p className="text-xs mt-1.5 text-center max-w-[96px] truncate" style={{ color: `hsl(${c.heroBackground} / 0.6)` }}>{ob.title}</p>
+                  </Link>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        </section>
+      )}
+
+      {/* ===== SECTION 6: CONTINUE YOUR JOURNEY (Products) ===== */}
       {products.length > 0 && (
         <section className="py-14" style={{ borderBottom: `1px solid hsl(${c.cardBorder})` }}>
           <div className="container max-w-4xl">
@@ -538,95 +629,24 @@ export default function AuthorBookPage() {
         </section>
       )}
 
-      {/* ===== SECTION 5: ABOUT THE AUTHOR ===== */}
-      {(authorBio || authorPhoto) && (
-        <section className="py-14" style={{ background: `hsl(${c.heroBackground})`, color: `hsl(${c.heroForeground})` }}>
-          <div className="container max-w-3xl">
-            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-              <h2 className="bp-heading text-xl md:text-2xl font-bold mb-6">About the Author</h2>
-              <div className="flex flex-col sm:flex-row gap-5 items-start">
-                {authorPhoto && (
-                  <img
-                    src={authorPhoto}
-                    alt={authorName}
-                    className="w-20 h-20 rounded-full object-cover shrink-0"
-                    style={{ borderColor: `hsl(${c.accent} / 0.3)`, borderWidth: "3px" }}
-                  />
-                )}
-                <div className="flex-1">
-                  <h3 className="bp-heading font-bold text-lg mb-1">{authorName}</h3>
-                  {authorProfile?.tagline && (
-                    <p className="text-sm mb-3" style={{ opacity: 0.6 }}>{authorProfile.tagline}</p>
-                  )}
-                  {authorBio && (
-                    <p className="text-sm leading-relaxed mb-4" style={{ opacity: 0.7 }}>
-                      {authorBio.length > 200 ? authorBio.slice(0, 200) + "..." : authorBio}
-                    </p>
-                  )}
-                  <Link
-                    to={`/${authorSlug}`}
-                    className="inline-flex items-center gap-1 text-sm font-semibold transition-colors hover:underline"
-                    style={{ color: `hsl(${c.accent})` }}
-                  >
-                    View Full Profile <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </div>
-              </div>
-
-              {/* More Books by Author */}
-              {otherBooks.length > 0 && (
-                <div className="mt-10 pt-8" style={{ borderTop: `1px solid hsl(${c.heroForeground} / 0.1)` }}>
-                  <h3 className="text-sm font-semibold mb-4" style={{ opacity: 0.6 }}>More Books by {authorName}</h3>
-                  <div className="flex gap-4 overflow-x-auto pb-2">
-                    {otherBooks.map((ob) => (
-                      <Link
-                        key={ob.id}
-                        to={`/${authorSlug}/${ob.slug}`}
-                        className="shrink-0 group"
-                      >
-                        {ob.cover_image_url ? (
-                          <img
-                            src={ob.cover_image_url}
-                            alt={ob.title}
-                            className="w-20 h-28 rounded-md object-cover shadow-md group-hover:shadow-lg transition-shadow"
-                          />
-                        ) : (
-                          <div
-                            className="w-20 h-28 rounded-md flex items-center justify-center"
-                            style={{ background: `hsl(${c.heroForeground} / 0.1)` }}
-                          >
-                            <BookOpen className="h-6 w-6" style={{ opacity: 0.3 }} />
-                          </div>
-                        )}
-                        <p className="text-xs mt-1 text-center max-w-[80px] truncate" style={{ opacity: 0.6 }}>{ob.title}</p>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          </div>
-        </section>
-      )}
-
-      {/* ===== SECTION 6: LEAD CAPTURE ===== */}
-      <section id="book-subscribe" className="py-14" style={{ background: `hsl(${c.accent} / 0.08)` }}>
+      {/* ===== SECTION 7: LEAD CAPTURE ===== */}
+      <section id="book-subscribe" className="py-14" style={{ background: `linear-gradient(135deg, hsl(43 74% 54% / 0.12), hsl(43 74% 54% / 0.06))` }}>
         <div className="container max-w-xl text-center">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
             {subscribed ? (
               <div className="py-6">
                 <CheckCircle2 className="h-12 w-12 mx-auto mb-4" style={{ color: `hsl(${c.accent})` }} />
-                <h3 className="bp-heading text-xl font-bold mb-2" style={{ color: `hsl(${c.heroBackground})` }}>Check your inbox!</h3>
-                <p className="text-sm" style={{ color: `hsl(${c.heroBackground} / 0.6)` }}>You'll receive updates from {authorName}.</p>
+                <h3 className="bp-heading text-xl font-bold mb-2" style={{ color: `hsl(${c.heroBackground})` }}>You're subscribed!</h3>
+                <p className="text-sm" style={{ color: `hsl(${c.heroBackground} / 0.6)` }}>You'll receive updates about {book.title}.</p>
               </div>
             ) : (
               <>
                 <Mail className="h-10 w-10 mx-auto mb-4" style={{ color: `hsl(${c.accent})` }} />
                 <h2 className="bp-heading text-2xl font-bold mb-3" style={{ color: `hsl(${c.heroBackground})` }}>
-                  Get a Free Chapter + Updates
+                  Stay Updated on {book.title}
                 </h2>
                 <p className="text-sm mb-8" style={{ color: `hsl(${c.heroBackground} / 0.6)` }}>
-                  Enter your email to receive the first chapter of {book.title} free, plus updates from {authorName}.
+                  Enter your email to receive updates from {authorName}.
                 </p>
                 <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
                   <Input
@@ -644,7 +664,7 @@ export default function AuthorBookPage() {
                     className="shrink-0 h-12 px-6 font-semibold"
                     style={{ background: `hsl(${c.accent})`, color: `hsl(${c.accentForeground})`, borderRadius: theme.borderRadius }}
                   >
-                    {subscribing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send Me the Free Chapter"}
+                    {subscribing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Subscribe"}
                   </Button>
                 </form>
                 <p className="text-xs mt-4" style={{ color: `hsl(${c.heroBackground} / 0.3)` }}>
@@ -663,10 +683,15 @@ export default function AuthorBookPage() {
           style={{ background: `hsl(${c.heroBackground})`, borderTop: `1px solid hsl(${c.heroForeground} / 0.1)` }}
         >
           <div>
-            {priceFormats.length > 0 && (
-              <span className="bp-heading text-lg font-bold" style={{ color: `hsl(${c.accent})` }}>
-                {priceFormats[0].value}
-              </span>
+            {lowestPrice && (
+              <div>
+                <span className="text-[10px] uppercase tracking-wider" style={{ color: `hsl(${c.heroForeground} / 0.5)` }}>
+                  Lowest Price
+                </span>
+                <span className="bp-heading block text-lg font-bold" style={{ color: `hsl(${c.accent})` }}>
+                  {lowestPrice.value}
+                </span>
+              </div>
             )}
           </div>
           <Button asChild size="sm" className="rounded-full font-semibold px-5"

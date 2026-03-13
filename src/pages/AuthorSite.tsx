@@ -35,6 +35,8 @@ interface AuthorData {
   is_speaker: boolean | null;
   credentials: any[] | null;
   site_theme: string | null;
+  location_city: string | null;
+  location_country: string | null;
 }
 
 interface BookWithProducts {
@@ -45,6 +47,8 @@ interface BookWithProducts {
   description: string | null;
   amazon_url: string | null;
   price: string | null;
+  kindle_price: string | null;
+  paperback_price: string | null;
   genre: string | null;
   slug: string;
   badges: string[] | null;
@@ -58,6 +62,14 @@ interface ProductLink {
   type: "home_study" | "course" | "coaching" | "audiobook" | "podcast";
   price: number | null;
   currency: string | null;
+  bookSlug?: string;
+}
+
+interface RelatedAuthor {
+  author_slug: string;
+  pen_name: string;
+  photo_url: string | null;
+  genres: string[] | null;
 }
 
 const PRODUCT_ICONS: Record<string, typeof BookOpen> = {
@@ -92,7 +104,6 @@ const fadeUp = {
   }),
 };
 
-/* ---------- Social link icons ---------- */
 const SOCIAL_LINKS = [
   { key: "website_url", icon: Globe, label: "Website" },
   { key: "linkedin_url", icon: Linkedin, label: "LinkedIn" },
@@ -134,10 +145,12 @@ export default function AuthorSite() {
   const { authorSlug } = useParams<{ authorSlug: string }>();
   const [author, setAuthor] = useState<AuthorData | null>(null);
   const [booksWithProducts, setBooksWithProducts] = useState<BookWithProducts[]>([]);
+  const [relatedAuthors, setRelatedAuthors] = useState<RelatedAuthor[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [email, setEmail] = useState("");
   const [subscribing, setSubscribing] = useState(false);
+  const [subscribed, setSubscribed] = useState(false);
   const [bioExpanded, setBioExpanded] = useState(false);
 
   const theme = useMemo(() => getThemeById(author?.site_theme || "classic-elegant"), [author?.site_theme]);
@@ -153,7 +166,9 @@ export default function AuthorSite() {
   }, [booksWithProducts]);
 
   // SEO
-  const seoDescription = author?.tagline || author?.bio_short?.slice(0, 155) || `Author page for ${displayName}`;
+  const seoDescription = author?.tagline
+    ? `${displayName} - ${author.tagline}. Explore their books, products, and services on Authors Bureau.`
+    : `Author page for ${displayName} on Authors Bureau.`;
   const canonicalUrl = `https://authorsbureau.com/${authorSlug}`;
 
   useDocumentMeta({
@@ -171,6 +186,7 @@ export default function AuthorSite() {
           name: displayName,
           url: canonicalUrl,
           image: author.photo_url || undefined,
+          jobTitle: author.tagline || "Author",
           description: author.bio_short || undefined,
           sameAs: [
             author.website_url,
@@ -180,10 +196,6 @@ export default function AuthorSite() {
             author.youtube_url,
             author.amazon_author_profile_url,
           ].filter(Boolean),
-          hasOccupation: {
-            "@type": "Occupation",
-            name: "Author",
-          },
         }
       : undefined,
   });
@@ -249,6 +261,28 @@ export default function AuthorSite() {
     }
 
     setBooksWithProducts(enriched);
+
+    // Fetch Related Authors (share at least one genre)
+    const authorGenres = profile.genres || [];
+    if (authorGenres.length > 0) {
+      const { data: related } = await supabase
+        .from("author_profiles")
+        .select("author_slug, pen_name, photo_url, genres")
+        .in("directory_status", ["listed", "featured"])
+        .neq("user_id", profile.user_id)
+        .limit(20);
+
+      if (related) {
+        const matches = related
+          .filter((r: any) => {
+            const rGenres = r.genres || [];
+            return rGenres.some((g: string) => authorGenres.includes(g));
+          })
+          .slice(0, 6) as RelatedAuthor[];
+        setRelatedAuthors(matches);
+      }
+    }
+
     setLoading(false);
   }
 
@@ -259,15 +293,17 @@ export default function AuthorSite() {
     const { error } = await supabase.from("author_subscribers").insert({
       author_id: author.user_id,
       email: email.trim(),
-      source: "author_site",
+      source: "author_homepage",
       source_detail: authorSlug,
     });
     setSubscribing(false);
     if (error?.code === "23505") {
-      toast({ title: "Already subscribed!", description: "You're already on the list." });
+      toast({ title: "You're already subscribed!", description: "You're already on the list." });
+      setSubscribed(true);
     } else if (error) {
       toast({ title: "Error", description: "Could not subscribe. Try again.", variant: "destructive" });
     } else {
+      setSubscribed(true);
       toast({ title: "Subscribed!", description: `You'll hear from ${displayName} soon.` });
       setEmail("");
     }
@@ -283,17 +319,28 @@ export default function AuthorSite() {
 
   if (notFound || !author) return <NotFound />;
 
-  const credentials = Array.isArray(author.credentials) ? author.credentials : [];
   const bioText = author.bio_long || author.bio_short || "";
-  const shouldTruncateBio = bioText.length > 400;
-  const displayBio = shouldTruncateBio && !bioExpanded ? bioText.slice(0, 400) + "..." : bioText;
+  const bioParagraphs = bioText.split(/\n\n+/).filter(Boolean);
+  const shouldTruncateBio = bioParagraphs.length > 2;
+  const displayBioParagraphs = shouldTruncateBio && !bioExpanded ? bioParagraphs.slice(0, 2) : bioParagraphs;
 
   const totalProducts = allProducts.length;
   const totalBooks = booksWithProducts.length;
+  const genres = author.genres || [];
 
   const socialLinks = SOCIAL_LINKS.filter(
     (s) => (author as any)[s.key]
   );
+
+  // Helper: get lowest price for a book
+  function getLowestPrice(book: BookWithProducts): string | null {
+    const prices = [book.kindle_price, book.paperback_price, book.price].filter(Boolean) as string[];
+    if (prices.length === 0) return null;
+    const nums = prices.map(p => parseFloat(p.replace(/[^0-9.]/g, ""))).filter(n => !isNaN(n));
+    if (nums.length === 0) return prices[0];
+    const min = Math.min(...nums);
+    return `$${min.toFixed(2)}`;
+  }
 
   return (
     <div className="author-site min-h-screen" style={{ background: `hsl(${c.sectionAlt})` }}>
@@ -314,30 +361,24 @@ export default function AuthorSite() {
 
       {/* ===== SECTION 1: HERO BANNER ===== */}
       <section className="relative overflow-hidden" style={{ background: `linear-gradient(135deg, hsl(${c.heroBackground}), hsl(${c.heroBackground} / 0.92))`, color: `hsl(${c.heroForeground})` }}>
-        {/* Subtle texture overlay */}
         <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }} />
-
-        {author.cover_photo_url && (
-          <div className="absolute inset-0">
-            <img src={author.cover_photo_url} alt="" className="w-full h-full object-cover opacity-10" />
-          </div>
-        )}
 
         <div className="relative container max-w-5xl py-16 md:py-24">
           <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
-            {/* Author Photo */}
+            {/* Author Photo — rounded rectangle */}
             {author.photo_url && (
               <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}>
-                <div className="relative">
-                  <img
-                    src={author.photo_url}
-                    alt={displayName}
-                    className="w-36 h-36 md:w-48 md:h-48 rounded-full object-cover shadow-2xl"
-                    style={{ borderColor: `hsl(${c.accent} / 0.4)`, borderWidth: "4px" }}
-                  />
-                  {/* Decorative ring */}
-                  <div className="absolute -inset-2 rounded-full border-2 opacity-20" style={{ borderColor: `hsl(${c.accent})` }} />
-                </div>
+                <img
+                  src={author.photo_url}
+                  alt={displayName}
+                  className="w-40 h-48 md:w-52 md:h-64 object-cover shadow-2xl"
+                  style={{
+                    borderColor: `hsl(${c.accent} / 0.4)`,
+                    borderWidth: "4px",
+                    borderRadius: "1rem",
+                    borderStyle: "solid",
+                  }}
+                />
               </motion.div>
             )}
 
@@ -352,36 +393,15 @@ export default function AuthorSite() {
 
               {author.tagline && (
                 <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-                  className="text-lg md:text-xl mb-4" style={{ opacity: 0.8 }}
+                  className="text-lg md:text-xl mb-5" style={{ opacity: 0.8 }}
                 >
                   {author.tagline}
                 </motion.p>
               )}
 
-              {/* Credential Badges */}
-              {credentials.length > 0 && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
-                  className="flex flex-wrap gap-2 mb-5 justify-center md:justify-start"
-                >
-                  {credentials.map((cred: any, i: number) => (
-                    <span
-                      key={i}
-                      className="px-3 py-1.5 text-xs font-medium rounded-full"
-                      style={{
-                        background: `hsl(${c.accent} / 0.15)`,
-                        color: `hsl(${c.accent})`,
-                        border: `1px solid hsl(${c.accent} / 0.25)`,
-                      }}
-                    >
-                      {typeof cred === "string" ? cred : cred.label || cred.title || cred.name}
-                    </span>
-                  ))}
-                </motion.div>
-              )}
-
               {/* Social Links */}
               {socialLinks.length > 0 && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
                   className="flex gap-3 mb-6 justify-center md:justify-start"
                 >
                   {socialLinks.map((s) => {
@@ -436,31 +456,27 @@ export default function AuthorSite() {
             </div>
           </div>
 
-          {/* Stats Strip */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-            className="mt-12 flex flex-wrap justify-center md:justify-start gap-6 md:gap-10 pt-8"
-            style={{ borderTop: `1px solid hsl(${c.heroForeground} / 0.1)` }}
-          >
-            {totalBooks > 0 && (
-              <div className="text-center md:text-left">
-                <span className="as-heading text-2xl md:text-3xl font-bold" style={{ color: `hsl(${c.accent})` }}>{totalBooks}</span>
-                <span className="block text-xs mt-1" style={{ opacity: 0.6 }}>Books Published</span>
-              </div>
-            )}
-            {totalProducts > 0 && (
-              <div className="text-center md:text-left">
-                <span className="as-heading text-2xl md:text-3xl font-bold" style={{ color: `hsl(${c.accent})` }}>{totalProducts}</span>
-                <span className="block text-xs mt-1" style={{ opacity: 0.6 }}>Products Available</span>
-              </div>
-            )}
-            {author.is_speaker && (
-              <div className="text-center md:text-left">
-                <span className="as-heading text-2xl md:text-3xl font-bold" style={{ color: `hsl(${c.accent})` }}>✦</span>
-                <span className="block text-xs mt-1" style={{ opacity: 0.6 }}>Available Speaker</span>
-              </div>
-            )}
-          </motion.div>
+          {/* Stats Strip — only non-zero values */}
+          {(totalBooks > 0 || totalProducts > 0) && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+              className="mt-12 flex flex-wrap justify-center md:justify-start gap-6 md:gap-10 pt-8"
+              style={{ borderTop: `1px solid hsl(${c.heroForeground} / 0.1)` }}
+            >
+              {totalBooks > 0 && (
+                <div className="text-center md:text-left">
+                  <span className="as-heading text-2xl md:text-3xl font-bold" style={{ color: `hsl(${c.accent})` }}>{totalBooks}</span>
+                  <span className="block text-xs mt-1" style={{ opacity: 0.6 }}>Books Published</span>
+                </div>
+              )}
+              {totalProducts > 0 && (
+                <div className="text-center md:text-left">
+                  <span className="as-heading text-2xl md:text-3xl font-bold" style={{ color: `hsl(${c.accent})` }}>{totalProducts}</span>
+                  <span className="block text-xs mt-1" style={{ opacity: 0.6 }}>Products Available</span>
+                </div>
+              )}
+            </motion.div>
+          )}
         </div>
       </section>
 
@@ -473,33 +489,11 @@ export default function AuthorSite() {
                 About {displayName}
               </h2>
 
-              {/* Credential highlight cards */}
-              {credentials.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-                  {credentials.slice(0, 4).map((cred: any, i: number) => {
-                    const label = typeof cred === "string" ? cred : cred.label || cred.title || cred.name;
-                    return (
-                      <div
-                        key={i}
-                        className="p-4 rounded-lg text-center text-sm font-medium"
-                        style={{
-                          background: `hsl(${c.accent} / 0.08)`,
-                          color: `hsl(${c.heroBackground})`,
-                          border: `1px solid hsl(${c.accent} / 0.15)`,
-                          borderRadius: theme.borderRadius,
-                        }}
-                      >
-                        <Star className="h-4 w-4 mx-auto mb-2" style={{ color: `hsl(${c.accent})` }} />
-                        {label}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              <p className="leading-relaxed whitespace-pre-line text-base" style={{ color: `hsl(${c.heroBackground} / 0.7)` }}>
-                {displayBio}
-              </p>
+              <div className="leading-relaxed text-base space-y-4" style={{ color: `hsl(${c.heroBackground} / 0.7)` }}>
+                {displayBioParagraphs.map((p, i) => (
+                  <p key={i}>{p}</p>
+                ))}
+              </div>
               {shouldTruncateBio && (
                 <button
                   onClick={() => setBioExpanded(!bioExpanded)}
@@ -510,12 +504,31 @@ export default function AuthorSite() {
                   <ChevronDown className={`h-4 w-4 transition-transform ${bioExpanded ? "rotate-180" : ""}`} />
                 </button>
               )}
+
+              {/* Genre tags */}
+              {genres.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-6">
+                  {genres.map((g, i) => (
+                    <span
+                      key={i}
+                      className="px-3 py-1.5 text-xs font-medium rounded-full"
+                      style={{
+                        background: `hsl(${c.accent} / 0.1)`,
+                        color: `hsl(${c.accent})`,
+                        border: `1px solid hsl(${c.accent} / 0.2)`,
+                      }}
+                    >
+                      {g}
+                    </span>
+                  ))}
+                </div>
+              )}
             </motion.div>
           </div>
         </section>
       )}
 
-      {/* ===== SECTION 3: BOOKS ===== */}
+      {/* ===== SECTION 3: BOOKS (Horizontal Cards) ===== */}
       {booksWithProducts.length > 0 && (
         <section id="books-section" className="py-14 md:py-20">
           <div className="container max-w-5xl">
@@ -525,80 +538,91 @@ export default function AuthorSite() {
               </h2>
             </motion.div>
 
-            <div className="grid gap-8 md:grid-cols-2">
-              {booksWithProducts.map((book, idx) => (
-                <motion.div
-                  key={book.id}
-                  initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={idx + 1}
-                >
-                  <Link
-                    to={`/${authorSlug}/${book.slug}`}
-                    className="group block overflow-hidden transition-all hover:shadow-xl"
-                    style={{
-                      borderRadius: theme.borderRadius,
-                      border: `1px solid hsl(${c.cardBorder})`,
-                      background: "white",
-                    }}
+            <div className="space-y-6">
+              {booksWithProducts.map((book, idx) => {
+                const lowestPrice = getLowestPrice(book);
+                const desc = book.description || "";
+                const shortDesc = desc.split(/\.\s+/).slice(0, 2).join(". ") + (desc.includes(".") ? "." : "");
+                return (
+                  <motion.div
+                    key={book.id}
+                    initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={idx + 1}
                   >
-                    {/* Book Cover */}
-                    <div className="relative overflow-hidden">
-                      {book.cover_image_url ? (
-                        <div className="aspect-[16/9] overflow-hidden">
+                    <div
+                      className="flex flex-col md:flex-row overflow-hidden transition-all hover:shadow-xl group"
+                      style={{
+                        borderRadius: theme.borderRadius,
+                        border: `1px solid hsl(${c.cardBorder})`,
+                        background: "white",
+                      }}
+                    >
+                      {/* Book Cover (Left) */}
+                      <Link to={`/${authorSlug}/${book.slug}`} className="shrink-0 md:w-44">
+                        {book.cover_image_url ? (
                           <img
                             src={book.cover_image_url}
                             alt={book.title}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            className="w-full h-48 md:h-full object-cover transition-transform duration-500 group-hover:scale-105"
                           />
-                        </div>
-                      ) : (
-                        <div className="aspect-[16/9] flex items-center justify-center" style={{ background: `hsl(${c.heroBackground} / 0.05)` }}>
-                          <BookOpen className="h-12 w-12" style={{ color: `hsl(${c.cardBorder})` }} />
-                        </div>
-                      )}
-                      {/* Badge overlay */}
-                      {book.badges && book.badges.length > 0 && (
-                        <div className="absolute top-3 right-3">
-                          <span
-                            className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full shadow-lg"
-                            style={{ background: `hsl(${c.accent})`, color: `hsl(${c.accentForeground})` }}
-                          >
-                            ⭐ {book.badges[0]}
-                          </span>
-                        </div>
-                      )}
-                    </div>
+                        ) : (
+                          <div className="w-full h-48 md:h-full flex items-center justify-center" style={{ background: `hsl(${c.heroBackground} / 0.05)` }}>
+                            <BookOpen className="h-12 w-12" style={{ color: `hsl(${c.cardBorder})` }} />
+                          </div>
+                        )}
+                      </Link>
 
-                    {/* Book Info */}
-                    <div className="p-5">
-                      <h3 className="as-heading font-bold text-lg mb-1 group-hover:underline" style={{ color: `hsl(${c.heroBackground})` }}>
-                        {book.title}
-                      </h3>
-                      {book.subtitle && (
-                        <p className="text-sm mb-2" style={{ color: `hsl(${c.heroBackground} / 0.5)` }}>{book.subtitle}</p>
-                      )}
-                      {book.description && (
-                        <p className="text-sm leading-relaxed line-clamp-2 mb-4" style={{ color: `hsl(${c.heroBackground} / 0.6)` }}>
-                          {book.description}
-                        </p>
-                      )}
+                      {/* Info (Center) */}
+                      <div className="flex-1 p-5 flex flex-col justify-center min-w-0">
+                        <Link to={`/${authorSlug}/${book.slug}`}>
+                          <h3 className="as-heading font-bold text-lg mb-1 group-hover:underline" style={{ color: `hsl(${c.heroBackground})` }}>
+                            {book.title}
+                          </h3>
+                        </Link>
+                        {book.subtitle && (
+                          <p className="text-sm italic mb-2" style={{ color: `hsl(${c.heroBackground} / 0.5)` }}>{book.subtitle}</p>
+                        )}
+                        {shortDesc && (
+                          <p className="text-sm leading-relaxed line-clamp-2 mb-3" style={{ color: `hsl(${c.heroBackground} / 0.6)` }}>
+                            {shortDesc}
+                          </p>
+                        )}
+                        {/* Badges */}
+                        {book.badges && book.badges.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {book.badges.map((badge) => (
+                              <span
+                                key={badge}
+                                className="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full"
+                                style={{ background: `hsl(${c.accent} / 0.12)`, color: `hsl(${c.accent})` }}
+                              >
+                                ⭐ {badge}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
 
-                      <div className="flex items-center justify-between">
-                        {book.price && (
+                      {/* Price + CTA (Right) */}
+                      <div className="shrink-0 p-5 flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-3 md:border-l" style={{ borderColor: `hsl(${c.cardBorder})` }}>
+                        {lowestPrice && (
                           <span className="as-heading text-lg font-bold" style={{ color: `hsl(${c.accent})` }}>
-                            {book.price}
+                            {lowestPrice}
                           </span>
                         )}
-                        <span
-                          className="inline-flex items-center gap-1 text-sm font-semibold"
-                          style={{ color: `hsl(${c.accent})` }}
-                        >
-                          View Book <ArrowRight className="h-4 w-4" />
-                        </span>
+                        <Link to={`/${authorSlug}/${book.slug}`}>
+                          <Button
+                            size="sm"
+                            className="rounded-full font-semibold px-5"
+                            style={{ background: `hsl(${c.accent})`, color: `hsl(${c.accentForeground})` }}
+                          >
+                            View Book <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                          </Button>
+                        </Link>
                       </div>
                     </div>
-                  </Link>
-                </motion.div>
-              ))}
+                  </motion.div>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -606,10 +630,10 @@ export default function AuthorSite() {
 
       {/* ===== SECTION 4: PRODUCTS & SERVICES ===== */}
       {allProducts.length > 0 && (
-        <section className="py-14" style={{ borderTop: `1px solid hsl(${c.cardBorder})` }}>
+        <section className="py-14" style={{ background: `hsl(${c.heroBackground})`, color: `hsl(${c.heroForeground})` }}>
           <div className="container max-w-5xl">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-              <h2 className="as-heading text-2xl md:text-3xl font-bold mb-8" style={{ color: `hsl(${c.heroBackground})` }}>
+              <h2 className="as-heading text-2xl md:text-3xl font-bold mb-8">
                 Products &amp; Services
               </h2>
             </motion.div>
@@ -627,20 +651,20 @@ export default function AuthorSite() {
                       className="group block p-5 transition-all hover:shadow-lg"
                       style={{
                         borderRadius: theme.borderRadius,
-                        border: `1px solid hsl(${c.cardBorder})`,
-                        background: "white",
+                        border: `1px solid hsl(${c.heroForeground} / 0.1)`,
+                        background: `hsl(${c.heroForeground} / 0.05)`,
                       }}
                     >
                       <div
                         className="w-10 h-10 rounded-lg flex items-center justify-center mb-3"
-                        style={{ background: `hsl(${c.accent} / 0.1)` }}
+                        style={{ background: `hsl(${c.accent} / 0.15)` }}
                       >
                         <Icon className="h-5 w-5" style={{ color: `hsl(${c.accent})` }} />
                       </div>
-                      <h4 className="font-semibold text-sm mb-1 group-hover:underline" style={{ color: `hsl(${c.heroBackground})` }}>
+                      <h4 className="font-semibold text-sm mb-1 group-hover:underline">
                         {product.title}
                       </h4>
-                      <p className="text-xs mb-3" style={{ color: `hsl(${c.heroBackground} / 0.5)` }}>
+                      <p className="text-xs mb-3" style={{ opacity: 0.5 }}>
                         {PRODUCT_LABELS[product.type]} · {product.bookTitle}
                       </p>
                       <div className="flex items-center justify-between">
@@ -649,7 +673,7 @@ export default function AuthorSite() {
                             From ${product.price}
                           </span>
                         ) : (
-                          <span className="text-xs" style={{ color: `hsl(${c.heroBackground} / 0.4)` }}>Free</span>
+                          <span className="text-xs" style={{ opacity: 0.4 }}>Free</span>
                         )}
                         <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: `hsl(${c.accent})` }} />
                       </div>
@@ -662,50 +686,96 @@ export default function AuthorSite() {
         </section>
       )}
 
-      {/* ===== SECTION 5: NEWSLETTER SIGNUP ===== */}
-      <section id="subscribe-section" className="py-14 md:py-20" style={{ background: `hsl(${c.heroBackground})`, color: `hsl(${c.heroForeground})` }}>
+      {/* ===== SECTION 5: LEAD CAPTURE ===== */}
+      <section id="subscribe-section" className="py-14 md:py-20" style={{ background: `linear-gradient(135deg, hsl(43 74% 54% / 0.12), hsl(43 74% 54% / 0.06))` }}>
         <div className="container max-w-xl text-center">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-            <Mail className="h-10 w-10 mx-auto mb-4" style={{ color: `hsl(${c.accent})` }} />
-            <h2 className="as-heading text-2xl md:text-3xl font-bold mb-3">
-              Stay Connected with {displayName}
-            </h2>
-            <p className="text-sm mb-8" style={{ opacity: 0.7 }}>
-              Get exclusive updates, free chapters, and early access to new releases.
-            </p>
-            <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-              <Input
-                type="email"
-                placeholder="your@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="border-0 h-12 text-base"
-                style={{
-                  background: `hsl(${c.heroForeground} / 0.1)`,
-                  color: `hsl(${c.heroForeground})`,
-                  borderRadius: theme.borderRadius,
-                }}
-              />
-              <Button
-                type="submit"
-                disabled={subscribing}
-                className="shrink-0 h-12 px-8 font-semibold"
-                style={{
-                  background: `hsl(${c.accent})`,
-                  color: `hsl(${c.accentForeground})`,
-                  borderRadius: theme.borderRadius,
-                }}
-              >
-                {subscribing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Subscribe"}
-              </Button>
-            </form>
-            <p className="text-xs mt-4" style={{ opacity: 0.4 }}>
-              We respect your privacy. Unsubscribe anytime.
-            </p>
+            {subscribed ? (
+              <div className="py-6">
+                <Mail className="h-10 w-10 mx-auto mb-4" style={{ color: `hsl(${c.accent})` }} />
+                <h3 className="as-heading text-xl font-bold mb-2" style={{ color: `hsl(${c.heroBackground})` }}>You're subscribed!</h3>
+                <p className="text-sm" style={{ color: `hsl(${c.heroBackground} / 0.6)` }}>You'll hear from {displayName} soon.</p>
+              </div>
+            ) : (
+              <>
+                <Mail className="h-10 w-10 mx-auto mb-4" style={{ color: `hsl(${c.accent})` }} />
+                <h2 className="as-heading text-2xl md:text-3xl font-bold mb-3" style={{ color: `hsl(${c.heroBackground})` }}>
+                  Stay Connected with {displayName}
+                </h2>
+                <p className="text-sm mb-8" style={{ color: `hsl(${c.heroBackground} / 0.6)` }}>
+                  Get exclusive updates, free chapters, and early access to new releases.
+                </p>
+                <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+                  <Input
+                    type="email"
+                    placeholder="your@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="h-12 text-base"
+                    style={{ borderRadius: theme.borderRadius, borderColor: `hsl(${c.cardBorder})` }}
+                  />
+                  <Button
+                    type="submit"
+                    disabled={subscribing}
+                    className="shrink-0 h-12 px-8 font-semibold"
+                    style={{
+                      background: `hsl(${c.accent})`,
+                      color: `hsl(${c.accentForeground})`,
+                      borderRadius: theme.borderRadius,
+                    }}
+                  >
+                    {subscribing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Subscribe"}
+                  </Button>
+                </form>
+                <p className="text-xs mt-4" style={{ color: `hsl(${c.heroBackground} / 0.3)` }}>
+                  We respect your privacy. Unsubscribe anytime.
+                </p>
+              </>
+            )}
           </motion.div>
         </div>
       </section>
+
+      {/* ===== SECTION 6: RELATED AUTHORS ===== */}
+      {relatedAuthors.length >= 2 && (
+        <section className="py-14" style={{ background: `hsl(${c.heroBackground})`, color: `hsl(${c.heroForeground})` }}>
+          <div className="container max-w-5xl">
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
+              <h2 className="as-heading text-2xl md:text-3xl font-bold mb-8">
+                Related Authors
+              </h2>
+            </motion.div>
+            <div className="flex gap-5 overflow-x-auto pb-2">
+              {relatedAuthors.map((ra, idx) => (
+                <motion.div key={ra.author_slug} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={idx + 1}>
+                  <Link
+                    to={`/${ra.author_slug}`}
+                    className="shrink-0 flex flex-col items-center text-center w-28 group"
+                  >
+                    {ra.photo_url ? (
+                      <img
+                        src={ra.photo_url}
+                        alt={ra.pen_name}
+                        className="w-16 h-16 rounded-full object-cover mb-2 group-hover:ring-2 transition-all"
+                        style={{ borderColor: `hsl(${c.accent} / 0.3)`, borderWidth: "2px", borderStyle: "solid" }}
+                      />
+                    ) : (
+                      <div className="w-16 h-16 rounded-full mb-2 flex items-center justify-center" style={{ background: `hsl(${c.heroForeground} / 0.1)` }}>
+                        <Users className="h-6 w-6" style={{ opacity: 0.3 }} />
+                      </div>
+                    )}
+                    <p className="text-xs font-semibold truncate w-full group-hover:underline">{ra.pen_name}</p>
+                    {ra.genres && ra.genres[0] && (
+                      <span className="text-[10px] mt-1" style={{ opacity: 0.5 }}>{ra.genres[0]}</span>
+                    )}
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ===== FOOTER ===== */}
       <footer className="py-8" style={{ background: `hsl(${c.footerBackground})`, color: `hsl(${c.footerForeground})` }}>
