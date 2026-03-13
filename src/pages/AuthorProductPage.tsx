@@ -609,7 +609,7 @@ export default function AuthorProductPage() {
             className="rounded-full font-semibold px-5 py-2 text-sm"
             style={{ background: "var(--theme-accent)", color: "var(--theme-accent-text)" }}
           >
-            Buy Now
+            {getProductCTA(pType, displayName)}
           </button>
         </div>
       )}
