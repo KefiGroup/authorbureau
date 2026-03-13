@@ -562,87 +562,79 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
             <Card className="p-4 border-border">
               <div className="flex items-center gap-2 mb-2">
                 <Globe className="h-4 w-4 text-secondary" />
-                <h4 className="font-heading font-semibold text-sm">Your Website URL</h4>
+                <h4 className="font-heading font-semibold text-sm">Your Author Site</h4>
               </div>
 
-              {isPaidTier ? (
-                /* Paid tier: save website URL to profile */
-                <div className="space-y-3">
-                  <p className="text-xs text-muted-foreground">
-                    Enter the URL of your published author website (built via Manus AI or another platform).
-                  </p>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="e.g., www.yourdomain.com"
-                      value={customDomain}
-                      onChange={(e) => setCustomDomain(e.target.value)}
-                      className="text-xs h-9 flex-1"
-                    />
-                    <Button
-                      variant="default"
-                      size="sm"
-                      className="text-xs bg-secondary text-secondary-foreground hover:bg-secondary/90"
-                      disabled={!customDomain.trim()}
-                      onClick={async () => {
-                        // Save the website URL to the author profile
-                        if (profileData?.id) {
-                          const url = customDomain.trim().startsWith("http") ? customDomain.trim() : `https://${customDomain.trim()}`;
-                          const { error } = await supabase
-                            .from("author_profiles")
-                            .update({ website_url: url })
-                            .eq("id", profileData.id);
-                          if (error) {
-                            toast({ title: "Error saving URL", description: error.message, variant: "destructive" });
-                          } else {
-                            toast({ title: "Website URL saved!", description: "Your Directory Profile will now link visitors to this website." });
-                          }
-                        }
-                      }}
-                    >
-                      Save
-                    </Button>
+              <div className="space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Your author site is live on Authors Bureau. Products marked as "Published" appear automatically.
+                </p>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 rounded-md border border-border bg-muted/50 px-3 py-2 text-sm font-medium text-foreground select-all">
+                    authorsbureau.com/{profileData?.author_slug || "your-slug"}
                   </div>
-                  <button
-                    onClick={() => setDnsHelpOpen(true)}
-                    className="inline-flex items-center gap-1 text-xs text-secondary hover:underline"
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs shrink-0"
+                    onClick={() => {
+                      const url = `https://authorsbureau.com/${profileData?.author_slug || "your-slug"}`;
+                      navigator.clipboard.writeText(url);
+                      setDomainCopied(true);
+                      setTimeout(() => setDomainCopied(false), 2000);
+                      toast({ title: "URL copied!" });
+                    }}
                   >
-                    <HelpCircle className="h-3 w-3" />
-                    Where do I point my domain?
-                  </button>
+                    {domainCopied ? <CheckCircle2 className="h-3.5 w-3.5 text-accent" /> : <Copy className="h-3.5 w-3.5" />}
+                  </Button>
                 </div>
-              ) : (
-                /* Free tier: show default URL */
-                <div className="space-y-3">
-                  <p className="text-xs text-muted-foreground">
-                    Your directory profile is live at:
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 rounded-md border border-border bg-muted/50 px-3 py-2 text-sm font-medium text-foreground select-all">
-                      authorsbureau.com/authors/{profileData?.author_slug || "your-name"}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-xs shrink-0"
-                      onClick={() => {
-                        const url = `https://authorsbureau.com/authors/${profileData?.author_slug || "your-name"}`;
-                        navigator.clipboard.writeText(url);
-                        setDomainCopied(true);
-                        setTimeout(() => setDomainCopied(false), 2000);
-                        toast({ title: "URL copied!" });
-                      }}
-                    >
-                      {domainCopied ? <CheckCircle2 className="h-3.5 w-3.5 text-accent" /> : <Copy className="h-3.5 w-3.5" />}
-                    </Button>
-                  </div>
-                  <div className="rounded-lg bg-secondary/5 border border-secondary/15 p-3 flex items-start gap-2">
-                    <Crown className="h-4 w-4 text-secondary shrink-0 mt-0.5" />
-                    <p className="text-xs text-muted-foreground">
-                      <span className="font-semibold text-foreground">Upgrade to Starter or above</span> to connect your own custom domain.
+
+                <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs space-y-1">
+                  <p className="font-semibold text-foreground">Product Pages</p>
+                  <p className="text-muted-foreground">authorsbureau.com/{profileData?.author_slug}/homestudy</p>
+                  <p className="text-muted-foreground">authorsbureau.com/{profileData?.author_slug}/onlinecourse</p>
+                  <p className="text-muted-foreground">authorsbureau.com/{profileData?.author_slug}/coaching</p>
+                </div>
+
+                {isPaidTier && (
+                  <div className="space-y-2 pt-2 border-t border-border">
+                    <p className="text-xs font-semibold text-foreground">Custom Domain (Optional)</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Point your domain (e.g., besuckcessful.com) to redirect to your Authors Bureau site.
                     </p>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="e.g., www.yourdomain.com"
+                        value={customDomain}
+                        onChange={(e) => setCustomDomain(e.target.value)}
+                        className="text-xs h-9 flex-1"
+                      />
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="text-xs bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                        disabled={!customDomain.trim()}
+                        onClick={async () => {
+                          if (profileData?.id) {
+                            const url = customDomain.trim().startsWith("http") ? customDomain.trim() : `https://${customDomain.trim()}`;
+                            const { error } = await supabase
+                              .from("author_profiles")
+                              .update({ website_url: url })
+                              .eq("id", profileData.id);
+                            if (error) {
+                              toast({ title: "Error saving URL", description: error.message, variant: "destructive" });
+                            } else {
+                              toast({ title: "Custom domain saved!" });
+                            }
+                          }
+                        }}
+                      >
+                        Save
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </Card>
 
             {/* DNS Help Modal */}
