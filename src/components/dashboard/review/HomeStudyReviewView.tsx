@@ -534,7 +534,7 @@ export default function HomeStudyReviewView({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => { setSalesDraft(splitContent.salesPage || fullCourseMarkdown); setDrawerOpen("sales"); }}>
+          <Button variant="outline" size="sm" onClick={() => { setSalesDraft(salesPageMarkdown || fullCourseMarkdown); setDrawerOpen("sales"); }}>
             <FileText className="h-3.5 w-3.5 mr-1" /> Edit Sales Page
           </Button>
           <Button variant="outline" size="sm" onClick={() => setDrawerOpen("content")}>
