@@ -807,8 +807,78 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                 try {
                   await handleSaveDraft(true);
                   if (user && bookId && nodeConfig.dbTable) {
-                    const { data: existing, error: fetchErr } = await (supabase as any)
-                      .from(nodeConfig.dbTable)
+                    if (nodeConfig.dbTable === "home_study_courses") {
+                      const token = await getActiveToken();
+                      if (!token) throw new Error("Not authenticated");
+
+                      const resp = await fetchWithTimeout(
+                        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/builder-draft-state`,
+                        {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`,
+                          },
+                          body: JSON.stringify({
+                            action: "publish_home_study",
+                            bookId,
+                            nodeId: nodeConfig.id,
+                            payload: {
+                              title: stepData.setup?.title || `${bookTitle} — ${nodeConfig.label}`,
+                              description: stepData.setup?.description || "",
+                              content_markdown: stepData.schedule?.days
+                                ? JSON.stringify(stepData.schedule.days)
+                                : "",
+                              duration_days: stepData.setup?.duration || 30,
+                              price: stepData.setup?.price ? parseFloat(stepData.setup.price) : null,
+                            },
+                          }),
+                        },
+                        15000,
+                      );
+
+                      const result = await resp.json().catch(() => ({}));
+                      if (!resp.ok || result?.error) {
+                        const message = result?.error || "Failed to publish home study course";
+                        console.error("Failed to publish home study record:", message);
+                        toast({ title: "Publish failed", description: message, variant: "destructive" });
+                      } else {
+                        publishSuccess = true;
+                      }
+                    } else {
+                      const { data: existing, error: fetchErr } = await (supabase as any)
+                        .from(nodeConfig.dbTable)
+                        .select("id")
+                        .eq("author_id", user.id)
+                        .eq("book_id", bookId)
+                        .maybeSingle();
+                      if (fetchErr) console.error("Fetch existing product error:", fetchErr);
+                      const productRecord: any = {
+                        author_id: user.id,
+                        book_id: bookId,
+                        title: stepData.setup?.title || `${bookTitle} — ${nodeConfig.label}`,
+                        description: stepData.setup?.description || "",
+                        status: "ready_for_review",
+                      };
+                      if (nodeConfig.dbTable === "courses") {
+                        productRecord.price = stepData.foundation?.exactPrice ? parseFloat(stepData.foundation.exactPrice) : null;
+                      }
+                      let saveError;
+                      if (existing) {
+                        const { error } = await supabase.from(nodeConfig.dbTable as any).update(productRecord).eq("id", existing.id);
+                        saveError = error;
+                      } else {
+                        const { error } = await supabase.from(nodeConfig.dbTable as any).insert(productRecord);
+                        saveError = error;
+                      }
+                      if (saveError) {
+                        console.error("Failed to save product record:", saveError);
+                        toast({ title: "Publish failed", description: saveError.message, variant: "destructive" });
+                      } else {
+                        publishSuccess = true;
+                      }
+                    }
+                  }
                       .select("id")
                       .eq("author_id", user.id)
                       .eq("book_id", bookId)
