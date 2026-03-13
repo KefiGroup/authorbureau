@@ -95,6 +95,7 @@ export default function AuthorBookPage() {
   const [notFound, setNotFound] = useState(false);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
+  const [subMessage, setSubMessage] = useState("");
   const [subscribing, setSubscribing] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
   const [heroVisible, setHeroVisible] = useState(true);
