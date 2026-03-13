@@ -112,12 +112,20 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
     setPublishing(product.id);
     setConfirmProduct(null);
     try {
-      // Update status to "published" (the only way a product becomes "live") — BUG-059
-      const { error } = await supabase
-        .from(product.table as any)
-        .update({ status: "published" })
-        .eq("id", product.id);
-      if (error) throw error;
+      const token = await getActiveToken();
+      if (!token) throw new Error("Not authenticated");
+
+      const resp = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/builder-draft-state`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ action: "publish-product", productId: product.id, table: product.table }),
+        }
+      );
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result.error || "Publish failed");
+
       toast({ title: "Published! ✅", description: `${product.title} is now live on your microsite.` });
       setProducts(prev => prev.filter(p => p.id !== product.id));
     } catch (err) {
