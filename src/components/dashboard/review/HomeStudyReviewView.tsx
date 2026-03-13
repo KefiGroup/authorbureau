@@ -170,6 +170,31 @@ export default function HomeStudyReviewView({
   const hasFullManuscript = /day\s*1/i.test(fullCourseText) || fullCourseText.length > 2000;
   const canPublish = hasStructuredDays || hasFullManuscript;
 
+  // Split sales page from curriculum content
+  const splitContent = (() => {
+    if (!fullCourseText) return { salesPage: "", curriculum: "" };
+    // Common split patterns between sales copy and curriculum
+    const splitPatterns = [
+      /\n(?=#{1,2}\s*(?:Home Study|Study Guide|Course Curriculum|Daily Lessons|Program Structure|Week\s*1|Day\s*1\b))/i,
+      /\n---+\n/,
+    ];
+    for (const pattern of splitPatterns) {
+      const match = fullCourseText.search(pattern);
+      if (match > 200) {
+        return {
+          salesPage: fullCourseText.slice(0, match).trim(),
+          curriculum: fullCourseText.slice(match).trim(),
+        };
+      }
+    }
+    // If no split found, check if it looks like it starts with sales copy
+    if (/^#\s*Sales\s*Page/i.test(fullCourseText)) {
+      return { salesPage: fullCourseText, curriculum: "" };
+    }
+    return { salesPage: "", curriculum: fullCourseText };
+  })();
+  const [manuscriptTab, setManuscriptTab] = useState<"curriculum" | "sales">("curriculum");
+
   const duration = hasStructuredDays ? days.length : Number(setup.duration) || 30;
   const totalPages = hasStructuredDays ? days.length + 2 : 1;
   const currentDay = hasStructuredDays && previewPage > 0 && previewPage <= days.length ? days[previewPage - 1] : null;
