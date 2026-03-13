@@ -13,6 +13,7 @@ import { getThemeById, type AuthorTheme } from "@/lib/author-themes";
 import { getProductCardCTAText } from "@/lib/product-copy";
 import AuthorPageLayout from "@/components/public/AuthorPageLayout";
 import AuthorBrandedNav from "@/components/public/AuthorBrandedNav";
+import AuthorContactModal from "@/components/public/AuthorContactModal";
 import NotFound from "./NotFound";
 
 /* ---------- Types ---------- */
