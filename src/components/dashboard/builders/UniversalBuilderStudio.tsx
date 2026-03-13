@@ -314,6 +314,7 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
   const inferStepFromDraftData = useCallback((data: Record<string, any> | undefined) => {
     if (!data || typeof data !== "object") return 0;
     let inferredStep = 0;
+
     nodeConfig.steps.forEach((step, idx) => {
       const value = data[step.id];
       const hasValue = value !== undefined && value !== null && (
@@ -321,8 +322,27 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
       );
       if (hasValue) inferredStep = idx;
     });
+
+    // Home Study has most content nested under schedule.days, so infer deeper progress safely.
+    if (nodeConfig.id === "home-study-course") {
+      const days = Array.isArray(data.schedule?.days) ? data.schedule.days : [];
+      if (days.length > 0) inferredStep = Math.max(inferredStep, 1);
+
+      const hasDailyContent = days.some((day: any) =>
+        Boolean(day?.concept || day?.exercise || day?.reflection || day?.actionPlan || day?.reading || day?.audioScript)
+      );
+      if (hasDailyContent) inferredStep = Math.max(inferredStep, 2);
+
+      if (data.materials && typeof data.materials === "object" && Object.keys(data.materials).length > 0) {
+        inferredStep = Math.max(inferredStep, 3);
+      }
+      if (data.preview && typeof data.preview === "object" && Object.keys(data.preview).length > 0) {
+        inferredStep = Math.max(inferredStep, 4);
+      }
+    }
+
     return inferredStep;
-  }, [nodeConfig.steps]);
+  }, [nodeConfig.steps, nodeConfig.id]);
 
   useEffect(() => {
     if (!user || !bookId || draftLoadedRef.current) return;
