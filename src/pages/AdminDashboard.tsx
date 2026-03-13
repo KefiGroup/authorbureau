@@ -20,7 +20,7 @@ import AdminMessagesTab from "@/components/admin/AdminMessagesTab";
 
 import type { AdminStats, AdminBook, AdminInfo } from "@/types/admin";
 
-type Tab = "overview" | "books" | "authors" | "admins" | "platforms" | "crm" | "reading-club" | "support";
+type Tab = "overview" | "books" | "authors" | "admins" | "platforms" | "crm" | "messages" | "reading-club" | "support";
 
 async function adminFetch(action: string, body: Record<string, unknown> = {}) {
   const token = await getActiveToken();
