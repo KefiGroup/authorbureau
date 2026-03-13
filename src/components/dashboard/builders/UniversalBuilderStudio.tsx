@@ -901,17 +901,18 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
             </motion.div>
           </AnimatePresence>
 
-          {/* Action bar — inside scroll area so it's always reachable */}
-          <div className="flex items-center justify-between mt-6 pt-4 border-t border-border">
-            <Button
-              variant="ghost"
-              onClick={goPrev}
-              disabled={currentStep === 0}
-              className="text-muted-foreground"
-            >
-              <ArrowLeft className="h-4 w-4 mr-1" /> Previous
-            </Button>
-            <div className="ml-auto flex items-center gap-2">
+          {/* Action bar */}
+          <div className="sticky bottom-0 z-20 -mx-6 lg:-mx-8 mt-6 px-6 lg:px-8 py-4 border-t border-border bg-card/95 backdrop-blur">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                variant="ghost"
+                onClick={goPrev}
+                disabled={currentStep === 0}
+                className="text-muted-foreground"
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" /> Previous
+              </Button>
+
               {!abbyOpen && (
                 <Button
                   variant="outline"
@@ -922,6 +923,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                   <Sparkles className="h-3.5 w-3.5 mr-1" /> Ask Abby
                 </Button>
               )}
+
               <Button
                 disabled={saving}
                 onClick={isLastStep ? handlePublish : goNext}
