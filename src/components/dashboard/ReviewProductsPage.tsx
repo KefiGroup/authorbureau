@@ -31,6 +31,20 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Sparkles,
 };
 
+/* ── Node ID → Dashboard route mapping ──────────────────────────── */
+const NODE_TO_ROUTE: Record<string, string> = {
+  "home-study-course": "home-study",
+  "online-course": "courses",
+  "coaching-1on1": "coaching",
+  "membership": "memberships",
+  "audiobook": "audiobook-studio",
+  "email-flows": "email-marketing",
+  "retreat": "retreats",
+  "certification": "certification",
+  "mastermind": "masterminds",
+  "corporate-training": "corporate-training",
+};
+
 /* ── Types ────────────────────────────────────────────────────── */
 interface DraftProduct {
   id: string;
