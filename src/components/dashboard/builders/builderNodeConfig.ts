@@ -587,6 +587,7 @@ const communityBuilder: BuilderNodeConfig = {
   dbTable: "generated_assets",
   icon: "MessageCircle",
   color: "text-violet-500",
+  customRenderer: "community",
   abbyGreeting: "A community turns readers into lifelong advocates. Let's design an engaging community experience.",
   abbyPublishMessage: "Your community blueprint is ready! Launch on Circle, Discord, or Facebook Groups.",
   loadingMessages: [
