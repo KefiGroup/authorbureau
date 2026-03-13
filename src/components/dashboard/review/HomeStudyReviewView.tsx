@@ -321,7 +321,7 @@ export default function HomeStudyReviewView({
             variant="outline"
             size="sm"
             onClick={() => {
-              setSalesDraft(splitContent.salesPage || fullCourseMarkdown);
+              setSalesDraft(salesPageMarkdown || fullCourseMarkdown);
               setDrawerOpen("sales");
             }}
           >
