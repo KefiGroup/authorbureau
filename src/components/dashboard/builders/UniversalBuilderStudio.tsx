@@ -829,7 +829,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
           >
             <ArrowLeft className="h-4 w-4 mr-1" /> Previous
           </Button>
-          <div className="flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-2">
             {!abbyOpen && (
               <Button
                 variant="outline"
