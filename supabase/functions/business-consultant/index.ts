@@ -564,6 +564,11 @@ Additional content to generate:
 
 All content must use the author's real name, real book title, real concepts, and real transformation promise. No placeholders or generic content.
 
+IMPORTANT — WORKBOOK CROSS-SELL:
+- The companion Workbook is a SEPARATE purchasable product. Do NOT offer it as a free download.
+- In the course content, recommend it as an add-on: "Get the companion workbook to deepen your results."
+- In the Day 7 CTA or post-course nurture, include the workbook as a recommended purchase alongside other upsells.
+
 PHASE 3 — BRIDGE (Deployment):
 Provide three options:
 

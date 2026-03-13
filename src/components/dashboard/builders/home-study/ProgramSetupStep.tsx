@@ -1,13 +1,28 @@
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Sparkles, Wand2, Check } from "lucide-react";
-import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
+import { Sparkles, Wand2, Check, BookOpen, ArrowRight } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import type { HomeStudyStepProps } from "./types";
 
-export default function ProgramSetupStep({ stepData, setStepData, onMarkEdited, plan, onStartGeneration, builderAct }: HomeStudyStepProps) {
+export default function ProgramSetupStep({ stepData, setStepData, onMarkEdited, plan, onStartGeneration, builderAct, bookId, onNavigate }: HomeStudyStepProps) {
   const data = stepData.setup || {};
   const isIdle = !builderAct || builderAct === "idle";
   const isComplete = builderAct === "act3_complete";
+
+  // Check if workbook exists for this book
+  const [workbookExists, setWorkbookExists] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!bookId) return;
+    (async () => {
+      const { data: wbs, error } = await supabase
+        .from("workbooks" as any)
+        .select("id")
+        .eq("book_id", bookId)
+        .limit(1);
+      setWorkbookExists(!error && Array.isArray(wbs) && wbs.length > 0);
+    })();
+  }, [bookId]);
 
   // Show summary if generation is complete
   if (isComplete && data.title) {
@@ -66,6 +81,46 @@ export default function ProgramSetupStep({ stepData, setStepData, onMarkEdited, 
 
   // Hide CTA when Abby is actively working
   if (!isIdle && !isComplete) {
+    return null;
+  }
+
+  // Gate: Workbook must exist before building Home Study
+  if (workbookExists === false) {
+    return (
+      <div className="space-y-6">
+        <Card className="p-8 border-amber-300/40 bg-amber-50/50 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-amber-100 flex items-center justify-center mx-auto mb-5">
+            <BookOpen className="h-8 w-8 text-amber-600" />
+          </div>
+          <h3 className="font-heading text-xl font-bold mb-2">
+            Build Your Workbook First
+          </h3>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6 leading-relaxed">
+            The Home Study Course sales page cross-sells your companion Workbook as a recommended add-on purchase. 
+            Build the Workbook first so Abby can reference it in your Home Study marketing copy.
+          </p>
+          <Button
+            onClick={() => {
+              const params = new URLSearchParams(window.location.search);
+              const title = params.get("bookTitle") || "";
+              const cover = params.get("bookCoverUrl") || "";
+              const qs = new URLSearchParams({ bookId, bookTitle: title, bookCoverUrl: cover }).toString();
+              window.location.href = `/dashboard?section=builder&builder=workbook&${qs}`;
+            }}
+            className="rounded-full bg-amber-600 text-white hover:bg-amber-700 font-semibold h-12 px-8 text-sm"
+          >
+            <BookOpen className="h-4 w-4 mr-2" /> Build Workbook First <ArrowRight className="h-4 w-4 ml-2" />
+          </Button>
+          <p className="text-[10px] text-muted-foreground/60 mt-4">
+            Recommended sequence: Workbook → Home Study Course → Online Course
+          </p>
+        </Card>
+      </div>
+    );
+  }
+
+  // Loading state while checking
+  if (workbookExists === null) {
     return null;
   }
 
