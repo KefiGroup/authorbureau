@@ -123,6 +123,8 @@ export default function HomeStudyReviewView({
         description: nextSetup.description || courseRecord?.description || "",
         price: nextSetup.price ?? courseRecord?.price ?? "",
         duration: nextSetup.duration || courseRecord?.duration_days || 30,
+        commitment: nextSetup.commitment || 30,
+        level: nextSetup.level || "Beginner",
       };
 
       const markdownFallback =
