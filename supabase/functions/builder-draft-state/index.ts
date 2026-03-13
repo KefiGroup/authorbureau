@@ -386,7 +386,7 @@ Deno.serve(async (req) => {
         } else {
           const { data: product } = await cloudAdmin
             .from(table)
-            .select("id, author_id, book_id")
+            .select("id, author_id")
             .eq("id", productId)
             .maybeSingle();
 
@@ -397,7 +397,6 @@ Deno.serve(async (req) => {
             });
           }
 
-          resolvedBookId = resolvedBookId || product.book_id || null;
           resolvedNodeId = resolvedNodeId || Object.entries(NODE_DB_TABLES).find(([, t]) => t === table)?.[0] || null;
 
           const { error: deleteErr } = await cloudAdmin
