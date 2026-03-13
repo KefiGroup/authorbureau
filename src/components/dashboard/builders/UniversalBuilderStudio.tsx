@@ -454,14 +454,19 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
     }
   }, [abbyInput, abbyMessages, abbyStreaming, bookId, bookTitle, nodeConfig, currentStep, plan, manuscriptSummary, frameworks]);
 
-  const goNext = async () => {
-    // Save draft but never block step navigation
-    await handleSaveDraft(true);
-    if (currentStep < nodeConfig.steps.length - 1) setCurrentStep(currentStep + 1);
+  const goToStep = useCallback((targetStep: number) => {
+    const boundedStep = Math.max(0, Math.min(targetStep, nodeConfig.steps.length - 1));
+    currentStepRef.current = boundedStep;
+    setCurrentStep(boundedStep);
+    void handleSaveDraft(true);
+  }, [nodeConfig.steps.length, handleSaveDraft]);
+
+  const goNext = () => {
+    if (currentStep < nodeConfig.steps.length - 1) goToStep(currentStep + 1);
   };
 
   const goPrev = () => {
-    if (currentStep > 0) setCurrentStep(currentStep - 1);
+    if (currentStep > 0) goToStep(currentStep - 1);
   };
 
   const handlePublish = async () => {
