@@ -561,6 +561,7 @@ const licensingBuilder: BuilderNodeConfig = {
   icon: "FileKey",
   color: "text-violet-500",
   customRenderer: "licensing",
+  abbyGreeting: "Licensing your content creates passive income from work you've already done. Let's structure your licensing offerings.",
   abbyPublishMessage: "Your licensing packages are ready! Start approaching organizations in your niche.",
   loadingMessages: [
     "Cataloging your licensable content",
