@@ -772,6 +772,13 @@ Return JSON: { "salesCopy": "..." }`,
                     </p>
                   </div>
 
+                  <div className="p-4 bg-emerald-500/5 rounded-lg border border-emerald-500/10">
+                    <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-2">🎯 Action Plan</p>
+                    <p className="text-xs text-muted-foreground whitespace-pre-line line-clamp-4">
+                      {days[previewPage].actionPlan || "Action items will appear here..."}
+                    </p>
+                  </div>
+
                   <div className="flex items-center gap-2 pt-2 border-t border-border">
                     <div className="w-5 h-5 rounded border-2 border-secondary/40" />
                     <span className="text-xs text-muted-foreground">I completed Day {days[previewPage].dayNumber}</span>
