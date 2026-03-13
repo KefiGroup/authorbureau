@@ -52,6 +52,13 @@ import BookSalesStepRenderer from "./book-sales/BookSalesStepRenderer";
 import ConventionsStepRenderer from "./conventions/ConventionsStepRenderer";
 import FundraisingStepRenderer from "./fundraising/FundraisingStepRenderer";
 import ExhibitorsStepRenderer from "./exhibitors/ExhibitorsStepRenderer";
+import LeadMagnetStepRenderer from "./lead-magnet/LeadMagnetStepRenderer";
+import LicensingStepRenderer from "./licensing/LicensingStepRenderer";
+import CommunityStepRenderer from "./community/CommunityStepRenderer";
+import RevenueShareStepRenderer from "./revenue-share/RevenueShareStepRenderer";
+import WhiteLabelStepRenderer from "./white-label/WhiteLabelStepRenderer";
+import EventsStepRenderer from "./events/EventsStepRenderer";
+import FranchiseStepRenderer from "./franchise/FranchiseStepRenderer";
 import type { BuilderNodeConfig, BuilderStep } from "./builderNodeConfig";
 
 // Map of customRenderer key → component
@@ -83,6 +90,13 @@ const RENDERER_MAP: Record<string, React.ComponentType<any>> = {
   "conventions": ConventionsStepRenderer,
   "fundraising": FundraisingStepRenderer,
   "exhibitors": ExhibitorsStepRenderer,
+  "lead-magnet": LeadMagnetStepRenderer,
+  "licensing": LicensingStepRenderer,
+  "community": CommunityStepRenderer,
+  "revenue-share": RevenueShareStepRenderer,
+  "white-label": WhiteLabelStepRenderer,
+  "events": EventsStepRenderer,
+  "franchise": FranchiseStepRenderer,
 };
 
 interface Props {
