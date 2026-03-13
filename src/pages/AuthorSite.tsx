@@ -236,9 +236,10 @@ export default function AuthorSite() {
     });
 
     if (coaching.length > 0 && enriched.length > 0) {
-      coaching.forEach((p) => enriched[0].products.push({ id: p.id, title: p.title, type: "coaching", price: p.price, currency: p.currency }));
+      coaching.forEach((p) => enriched[0].products.push({ id: p.id, title: p.title, type: "coaching", price: p.price, currency: p.currency, description: p.description }));
     }
 
+    setCoachingServices(coaching);
     setBooksWithProducts(enriched);
 
     // Fetch Related Authors (share at least one genre)
