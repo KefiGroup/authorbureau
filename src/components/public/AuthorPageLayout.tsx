@@ -1,5 +1,6 @@
 import { type ReactNode } from "react";
 import AuthorPageNav from "./AuthorPageNav";
+import AuthorBreadcrumbs from "./AuthorBreadcrumbs";
 import AuthorPageFooter from "./AuthorPageFooter";
 import { getThemeFontsUrl, getThemeCSSVars, type AuthorTheme } from "@/lib/author-themes";
 
@@ -7,24 +8,15 @@ import { getThemeFontsUrl, getThemeCSSVars, type AuthorTheme } from "@/lib/autho
  * Shared layout wrapper for all public author pages.
  * - Injects theme CSS variables into a wrapper div
  * - Loads only the required Google Fonts
- * - Renders the global nav bar and footer with fixed brand colors
- * - Everything between nav and footer is theme-driven
+ * - Renders the global nav bar, breadcrumbs, and footer
  */
 export default function AuthorPageLayout({
   theme,
-  authorName,
-  authorSlug,
-  bookTitle,
-  bookSlug,
-  productTitle,
+  breadcrumbs,
   children,
 }: {
   theme: AuthorTheme;
-  authorName?: string;
-  authorSlug?: string;
-  bookTitle?: string;
-  bookSlug?: string;
-  productTitle?: string;
+  breadcrumbs?: { label: string; to?: string }[];
   children: ReactNode;
 }) {
   const cssVars = getThemeCSSVars(theme);
@@ -47,15 +39,12 @@ export default function AuthorPageLayout({
       `}</style>
 
       <div className="min-h-screen flex flex-col">
-        <AuthorPageNav
-          authorName={authorName}
-          authorSlug={authorSlug}
-          bookTitle={bookTitle}
-          bookSlug={bookSlug}
-          productTitle={productTitle}
-        />
+        <AuthorPageNav />
 
         <div className="author-theme-root flex-1" style={{ background: "var(--theme-secondary-bg)" }}>
+          {breadcrumbs && breadcrumbs.length > 0 && (
+            <AuthorBreadcrumbs items={breadcrumbs} />
+          )}
           {children}
         </div>
 
