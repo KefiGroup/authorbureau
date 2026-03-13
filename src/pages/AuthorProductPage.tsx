@@ -19,7 +19,7 @@ const PRODUCT_CONFIG: Record<ProductType, { table: string; label: string; icon: 
 };
 
 export default function AuthorProductPage() {
-  const { authorSlug, productType } = useParams<{ authorSlug: string; productType: string }>();
+  const { authorSlug, bookSlug, productType } = useParams<{ authorSlug: string; bookSlug: string; productType: string }>();
   const [author, setAuthor] = useState<any>(null);
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -34,13 +34,13 @@ export default function AuthorProductPage() {
   });
 
   useEffect(() => {
-    if (!authorSlug || !config) {
+    if (!authorSlug || !bookSlug || !config) {
       setNotFound(true);
       setLoading(false);
       return;
     }
     loadProduct();
-  }, [authorSlug, productType]);
+  }, [authorSlug, bookSlug, productType]);
 
   async function loadProduct() {
     setLoading(true);
@@ -60,8 +60,28 @@ export default function AuthorProductPage() {
     }
     setAuthor(profile);
 
-    // Get product
+    // Get book by slug scoped to this author
+    const { data: book } = await supabase
+      .from("books")
+      .select("id, slug")
+      .eq("author_id", profile.user_id)
+      .eq("slug", bookSlug)
+      .maybeSingle();
+
+    if (!book) {
+      setNotFound(true);
+      setLoading(false);
+      return;
+    }
+
+    // Get product scoped to this book
     let query = supabase.from(config.table as any).select("*").eq("author_id", profile.user_id);
+
+    // Filter by book_id for products that support it
+    if (pType !== "coaching") {
+      query = query.eq("book_id", book.id);
+    }
+
     if (config.statusField === "published_at") {
       query = query.not("published_at", "is", null);
     } else {
