@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { adminApi } from "@/lib/admin-api";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { LogOut, BookOpen, BarChart3, ShieldCheck, Globe, UserCheck, Users, BookMarked, Headphones, MessageSquare } from "lucide-react";
+import { LogOut, BookOpen, BarChart3, ShieldCheck, Globe, UserCheck, Users, BookMarked, Headphones, MessageSquare, Wallet } from "lucide-react";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import logoIcon from "@/assets/logo-icon.png";
 
