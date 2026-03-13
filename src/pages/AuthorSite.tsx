@@ -114,32 +114,7 @@ const SOCIAL_LINKS = [
   { key: "youtube_url", icon: Youtube, label: "YouTube" },
 ] as const;
 
-/* ---------- Theme CSS injection ---------- */
-function ThemeStyle({ theme }: { theme: AuthorTheme }) {
-  const c = theme.colors;
-  return (
-    <>
-      <link rel="stylesheet" href={getThemeFontsUrl(theme)} />
-      <style>{`
-        .author-site {
-          --as-hero-bg: ${c.heroBackground};
-          --as-hero-fg: ${c.heroForeground};
-          --as-accent: ${c.accent};
-          --as-accent-fg: ${c.accentForeground};
-          --as-card-border: ${c.cardBorder};
-          --as-section-alt: ${c.sectionAlt};
-          --as-footer-bg: ${c.footerBackground};
-          --as-footer-fg: ${c.footerForeground};
-          --as-heading-font: ${theme.headingFont};
-          --as-body-font: ${theme.bodyFont};
-          --as-radius: ${theme.borderRadius};
-        }
-        .author-site { font-family: var(--as-body-font); }
-        .author-site .as-heading { font-family: var(--as-heading-font); }
-      `}</style>
-    </>
-  );
-}
+/* ThemeStyle removed — now handled by AuthorPageLayout */
 
 /* ============================================ */
 export default function AuthorSite() {
