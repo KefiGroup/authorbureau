@@ -469,12 +469,17 @@ export default function AuthorSite() {
                 About {displayName}
               </h2>
 
+              {/* Show short bio by default, expand to full */}
               <div className="leading-relaxed text-base space-y-4" style={{ color: `hsl(${c.heroBackground} / 0.7)` }}>
-                {displayBioParagraphs.map((p, i) => (
-                  <p key={i}>{p}</p>
-                ))}
+                {!bioExpanded && author.bio_short ? (
+                  <p>{author.bio_short}</p>
+                ) : (
+                  displayBioParagraphs.map((p, i) => (
+                    <p key={i}>{p}</p>
+                  ))
+                )}
               </div>
-              {shouldTruncateBio && (
+              {author.bio_long && author.bio_short && (
                 <button
                   onClick={() => setBioExpanded(!bioExpanded)}
                   className="mt-3 inline-flex items-center gap-1 text-sm font-semibold transition-colors"
