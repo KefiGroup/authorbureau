@@ -342,6 +342,12 @@ export default function HomeStudyReviewView({
           parts.push(`> "${t.quote}"${t.name ? ` — ${t.name}` : ""}`);
         });
       }
+      if (salesFaqs.length > 0) {
+        parts.push("", "**Frequently Asked Questions:**");
+        salesFaqs.forEach(f => {
+          parts.push(`**Q: ${f.question}**`, `A: ${f.answer}`, "");
+        });
+      }
       const serialized = parts.join("\n");
       setSalesPageMarkdown(serialized);
       setSalesDraft(serialized);
