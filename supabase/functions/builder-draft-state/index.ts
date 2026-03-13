@@ -8,7 +8,7 @@ const corsHeaders = {
 
 const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
 const SHARED_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnRkcG5la3NjcnNnaHF0c3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MDYzODksImV4cCI6MjA4NDQ4MjM4OX0.o2qA4tLao4UtxPGxSnavXIYKUmVZvS99pHtnL220L-s";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnRkcG5la3NjcnNnaHF0c3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MDYzODksImV4cCI6MjA4NDQ4MjM4OX0.o2qA0tLao4UtxPGxSnavXIYKUmVZvS99pHtnL220L-s";
 
 type DraftPayload = {
   currentStep?: number;
@@ -16,6 +16,47 @@ type DraftPayload = {
   editedSteps?: string[];
   savedAt?: string;
 };
+
+/* ── Node → table mapping (matches builderNodeConfig.ts) ─────────── */
+const NODE_DB_TABLES: Record<string, string> = {
+  "workbook": "generated_assets",
+  "social-media": "social_media_content",
+  "email-flows": "email_flows",
+  "home-study-course": "home_study_courses",
+  "book-sales": "generated_assets",
+  "lead-magnet": "generated_assets",
+  "website": "generated_assets",
+  "online-course": "courses",
+  "audiobook": "audiobooks",
+  "podcast": "podcasts",
+  "webinar": "generated_assets",
+  "membership": "generated_assets",
+  "coaching-1on1": "coaching_packages",
+  "group-coaching": "generated_assets",
+  "speaking": "generated_assets",
+  "corporate-training": "generated_assets",
+  "training-programs": "courses",
+  "affiliate": "generated_assets",
+  "partnerships": "generated_assets",
+  "upsell-downsell": "generated_assets",
+  "licensing": "generated_assets",
+  "community": "generated_assets",
+  "retreat": "generated_assets",
+  "certification": "generated_assets",
+  "mastermind": "generated_assets",
+  "big-ticket": "generated_assets",
+  "special-editions": "generated_assets",
+  "conventions": "generated_assets",
+  "fundraising": "generated_assets",
+  "exhibitors": "generated_assets",
+  "revenue-share": "generated_assets",
+  "white-label": "generated_assets",
+  "events": "generated_assets",
+  "franchise": "generated_assets",
+};
+
+/* Tables with their own product records (have status/title columns) */
+const PRODUCT_TABLES = ["courses", "home_study_courses", "audiobooks", "podcasts", "social_media_content", "email_flows", "coaching_packages"] as const;
 
 async function resolveIdentity(token: string): Promise<{ userId: string; email: string | null } | null> {
   const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
@@ -34,6 +75,25 @@ async function resolveIdentity(token: string): Promise<{ userId: string; email: 
 
   if (!localUser) return null;
   return { userId: localUser.id, email: localUser.email ?? null };
+}
+
+async function resolveAllUserIds(cloudAdmin: any, identity: { userId: string; email: string | null }): Promise<string[]> {
+  const { data: profile } = await cloudAdmin
+    .from("author_profiles")
+    .select("pen_name, user_id")
+    .eq("user_id", identity.userId)
+    .maybeSingle();
+
+  const allUserIds: string[] = [identity.userId];
+  if (profile?.pen_name) {
+    const { data: siblings } = await cloudAdmin
+      .from("author_profiles")
+      .select("user_id")
+      .eq("pen_name", profile.pen_name)
+      .neq("user_id", identity.userId);
+    for (const s of siblings || []) allUserIds.push(s.user_id);
+  }
+  return allUserIds;
 }
 
 Deno.serve(async (req) => {
@@ -64,7 +124,7 @@ Deno.serve(async (req) => {
     const nodeId = body?.nodeId as string | undefined;
 
     // ── Actions that don't require bookId/nodeId ──
-    if (action === "list-drafts" || action === "publish-product") {
+    if (action === "list-drafts" || action === "publish-product" || action === "preview-product") {
       const identity = await resolveIdentity(token);
       if (!identity) {
         return new Response(JSON.stringify({ error: "Invalid session" }), {
@@ -78,39 +138,66 @@ Deno.serve(async (req) => {
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
       );
 
-      // Resolve all user IDs for this author (cross-platform)
-      const { data: profile } = await cloudAdmin
-        .from("author_profiles")
-        .select("pen_name, user_id")
-        .eq("user_id", identity.userId)
-        .maybeSingle();
+      const allUserIds = await resolveAllUserIds(cloudAdmin, identity);
 
-      const allUserIds: string[] = [identity.userId];
-      if (profile?.pen_name) {
-        const { data: siblings } = await cloudAdmin
-          .from("author_profiles")
-          .select("user_id")
-          .eq("pen_name", profile.pen_name)
-          .neq("user_id", identity.userId);
-        for (const s of siblings || []) allUserIds.push(s.user_id);
-      }
-
+      /* ─── LIST DRAFTS ──────────────────────────────────────── */
       if (action === "list-drafts") {
-        const tables = ["courses", "home_study_courses", "audiobooks", "podcasts", "social_media_content", "email_flows", "coaching_packages"] as const;
         const allDrafts: any[] = [];
 
+        // 1) Query product tables (courses, home_study_courses, etc.)
         await Promise.all(
-          tables.map(async (table) => {
+          PRODUCT_TABLES.map(async (table) => {
             const { data } = await cloudAdmin
               .from(table)
-              .select("id, title, book_id, created_at, status, description")
+              .select("id, title, book_id, created_at, status, description, price")
               .in("author_id", allUserIds)
               .in("status", ["draft", "ready_for_review"]);
             for (const item of data || []) {
-              allDrafts.push({ ...item, table });
+              // Determine which node this belongs to
+              const nodeId = Object.entries(NODE_DB_TABLES).find(([, t]) => t === table)?.[0] || table;
+              allDrafts.push({ ...item, table, nodeId });
             }
           })
         );
+
+        // 2) Query generated_assets for builder_draft_* entries (covers all 28 nodes)
+        const { data: assetDrafts } = await cloudAdmin
+          .from("generated_assets")
+          .select("id, book_id, asset_type, content, created_at, updated_at")
+          .in("author_id", allUserIds)
+          .like("asset_type", "builder_draft_%");
+
+        for (const asset of assetDrafts || []) {
+          const draftNodeId = asset.asset_type.replace("builder_draft_", "");
+          // Skip if we already have this node from a product table
+          const alreadyHas = allDrafts.some(d => d.nodeId === draftNodeId && d.book_id === asset.book_id);
+          if (alreadyHas) continue;
+
+          // Parse stored draft to get step progress
+          let stepData: any = {};
+          let currentStep = 0;
+          let title = "";
+          try {
+            const parsed = JSON.parse(asset.content);
+            stepData = parsed.stepData || {};
+            currentStep = parsed.currentStep || 0;
+            title = stepData?.setup?.title || stepData?.foundation?.title || stepData?.model?.title || "";
+          } catch { /* ignore */ }
+
+          const editedCount = Object.keys(stepData).length;
+
+          allDrafts.push({
+            id: asset.id,
+            title: title || `${draftNodeId} Draft`,
+            book_id: asset.book_id,
+            created_at: asset.created_at,
+            status: editedCount >= 3 ? "ready_for_review" : "draft",
+            description: "",
+            table: "generated_assets",
+            nodeId: draftNodeId,
+            stepsCompleted: editedCount,
+          });
+        }
 
         // Get book titles
         const bookIds = [...new Set(allDrafts.map(d => d.book_id).filter(Boolean))];
@@ -130,6 +217,84 @@ Deno.serve(async (req) => {
         });
       }
 
+      /* ─── PREVIEW PRODUCT ──────────────────────────────────── */
+      if (action === "preview-product") {
+        const { productId, table, nodeId: previewNodeId, bookId: previewBookId } = body;
+
+        let preview = "";
+
+        // Try to get content from generated_assets builder draft
+        if (previewNodeId && previewBookId) {
+          const assetType = `builder_draft_${previewNodeId}`;
+          const { data: asset } = await cloudAdmin
+            .from("generated_assets")
+            .select("content")
+            .eq("book_id", previewBookId)
+            .eq("asset_type", assetType)
+            .in("author_id", allUserIds)
+            .maybeSingle();
+
+          if (asset?.content) {
+            try {
+              const parsed = JSON.parse(asset.content);
+              const sd = parsed.stepData || {};
+
+              // Build a markdown preview from stepData
+              const sections: string[] = [];
+              for (const [key, val] of Object.entries(sd)) {
+                if (typeof val === "object" && val !== null) {
+                  const v = val as Record<string, any>;
+                  if (v.title) sections.push(`## ${v.title}`);
+                  if (v.description) sections.push(v.description);
+                  if (v.content_markdown) sections.push(v.content_markdown);
+                  if (v.generatedContent) sections.push(v.generatedContent);
+                  if (v.salesPage) sections.push(v.salesPage);
+                  // Handle arrays (days, modules, episodes, etc.)
+                  if (v.days && Array.isArray(v.days)) {
+                    sections.push(`\n**${v.days.length} days** of structured content`);
+                    for (const day of v.days.slice(0, 3)) {
+                      sections.push(`- **Day ${day.dayNumber || '?'}**: ${day.theme || day.title || 'Content'}`);
+                    }
+                    if (v.days.length > 3) sections.push(`- ... and ${v.days.length - 3} more days`);
+                  }
+                  if (v.modules && Array.isArray(v.modules)) {
+                    for (const mod of v.modules) {
+                      sections.push(`### Module: ${mod.title || 'Untitled'}`);
+                      if (mod.lessons) {
+                        for (const lesson of mod.lessons) {
+                          sections.push(`- ${lesson.title || lesson}`);
+                        }
+                      }
+                    }
+                  }
+                  if (v.episodes && Array.isArray(v.episodes)) {
+                    for (const ep of v.episodes.slice(0, 5)) {
+                      sections.push(`- **Episode ${ep.episodeNumber || '?'}**: ${ep.title || 'Untitled'}`);
+                    }
+                  }
+                }
+              }
+              preview = sections.filter(Boolean).join("\n\n");
+            } catch { /* ignore */ }
+          }
+        }
+
+        // Fallback: get description from product table
+        if (!preview && productId && table && table !== "generated_assets") {
+          const { data: product } = await cloudAdmin
+            .from(table)
+            .select("description, title")
+            .eq("id", productId)
+            .maybeSingle();
+          if (product?.description) preview = `## ${product.title || ''}\n\n${product.description}`;
+        }
+
+        return new Response(JSON.stringify({ preview: preview || null }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      /* ─── PUBLISH PRODUCT ──────────────────────────────────── */
       if (action === "publish-product") {
         const { productId, table } = body;
         if (!productId || !table) {
@@ -149,6 +314,32 @@ Deno.serve(async (req) => {
         if (!product || !allUserIds.includes(product.author_id)) {
           return new Response(JSON.stringify({ error: "Product not found or unauthorized" }), {
             status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // For generated_assets, there's no "status" column, so we handle differently
+        if (table === "generated_assets") {
+          // Update the asset_type to mark as published
+          const { data: asset } = await cloudAdmin
+            .from("generated_assets")
+            .select("asset_type, content")
+            .eq("id", productId)
+            .maybeSingle();
+
+          if (asset?.content) {
+            try {
+              const parsed = JSON.parse(asset.content);
+              parsed.status = "published";
+              parsed.publishedAt = new Date().toISOString();
+              await cloudAdmin
+                .from("generated_assets")
+                .update({ content: JSON.stringify(parsed) })
+                .eq("id", productId);
+            } catch { /* ignore */ }
+          }
+
+          return new Response(JSON.stringify({ ok: true }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
@@ -239,9 +430,7 @@ Deno.serve(async (req) => {
         .eq("asset_type", assetType)
         .maybeSingle();
 
-      if (draftError) {
-        throw draftError;
-      }
+      if (draftError) throw draftError;
 
       if (!draftRow?.content) {
         return new Response(JSON.stringify({ draft: null }), {
@@ -288,9 +477,7 @@ Deno.serve(async (req) => {
           { onConflict: "book_id,asset_type" }
         );
 
-      if (upsertError) {
-        throw upsertError;
-      }
+      if (upsertError) throw upsertError;
 
       return new Response(JSON.stringify({ ok: true, savedAt }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
