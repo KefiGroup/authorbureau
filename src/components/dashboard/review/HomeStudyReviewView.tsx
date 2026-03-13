@@ -199,6 +199,41 @@ export default function HomeStudyReviewView({
     setPreviewPage((prev) => Math.min(prev, Math.max(totalPages - 1, 0)));
   }, [totalPages]);
 
+  const openSalesEditor = useCallback(() => {
+    const md = effectiveSalesPage || "";
+    if (md.trim()) {
+      // Parse existing sales markdown into structured fields
+      const lines = md.split("\n").filter(l => l.trim());
+      const h1 = lines.find(l => /^##?\s/.test(l));
+      setSalesHeadline(h1 ? h1.replace(/^#+\s*/, "") : title || "");
+      const h2 = lines.find(l => /^###\s/.test(l));
+      setSalesSubheadline(h2 ? h2.replace(/^#+\s*/, "") : "");
+      const bullets = lines.filter(l => /^[-*]\s/.test(l)).map(l => l.replace(/^[-*]\s*/, ""));
+      setSalesBullets(bullets.length > 0 ? bullets : [""]);
+      const bodyLines = lines.filter(l => !l.startsWith("#") && !l.startsWith("-") && !l.startsWith("*") && !l.startsWith(">"));
+      setSalesBody(bodyLines.join("\n").trim());
+      const quoteLines = lines.filter(l => l.startsWith(">"));
+      const testimonials = quoteLines.map(q => ({ name: "", quote: q.replace(/^>\s*/, "").replace(/^"/, "").replace(/"$/, "") }));
+      setSalesTestimonials(testimonials.length > 0 ? testimonials : []);
+      setSalesCta("Enroll Now");
+    } else {
+      // Pre-populate from course metadata when no sales content exists
+      setSalesHeadline(title || productTitle || "");
+      setSalesSubheadline(description ? description.slice(0, 120) : `A ${duration}-day guided self-study program`);
+      setSalesBody(description || `Transform your understanding with this structured ${duration}-day home study program based on "${bookTitle}". Each day includes focused reading, practical exercises, guided reflection, and a concrete action plan.`);
+      setSalesBullets([
+        `${duration} days of structured daily lessons`,
+        "Guided exercises and reflection prompts",
+        "Actionable daily plans you can implement immediately",
+        "Certificate of completion",
+      ]);
+      setSalesTestimonials([]);
+      setSalesCta("Enroll Now");
+    }
+    setSalesDraft(md);
+    setDrawerOpen("sales");
+  }, [effectiveSalesPage, title, productTitle, description, duration, bookTitle]);
+
   const handleSave = async () => {
     if (!user) return;
     setSaving(true);
@@ -350,25 +385,7 @@ export default function HomeStudyReviewView({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
-              // Parse existing sales markdown into structured fields
-              const md = effectiveSalesPage || fullCourseMarkdown || "";
-              const lines = md.split("\n").filter(l => l.trim());
-              const h1 = lines.find(l => /^##?\s/.test(l));
-              setSalesHeadline(h1 ? h1.replace(/^#+\s*/, "") : title || "");
-              const h2 = lines.find(l => /^###\s/.test(l));
-              setSalesSubheadline(h2 ? h2.replace(/^#+\s*/, "") : "");
-              const bullets = lines.filter(l => /^[-*]\s/.test(l)).map(l => l.replace(/^[-*]\s*/, ""));
-              setSalesBullets(bullets.length > 0 ? bullets : [""]);
-              const bodyLines = lines.filter(l => !l.startsWith("#") && !l.startsWith("-") && !l.startsWith("*") && !l.startsWith(">"));
-              setSalesBody(bodyLines.join("\n").trim());
-              // Look for quoted testimonials
-              const quoteLines = lines.filter(l => l.startsWith(">"));
-              const testimonials = quoteLines.map(q => ({ name: "", quote: q.replace(/^>\s*/, "").replace(/^"/, "").replace(/"$/, "") }));
-              setSalesTestimonials(testimonials.length > 0 ? testimonials : []);
-              setSalesCta("Enroll Now");
-              setDrawerOpen("sales");
-            }}
+            onClick={() => openSalesEditor()}
           >
             <FileText className="h-3.5 w-3.5 mr-1" /> Edit Sales Page
           </Button>
@@ -585,7 +602,7 @@ export default function HomeStudyReviewView({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => { setSalesDraft(effectiveSalesPage || fullCourseMarkdown); setDrawerOpen("sales"); }}>
+          <Button variant="outline" size="sm" onClick={() => openSalesEditor()}>
             <FileText className="h-3.5 w-3.5 mr-1" /> Edit Sales Page
           </Button>
           <Button variant="outline" size="sm" onClick={() => setDrawerOpen("content")}>
