@@ -78,32 +78,7 @@ const fadeUp = {
   }),
 };
 
-/* ---------- Theme CSS injection ---------- */
-function ThemeStyle({ theme }: { theme: AuthorTheme }) {
-  const c = theme.colors;
-  return (
-    <>
-      <link rel="stylesheet" href={getThemeFontsUrl(theme)} />
-      <style>{`
-        .book-page {
-          --bp-hero-bg: ${c.heroBackground};
-          --bp-hero-fg: ${c.heroForeground};
-          --bp-accent: ${c.accent};
-          --bp-accent-fg: ${c.accentForeground};
-          --bp-card-border: ${c.cardBorder};
-          --bp-section-alt: ${c.sectionAlt};
-          --bp-footer-bg: ${c.footerBackground};
-          --bp-footer-fg: ${c.footerForeground};
-          --bp-heading-font: ${theme.headingFont};
-          --bp-body-font: ${theme.bodyFont};
-          --bp-radius: ${theme.borderRadius};
-        }
-        .book-page { font-family: var(--bp-body-font); }
-        .book-page .bp-heading { font-family: var(--bp-heading-font); }
-      `}</style>
-    </>
-  );
-}
+/* ThemeStyle removed — now handled by AuthorPageLayout */
 
 /* ============================================ */
 export default function AuthorBookPage() {
