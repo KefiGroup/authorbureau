@@ -808,7 +808,7 @@ export default function HomeStudyReviewView({
               </div>
               <div>
                 <Label className="text-xs">Description</Label>
-                <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} />
+                <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={9} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
