@@ -339,6 +339,7 @@ const leadMagnetBuilder: BuilderNodeConfig = {
   dbTable: "generated_assets",
   icon: "Magnet",
   color: "text-emerald-500",
+  customRenderer: "lead-magnet",
   abbyGreeting: "A compelling lead magnet is the foundation of your email list. Let's create one that converts visitors into subscribers.",
   abbyPublishMessage: "Your lead magnet is ready! Add it to your microsite and start building your email list.",
   loadingMessages: [
