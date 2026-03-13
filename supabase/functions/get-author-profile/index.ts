@@ -63,27 +63,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Fetch published books for this author (dual-ownership: author_id OR owner_email)
+    // Fetch published books for this author
     const { data: booksByAuthorId } = await supabase
       .from("books")
       .select("*")
       .eq("author_id", author.user_id)
       .not("published_at", "is", null);
 
-    // Also check by owner_email to handle cross-platform ID mismatches
-    const userEmail = author.user_id; // We need the email - fetch from auth if needed
-    const { data: booksByEmail } = await supabase
-      .from("books")
-      .select("*")
-      .not("published_at", "is", null)
-      .neq("author_id", author.user_id)
-      .or(`owner_email.not.is.null`);
-
-    // Deduplicate: merge booksByAuthorId with any email-matched books
+    // Also check by pen_name match on author_name
     const seenIds = new Set((booksByAuthorId || []).map((b: any) => b.id));
     const allBooks = [...(booksByAuthorId || [])];
 
-    // Find books that might belong to this author via pen_name match on author_name
     if (author.pen_name) {
       const { data: booksByName } = await supabase
         .from("books")
@@ -101,6 +91,21 @@ Deno.serve(async (req) => {
     const books = allBooks.sort((a: any, b: any) => 
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
+
+    // Fetch all product types in parallel
+    const [homeStudyRes, coursesRes, coachingRes, audiobooksRes, podcastsRes] = await Promise.all([
+      supabase.from("home_study_courses").select("id, title, price, currency, book_id").eq("author_id", author.user_id).eq("status", "published"),
+      supabase.from("courses").select("id, title, price, currency, book_id").eq("author_id", author.user_id).eq("status", "published"),
+      supabase.from("coaching_packages").select("id, title, price, currency").eq("author_id", author.user_id).eq("status", "active"),
+      supabase.from("audiobooks").select("id, title, price, currency, book_id").eq("author_id", author.user_id).eq("status", "published"),
+      supabase.from("podcasts").select("id, title, book_id").eq("author_id", author.user_id).eq("status", "published"),
+    ]);
+
+    const homeStudy = homeStudyRes.data || [];
+    const courses = coursesRes.data || [];
+    const coaching = coachingRes.data || [];
+    const audiobooks = audiobooksRes.data || [];
+    const podcasts = podcastsRes.data || [];
 
     const result = {
       slug: author.author_slug || author.user_id,
