@@ -273,6 +273,7 @@ export default function HomeStudyReviewView({
         "Certificate of completion",
       ]);
       setSalesTestimonials([]);
+      setSalesFaqs([]);
       setSalesCta("Enroll Now");
     }
     setSalesDraft(md);
