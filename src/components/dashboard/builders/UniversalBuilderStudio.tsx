@@ -835,7 +835,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                 variant="outline"
                 size="sm"
                 onClick={() => setAbbyOpen(true)}
-                className="text-secondary border-secondary/30 hover:bg-secondary/5"
+                className="border-secondary/40 text-secondary hover:bg-secondary/10"
               >
                 <Sparkles className="h-3.5 w-3.5 mr-1" /> Ask Abby
               </Button>
