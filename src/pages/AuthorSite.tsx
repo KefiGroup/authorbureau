@@ -227,10 +227,10 @@ export default function AuthorSite() {
 
     const enriched: BookWithProducts[] = books.map((book) => {
       const products: ProductLink[] = [];
-      homeStudy.filter((p) => p.book_id === book.id).forEach((p) => products.push({ id: p.id, title: p.title, type: "home_study", price: p.price, currency: p.currency }));
-      courses.filter((p) => p.book_id === book.id).forEach((p) => products.push({ id: p.id, title: p.title, type: "course", price: p.price, currency: p.currency }));
-      audiobooks.filter((p) => p.book_id === book.id).forEach((p) => products.push({ id: p.id, title: p.title, type: "audiobook", price: p.price, currency: p.currency }));
-      podcasts.filter((p) => p.book_id === book.id).forEach((p) => products.push({ id: p.id, title: p.title, type: "podcast", price: null, currency: null }));
+      homeStudy.filter((p) => p.book_id === book.id).forEach((p) => products.push({ id: p.id, title: p.title, type: "home_study", price: p.price, currency: p.currency, description: p.description }));
+      courses.filter((p) => p.book_id === book.id).forEach((p) => products.push({ id: p.id, title: p.title, type: "course", price: p.price, currency: p.currency, description: p.description }));
+      audiobooks.filter((p) => p.book_id === book.id).forEach((p) => products.push({ id: p.id, title: p.title, type: "audiobook", price: p.price, currency: p.currency, description: p.description }));
+      podcasts.filter((p) => p.book_id === book.id).forEach((p) => products.push({ id: p.id, title: p.title, type: "podcast", price: null, currency: null, description: p.description }));
       return { ...book, products };
     });
 
