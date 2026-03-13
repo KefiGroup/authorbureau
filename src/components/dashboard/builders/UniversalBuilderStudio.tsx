@@ -161,6 +161,10 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
   const [editedSteps, setEditedSteps] = useState<Set<string>>(new Set());
   const [resolvedBookCoverUrl, setResolvedBookCoverUrl] = useState<string | null>(bookCoverUrl);
 
+  useEffect(() => {
+    setLegacyGenerationState("idle");
+  }, [currentStep]);
+
   // Abby advisor panel
   const [abbyOpen, setAbbyOpen] = useState(false);
   const [abbyMessages, setAbbyMessages] = useState<Array<{ role: string; content: string }>>([]);
