@@ -364,13 +364,20 @@ export default function AuthorSite() {
                 {displayName}
               </motion.h1>
 
-              {author.tagline && (
-                <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-                  className="text-lg md:text-xl mb-5" style={{ opacity: 0.8 }}
-                >
-                  {author.tagline}
-                </motion.p>
-              )}
+              {/* Dynamic one-liner */}
+              <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+                className="text-lg md:text-xl mb-5" style={{ opacity: 0.85 }}
+              >
+                {(() => {
+                  const hasBestseller = booksWithProducts.some(b => b.badges && b.badges.length > 0);
+                  const uniqueGenres = [...new Set(booksWithProducts.map(b => b.genre).filter(Boolean))] as string[];
+                  const genreStr = uniqueGenres.length > 0 ? ` in ${uniqueGenres.join(", ")}` : "";
+                  const prefix = hasBestseller ? "a bestselling author" : "an author";
+                  return totalBooks > 0
+                    ? `${displayName} is ${prefix} of ${totalBooks} book${totalBooks !== 1 ? "s" : ""}${genreStr}.`
+                    : (author.tagline || "");
+                })()}
+              </motion.p>
 
               {/* Social Links */}
               {socialLinks.length > 0 && (
