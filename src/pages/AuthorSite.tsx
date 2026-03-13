@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -460,9 +460,17 @@ export default function AuthorSite() {
         </div>
       </section>
 
+      {/* ===== ANCHOR NAV (sticky, only when 3+ sections visible) ===== */}
+      <AnchorNav
+        hasBio={!!bioText}
+        hasBooks={booksWithProducts.length > 0}
+        hasServices={coachingServices.length > 0}
+        hasProducts={allProducts.length > 0}
+      />
+
       {/* ===== SECTION 2: ABOUT ===== */}
       {bioText && (
-        <section className="py-14" style={{ borderBottom: `1px solid hsl(${c.cardBorder})` }}>
+        <section id="about" className="py-14" style={{ borderBottom: `1px solid hsl(${c.cardBorder})` }}>
           <div className="container max-w-4xl">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
               <h2 className="as-heading text-2xl md:text-3xl font-bold mb-6" style={{ color: `hsl(${c.heroBackground})` }}>
@@ -615,7 +623,7 @@ export default function AuthorSite() {
 
       {/* ===== SECTION 4: WORK WITH [AUTHOR] ===== */}
       {hasWorkWithSection && (
-        <section className="py-16" style={{ background: "var(--theme-card-bg)" }}>
+        <section id="services" className="py-16" style={{ background: "var(--theme-card-bg)" }}>
           <div className="container max-w-5xl">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
               <h2 className="theme-heading text-2xl md:text-[2rem] font-bold mb-10" style={{ color: "var(--theme-heading-text)" }}>
