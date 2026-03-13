@@ -817,132 +817,131 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
               </div>
             </motion.div>
           </AnimatePresence>
-        </div>
 
-        {/* Sticky action bar */}
-        <div className="sticky bottom-0 z-10 flex items-center gap-3 px-6 py-3 border-t border-border bg-card">
-          <Button
-            variant="ghost"
-            onClick={goPrev}
-            disabled={currentStep === 0}
-            className="text-muted-foreground"
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" /> Previous
-          </Button>
-          <div className="ml-auto flex items-center gap-2">
-            {!abbyOpen && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setAbbyOpen(true)}
-                className="border-secondary/40 text-secondary hover:bg-secondary/10"
-              >
-                <Sparkles className="h-3.5 w-3.5 mr-1" /> Ask Abby
-              </Button>
-            )}
+          {/* Action bar — inside scroll area so it's always reachable */}
+          <div className="flex items-center justify-between mt-6 pt-4 border-t border-border">
             <Button
-              disabled={saving}
-              onClick={isLastStep ? async () => {
-                setSaving(true);
-                let publishSuccess = false;
-                try {
-                  await handleSaveDraft(true);
-                  if (user && bookId && nodeConfig.dbTable) {
-                    if (nodeConfig.dbTable === "home_study_courses") {
-                      const token = await getActiveToken();
-                      if (!token) throw new Error("Not authenticated");
+              variant="ghost"
+              onClick={goPrev}
+              disabled={currentStep === 0}
+              className="text-muted-foreground"
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" /> Previous
+            </Button>
+            <div className="flex items-center gap-2">
+              {!abbyOpen && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setAbbyOpen(true)}
+                  className="border-secondary/40 text-secondary hover:bg-secondary/10"
+                >
+                  <Sparkles className="h-3.5 w-3.5 mr-1" /> Ask Abby
+                </Button>
+              )}
+              <Button
+                disabled={saving}
+                onClick={isLastStep ? async () => {
+                  setSaving(true);
+                  let publishSuccess = false;
+                  try {
+                    await handleSaveDraft(true);
+                    if (user && bookId && nodeConfig.dbTable) {
+                      if (nodeConfig.dbTable === "home_study_courses") {
+                        const token = await getActiveToken();
+                        if (!token) throw new Error("Not authenticated");
 
-                      const resp = await fetchWithTimeout(
-                        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/builder-draft-state`,
-                        {
-                          method: "POST",
-                          headers: {
-                            "Content-Type": "application/json",
-                            Authorization: `Bearer ${token}`,
-                          },
-                          body: JSON.stringify({
-                            action: "publish_home_study",
-                            bookId,
-                            nodeId: nodeConfig.id,
-                            payload: {
-                              title: stepData.setup?.title || `${bookTitle} — ${nodeConfig.label}`,
-                              description: stepData.setup?.description || "",
-                              content_markdown: stepData.schedule?.days
-                                ? JSON.stringify(stepData.schedule.days)
-                                : "",
-                              duration_days: stepData.setup?.duration || 30,
-                              price: stepData.setup?.price ? parseFloat(stepData.setup.price) : null,
+                        const resp = await fetchWithTimeout(
+                          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/builder-draft-state`,
+                          {
+                            method: "POST",
+                            headers: {
+                              "Content-Type": "application/json",
+                              Authorization: `Bearer ${token}`,
                             },
-                          }),
-                        },
-                        15000,
-                      );
+                            body: JSON.stringify({
+                              action: "publish_home_study",
+                              bookId,
+                              nodeId: nodeConfig.id,
+                              payload: {
+                                title: stepData.setup?.title || `${bookTitle} — ${nodeConfig.label}`,
+                                description: stepData.setup?.description || "",
+                                content_markdown: stepData.schedule?.days
+                                  ? JSON.stringify(stepData.schedule.days)
+                                  : "",
+                                duration_days: stepData.setup?.duration || 30,
+                                price: stepData.setup?.price ? parseFloat(stepData.setup.price) : null,
+                              },
+                            }),
+                          },
+                          15000,
+                        );
 
-                      const result = await resp.json().catch(() => ({}));
-                      if (!resp.ok || result?.error) {
-                        const message = result?.error || "Failed to publish home study course";
-                        console.error("Failed to publish home study record:", message);
-                        toast({ title: "Publish failed", description: message, variant: "destructive" });
+                        const result = await resp.json().catch(() => ({}));
+                        if (!resp.ok || result?.error) {
+                          const message = result?.error || "Failed to publish home study course";
+                          console.error("Failed to publish home study record:", message);
+                          toast({ title: "Publish failed", description: message, variant: "destructive" });
+                        } else {
+                          publishSuccess = true;
+                        }
                       } else {
-                        publishSuccess = true;
-                      }
-                    } else {
-                      const { data: existing, error: fetchErr } = await (supabase as any)
-                        .from(nodeConfig.dbTable)
-                        .select("id")
-                        .eq("author_id", user.id)
-                        .eq("book_id", bookId)
-                        .maybeSingle();
-                      if (fetchErr) console.error("Fetch existing product error:", fetchErr);
-                      const productRecord: any = {
-                        author_id: user.id,
-                        book_id: bookId,
-                        title: stepData.setup?.title || `${bookTitle} — ${nodeConfig.label}`,
-                        description: stepData.setup?.description || "",
-                        status: "ready_for_review",
-                      };
-                      if (nodeConfig.dbTable === "courses") {
-                        productRecord.price = stepData.foundation?.exactPrice ? parseFloat(stepData.foundation.exactPrice) : null;
-                      }
-                      let saveError;
-                      if (existing) {
-                        const { error } = await supabase.from(nodeConfig.dbTable as any).update(productRecord).eq("id", existing.id);
-                        saveError = error;
-                      } else {
-                        const { error } = await supabase.from(nodeConfig.dbTable as any).insert(productRecord);
-                        saveError = error;
-                      }
-                      if (saveError) {
-                        console.error("Failed to save product record:", saveError);
-                        toast({ title: "Publish failed", description: saveError.message, variant: "destructive" });
-                      } else {
-                        publishSuccess = true;
+                        const { data: existing, error: fetchErr } = await (supabase as any)
+                          .from(nodeConfig.dbTable)
+                          .select("id")
+                          .eq("author_id", user.id)
+                          .eq("book_id", bookId)
+                          .maybeSingle();
+                        if (fetchErr) console.error("Fetch existing product error:", fetchErr);
+                        const productRecord: any = {
+                          author_id: user.id,
+                          book_id: bookId,
+                          title: stepData.setup?.title || `${bookTitle} — ${nodeConfig.label}`,
+                          description: stepData.setup?.description || "",
+                          status: "ready_for_review",
+                        };
+                        if (nodeConfig.dbTable === "courses") {
+                          productRecord.price = stepData.foundation?.exactPrice ? parseFloat(stepData.foundation.exactPrice) : null;
+                        }
+                        let saveError;
+                        if (existing) {
+                          const { error } = await supabase.from(nodeConfig.dbTable as any).update(productRecord).eq("id", existing.id);
+                          saveError = error;
+                        } else {
+                          const { error } = await supabase.from(nodeConfig.dbTable as any).insert(productRecord);
+                          saveError = error;
+                        }
+                        if (saveError) {
+                          console.error("Failed to save product record:", saveError);
+                          toast({ title: "Publish failed", description: saveError.message, variant: "destructive" });
+                        } else {
+                          publishSuccess = true;
+                        }
                       }
                     }
+                  } catch (err) {
+                    console.error("Save draft failed during publish:", err);
+                    toast({ title: "Publish failed", description: err instanceof Error ? err.message : "Please try again", variant: "destructive" });
+                  } finally {
+                    setSaving(false);
                   }
-                } catch (err) {
-                  console.error("Save draft failed during publish:", err);
-                  toast({ title: "Publish failed", description: err instanceof Error ? err.message : "Please try again", variant: "destructive" });
-                } finally {
-                  setSaving(false);
-                }
-                if (publishSuccess) {
-                  toast({ title: "Published! \uD83C\uDF89", description: "Redirecting to Review & Publish\u2026" });
-                  setTimeout(() => onNavigate?.("review-products"), 800);
-                }
-              } : goNext}
-              variant="secondary"
-              className="rounded-full font-semibold px-6 shadow-sm"
-            >
-              {isLastStep ? (
-                saving ? <><Loader2 className="h-4 w-4 animate-spin mr-1" /> Publishing&hellip;</> : <>Publish</>
-              ) : (
-                <>Save & Continue <ArrowRight className="h-4 w-4 ml-1" /></>
-              )}
-            </Button>
+                  if (publishSuccess) {
+                    toast({ title: "Published! 🎉", description: "Redirecting to Review & Publish…" });
+                    setTimeout(() => onNavigate?.("review-products"), 800);
+                  }
+                } : goNext}
+                variant="secondary"
+                className="rounded-full font-semibold px-6 shadow-sm"
+              >
+                {isLastStep ? (
+                  saving ? <><Loader2 className="h-4 w-4 animate-spin mr-1" /> Publishing&hellip;</> : <>Publish</>
+                ) : (
+                  <>Save & Continue <ArrowRight className="h-4 w-4 ml-1" /></>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
 
       {/* Abby Advisor Panel */}
       <AnimatePresence>
