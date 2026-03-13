@@ -31,6 +31,20 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Sparkles,
 };
 
+/* ── Node ID → Dashboard route mapping ──────────────────────────── */
+const NODE_TO_ROUTE: Record<string, string> = {
+  "home-study-course": "home-study",
+  "online-course": "courses",
+  "coaching-1on1": "coaching",
+  "membership": "memberships",
+  "audiobook": "audiobook-studio",
+  "email-flows": "email-marketing",
+  "retreat": "retreats",
+  "certification": "certification",
+  "mastermind": "masterminds",
+  "corporate-training": "corporate-training",
+};
+
 /* ── Types ────────────────────────────────────────────────────── */
 interface DraftProduct {
   id: string;
@@ -283,7 +297,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
                   product={product}
                   publishing={publishing}
                   onPreview={() => handlePreview(product)}
-                  onEdit={() => onNavigate?.(product.nodeId)}
+                  onEdit={() => onNavigate?.(NODE_TO_ROUTE[product.nodeId] || product.nodeId)}
                   onPublish={() => setConfirmProduct(product)}
                   onExport={product.table === "home_study_courses" ? () => setExportProduct(product) : undefined}
                 />
