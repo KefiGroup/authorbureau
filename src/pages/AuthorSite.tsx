@@ -767,7 +767,11 @@ export default function AuthorSite() {
                   Stay Connected with {displayName}
                 </h2>
                 <p className="text-sm mb-8" style={{ color: `hsl(${c.heroBackground} / 0.6)` }}>
-                  Get exclusive updates, free chapters, and early access to new releases.
+                  {hasWorkWithSection
+                    ? `Get exclusive updates, early access to new products, and insights from ${displayName}.`
+                    : totalProducts > 0
+                      ? `Get exclusive updates, free chapters, and early access to new releases and resources.`
+                      : `Get exclusive updates, free chapters, and early access to new releases.`}
                 </p>
                 <form onSubmit={handleSubscribe} className="flex flex-col gap-3 max-w-md mx-auto">
                   <Input

@@ -42,6 +42,25 @@ const fadeUp = {
   }),
 };
 
+function getProductCTA(pType: string, authorName: string): string {
+  const ctaMap: Record<string, string> = {
+    workbook: "Get the Workbook",
+    onlinecourse: "Enroll Now",
+    homestudy: "Enroll Now",
+    coaching: "Book a Session",
+    group_coaching: "Join the Group",
+    membership: "Become a Member",
+    webinar: "Register Now",
+    speaking: `Book ${authorName}`,
+    keynote: `Book ${authorName}`,
+    consulting: "Schedule a Consultation",
+    masterminds: "Apply Now",
+    retreat: "Reserve Your Spot",
+    bootcamp: "Reserve Your Spot",
+  };
+  return ctaMap[pType] || "Get Access";
+}
+
 function parseChecklistItems(description: string | null | undefined): string[] {
   if (!description) return [];
   const items = description

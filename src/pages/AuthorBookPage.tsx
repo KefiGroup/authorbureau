@@ -650,10 +650,10 @@ export default function AuthorBookPage() {
               <>
                 <Mail className="h-10 w-10 mx-auto mb-4" style={{ color: `hsl(${c.accent})` }} />
                 <h2 className="bp-heading text-2xl font-bold mb-3" style={{ color: `hsl(${c.heroBackground})` }}>
-                  Stay Updated on {book.title}
+                  Enjoyed {book.title}?
                 </h2>
                 <p className="text-sm mb-8" style={{ color: `hsl(${c.heroBackground} / 0.6)` }}>
-                  Enter your email to receive updates from {authorName}.
+                  Subscribe for bonus content, new releases, and exclusive resources from {authorName}.
                 </p>
                 <form onSubmit={handleSubscribe} className="flex flex-col gap-3 max-w-md mx-auto">
                   <Input
