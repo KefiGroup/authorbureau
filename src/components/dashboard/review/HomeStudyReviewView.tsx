@@ -250,6 +250,17 @@ export default function HomeStudyReviewView({
       const quoteLines = lines.filter(l => l.startsWith(">"));
       const testimonials = quoteLines.map(q => ({ name: "", quote: stripMd(q.replace(/^>\s*/, "").replace(/^"/, "").replace(/"$/, "")) }));
       setSalesTestimonials(testimonials.length > 0 ? testimonials : []);
+      // Extract FAQ pairs (Q: ... A: ...)
+      const faqs: { question: string; answer: string }[] = [];
+      for (let i = 0; i < lines.length; i++) {
+        const qMatch = lines[i].match(/^\*?\*?Q:\s*(.*)/i) || lines[i].match(/^\*?\*?Question:\s*(.*)/i);
+        if (qMatch) {
+          const aLine = lines[i + 1];
+          const aMatch = aLine?.match(/^\*?\*?A:\s*(.*)/i) || aLine?.match(/^\*?\*?Answer:\s*(.*)/i);
+          faqs.push({ question: stripMd(qMatch[1]), answer: aMatch ? stripMd(aMatch[1]) : "" });
+        }
+      }
+      setSalesFaqs(faqs);
       setSalesCta("Enroll Now");
     } else {
       setSalesHeadline(title || productTitle || "");
