@@ -137,12 +137,33 @@ export default function AuthorSite() {
 
   async function loadAuthorSite() {
     setLoading(true);
-    const { data: profile } = await supabase
-      .from("author_profiles")
-      .select("*")
-      .eq("author_slug", authorSlug)
-      .in("directory_status", ["listed", "featured"])
-      .maybeSingle();
+
+    // Try to find the profile — allow own profile (any status) or public profiles (listed/featured)
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+
+    let profile: any = null;
+
+    // If current user, try to load their own profile first (any directory_status)
+    if (currentUser) {
+      const { data } = await supabase
+        .from("author_profiles")
+        .select("*")
+        .eq("author_slug", authorSlug)
+        .eq("user_id", currentUser.id)
+        .maybeSingle();
+      profile = data;
+    }
+
+    // Fallback: public profile (listed/featured)
+    if (!profile) {
+      const { data } = await supabase
+        .from("author_profiles")
+        .select("*")
+        .eq("author_slug", authorSlug)
+        .in("directory_status", ["listed", "featured"])
+        .maybeSingle();
+      profile = data;
+    }
 
     if (!profile) {
       setNotFound(true);
