@@ -708,17 +708,26 @@ export default function AuthorSite() {
                 <p className="text-sm mb-8" style={{ color: `hsl(${c.heroBackground} / 0.6)` }}>
                   Get exclusive updates, free chapters, and early access to new releases.
                 </p>
-                <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+                <form onSubmit={handleSubscribe} className="flex flex-col gap-3 max-w-md mx-auto">
                   <Input
-                    type="email"
-                    placeholder="your@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="h-12 text-base"
+                    type="text"
+                    placeholder="First name (optional)"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="h-11 text-base"
                     style={{ borderRadius: theme.borderRadius, borderColor: `hsl(${c.cardBorder})` }}
                   />
-                  <Button
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Input
+                      type="email"
+                      placeholder="your@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      className="h-12 text-base flex-1"
+                      style={{ borderRadius: theme.borderRadius, borderColor: `hsl(${c.cardBorder})` }}
+                    />
+                    <Button
                     type="submit"
                     disabled={subscribing}
                     className="shrink-0 h-12 px-8 font-semibold"
