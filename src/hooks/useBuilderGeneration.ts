@@ -395,8 +395,11 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
     } catch (err: any) {
       if (err.name === "AbortError") return;
       console.error("Act 3 error:", err);
-      setState(prev => ({ ...prev, act: "error", error: err.message }));
-      toast({ title: "Generation failed", description: err.message, variant: "destructive" });
+      const message = err?.message?.toLowerCase?.().includes("failed to fetch")
+        ? "Connection issue while reaching Abby. Please retry."
+        : err.message;
+      setState(prev => ({ ...prev, act: "error", error: message }));
+      toast({ title: "Generation failed", description: message, variant: "destructive" });
     }
   }, [builderId, builderLabel, toast]);
 
