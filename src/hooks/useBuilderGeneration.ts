@@ -12,6 +12,52 @@ import { useToast } from "@/hooks/use-toast";
 import { executeCrossBuilderPushes } from "@/lib/cross-builder-push";
 import { getPushesForBuilder } from "@/lib/cross-builder-registry";
 
+/**
+ * Robust split of AI output into sales page and content.
+ * Strategy 1: Exact delimiters (===SALES_PAGE_START=== / ===CONTENT_START===)
+ * Strategy 2: Partial delimiters (model may omit _END markers)
+ * Strategy 3: Header-based heuristics (# Sales Page Copy ... # Day 1)
+ * Strategy 4: If nothing works, entire output goes to content only.
+ */
+function splitSalesAndContent(text: string): { salesPageText: string; contentText: string } {
+  if (!text) return { salesPageText: "", contentText: "" };
+
+  // Strategy 1: Exact delimiter pairs
+  const salesMatch = text.match(/={3,}SALES[_ ]?PAGE[_ ]?START={3,}([\s\S]*?)={3,}SALES[_ ]?PAGE[_ ]?END={3,}/i);
+  const contentMatch = text.match(/={3,}CONTENT[_ ]?START={3,}([\s\S]*?)={3,}CONTENT[_ ]?END={3,}/i);
+  if (salesMatch && contentMatch) {
+    return { salesPageText: salesMatch[1].trim(), contentText: contentMatch[1].trim() };
+  }
+
+  // Strategy 2: Start delimiters only (AI may forget END markers)
+  const salesStartIdx = text.search(/={3,}SALES[_ ]?PAGE[_ ]?START={3,}/i);
+  const contentStartIdx = text.search(/={3,}CONTENT[_ ]?START={3,}/i);
+  if (salesStartIdx >= 0 && contentStartIdx > salesStartIdx) {
+    const afterSalesTag = text.slice(salesStartIdx).replace(/={3,}SALES[_ ]?PAGE[_ ]?START={3,}/i, "");
+    const salesEndIdx = afterSalesTag.search(/={3,}(SALES[_ ]?PAGE[_ ]?END|CONTENT[_ ]?START)={3,}/i);
+    const salesText = salesEndIdx >= 0 ? afterSalesTag.slice(0, salesEndIdx).trim() : afterSalesTag.slice(0, contentStartIdx - salesStartIdx).trim();
+    const afterContentTag = text.slice(contentStartIdx).replace(/={3,}CONTENT[_ ]?START={3,}/i, "");
+    const contentEndIdx = afterContentTag.search(/={3,}CONTENT[_ ]?END={3,}/i);
+    const contentText = contentEndIdx >= 0 ? afterContentTag.slice(0, contentEndIdx).trim() : afterContentTag.trim();
+    if (salesText && contentText) return { salesPageText: salesText, contentText };
+  }
+
+  // Strategy 3: Header-based heuristics
+  const salesHeaderIdx = text.search(/^#+\s*Sales\s*Page\s*(Copy|Content)?\b/im);
+  // Look for first day/module/lesson header as content start
+  const contentHeaderIdx = text.search(/^#+\s*(Day\s*1\b|Module\s*1\b|Lesson\s*1\b|Week\s*1\b|Welcome|Introduction|Content\s*Section)/im);
+  if (salesHeaderIdx >= 0 && contentHeaderIdx > salesHeaderIdx) {
+    return {
+      salesPageText: text.slice(salesHeaderIdx, contentHeaderIdx).trim(),
+      contentText: text.slice(contentHeaderIdx).trim(),
+    };
+  }
+
+  // Strategy 4: No split possible — everything is content
+  console.warn("[splitSalesAndContent] No delimiters or headers found; treating entire output as content.");
+  return { salesPageText: "", contentText: text };
+}
+
 export interface BuilderProposal {
   title_options: string[];
   recommended_title: string;
