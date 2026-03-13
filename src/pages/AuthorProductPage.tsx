@@ -224,23 +224,7 @@ export default function AuthorProductPage() {
   const checklistItems = parseChecklistItems(product.description);
 
   return (
-    <div className="product-page min-h-screen" style={{ background: `hsl(${c.sectionAlt})` }}>
-      <ThemeStyle theme={theme} />
-
-      {/* ===== BREADCRUMB ===== */}
-      <nav className="py-3" style={{ background: `hsl(${c.heroBackground})`, borderBottom: `1px solid hsl(${c.heroForeground} / 0.1)` }}>
-        <div className="container max-w-5xl">
-          <ol className="flex items-center gap-2 text-xs flex-wrap" style={{ color: `hsl(${c.heroForeground} / 0.5)` }}>
-            <li><Link to="/" className="hover:underline" style={{ color: `hsl(${c.heroForeground} / 0.5)` }}>Home</Link></li>
-            <li>/</li>
-            <li><Link to={`/${authorSlug}`} className="hover:underline" style={{ color: `hsl(${c.heroForeground} / 0.5)` }}>{displayName}</Link></li>
-            <li>/</li>
-            <li><Link to={`/${authorSlug}/${bookSlug}`} className="hover:underline" style={{ color: `hsl(${c.heroForeground} / 0.5)` }}>{bookTitle}</Link></li>
-            <li>/</li>
-            <li style={{ color: `hsl(${c.heroForeground} / 0.8)` }} className="font-medium truncate max-w-[180px]">{product.title}</li>
-          </ol>
-        </div>
-      </nav>
+    <AuthorPageLayout theme={theme} authorName={displayName} authorSlug={authorSlug} bookTitle={bookTitle} bookSlug={bookSlug} productTitle={product.title}>
 
       {/* ===== HERO (Split Layout: Image LEFT, Text RIGHT) ===== */}
       <section className="relative overflow-hidden" style={{ background: `linear-gradient(135deg, hsl(${c.heroBackground}), hsl(${c.heroBackground} / 0.92))`, color: `hsl(${c.heroForeground})` }}>
