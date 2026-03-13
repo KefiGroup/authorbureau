@@ -188,7 +188,7 @@ export default function HomeStudyReviewView({
 
       setRawDraftContent(nextRawDraftContent);
       setSetup(mergedSetup);
-      setDays(nextDays);
+      setDays(nextDays.map(normalizeStudyDay));
       setFullCourseMarkdown(markdownFallback);
       setSalesPageMarkdown(salesPageRaw || "");
       setTitle(mergedSetup.title || productTitle);
