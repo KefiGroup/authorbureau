@@ -57,7 +57,7 @@ export type DashboardSection =
   | "revenue-streams" | "marketing-channels" | "authority-builders"
   | "marketing" | "crm" | "author-crm" | "messages" | "reading-club" | "how-it-works"
   | "analytics" | "microsite-manager"
-  | "connect-stripe" | "review-products"
+  | "connect-stripe" | "payout-settings" | "review-products"
   | "book-sales" | "special-editions" | "lead-magnet"
   // Universal builder nodes
   | "builder";
