@@ -29,6 +29,7 @@ interface AuthorBrandedNavProps {
   headingFont: string;
   bodyFont: string;
   activeSection?: string;
+  onContactClick?: () => void;
 }
 
 export default function AuthorBrandedNav({
@@ -41,6 +42,7 @@ export default function AuthorBrandedNav({
   headingFont,
   bodyFont,
   activeSection,
+  onContactClick,
 }: AuthorBrandedNavProps) {
   const [booksOpen, setBooksOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -64,7 +66,7 @@ export default function AuthorBrandedNav({
         ? [{ label: "Books", to: "#", type: "dropdown" as const }]
         : []),
     ...(hasServices ? [{ label: "Services", to: `/${authorSlug}#services`, type: "link" as const }] : []),
-    { label: "Contact", to: `/${authorSlug}#subscribe-section`, type: "link" as const },
+    { label: "Contact", to: "#", type: "action" as const },
   ];
 
   return (
@@ -161,6 +163,21 @@ export default function AuthorBrandedNav({
               );
             }
 
+            if (link.type === "action") {
+              return (
+                <button
+                  key={link.label}
+                  onClick={onContactClick}
+                  className="relative text-[0.9rem] font-medium transition-colors"
+                  style={{ color: `${v.primaryText}D9` }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = v.accent)}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = `${v.primaryText}D9`)}
+                >
+                  {link.label}
+                </button>
+              );
+            }
+
             const isActive = activeSection === link.label.toLowerCase();
             return (
               <Link
@@ -218,14 +235,16 @@ export default function AuthorBrandedNav({
               Services
             </Link>
           )}
-          <Link
-            to={`/${authorSlug}#subscribe-section`}
-            className="text-sm font-medium py-1.5"
+          <button
+            className="text-sm font-medium py-1.5 text-left"
             style={{ color: `${v.primaryText}D9` }}
-            onClick={() => setMobileOpen(false)}
+            onClick={() => {
+              setMobileOpen(false);
+              onContactClick?.();
+            }}
           >
             Contact
-          </Link>
+          </button>
         </div>
       )}
     </nav>

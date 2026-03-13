@@ -13,6 +13,7 @@ import { getThemeById, type AuthorTheme } from "@/lib/author-themes";
 import { getProductCardCTAText } from "@/lib/product-copy";
 import AuthorPageLayout from "@/components/public/AuthorPageLayout";
 import AuthorBrandedNav from "@/components/public/AuthorBrandedNav";
+import AuthorContactModal from "@/components/public/AuthorContactModal";
 import NotFound from "./NotFound";
 
 /* ---------- Types ---------- */
@@ -129,6 +130,7 @@ export default function AuthorSite() {
   const [subscribing, setSubscribing] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
   const [bioExpanded, setBioExpanded] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
 
   const theme = useMemo(() => getThemeById(author?.site_theme || "classic-elegant"), [author?.site_theme]);
 
@@ -355,6 +357,17 @@ export default function AuthorSite() {
         books={booksWithProducts.map(b => ({ slug: b.slug, title: b.title, cover_image_url: b.cover_image_url, genre: b.genre }))}
         hasServices={coachingServices.length > 0}
         vars={v}
+        headingFont={theme.headingFont}
+        bodyFont={theme.bodyFont}
+        onContactClick={() => setContactOpen(true)}
+      />
+
+      <AuthorContactModal
+        open={contactOpen}
+        onClose={() => setContactOpen(false)}
+        authorName={displayName}
+        authorId={author.user_id}
+        vars={{ ...v, bodyText: v.bodyText || "#4A4A4A" }}
         headingFont={theme.headingFont}
         bodyFont={theme.bodyFont}
       />

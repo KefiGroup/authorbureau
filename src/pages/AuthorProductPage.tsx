@@ -15,6 +15,7 @@ import { getThemeById, type AuthorTheme } from "@/lib/author-themes";
 import { getProductCTAText, getProductTagline, getWhatsIncludedHeading, getAutoPersonas, getProductCardCTAText } from "@/lib/product-copy";
 import AuthorPageLayout from "@/components/public/AuthorPageLayout";
 import AuthorBrandedNav from "@/components/public/AuthorBrandedNav";
+import AuthorContactModal from "@/components/public/AuthorContactModal";
 import BookProductNav, { getProductTabMeta } from "@/components/public/BookProductNav";
 import NotFound from "./NotFound";
 
@@ -105,6 +106,7 @@ export default function AuthorProductPage() {
   const [name, setName] = useState("");
   const [subscribing, setSubscribing] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
 
   const pType = productType as ProductType;
   const config = PRODUCT_CONFIG[pType];
@@ -318,6 +320,17 @@ export default function AuthorProductPage() {
         books={allAuthorBooks}
         hasServices={coachingServices.length > 0}
         vars={v}
+        headingFont={theme.headingFont}
+        bodyFont={theme.bodyFont}
+        onContactClick={() => setContactOpen(true)}
+      />
+
+      <AuthorContactModal
+        open={contactOpen}
+        onClose={() => setContactOpen(false)}
+        authorName={displayName}
+        authorId={author.user_id}
+        vars={{ ...v, bodyText: v.bodyText || "#4A4A4A" }}
         headingFont={theme.headingFont}
         bodyFont={theme.bodyFont}
       />

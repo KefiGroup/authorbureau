@@ -12,6 +12,7 @@ import { getThemeById, type AuthorTheme } from "@/lib/author-themes";
 import { getGoDeeperCopy, getProductCardCTAText } from "@/lib/product-copy";
 import AuthorPageLayout from "@/components/public/AuthorPageLayout";
 import AuthorBrandedNav from "@/components/public/AuthorBrandedNav";
+import AuthorContactModal from "@/components/public/AuthorContactModal";
 import BookProductNav, { getProductTabMeta } from "@/components/public/BookProductNav";
 import NotFound from "./NotFound";
 
@@ -97,6 +98,7 @@ export default function AuthorBookPage() {
   const [subscribing, setSubscribing] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
   const [heroVisible, setHeroVisible] = useState(true);
+  const [contactOpen, setContactOpen] = useState(false);
 
   const v = theme?.vars;
 
@@ -352,6 +354,17 @@ export default function AuthorBookPage() {
         books={allAuthorBooks}
         hasServices={coachingServices.length > 0}
         vars={v}
+        headingFont={theme.headingFont}
+        bodyFont={theme.bodyFont}
+        onContactClick={() => setContactOpen(true)}
+      />
+
+      <AuthorContactModal
+        open={contactOpen}
+        onClose={() => setContactOpen(false)}
+        authorName={authorName}
+        authorId={book.author_id}
+        vars={{ ...v, bodyText: v.bodyText || "#4A4A4A" }}
         headingFont={theme.headingFont}
         bodyFont={theme.bodyFont}
       />
