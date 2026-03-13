@@ -277,26 +277,37 @@ export default function AuthorSite() {
 
   async function handleSubscribe(e: React.FormEvent) {
     e.preventDefault();
-    if (!email.trim() || !author) return;
+    if (!email.trim() || !name.trim() || !author) return;
     setSubscribing(true);
-    const { error } = await supabase.from("author_subscribers").insert({
+
+    // Capture lead in CRM
+    await supabase.functions.invoke("crm-auto-capture", {
+      body: {
+        email: email.trim(),
+        name: name.trim(),
+        source: "subscribe_form",
+        source_detail: `author_homepage: ${authorSlug}${subMessage.trim() ? ` | Message: ${subMessage.trim().slice(0, 200)}` : ""}`,
+        author_id: author.user_id,
+      },
+    });
+
+    const { error } = await supabase.from("author_subscribers").upsert({
       author_id: author.user_id,
-      email: email.trim(),
-      name: name.trim() || null,
+      email: email.trim().toLowerCase(),
+      name: name.trim(),
       source: "author_homepage",
       source_detail: authorSlug,
-    });
+      status: "active",
+    }, { onConflict: "author_id,email" });
     setSubscribing(false);
-    if (error?.code === "23505") {
-      toast({ title: "You're already subscribed!", description: "You're already on the list." });
-      setSubscribed(true);
-    } else if (error) {
+    if (error) {
       toast({ title: "Error", description: "Could not subscribe. Try again.", variant: "destructive" });
     } else {
       setSubscribed(true);
       toast({ title: "Subscribed!", description: `You'll hear from ${displayName} soon.` });
       setEmail("");
       setName("");
+      setSubMessage("");
     }
   }
 
