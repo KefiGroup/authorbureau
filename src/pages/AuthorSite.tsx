@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { BookOpen, Mail, ArrowRight, Star, ExternalLink, Loader2, GraduationCap, Users, Headphones } from "lucide-react";
+import { BookOpen, Mail, ArrowRight, Star, ExternalLink, Loader2, GraduationCap, Users, Headphones, Mic } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
