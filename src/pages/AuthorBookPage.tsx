@@ -285,6 +285,7 @@ export default function AuthorBookPage() {
         source: "subscribe_form",
         source_detail: `book_page: ${authorSlug}/${bookSlug}${subMessage.trim() ? ` | Message: ${subMessage.trim().slice(0, 200)}` : ""}`,
         author_id: authorProfile.user_id,
+        message: subMessage.trim() || undefined,
       },
     });
 

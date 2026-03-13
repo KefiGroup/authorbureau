@@ -288,6 +288,7 @@ export default function AuthorSite() {
         source: "subscribe_form",
         source_detail: `author_homepage: ${authorSlug}${subMessage.trim() ? ` | Message: ${subMessage.trim().slice(0, 200)}` : ""}`,
         author_id: author.user_id,
+        message: subMessage.trim() || undefined,
       },
     });
 
