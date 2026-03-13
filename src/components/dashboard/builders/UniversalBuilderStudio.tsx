@@ -884,39 +884,6 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                       .eq("book_id", bookId)
                       .maybeSingle();
                     if (fetchErr) console.error("Fetch existing product error:", fetchErr);
-                    const productRecord: any = {
-                      author_id: user.id,
-                      book_id: bookId,
-                      title: stepData.setup?.title || `${bookTitle} \u2014 ${nodeConfig.label}`,
-                      description: stepData.setup?.description || "",
-                      status: "ready_for_review",
-                    };
-                    // Add table-specific required fields
-                    if (nodeConfig.dbTable === "home_study_courses") {
-                      productRecord.content_markdown = stepData.schedule?.days
-                        ? JSON.stringify(stepData.schedule.days)
-                        : "";
-                      productRecord.duration_days = stepData.setup?.duration || 30;
-                      productRecord.price = stepData.setup?.price ? parseFloat(stepData.setup.price) : null;
-                    }
-                    if (nodeConfig.dbTable === "courses") {
-                      productRecord.price = stepData.foundation?.exactPrice ? parseFloat(stepData.foundation.exactPrice) : null;
-                    }
-                    let saveError;
-                    if (existing) {
-                      const { error } = await supabase.from(nodeConfig.dbTable as any).update(productRecord).eq("id", existing.id);
-                      saveError = error;
-                    } else {
-                      const { error } = await supabase.from(nodeConfig.dbTable as any).insert(productRecord);
-                      saveError = error;
-                    }
-                    if (saveError) {
-                      console.error("Failed to save product record:", saveError);
-                      toast({ title: "Publish failed", description: saveError.message, variant: "destructive" });
-                    } else {
-                      publishSuccess = true;
-                    }
-                  }
                 } catch (err) {
                   console.error("Save draft failed during publish:", err);
                   toast({ title: "Publish failed", description: err instanceof Error ? err.message : "Please try again", variant: "destructive" });
