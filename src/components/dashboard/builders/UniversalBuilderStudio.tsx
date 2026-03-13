@@ -134,24 +134,36 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
   
   // 3-Act generation engine (replaces old mock generationState)
   const builderGen = useBuilderGeneration(nodeConfig.id, nodeConfig.label);
-  // Derive legacy generationState for child renderers that still use it
-  const generationState = (() => {
-    switch (builderGen.act) {
-      case "idle": return "idle" as const;
-      case "act1_loading": return "analyzing" as const;
-      case "act2_proposal": return "idle" as const;
-      case "act3_generating": return "generating" as const;
-      case "act3_complete": return "complete" as const;
-      case "error": return "error" as const;
-      default: return "idle" as const;
-    }
-  })();
-  const setGenerationState = (_s: string) => {};
+  const [legacyGenerationState, setLegacyGenerationState] = useState<"idle" | "queued" | "analyzing" | "generating" | "complete" | "error">("idle");
+
+  // Legacy state is used by custom step renderers (e.g. schedule generation)
+  const generationState = legacyGenerationState !== "idle"
+    ? legacyGenerationState
+    : (() => {
+        switch (builderGen.act) {
+          case "idle": return "idle" as const;
+          case "act1_loading": return "analyzing" as const;
+          case "act2_proposal": return "idle" as const;
+          case "act3_generating": return "generating" as const;
+          case "act3_complete": return "complete" as const;
+          case "error": return "error" as const;
+          default: return "idle" as const;
+        }
+      })();
+
+  const setGenerationState = (nextState: string) => {
+    setLegacyGenerationState(nextState as "idle" | "queued" | "analyzing" | "generating" | "complete" | "error");
+  };
+
   const splitPreview = splitSalesAndContent(builderGen.generatedContent || "");
   const previewSalesText = builderGen.generatedSalesPage || splitPreview.salesPageText;
   const previewContentText = splitPreview.contentText || builderGen.generatedContent;
   const [editedSteps, setEditedSteps] = useState<Set<string>>(new Set());
   const [resolvedBookCoverUrl, setResolvedBookCoverUrl] = useState<string | null>(bookCoverUrl);
+
+  useEffect(() => {
+    setLegacyGenerationState("idle");
+  }, [currentStep]);
 
   // Abby advisor panel
   const [abbyOpen, setAbbyOpen] = useState(false);
@@ -670,7 +682,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                 )}
 
                 {/* Act 3: Streaming Generation */}
-                {builderGen.act === "act3_generating" && currentStep === 0 && (
+                {builderGen.act === "act3_generating" && currentStepConfig.id === "setup" && (
                   <Card className="p-6 mb-6">
                     <div className="flex items-center gap-3 mb-4">
                       <motion.div
@@ -707,7 +719,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                 )}
 
                 {/* Act 3 Complete: Show generated content */}
-                {builderGen.act === "act3_complete" && builderGen.generatedContent && currentStep === 0 && (
+                {builderGen.act === "act3_complete" && builderGen.generatedContent && currentStepConfig.id === "setup" && (
                   <Card className="p-6 mb-6 border-accent/30 bg-accent/5">
                     <div className="flex items-center gap-2 mb-4">
                       <Check className="h-5 w-5 text-accent" />

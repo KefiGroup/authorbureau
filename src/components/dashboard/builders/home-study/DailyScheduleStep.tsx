@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -23,12 +23,13 @@ export default function DailyScheduleStep({ stepData, setStepData, onMarkEdited,
   const generatedSetup = stepData.schedule?._generatedFromSetup;
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
 
-  // Reset stuck generation state on mount
-  const isStuck = generationState !== "idle" && generationState !== "complete" && generationState !== "error";
-  if (isStuck && days.length === 0) {
-    // Use a timeout to avoid setting state during render
-    setTimeout(() => setGenerationState("idle"), 0);
-  }
+  // Reset stuck generation state on mount (e.g. if user navigated away mid-generation)
+  useEffect(() => {
+    const isStuck = generationState !== "idle" && generationState !== "complete" && generationState !== "error";
+    if (isStuck && days.length === 0) {
+      setGenerationState("idle");
+    }
+  }, []);
 
   const updateDays = (newDays: StudyDay[]) => {
     setStepData(prev => ({ ...prev, schedule: { ...prev.schedule, days: newDays } }));
