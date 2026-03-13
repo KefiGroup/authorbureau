@@ -81,6 +81,48 @@ const fadeUp = {
   }),
 };
 
+function isMarkdown(text: string): boolean {
+  return /[#*_\-\n]/.test(text) && (text.includes("\n") || text.includes("**") || text.startsWith("#"));
+}
+
+function ProductMarkdown({ content }: { content: string }) {
+  // Simple markdown renderer for sales page content
+  const lines = content.split("\n");
+  return (
+    <div className="space-y-3">
+      {lines.map((line, i) => {
+        const trimmed = line.trim();
+        if (!trimmed) return null;
+        if (trimmed.startsWith("### ")) return <h3 key={i} className="text-lg font-bold mt-4">{trimmed.slice(4)}</h3>;
+        if (trimmed.startsWith("## ")) return <h2 key={i} className="text-xl font-bold mt-5">{trimmed.slice(3)}</h2>;
+        if (trimmed.startsWith("# ")) return <h1 key={i} className="text-2xl font-bold mt-6">{trimmed.slice(2)}</h1>;
+        if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
+          return <li key={i} className="ml-4 list-disc text-sm">{renderInline(trimmed.slice(2))}</li>;
+        }
+        if (/^\d+\.\s/.test(trimmed)) {
+          return <li key={i} className="ml-4 list-decimal text-sm">{renderInline(trimmed.replace(/^\d+\.\s/, ""))}</li>;
+        }
+        if (trimmed.startsWith("> ")) {
+          return <blockquote key={i} className="border-l-4 border-accent pl-4 italic text-sm opacity-80">{renderInline(trimmed.slice(2))}</blockquote>;
+        }
+        if (trimmed.startsWith("---") || trimmed.startsWith("***")) return <hr key={i} className="my-4" />;
+        return <p key={i} className="text-sm leading-relaxed">{renderInline(trimmed)}</p>;
+      })}
+    </div>
+  );
+}
+
+function renderInline(text: string): React.ReactNode {
+  // Bold and italic inline rendering
+  return text
+    .split(/(\*\*[^*]+\*\*|\*[^*]+\*)/)
+    .map((part, i) => {
+      if (part.startsWith("**") && part.endsWith("**")) return <strong key={i}>{part.slice(2, -2)}</strong>;
+      if (part.startsWith("*") && part.endsWith("*")) return <em key={i}>{part.slice(1, -1)}</em>;
+      return part;
+    });
+}
+
 function parseChecklistItems(description: string | null | undefined): string[] {
   if (!description) return [];
   const items = description
@@ -513,7 +555,13 @@ export default function AuthorProductPage() {
                   <h2 className="text-xl font-bold mb-4" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
                     About This {config.label}
                   </h2>
-                  <p className="text-sm leading-relaxed" style={{ color: v.bodyText }}>{product.description}</p>
+                  {isMarkdown(product.description) ? (
+                    <div className="prose prose-sm max-w-none" style={{ color: v.bodyText }}>
+                      <ProductMarkdown content={product.description} />
+                    </div>
+                  ) : (
+                    <p className="text-sm leading-relaxed" style={{ color: v.bodyText }}>{product.description}</p>
+                  )}
                 </div>
               </motion.div>
             )}
