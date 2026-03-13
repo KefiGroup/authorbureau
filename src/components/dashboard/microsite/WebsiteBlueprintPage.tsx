@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Globe, Copy, CheckCircle2, ExternalLink, BookOpen,
-  GraduationCap, Users, Headphones, Loader2,
+  GraduationCap, Users, Headphones, Mic, Loader2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -37,6 +37,7 @@ const PRODUCT_ICONS: Record<string, typeof BookOpen> = {
   course: GraduationCap,
   coaching: Users,
   audiobook: Headphones,
+  podcast: Mic,
 };
 
 export default function WebsiteBlueprintPage({ onNavigate }: Props) {
@@ -57,12 +58,14 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
 
   async function loadData() {
     setLoading(true);
-    const [profileRes, booksRes, homeStudyRes, coursesRes, coachingRes] = await Promise.all([
+    const [profileRes, booksRes, homeStudyRes, coursesRes, coachingRes, audiobooksRes, podcastsRes] = await Promise.all([
       supabase.from("author_profiles").select("*").eq("user_id", user!.id).maybeSingle(),
       supabase.from("books").select("id, title, slug, cover_image_url").eq("author_id", user!.id).order("created_at", { ascending: false }),
       supabase.from("home_study_courses").select("id, title, book_id, status").eq("author_id", user!.id),
       supabase.from("courses").select("id, title, book_id, status").eq("author_id", user!.id),
       supabase.from("coaching_packages").select("id, title, status").eq("author_id", user!.id),
+      supabase.from("audiobooks").select("id, title, book_id, status").eq("author_id", user!.id),
+      supabase.from("podcasts").select("id, title, book_id, status").eq("author_id", user!.id),
     ]);
 
     const profile = profileRes.data;
@@ -73,6 +76,8 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
     const homeStudy = (homeStudyRes.data || []) as any[];
     const courses = (coursesRes.data || []) as any[];
     const coaching = (coachingRes.data || []) as any[];
+    const audiobooks = (audiobooksRes.data || []) as any[];
+    const podcasts = (podcastsRes.data || []) as any[];
 
     const enriched: BookWithStatus[] = books.map((book: any) => {
       const products: BookProduct[] = [];
@@ -81,6 +86,12 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
       });
       courses.filter((p) => p.book_id === book.id).forEach((p) => {
         products.push({ id: p.id, title: p.title, type: "course", status: p.status, route: "onlinecourse" });
+      });
+      audiobooks.filter((p) => p.book_id === book.id).forEach((p) => {
+        products.push({ id: p.id, title: p.title, type: "audiobook", status: p.status, route: "audiobook" });
+      });
+      podcasts.filter((p) => p.book_id === book.id).forEach((p) => {
+        products.push({ id: p.id, title: p.title, type: "podcast", status: p.status, route: "podcast" });
       });
       return { ...book, products };
     });

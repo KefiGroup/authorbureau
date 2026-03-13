@@ -1,20 +1,22 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Clock, Calendar, BookOpen, GraduationCap, Users, Loader2, Star } from "lucide-react";
+import { ArrowLeft, Clock, Calendar, BookOpen, GraduationCap, Users, Headphones, Mic, Loader2, Star, Play } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import NotFound from "./NotFound";
 
-type ProductType = "homestudy" | "onlinecourse" | "workbook" | "coaching" | "book";
+type ProductType = "homestudy" | "onlinecourse" | "workbook" | "coaching" | "audiobook" | "podcast" | "book";
 
 const PRODUCT_CONFIG: Record<ProductType, { table: string; label: string; icon: any; statusField: string; statusValue: string }> = {
   homestudy: { table: "home_study_courses", label: "Home Study Course", icon: BookOpen, statusField: "status", statusValue: "published" },
   onlinecourse: { table: "courses", label: "Online Course", icon: GraduationCap, statusField: "status", statusValue: "published" },
-  workbook: { table: "home_study_courses", label: "Workbook", icon: BookOpen, statusField: "status", statusValue: "published" }, // placeholder
+  workbook: { table: "home_study_courses", label: "Workbook", icon: BookOpen, statusField: "status", statusValue: "published" },
   coaching: { table: "coaching_packages", label: "Coaching", icon: Users, statusField: "status", statusValue: "active" },
+  audiobook: { table: "audiobooks", label: "Audiobook", icon: Headphones, statusField: "status", statusValue: "published" },
+  podcast: { table: "podcasts", label: "Podcast", icon: Mic, statusField: "status", statusValue: "published" },
   book: { table: "books", label: "Book", icon: BookOpen, statusField: "published_at", statusValue: "not_null" },
 };
 
@@ -169,6 +171,38 @@ export default function AuthorProductPage() {
               {/* For Courses - show modules */}
               {pType === "onlinecourse" && product.id && <CourseModules courseId={product.id} />}
 
+              {/* For Audiobook - show details */}
+              {pType === "audiobook" && (
+                <Card className="p-5">
+                  <h3 className="font-heading font-bold text-lg mb-4">Audiobook Details</h3>
+                  <div className="space-y-2 text-sm">
+                    {product.narrator_credit && (
+                      <div className="flex items-center gap-2">
+                        <Mic className="h-4 w-4 text-muted-foreground" />
+                        <span>Narrated by: <strong>{product.narrator_credit}</strong></span>
+                      </div>
+                    )}
+                    {product.duration_minutes && (
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span>{Math.floor(product.duration_minutes / 60)}h {product.duration_minutes % 60}m</span>
+                      </div>
+                    )}
+                    {product.audio_url && (
+                      <div className="pt-3">
+                        <p className="text-xs font-semibold text-muted-foreground mb-2">Preview</p>
+                        <audio controls className="w-full">
+                          <source src={product.audio_url} />
+                        </audio>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              )}
+
+              {/* For Podcast - show episodes */}
+              {pType === "podcast" && product.id && <PodcastEpisodes podcastId={product.id} />}
+
               {/* Content markdown preview */}
               {product.content_markdown && (
                 <Card className="p-5">
@@ -277,6 +311,52 @@ function CourseModules({ courseId }: { courseId: string }) {
                 ))}
               </ul>
             )}
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+// Sub-component for podcast episodes
+function PodcastEpisodes({ podcastId }: { podcastId: string }) {
+  const [episodes, setEpisodes] = useState<any[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from("podcast_episodes")
+      .select("id, title, description, episode_number, duration_minutes, audio_url, status")
+      .eq("podcast_id", podcastId)
+      .eq("status", "published")
+      .order("episode_number")
+      .then(({ data }) => setEpisodes(data || []));
+  }, [podcastId]);
+
+  if (episodes.length === 0) return null;
+
+  return (
+    <Card className="p-5">
+      <h3 className="font-heading font-bold text-lg mb-4">Episodes</h3>
+      <div className="space-y-3">
+        {episodes.map((ep) => (
+          <div key={ep.id} className="flex gap-3 p-3 rounded-lg border border-border">
+            <span className="flex-shrink-0 w-8 h-8 rounded-full bg-secondary/10 text-secondary text-xs font-bold flex items-center justify-center">
+              {ep.episode_number}
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium">{ep.title}</p>
+              {ep.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{ep.description}</p>}
+              <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-foreground">
+                {ep.duration_minutes && (
+                  <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{ep.duration_minutes} min</span>
+                )}
+                {ep.audio_url && (
+                  <a href={ep.audio_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-secondary hover:underline">
+                    <Play className="h-3 w-3" /> Listen
+                  </a>
+                )}
+              </div>
+            </div>
           </div>
         ))}
       </div>
