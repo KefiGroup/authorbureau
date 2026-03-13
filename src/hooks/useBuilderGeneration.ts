@@ -264,12 +264,12 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
       }
 
       // ── Split & Save generated content + Cross-Builder Push ─────────────
+      const { salesPageText, contentText } = splitSalesAndContent(accumulated);
+      const contentToSave = contentText || accumulated;
+
       const session = await supabase.auth.getSession();
       const userId = session.data?.session?.user?.id;
       if (userId && bookId) {
-        // Robust split: try multiple strategies
-        const { salesPageText, contentText } = splitSalesAndContent(accumulated);
-
         // Save sales page as separate asset
         if (salesPageText) {
           try {
@@ -292,7 +292,6 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
         }
 
         // Save product content as separate asset
-        const contentToSave = contentText || accumulated;
         try {
           const { error: upsertErr } = await supabase.from("generated_assets" as any).upsert({
             book_id: bookId,
