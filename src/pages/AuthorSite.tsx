@@ -149,6 +149,7 @@ export default function AuthorSite() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [subscribing, setSubscribing] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
   const [bioExpanded, setBioExpanded] = useState(false);
@@ -293,6 +294,7 @@ export default function AuthorSite() {
     const { error } = await supabase.from("author_subscribers").insert({
       author_id: author.user_id,
       email: email.trim(),
+      name: name.trim() || null,
       source: "author_homepage",
       source_detail: authorSlug,
     });
@@ -306,6 +308,7 @@ export default function AuthorSite() {
       setSubscribed(true);
       toast({ title: "Subscribed!", description: `You'll hear from ${displayName} soon.` });
       setEmail("");
+      setName("");
     }
   }
 
@@ -705,17 +708,26 @@ export default function AuthorSite() {
                 <p className="text-sm mb-8" style={{ color: `hsl(${c.heroBackground} / 0.6)` }}>
                   Get exclusive updates, free chapters, and early access to new releases.
                 </p>
-                <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+                <form onSubmit={handleSubscribe} className="flex flex-col gap-3 max-w-md mx-auto">
                   <Input
-                    type="email"
-                    placeholder="your@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="h-12 text-base"
+                    type="text"
+                    placeholder="First name (optional)"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="h-11 text-base"
                     style={{ borderRadius: theme.borderRadius, borderColor: `hsl(${c.cardBorder})` }}
                   />
-                  <Button
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Input
+                      type="email"
+                      placeholder="your@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      className="h-12 text-base flex-1"
+                      style={{ borderRadius: theme.borderRadius, borderColor: `hsl(${c.cardBorder})` }}
+                    />
+                    <Button
                     type="submit"
                     disabled={subscribing}
                     className="shrink-0 h-12 px-8 font-semibold"
@@ -726,7 +738,8 @@ export default function AuthorSite() {
                     }}
                   >
                     {subscribing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Subscribe"}
-                  </Button>
+                    </Button>
+                  </div>
                 </form>
                 <p className="text-xs mt-4" style={{ color: `hsl(${c.heroBackground} / 0.3)` }}>
                   We respect your privacy. Unsubscribe anytime.
