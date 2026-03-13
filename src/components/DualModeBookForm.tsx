@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import SiteThemePicker from "@/components/dashboard/SiteThemePicker";
+import GenreRecommendationPreview from "@/components/dashboard/GenreRecommendationPreview";
 
 interface BookFormData {
   title: string;
