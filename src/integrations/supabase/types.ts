@@ -624,6 +624,48 @@ export type Database = {
           },
         ]
       }
+      contact_messages: {
+        Row: {
+          admin_notes: string | null
+          author_id: string
+          created_at: string
+          id: string
+          message: string
+          sender_email: string
+          sender_name: string
+          source: string
+          source_detail: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          author_id: string
+          created_at?: string
+          id?: string
+          message: string
+          sender_email: string
+          sender_name: string
+          source?: string
+          source_detail?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          author_id?: string
+          created_at?: string
+          id?: string
+          message?: string
+          sender_email?: string
+          sender_name?: string
+          source?: string
+          source_detail?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       course_enrollments: {
         Row: {
           completed_at: string | null
