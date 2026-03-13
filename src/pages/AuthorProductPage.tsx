@@ -3,7 +3,9 @@ import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowRight, Clock, BookOpen, GraduationCap, Users,
-  Headphones, Mic, Loader2, Star, Mail, CheckCircle2, Check
+  Headphones, Mic, Loader2, Star, Mail, CheckCircle2, Check,
+  Briefcase, Brain, Target, Mountain, Award, Presentation,
+  KeyRound, Video, Sparkles, Ticket
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -16,24 +18,58 @@ import AuthorBrandedNav from "@/components/public/AuthorBrandedNav";
 import BookProductNav, { getProductTabMeta } from "@/components/public/BookProductNav";
 import NotFound from "./NotFound";
 
-type ProductType = "homestudy" | "onlinecourse" | "workbook" | "coaching" | "audiobook" | "podcast" | "book";
+type ProductType =
+  | "homestudy" | "onlinecourse" | "workbook" | "coaching" | "audiobook" | "podcast" | "book"
+  | "group_coaching" | "consulting" | "mastermind" | "speaking" | "keynote" | "training"
+  | "webinar" | "membership" | "retreat" | "bootcamp" | "certification" | "convention"
+  | "special_edition" | "big_ticket" | "coaching_membership";
 
-const PRODUCT_CONFIG: Record<ProductType, { table: string; label: string; icon: any; statusField: string; statusValue: string }> = {
+const PRODUCT_CONFIG: Record<ProductType, { table: string; label: string; icon: any; statusField: string; statusValue: string; typeFilter?: string }> = {
   homestudy: { table: "home_study_courses", label: "Home Study Course", icon: BookOpen, statusField: "status", statusValue: "published" },
   onlinecourse: { table: "courses", label: "Online Course", icon: GraduationCap, statusField: "status", statusValue: "published" },
   workbook: { table: "home_study_courses", label: "Workbook", icon: BookOpen, statusField: "status", statusValue: "published" },
-  coaching: { table: "coaching_packages", label: "Coaching", icon: Users, statusField: "status", statusValue: "active" },
+  coaching: { table: "coaching_packages", label: "1-on-1 Coaching", icon: Target, statusField: "status", statusValue: "active", typeFilter: "one_on_one" },
+  group_coaching: { table: "coaching_packages", label: "Group Coaching", icon: Users, statusField: "status", statusValue: "active", typeFilter: "group" },
+  consulting: { table: "coaching_packages", label: "Consulting", icon: Briefcase, statusField: "status", statusValue: "active", typeFilter: "consulting" },
+  mastermind: { table: "coaching_packages", label: "Mastermind", icon: Brain, statusField: "status", statusValue: "active", typeFilter: "mastermind" },
+  big_ticket: { table: "coaching_packages", label: "Big Ticket", icon: Sparkles, statusField: "status", statusValue: "active", typeFilter: "big_ticket" },
+  coaching_membership: { table: "coaching_packages", label: "Coaching Membership", icon: KeyRound, statusField: "status", statusValue: "active", typeFilter: "coaching_membership" },
+  speaking: { table: "speaking_topics", label: "Speaking", icon: Presentation, statusField: "status", statusValue: "active" },
+  keynote: { table: "speaking_topics", label: "Keynote", icon: Presentation, statusField: "status", statusValue: "active" },
+  training: { table: "speaking_topics", label: "Corporate Training", icon: Presentation, statusField: "status", statusValue: "active" },
   audiobook: { table: "audiobooks", label: "Audiobook", icon: Headphones, statusField: "status", statusValue: "published" },
   podcast: { table: "podcasts", label: "Podcast", icon: Mic, statusField: "status", statusValue: "published" },
+  webinar: { table: "coaching_packages", label: "Webinar", icon: Video, statusField: "status", statusValue: "active", typeFilter: "webinar" },
+  membership: { table: "coaching_packages", label: "Membership", icon: KeyRound, statusField: "status", statusValue: "active", typeFilter: "membership" },
+  retreat: { table: "coaching_packages", label: "Retreat", icon: Mountain, statusField: "status", statusValue: "active", typeFilter: "retreat" },
+  bootcamp: { table: "coaching_packages", label: "Bootcamp", icon: Mountain, statusField: "status", statusValue: "active", typeFilter: "bootcamp" },
+  certification: { table: "coaching_packages", label: "Certification", icon: Award, statusField: "status", statusValue: "active", typeFilter: "certification" },
+  convention: { table: "coaching_packages", label: "Convention", icon: Ticket, statusField: "status", statusValue: "active", typeFilter: "convention" },
+  special_edition: { table: "books", label: "Special Edition", icon: Sparkles, statusField: "published_at", statusValue: "not_null" },
   book: { table: "books", label: "Book", icon: BookOpen, statusField: "published_at", statusValue: "not_null" },
 };
 
 const PRODUCT_ROUTE_MAP: Record<string, string> = {
   home_study_courses: "homestudy",
   courses: "onlinecourse",
-  coaching_packages: "coaching",
   audiobooks: "audiobook",
   podcasts: "podcast",
+};
+
+// Map coaching_packages.type to product route
+const COACHING_TYPE_TO_ROUTE: Record<string, string> = {
+  one_on_one: "coaching",
+  group: "group_coaching",
+  consulting: "consulting",
+  mastermind: "mastermind",
+  big_ticket: "big_ticket",
+  coaching_membership: "coaching_membership",
+  webinar: "webinar",
+  membership: "membership",
+  retreat: "retreat",
+  bootcamp: "bootcamp",
+  certification: "certification",
+  convention: "convention",
 };
 
 const fadeUp = {
