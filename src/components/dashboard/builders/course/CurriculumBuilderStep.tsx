@@ -172,13 +172,13 @@ export default function CurriculumBuilderStep({ stepData, setStepData, onMarkEdi
         <BookOpen className="h-12 w-12 text-muted-foreground/20 mx-auto mb-4" />
         <h3 className="font-heading text-lg font-semibold mb-2">Generate Your Curriculum</h3>
         <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
-          AI will analyze your manuscript and create a structured module-lesson tree with 8-12 modules and 3-5 lessons each.
+          Abby will analyze your manuscript and create a structured module-lesson tree with 8-12 modules and 3-5 lessons each.
         </p>
         <Button
-          onClick={handleGenerate}
+          onClick={onStartGeneration || handleGenerate}
           className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90"
         >
-          <Sparkles className="h-4 w-4 mr-2" /> Generate Curriculum from Manuscript
+          <Sparkles className="h-4 w-4 mr-2" /> {onStartGeneration ? "Analyze with Abby" : "Generate Curriculum from Manuscript"}
         </Button>
       </div>
     );
