@@ -386,17 +386,6 @@ export default function AuthorProfile() {
         </section>
       )}
 
-      {/* PublishNow relationship note */}
-      <section className="border-t border-border py-8">
-        <div className="container max-w-4xl">
-          <div className="rounded-xl border border-border bg-muted/30 p-5 flex items-start gap-3">
-            <Globe className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
-            <p className="text-sm text-muted-foreground">
-              This is {author.name.split(" ")[0]}'s directory profile on Authors Bureau. To manage your public author brand, your core profile is managed via our sister platform, <a href="https://publishnow.io" target="_blank" rel="noopener noreferrer" className="text-secondary hover:underline">PublishNow.io</a>.
-            </p>
-          </div>
-        </div>
-      </section>
 
       {author.services.length > 0 && (
         <ServiceInquiryForm
