@@ -367,12 +367,8 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
                     }
                   }}
                   onEdit={() => {
-                    // Home study gets inline edit view
-                    if (product.nodeId === "home-study-course") {
-                      setDetailProduct(product);
-                    } else {
-                      onNavigate?.(NODE_TO_ROUTE[product.nodeId] || product.nodeId);
-                    }
+                    // Edit always navigates to the builder studio
+                    onNavigate?.(NODE_TO_ROUTE[product.nodeId] || product.nodeId);
                   }}
                   onDelete={() => handleDelete(product)}
                   onPublish={() => setConfirmProduct(product)}
