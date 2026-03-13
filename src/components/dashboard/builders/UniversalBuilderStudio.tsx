@@ -879,11 +879,6 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                       }
                     }
                   }
-                      .select("id")
-                      .eq("author_id", user.id)
-                      .eq("book_id", bookId)
-                      .maybeSingle();
-                    if (fetchErr) console.error("Fetch existing product error:", fetchErr);
                 } catch (err) {
                   console.error("Save draft failed during publish:", err);
                   toast({ title: "Publish failed", description: err instanceof Error ? err.message : "Please try again", variant: "destructive" });
