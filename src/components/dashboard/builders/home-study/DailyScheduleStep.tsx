@@ -102,19 +102,25 @@ Return ONLY valid JSON.`;
         builderStep: "Daily Schedule",
       } as const;
 
-      let parsedDays = normalizeSchedulePayload(await generateJSONWithAI<any>(basePrompt, opts));
+      let parsedDays: ReturnType<typeof normalizeSchedulePayload> = [];
 
-      if (parsedDays.length === 0) {
+      try {
+        parsedDays = normalizeSchedulePayload(await generateJSONWithAI<any>(basePrompt, opts));
+      } catch {
+        parsedDays = [];
+      }
+
+      if (parsedDays.length < duration) {
         parsedDays = normalizeSchedulePayload(
           await generateJSONWithAI<any>(
-            `${basePrompt}\n\nSTRICT FORMAT: Start response with [ and end with ]. Do not include any prose, heading, or markdown.`,
+            `${basePrompt}\n\nSTRICT FORMAT: Return ONLY a valid JSON array. Start with [ and end with ]. Include exactly ${duration} objects. No prose, no markdown, no headings. Keep reading/exercise/reflection concise (max 18 words each).`,
             opts,
           ),
         );
       }
 
-      if (parsedDays.length === 0) {
-        throw new Error("No schedule data returned. Please retry.");
+      if (parsedDays.length < duration) {
+        throw new Error(`Only ${parsedDays.length} of ${duration} days were generated. Please retry.`);
       }
 
       setGenerationState("generating");
