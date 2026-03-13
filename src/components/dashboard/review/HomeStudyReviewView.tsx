@@ -35,6 +35,31 @@ interface HomeStudyReviewViewProps {
   onPublished: () => void;
 }
 
+function splitSalesAndContent(markdown: string): { sales: string; content: string } {
+  const text = (markdown || "").trim();
+  if (!text) return { sales: "", content: "" };
+
+  const salesMarker = text.match(/===SALES_PAGE_START===([\s\S]*?)===SALES_PAGE_END===/i);
+  const contentMarker = text.match(/===CONTENT_START===([\s\S]*?)===CONTENT_END===/i);
+  if (salesMarker && contentMarker) {
+    return {
+      sales: salesMarker[1].trim(),
+      content: contentMarker[1].trim(),
+    };
+  }
+
+  const dayStart = text.search(/\n#+\s*Day\s*1\b|\nDay\s*1\b/i);
+  const salesHeader = text.search(/\n#+\s*Sales\s*Page\s*Copy\b|\nSales\s*Page\s*Copy\b/i);
+  if (salesHeader >= 0 && dayStart > salesHeader) {
+    return {
+      sales: text.slice(salesHeader).trim(),
+      content: text.slice(dayStart).trim(),
+    };
+  }
+
+  return { sales: "", content: text };
+}
+
 export default function HomeStudyReviewView({
   productId, bookId, bookTitle, productTitle, productTable, onBack, onPublished,
 }: HomeStudyReviewViewProps) {
