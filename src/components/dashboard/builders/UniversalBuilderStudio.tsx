@@ -18,7 +18,7 @@ import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/shared-backend";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth, hasTierAccess, TIERS } from "@/hooks/useAuth";
 import { useAbbyPlan } from "@/hooks/useAbbyPlan";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";

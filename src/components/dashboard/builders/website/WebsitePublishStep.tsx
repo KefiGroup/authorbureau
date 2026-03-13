@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Sparkles, Loader2, Monitor, Tablet, Smartphone, Globe, FileText, ShoppingBag, Search, Link } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/shared-backend";
+import { supabase } from "@/integrations/supabase/client";
 import type { WebsiteConfig, SitePage, ProductCard, SeoData } from "./types";
 import { SITE_TYPE_LABELS, TEMPLATE_OPTIONS, COLOR_SCHEMES } from "./types";
 
