@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import HomeStudyExportModal from "./HomeStudyExportModal";
 import MarkdownRenderer from "./MarkdownRenderer";
+import HomeStudyReviewView from "./review/HomeStudyReviewView";
 import { ALL_BUILDER_NODES, type BuilderNodeConfig } from "../dashboard/builders/builderNodeConfig";
 import { toast } from "@/hooks/use-toast";
 
@@ -102,6 +103,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [exportProduct, setExportProduct] = useState<DraftProduct | null>(null);
   const [activeTab, setActiveTab] = useState("all");
+  const [detailProduct, setDetailProduct] = useState<DraftProduct | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -227,6 +229,25 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
     review: products.filter(p => p.status === "ready_for_review").length,
   }), [products]);
 
+  // If viewing a specific product detail (Home Study, etc.)
+  if (detailProduct) {
+    if (detailProduct.nodeId === "home-study-course") {
+      return (
+        <HomeStudyReviewView
+          productId={detailProduct.id}
+          bookId={detailProduct.bookId}
+          bookTitle={detailProduct.bookTitle}
+          productTitle={detailProduct.title}
+          productTable={detailProduct.table}
+          onBack={() => setDetailProduct(null)}
+          onPublished={() => { setDetailProduct(null); fetchDrafts(); }}
+        />
+      );
+    }
+    // For other product types, fall back to clearing and showing list
+    setDetailProduct(null);
+  }
+
   return (
     <div className="max-w-5xl space-y-6">
       {/* ── Header ───────────────────────────────────────────── */}
@@ -296,8 +317,22 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
                   key={product.id}
                   product={product}
                   publishing={publishing}
-                  onPreview={() => handlePreview(product)}
-                  onEdit={() => onNavigate?.(NODE_TO_ROUTE[product.nodeId] || product.nodeId)}
+                  onPreview={() => {
+                    // Home study gets full-page preview
+                    if (product.nodeId === "home-study-course") {
+                      setDetailProduct(product);
+                    } else {
+                      handlePreview(product);
+                    }
+                  }}
+                  onEdit={() => {
+                    // Home study gets inline edit view
+                    if (product.nodeId === "home-study-course") {
+                      setDetailProduct(product);
+                    } else {
+                      onNavigate?.(NODE_TO_ROUTE[product.nodeId] || product.nodeId);
+                    }
+                  }}
                   onPublish={() => setConfirmProduct(product)}
                   onExport={product.table === "home_study_courses" ? () => setExportProduct(product) : undefined}
                 />
