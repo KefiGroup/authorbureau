@@ -393,6 +393,8 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         , "pro");
       case "connect-stripe":
         return <ConnectStripePage />;
+      case "payout-settings":
+        return <PayoutSettingsPage />;
       case "overview":
         return (
           <ABBYFrameworkDashboard

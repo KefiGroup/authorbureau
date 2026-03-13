@@ -140,6 +140,10 @@ export default function DashboardSidebar({
       id: "connect-stripe" as DashboardSection, label: stripeConnected ? "Stripe Connected" : "Connect Stripe",
       icon: CreditCard,
     },
+    {
+      id: "payout-settings" as DashboardSection, label: "Payout Settings",
+      icon: Wallet,
+    },
   ];
 
   const renderSection = (title: string, items: NavItem[]) => (
