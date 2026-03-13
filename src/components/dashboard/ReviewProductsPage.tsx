@@ -15,7 +15,7 @@ import {
   Video, Users, Mic, Target, DollarSign, Award, Globe,
   Megaphone, Heart, Building2, Network, Zap, Star,
   BookMarked, ShieldCheck, Crown, Ticket, Briefcase,
-  CircleDot, ArrowRight, Sparkles, BarChart3,
+  CircleDot, ArrowRight, Sparkles, BarChart3, Trash2,
 } from "lucide-react";
 import HomeStudyExportModal from "./HomeStudyExportModal";
 import MarkdownRenderer from "./MarkdownRenderer";
