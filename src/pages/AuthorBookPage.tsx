@@ -539,55 +539,67 @@ export default function AuthorBookPage() {
 
       {/* ===== SECTION 6: CONTINUE YOUR JOURNEY (Products) ===== */}
       {products.length > 0 && (
-        <section className="py-14" style={{ borderBottom: `1px solid hsl(${c.cardBorder})` }}>
-          <div className="container max-w-4xl">
+        <section className="py-16" style={{ background: "var(--theme-secondary-bg)" }}>
+          <div className="container max-w-5xl">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-              <h2 className="bp-heading text-2xl md:text-3xl font-bold mb-3" style={{ color: `hsl(${c.heroBackground})` }}>
-                Continue Your Journey
+              <h2 className="theme-heading text-2xl md:text-[2rem] font-bold mb-2" style={{ color: "var(--theme-heading-text)" }}>
+                Continue Your Journey with {book.title}
               </h2>
-              <p className="text-sm mb-8" style={{ color: `hsl(${c.heroBackground} / 0.5)` }}>
-                Products and services built from this book
+              <p className="text-sm mb-10" style={{ color: "var(--theme-muted-text)" }}>
+                Products and resources built from this book to deepen your learning
               </p>
             </motion.div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {products.map((p, i) => {
-                const Icon = PRODUCT_ICONS[p.type] || BookOpen;
+                const PIcon = PRODUCT_ICONS[p.type] || BookOpen;
+                const label = PRODUCT_LABELS[p.type] || p.type;
                 return (
                   <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i + 1}>
                     <Link
                       to={`/${authorSlug}/${bookSlug}/${p.route}`}
-                      className="group block p-5 transition-all hover:shadow-lg"
+                      className="group flex flex-col h-full p-5 rounded-xl transition-all hover:-translate-y-1 hover:shadow-lg"
                       style={{
-                        borderRadius: theme.borderRadius,
-                        border: `1px solid hsl(${c.cardBorder})`,
-                        background: "white",
+                        background: "var(--theme-card-bg)",
+                        border: "1px solid var(--theme-card-border)",
+                        boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
                       }}
                     >
-                      <div className="flex items-start gap-4">
-                        <div
-                          className="w-11 h-11 rounded-lg flex items-center justify-center shrink-0"
-                          style={{ background: `hsl(${c.accent} / 0.1)` }}
+                      {/* Badge */}
+                      <span
+                        className="inline-flex items-center gap-1.5 self-start rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wide mb-3"
+                        style={{ background: "var(--theme-accent)", color: "var(--theme-accent-text)" }}
+                      >
+                        <PIcon className="h-3 w-3" />
+                        {label}
+                      </span>
+
+                      {/* Title */}
+                      <h3 className="theme-heading font-bold text-base mb-1.5 group-hover:underline" style={{ color: "var(--theme-heading-text)" }}>
+                        {p.title}
+                      </h3>
+
+                      {/* Description */}
+                      {p.description && (
+                        <p className="text-xs leading-relaxed line-clamp-2 mb-4 flex-1" style={{ color: "var(--theme-body-text)" }}>
+                          {p.description}
+                        </p>
+                      )}
+                      {!p.description && <div className="flex-1" />}
+
+                      {/* Price + CTA */}
+                      <div className="flex items-center justify-between mt-auto pt-3" style={{ borderTop: "1px solid var(--theme-card-border)" }}>
+                        {p.price ? (
+                          <span className="font-bold text-sm" style={{ color: "var(--theme-accent)" }}>{p.price}</span>
+                        ) : (
+                          <span className="font-bold text-sm" style={{ color: "var(--theme-accent)" }}>Free</span>
+                        )}
+                        <span
+                          className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-md transition-all group-hover:brightness-110"
+                          style={{ background: "var(--theme-primary)", color: "var(--theme-primary-text)" }}
                         >
-                          <Icon className="h-5 w-5" style={{ color: `hsl(${c.accent})` }} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-sm mb-0.5 group-hover:underline" style={{ color: `hsl(${c.heroBackground})` }}>
-                            {p.title}
-                          </p>
-                          <p className="text-xs mb-2" style={{ color: `hsl(${c.heroBackground} / 0.4)` }}>
-                            {PRODUCT_LABELS[p.type] || p.type}
-                          </p>
-                          {p.description && (
-                            <p className="text-xs line-clamp-2" style={{ color: `hsl(${c.heroBackground} / 0.5)` }}>{p.description}</p>
-                          )}
-                        </div>
-                        <div className="shrink-0 flex flex-col items-end gap-1">
-                          {p.price && (
-                            <span className="font-bold text-sm" style={{ color: `hsl(${c.accent})` }}>{p.price}</span>
-                          )}
-                          <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: `hsl(${c.accent})` }} />
-                        </div>
+                          View Product <ArrowRight className="h-3 w-3" />
+                        </span>
                       </div>
                     </Link>
                   </motion.div>
