@@ -15,6 +15,36 @@ import StaleContentBanner from "./StaleContentBanner";
 
 function generateId() { return crypto.randomUUID(); }
 
+function normalizeSchedulePayload(payload: any): Array<{
+  dayNumber: number;
+  weekNumber: number;
+  theme: string;
+  chapterRef: string;
+  reading: string;
+  exercise: string;
+  reflection: string;
+  isCatchUp: boolean;
+}> {
+  const rawDays = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.days)
+    ? payload.days
+    : Array.isArray(payload?.daily_schedule)
+    ? payload.daily_schedule
+    : [];
+
+  return rawDays.map((d: any, idx: number) => ({
+    dayNumber: Number(d?.dayNumber ?? idx + 1),
+    weekNumber: Number(d?.weekNumber ?? Math.floor(idx / 7) + 1),
+    theme: String(d?.theme ?? ""),
+    chapterRef: String(d?.chapterRef ?? ""),
+    reading: String(d?.reading ?? ""),
+    exercise: String(d?.exercise ?? ""),
+    reflection: String(d?.reflection ?? ""),
+    isCatchUp: Boolean(d?.isCatchUp ?? ((idx + 1) % 7 === 0)),
+  }));
+}
+
 export default function DailyScheduleStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, generationState, setGenerationState }: HomeStudyStepProps) {
   const { toast } = useToast();
   const setup = stepData.setup || {};
