@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, User, BookOpen, Sparkles,
   ChevronLeft, ChevronRight, Crown, ExternalLink, PenLine, BookMarked,
-  Lock, Globe, BarChart3, Contact, DollarSign, Radio, Award, CreditCard, Package,
+  Lock, Globe, BarChart3, Contact, DollarSign, Radio, Award, CreditCard, Package, Wallet,
   BookHeart, HelpCircle, ChevronDown, ChevronUp, MessageSquare,
 } from "lucide-react";
 import { useState } from "react";
