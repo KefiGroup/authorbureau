@@ -137,12 +137,14 @@ export default function AuthorSite() {
   const displayName = author?.pen_name || "Author";
   const c = theme.colors;
 
-  // Flatten all products across books
+  // Flatten all non-coaching products across books
   const allProducts = useMemo(() => {
     return booksWithProducts.flatMap((b) =>
-      b.products.map((p) => ({ ...p, bookSlug: b.slug, bookTitle: b.title }))
+      b.products.filter((p) => p.type !== "coaching").map((p) => ({ ...p, bookSlug: b.slug, bookTitle: b.title }))
     );
   }, [booksWithProducts]);
+
+  const hasWorkWithSection = coachingServices.length > 0 || allProducts.length > 0;
 
   // SEO
   const seoDescription = author?.tagline
