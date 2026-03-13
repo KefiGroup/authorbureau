@@ -791,6 +791,48 @@ export default function HomeStudyReviewView({
             </div>
 
             <div>
+              <Label className="text-xs font-semibold mb-2 block">FAQ (Optional)</Label>
+              <div className="space-y-3">
+                {salesFaqs.map((f, idx) => (
+                  <div key={idx} className="p-3 border border-border rounded-lg space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-[10px] text-muted-foreground">Question #{idx + 1}</Label>
+                      <Button variant="ghost" size="icon" className="h-6 w-6"
+                        onClick={() => setSalesFaqs(salesFaqs.filter((_, i) => i !== idx))}>
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <Input
+                      value={f.question}
+                      onChange={(e) => {
+                        const updated = [...salesFaqs];
+                        updated[idx] = { ...updated[idx], question: e.target.value };
+                        setSalesFaqs(updated);
+                      }}
+                      placeholder="e.g. How long do I have access?"
+                      className="h-8 text-sm"
+                    />
+                    <Textarea
+                      value={f.answer}
+                      onChange={(e) => {
+                        const updated = [...salesFaqs];
+                        updated[idx] = { ...updated[idx], answer: e.target.value };
+                        setSalesFaqs(updated);
+                      }}
+                      rows={2}
+                      className="text-sm"
+                      placeholder="Answer..."
+                    />
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" className="text-xs"
+                  onClick={() => setSalesFaqs([...salesFaqs, { question: "", answer: "" }])}>
+                  <Plus className="h-3 w-3 mr-1" /> Add FAQ
+                </Button>
+              </div>
+            </div>
+
+            <div>
               <Label className="text-xs font-semibold">CTA Button Text</Label>
               <Input
                 value={salesCta}
