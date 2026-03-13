@@ -100,8 +100,8 @@ export default function PurchaseSuccess() {
 
         {status === "error" && (
           <>
-            <div className="w-20 h-20 rounded-full bg-red-100 flex items-center justify-center mx-auto">
-              <XCircle className="h-10 w-10 text-red-600" />
+            <div className="w-20 h-20 rounded-full bg-destructive/20 flex items-center justify-center mx-auto">
+              <XCircle className="h-10 w-10 text-destructive" />
             </div>
             <h1 className="text-2xl font-bold text-foreground">Something went wrong</h1>
             <p className="text-muted-foreground">

@@ -76,7 +76,7 @@ export default function ReaderPortal() {
     setPurchases(data.purchases);
 
     // Load author info for each unique author
-    const authorIds = [...new Set(data.purchases.map((p: Purchase) => p.author_id))];
+    const authorIds = [...new Set(data.purchases.map((p: Purchase) => p.author_id))] as string[];
     if (authorIds.length > 0) {
       const { data: profiles } = await supabase
         .from("author_profiles")
