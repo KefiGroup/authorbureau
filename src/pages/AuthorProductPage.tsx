@@ -85,6 +85,10 @@ function isMarkdown(text: string): boolean {
   return /[#*_\-\n]/.test(text) && (text.includes("\n") || text.includes("**") || text.startsWith("#"));
 }
 
+function stripStars(text: string): string {
+  return text.replace(/^\*{2,}/, "").replace(/\*{2,}$/, "").trim();
+}
+
 function ProductMarkdown({ content }: { content: string }) {
   // Simple markdown renderer for sales page content
   const lines = content.split("\n");
