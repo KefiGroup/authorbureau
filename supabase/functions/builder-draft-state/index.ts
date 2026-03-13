@@ -209,7 +209,7 @@ Deno.serve(async (req) => {
       const duration_days = Number.isFinite(payload.duration_days)
         ? Number(payload.duration_days)
         : 30;
-      const parsedPrice = payload.price === null || payload.price === undefined || payload.price === ""
+      const parsedPrice = payload.price === null || payload.price === undefined
         ? null
         : Number(payload.price);
       const price = Number.isFinite(parsedPrice as number) ? parsedPrice : null;
