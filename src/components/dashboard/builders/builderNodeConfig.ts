@@ -858,6 +858,7 @@ const whitelabelBuilder: BuilderNodeConfig = {
   dbTable: "generated_assets",
   icon: "Layers",
   color: "text-amber-500",
+  customRenderer: "white-label",
   abbyGreeting: "White-labeling your content lets others sell it under their brand — pure passive income for you.",
   abbyPublishMessage: "Your white-label packages are designed! Target coaching companies and training organizations.",
   loadingMessages: [
