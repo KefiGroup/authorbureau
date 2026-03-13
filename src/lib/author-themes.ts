@@ -2,6 +2,9 @@
  * 10 genre-based author site themes.
  * Each theme defines colors (HSL), font pairing, and visual mood.
  * The `id` is stored in author_profiles.site_theme.
+ *
+ * Themes 1-3 are the original "business" themes.
+ * Themes 4-10 match the document specification exactly.
  */
 
 export interface AuthorTheme {
@@ -27,11 +30,12 @@ export interface AuthorTheme {
 }
 
 export const AUTHOR_THEMES: AuthorTheme[] = [
+  // --- Original 3 business themes ---
   {
     id: "classic-elegant",
     name: "Classic Elegant",
     genre: "Business / Leadership",
-    description: "Navy & gold — polished, authoritative, corporate.",
+    description: "Navy & gold - polished, authoritative, corporate.",
     colors: {
       heroBackground: "222 47% 14%",
       heroForeground: "45 60% 92%",
@@ -68,150 +72,10 @@ export const AUTHOR_THEMES: AuthorTheme[] = [
     mood: "light",
   },
   {
-    id: "warm-storyteller",
-    name: "Warm Storyteller",
-    genre: "Memoir / Biography",
-    description: "Earthy terracotta, parchment tones — intimate and human.",
-    colors: {
-      heroBackground: "25 35% 22%",
-      heroForeground: "35 40% 92%",
-      accent: "18 70% 55%",
-      accentForeground: "0 0% 100%",
-      cardBorder: "30 25% 80%",
-      sectionAlt: "35 30% 95%",
-      footerBackground: "25 35% 16%",
-      footerForeground: "35 20% 65%",
-    },
-    headingFont: "'Lora', serif",
-    bodyFont: "'Nunito', sans-serif",
-    borderRadius: "0.5rem",
-    mood: "warm",
-  },
-  {
-    id: "bold-impact",
-    name: "Bold Impact",
-    genre: "Motivation / Fitness",
-    description: "High-contrast black & electric orange — energetic, action-oriented.",
-    colors: {
-      heroBackground: "0 0% 6%",
-      heroForeground: "0 0% 96%",
-      accent: "24 95% 55%",
-      accentForeground: "0 0% 100%",
-      cardBorder: "0 0% 20%",
-      sectionAlt: "0 0% 9%",
-      footerBackground: "0 0% 4%",
-      footerForeground: "0 0% 50%",
-    },
-    headingFont: "'Oswald', sans-serif",
-    bodyFont: "'Inter', sans-serif",
-    borderRadius: "0.25rem",
-    mood: "dark",
-  },
-  {
-    id: "serene-wisdom",
-    name: "Serene Wisdom",
-    genre: "Spirituality / Wellness",
-    description: "Soft lavender & sage — peaceful, meditative, calming.",
-    colors: {
-      heroBackground: "260 25% 18%",
-      heroForeground: "270 30% 92%",
-      accent: "150 30% 55%",
-      accentForeground: "0 0% 100%",
-      cardBorder: "260 15% 82%",
-      sectionAlt: "270 15% 96%",
-      footerBackground: "260 25% 13%",
-      footerForeground: "270 15% 60%",
-    },
-    headingFont: "'Cormorant Garamond', serif",
-    bodyFont: "'Quicksand', sans-serif",
-    borderRadius: "1rem",
-    mood: "cool",
-  },
-  {
-    id: "tech-forward",
-    name: "Tech Forward",
-    genre: "Technology / Science",
-    description: "Dark with electric blue accents — futuristic, data-driven.",
-    colors: {
-      heroBackground: "220 30% 10%",
-      heroForeground: "210 20% 92%",
-      accent: "210 100% 55%",
-      accentForeground: "0 0% 100%",
-      cardBorder: "220 20% 25%",
-      sectionAlt: "220 20% 13%",
-      footerBackground: "220 30% 7%",
-      footerForeground: "210 15% 50%",
-    },
-    headingFont: "'Space Grotesk', sans-serif",
-    bodyFont: "'IBM Plex Sans', sans-serif",
-    borderRadius: "0.5rem",
-    mood: "dark",
-  },
-  {
-    id: "creative-eclectic",
-    name: "Creative Eclectic",
-    genre: "Art / Design / Creativity",
-    description: "Vibrant coral & teal — playful, expressive, artistic.",
-    colors: {
-      heroBackground: "180 25% 15%",
-      heroForeground: "0 0% 95%",
-      accent: "5 75% 60%",
-      accentForeground: "0 0% 100%",
-      cardBorder: "180 20% 75%",
-      sectionAlt: "180 15% 95%",
-      footerBackground: "180 25% 10%",
-      footerForeground: "180 15% 55%",
-    },
-    headingFont: "'Sora', sans-serif",
-    bodyFont: "'Karla', sans-serif",
-    borderRadius: "0.75rem",
-    mood: "cool",
-  },
-  {
-    id: "heritage-literary",
-    name: "Heritage Literary",
-    genre: "Fiction / Literature",
-    description: "Deep burgundy & cream — classic bookish elegance.",
-    colors: {
-      heroBackground: "350 40% 18%",
-      heroForeground: "40 30% 92%",
-      accent: "40 55% 55%",
-      accentForeground: "350 40% 15%",
-      cardBorder: "350 15% 78%",
-      sectionAlt: "40 25% 96%",
-      footerBackground: "350 40% 12%",
-      footerForeground: "40 15% 60%",
-    },
-    headingFont: "'EB Garamond', serif",
-    bodyFont: "'Libre Baskerville', serif",
-    borderRadius: "0.25rem",
-    mood: "warm",
-  },
-  {
-    id: "fresh-educator",
-    name: "Fresh Educator",
-    genre: "Education / Parenting",
-    description: "Bright green & warm white — friendly, approachable, trustworthy.",
-    colors: {
-      heroBackground: "145 35% 96%",
-      heroForeground: "145 40% 18%",
-      accent: "145 55% 42%",
-      accentForeground: "0 0% 100%",
-      cardBorder: "145 20% 82%",
-      sectionAlt: "145 15% 97%",
-      footerBackground: "145 35% 15%",
-      footerForeground: "145 15% 65%",
-    },
-    headingFont: "'Poppins', sans-serif",
-    bodyFont: "'Nunito', sans-serif",
-    borderRadius: "0.75rem",
-    mood: "light",
-  },
-  {
     id: "wealth-prestige",
     name: "Wealth & Prestige",
     genre: "Finance / Investing",
-    description: "Racing green & gold — premium, sophisticated, trust-building.",
+    description: "Racing green & gold - premium, sophisticated, trust-building.",
     colors: {
       heroBackground: "160 40% 12%",
       heroForeground: "45 50% 90%",
@@ -226,6 +90,148 @@ export const AUTHOR_THEMES: AuthorTheme[] = [
     bodyFont: "'Lato', sans-serif",
     borderRadius: "0.375rem",
     mood: "dark",
+  },
+
+  // --- 7 new document-specified themes ---
+  {
+    id: "bold-impact",
+    name: "Bold Impact",
+    genre: "Motivation / Fitness / Sports",
+    description: "Charcoal black & electric red - powerful, commanding.",
+    colors: {
+      heroBackground: "0 0% 10%",        // #1A1A1A
+      heroForeground: "0 0% 95%",
+      accent: "355 76% 56%",             // #E63946
+      accentForeground: "0 0% 100%",
+      cardBorder: "0 0% 22%",
+      sectionAlt: "0 0% 13%",
+      footerBackground: "0 0% 6%",
+      footerForeground: "0 0% 50%",
+    },
+    headingFont: "'Oswald', sans-serif",
+    bodyFont: "'Roboto', sans-serif",
+    borderRadius: "0.25rem",
+    mood: "dark",
+  },
+  {
+    id: "serene-wisdom",
+    name: "Serene Wisdom",
+    genre: "Wellness / Mindfulness",
+    description: "Soft sage & teal - peaceful, grounded.",
+    colors: {
+      heroBackground: "120 10% 95%",      // #F0F4F0
+      heroForeground: "160 20% 18%",
+      accent: "170 55% 39%",             // #2A9D8F
+      accentForeground: "0 0% 100%",
+      cardBorder: "120 8% 85%",
+      sectionAlt: "120 8% 97%",
+      footerBackground: "160 20% 14%",
+      footerForeground: "120 8% 60%",
+    },
+    headingFont: "'Cormorant Garamond', serif",
+    bodyFont: "'Nunito', sans-serif",
+    borderRadius: "1rem",
+    mood: "light",
+  },
+  {
+    id: "tech-forward",
+    name: "Tech Forward",
+    genre: "Technology / Science / Innovation",
+    description: "Dark slate blue & electric blue - modern, innovative.",
+    colors: {
+      heroBackground: "217 33% 17%",      // #1E293B
+      heroForeground: "210 20% 92%",
+      accent: "217 91% 60%",             // #3B82F6
+      accentForeground: "0 0% 100%",
+      cardBorder: "217 20% 28%",
+      sectionAlt: "217 25% 20%",
+      footerBackground: "217 33% 12%",
+      footerForeground: "210 15% 50%",
+    },
+    headingFont: "'Space Grotesk', sans-serif",
+    bodyFont: "'IBM Plex Sans', sans-serif",
+    borderRadius: "0.5rem",
+    mood: "dark",
+  },
+  {
+    id: "heritage-literary",
+    name: "Literary Classic",
+    genre: "Fiction / Literary / Poetry",
+    description: "Parchment & deep burgundy - timeless, refined.",
+    colors: {
+      heroBackground: "40 33% 94%",       // #F5F0E8
+      heroForeground: "350 40% 20%",
+      accent: "350 40% 32%",             // #722F37
+      accentForeground: "40 33% 96%",
+      cardBorder: "40 20% 82%",
+      sectionAlt: "40 28% 96%",
+      footerBackground: "350 40% 14%",
+      footerForeground: "40 15% 65%",
+    },
+    headingFont: "'EB Garamond', serif",
+    bodyFont: "'Crimson Text', serif",
+    borderRadius: "0.25rem",
+    mood: "warm",
+  },
+  {
+    id: "creative-eclectic",
+    name: "Creative Spark",
+    genre: "Children's Books / Art / Creativity",
+    description: "Soft lavender & vibrant purple - playful, joyful.",
+    colors: {
+      heroBackground: "263 50% 97%",      // #F3EEFF
+      heroForeground: "263 30% 18%",
+      accent: "263 82% 58%",             // #7C3AED
+      accentForeground: "0 0% 100%",
+      cardBorder: "263 25% 85%",
+      sectionAlt: "263 40% 98%",
+      footerBackground: "263 30% 14%",
+      footerForeground: "263 15% 60%",
+    },
+    headingFont: "'Poppins', sans-serif",
+    bodyFont: "'Quicksand', sans-serif",
+    borderRadius: "0.75rem",
+    mood: "cool",
+  },
+  {
+    id: "thriller-dark",
+    name: "Thriller Dark",
+    genre: "Mystery / Thriller / Crime / Horror",
+    description: "Near-black & blood orange - intense, gripping.",
+    colors: {
+      heroBackground: "0 0% 7%",          // #111111
+      heroForeground: "0 0% 92%",
+      accent: "20 100% 60%",             // #FF6B35
+      accentForeground: "0 0% 100%",
+      cardBorder: "0 0% 18%",
+      sectionAlt: "0 0% 10%",
+      footerBackground: "0 0% 4%",
+      footerForeground: "0 0% 45%",
+    },
+    headingFont: "'Bebas Neue', sans-serif",
+    bodyFont: "'Barlow', sans-serif",
+    borderRadius: "0.25rem",
+    mood: "dark",
+  },
+  {
+    id: "romance-bloom",
+    name: "Romance Bloom",
+    genre: "Romance / Women's Fiction / Family",
+    description: "Blush pink & rose gold - warm, romantic.",
+    colors: {
+      heroBackground: "345 100% 97%",     // #FFF0F3
+      heroForeground: "345 25% 22%",
+      accent: "350 25% 59%",             // #B76E79
+      accentForeground: "0 0% 100%",
+      cardBorder: "345 30% 85%",
+      sectionAlt: "345 60% 98%",
+      footerBackground: "345 25% 16%",
+      footerForeground: "345 15% 60%",
+    },
+    headingFont: "'Libre Baskerville', serif",
+    bodyFont: "'Raleway', sans-serif",
+    borderRadius: "0.75rem",
+    mood: "warm",
   },
 ];
 

@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowRight, Clock, Calendar, BookOpen, GraduationCap, Users,
-  Headphones, Mic, Loader2, Star, Play, Mail, CheckCircle2, ExternalLink
+  Headphones, Mic, Loader2, Star, Play, Mail, CheckCircle2, ExternalLink, Check
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -69,6 +69,17 @@ function ThemeStyle({ theme }: { theme: AuthorTheme }) {
   );
 }
 
+/** Parse description sentences into checklist items */
+function parseChecklistItems(description: string | null | undefined): string[] {
+  if (!description) return [];
+  // Split by sentences or line breaks, filter meaningful items
+  const items = description
+    .split(/[.\n]+/)
+    .map(s => s.trim())
+    .filter(s => s.length > 15 && s.length < 200);
+  return items.slice(0, 8);
+}
+
 export default function AuthorProductPage() {
   const { authorSlug, bookSlug, productType } = useParams<{ authorSlug: string; bookSlug: string; productType: string }>();
   const [author, setAuthor] = useState<any>(null);
@@ -79,6 +90,7 @@ export default function AuthorProductPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [subscribing, setSubscribing] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
 
@@ -124,7 +136,6 @@ export default function AuthorProductPage() {
   async function loadProduct() {
     setLoading(true);
 
-    // Get author profile
     let profile: any = null;
     const { data: { user: currentUser } } = await supabase.auth.getUser();
     if (currentUser) {
@@ -150,7 +161,6 @@ export default function AuthorProductPage() {
     setAuthor(profile);
     setTheme(getThemeById(profile.site_theme || "classic-elegant"));
 
-    // Get book
     const { data: bookData } = await supabase
       .from("books")
       .select("id, title, slug, cover_image_url")
@@ -161,7 +171,6 @@ export default function AuthorProductPage() {
     if (!bookData) { setNotFound(true); setLoading(false); return; }
     setBook(bookData);
 
-    // Get product
     let query = supabase.from(config.table as any).select("*").eq("author_id", profile.user_id);
     if (pType !== "coaching") {
       query = query.eq("book_id", bookData.id);
@@ -176,7 +185,6 @@ export default function AuthorProductPage() {
     if (!productData) { setNotFound(true); setLoading(false); return; }
     setProduct(productData);
 
-    // Get related products (other products for this book, different type)
     const relProds: any[] = [];
     const tables = [
       { table: "home_study_courses", status: "published", fields: "id, title, price, currency, description" },
@@ -206,6 +214,7 @@ export default function AuthorProductPage() {
     const { error } = await supabase.from("author_subscribers").insert({
       author_id: author.user_id,
       email: email.trim(),
+      name: name.trim() || null,
       source: "product_page",
       source_detail: `${authorSlug}/${bookSlug}/${productType}`,
     });
@@ -219,6 +228,7 @@ export default function AuthorProductPage() {
       setSubscribed(true);
       toast({ title: "Subscribed!", description: "You'll receive updates soon." });
       setEmail("");
+      setName("");
     }
   }
 
@@ -234,6 +244,8 @@ export default function AuthorProductPage() {
 
   const Icon = config.icon;
   const authorBio = author.bio_short || "";
+  const productImage = product.cover_image_url || book?.cover_image_url || null;
+  const checklistItems = parseChecklistItems(product.description);
 
   return (
     <div className="product-page min-h-screen" style={{ background: `hsl(${c.sectionAlt})` }}>
@@ -254,11 +266,34 @@ export default function AuthorProductPage() {
         </div>
       </nav>
 
-      {/* ===== HERO ===== */}
+      {/* ===== HERO (Split Layout: Image LEFT, Text RIGHT) ===== */}
       <section className="relative overflow-hidden" style={{ background: `linear-gradient(135deg, hsl(${c.heroBackground}), hsl(${c.heroBackground} / 0.92))`, color: `hsl(${c.heroForeground})` }}>
         <div className="relative container max-w-5xl py-12 md:py-20">
-          <div className="max-w-3xl mx-auto text-center">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <div className="flex flex-col md:flex-row items-center gap-8 md:gap-14">
+            {/* LEFT: Product Image / Mockup */}
+            <motion.div
+              initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6 }}
+              className="w-48 md:w-56 shrink-0"
+            >
+              {productImage ? (
+                <img
+                  src={productImage}
+                  alt={product.title}
+                  className="w-full rounded-lg shadow-2xl"
+                  style={{ boxShadow: `8px 8px 24px rgba(0,0,0,0.3)` }}
+                />
+              ) : (
+                <div
+                  className="w-full aspect-square rounded-lg flex items-center justify-center"
+                  style={{ background: `hsl(${c.heroForeground} / 0.08)` }}
+                >
+                  <Icon className="h-16 w-16" style={{ color: `hsl(${c.heroForeground} / 0.3)` }} />
+                </div>
+              )}
+            </motion.div>
+
+            {/* RIGHT: Product Info */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="flex-1 text-center md:text-left">
               <div
                 className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium mb-4"
                 style={{ background: `hsl(${c.accent} / 0.15)`, color: `hsl(${c.accent})` }}
@@ -268,11 +303,11 @@ export default function AuthorProductPage() {
               </div>
               <h1 className="pp-heading text-3xl md:text-4xl lg:text-5xl font-bold mb-4">{product.title}</h1>
               {product.description && (
-                <p className="text-lg mb-6" style={{ opacity: 0.7, maxWidth: "600px", margin: "0 auto" }}>{product.description}</p>
+                <p className="text-lg mb-6" style={{ opacity: 0.7, maxWidth: "600px" }}>{product.description.slice(0, 180)}{product.description.length > 180 ? "..." : ""}</p>
               )}
 
               {/* Price + CTA */}
-              <div className="flex flex-col sm:flex-row items-center gap-4 justify-center">
+              <div className="flex flex-col sm:flex-row items-center gap-4 justify-center md:justify-start">
                 {product.price != null && product.price > 0 ? (
                   <span className="pp-heading text-3xl font-bold" style={{ color: `hsl(${c.accent})` }}>
                     {(product.currency || "USD") === "USD" ? "$" : product.currency}{product.price}
@@ -287,7 +322,7 @@ export default function AuthorProductPage() {
                   Buy Now
                 </Button>
                 <Button
-                  onClick={() => document.getElementById("product-subscribe")?.scrollIntoView({ behavior: "smooth" })}
+                  onClick={() => document.getElementById("product-details")?.scrollIntoView({ behavior: "smooth" })}
                   variant="outline"
                   className="rounded-full font-semibold px-6 h-12"
                   style={{ borderColor: `hsl(${c.heroForeground} / 0.3)`, color: `hsl(${c.heroForeground})`, background: "transparent" }}
@@ -300,7 +335,33 @@ export default function AuthorProductPage() {
         </div>
       </section>
 
-      {/* ===== WHAT'S INCLUDED / DETAILS ===== */}
+      {/* ===== WHAT'S INCLUDED (universal checklist) ===== */}
+      {checklistItems.length > 0 && (
+        <section id="product-details" className="py-14" style={{ borderBottom: `1px solid hsl(${c.cardBorder})` }}>
+          <div className="container max-w-3xl">
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
+              <h2 className="pp-heading text-2xl md:text-3xl font-bold mb-6" style={{ color: `hsl(${c.heroBackground})` }}>
+                What's Included
+              </h2>
+              <div className="space-y-3">
+                {checklistItems.map((item, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <div
+                      className="mt-0.5 w-6 h-6 rounded-full flex items-center justify-center shrink-0"
+                      style={{ background: `hsl(${c.accent} / 0.12)` }}
+                    >
+                      <Check className="h-3.5 w-3.5" style={{ color: `hsl(${c.accent})` }} />
+                    </div>
+                    <p className="text-sm leading-relaxed" style={{ color: `hsl(${c.heroBackground} / 0.7)` }}>{item}</p>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        </section>
+      )}
+
+      {/* ===== DETAILS / TYPE-SPECIFIC CONTENT ===== */}
       <section className="py-14">
         <div className="container max-w-4xl">
           <div className="grid gap-8 md:grid-cols-3">
@@ -324,7 +385,7 @@ export default function AuthorProductPage() {
               {pType === "homestudy" && product.study_schedule_json && Array.isArray(product.study_schedule_json) && (
                 <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={1}>
                   <div className="p-6 rounded-lg" style={{ background: "white", border: `1px solid hsl(${c.cardBorder})`, borderRadius: theme.borderRadius }}>
-                    <h3 className="pp-heading font-bold text-lg mb-4" style={{ color: `hsl(${c.heroBackground})` }}>What's Included</h3>
+                    <h3 className="pp-heading font-bold text-lg mb-4" style={{ color: `hsl(${c.heroBackground})` }}>Study Schedule</h3>
                     <div className="space-y-3">
                       {(product.study_schedule_json as any[]).slice(0, 10).map((day: any, i: number) => (
                         <div key={i} className="flex gap-3 text-sm">
@@ -391,7 +452,7 @@ export default function AuthorProductPage() {
               )}
             </div>
 
-            {/* Sidebar — Pricing Card (Sticky) */}
+            {/* Sidebar - Pricing Card (Sticky) */}
             <div>
               <div className="sticky top-20 p-6 rounded-lg" style={{ background: "white", border: `1px solid hsl(${c.cardBorder})`, borderRadius: theme.borderRadius }}>
                 {product.price != null && product.price > 0 ? (
@@ -529,24 +590,34 @@ export default function AuthorProductPage() {
                 <p className="text-sm mb-8" style={{ color: `hsl(${c.heroBackground} / 0.6)` }}>
                   Get updates from {displayName}.
                 </p>
-                <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+                <form onSubmit={handleSubscribe} className="flex flex-col gap-3 max-w-md mx-auto">
                   <Input
-                    type="email"
-                    placeholder="your@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="h-12 text-base"
+                    type="text"
+                    placeholder="First name (optional)"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="h-11 text-base"
                     style={{ borderRadius: theme.borderRadius, borderColor: `hsl(${c.cardBorder})` }}
                   />
-                  <Button
-                    type="submit"
-                    disabled={subscribing}
-                    className="shrink-0 h-12 px-6 font-semibold"
-                    style={{ background: `hsl(${c.accent})`, color: `hsl(${c.accentForeground})`, borderRadius: theme.borderRadius }}
-                  >
-                    {subscribing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Subscribe"}
-                  </Button>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Input
+                      type="email"
+                      placeholder="your@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      className="h-12 text-base flex-1"
+                      style={{ borderRadius: theme.borderRadius, borderColor: `hsl(${c.cardBorder})` }}
+                    />
+                    <Button
+                      type="submit"
+                      disabled={subscribing}
+                      className="shrink-0 h-12 px-6 font-semibold"
+                      style={{ background: `hsl(${c.accent})`, color: `hsl(${c.accentForeground})`, borderRadius: theme.borderRadius }}
+                    >
+                      {subscribing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Subscribe"}
+                    </Button>
+                  </div>
                 </form>
                 <p className="text-xs mt-4" style={{ color: `hsl(${c.heroBackground} / 0.3)` }}>
                   We respect your privacy. Unsubscribe anytime.
