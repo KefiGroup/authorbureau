@@ -13,16 +13,17 @@ import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import { splitSalesAndContent } from "@/hooks/useBuilderGeneration";
 import MarkdownRenderer from "../MarkdownRenderer";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import {
   ArrowLeft, Monitor, Smartphone, ChevronLeft, ChevronRight,
   BookOpen, Clock, CalendarDays, Award, Send, Save, Loader2,
   DollarSign, Edit3, Eye, CheckCircle2, FileText, GraduationCap,
+  Plus, X,
 } from "lucide-react";
 import type { StudyDay } from "../builders/home-study/types";
 
