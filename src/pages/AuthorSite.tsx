@@ -308,6 +308,7 @@ export default function AuthorSite() {
       setSubscribed(true);
       toast({ title: "Subscribed!", description: `You'll hear from ${displayName} soon.` });
       setEmail("");
+      setName("");
     }
   }
 
