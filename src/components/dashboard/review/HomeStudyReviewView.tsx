@@ -527,17 +527,27 @@ export default function HomeStudyReviewView({
             </div>
             <div className="max-h-[68vh] overflow-y-auto p-6">
               {hasFullManuscript ? (
-                <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <MarkdownRenderer
-                    content={
-                      splitContent.salesPage && splitContent.curriculum
-                        ? manuscriptTab === "curriculum"
-                          ? splitContent.curriculum
-                          : splitContent.salesPage
-                        : fullCourseMarkdown
-                    }
-                  />
-                </div>
+                hasSeparatedManuscript ? (
+                  <div className="space-y-6">
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Sales Page</p>
+                      <div className="prose prose-sm dark:prose-invert max-w-none">
+                        <MarkdownRenderer content={splitContent.salesPage} />
+                      </div>
+                    </div>
+                    <Separator />
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Home Study Content</p>
+                      <div className="prose prose-sm dark:prose-invert max-w-none">
+                        <MarkdownRenderer content={splitContent.curriculum} />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="prose prose-sm dark:prose-invert max-w-none">
+                    <MarkdownRenderer content={fullCourseMarkdown} />
+                  </div>
+                )
               ) : (
                 <div className="py-12 text-center">
                   <BookOpen className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
