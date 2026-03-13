@@ -820,7 +820,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
         </div>
 
         {/* Sticky action bar */}
-        <div className="sticky bottom-0 z-10 flex items-center justify-between px-6 py-3 border-t border-border bg-card">
+        <div className="sticky bottom-0 z-10 flex items-center gap-3 px-6 py-3 border-t border-border bg-card">
           <Button
             variant="ghost"
             onClick={goPrev}
