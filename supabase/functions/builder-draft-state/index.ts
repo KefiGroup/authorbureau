@@ -311,20 +311,33 @@ Deno.serve(async (req) => {
           }
         }
 
-        // 2) Load draft & content from generated_assets
+        // 2) Load draft, content, and sales page from generated_assets
         if (detailNodeId && detailBookId) {
           const draftType = `builder_draft_${detailNodeId}`;
           const contentType = `builder_content_${detailNodeId}`;
+          const salesPageType = `builder_sales_page_${detailNodeId}`;
           const { data: assets } = await cloudAdmin
             .from("generated_assets")
             .select("asset_type, content")
             .eq("book_id", detailBookId)
-            .in("asset_type", [draftType, contentType])
+            .in("asset_type", [draftType, contentType, salesPageType])
             .in("author_id", allUserIds);
 
           for (const asset of assets || []) {
             if (asset.asset_type === draftType) result.draftContent = asset.content;
             if (asset.asset_type === contentType) result.generatedContent = asset.content;
+            if (asset.asset_type === salesPageType) result.salesPageContent = asset.content;
+          }
+
+          // Backward compatibility: if no separate sales page, try to split from generatedContent
+          if (!result.salesPageContent && result.generatedContent) {
+            const text = result.generatedContent as string;
+            const salesMatch = text.match(/===SALES_PAGE_START===([\s\S]*?)===SALES_PAGE_END===/);
+            const contentMatch = text.match(/===CONTENT_START===([\s\S]*?)===CONTENT_END===/);
+            if (salesMatch && contentMatch) {
+              result.salesPageContent = salesMatch[1].trim();
+              result.generatedContent = contentMatch[1].trim();
+            }
           }
         }
 
@@ -519,6 +532,38 @@ Deno.serve(async (req) => {
       if (upsertError) throw upsertError;
 
       return new Response(JSON.stringify({ ok: true, savedAt }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "save-sales-page" || action === "save-content") {
+      const contentToSave = body?.content as string;
+      if (!contentToSave) {
+        return new Response(JSON.stringify({ error: "content is required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const saveAssetType = action === "save-sales-page"
+        ? `builder_sales_page_${nodeId}`
+        : `builder_content_${nodeId}`;
+
+      const { error: upsertErr } = await cloudAdmin
+        .from("generated_assets")
+        .upsert(
+          {
+            author_id: book.author_id,
+            book_id: bookId,
+            asset_type: saveAssetType,
+            content: contentToSave,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "book_id,asset_type" }
+        );
+
+      if (upsertErr) throw upsertErr;
+
+      return new Response(JSON.stringify({ ok: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

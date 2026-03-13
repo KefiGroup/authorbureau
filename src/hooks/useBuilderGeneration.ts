@@ -176,16 +176,45 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
         }
       }
 
-      // ── Save generated content + Cross-Builder Push ─────────────
+      // ── Split & Save generated content + Cross-Builder Push ─────────────
       const session = await supabase.auth.getSession();
       const userId = session.data?.session?.user?.id;
       if (userId && bookId) {
+        // Split sales page from content using delimiters
+        const salesPageMatch = accumulated.match(/===SALES_PAGE_START===([\s\S]*?)===SALES_PAGE_END===/);
+        const contentMatch = accumulated.match(/===CONTENT_START===([\s\S]*?)===CONTENT_END===/);
+        const salesPageText = salesPageMatch?.[1]?.trim() || "";
+        const contentText = contentMatch?.[1]?.trim() || "";
+
+        // Save sales page as separate asset
+        if (salesPageText) {
+          try {
+            const { error: spErr } = await supabase.from("generated_assets" as any).upsert({
+              book_id: bookId,
+              author_id: userId,
+              asset_type: `builder_sales_page_${builderId}`,
+              content: salesPageText,
+              updated_at: new Date().toISOString(),
+            } as any, { onConflict: "book_id,asset_type" as any });
+            if (spErr) {
+              await supabase.from("generated_assets" as any).insert({
+                book_id: bookId,
+                author_id: userId,
+                asset_type: `builder_sales_page_${builderId}`,
+                content: salesPageText,
+              } as any);
+            }
+          } catch { /* Non-blocking */ }
+        }
+
+        // Save product content as separate asset
+        const contentToSave = contentText || accumulated; // fallback to full output if no delimiters
         try {
           const { error: upsertErr } = await supabase.from("generated_assets" as any).upsert({
             book_id: bookId,
             author_id: userId,
             asset_type: `builder_content_${builderId}`,
-            content: accumulated,
+            content: contentToSave,
             updated_at: new Date().toISOString(),
           } as any, { onConflict: "book_id,asset_type" as any });
           if (upsertErr) {
@@ -193,7 +222,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
               book_id: bookId,
               author_id: userId,
               asset_type: `builder_content_${builderId}`,
-              content: accumulated,
+              content: contentToSave,
             } as any);
           }
         } catch {

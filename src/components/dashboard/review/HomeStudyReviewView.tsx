@@ -51,6 +51,7 @@ export default function HomeStudyReviewView({
   const [days, setDays] = useState<StudyDay[]>([]);
   const [rawDraftContent, setRawDraftContent] = useState<string>("");
   const [fullCourseMarkdown, setFullCourseMarkdown] = useState<string>("");
+  const [salesPageMarkdown, setSalesPageMarkdown] = useState<string>("");
 
   // Editable fields
   const [title, setTitle] = useState("");
@@ -89,6 +90,7 @@ export default function HomeStudyReviewView({
       const courseRecord = result.product || null;
       const draftContentRaw = result.draftContent || null;
       const generatedContentRaw = result.generatedContent || null;
+      const salesPageRaw = result.salesPageContent || null;
 
       let draftSetup: Record<string, any> = {};
       let nextDays: StudyDay[] = [];
@@ -149,6 +151,7 @@ export default function HomeStudyReviewView({
       setSetup(mergedSetup);
       setDays(nextDays);
       setFullCourseMarkdown(markdownFallback);
+      setSalesPageMarkdown(salesPageRaw || "");
       setTitle(mergedSetup.title || productTitle);
       setDescription(mergedSetup.description || "");
       setPrice(mergedSetup.price !== "" && mergedSetup.price !== null && mergedSetup.price !== undefined ? String(mergedSetup.price) : "");
@@ -169,53 +172,9 @@ export default function HomeStudyReviewView({
 
   const hasStructuredDays = days.length > 0;
   const fullCourseText = fullCourseMarkdown.trim();
+  const hasSalesPage = salesPageMarkdown.trim().length > 50;
   const hasFullManuscript = /day\s*1/i.test(fullCourseText) || fullCourseText.length > 2000;
   const canPublish = hasStructuredDays || hasFullManuscript;
-
-  // Split sales page from curriculum content
-  const splitContent = (() => {
-    if (!fullCourseText) return { salesPage: "", curriculum: "" };
-
-    const normalized = fullCourseText.replace(/\r\n/g, "\n");
-    const salesMarker = normalized.search(/(?:^|\n)(?:#{0,3}\s*)?(?:Sales\s*Page\s*Copy|Sales\s*Page)\b/i);
-
-    const curriculumMarkers = [
-      /(?:^|\n)(?:#{0,3}\s*)?(?:\d{1,3}-Day[^\n]*Daily\s*Content\s*Plan|Daily\s*Content\s*Plan|Home\s*Study\s*(?:Course\s*)?(?:Content|Curriculum|Guide)|Course\s*Content|Curriculum(?:\s*Manuscript)?|Daily\s*Lessons|Lesson\s*Plan|Program\s*Content|Workbook\s*Content|Introduction\s*Email\b|Week\s*1\b|Day\s*1\b)/i,
-      /(?:^|\n)(?:Day|DAY)\s*1\s*[:\-]/,
-      /(?:^|\n)\*\*(?:Day|DAY)\s*1\b/i,
-    ];
-
-    const searchStart = salesMarker >= 0 ? salesMarker + 1 : 0;
-    const minDistance = salesMarker >= 0 ? 120 : 260;
-    let splitAt: number | null = null;
-
-    for (const marker of curriculumMarkers) {
-      const relativeMatch = normalized.slice(searchStart).search(marker);
-      if (relativeMatch > minDistance) {
-        const absoluteMatch = searchStart + relativeMatch;
-        if (splitAt === null || absoluteMatch < splitAt) splitAt = absoluteMatch;
-      }
-    }
-
-    if (splitAt !== null) {
-      return {
-        salesPage: normalized.slice(0, splitAt).trim(),
-        curriculum: normalized.slice(splitAt).trim(),
-      };
-    }
-
-    // Generic fallback
-    const genericMatch = normalized.search(/\n---+\n/);
-    if (genericMatch > 200) {
-      return {
-        salesPage: normalized.slice(0, genericMatch).trim(),
-        curriculum: normalized.slice(genericMatch).trim(),
-      };
-    }
-
-    return { salesPage: "", curriculum: normalized };
-  })();
-  const hasSeparatedManuscript = Boolean(splitContent.salesPage && splitContent.curriculum);
 
   const duration = hasStructuredDays ? days.length : Number(setup.duration) || 30;
   const totalPages = hasStructuredDays ? days.length + 2 : 1;
@@ -273,13 +232,9 @@ export default function HomeStudyReviewView({
     if (!user) return;
     setSaving(true);
     try {
-      // Update the sales page portion in the full markdown
-      const newMarkdown = splitContent.curriculum
-        ? `${salesDraft}\n\n---\n\n${splitContent.curriculum}`
-        : salesDraft;
-      setFullCourseMarkdown(newMarkdown);
+      setSalesPageMarkdown(salesDraft);
 
-      // Save to generated_assets via edge function
+      // Save sales page as separate asset via edge function
       const token = await getActiveToken();
       if (!token) throw new Error("Not authenticated");
 
@@ -289,10 +244,10 @@ export default function HomeStudyReviewView({
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({
-            action: "save-content",
+            action: "save-sales-page",
             bookId,
             nodeId: "home-study-course",
-            content: newMarkdown,
+            content: salesDraft,
           }),
         }
       );
@@ -366,7 +321,7 @@ export default function HomeStudyReviewView({
             variant="outline"
             size="sm"
             onClick={() => {
-              setSalesDraft(splitContent.salesPage || fullCourseMarkdown);
+              setSalesDraft(salesPageMarkdown || fullCourseMarkdown);
               setDrawerOpen("sales");
             }}
           >
@@ -521,25 +476,25 @@ export default function HomeStudyReviewView({
                   ? "Showing your complete generated Home Study curriculum."
                   : "No day-by-day lessons were found yet. Go back to the Home Study Builder to generate the daily schedule and content."}
               </p>
-              {hasSeparatedManuscript && (
+              {hasSalesPage && (
                 <p className="text-xs text-muted-foreground mt-2">Sales page and course content are shown in separate sections below.</p>
               )}
             </div>
             <div className="max-h-[68vh] overflow-y-auto p-6">
               {hasFullManuscript ? (
-                hasSeparatedManuscript ? (
+                hasSalesPage ? (
                   <div className="space-y-6">
                     <div>
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Sales Page</p>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">📄 Sales Page</p>
                       <div className="prose prose-sm dark:prose-invert max-w-none">
-                        <MarkdownRenderer content={splitContent.salesPage} />
+                        <MarkdownRenderer content={salesPageMarkdown} />
                       </div>
                     </div>
                     <Separator />
                     <div>
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Home Study Content</p>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">📚 Home Study Content</p>
                       <div className="prose prose-sm dark:prose-invert max-w-none">
-                        <MarkdownRenderer content={splitContent.curriculum} />
+                        <MarkdownRenderer content={fullCourseMarkdown} />
                       </div>
                     </div>
                   </div>
@@ -579,7 +534,7 @@ export default function HomeStudyReviewView({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => { setSalesDraft(splitContent.salesPage || fullCourseMarkdown); setDrawerOpen("sales"); }}>
+          <Button variant="outline" size="sm" onClick={() => { setSalesDraft(salesPageMarkdown || fullCourseMarkdown); setDrawerOpen("sales"); }}>
             <FileText className="h-3.5 w-3.5 mr-1" /> Edit Sales Page
           </Button>
           <Button variant="outline" size="sm" onClick={() => setDrawerOpen("content")}>
