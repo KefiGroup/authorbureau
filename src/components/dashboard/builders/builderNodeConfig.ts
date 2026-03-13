@@ -912,6 +912,7 @@ const franchiseBuilder: BuilderNodeConfig = {
   dbTable: "generated_assets",
   icon: "Network",
   color: "text-amber-500",
+  customRenderer: "franchise",
   abbyGreeting: "A franchise model scales your methodology through trained practitioners. This is legacy-building territory.",
   abbyPublishMessage: "Your franchise blueprint is designed! This is a long-term play that builds your legacy and impact.",
   loadingMessages: [
