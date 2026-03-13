@@ -98,7 +98,7 @@ export default function FreeMicrositeHero({
                 <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
               </div>
               <div className="flex-1 rounded-md bg-white border border-gray-200 px-2 py-0.5 text-[10px] text-gray-500 truncate">
-                authorsbureau.com/authors/{authorSlug || "your-name"}
+                authorsbureau.com/{authorSlug || "your-name"}
               </div>
             </div>
             {/* Page content */}
