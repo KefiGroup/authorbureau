@@ -149,6 +149,7 @@ export default function AuthorSite() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [subscribing, setSubscribing] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
   const [bioExpanded, setBioExpanded] = useState(false);
