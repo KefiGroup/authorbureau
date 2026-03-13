@@ -311,20 +311,33 @@ Deno.serve(async (req) => {
           }
         }
 
-        // 2) Load draft & content from generated_assets
+        // 2) Load draft, content, and sales page from generated_assets
         if (detailNodeId && detailBookId) {
           const draftType = `builder_draft_${detailNodeId}`;
           const contentType = `builder_content_${detailNodeId}`;
+          const salesPageType = `builder_sales_page_${detailNodeId}`;
           const { data: assets } = await cloudAdmin
             .from("generated_assets")
             .select("asset_type, content")
             .eq("book_id", detailBookId)
-            .in("asset_type", [draftType, contentType])
+            .in("asset_type", [draftType, contentType, salesPageType])
             .in("author_id", allUserIds);
 
           for (const asset of assets || []) {
             if (asset.asset_type === draftType) result.draftContent = asset.content;
             if (asset.asset_type === contentType) result.generatedContent = asset.content;
+            if (asset.asset_type === salesPageType) result.salesPageContent = asset.content;
+          }
+
+          // Backward compatibility: if no separate sales page, try to split from generatedContent
+          if (!result.salesPageContent && result.generatedContent) {
+            const text = result.generatedContent as string;
+            const salesMatch = text.match(/===SALES_PAGE_START===([\s\S]*?)===SALES_PAGE_END===/);
+            const contentMatch = text.match(/===CONTENT_START===([\s\S]*?)===CONTENT_END===/);
+            if (salesMatch && contentMatch) {
+              result.salesPageContent = salesMatch[1].trim();
+              result.generatedContent = contentMatch[1].trim();
+            }
           }
         }
 
