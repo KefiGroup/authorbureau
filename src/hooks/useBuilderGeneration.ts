@@ -228,24 +228,15 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
     abortRef.current = controller;
 
     try {
-      const token = await getToken();
-      const resp = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/abby-builder-generate`,
+      const resp = await fetchBuilderEndpoint(
         {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            act: 3,
-            builderId,
-            bookId,
-            builderLabel,
-            approvedProposal,
-          }),
-          signal: controller.signal,
-        }
+          act: 3,
+          builderId,
+          bookId,
+          builderLabel,
+          approvedProposal,
+        },
+        controller.signal,
       );
 
       if (!resp.ok) {
