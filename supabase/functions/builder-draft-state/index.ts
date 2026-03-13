@@ -124,7 +124,7 @@ Deno.serve(async (req) => {
     const nodeId = body?.nodeId as string | undefined;
 
     // ── Actions that don't require bookId/nodeId ──
-    if (action === "list-drafts" || action === "publish-product" || action === "preview-product" || action === "get-product-detail") {
+    if (action === "list-drafts" || action === "publish-product" || action === "preview-product" || action === "get-product-detail" || action === "delete-product") {
       const identity = await resolveIdentity(token);
       if (!identity) {
         return new Response(JSON.stringify({ error: "Invalid session" }), {
