@@ -90,6 +90,7 @@ export default function HomeStudyReviewView({
       const courseRecord = result.product || null;
       const draftContentRaw = result.draftContent || null;
       const generatedContentRaw = result.generatedContent || null;
+      const salesPageRaw = result.salesPageContent || null;
 
       let draftSetup: Record<string, any> = {};
       let nextDays: StudyDay[] = [];
