@@ -231,6 +231,108 @@ export type Database = {
         }
         Relationships: []
       }
+      author_payout_settings: {
+        Row: {
+          author_id: string
+          created_at: string
+          id: string
+          payout_method: string
+          paypal_email: string | null
+          refund_window_days: number
+          updated_at: string
+          wise_account_number: string | null
+          wise_currency: string | null
+          wise_email: string | null
+          wise_routing_number: string | null
+        }
+        Insert: {
+          author_id: string
+          created_at?: string
+          id?: string
+          payout_method?: string
+          paypal_email?: string | null
+          refund_window_days?: number
+          updated_at?: string
+          wise_account_number?: string | null
+          wise_currency?: string | null
+          wise_email?: string | null
+          wise_routing_number?: string | null
+        }
+        Update: {
+          author_id?: string
+          created_at?: string
+          id?: string
+          payout_method?: string
+          paypal_email?: string | null
+          refund_window_days?: number
+          updated_at?: string
+          wise_account_number?: string | null
+          wise_currency?: string | null
+          wise_email?: string | null
+          wise_routing_number?: string | null
+        }
+        Relationships: []
+      }
+      author_payouts: {
+        Row: {
+          amount: number
+          author_id: string
+          completed_at: string | null
+          created_at: string
+          currency: string
+          failed_reason: string | null
+          id: string
+          initiated_at: string | null
+          initiated_by: string | null
+          payout_method: string
+          paypal_batch_id: string | null
+          purchase_count: number
+          reference_note: string | null
+          status: string
+          stripe_transfer_id: string | null
+          updated_at: string
+          wise_transfer_id: string | null
+        }
+        Insert: {
+          amount: number
+          author_id: string
+          completed_at?: string | null
+          created_at?: string
+          currency?: string
+          failed_reason?: string | null
+          id?: string
+          initiated_at?: string | null
+          initiated_by?: string | null
+          payout_method: string
+          paypal_batch_id?: string | null
+          purchase_count?: number
+          reference_note?: string | null
+          status?: string
+          stripe_transfer_id?: string | null
+          updated_at?: string
+          wise_transfer_id?: string | null
+        }
+        Update: {
+          amount?: number
+          author_id?: string
+          completed_at?: string | null
+          created_at?: string
+          currency?: string
+          failed_reason?: string | null
+          id?: string
+          initiated_at?: string | null
+          initiated_by?: string | null
+          payout_method?: string
+          paypal_batch_id?: string | null
+          purchase_count?: number
+          reference_note?: string | null
+          status?: string
+          stripe_transfer_id?: string | null
+          updated_at?: string
+          wise_transfer_id?: string | null
+        }
+        Relationships: []
+      }
       author_profiles: {
         Row: {
           amazon_author_profile_url: string | null
@@ -1840,6 +1942,75 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      purchases: {
+        Row: {
+          amount: number
+          author_earnings: number
+          author_id: string
+          created_at: string
+          currency: string
+          customer_email: string
+          customer_name: string | null
+          id: string
+          payout_eligible_at: string | null
+          payout_id: string | null
+          payout_status: string
+          platform_fee: number
+          product_id: string
+          product_title: string
+          product_type: string
+          refund_status: string
+          refunded_at: string | null
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          author_earnings?: number
+          author_id: string
+          created_at?: string
+          currency?: string
+          customer_email: string
+          customer_name?: string | null
+          id?: string
+          payout_eligible_at?: string | null
+          payout_id?: string | null
+          payout_status?: string
+          platform_fee?: number
+          product_id: string
+          product_title: string
+          product_type: string
+          refund_status?: string
+          refunded_at?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          author_earnings?: number
+          author_id?: string
+          created_at?: string
+          currency?: string
+          customer_email?: string
+          customer_name?: string | null
+          id?: string
+          payout_eligible_at?: string | null
+          payout_id?: string | null
+          payout_status?: string
+          platform_fee?: number
+          product_id?: string
+          product_title?: string
+          product_type?: string
+          refund_status?: string
+          refunded_at?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
