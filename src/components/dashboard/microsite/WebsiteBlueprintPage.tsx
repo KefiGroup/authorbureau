@@ -378,7 +378,7 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
               </div>
               <span className="text-[10px] text-muted-foreground ml-2 truncate">authorsbureau.com/{authorSlug}</span>
             </div>
-            {isLive && profileData?.author_slug ? (
+            {profileData?.author_slug ? (
               <div className="relative w-full" style={{ height: "320px", overflow: "hidden" }}>
                 <iframe
                   src={`/${profileData.author_slug}`}
@@ -396,7 +396,7 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
               <div className="p-8 flex flex-col items-center justify-center text-center min-h-[220px]">
                 <Globe className="h-10 w-10 text-muted-foreground/30 mb-3" />
                 <p className="text-xs text-muted-foreground">
-                  Your site preview will appear here once your profile is published.
+                  Set your author slug above to see your site preview.
                 </p>
               </div>
             )}
