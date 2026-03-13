@@ -12,7 +12,7 @@ import CrossBuilderNotifications from "./CrossBuilderNotifications";
 import CrossBuilderPushSummary from "./CrossBuilderPushSummary";
 import BuilderUpgradeGate from "./BuilderUpgradeGate";
 import { BUILDER_SYSTEM_PROMPTS } from "./builderSystemPrompts";
-import { useBuilderGeneration } from "@/hooks/useBuilderGeneration";
+import { useBuilderGeneration, splitSalesAndContent } from "@/hooks/useBuilderGeneration";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -147,6 +147,9 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
     }
   })();
   const setGenerationState = (_s: string) => {};
+  const splitPreview = splitSalesAndContent(builderGen.generatedContent || "");
+  const previewSalesText = builderGen.generatedSalesPage || splitPreview.salesPageText;
+  const previewContentText = splitPreview.contentText || builderGen.generatedContent;
   const [editedSteps, setEditedSteps] = useState<Set<string>>(new Set());
   const [resolvedBookCoverUrl, setResolvedBookCoverUrl] = useState<string | null>(bookCoverUrl);
 
@@ -683,8 +686,21 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                       </div>
                     </div>
                     {builderGen.generatedContent && (
-                      <div className="max-h-[400px] overflow-y-auto border rounded-lg p-4 bg-muted/30">
-                        <MarkdownRenderer content={builderGen.generatedContent} />
+                      <div className="max-h-[440px] overflow-y-auto border rounded-lg p-4 bg-muted/30 space-y-4">
+                        {previewSalesText ? (
+                          <div className="space-y-2">
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-secondary">Sales Page Draft</p>
+                            <div className="rounded-lg border border-border bg-background p-3">
+                              <MarkdownRenderer content={previewSalesText} />
+                            </div>
+                          </div>
+                        ) : null}
+                        <div className="space-y-2">
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-secondary">Product Content Draft</p>
+                          <div className="rounded-lg border border-border bg-background p-3">
+                            <MarkdownRenderer content={previewContentText || builderGen.generatedContent} />
+                          </div>
+                        </div>
                       </div>
                     )}
                   </Card>
@@ -697,8 +713,21 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                       <Check className="h-5 w-5 text-accent" />
                       <p className="text-sm font-bold text-accent">Content generated successfully! \uD83C\uDF89</p>
                     </div>
-                    <div className="max-h-[500px] overflow-y-auto border rounded-lg p-4 bg-background">
-                      <MarkdownRenderer content={builderGen.generatedContent} />
+                    <div className="max-h-[520px] overflow-y-auto border rounded-lg p-4 bg-background space-y-4">
+                      {previewSalesText ? (
+                        <div className="space-y-2">
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-secondary">Sales Page (saved separately)</p>
+                          <div className="rounded-lg border border-border bg-muted/20 p-3">
+                            <MarkdownRenderer content={previewSalesText} />
+                          </div>
+                        </div>
+                      ) : null}
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-secondary">Product Content</p>
+                        <div className="rounded-lg border border-border bg-muted/20 p-3">
+                          <MarkdownRenderer content={previewContentText || builderGen.generatedContent} />
+                        </div>
+                      </div>
                     </div>
                     <div className="flex gap-2 mt-4">
                       <Button size="sm" variant="outline" onClick={() => builderGen.reset()}>

@@ -14,48 +14,86 @@ import { getPushesForBuilder } from "@/lib/cross-builder-registry";
 
 /**
  * Robust split of AI output into sales page and content.
- * Strategy 1: Exact delimiters (===SALES_PAGE_START=== / ===CONTENT_START===)
- * Strategy 2: Partial delimiters (model may omit _END markers)
- * Strategy 3: Header-based heuristics (# Sales Page Copy ... # Day 1)
- * Strategy 4: If nothing works, entire output goes to content only.
+ * Strategy 1: Full delimiters
+ * Strategy 2: Partial delimiters (missing END markers)
+ * Strategy 3: Delimiter + curriculum boundary (Day 1 / Module 1 / Lesson 1)
+ * Strategy 4: Header/copy heuristics fallback
  */
-function splitSalesAndContent(text: string): { salesPageText: string; contentText: string } {
-  if (!text) return { salesPageText: "", contentText: "" };
+export function splitSalesAndContent(rawText: string): { salesPageText: string; contentText: string } {
+  if (!rawText) return { salesPageText: "", contentText: "" };
 
-  // Strategy 1: Exact delimiter pairs
-  const salesMatch = text.match(/={3,}SALES[_ ]?PAGE[_ ]?START={3,}([\s\S]*?)={3,}SALES[_ ]?PAGE[_ ]?END={3,}/i);
-  const contentMatch = text.match(/={3,}CONTENT[_ ]?START={3,}([\s\S]*?)={3,}CONTENT[_ ]?END={3,}/i);
-  if (salesMatch && contentMatch) {
-    return { salesPageText: salesMatch[1].trim(), contentText: contentMatch[1].trim() };
+  const text = rawText.replace(/\r\n/g, "\n");
+  const stripMarkers = (s: string) =>
+    s
+      .replace(/={3,}\s*(SALES[_ ]?PAGE[_ ]?START|SALES[_ ]?PAGE[_ ]?END|CONTENT[_ ]?START|CONTENT[_ ]?END)\s*={3,}/gi, "")
+      .trim();
+
+  const salesStartTag = /={3,}\s*SALES[_ ]?PAGE[_ ]?START\s*={3,}/i;
+  const salesEndTag = /={3,}\s*SALES[_ ]?PAGE[_ ]?END\s*={3,}/i;
+  const contentStartTag = /={3,}\s*CONTENT[_ ]?START\s*={3,}/i;
+  const contentEndTag = /={3,}\s*CONTENT[_ ]?END\s*={3,}/i;
+  const curriculumStartTag = /(^|\n)(#{1,6}\s*)?(day\s*1\b|module\s*1\b|lesson\s*1\b|week\s*1\b|curriculum\b|course\s*content\b|program\s*content\b)/i;
+
+  // Strategy 1: exact or near-exact delimiters
+  const salesMatch = text.match(/={3,}\s*SALES[_ ]?PAGE[_ ]?START\s*={3,}([\s\S]*?)={3,}\s*SALES[_ ]?PAGE[_ ]?END\s*={3,}/i);
+  const contentMatch = text.match(/={3,}\s*CONTENT[_ ]?START\s*={3,}([\s\S]*?)={3,}\s*CONTENT[_ ]?END\s*={3,}/i);
+  if (salesMatch?.[1] && contentMatch?.[1]) {
+    return { salesPageText: stripMarkers(salesMatch[1]), contentText: stripMarkers(contentMatch[1]) };
   }
 
-  // Strategy 2: Start delimiters only (AI may forget END markers)
-  const salesStartIdx = text.search(/={3,}SALES[_ ]?PAGE[_ ]?START={3,}/i);
-  const contentStartIdx = text.search(/={3,}CONTENT[_ ]?START={3,}/i);
+  const salesStartIdx = text.search(salesStartTag);
+  const salesEndIdx = text.search(salesEndTag);
+  const contentStartIdx = text.search(contentStartTag);
+  const contentEndIdx = text.search(contentEndTag);
+
+  // Strategy 2A: Sales start + content start, with or without END markers
   if (salesStartIdx >= 0 && contentStartIdx > salesStartIdx) {
-    const afterSalesTag = text.slice(salesStartIdx).replace(/={3,}SALES[_ ]?PAGE[_ ]?START={3,}/i, "");
-    const salesEndIdx = afterSalesTag.search(/={3,}(SALES[_ ]?PAGE[_ ]?END|CONTENT[_ ]?START)={3,}/i);
-    const salesText = salesEndIdx >= 0 ? afterSalesTag.slice(0, salesEndIdx).trim() : afterSalesTag.slice(0, contentStartIdx - salesStartIdx).trim();
-    const afterContentTag = text.slice(contentStartIdx).replace(/={3,}CONTENT[_ ]?START={3,}/i, "");
-    const contentEndIdx = afterContentTag.search(/={3,}CONTENT[_ ]?END={3,}/i);
-    const contentText = contentEndIdx >= 0 ? afterContentTag.slice(0, contentEndIdx).trim() : afterContentTag.trim();
+    const salesBlockStart = text.slice(salesStartIdx).replace(salesStartTag, "");
+    const splitIdx = salesBlockStart.search(contentStartTag);
+    const beforeContent = splitIdx >= 0 ? salesBlockStart.slice(0, splitIdx) : salesBlockStart;
+    const salesText = stripMarkers(beforeContent.replace(salesEndTag, ""));
+
+    const afterContentStart = text.slice(contentStartIdx).replace(contentStartTag, "");
+    const contentText = stripMarkers(contentEndIdx > contentStartIdx ? afterContentStart.split(contentEndTag)[0] : afterContentStart);
+
     if (salesText && contentText) return { salesPageText: salesText, contentText };
   }
 
-  // Strategy 3: Header-based heuristics
-  const salesHeaderIdx = text.search(/^#+\s*Sales\s*Page\s*(Copy|Content)?\b/im);
-  // Look for first day/module/lesson header as content start
-  const contentHeaderIdx = text.search(/^#+\s*(Day\s*1\b|Module\s*1\b|Lesson\s*1\b|Week\s*1\b|Welcome|Introduction|Content\s*Section)/im);
+  // Strategy 2B: Sales markers exist but content markers missing -> content starts after sales end
+  if (salesStartIdx >= 0 && salesEndIdx > salesStartIdx) {
+    const salesText = stripMarkers(text.slice(salesStartIdx, salesEndIdx));
+    const remaining = stripMarkers(text.slice(salesEndIdx).replace(salesEndTag, ""));
+    if (salesText && remaining) {
+      const curriculumIdx = remaining.search(curriculumStartTag);
+      const contentText = curriculumIdx >= 0 ? remaining.slice(curriculumIdx).trim() : remaining;
+      return { salesPageText: salesText, contentText };
+    }
+  }
+
+  // Strategy 3: Sales start tag + first curriculum boundary
+  if (salesStartIdx >= 0) {
+    const afterSalesStart = stripMarkers(text.slice(salesStartIdx).replace(salesStartTag, ""));
+    const curriculumIdx = afterSalesStart.search(curriculumStartTag);
+    if (curriculumIdx > 0) {
+      return {
+        salesPageText: afterSalesStart.slice(0, curriculumIdx).trim(),
+        contentText: afterSalesStart.slice(curriculumIdx).trim(),
+      };
+    }
+  }
+
+  // Strategy 4: Header/copy heuristics fallback
+  const salesHeaderIdx = text.search(/(^|\n)#{1,6}\s*(sales\s*page|landing\s*page|offer\s*page|marketing\s*copy)\b/i);
+  const contentHeaderIdx = text.search(/(^|\n)#{1,6}\s*(day\s*1\b|module\s*1\b|lesson\s*1\b|curriculum\b|course\s*content\b)/i);
   if (salesHeaderIdx >= 0 && contentHeaderIdx > salesHeaderIdx) {
     return {
-      salesPageText: text.slice(salesHeaderIdx, contentHeaderIdx).trim(),
-      contentText: text.slice(contentHeaderIdx).trim(),
+      salesPageText: stripMarkers(text.slice(salesHeaderIdx, contentHeaderIdx)),
+      contentText: stripMarkers(text.slice(contentHeaderIdx)),
     };
   }
 
-  // Strategy 4: No split possible — everything is content
-  console.warn("[splitSalesAndContent] No delimiters or headers found; treating entire output as content.");
-  return { salesPageText: "", contentText: text };
+  console.warn("[splitSalesAndContent] No clear split markers found; treating as content only.");
+  return { salesPageText: "", contentText: stripMarkers(text) };
 }
 
 export interface BuilderProposal {
@@ -89,6 +127,7 @@ interface GenerationState {
   act: GenerationAct;
   proposal: BuilderProposal | null;
   generatedContent: string;
+  generatedSalesPage: string;
   error: string | null;
   pushResult: { pushed: number; errors: string[] } | null;
 }
@@ -99,6 +138,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
     act: "idle",
     proposal: null,
     generatedContent: "",
+    generatedSalesPage: "",
     error: null,
     pushResult: null,
   });
@@ -111,7 +151,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
 
   // ── ACT 1: Analyze ─────────────────────────────────────────────
   const startAct1 = useCallback(async (bookId: string) => {
-    setState({ act: "act1_loading", proposal: null, generatedContent: "", error: null, pushResult: null });
+    setState({ act: "act1_loading", proposal: null, generatedContent: "", generatedSalesPage: "", error: null, pushResult: null });
 
     try {
       const token = await getToken();
@@ -139,6 +179,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
         act: "act2_proposal",
         proposal: data.proposal,
         generatedContent: "",
+        generatedSalesPage: "",
         error: null,
         pushResult: null,
       });
@@ -153,7 +194,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
 
   // ── ACT 3: Generate ────────────────────────────────────────────
   const startAct3 = useCallback(async (bookId: string, approvedProposal: BuilderProposal) => {
-    setState(prev => ({ ...prev, act: "act3_generating", generatedContent: "", error: null }));
+    setState(prev => ({ ...prev, act: "act3_generating", generatedContent: "", generatedSalesPage: "", error: null }));
 
     const controller = new AbortController();
     abortRef.current = controller;
@@ -223,12 +264,12 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
       }
 
       // ── Split & Save generated content + Cross-Builder Push ─────────────
+      const { salesPageText, contentText } = splitSalesAndContent(accumulated);
+      const contentToSave = contentText || accumulated;
+
       const session = await supabase.auth.getSession();
       const userId = session.data?.session?.user?.id;
       if (userId && bookId) {
-        // Robust split: try multiple strategies
-        const { salesPageText, contentText } = splitSalesAndContent(accumulated);
-
         // Save sales page as separate asset
         if (salesPageText) {
           try {
@@ -251,7 +292,6 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
         }
 
         // Save product content as separate asset
-        const contentToSave = contentText || accumulated;
         try {
           const { error: upsertErr } = await supabase.from("generated_assets" as any).upsert({
             book_id: bookId,
@@ -317,7 +357,13 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
         }
       }
 
-      setState(prev => ({ ...prev, act: "act3_complete", pushResult }));
+      setState(prev => ({
+        ...prev,
+        act: "act3_complete",
+        generatedContent: contentToSave,
+        generatedSalesPage: salesPageText,
+        pushResult,
+      }));
       toast({ 
         title: "Content generated! 🎉", 
         description: pushResult?.pushed 
@@ -343,7 +389,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
   // ── Reset ──────────────────────────────────────────────────────
   const reset = useCallback(() => {
     abortRef.current?.abort();
-    setState({ act: "idle", proposal: null, generatedContent: "", error: null, pushResult: null });
+    setState({ act: "idle", proposal: null, generatedContent: "", generatedSalesPage: "", error: null, pushResult: null });
   }, []);
 
   // ── Retry ──────────────────────────────────────────────────────

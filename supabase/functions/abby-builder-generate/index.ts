@@ -592,41 +592,46 @@ GENERATE EVERYTHING:
 For the "${approvedProposal.recommended_title || approvedProposal.title_options?.[0]}" ${builderLabel || builderId}:
 
 ⚠️ MANDATORY OUTPUT FORMAT — YOU MUST FOLLOW THIS EXACTLY ⚠️
-Your output MUST contain EXACTLY these delimiter lines. The system parses them programmatically. If you omit them, the product will be broken.
+Your output MUST contain EXACTLY these delimiter lines. The system parses them programmatically.
+If you omit, rename, or reorder delimiters, your output is unusable.
 
-Your FIRST line of output must be:
+NON-NEGOTIABLE RULES:
+- The very first line must be exactly: ===SALES_PAGE_START===
+- Do not output any text before that line.
+- Do not output any text after ===CONTENT_END===
+- Sales content must stay in Sales section only.
+- Curriculum/lesson/day content must stay in Content section only.
+
+SECTION 1 — PUBLIC SALES COPY
 ===SALES_PAGE_START===
-
-Then write the complete sales/landing page copy:
+Write ONLY the public-facing sales page copy:
 - Compelling headline and sub-headline
 - Hero section with transformation promise
 - Pain points and "Are You Ready" sections
-- What's included / curriculum overview (high-level, not the actual content)
-- Social proof placeholders, testimonials
+- High-level "What's included" overview (summary only, no full lesson text)
+- Social proof placeholders / testimonials
 - Pricing section with value stack
 - FAQ section
 - Call-to-action / Enroll Now section
-Use the author's voice. This is what the PUBLIC sees BEFORE they buy.
-
-Then write this line EXACTLY:
+Use the author's voice. This section is what people see BEFORE purchase.
 ===SALES_PAGE_END===
 
-Then write this line EXACTLY:
+SECTION 2 — BUYER CONTENT
 ===CONTENT_START===
-
-Then write ALL the actual product content (what BUYERS get AFTER purchase):
-1. Welcome/Introduction email or message (personalize with "Dear [Participant Name]")
-2. Complete content for every section/module/day in the structure
-3. For each item, write full professional content (800-1200 words for lessons, 200-400 for exercises)
-4. Include all supporting materials (scripts, exercises, quizzes, templates, reflection prompts)
-5. Use the author's voice and the book's terminology throughout
-6. Reference specific chapters, quotes, and frameworks from the manuscript
-7. Completion/certificate section
-
-Then write this line EXACTLY:
+Write ONLY the paid product content (what buyers receive AFTER purchase):
+1. Welcome/Introduction message (personalize with "Dear [Participant Name]")
+2. Complete content for every section/module/day in the approved structure
+3. Full professional lesson content + exercises + worksheets/prompts
+4. Supporting materials (scripts, templates, quizzes, reflection prompts)
+5. Author voice + manuscript terminology + chapter references
+6. Completion/certificate section
 ===CONTENT_END===
 
-REMEMBER: All 4 delimiter lines (===SALES_PAGE_START===, ===SALES_PAGE_END===, ===CONTENT_START===, ===CONTENT_END===) are REQUIRED. Do NOT skip any of them. Do NOT put content outside of these sections.`;
+SELF-CHECK BEFORE FINALIZING:
+1) Did you include all 4 delimiters exactly once each?
+2) Is there any curriculum text in Sales section? If yes, move it to Content section.
+3) Is there any text outside delimiters? If yes, remove it.
+4) If any check fails, rewrite and fix before responding.`;
 
       const response = await fetch(AI_URL, {
         method: "POST",
@@ -640,7 +645,7 @@ REMEMBER: All 4 delimiter lines (===SALES_PAGE_START===, ===SALES_PAGE_END===, =
             { role: "system", content: generatePrompt },
             { role: "user", content: `Generate all the content for my approved ${builderLabel || builderId}. Make it comprehensive and production-ready.` },
           ],
-          temperature: 0.75,
+          temperature: 0.55,
           max_completion_tokens: 16000,
           stream: true,
         }),
