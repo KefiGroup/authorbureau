@@ -1,826 +1,355 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
-  Sparkles, ExternalLink, Copy, CheckCircle2, Info,
-  Globe, User, BookOpen, ShoppingBag, FileText, Calendar,
-  Megaphone, Loader2, Link2, Download, AlertCircle, Crown, HelpCircle,
-  RefreshCw, X,
+  Globe, Copy, CheckCircle2, ExternalLink, BookOpen,
+  GraduationCap, Users, Headphones, Loader2, Palette, Check,
 } from "lucide-react";
-import {
-  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
-} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { AUTHOR_THEMES, getThemeById, type AuthorTheme } from "@/lib/author-themes";
 
-/* ---------- types ---------- */
-interface AbbyPage {
+/* ---------- Types ---------- */
+interface BookProduct {
   id: string;
-  name: string;
-  recommended: boolean;
-  enabled: boolean;
-  reason?: string;
+  title: string;
+  type: string;
+  status: string;
+  route: string;
 }
 
-interface PreviewData {
-  hero_headline: string;
-  hero_subheadline?: string;
-  cta_text?: string;
-  nav_links: string[];
-}
-
-interface Phase1Result {
-  pages: AbbyPage[];
-  preview_data: PreviewData;
+interface BookWithStatus {
+  id: string;
+  title: string;
+  slug: string;
+  cover_image_url: string | null;
+  products: BookProduct[];
 }
 
 interface Props {
   onNavigate?: (section: string) => void;
 }
 
-/* ---------- icon map ---------- */
-const PAGE_ICONS: Record<string, typeof Globe> = {
-  homepage: Globe,
-  about: User,
-  books: BookOpen,
-  products: ShoppingBag,
-  coaching: FileText,
-  events: Calendar,
-  blog: Megaphone,
+const PRODUCT_ICONS: Record<string, typeof BookOpen> = {
+  home_study: BookOpen,
+  course: GraduationCap,
+  coaching: Users,
+  audiobook: Headphones,
 };
-
-const PAGE_TOOLTIPS: Record<string, string> = {
-  homepage: "The Homepage is the first thing visitors see. It communicates your core message and captures leads.",
-  about: "The About Page tells your story and builds a personal connection with your readers.",
-  books: "Showcase each book with its cover, description, and purchase links in one place.",
-  products: "Each digital product gets its own optimized sales page with pricing and checkout.",
-  coaching: "Display your coaching offerings with pricing tiers and a booking or inquiry form.",
-  events: "Promote your upcoming events with dates, descriptions, and registration links.",
-  blog: "A blog builds SEO authority and gives readers a reason to keep coming back.",
-};
-
-const ALWAYS_ON = new Set(["homepage", "about"]);
 
 export default function WebsiteBlueprintPage({ onNavigate }: Props) {
-  const { user, tier, isAdmin } = useAuth();
-  const effectiveTier = isAdmin ? "enterprise" : tier;
-  const isPaidTier = effectiveTier === "starter" || effectiveTier === "pro" || effectiveTier === "enterprise";
-
-  /* --- raw data for preview --- */
+  const { user } = useAuth();
   const [profileData, setProfileData] = useState<any>(null);
-  const [books, setBooks] = useState<any[]>([]);
-
-  /* --- AI state --- */
-  const [phase1Loading, setPhase1Loading] = useState(true);
-  const [phase1Error, setPhase1Error] = useState<string | null>(null);
-  const [abbyPages, setAbbyPages] = useState<AbbyPage[]>([]);
-  const [previewData, setPreviewData] = useState<PreviewData | null>(null);
-
-  /* --- Phase 2 / build state --- */
-  const [generating, setGenerating] = useState(false);
-  const [designData, setDesignData] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-
-  /* --- link state --- */
-  const [manusLink, setManusLink] = useState("");
-  const [linkSaved, setLinkSaved] = useState(false);
-
-  /* --- domain state --- */
+  const [booksWithStatus, setBooksWithStatus] = useState<BookWithStatus[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [urlCopied, setUrlCopied] = useState(false);
   const [customDomain, setCustomDomain] = useState("");
-  const [domainCopied, setDomainCopied] = useState(false);
-  const [dnsHelpOpen, setDnsHelpOpen] = useState(false);
+  const [selectedTheme, setSelectedTheme] = useState("classic-elegant");
+  const [savingTheme, setSavingTheme] = useState(false);
 
-  /* --- rebuild banner state --- */
-  const [rebuildNeeded, setRebuildNeeded] = useState(false);
-  const [completedNodeName, setCompletedNodeName] = useState<string | null>(null);
-  const [rebuildDismissed, setRebuildDismissed] = useState(false);
-  const initialAssetsLoaded = useRef(false);
+  const authorSlug = profileData?.author_slug || "your-slug";
+  const siteUrl = `https://authorsbureau.com/${authorSlug}`;
 
-  /* --- asset type to friendly name map --- */
-  const ASSET_TYPE_LABELS: Record<string, string> = {
-    business_plan: "Business Plan",
-    workbook: "Workbook",
-    home_study_course: "Home Study Course",
-    audiobook_script: "Audiobook",
-    podcast: "Podcast",
-    course: "Online Course",
-    lead_magnet: "Lead Magnet",
-    social_media: "Social Media Calendar",
-    email_sequence: "Email Marketing",
-    webinar: "Webinar",
-    coaching: "Coaching Package",
-    media_kit: "Media Outreach Kit",
-    speaking: "Speaking Kit",
-    sales_page: "Book Sales Page",
-    website: "Website",
-  };
-
-  /* ============================================
-   * ON LOAD: Fetch raw data + run Phase 1
-   * ============================================ */
   useEffect(() => {
     if (!user) return;
-    let cancelled = false;
-
-    (async () => {
-      // 1. Fetch raw data for local preview
-      const [profileRes, booksRes] = await Promise.all([
-        supabase.from("author_profiles").select("*").eq("user_id", user.id).maybeSingle(),
-        supabase.from("books").select("id, title, cover_image_url, description, genre").eq("author_id", user.id),
-      ]);
-      if (cancelled) return;
-      setProfileData(profileRes.data);
-      setBooks(booksRes.data || []);
-      if (profileRes.data?.website_url) {
-        setManusLink(profileRes.data.website_url);
-        setLinkSaved(true);
-      }
-
-      // 2. Call Phase 1 via edge function
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.access_token) throw new Error("Not authenticated");
-
-        const resp = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/abby-website-builder`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ phase: "1" }),
-          }
-        );
-
-        if (!resp.ok) {
-          const errBody = await resp.json().catch(() => ({}));
-          throw new Error(errBody.error || `Phase 1 failed (${resp.status})`);
-        }
-
-        const result: Phase1Result = await resp.json();
-        if (cancelled) return;
-
-        setAbbyPages(result.pages);
-        setPreviewData(result.preview_data);
-      } catch (err: any) {
-        console.error("Phase 1 error:", err);
-        if (!cancelled) {
-          setPhase1Error(err.message || "Failed to analyze your profile");
-          // Fallback: set default pages
-          setAbbyPages([
-            { id: "homepage", name: "Homepage", recommended: true, enabled: true },
-            { id: "about", name: "About Page", recommended: true, enabled: true },
-            { id: "books", name: "My Book(s) Page", recommended: true, enabled: (booksRes.data || []).length > 0 },
-            { id: "products", name: "Product Sales Pages", recommended: false, enabled: false },
-            { id: "coaching", name: "Coaching / Services Page", recommended: false, enabled: false },
-            { id: "events", name: "Events Page", recommended: false, enabled: false },
-            { id: "blog", name: "Blog / Content Hub", recommended: false, enabled: false },
-          ]);
-        }
-      } finally {
-        if (!cancelled) setPhase1Loading(false);
-      }
-    })();
-
-    return () => { cancelled = true; };
+    loadData();
   }, [user]);
 
-  /* ============================================
-   * REALTIME: Listen for new completed assets
-   * ============================================ */
-  useEffect(() => {
-    if (!user) return;
+  async function loadData() {
+    setLoading(true);
+    const [profileRes, booksRes, homeStudyRes, coursesRes, coachingRes] = await Promise.all([
+      supabase.from("author_profiles").select("*").eq("user_id", user!.id).maybeSingle(),
+      supabase.from("books").select("id, title, slug, cover_image_url").eq("author_id", user!.id).order("created_at", { ascending: false }),
+      supabase.from("home_study_courses").select("id, title, book_id, status").eq("author_id", user!.id),
+      supabase.from("courses").select("id, title, book_id, status").eq("author_id", user!.id),
+      supabase.from("coaching_packages").select("id, title, status").eq("author_id", user!.id),
+    ]);
 
-    // Small delay to let initial Phase 1 load complete first
-    const timer = setTimeout(() => {
-      initialAssetsLoaded.current = true;
-    }, 5000);
+    const profile = profileRes.data;
+    setProfileData(profile);
+    if (profile?.site_theme) setSelectedTheme(profile.site_theme);
+    if (profile?.website_url) setCustomDomain(profile.website_url.replace(/^https?:\/\//, ""));
 
-    const channel = supabase
-      .channel("website-asset-updates")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "generated_assets",
-          filter: `author_id=eq.${user.id}`,
-        },
-        async (payload) => {
-          // Only show banner after initial load is done (not on page load inserts)
-          if (!initialAssetsLoaded.current) return;
+    const books = (booksRes.data || []) as any[];
+    const homeStudy = (homeStudyRes.data || []) as any[];
+    const courses = (coursesRes.data || []) as any[];
+    const coaching = (coachingRes.data || []) as any[];
 
-          const assetType = (payload.new as any)?.asset_type;
-          // Skip the website asset itself to avoid circular notification
-          if (assetType === "website") return;
+    const enriched: BookWithStatus[] = books.map((book: any) => {
+      const products: BookProduct[] = [];
+      homeStudy.filter((p) => p.book_id === book.id).forEach((p) => {
+        products.push({ id: p.id, title: p.title, type: "home_study", status: p.status, route: "homestudy" });
+      });
+      courses.filter((p) => p.book_id === book.id).forEach((p) => {
+        products.push({ id: p.id, title: p.title, type: "course", status: p.status, route: "onlinecourse" });
+      });
+      return { ...book, products };
+    });
 
-          const nodeName = ASSET_TYPE_LABELS[assetType] || assetType?.replace(/_/g, " ") || "a new node";
-          setCompletedNodeName(nodeName);
-          setRebuildNeeded(true);
-          setRebuildDismissed(false);
-
-          // Silently re-run Phase 1 to update the blueprint
-          try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session?.access_token) return;
-
-            const resp = await fetch(
-              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/abby-website-builder`,
-              {
-                method: "POST",
-                headers: {
-                  Authorization: `Bearer ${session.access_token}`,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ phase: "1" }),
-              }
-            );
-
-            if (resp.ok) {
-              const result: Phase1Result = await resp.json();
-              setAbbyPages(result.pages);
-              setPreviewData(result.preview_data);
-              setDesignData(null); // Invalidate cached Phase 2 data
-            }
-          } catch (err) {
-            console.error("Silent Phase 1 re-run failed:", err);
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      clearTimeout(timer);
-      supabase.removeChannel(channel);
-    };
-  }, [user]);
-
-  /* ---------- derived ---------- */
-  const enabledPages = useMemo(
-    () => abbyPages.filter((p) => p.enabled),
-    [abbyPages]
-  );
-
-  const enabledCount = enabledPages.length;
-
-  const navItems = useMemo(
-    () => previewData?.nav_links || enabledPages.map((p) => p.name.replace(" Page", "").replace("My ", "")),
-    [previewData, enabledPages]
-  );
-
-  const authorName = profileData?.pen_name || "Your Name";
-  const tagline = previewData?.hero_subheadline || profileData?.tagline || "Transforming lives through the power of words";
-  const heroHeadline = previewData?.hero_headline || authorName;
-  const ctaText = previewData?.cta_text || "Get My Free Guide →";
-  const photoUrl = profileData?.photo_url;
-
-  /* ---------- toggle ---------- */
-  const togglePage = useCallback((id: string) => {
-    if (ALWAYS_ON.has(id)) return;
-    setAbbyPages((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, enabled: !p.enabled } : p))
-    );
-    // Clear cached Phase 2 data when user changes selection
-    setDesignData(null);
-  }, []);
-
-  /* ============================================
-   * PHASE 2: Generate manus_spec.json
-   * ============================================ */
-  const handleBuildWithManus = useCallback(async () => {
-    setGenerating(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        toast({ title: "Please sign in first", variant: "destructive" });
-        return;
-      }
-
-      const enabledIds = abbyPages.filter((p) => p.enabled).map((p) => p.id);
-
-      const resp = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/abby-website-builder`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ phase: "2", enabledPages: enabledIds }),
-        }
-      );
-
-      if (resp.status === 429) {
-        toast({ title: "Rate limited — please try again in a moment.", variant: "destructive" });
-        return;
-      }
-      if (resp.status === 402) {
-        toast({ title: "AI credits exhausted. Please add funds.", variant: "destructive" });
-        return;
-      }
-      if (!resp.ok) throw new Error("Failed to generate specs");
-
-      const specData = await resp.json();
-      const specText = JSON.stringify(specData, null, 2);
-      setDesignData(specText);
-
-      // Auto-copy to clipboard
-      await navigator.clipboard.writeText(specText);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 4000);
-
-      toast({ title: "Website specs generated & copied to clipboard! 🚀" });
-
-      // Open Manus
-      window.open("https://manus.im/invitation/XT9XTFJVZ8SASD", "_blank");
-    } catch (err) {
-      console.error("Phase 2 error:", err);
-      toast({ title: "Failed to generate website specs", variant: "destructive" });
-    } finally {
-      setGenerating(false);
+    // Attach coaching to first book
+    if (coaching.length > 0 && enriched.length > 0) {
+      coaching.forEach((p: any) => {
+        enriched[0].products.push({ id: p.id, title: p.title, type: "coaching", status: p.status, route: "coaching" });
+      });
     }
-  }, [abbyPages]);
 
-  const handleCopySpecs = useCallback(async () => {
-    if (!designData) return;
-    await navigator.clipboard.writeText(designData);
-    setCopied(true);
-    toast({ title: "Specs copied to clipboard! 📋" });
-    setTimeout(() => setCopied(false), 3000);
-  }, [designData]);
+    setBooksWithStatus(enriched);
+    setLoading(false);
+  }
 
-  const handleExportManual = useCallback(async () => {
-    if (designData) {
-      handleCopySpecs();
-      return;
+  async function saveTheme(themeId: string) {
+    setSelectedTheme(themeId);
+    setSavingTheme(true);
+    const { error } = await supabase
+      .from("author_profiles")
+      .update({ site_theme: themeId } as any)
+      .eq("user_id", user!.id);
+    setSavingTheme(false);
+    if (error) {
+      toast({ title: "Error saving theme", variant: "destructive" });
+    } else {
+      toast({ title: "Theme updated! Your site will reflect this immediately." });
     }
-    // Generate without opening Manus
-    setGenerating(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) return;
+  }
 
-      const enabledIds = abbyPages.filter((p) => p.enabled).map((p) => p.id);
-      const resp = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/abby-website-builder`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ phase: "2", enabledPages: enabledIds }),
-        }
-      );
-      if (!resp.ok) throw new Error("Failed");
-      const specData = await resp.json();
-      const specText = JSON.stringify(specData, null, 2);
-      setDesignData(specText);
-      await navigator.clipboard.writeText(specText);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 4000);
-      toast({ title: "Specs generated & copied! Use them with any website builder." });
-    } catch {
-      toast({ title: "Failed to generate specs", variant: "destructive" });
-    } finally {
-      setGenerating(false);
+  async function saveDomain() {
+    if (!customDomain.trim()) return;
+    const url = customDomain.trim().startsWith("http") ? customDomain.trim() : `https://${customDomain.trim()}`;
+    const { error } = await supabase
+      .from("author_profiles")
+      .update({ website_url: url })
+      .eq("user_id", user!.id);
+    if (error) {
+      toast({ title: "Error saving domain", variant: "destructive" });
+    } else {
+      toast({ title: "Custom domain saved!" });
     }
-  }, [designData, abbyPages, handleCopySpecs]);
+  }
 
-  const handleSaveLink = useCallback(async () => {
-    if (!manusLink.trim()) return;
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      await supabase
-        .from("author_profiles")
-        .update({ website_url: manusLink.trim() })
-        .eq("user_id", session.user.id);
-      setLinkSaved(true);
-      toast({ title: "Website link saved! ✅" });
-    } catch {
-      toast({ title: "Failed to save link", variant: "destructive" });
-    }
-  }, [manusLink]);
+  const currentTheme = useMemo(() => getThemeById(selectedTheme), [selectedTheme]);
 
-  /* ---------- loading state ---------- */
-  if (phase1Loading) {
+  if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-3">
+      <div className="flex items-center justify-center py-20">
         <Loader2 className="h-6 w-6 animate-spin text-secondary" />
-        <p className="text-sm text-muted-foreground">ABBY is analyzing your profile…</p>
       </div>
     );
   }
 
-  /* ---------- render ---------- */
+  const isLive = profileData?.directory_status === "listed" || profileData?.directory_status === "featured";
+  const publishedBooks = booksWithStatus.filter((b) =>
+    booksWithStatus.length > 0 // all books show
+  );
+
   return (
-    <TooltipProvider>
-      <div className="max-w-6xl space-y-6">
-        {/* Header */}
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Sparkles className="h-5 w-5 text-secondary" />
-            <h2 className="font-heading text-2xl font-bold">Your Professional Author Website, Designed by ABBY</h2>
-          </div>
-          <p className="text-sm text-muted-foreground max-w-3xl">
-            ABBY has analyzed your profile, books, and business plan to create a complete website specification.
-            Review the pages below, then build your site in minutes with Manus AI.
-          </p>
+    <div className="max-w-6xl space-y-6">
+      {/* Header */}
+      <div>
+        <div className="flex items-center gap-2 mb-1">
+          <Globe className="h-5 w-5 text-secondary" />
+          <h2 className="font-heading text-2xl font-bold">My Website</h2>
         </div>
+        <p className="text-sm text-muted-foreground max-w-2xl">
+          Your author website is hosted on Authors Bureau. Published products appear automatically on your site.
+        </p>
+      </div>
 
-        {/* Phase 1 error notice */}
-        {phase1Error && (
-          <div className="flex items-center gap-2 rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2">
-            <AlertCircle className="h-4 w-4 text-destructive" />
-            <p className="text-sm text-destructive">{phase1Error} — Using default recommendations.</p>
-          </div>
-        )}
+      <div className="grid gap-6 lg:grid-cols-5">
+        {/* ===== LEFT: Site Info & Books ===== */}
+        <div className="lg:col-span-3 space-y-4">
+          {/* Live URL */}
+          <Card className="p-4 border-border">
+            <div className="flex items-center gap-2 mb-3">
+              <div className={`w-2 h-2 rounded-full ${isLive ? "bg-green-500" : "bg-muted-foreground/30"}`} />
+              <span className="text-xs font-semibold">{isLive ? "Live" : "Not Published"}</span>
+            </div>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="flex-1 rounded-md border border-border bg-muted/50 px-3 py-2 text-sm font-medium text-foreground select-all truncate">
+                {siteUrl}
+              </div>
+              <Button variant="outline" size="sm" className="shrink-0" onClick={() => {
+                navigator.clipboard.writeText(siteUrl);
+                setUrlCopied(true);
+                setTimeout(() => setUrlCopied(false), 2000);
+                toast({ title: "URL copied!" });
+              }}>
+                {urlCopied ? <CheckCircle2 className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+              </Button>
+              <Button variant="outline" size="sm" className="shrink-0" asChild>
+                <a href={siteUrl} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              </Button>
+            </div>
 
-        {/* Rebuild notification banner */}
-        {rebuildNeeded && !rebuildDismissed && (
-          <div className="rounded-xl p-4 bg-gradient-to-r from-[#FDF6E9] to-[#FEF3C7] border border-[#E8D5A8]">
-            <div className="flex items-start gap-3">
-              <div className="shrink-0 mt-0.5">
-                <RefreshCw className="h-5 w-5 text-secondary" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground">
-                  Your website is out of date. You've completed the <span className="font-bold">{completedNodeName}</span>! Rebuild your website to add the new page.
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Your blueprint has been updated automatically. Click rebuild to generate new specs.
-                </p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    setRebuildDismissed(true);
-                    setRebuildNeeded(false);
-                    handleBuildWithManus();
-                  }}
-                  className="bg-secondary text-secondary-foreground hover:bg-secondary/90 text-xs h-8 font-semibold"
-                >
-                  <RefreshCw className="h-3.5 w-3.5 mr-1" />
-                  Rebuild My Website
+            {/* Custom Domain */}
+            <div className="pt-3 border-t border-border">
+              <p className="text-xs font-semibold mb-1">Custom Domain (Optional)</p>
+              <p className="text-[10px] text-muted-foreground mb-2">
+                Point your domain to redirect to your Authors Bureau site.
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="e.g., www.yourdomain.com"
+                  value={customDomain}
+                  onChange={(e) => setCustomDomain(e.target.value)}
+                  className="text-xs h-8 flex-1"
+                />
+                <Button variant="default" size="sm" className="text-xs bg-secondary text-secondary-foreground hover:bg-secondary/90 h-8"
+                  disabled={!customDomain.trim()} onClick={saveDomain}>
+                  Save
                 </Button>
-                <button
-                  onClick={() => setRebuildDismissed(true)}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <X className="h-4 w-4" />
-                </button>
               </div>
             </div>
-          </div>
-        )}
+          </Card>
 
-        {/* Two-column layout */}
-        <div className="grid gap-6 lg:grid-cols-5">
-          {/* LEFT COLUMN: Blueprint (3/5) */}
-          <div className="lg:col-span-3 space-y-4">
-            <Card className="p-5 border-border">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-heading font-bold text-base">Your Website Blueprint</h3>
-                <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
-                  {enabledCount} pages selected
-                </span>
-              </div>
-
-              <div className="space-y-1">
-                {abbyPages.map((page) => {
-                  const Icon = PAGE_ICONS[page.id] || Globe;
-                  const isAlwaysOn = ALWAYS_ON.has(page.id);
-                  return (
-                    <div
-                      key={page.id}
-                      className={`flex items-start gap-3 p-3 rounded-lg transition-colors ${
-                        isAlwaysOn ? "cursor-default" : "cursor-pointer"
-                      } ${
-                        page.enabled
-                          ? "bg-secondary/5 border border-secondary/20"
-                          : "border border-transparent hover:bg-muted/50"
-                      }`}
-                      onClick={() => togglePage(page.id)}
-                    >
-                      <Checkbox
-                        checked={page.enabled}
-                        disabled={isAlwaysOn}
-                        onCheckedChange={() => togglePage(page.id)}
-                        className="mt-0.5"
-                      />
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                        page.enabled ? "bg-secondary/10" : "bg-muted"
-                      }`}>
-                        <Icon className={`h-4 w-4 ${page.enabled ? "text-secondary" : "text-muted-foreground"}`} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className={`font-semibold text-sm ${page.enabled ? "text-foreground" : "text-muted-foreground"}`}>
-                            {page.name}
-                          </span>
-                          {isAlwaysOn && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-secondary/15 text-secondary border border-secondary/20">
-                              REQUIRED
-                            </span>
-                          )}
-                          {page.recommended && !isAlwaysOn && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-accent/15 text-accent border border-accent/20">
-                              RECOMMENDED
-                            </span>
-                          )}
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Info className="h-3.5 w-3.5 text-muted-foreground/50 hover:text-muted-foreground cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent side="right" className="max-w-[220px] text-xs">
-                              {PAGE_TOOLTIPS[page.id] || page.reason || "A page for your website."}
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                        {page.reason && (
-                          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-                            {page.reason}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </Card>
-
-            {/* Your Website URL */}
-            <Card className="p-4 border-border">
-              <div className="flex items-center gap-2 mb-2">
-                <Globe className="h-4 w-4 text-secondary" />
-                <h4 className="font-heading font-semibold text-sm">Your Author Site</h4>
-              </div>
-
-              <div className="space-y-3">
-                <p className="text-xs text-muted-foreground">
-                  Your author site is live on Authors Bureau. Products marked as "Published" appear automatically.
-                </p>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 rounded-md border border-border bg-muted/50 px-3 py-2 text-sm font-medium text-foreground select-all">
-                    authorsbureau.com/{profileData?.author_slug || "your-slug"}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-xs shrink-0"
-                    onClick={() => {
-                      const url = `https://authorsbureau.com/${profileData?.author_slug || "your-slug"}`;
-                      navigator.clipboard.writeText(url);
-                      setDomainCopied(true);
-                      setTimeout(() => setDomainCopied(false), 2000);
-                      toast({ title: "URL copied!" });
-                    }}
-                  >
-                    {domainCopied ? <CheckCircle2 className="h-3.5 w-3.5 text-accent" /> : <Copy className="h-3.5 w-3.5" />}
-                  </Button>
-                </div>
-
-                <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs space-y-1">
-                  <p className="font-semibold text-foreground">Product Pages</p>
-                  <p className="text-muted-foreground">authorsbureau.com/{profileData?.author_slug}/homestudy</p>
-                  <p className="text-muted-foreground">authorsbureau.com/{profileData?.author_slug}/onlinecourse</p>
-                  <p className="text-muted-foreground">authorsbureau.com/{profileData?.author_slug}/coaching</p>
-                </div>
-
-                {isPaidTier && (
-                  <div className="space-y-2 pt-2 border-t border-border">
-                    <p className="text-xs font-semibold text-foreground">Custom Domain (Optional)</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      Point your domain (e.g., besuckcessful.com) to redirect to your Authors Bureau site.
-                    </p>
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="e.g., www.yourdomain.com"
-                        value={customDomain}
-                        onChange={(e) => setCustomDomain(e.target.value)}
-                        className="text-xs h-9 flex-1"
-                      />
-                      <Button
-                        variant="default"
-                        size="sm"
-                        className="text-xs bg-secondary text-secondary-foreground hover:bg-secondary/90"
-                        disabled={!customDomain.trim()}
-                        onClick={async () => {
-                          if (profileData?.id) {
-                            const url = customDomain.trim().startsWith("http") ? customDomain.trim() : `https://${customDomain.trim()}`;
-                            const { error } = await supabase
-                              .from("author_profiles")
-                              .update({ website_url: url })
-                              .eq("id", profileData.id);
-                            if (error) {
-                              toast({ title: "Error saving URL", description: error.message, variant: "destructive" });
-                            } else {
-                              toast({ title: "Custom domain saved!" });
-                            }
-                          }
-                        }}
-                      >
-                        Save
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </Card>
-
-            {/* DNS Help Modal */}
-            <Dialog open={dnsHelpOpen} onOpenChange={setDnsHelpOpen}>
-              <DialogContent className="sm:max-w-lg">
-                <DialogHeader>
-                  <DialogTitle className="font-heading text-lg">Where to Point Your Domain</DialogTitle>
-                  <DialogDescription className="text-sm text-muted-foreground pt-1">
-                    Your author website is built and hosted externally (e.g., by Manus AI). Point your domain to that host — not to Authors Bureau.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-3 text-sm">
-                  <div className="space-y-2">
-                    <p className="font-semibold">Step 1: Build Your Website</p>
-                    <p className="text-muted-foreground text-xs">Click "Build My Website with Manus AI" above. Manus will build and host your site, providing you with a live URL or hosting instructions.</p>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="font-semibold">Step 2: Point Your Domain</p>
-                    <p className="text-muted-foreground text-xs">Follow Manus's DNS/hosting instructions to connect your custom domain (e.g., besuckcessful.com) to their servers. This varies by hosting provider — typically a CNAME or A record pointing to their infrastructure.</p>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="font-semibold">Step 3: Save URL Here</p>
-                    <p className="text-muted-foreground text-xs">Once your site is live, paste the URL in the field above and click <strong>Save</strong>. Your Directory Profile will display a "Visit Full Website" link to drive visitors there.</p>
-                  </div>
-                  <div className="rounded-lg bg-secondary/5 border border-secondary/15 p-3">
-                    <p className="text-xs text-muted-foreground">
-                      <strong>Important:</strong> Your domain's DNS records should point to where Manus hosts your site — not to Authors Bureau. Authors Bureau only stores your URL as a link.
-                    </p>
-                  </div>
-                </div>
-                <Button variant="outline" className="w-full" onClick={() => setDnsHelpOpen(false)}>
-                  Got it
-                </Button>
-              </DialogContent>
-            </Dialog>
-          </div>
-
-          {/* RIGHT COLUMN: Preview & CTA (2/5) */}
-          <div className="lg:col-span-2 space-y-4">
-            {/* Live Preview */}
-            <Card className="overflow-hidden border-border">
-              <div className="bg-muted/30 px-3 py-2 border-b border-border flex items-center gap-2">
-                <div className="flex gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-destructive/40" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-secondary/40" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-accent/40" />
-                </div>
-                <span className="text-[10px] text-muted-foreground ml-2">yourwebsite.com</span>
-              </div>
-
-              {/* Mini nav — dynamically reflects enabled pages */}
-              <div className="px-4 py-2 border-b border-border bg-card">
-                <div className="flex items-center gap-3 overflow-x-auto">
-                  <span className="text-[10px] font-bold text-secondary whitespace-nowrap">{authorName}</span>
-                  <div className="flex gap-2">
-                    {navItems.map((item) => (
-                      <span key={item} className="text-[9px] text-muted-foreground whitespace-nowrap hover:text-foreground">
-                        {item}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Hero section preview */}
-              <div className="p-6 bg-gradient-to-br from-secondary/5 to-accent/5 min-h-[220px] flex flex-col justify-center items-center text-center gap-3">
-                {photoUrl ? (
-                  <img
-                    src={photoUrl}
-                    alt={authorName}
-                    className="w-14 h-14 rounded-full object-cover border-2 border-secondary/20"
-                  />
-                ) : (
-                  <div className="w-14 h-14 rounded-full bg-secondary/10 flex items-center justify-center">
-                    <User className="h-6 w-6 text-secondary/40" />
-                  </div>
-                )}
-                <div>
-                  <p className="font-heading font-bold text-sm">{heroHeadline}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5 max-w-[200px]">{tagline}</p>
-                </div>
-                {books.length > 0 && (
-                  <div className="flex gap-2 mt-1">
-                    {books.slice(0, 3).map((book) => (
-                      <div key={book.id} className="w-10 h-14 rounded bg-muted border border-border overflow-hidden">
-                        {book.cover_image_url ? (
-                          <img src={book.cover_image_url} alt={book.title} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <BookOpen className="h-3 w-3 text-muted-foreground" />
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div className="mt-1 px-3 py-1 rounded-full bg-secondary/10 text-[9px] text-secondary font-medium">
-                  {ctaText}
-                </div>
-              </div>
-
-              {/* Footer preview */}
-              <div className="px-4 py-2 bg-muted/20 border-t border-border">
-                <p className="text-[8px] text-muted-foreground text-center">© 2026 {authorName}. All rights reserved.</p>
-              </div>
-            </Card>
-
-            {/* Primary CTA */}
-            <Card className="p-5 border-2 border-secondary/30 bg-gradient-to-br from-secondary/5 to-secondary/10">
-              <div className="text-center space-y-3">
-                <Sparkles className="h-6 w-6 text-secondary mx-auto" />
-                <h3 className="font-heading font-bold text-base">Ready to Build?</h3>
-                <p className="text-xs text-muted-foreground">
-                  ABBY will compile your {enabledCount}-page website specification and open Manus AI to build it for you.
-                </p>
-
-                <Button
-                  onClick={handleBuildWithManus}
-                  disabled={generating}
-                  className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold text-sm h-11"
-                >
-                  {generating ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Generating Specs…
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      Build My Website with Manus AI
-                    </>
-                  )}
-                </Button>
-
-                {designData && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleCopySpecs}
-                    className="text-xs text-muted-foreground hover:text-foreground gap-1"
-                  >
-                    {copied ? <CheckCircle2 className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                    {copied ? "Copied!" : "Copy specs to clipboard"}
-                  </Button>
-                )}
-
-                <button
-                  onClick={handleExportManual}
-                  disabled={generating}
-                  className="text-[11px] text-muted-foreground hover:text-foreground underline underline-offset-2 block mx-auto disabled:opacity-50"
-                >
-                  Or, export design specs for manual build
-                </button>
-              </div>
-            </Card>
-
-            {/* How it works */}
-            <Card className="p-4 border-border">
-              <p className="text-xs font-semibold flex items-center gap-1.5 mb-2">
-                <Info className="h-3.5 w-3.5 text-secondary" />
-                How It Works
+          {/* Books & Products Tree */}
+          <Card className="p-4 border-border">
+            <h3 className="font-heading font-bold text-sm mb-4">Your Pages</h3>
+            {booksWithStatus.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                No books added yet. Add a book to start building your site.
               </p>
-              <ol className="text-[11px] text-muted-foreground space-y-1.5 list-decimal list-inside">
-                <li>
-                  <span className="font-medium text-foreground">ABBY Analyzes Your Profile</span> — Your books, products, and business plan are reviewed automatically
-                </li>
-                <li>
-                  <span className="font-medium text-foreground">Review Your Blueprint</span> — Toggle pages on/off to customize your website plan
-                </li>
-                <li>
-                  <span className="font-medium text-foreground">Click "Build My Website"</span> — ABBY generates a complete spec and opens{" "}
-                  <a href="https://manus.im" target="_blank" rel="noopener noreferrer" className="text-secondary hover:underline">
-                    Manus AI
-                  </a>
-                </li>
-                <li>
-                  <span className="font-medium text-foreground">Paste & Build</span> — Your specs are auto-copied. Paste them into Manus to build your website
-                </li>
-                <li>
-                  <span className="font-medium text-foreground">Link Back</span> — Save your published website URL to your dashboard
-                </li>
-              </ol>
-            </Card>
-          </div>
+            ) : (
+              <div className="space-y-3">
+                {booksWithStatus.map((book) => (
+                  <div key={book.id} className="rounded-lg border border-border p-3">
+                    <div className="flex items-center gap-3 mb-2">
+                      {book.cover_image_url ? (
+                        <img src={book.cover_image_url} alt={book.title} className="w-8 h-11 rounded object-cover border border-border" />
+                      ) : (
+                        <div className="w-8 h-11 rounded bg-muted flex items-center justify-center border border-border">
+                          <BookOpen className="h-3 w-3 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold truncate">{book.title}</p>
+                        <p className="text-[10px] text-muted-foreground">/{authorSlug}/{book.slug}</p>
+                      </div>
+                    </div>
+
+                    {book.products.length > 0 ? (
+                      <div className="ml-11 space-y-1">
+                        {book.products.map((product) => {
+                          const Icon = PRODUCT_ICONS[product.type] || BookOpen;
+                          const isPublished = product.status === "published" || product.status === "active";
+                          return (
+                            <div key={product.id} className="flex items-center gap-2 text-xs">
+                              <Icon className="h-3 w-3 text-muted-foreground" />
+                              <span className="flex-1 truncate">{product.title}</span>
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                                isPublished
+                                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                  : "bg-muted text-muted-foreground"
+                              }`}>
+                                {isPublished ? "Live" : "Draft"}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground">
+                                /{book.slug}/{product.route}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="ml-11 text-[10px] text-muted-foreground italic">No products yet</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </div>
+
+        {/* ===== RIGHT: Preview + Theme Picker ===== */}
+        <div className="lg:col-span-2 space-y-4">
+          {/* Live Preview */}
+          <Card className="overflow-hidden border-border">
+            <div className="bg-muted/30 px-3 py-2 border-b border-border flex items-center gap-2">
+              <div className="flex gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-destructive/40" />
+                <div className="w-2.5 h-2.5 rounded-full bg-secondary/40" />
+                <div className="w-2.5 h-2.5 rounded-full bg-accent/40" />
+              </div>
+              <span className="text-[10px] text-muted-foreground ml-2 truncate">authorsbureau.com/{authorSlug}</span>
+            </div>
+            {isLive && profileData?.author_slug ? (
+              <div className="relative w-full" style={{ height: "320px", overflow: "hidden" }}>
+                <iframe
+                  src={`/${profileData.author_slug}`}
+                  className="absolute top-0 left-0 border-0 pointer-events-none"
+                  style={{
+                    width: "1200px",
+                    height: "2000px",
+                    transform: "scale(0.24)",
+                    transformOrigin: "top left",
+                  }}
+                  title="Author site preview"
+                />
+              </div>
+            ) : (
+              <div className="p-8 flex flex-col items-center justify-center text-center min-h-[220px]">
+                <Globe className="h-10 w-10 text-muted-foreground/30 mb-3" />
+                <p className="text-xs text-muted-foreground">
+                  Your site preview will appear here once your profile is published.
+                </p>
+              </div>
+            )}
+          </Card>
+
+          {/* Theme Picker */}
+          <Card className="p-4 border-border">
+            <div className="flex items-center gap-2 mb-3">
+              <Palette className="h-4 w-4 text-secondary" />
+              <h3 className="font-heading font-bold text-sm">Look & Feel</h3>
+            </div>
+            <p className="text-[10px] text-muted-foreground mb-3">
+              Choose a style that matches your genre and brand.
+            </p>
+
+            <div className="grid grid-cols-2 gap-2 max-h-[400px] overflow-y-auto pr-1">
+              {AUTHOR_THEMES.map((theme) => {
+                const isActive = selectedTheme === theme.id;
+                return (
+                  <button
+                    key={theme.id}
+                    onClick={() => saveTheme(theme.id)}
+                    className={`relative text-left p-2.5 rounded-lg border transition-all ${
+                      isActive
+                        ? "border-secondary ring-2 ring-secondary/20"
+                        : "border-border hover:border-secondary/40"
+                    }`}
+                  >
+                    {isActive && (
+                      <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-secondary flex items-center justify-center">
+                        <Check className="h-2.5 w-2.5 text-secondary-foreground" />
+                      </div>
+                    )}
+
+                    {/* Mini color swatch */}
+                    <div className="flex gap-1 mb-2">
+                      <div className="w-5 h-5 rounded-full" style={{ background: `hsl(${theme.colors.heroBackground})` }} />
+                      <div className="w-5 h-5 rounded-full" style={{ background: `hsl(${theme.colors.accent})` }} />
+                      <div className="w-5 h-5 rounded-full border border-border" style={{ background: `hsl(${theme.colors.sectionAlt})` }} />
+                    </div>
+
+                    <p className="text-[11px] font-semibold leading-tight">{theme.name}</p>
+                    <p className="text-[9px] text-muted-foreground leading-tight mt-0.5">{theme.genre}</p>
+                  </button>
+                );
+              })}
+            </div>
+
+            {savingTheme && (
+              <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" /> Saving...
+              </div>
+            )}
+          </Card>
         </div>
       </div>
-    </TooltipProvider>
+    </div>
   );
 }

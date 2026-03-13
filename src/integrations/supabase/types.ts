@@ -256,6 +256,7 @@ export type Database = {
           photo_crop_y: string | null
           photo_url: string | null
           photo_zoom: number | null
+          site_theme: string
           speaker_fee_range: string | null
           stripe_account_id: string | null
           stripe_onboarding_complete: boolean | null
@@ -290,6 +291,7 @@ export type Database = {
           photo_crop_y?: string | null
           photo_url?: string | null
           photo_zoom?: number | null
+          site_theme?: string
           speaker_fee_range?: string | null
           stripe_account_id?: string | null
           stripe_onboarding_complete?: boolean | null
@@ -324,6 +326,7 @@ export type Database = {
           photo_crop_y?: string | null
           photo_url?: string | null
           photo_zoom?: number | null
+          site_theme?: string
           speaker_fee_range?: string | null
           stripe_account_id?: string | null
           stripe_onboarding_complete?: boolean | null
