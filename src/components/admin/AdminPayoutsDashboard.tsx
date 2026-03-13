@@ -166,7 +166,7 @@ export default function AdminPayoutsDashboard() {
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground uppercase tracking-wider">Pending Payouts</p>
-            <p className="text-2xl font-bold mt-1 text-orange-500">${totalPending.toFixed(2)}</p>
+            <p className="text-2xl font-bold mt-1 text-destructive">${totalPending.toFixed(2)}</p>
           </CardContent>
         </Card>
         <Card>
