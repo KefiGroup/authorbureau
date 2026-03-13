@@ -419,9 +419,35 @@ export default function AuthorBookPage() {
                 About This Book
               </h2>
               <div className="text-base leading-relaxed space-y-4" style={{ color: `hsl(${c.heroBackground} / 0.7)` }}>
-                {book.description.split(/\n\n+/).filter(Boolean).map((p, i) => (
-                  <p key={i}>{p}</p>
-                ))}
+                {book.description.split(/\n\n+/).filter(Boolean).map((paragraph, i) => {
+                  // Check if paragraph contains bullet-like patterns
+                  const lines = paragraph.split(/\n/).filter(Boolean);
+                  const isBulletList = lines.every(line => /^\s*[-*•]\s+/.test(line));
+                  if (isBulletList) {
+                    return (
+                      <ul key={i} className="list-disc pl-5 space-y-1.5">
+                        {lines.map((line, j) => (
+                          <li key={j}>{line.replace(/^\s*[-*•]\s+/, "")}</li>
+                        ))}
+                      </ul>
+                    );
+                  }
+                  // Handle inline line breaks
+                  const parts = paragraph.split(/\n/);
+                  if (parts.length > 1) {
+                    return (
+                      <div key={i}>
+                        {parts.map((part, j) => {
+                          if (/^\s*[-*•]\s+/.test(part)) {
+                            return <li key={j} className="list-disc ml-5">{part.replace(/^\s*[-*•]\s+/, "")}</li>;
+                          }
+                          return <p key={j} className={j > 0 ? "mt-2" : ""}>{part}</p>;
+                        })}
+                      </div>
+                    );
+                  }
+                  return <p key={i}>{paragraph}</p>;
+                })}
               </div>
             </motion.div>
           </div>
