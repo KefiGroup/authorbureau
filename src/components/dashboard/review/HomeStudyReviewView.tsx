@@ -98,6 +98,7 @@ export default function HomeStudyReviewView({
   const [salesBullets, setSalesBullets] = useState<string[]>([""]);
   const [salesTestimonials, setSalesTestimonials] = useState<{ name: string; quote: string }[]>([]);
   const [salesCta, setSalesCta] = useState("Enroll Now");
+  const [salesFaqs, setSalesFaqs] = useState<{ question: string; answer: string }[]>([]);
 
   // Drawer-local draft for sales page markdown (kept for serialization)
   const [salesDraft, setSalesDraft] = useState("");
