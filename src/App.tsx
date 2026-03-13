@@ -86,6 +86,7 @@ const AppRoutes = () => (
       <Route path="/solutions/:genre" element={<Solutions />} />
       <Route path="/sso" element={<SSO />} />
       <Route path="/:authorSlug/:bookSlug/:productType" element={<AuthorProductPage />} />
+      <Route path="/:authorSlug/:bookSlug" element={<AuthorBookPage />} />
       <Route path="/:authorSlug" element={<AuthorSite />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
