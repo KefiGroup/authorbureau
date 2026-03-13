@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { toast } from "@/hooks/use-toast";
-import { getThemeById, getThemeFontsUrl, type AuthorTheme } from "@/lib/author-themes";
+import { getThemeById, type AuthorTheme } from "@/lib/author-themes";
+import AuthorPageLayout from "@/components/public/AuthorPageLayout";
 import NotFound from "./NotFound";
 
 type ProductType = "homestudy" | "onlinecourse" | "workbook" | "coaching" | "audiobook" | "podcast" | "book";
@@ -42,32 +43,7 @@ const fadeUp = {
   }),
 };
 
-/* ---------- Theme CSS injection ---------- */
-function ThemeStyle({ theme }: { theme: AuthorTheme }) {
-  const c = theme.colors;
-  return (
-    <>
-      <link rel="stylesheet" href={getThemeFontsUrl(theme)} />
-      <style>{`
-        .product-page {
-          --pp-hero-bg: ${c.heroBackground};
-          --pp-hero-fg: ${c.heroForeground};
-          --pp-accent: ${c.accent};
-          --pp-accent-fg: ${c.accentForeground};
-          --pp-card-border: ${c.cardBorder};
-          --pp-section-alt: ${c.sectionAlt};
-          --pp-footer-bg: ${c.footerBackground};
-          --pp-footer-fg: ${c.footerForeground};
-          --pp-heading-font: ${theme.headingFont};
-          --pp-body-font: ${theme.bodyFont};
-          --pp-radius: ${theme.borderRadius};
-        }
-        .product-page { font-family: var(--pp-body-font); }
-        .product-page .pp-heading { font-family: var(--pp-heading-font); }
-      `}</style>
-    </>
-  );
-}
+/* ThemeStyle removed — now handled by AuthorPageLayout */
 
 /** Parse description sentences into checklist items */
 function parseChecklistItems(description: string | null | undefined): string[] {
@@ -248,23 +224,7 @@ export default function AuthorProductPage() {
   const checklistItems = parseChecklistItems(product.description);
 
   return (
-    <div className="product-page min-h-screen" style={{ background: `hsl(${c.sectionAlt})` }}>
-      <ThemeStyle theme={theme} />
-
-      {/* ===== BREADCRUMB ===== */}
-      <nav className="py-3" style={{ background: `hsl(${c.heroBackground})`, borderBottom: `1px solid hsl(${c.heroForeground} / 0.1)` }}>
-        <div className="container max-w-5xl">
-          <ol className="flex items-center gap-2 text-xs flex-wrap" style={{ color: `hsl(${c.heroForeground} / 0.5)` }}>
-            <li><Link to="/" className="hover:underline" style={{ color: `hsl(${c.heroForeground} / 0.5)` }}>Home</Link></li>
-            <li>/</li>
-            <li><Link to={`/${authorSlug}`} className="hover:underline" style={{ color: `hsl(${c.heroForeground} / 0.5)` }}>{displayName}</Link></li>
-            <li>/</li>
-            <li><Link to={`/${authorSlug}/${bookSlug}`} className="hover:underline" style={{ color: `hsl(${c.heroForeground} / 0.5)` }}>{bookTitle}</Link></li>
-            <li>/</li>
-            <li style={{ color: `hsl(${c.heroForeground} / 0.8)` }} className="font-medium truncate max-w-[180px]">{product.title}</li>
-          </ol>
-        </div>
-      </nav>
+    <AuthorPageLayout theme={theme} authorName={displayName} authorSlug={authorSlug} bookTitle={bookTitle} bookSlug={bookSlug} productTitle={product.title}>
 
       {/* ===== HERO (Split Layout: Image LEFT, Text RIGHT) ===== */}
       <section className="relative overflow-hidden" style={{ background: `linear-gradient(135deg, hsl(${c.heroBackground}), hsl(${c.heroBackground} / 0.92))`, color: `hsl(${c.heroForeground})` }}>
@@ -648,20 +608,9 @@ export default function AuthorProductPage() {
         </div>
       )}
 
-      {/* ===== FOOTER ===== */}
-      <footer className="py-8" style={{ background: `hsl(${c.footerBackground})`, color: `hsl(${c.footerForeground})` }}>
-        <div className="container max-w-5xl flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
-          <span>&copy; {new Date().getFullYear()} {displayName}. All rights reserved.</span>
-          <span>
-            Powered by{" "}
-            <Link to="/" className="hover:underline font-medium" style={{ color: `hsl(${c.accent})` }}>Authors Bureau</Link>
-          </span>
-        </div>
-      </footer>
-
       {/* Bottom padding for sticky CTA on mobile */}
       {product.price != null && product.price > 0 && <div className="h-16 md:hidden" />}
-    </div>
+    </AuthorPageLayout>
   );
 }
 

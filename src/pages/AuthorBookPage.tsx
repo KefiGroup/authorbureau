@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { toast } from "@/hooks/use-toast";
-import { getThemeById, getThemeFontsUrl, type AuthorTheme } from "@/lib/author-themes";
+import { getThemeById, type AuthorTheme } from "@/lib/author-themes";
+import AuthorPageLayout from "@/components/public/AuthorPageLayout";
 import NotFound from "./NotFound";
 
 /* ---------- Types ---------- */
@@ -77,32 +78,7 @@ const fadeUp = {
   }),
 };
 
-/* ---------- Theme CSS injection ---------- */
-function ThemeStyle({ theme }: { theme: AuthorTheme }) {
-  const c = theme.colors;
-  return (
-    <>
-      <link rel="stylesheet" href={getThemeFontsUrl(theme)} />
-      <style>{`
-        .book-page {
-          --bp-hero-bg: ${c.heroBackground};
-          --bp-hero-fg: ${c.heroForeground};
-          --bp-accent: ${c.accent};
-          --bp-accent-fg: ${c.accentForeground};
-          --bp-card-border: ${c.cardBorder};
-          --bp-section-alt: ${c.sectionAlt};
-          --bp-footer-bg: ${c.footerBackground};
-          --bp-footer-fg: ${c.footerForeground};
-          --bp-heading-font: ${theme.headingFont};
-          --bp-body-font: ${theme.bodyFont};
-          --bp-radius: ${theme.borderRadius};
-        }
-        .book-page { font-family: var(--bp-body-font); }
-        .book-page .bp-heading { font-family: var(--bp-heading-font); }
-      `}</style>
-    </>
-  );
-}
+/* ThemeStyle removed — now handled by AuthorPageLayout */
 
 /* ============================================ */
 export default function AuthorBookPage() {
@@ -306,21 +282,7 @@ export default function AuthorBookPage() {
     : null;
 
   return (
-    <div className="book-page min-h-screen" style={{ background: `hsl(${c.sectionAlt})` }}>
-      <ThemeStyle theme={theme} />
-
-      {/* ===== BREADCRUMB ===== */}
-      <nav className="py-3" style={{ background: `hsl(${c.heroBackground})`, borderBottom: `1px solid hsl(${c.heroForeground} / 0.1)` }}>
-        <div className="container max-w-5xl">
-          <ol className="flex items-center gap-2 text-xs" style={{ color: `hsl(${c.heroForeground} / 0.5)` }}>
-            <li><Link to="/" className="hover:underline" style={{ color: `hsl(${c.heroForeground} / 0.5)` }}>Home</Link></li>
-            <li>/</li>
-            <li><Link to={`/${authorSlug}`} className="hover:underline" style={{ color: `hsl(${c.heroForeground} / 0.5)` }}>{authorName}</Link></li>
-            <li>/</li>
-            <li style={{ color: `hsl(${c.heroForeground} / 0.8)` }} className="font-medium truncate max-w-[200px]">{book.title}</li>
-          </ol>
-        </div>
-      </nav>
+    <AuthorPageLayout theme={theme} authorName={authorName} authorSlug={authorSlug} bookTitle={book.title} bookSlug={bookSlug}>
 
       {/* ===== SECTION 1: HERO ===== */}
       <section className="relative overflow-hidden" style={{ background: `linear-gradient(135deg, hsl(${c.heroBackground}), hsl(${c.heroBackground} / 0.92))`, color: `hsl(${c.heroForeground})` }}>
@@ -717,19 +679,8 @@ export default function AuthorBookPage() {
         </div>
       )}
 
-      {/* ===== FOOTER ===== */}
-      <footer className="py-8" style={{ background: `hsl(${c.footerBackground})`, color: `hsl(${c.footerForeground})` }}>
-        <div className="container max-w-5xl flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
-          <span>&copy; {new Date().getFullYear()} {authorName}. All rights reserved.</span>
-          <span>
-            Powered by{" "}
-            <Link to="/" className="hover:underline font-medium" style={{ color: `hsl(${c.accent})` }}>Authors Bureau</Link>
-          </span>
-        </div>
-      </footer>
-
       {/* Bottom padding for sticky CTA on mobile */}
       {book.amazon_url && <div className="h-16 md:hidden" />}
-    </div>
+    </AuthorPageLayout>
   );
 }

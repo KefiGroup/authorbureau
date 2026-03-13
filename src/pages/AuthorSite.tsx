@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { toast } from "@/hooks/use-toast";
-import { getThemeById, getThemeFontsUrl, type AuthorTheme } from "@/lib/author-themes";
+import { getThemeById, type AuthorTheme } from "@/lib/author-themes";
+import AuthorPageLayout from "@/components/public/AuthorPageLayout";
 import NotFound from "./NotFound";
 
 /* ---------- Types ---------- */
@@ -113,32 +114,7 @@ const SOCIAL_LINKS = [
   { key: "youtube_url", icon: Youtube, label: "YouTube" },
 ] as const;
 
-/* ---------- Theme CSS injection ---------- */
-function ThemeStyle({ theme }: { theme: AuthorTheme }) {
-  const c = theme.colors;
-  return (
-    <>
-      <link rel="stylesheet" href={getThemeFontsUrl(theme)} />
-      <style>{`
-        .author-site {
-          --as-hero-bg: ${c.heroBackground};
-          --as-hero-fg: ${c.heroForeground};
-          --as-accent: ${c.accent};
-          --as-accent-fg: ${c.accentForeground};
-          --as-card-border: ${c.cardBorder};
-          --as-section-alt: ${c.sectionAlt};
-          --as-footer-bg: ${c.footerBackground};
-          --as-footer-fg: ${c.footerForeground};
-          --as-heading-font: ${theme.headingFont};
-          --as-body-font: ${theme.bodyFont};
-          --as-radius: ${theme.borderRadius};
-        }
-        .author-site { font-family: var(--as-body-font); }
-        .author-site .as-heading { font-family: var(--as-heading-font); }
-      `}</style>
-    </>
-  );
-}
+/* ThemeStyle removed — now handled by AuthorPageLayout */
 
 /* ============================================ */
 export default function AuthorSite() {
@@ -346,21 +322,7 @@ export default function AuthorSite() {
   }
 
   return (
-    <div className="author-site min-h-screen" style={{ background: `hsl(${c.sectionAlt})` }}>
-      <ThemeStyle theme={theme} />
-
-      {/* ===== BREADCRUMB ===== */}
-      <nav className="py-3" style={{ background: `hsl(${c.heroBackground})`, borderBottom: `1px solid hsl(${c.heroForeground} / 0.1)` }}>
-        <div className="container max-w-5xl">
-          <ol className="flex items-center gap-2 text-xs" style={{ color: `hsl(${c.heroForeground} / 0.5)` }}>
-            <li><Link to="/" className="hover:underline" style={{ color: `hsl(${c.heroForeground} / 0.5)` }}>Home</Link></li>
-            <li>/</li>
-            <li><Link to="/directory" className="hover:underline" style={{ color: `hsl(${c.heroForeground} / 0.5)` }}>Authors Directory</Link></li>
-            <li>/</li>
-            <li style={{ color: `hsl(${c.heroForeground} / 0.8)` }} className="font-medium">{displayName}</li>
-          </ol>
-        </div>
-      </nav>
+    <AuthorPageLayout theme={theme} authorName={displayName} authorSlug={authorSlug}>
 
       {/* ===== SECTION 1: HERO BANNER ===== */}
       <section className="relative overflow-hidden" style={{ background: `linear-gradient(135deg, hsl(${c.heroBackground}), hsl(${c.heroBackground} / 0.92))`, color: `hsl(${c.heroForeground})` }}>
@@ -789,17 +751,6 @@ export default function AuthorSite() {
           </div>
         </section>
       )}
-
-      {/* ===== FOOTER ===== */}
-      <footer className="py-8" style={{ background: `hsl(${c.footerBackground})`, color: `hsl(${c.footerForeground})` }}>
-        <div className="container max-w-5xl flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
-          <span>&copy; {new Date().getFullYear()} {displayName}. All rights reserved.</span>
-          <span>
-            Powered by{" "}
-            <Link to="/" className="hover:underline font-medium" style={{ color: `hsl(${c.accent})` }}>Authors Bureau</Link>
-          </span>
-        </div>
-      </footer>
-    </div>
+    </AuthorPageLayout>
   );
 }
