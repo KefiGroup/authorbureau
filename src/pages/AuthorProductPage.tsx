@@ -90,13 +90,21 @@ export default function AuthorProductPage() {
   const displayName = author?.pen_name || "Author";
   const bookTitle = book?.title || "Book";
 
+  const productDescFirstSentence = product?.description ? (product.description.split(/[.!?]\s/)[0] + ".") : "";
+  const seoDesc = product
+    ? `${product.title} by ${displayName}. ${productDescFirstSentence} ${config?.label || "Product"} based on the book ${bookTitle}.`
+    : "";
+
   useDocumentMeta({
-    title: product?.title ? `${product.title} by ${displayName} | Authors Bureau` : "Product | Authors Bureau",
-    description: product?.description || "",
-    ogTitle: product?.title ? `${product.title} - ${displayName}` : undefined,
-    ogDescription: product?.description?.slice(0, 150) || undefined,
+    title: product?.title ? `${product.title} - ${config?.label || "Product"} by ${displayName} | Authors Bureau` : "Product | Authors Bureau",
+    description: seoDesc,
+    ogTitle: product?.title ? `${product.title} - ${config?.label || "Product"} by ${displayName} | Authors Bureau` : undefined,
+    ogDescription: seoDesc,
     ogImage: product?.cover_image_url || book?.cover_image_url || author?.photo_url || undefined,
     ogUrl: `https://authorsbureau.com/${authorSlug}/${bookSlug}/${productType}`,
+    ogType: "product",
+    ogSiteName: "Authors Bureau",
+    canonical: `https://authorsbureau.com/${authorSlug}/${bookSlug}/${productType}`,
     twitterCard: "summary_large_image",
     jsonLd: product
       ? {
