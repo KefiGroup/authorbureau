@@ -299,7 +299,7 @@ export default function DynamicMeetOurAuthors() {
                         {author.books.slice(0, 3).map((book) => (
                           <Link
                             key={book.id}
-                            to={`/books/${book.slug}`}
+                            to={`/${author.slug}/${book.slug}`}
                             className="group/book relative"
                           >
                             {book.cover_image_url ? (

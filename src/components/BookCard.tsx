@@ -26,9 +26,10 @@ interface BookCardProps {
   authorName?: string;
 }
 
-export default function BookCard({ book, showAuthor = false, authorName }: BookCardProps) {
+export default function BookCard({ book, showAuthor = false, authorName, authorSlug }: BookCardProps & { authorSlug?: string }) {
+  const bookUrl = authorSlug ? `/${authorSlug}/${book.slug}` : `/books/${book.slug}`;
   return (
-    <Link to={`/books/${book.slug}`}>
+    <Link to={bookUrl}>
       <Card className="group overflow-hidden border-0 bg-card rounded-2xl shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-all duration-300 cursor-pointer h-full">
         <CardContent className="p-0">
           {/* Book Cover */}

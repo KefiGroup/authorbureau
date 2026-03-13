@@ -316,7 +316,7 @@ export default function AuthorProfile() {
             </h2>
             <div className="grid gap-6 grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {author.books.map((book) => (
-                <BookCard key={book.slug} book={book} />
+                <BookCard key={book.slug} book={book} authorSlug={author.slug} />
               ))}
             </div>
           </div>
