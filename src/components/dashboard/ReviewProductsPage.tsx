@@ -357,6 +357,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
                   key={product.id}
                   product={product}
                   publishing={publishing}
+                  deletingId={deletingId}
                   onPreview={() => {
                     // Home study gets full-page preview
                     if (product.nodeId === "home-study-course") {
@@ -373,6 +374,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
                       onNavigate?.(NODE_TO_ROUTE[product.nodeId] || product.nodeId);
                     }
                   }}
+                  onDelete={() => handleDelete(product)}
                   onPublish={() => setConfirmProduct(product)}
                   onExport={product.table === "home_study_courses" ? () => setExportProduct(product) : undefined}
                 />
