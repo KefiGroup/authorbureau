@@ -878,9 +878,10 @@ export default function AuthorSite() {
                 <form onSubmit={handleSubscribe} className="flex flex-col gap-3 max-w-md mx-auto">
                   <input
                     type="text"
-                    placeholder="First name (optional)"
+                    placeholder="Your name *"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    required
                     className="h-12 text-base w-full outline-none"
                     style={{
                       borderRadius: "8px",
@@ -892,11 +893,26 @@ export default function AuthorSite() {
                   />
                   <input
                     type="email"
-                    placeholder="your@email.com"
+                    placeholder="your@email.com *"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     className="h-12 text-base w-full outline-none"
+                    style={{
+                      borderRadius: "8px",
+                      border: `2px solid ${v.cardBorder}`,
+                      padding: "14px 16px",
+                      background: v.cardBg,
+                      color: v.headingText,
+                    }}
+                  />
+                  <textarea
+                    placeholder="Message (optional)"
+                    value={subMessage}
+                    onChange={(e) => setSubMessage(e.target.value)}
+                    maxLength={2000}
+                    rows={3}
+                    className="text-base w-full outline-none resize-none"
                     style={{
                       borderRadius: "8px",
                       border: `2px solid ${v.cardBorder}`,

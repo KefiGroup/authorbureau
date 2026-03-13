@@ -813,9 +813,10 @@ export default function AuthorBookPage() {
                   <form onSubmit={handleSubscribe} className="flex flex-col gap-3">
                     <input
                       type="text"
-                      placeholder="First name (optional)"
+                      placeholder="Your name *"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
+                      required
                       className="h-11 text-sm w-full outline-none"
                       style={{
                         borderRadius: "8px",
@@ -827,11 +828,26 @@ export default function AuthorBookPage() {
                     />
                     <input
                       type="email"
-                      placeholder="your@email.com"
+                      placeholder="your@email.com *"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
                       className="h-11 text-sm w-full outline-none"
+                      style={{
+                        borderRadius: "8px",
+                        border: `1px solid ${v.accent}4D`,
+                        padding: "10px 14px",
+                        background: "rgba(255,255,255,0.08)",
+                        color: v.primaryText,
+                      }}
+                    />
+                    <textarea
+                      placeholder="Message (optional)"
+                      value={subMessage}
+                      onChange={(e) => setSubMessage(e.target.value)}
+                      maxLength={2000}
+                      rows={3}
+                      className="text-sm w-full outline-none resize-none"
                       style={{
                         borderRadius: "8px",
                         border: `1px solid ${v.accent}4D`,
