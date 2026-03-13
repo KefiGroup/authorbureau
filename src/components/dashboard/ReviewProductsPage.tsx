@@ -317,8 +317,22 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
                   key={product.id}
                   product={product}
                   publishing={publishing}
-                  onPreview={() => handlePreview(product)}
-                  onEdit={() => onNavigate?.(NODE_TO_ROUTE[product.nodeId] || product.nodeId)}
+                  onPreview={() => {
+                    // Home study gets full-page preview
+                    if (product.nodeId === "home-study-course") {
+                      setDetailProduct(product);
+                    } else {
+                      handlePreview(product);
+                    }
+                  }}
+                  onEdit={() => {
+                    // Home study gets inline edit view
+                    if (product.nodeId === "home-study-course") {
+                      setDetailProduct(product);
+                    } else {
+                      onNavigate?.(NODE_TO_ROUTE[product.nodeId] || product.nodeId);
+                    }
+                  }}
                   onPublish={() => setConfirmProduct(product)}
                   onExport={product.table === "home_study_courses" ? () => setExportProduct(product) : undefined}
                 />
