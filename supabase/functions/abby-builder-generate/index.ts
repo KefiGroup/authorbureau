@@ -591,14 +591,33 @@ ${contextBlock}
 GENERATE EVERYTHING:
 For the "${approvedProposal.recommended_title || approvedProposal.title_options?.[0]}" ${builderLabel || builderId}:
 
-1. Generate the COMPLETE content for every section/module/episode in the structure
-2. For each item, write full professional content (800-1200 words for lessons, 200-400 for exercises)
-3. Include all supporting materials (scripts, exercises, quizzes, templates)
-4. Write any sales copy, email sequences, and marketing materials
+CRITICAL OUTPUT FORMAT: You MUST structure your output in TWO clearly separated sections using these EXACT delimiters:
+
+===SALES_PAGE_START===
+Write the complete sales/landing page copy here. Include:
+- Compelling headline and sub-headline
+- Hero section with transformation promise
+- Pain points and "Are You Ready" sections
+- What's included / curriculum overview (high-level, not the actual content)
+- Social proof placeholders, testimonials
+- Pricing section with value stack
+- FAQ section
+- Call-to-action / Enroll Now section
+Use the author's voice. This is what the PUBLIC sees BEFORE they buy.
+===SALES_PAGE_END===
+
+===CONTENT_START===
+Write ALL the actual product content here. This is what BUYERS get AFTER purchase. Include:
+1. Welcome/Introduction email or message (personalize with "Dear [Participant Name]")
+2. Complete content for every section/module/day in the structure
+3. For each item, write full professional content (800-1200 words for lessons, 200-400 for exercises)
+4. Include all supporting materials (scripts, exercises, quizzes, templates, reflection prompts)
 5. Use the author's voice and the book's terminology throughout
 6. Reference specific chapters, quotes, and frameworks from the manuscript
+7. Completion/certificate section
+===CONTENT_END===
 
-Format your output as structured markdown with clear section headers. This will be saved as the generated asset.`;
+Format each section as structured markdown with clear headers. The sales page and content MUST be in separate sections with the delimiters above. Do NOT mix them.`;
 
       const response = await fetch(AI_URL, {
         method: "POST",
