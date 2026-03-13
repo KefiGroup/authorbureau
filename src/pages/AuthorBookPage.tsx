@@ -84,6 +84,7 @@ export default function AuthorBookPage() {
     const { data: { user: currentUser } } = await supabase.auth.getUser();
     let profile: any = null;
 
+    // Try current user's profile first
     if (currentUser) {
       const { data } = await supabase
         .from("author_profiles")
@@ -93,6 +94,7 @@ export default function AuthorBookPage() {
         .maybeSingle();
       profile = data;
     }
+    // Try listed/featured profiles
     if (!profile) {
       const { data } = await supabase
         .from("author_profiles")
@@ -103,7 +105,31 @@ export default function AuthorBookPage() {
       profile = data;
     }
 
-    if (!profile) { setNotFound(true); setLoading(false); return; }
+    // Fallback: look up the book by slug alone and redirect to the correct author URL
+    if (!profile) {
+      const { data: bookBySlug } = await supabase
+        .from("books")
+        .select("author_id, slug")
+        .eq("slug", bookSlug)
+        .not("published_at", "is", null)
+        .maybeSingle();
+
+      if (bookBySlug) {
+        const { data: correctProfile } = await supabase
+          .from("author_profiles")
+          .select("author_slug")
+          .eq("user_id", bookBySlug.author_id)
+          .maybeSingle();
+
+        if (correctProfile?.author_slug && correctProfile.author_slug !== authorSlug) {
+          navigate(`/${correctProfile.author_slug}/${bookBySlug.slug}`, { replace: true });
+          return;
+        }
+      }
+
+      setNotFound(true); setLoading(false); return;
+    }
+
     setAuthorProfile(profile);
     setTheme(getThemeById(profile.site_theme || "classic-elegant"));
 
