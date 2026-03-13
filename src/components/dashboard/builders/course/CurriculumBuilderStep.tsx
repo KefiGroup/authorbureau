@@ -16,7 +16,7 @@ function generateId() {
   return crypto.randomUUID();
 }
 
-export default function CurriculumBuilderStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, generationState, setGenerationState, userId }: CourseStepProps) {
+export default function CurriculumBuilderStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, generationState, setGenerationState, userId, onStartGeneration, builderAct }: CourseStepProps) {
   const { toast } = useToast();
   const modules: CourseModule[] = stepData.curriculum?.modules || [];
   const [selectedModuleId, setSelectedModuleId] = useState<string | null>(modules[0]?.id || null);
