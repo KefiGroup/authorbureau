@@ -830,6 +830,7 @@ export default function AuthorProductPage() {
                     </p>
                   )}
                   <button
+                    onClick={() => setContactOpen(true)}
                     className="font-bold text-base px-8 py-3.5 rounded-lg transition-all hover:scale-105"
                     style={{ background: v.accent, color: v.accentText }}
                   >
