@@ -127,6 +127,7 @@ interface GenerationState {
   act: GenerationAct;
   proposal: BuilderProposal | null;
   generatedContent: string;
+  generatedSalesPage: string;
   error: string | null;
   pushResult: { pushed: number; errors: string[] } | null;
 }
