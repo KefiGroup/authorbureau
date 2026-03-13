@@ -185,7 +185,6 @@ export default function HomeStudyReviewView({
     if (!user) return;
     setSaving(true);
     try {
-      // Update the draft with new editable fields
       const parsed = rawDraftContent ? JSON.parse(rawDraftContent) : { stepData: {} };
       parsed.stepData = parsed.stepData || {};
       parsed.stepData.setup = {
@@ -196,12 +195,27 @@ export default function HomeStudyReviewView({
       setRawDraftContent(newContent);
       setSetup(parsed.stepData.setup);
 
-      await supabase
-        .from("generated_assets")
-        .update({ content: newContent, updated_at: new Date().toISOString() })
-        .eq("author_id", user.id)
-        .eq("book_id", bookId)
-        .eq("asset_type", "builder_draft_home-study-course");
+      // Save via edge function (bypasses RLS)
+      const token = await getActiveToken();
+      if (!token) throw new Error("Not authenticated");
+
+      await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/builder-draft-state`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            action: "save",
+            bookId,
+            nodeId: "home-study-course",
+            payload: {
+              currentStep: parsed.currentStep || 0,
+              stepData: parsed.stepData,
+              editedSteps: parsed.editedSteps || [],
+            },
+          }),
+        }
+      );
 
       toast({ title: "Saved!", description: "Your changes have been saved." });
       setMode("preview");
