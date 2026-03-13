@@ -311,15 +311,36 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
 
   // Load saved draft on mount
   const draftLoadedRef = useRef(false);
+  const inferStepFromDraftData = useCallback((data: Record<string, any> | undefined) => {
+    if (!data || typeof data !== "object") return 0;
+    let inferredStep = 0;
+    nodeConfig.steps.forEach((step, idx) => {
+      const value = data[step.id];
+      const hasValue = value !== undefined && value !== null && (
+        typeof value === "object" ? Object.keys(value).length > 0 : String(value).trim().length > 0
+      );
+      if (hasValue) inferredStep = idx;
+    });
+    return inferredStep;
+  }, [nodeConfig.steps]);
+
   useEffect(() => {
     if (!user || !bookId || draftLoadedRef.current) return;
     draftLoadedRef.current = true;
 
     let isMounted = true;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
     (async () => {
       try {
         const token = await getActiveToken();
-        if (!token) return;
+        if (!token) {
+          draftLoadedRef.current = false;
+          retryTimer = setTimeout(() => {
+            if (isMounted) setDraftLoadAttempt((prev) => prev + 1);
+          }, 700);
+          return;
+        }
 
         const resp = await fetchWithTimeout(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/builder-draft-state`,
@@ -346,19 +367,28 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
         if (!isMounted || !result?.draft) return;
         const parsed = result.draft;
 
-        if (parsed.stepData) setStepData(parsed.stepData);
-        if (typeof parsed.currentStep === "number") setCurrentStep(parsed.currentStep);
+        if (parsed.stepData) {
+          setStepData(parsed.stepData);
+          const inferredStep = inferStepFromDraftData(parsed.stepData);
+          const savedStep = typeof parsed.currentStep === "number" ? parsed.currentStep : 0;
+          setCurrentStep(Math.max(savedStep, inferredStep));
+        } else if (typeof parsed.currentStep === "number") {
+          setCurrentStep(parsed.currentStep);
+        }
+
         if (Array.isArray(parsed.editedSteps)) setEditedSteps(new Set(parsed.editedSteps));
         if (parsed.savedAt) setLastSaved(new Date(parsed.savedAt));
       } catch (err) {
         console.error("Failed to load builder draft:", err);
+        draftLoadedRef.current = false;
       }
     })();
 
     return () => {
       isMounted = false;
+      if (retryTimer) clearTimeout(retryTimer);
     };
-  }, [user, bookId, nodeConfig.id]);
+  }, [user, bookId, nodeConfig.id, inferStepFromDraftData, draftLoadAttempt]);
 
   // Abby chat
   const getToken = async (): Promise<string> => {
