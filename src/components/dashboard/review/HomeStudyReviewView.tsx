@@ -239,7 +239,12 @@ export default function HomeStudyReviewView({
       setSalesSubheadline(stripMd(h2 || ""));
       const bullets = lines.filter(l => /^[-*]\s/.test(l)).map(l => stripMd(l.replace(/^[-*]\s*/, "")));
       setSalesBullets(bullets.length > 0 ? bullets : [""]);
-      const bodyLines = lines.filter(l => !l.startsWith("#") && !l.startsWith("-") && !l.startsWith("*") && !l.startsWith(">"));
+      // Filter out headings, bullets, blockquotes, Q&A lines, testimonial attributions, and section labels
+      const isNoise = (l: string) =>
+        l.startsWith("#") || l.startsWith("-") || l.startsWith("*") || l.startsWith(">") ||
+        /^[QA]:\s/i.test(l) || /^—\s/.test(l) || /^\*\*[QA]:/i.test(l) ||
+        /^(frequently asked|faq|testimonial|what others say|what's included)/i.test(l.replace(/^[#*\s]+/, ""));
+      const bodyLines = lines.filter(l => !isNoise(l));
       setSalesBody(stripMd(bodyLines.join("\n")));
       const quoteLines = lines.filter(l => l.startsWith(">"));
       const testimonials = quoteLines.map(q => ({ name: "", quote: stripMd(q.replace(/^>\s*/, "").replace(/^"/, "").replace(/"$/, "")) }));
@@ -687,7 +692,7 @@ export default function HomeStudyReviewView({
               <Textarea
                 value={salesBody}
                 onChange={(e) => setSalesBody(e.target.value)}
-                rows={6}
+                rows={12}
                 className="mt-1 text-sm"
                 placeholder="Describe your program, who it's for, and the transformation they'll experience..."
               />
