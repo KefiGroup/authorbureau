@@ -294,6 +294,7 @@ export default function AuthorSite() {
     const { error } = await supabase.from("author_subscribers").insert({
       author_id: author.user_id,
       email: email.trim(),
+      name: name.trim() || null,
       source: "author_homepage",
       source_detail: authorSlug,
     });
