@@ -146,8 +146,41 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
   const abortRef = useRef<AbortController | null>(null);
 
   const getToken = async (): Promise<string> => {
-    const { data } = await supabase.auth.getSession();
-    return data?.session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const token = await getActiveToken();
+    if (!token) throw new Error("Not authenticated. Please sign in again.");
+    return token;
+  };
+
+  const getFunctionsBaseUrl = () => {
+    const url = (supabase as any)?.supabaseUrl || import.meta.env.VITE_SUPABASE_URL;
+    if (!url) throw new Error("Backend URL is missing");
+    return url;
+  };
+
+  const fetchBuilderEndpoint = async (payload: Record<string, any>, signal?: AbortSignal) => {
+    const token = await getToken();
+    const baseUrl = getFunctionsBaseUrl();
+
+    let lastError: unknown = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        return await fetch(`${baseUrl}/functions/v1/abby-builder-generate`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+          signal,
+        });
+      } catch (err: any) {
+        lastError = err;
+        if (signal?.aborted || err?.name === "AbortError") throw err;
+        if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+
+    throw lastError instanceof Error ? lastError : new Error("Failed to reach Abby service");
   };
 
   // ── ACT 1: Analyze ─────────────────────────────────────────────
