@@ -41,7 +41,7 @@ export default function FreeMicrositeHero({
           </h2>
 
           <p className="text-sm md:text-base text-gray-700 leading-relaxed max-w-lg">
-            Get a polished landing page at <strong className="text-gray-900">authorsbureau.com/authors/{authorSlug || "your-name"}</strong> — 
+            Get a polished landing page at <strong className="text-gray-900">authorsbureau.com/{authorSlug || "your-name"}</strong> — 
             with your photo, bio, books, pricing, services, and social links. Share one link everywhere.
           </p>
 
