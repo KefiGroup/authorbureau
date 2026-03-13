@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
+import SiteThemePicker from "@/components/dashboard/SiteThemePicker";
 
 interface BookFormData {
   title: string;
@@ -561,6 +562,9 @@ export default function DualModeBookForm({
               </div>
             </div>
           )}
+
+          {/* Website Look & Feel */}
+          <SiteThemePicker compact />
 
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4">
