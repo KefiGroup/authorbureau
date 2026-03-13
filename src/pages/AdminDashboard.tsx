@@ -21,7 +21,7 @@ import AdminPayoutsDashboard from "@/components/admin/AdminPayoutsDashboard";
 
 import type { AdminStats, AdminBook, AdminInfo } from "@/types/admin";
 
-type Tab = "overview" | "books" | "authors" | "admins" | "platforms" | "crm" | "messages" | "reading-club" | "support";
+type Tab = "overview" | "books" | "authors" | "admins" | "platforms" | "crm" | "messages" | "reading-club" | "support" | "payouts";
 
 async function adminFetch(action: string, body: Record<string, unknown> = {}) {
   const token = await getActiveToken();
