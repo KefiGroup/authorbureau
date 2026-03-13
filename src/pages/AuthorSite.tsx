@@ -223,18 +223,24 @@ export default function AuthorSite() {
   const hasWorkWithSection = coachingServices.length > 0 || allProducts.length > 0;
 
   // SEO
-  const seoDescription = author?.tagline
-    ? `${displayName} - ${author.tagline}. Explore their books, products, and services on Authors Bureau.`
+  const bioFirstSentence = (author?.bio_short || "").split(/[.!?]\s/)[0];
+  const uniqueGenres = [...new Set(booksWithProducts.map(b => b.genre).filter(Boolean))] as string[];
+  const genreStr = uniqueGenres.length > 0 ? ` in ${uniqueGenres.join(", ")}` : "";
+  const seoDescription = author
+    ? `Discover books, resources, and services by ${displayName}. ${bioFirstSentence ? bioFirstSentence + "." : ""} Browse ${booksWithProducts.length} published book${booksWithProducts.length !== 1 ? "s" : ""}${genreStr}.`
     : `Author page for ${displayName} on Authors Bureau.`;
   const canonicalUrl = `https://authorsbureau.com/${authorSlug}`;
 
   useDocumentMeta({
     title: author ? `${displayName} - ${author.tagline || "Author"} | Authors Bureau` : "Author | Authors Bureau",
     description: seoDescription,
-    ogTitle: author ? `${displayName} | Authors Bureau` : undefined,
+    ogTitle: author ? `${displayName} - ${author.tagline || "Author"} | Authors Bureau` : undefined,
     ogDescription: seoDescription,
     ogImage: author?.photo_url || undefined,
     ogUrl: canonicalUrl,
+    ogType: "profile",
+    ogSiteName: "Authors Bureau",
+    canonical: canonicalUrl,
     twitterCard: "summary_large_image",
     jsonLd: author
       ? {

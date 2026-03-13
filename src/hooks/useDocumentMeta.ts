@@ -7,6 +7,9 @@ interface DocumentMetaOptions {
   ogDescription?: string;
   ogImage?: string;
   ogUrl?: string;
+  ogType?: string;
+  ogSiteName?: string;
+  canonical?: string;
   twitterCard?: "summary" | "summary_large_image";
   jsonLd?: Record<string, unknown>;
 }
@@ -28,6 +31,21 @@ function removeMetaTag(property: string, isOg = false) {
   if (el) el.remove();
 }
 
+function setCanonical(href: string) {
+  let el = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+  if (!el) {
+    el = document.createElement("link");
+    el.setAttribute("rel", "canonical");
+    document.head.appendChild(el);
+  }
+  el.setAttribute("href", href);
+}
+
+function removeCanonical() {
+  const el = document.querySelector('link[rel="canonical"]');
+  if (el) el.remove();
+}
+
 const JSON_LD_ID = "document-meta-jsonld";
 
 export function useDocumentMeta(options: DocumentMetaOptions) {
@@ -40,8 +58,10 @@ export function useDocumentMeta(options: DocumentMetaOptions) {
     if (options.ogDescription) setMetaTag("og:description", options.ogDescription, true);
     if (options.ogImage) setMetaTag("og:image", options.ogImage, true);
     if (options.ogUrl) setMetaTag("og:url", options.ogUrl, true);
-    setMetaTag("og:type", "website", true);
+    setMetaTag("og:type", options.ogType || "website", true);
+    setMetaTag("og:site_name", options.ogSiteName || "Authors Bureau", true);
     if (options.twitterCard) setMetaTag("twitter:card", options.twitterCard);
+    if (options.canonical) setCanonical(options.canonical);
 
     // JSON-LD
     let scriptEl = document.getElementById(JSON_LD_ID) as HTMLScriptElement | null;
@@ -63,7 +83,9 @@ export function useDocumentMeta(options: DocumentMetaOptions) {
       removeMetaTag("og:image", true);
       removeMetaTag("og:url", true);
       removeMetaTag("og:type", true);
+      removeMetaTag("og:site_name", true);
       removeMetaTag("twitter:card");
+      removeCanonical();
       const el = document.getElementById(JSON_LD_ID);
       if (el) el.remove();
     };

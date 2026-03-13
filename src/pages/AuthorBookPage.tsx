@@ -101,8 +101,19 @@ export default function AuthorBookPage() {
   // SEO
   const authorName = book?.author_name || authorProfile?.pen_name || "Author";
   const seoTitle = book ? `${book.title} by ${authorName} | Authors Bureau` : "Book | Authors Bureau";
-  const seoDesc = book?.description?.slice(0, 150) ? `${book.title}: ${book.description.slice(0, 150)}...` : "";
   const canonicalUrl = `https://authorsbureau.com/${authorSlug}/${bookSlug}`;
+
+  // Dynamic meta description
+  const bookDescFirstSentence = book?.description ? (book.description.split(/[.!?]\s/)[0] + ".") : "";
+  const formatParts: string[] = [];
+  if (book?.kindle_price) formatParts.push(`Kindle ${book.kindle_price}`);
+  if (book?.paperback_price) formatParts.push(`Paperback ${book.paperback_price}`);
+  if (book?.price && !book?.kindle_price && !book?.paperback_price) formatParts.push(book.price);
+  const formatsStr = formatParts.length > 0 ? ` Available in ${formatParts.join(", ")}.` : "";
+  const badgesForMeta = Array.isArray(book?.badges) && book.badges.length > 0 ? ` ${book.badges[0]}.` : "";
+  const seoDesc = book
+    ? `${book.title} by ${authorName}. ${bookDescFirstSentence}${formatsStr}${badgesForMeta}`
+    : "";
 
   useDocumentMeta({
     title: seoTitle,
@@ -111,6 +122,9 @@ export default function AuthorBookPage() {
     ogDescription: seoDesc,
     ogImage: book?.cover_image_url || undefined,
     ogUrl: canonicalUrl,
+    ogType: "book",
+    ogSiteName: "Authors Bureau",
+    canonical: canonicalUrl,
     twitterCard: "summary_large_image",
     jsonLd: book
       ? {
