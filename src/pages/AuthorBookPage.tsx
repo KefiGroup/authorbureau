@@ -98,6 +98,7 @@ export default function AuthorBookPage() {
   const [subscribing, setSubscribing] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
   const [heroVisible, setHeroVisible] = useState(true);
+  const [contactOpen, setContactOpen] = useState(false);
 
   const v = theme?.vars;
 
