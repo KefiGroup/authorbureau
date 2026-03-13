@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Sparkles, Loader2, Monitor, Smartphone, Presentation, FileText, Mail, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/shared-backend";
+import { supabase } from "@/integrations/supabase/client";
 import type { WebinarConfig, ScriptSection, WebinarSlide, RegistrationPage, FollowUpEmail } from "./types";
 import { WEBINAR_TYPE_LABELS, FORMAT_LABELS, SLIDE_TYPE_LABELS } from "./types";
 

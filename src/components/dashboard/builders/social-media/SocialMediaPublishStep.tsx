@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, Download, CheckCircle2, TrendingUp, Sparkles, Loader2, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/shared-backend";
+import { supabase } from "@/integrations/supabase/client";
 import type { SocialMediaPost, SocialMediaConfig } from "./types";
 import { PLATFORM_CONFIG, CONTENT_TYPE_LABELS } from "./types";
 import { format } from "date-fns";
