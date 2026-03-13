@@ -188,18 +188,12 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
     setState({ act: "act1_loading", proposal: null, generatedContent: "", generatedSalesPage: "", error: null, pushResult: null });
 
     try {
-      const token = await getToken();
-      const resp = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/abby-builder-generate`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ act: 1, builderId, bookId, builderLabel }),
-        }
-      );
+      const resp = await fetchBuilderEndpoint({
+        act: 1,
+        builderId,
+        bookId,
+        builderLabel,
+      });
 
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({ error: "Unknown error" }));
