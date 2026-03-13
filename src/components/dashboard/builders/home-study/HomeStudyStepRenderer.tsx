@@ -1,6 +1,5 @@
 import type { HomeStudyStepProps } from "./types";
 import ProgramSetupStep from "./ProgramSetupStep";
-import DailyScheduleStep from "./DailyScheduleStep";
 import DailyContentStep from "./DailyContentStep";
 import MaterialsStep from "./MaterialsStep";
 import HomeStudyPreviewStep from "./HomeStudyPreviewStep";
@@ -13,8 +12,6 @@ export default function HomeStudyStepRenderer({ stepId, ...props }: Props) {
   switch (stepId) {
     case "setup":
       return <ProgramSetupStep {...props} />;
-    case "schedule":
-      return <DailyScheduleStep {...props} />;
     case "content":
       return <DailyContentStep {...props} />;
     case "materials":
