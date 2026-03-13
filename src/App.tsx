@@ -10,6 +10,7 @@ import AccountSettings from "./pages/AccountSettings";
 import GetFeatured from "./pages/GetFeatured";
 import Directory from "./pages/Directory";
 import AuthorProfile from "./pages/AuthorProfile";
+import { AuthorSlugRedirect } from "./pages/AuthorSlugRedirect";
 import DynamicBookMicrosite from "./pages/DynamicBookMicrosite";
 import CreateMicrosite from "./pages/CreateMicrosite";
 import Join from "./pages/Join";
