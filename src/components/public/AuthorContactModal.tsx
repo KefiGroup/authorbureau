@@ -53,6 +53,7 @@ export default function AuthorContactModal({
           source: "contact_form",
           source_detail: `Message: ${form.message.slice(0, 200)}`,
           author_id: authorId,
+          message: form.message,
         },
       });
 
