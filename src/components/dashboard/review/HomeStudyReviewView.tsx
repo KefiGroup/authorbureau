@@ -521,21 +521,8 @@ export default function HomeStudyReviewView({
                   ? "Showing your complete generated Home Study curriculum."
                   : "No day-by-day lessons were found yet. Go back to the Home Study Builder to generate the daily schedule and content."}
               </p>
-              {hasFullManuscript && splitContent.salesPage && splitContent.curriculum && (
-                <div className="flex items-center gap-1 mt-3">
-                  <button
-                    onClick={() => setManuscriptTab("curriculum")}
-                    className={`text-xs px-3 py-1.5 rounded-md font-medium transition-colors ${manuscriptTab === "curriculum" ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
-                  >
-                    📚 Curriculum
-                  </button>
-                  <button
-                    onClick={() => setManuscriptTab("sales")}
-                    className={`text-xs px-3 py-1.5 rounded-md font-medium transition-colors ${manuscriptTab === "sales" ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
-                  >
-                    📄 Sales Page Copy
-                  </button>
-                </div>
+              {hasSeparatedManuscript && (
+                <p className="text-xs text-muted-foreground mt-2">Sales page and course content are shown in separate sections below.</p>
               )}
             </div>
             <div className="max-h-[68vh] overflow-y-auto p-6">
