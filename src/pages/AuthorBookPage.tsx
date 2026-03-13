@@ -174,7 +174,7 @@ export default function AuthorBookPage() {
           <motion.h1
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
             className="mb-4 font-heading text-4xl font-bold"
-            style={theme ? { fontFamily: theme.fonts.heading } : {}}
+            style={theme ? { fontFamily: theme.headingFont } : {}}
           >
             {book.title}
           </motion.h1>
