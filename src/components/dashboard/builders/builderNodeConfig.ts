@@ -127,11 +127,8 @@ const homeStudyCourseBuilder: BuilderNodeConfig = {
     "Preparing your Home Study Program Proposal",
   ],
   steps: [
-    { id: "setup", label: "Program Setup", description: "Set title, duration, commitment, and pricing", abbyTip: "A 30-day program at 30 minutes/day has the highest completion rate for self-help books. I recommend this format for your audience." },
-    { id: "schedule", label: "Daily Schedule", description: "AI generates a day-by-day plan from your manuscript", abbyTip: "I've grouped your days into weeks, each building on the last. Week 1 is awareness, Week 2 is skills, Week 3 is practice, Week 4 is mastery." },
-    { id: "content", label: "Daily Content", description: "Generate readings, exercises, and reflections for each day", abbyTip: "Keep daily lessons to 15-20 minutes. Shorter is better for completion rates. Add reflection prompts to boost engagement." },
-    { id: "materials", label: "Materials & Packaging", description: "PDF layout, progress tracker, certificate, and upsells", abbyTip: "Students who complete this program are perfect candidates for your Online Course. Include an upsell on the final page." },
-    { id: "preview", label: "Preview & Publish", description: "Flip through the guide and publish", abbyTip: "Offer a 'Day 1 Preview' as a lead magnet to build your email list before launching." },
+    { id: "setup", label: "Program Setup", description: "Abby analyzes your manuscript and generates the full program", abbyTip: "A 21-day program at 15–30 minutes/day has the highest completion rate for self-help books. I recommend this format for your audience." },
+    { id: "edit", label: "Edit & Publish", description: "Review and edit all days, then publish to your website", abbyTip: "Review each day's reading, exercise, reflection, and action plan. Edit anything you'd like, then hit Publish when ready." },
   ],
 };
 
