@@ -374,12 +374,12 @@ Deno.serve(async (req) => {
 
           // Backward compatibility: if no separate sales page, try to split from generatedContent
           if (!result.salesPageContent && result.generatedContent) {
-            const text = result.generatedContent as string;
-            const salesMatch = text.match(/===SALES_PAGE_START===([\s\S]*?)===SALES_PAGE_END===/);
-            const contentMatch = text.match(/===CONTENT_START===([\s\S]*?)===CONTENT_END===/);
-            if (salesMatch && contentMatch) {
-              result.salesPageContent = salesMatch[1].trim();
-              result.generatedContent = contentMatch[1].trim();
+            const { sales, content } = splitSalesAndContent(String(result.generatedContent));
+            if (sales) {
+              result.salesPageContent = sales;
+            }
+            if (content) {
+              result.generatedContent = content;
             }
           }
         }
