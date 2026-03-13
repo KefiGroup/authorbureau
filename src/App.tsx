@@ -33,6 +33,8 @@ import AuthorBookPage from "./pages/AuthorBookPage";
 import BookSlugRedirect from "./pages/BookSlugRedirect";
 import ScrollToTop from "./components/ScrollToTop";
 import AbbyHelpChatbot from "./components/AbbyHelpChatbot";
+import PurchaseSuccess from "./pages/PurchaseSuccess";
+import ReaderPortal from "./pages/ReaderPortal";
 
 const queryClient = new QueryClient();
 
