@@ -28,6 +28,7 @@ import UniversalBuilderStudio from "@/components/dashboard/builders/UniversalBui
 import { BUILDER_NODE_MAP } from "@/components/dashboard/builders/builderNodeConfig";
 import ConnectStripePage from "@/components/dashboard/ConnectStripePage";
 import HowItWorksSection from "@/components/dashboard/HowItWorksSection";
+import PayoutSettingsPage from "@/components/dashboard/PayoutSettingsPage";
 import ReviewProductsPage from "@/components/dashboard/ReviewProductsPage";
 import AuthorCRMPage from "@/components/dashboard/AuthorCRMPage";
 import AuthorMessagesPage from "@/components/dashboard/AuthorMessagesPage";
