@@ -410,7 +410,8 @@ export default function AuthorSite() {
 
   return (
     <AuthorPageLayout theme={theme} breadcrumbs={[
-      { label: "Authors", to: "/directory" },
+      { label: "Home", to: "/" },
+      { label: "Authors Directory", to: "/directory" },
       { label: displayName },
     ]}>
 
