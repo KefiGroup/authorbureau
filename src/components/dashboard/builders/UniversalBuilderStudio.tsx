@@ -131,6 +131,7 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
   const [stepData, setStepData] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [draftLoadAttempt, setDraftLoadAttempt] = useState(0);
   
   // 3-Act generation engine (replaces old mock generationState)
   const builderGen = useBuilderGeneration(nodeConfig.id, nodeConfig.label);
@@ -310,15 +311,56 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
 
   // Load saved draft on mount
   const draftLoadedRef = useRef(false);
+  const inferStepFromDraftData = useCallback((data: Record<string, any> | undefined) => {
+    if (!data || typeof data !== "object") return 0;
+    let inferredStep = 0;
+
+    nodeConfig.steps.forEach((step, idx) => {
+      const value = data[step.id];
+      const hasValue = value !== undefined && value !== null && (
+        typeof value === "object" ? Object.keys(value).length > 0 : String(value).trim().length > 0
+      );
+      if (hasValue) inferredStep = idx;
+    });
+
+    // Home Study has most content nested under schedule.days, so infer deeper progress safely.
+    if (nodeConfig.id === "home-study-course") {
+      const days = Array.isArray(data.schedule?.days) ? data.schedule.days : [];
+      if (days.length > 0) inferredStep = Math.max(inferredStep, 1);
+
+      const hasDailyContent = days.some((day: any) =>
+        Boolean(day?.concept || day?.exercise || day?.reflection || day?.actionPlan || day?.reading || day?.audioScript)
+      );
+      if (hasDailyContent) inferredStep = Math.max(inferredStep, 2);
+
+      if (data.materials && typeof data.materials === "object" && Object.keys(data.materials).length > 0) {
+        inferredStep = Math.max(inferredStep, 3);
+      }
+      if (data.preview && typeof data.preview === "object" && Object.keys(data.preview).length > 0) {
+        inferredStep = Math.max(inferredStep, 4);
+      }
+    }
+
+    return inferredStep;
+  }, [nodeConfig.steps, nodeConfig.id]);
+
   useEffect(() => {
     if (!user || !bookId || draftLoadedRef.current) return;
     draftLoadedRef.current = true;
 
     let isMounted = true;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
     (async () => {
       try {
         const token = await getActiveToken();
-        if (!token) return;
+        if (!token) {
+          draftLoadedRef.current = false;
+          retryTimer = setTimeout(() => {
+            if (isMounted) setDraftLoadAttempt((prev) => prev + 1);
+          }, 700);
+          return;
+        }
 
         const resp = await fetchWithTimeout(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/builder-draft-state`,
@@ -345,19 +387,28 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
         if (!isMounted || !result?.draft) return;
         const parsed = result.draft;
 
-        if (parsed.stepData) setStepData(parsed.stepData);
-        if (typeof parsed.currentStep === "number") setCurrentStep(parsed.currentStep);
+        if (parsed.stepData) {
+          setStepData(parsed.stepData);
+          const inferredStep = inferStepFromDraftData(parsed.stepData);
+          const savedStep = typeof parsed.currentStep === "number" ? parsed.currentStep : 0;
+          setCurrentStep(Math.max(savedStep, inferredStep));
+        } else if (typeof parsed.currentStep === "number") {
+          setCurrentStep(parsed.currentStep);
+        }
+
         if (Array.isArray(parsed.editedSteps)) setEditedSteps(new Set(parsed.editedSteps));
         if (parsed.savedAt) setLastSaved(new Date(parsed.savedAt));
       } catch (err) {
         console.error("Failed to load builder draft:", err);
+        draftLoadedRef.current = false;
       }
     })();
 
     return () => {
       isMounted = false;
+      if (retryTimer) clearTimeout(retryTimer);
     };
-  }, [user, bookId, nodeConfig.id]);
+  }, [user, bookId, nodeConfig.id, inferStepFromDraftData, draftLoadAttempt]);
 
   // Abby chat
   const getToken = async (): Promise<string> => {
@@ -454,14 +505,19 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
     }
   }, [abbyInput, abbyMessages, abbyStreaming, bookId, bookTitle, nodeConfig, currentStep, plan, manuscriptSummary, frameworks]);
 
-  const goNext = async () => {
-    // Save draft but never block step navigation
-    await handleSaveDraft(true);
-    if (currentStep < nodeConfig.steps.length - 1) setCurrentStep(currentStep + 1);
+  const goToStep = useCallback((targetStep: number) => {
+    const boundedStep = Math.max(0, Math.min(targetStep, nodeConfig.steps.length - 1));
+    currentStepRef.current = boundedStep;
+    setCurrentStep(boundedStep);
+    void handleSaveDraft(true);
+  }, [nodeConfig.steps.length, handleSaveDraft]);
+
+  const goNext = () => {
+    if (currentStep < nodeConfig.steps.length - 1) goToStep(currentStep + 1);
   };
 
   const goPrev = () => {
-    if (currentStep > 0) setCurrentStep(currentStep - 1);
+    if (currentStep > 0) goToStep(currentStep - 1);
   };
 
   const handlePublish = async () => {
@@ -629,7 +685,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
               return (
                 <div key={step.id} className="flex items-center">
                   <button
-                    onClick={() => { handleSaveDraft(true); setCurrentStep(idx); }}
+                    onClick={() => goToStep(idx)}
                     className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
                       isCurrent
                         ? "bg-secondary text-secondary-foreground"
