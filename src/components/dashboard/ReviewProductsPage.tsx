@@ -535,13 +535,16 @@ function ProductCard({
   publishing,
   onPreview,
   onEdit,
+  onDelete,
   onPublish,
   onExport,
 }: {
   product: DraftProduct;
   publishing: string | null;
+  deletingId: string | null;
   onPreview: () => void;
   onEdit: () => void;
+  onDelete: () => void;
   onPublish: () => void;
   onExport?: () => void;
 }) {
