@@ -256,6 +256,7 @@ export default function AdminDashboard() {
     { key: "messages", label: "Messages", icon: MessageSquare },
     { key: "reading-club", label: "Reading Club", icon: BookMarked },
     { key: "support", label: "Support", icon: Headphones },
+    { key: "payouts", label: "Payouts", icon: Wallet },
     { key: "admins", label: "Admins", icon: ShieldCheck, superOnly: true },
     { key: "platforms", label: "Platforms", icon: Globe, pnAdminOnly: true },
   ];
