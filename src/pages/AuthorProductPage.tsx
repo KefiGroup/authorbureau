@@ -884,11 +884,18 @@ export default function AuthorProductPage() {
                     </p>
                   )}
                   <button
-                    onClick={() => setContactOpen(true)}
-                    className="font-bold text-base px-8 py-3.5 rounded-lg transition-all hover:scale-105"
+                    onClick={() => {
+                      if (product.price != null && product.price > 0 && ["homestudy", "onlinecourse", "workbook", "audiobook"].includes(pType)) {
+                        handleBuyNow();
+                      } else {
+                        setContactOpen(true);
+                      }
+                    }}
+                    disabled={buying}
+                    className="font-bold text-base px-8 py-3.5 rounded-lg transition-all hover:scale-105 disabled:opacity-60"
                     style={{ background: v.accent, color: v.accentText }}
                   >
-                    {ctaText}
+                    {buying ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : ctaText}
                   </button>
                 </div>
 
