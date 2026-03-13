@@ -699,14 +699,6 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                     </div>
                     {builderGen.generatedContent && (
                       <div className="max-h-[440px] overflow-y-auto border rounded-lg p-4 bg-muted/30 space-y-4">
-                        {previewSalesText ? (
-                          <div className="space-y-2">
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-secondary">Sales Page Draft</p>
-                            <div className="rounded-lg border border-border bg-background p-3">
-                              <MarkdownRenderer content={previewSalesText} />
-                            </div>
-                          </div>
-                        ) : null}
                         <div className="space-y-2">
                           <p className="text-[10px] font-semibold uppercase tracking-wider text-secondary">Product Content Draft</p>
                           <div className="rounded-lg border border-border bg-background p-3">
@@ -726,14 +718,6 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                       <p className="text-sm font-bold text-accent">Content generated successfully! \uD83C\uDF89</p>
                     </div>
                     <div className="max-h-[520px] overflow-y-auto border rounded-lg p-4 bg-background space-y-4">
-                      {previewSalesText ? (
-                        <div className="space-y-2">
-                          <p className="text-[10px] font-semibold uppercase tracking-wider text-secondary">Sales Page (saved separately)</p>
-                          <div className="rounded-lg border border-border bg-muted/20 p-3">
-                            <MarkdownRenderer content={previewSalesText} />
-                          </div>
-                        </div>
-                      ) : null}
                       <div className="space-y-2">
                         <p className="text-[10px] font-semibold uppercase tracking-wider text-secondary">Product Content</p>
                         <div className="rounded-lg border border-border bg-muted/20 p-3">
