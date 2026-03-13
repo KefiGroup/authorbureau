@@ -40,6 +40,7 @@ export function getProductCardCTAText(type: string): string {
     coaching: "Book Coaching →",
     group_coaching: "Join the Group →",
     membership: "Join Now →",
+    coaching_membership: "Join Now →",
     webinar: "Register →",
     speaking: "Book for Your Event →",
     keynote: "Book for Your Event →",
@@ -52,6 +53,7 @@ export function getProductCardCTAText(type: string): string {
     convention: "Get Tickets →",
     special_edition: "Order Now →",
     podcast: "Listen Now →",
+    big_ticket: "Learn More →",
   };
   return map[type] || "Learn More →";
 }
