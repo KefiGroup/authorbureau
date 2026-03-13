@@ -26,57 +26,7 @@ export default function ProgramSetupStep({ stepData, setStepData, onMarkEdited, 
 
   // Show summary if generation is complete
   if (isComplete && data.title) {
-    return (
-      <div className="space-y-4">
-        <Card className="p-6 border-accent/30 bg-accent/5">
-          <div className="flex items-center gap-2 mb-4">
-            <Check className="h-5 w-5 text-accent" />
-            <p className="text-sm font-bold text-accent">Program configured by Abby</p>
-          </div>
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            {data.title && (
-              <div className="col-span-2">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Title</p>
-                <p className="font-medium">{data.title}</p>
-              </div>
-            )}
-            {data.duration && (
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Duration</p>
-                <p className="font-medium">{data.duration} Days</p>
-              </div>
-            )}
-            {data.commitment && (
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Daily Commitment</p>
-                <p className="font-medium">{data.commitment} min/day</p>
-              </div>
-            )}
-            {data.level && (
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Level</p>
-                <p className="font-medium capitalize">{data.level}</p>
-              </div>
-            )}
-            {data.format && (
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Format</p>
-                <p className="font-medium">{data.format}</p>
-              </div>
-            )}
-            {data.price && (
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Price</p>
-                <p className="font-medium">${data.price}</p>
-              </div>
-            )}
-          </div>
-        </Card>
-        <p className="text-xs text-muted-foreground text-center">
-          You can edit all details in the final Review & Publish step
-        </p>
-      </div>
-    );
+    return null;
   }
 
   // Hide CTA when Abby is actively working
