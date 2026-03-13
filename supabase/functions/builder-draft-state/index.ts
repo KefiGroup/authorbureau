@@ -495,10 +495,9 @@ Deno.serve(async (req) => {
 
         // For generated_assets, there's no "status" column, so we handle differently
         if (table === "generated_assets") {
-          // Update the asset_type to mark as published
           const { data: asset } = await cloudAdmin
             .from("generated_assets")
-            .select("asset_type, content")
+            .select("asset_type, content, book_id, author_id")
             .eq("id", productId)
             .maybeSingle();
 
@@ -512,6 +511,101 @@ Deno.serve(async (req) => {
                 .update({ content: JSON.stringify(parsed) })
                 .eq("id", productId);
             } catch { /* ignore */ }
+          }
+
+          // If this node maps to a product table, create/update a record there too
+          if (asset) {
+            const draftNodeId = asset.asset_type?.replace("builder_draft_", "") || "";
+            const targetTable = NODE_DB_TABLES[draftNodeId];
+
+            if (targetTable && targetTable !== "generated_assets" && asset.book_id && asset.author_id) {
+              // Parse draft data for title, price, description, etc.
+              let title = "";
+              let price: number | null = null;
+              let currency = "USD";
+              let description = "";
+              let durationDays: number | null = null;
+              let contentMarkdown = "";
+
+              try {
+                const parsed = JSON.parse(asset.content);
+                const sd = parsed.stepData || {};
+                title = sd?.setup?.title || sd?.foundation?.title || sd?.model?.title || "Untitled";
+                price = sd?.setup?.price ? parseFloat(sd.setup.price) : null;
+                currency = sd?.setup?.currency || "USD";
+                durationDays = sd?.setup?.duration || null;
+              } catch { /* ignore */ }
+
+              // Get sales page content for description
+              const { data: salesAsset } = await cloudAdmin
+                .from("generated_assets")
+                .select("content")
+                .eq("book_id", asset.book_id)
+                .eq("author_id", asset.author_id)
+                .eq("asset_type", `builder_sales_page_${draftNodeId}`)
+                .order("updated_at", { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+              if (salesAsset?.content && salesAsset.content.trim().length > 50) {
+                description = salesAsset.content.trim();
+              }
+
+              // Get generated content
+              const { data: contentAsset } = await cloudAdmin
+                .from("generated_assets")
+                .select("content")
+                .eq("book_id", asset.book_id)
+                .eq("author_id", asset.author_id)
+                .eq("asset_type", `builder_content_${draftNodeId}`)
+                .order("updated_at", { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+              if (contentAsset?.content) {
+                contentMarkdown = contentAsset.content;
+              }
+
+              // Check if record already exists
+              const { data: existingProduct } = await cloudAdmin
+                .from(targetTable)
+                .select("id")
+                .eq("book_id", asset.book_id)
+                .eq("author_id", asset.author_id)
+                .maybeSingle();
+
+              if (existingProduct) {
+                // Update existing
+                const updateData: Record<string, any> = { status: "published" };
+                if (title) updateData.title = title;
+                if (description) updateData.description = description;
+                if (price !== null) updateData.price = price;
+                if (contentMarkdown) updateData.content_markdown = contentMarkdown;
+                if (durationDays !== null) updateData.duration_days = durationDays;
+
+                await cloudAdmin
+                  .from(targetTable)
+                  .update(updateData)
+                  .eq("id", existingProduct.id);
+              } else {
+                // Create new record
+                const insertData: Record<string, any> = {
+                  author_id: asset.author_id,
+                  book_id: asset.book_id,
+                  title: title || "Untitled",
+                  status: "published",
+                };
+                if (description) insertData.description = description;
+                if (price !== null) insertData.price = price;
+                if (currency) insertData.currency = currency;
+                if (contentMarkdown) insertData.content_markdown = contentMarkdown;
+                if (durationDays !== null) insertData.duration_days = durationDays;
+
+                await cloudAdmin
+                  .from(targetTable)
+                  .insert(insertData);
+              }
+            }
           }
 
           return new Response(JSON.stringify({ ok: true }), {
