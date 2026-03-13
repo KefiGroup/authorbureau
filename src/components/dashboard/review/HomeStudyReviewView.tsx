@@ -142,7 +142,12 @@ export default function HomeStudyReviewView({
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, productTable, productId, bookId, productTitle]);
+
+  useEffect(() => {
+    if (!user) return;
+    void loadContent();
+  }, [user, loadContent]);
 
   const hasStructuredDays = days.length > 0;
   const fullCourseText = fullCourseMarkdown.trim();
