@@ -670,7 +670,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                 )}
 
                 {/* Act 3: Streaming Generation */}
-                {builderGen.act === "act3_generating" && (
+                {builderGen.act === "act3_generating" && currentStep === 0 && (
                   <Card className="p-6 mb-6">
                     <div className="flex items-center gap-3 mb-4">
                       <motion.div
