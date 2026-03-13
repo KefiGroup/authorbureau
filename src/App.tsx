@@ -26,6 +26,8 @@ import NotFound from "./pages/NotFound";
 import BookHub from "./pages/BookHub";
 import Solutions from "./pages/Solutions";
 import SolutionsIndex from "./pages/SolutionsIndex";
+import AuthorSite from "./pages/AuthorSite";
+import AuthorProductPage from "./pages/AuthorProductPage";
 import ScrollToTop from "./components/ScrollToTop";
 import AbbyHelpChatbot from "./components/AbbyHelpChatbot";
 
