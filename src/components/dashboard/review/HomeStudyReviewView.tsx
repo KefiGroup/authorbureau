@@ -246,9 +246,25 @@ export default function HomeStudyReviewView({
     if (!user) return;
     setSaving(true);
     try {
-      setSalesPageMarkdown(salesDraft);
+      // Serialize structured fields to markdown
+      const parts: string[] = [];
+      if (salesHeadline) parts.push(`## ${salesHeadline}`);
+      if (salesSubheadline) parts.push(`### ${salesSubheadline}`);
+      if (salesBody) parts.push("", salesBody);
+      const validBullets = salesBullets.filter(b => b.trim());
+      if (validBullets.length > 0) {
+        parts.push("", "**What's Included:**", ...validBullets.map(b => `- ${b}`));
+      }
+      if (salesTestimonials.length > 0) {
+        parts.push("", "**What Others Say:**");
+        salesTestimonials.forEach(t => {
+          parts.push(`> "${t.quote}"${t.name ? ` — ${t.name}` : ""}`);
+        });
+      }
+      const serialized = parts.join("\n");
+      setSalesPageMarkdown(serialized);
+      setSalesDraft(serialized);
 
-      // Save sales page as separate asset via edge function
       const token = await getActiveToken();
       if (!token) throw new Error("Not authenticated");
 
@@ -261,7 +277,7 @@ export default function HomeStudyReviewView({
             action: "save-sales-page",
             bookId,
             nodeId: "home-study-course",
-            content: salesDraft,
+            content: serialized,
           }),
         }
       );
