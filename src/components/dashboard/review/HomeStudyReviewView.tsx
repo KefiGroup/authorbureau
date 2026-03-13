@@ -63,7 +63,15 @@ export default function HomeStudyReviewView({
   const [commitment, setCommitment] = useState("30");
   const [level, setLevel] = useState("Beginner");
 
-  // Drawer-local draft for sales page markdown
+  // Structured sales page fields
+  const [salesHeadline, setSalesHeadline] = useState("");
+  const [salesSubheadline, setSalesSubheadline] = useState("");
+  const [salesBody, setSalesBody] = useState("");
+  const [salesBullets, setSalesBullets] = useState<string[]>([""]);
+  const [salesTestimonials, setSalesTestimonials] = useState<{ name: string; quote: string }[]>([]);
+  const [salesCta, setSalesCta] = useState("Enroll Now");
+
+  // Drawer-local draft for sales page markdown (kept for serialization)
   const [salesDraft, setSalesDraft] = useState("");
 
   const loadContent = useCallback(async () => {
