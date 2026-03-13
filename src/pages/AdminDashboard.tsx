@@ -334,6 +334,7 @@ export default function AdminDashboard() {
             />
           )}
           {tab === "crm" && <AdminCRMTab />}
+          {tab === "messages" && <AdminMessagesTab />}
           {tab === "reading-club" && <ReadingClubTab />}
           {tab === "support" && <SupportTab />}
           {tab === "platforms" && <PlatformAccessTab />}

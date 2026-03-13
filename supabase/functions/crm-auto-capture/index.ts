@@ -95,6 +95,73 @@ Deno.serve(async (req) => {
       content: `Auto-captured from ${source}${source_detail ? `: ${source_detail}` : ""}`,
     });
 
+    // Save contact message if message provided
+    if (message && message.trim()) {
+      await sb.from("contact_messages").insert({
+        author_id: targetAuthorId,
+        sender_name: name || email,
+        sender_email: email.toLowerCase().trim(),
+        message: message.trim(),
+        source,
+        source_detail: source_detail || null,
+        status: "open",
+      });
+
+      // In-app notification for the author
+      await sb.from("notifications").insert({
+        user_id: targetAuthorId,
+        title: "New message received",
+        message: `${name || email} sent you a message via ${source.replace(/_/g, " ")}`,
+        link: "/dashboard?section=messages",
+      });
+
+      // Send email notification to the author
+      try {
+        const { data: profile } = await sb
+          .from("author_profiles")
+          .select("pen_name")
+          .eq("user_id", targetAuthorId)
+          .maybeSingle();
+
+        // Get author email from auth.users
+        const { data: { user: authorUser } } = await sb.auth.admin.getUserById(targetAuthorId);
+        
+        if (authorUser?.email) {
+          const resendKey = Deno.env.get("RESEND_API_KEY");
+          if (resendKey) {
+            await fetch("https://api.resend.com/emails", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${resendKey}`,
+              },
+              body: JSON.stringify({
+                from: "Authors Bureau <notify@notify.authorsbureau.com>",
+                to: [authorUser.email],
+                subject: `New message from ${name || email}`,
+                html: `
+                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #1a1a1a;">You have a new message</h2>
+                    <p style="color: #555;"><strong>${name || email}</strong> (${email}) sent you a message:</p>
+                    <div style="background: #f5f5f5; border-radius: 8px; padding: 16px; margin: 16px 0;">
+                      <p style="color: #333; white-space: pre-wrap;">${message.trim().slice(0, 500)}</p>
+                    </div>
+                    <p style="color: #555; font-size: 14px;">Source: ${source.replace(/_/g, " ")}</p>
+                    <a href="https://authorbureau.lovable.app/dashboard?section=messages" 
+                       style="display: inline-block; background: #c8a45a; color: #fff; padding: 10px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 12px;">
+                      View in Dashboard
+                    </a>
+                  </div>
+                `,
+              }),
+            });
+          }
+        }
+      } catch (emailErr) {
+        console.error("Email notification error (non-fatal):", emailErr);
+      }
+    }
+
     return new Response(JSON.stringify({ ok: true, contact_id: contactId }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
