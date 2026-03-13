@@ -203,6 +203,19 @@ Make content specific to the book topic and day theme. Return ONLY valid JSON.`,
             </Card>
           </TabsContent>
 
+          <TabsContent value="actionPlan">
+            <Card className="p-4">
+              <p className="text-xs font-semibold text-muted-foreground mb-2">Action Plan (Today's Tasks)</p>
+              <Textarea
+                value={currentDay.actionPlan || ""}
+                onChange={(e) => updateDay("actionPlan", e.target.value)}
+                placeholder="Concrete action items for today..."
+                rows={8}
+                className="font-mono text-sm"
+              />
+            </Card>
+          </TabsContent>
+
           {hasAudio && (
             <TabsContent value="audio">
               <Card className="p-4">
