@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
+import MarkdownRenderer from "../MarkdownRenderer";
 import {
   ArrowLeft, Monitor, Smartphone, ChevronLeft, ChevronRight,
   BookOpen, Clock, CalendarDays, Award, Send, Save, Loader2,
@@ -27,6 +28,9 @@ interface HomeStudyReviewViewProps {
   onPublished: () => void;
 }
 
+const DRAFT_ASSET_TYPE = "builder_draft_home-study-course";
+const CONTENT_ASSET_TYPE = "builder_content_home-study-course";
+
 export default function HomeStudyReviewView({
   productId, bookId, bookTitle, productTitle, productTable, onBack, onPublished,
 }: HomeStudyReviewViewProps) {
@@ -42,6 +46,7 @@ export default function HomeStudyReviewView({
   const [setup, setSetup] = useState<Record<string, any>>({});
   const [days, setDays] = useState<StudyDay[]>([]);
   const [rawDraftContent, setRawDraftContent] = useState<string>("");
+  const [fullCourseMarkdown, setFullCourseMarkdown] = useState<string>("");
 
   // Editable fields
   const [title, setTitle] = useState("");
@@ -50,48 +55,113 @@ export default function HomeStudyReviewView({
   const [commitment, setCommitment] = useState("30");
   const [level, setLevel] = useState("Beginner");
 
-  useEffect(() => {
-    loadContent();
-  }, []);
-
-  const loadContent = async () => {
+  const loadContent = useCallback(async () => {
     if (!user) return;
     setLoading(true);
+
     try {
-      // Load from generated_assets (builder draft)
-      const { data: asset } = await supabase
-        .from("generated_assets")
-        .select("content")
-        .eq("author_id", user.id)
-        .eq("book_id", bookId)
-        .eq("asset_type", "builder_draft_home-study-course")
-        .maybeSingle();
+      const coursePromise =
+        productTable === "home_study_courses"
+          ? supabase
+              .from("home_study_courses")
+              .select("title, description, price, duration_days, study_schedule_json, content_markdown")
+              .eq("id", productId)
+              .eq("author_id", user.id)
+              .maybeSingle()
+          : Promise.resolve({ data: null, error: null });
 
-      if (asset?.content) {
-        setRawDraftContent(asset.content);
-        const parsed = JSON.parse(asset.content);
-        const sd = parsed.stepData || {};
-        const s = sd.setup || {};
-        const scheduleDays = sd.schedule?.days || [];
+      const [assetsResult, courseResult] = await Promise.all([
+        supabase
+          .from("generated_assets")
+          .select("asset_type, content")
+          .eq("author_id", user.id)
+          .eq("book_id", bookId)
+          .in("asset_type", [DRAFT_ASSET_TYPE, CONTENT_ASSET_TYPE]),
+        coursePromise,
+      ]);
 
-        setSetup(s);
-        setDays(scheduleDays);
-        setTitle(s.title || productTitle);
-        setDescription(s.description || "");
-        setPrice(s.price?.toString() || "");
-        setCommitment(s.commitment?.toString() || "30");
-        setLevel(s.level || "Beginner");
+      if (assetsResult.error) throw assetsResult.error;
+
+      const assets = assetsResult.data || [];
+      const draftAsset = assets.find((asset) => asset.asset_type === DRAFT_ASSET_TYPE);
+      const contentAsset = assets.find((asset) => asset.asset_type === CONTENT_ASSET_TYPE);
+      const courseRecord = (courseResult as any)?.data ?? null;
+
+      let nextSetup: Record<string, any> = {};
+      let nextDays: StudyDay[] = [];
+      let nextRawDraftContent = "";
+
+      if (draftAsset?.content) {
+        nextRawDraftContent = draftAsset.content;
+        try {
+          const parsed = JSON.parse(draftAsset.content);
+          const sd = parsed?.stepData || {};
+          nextSetup = sd.setup || {};
+          nextDays = Array.isArray(sd.schedule?.days) ? sd.schedule.days : [];
+        } catch (parseError) {
+          console.error("Failed to parse home study draft asset:", parseError);
+        }
       }
+
+      if (!nextDays.length) {
+        const tableSchedule = courseRecord?.study_schedule_json;
+        if (Array.isArray(tableSchedule)) {
+          nextDays = tableSchedule as StudyDay[];
+        } else if (Array.isArray(tableSchedule?.days)) {
+          nextDays = tableSchedule.days as StudyDay[];
+        }
+      }
+
+      const mergedSetup = {
+        ...nextSetup,
+        title: nextSetup.title || courseRecord?.title || productTitle,
+        description: nextSetup.description || courseRecord?.description || "",
+        price: nextSetup.price ?? courseRecord?.price ?? "",
+        duration: nextSetup.duration || courseRecord?.duration_days || 30,
+        commitment: nextSetup.commitment || 30,
+        level: nextSetup.level || "Beginner",
+      };
+
+      const markdownFallback =
+        contentAsset?.content ||
+        courseRecord?.content_markdown ||
+        "";
+
+      setRawDraftContent(nextRawDraftContent);
+      setSetup(mergedSetup);
+      setDays(nextDays);
+      setFullCourseMarkdown(markdownFallback);
+      setTitle(mergedSetup.title || productTitle);
+      setDescription(mergedSetup.description || "");
+      setPrice(mergedSetup.price !== "" && mergedSetup.price !== null && mergedSetup.price !== undefined ? String(mergedSetup.price) : "");
+      setCommitment(mergedSetup.commitment ? String(mergedSetup.commitment) : "30");
+      setLevel(mergedSetup.level || "Beginner");
     } catch (err) {
       console.error("Failed to load home study content:", err);
+      toast({ title: "Could not load Home Study content", variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  };
+  }, [user, productTable, productId, bookId, productTitle]);
 
-  const duration = parseInt(commitment) > 0 ? days.length || 30 : 30;
-  const totalPages = days.length + 2; // cover + days + certificate
-  const currentDay = previewPage > 0 && previewPage <= days.length ? days[previewPage - 1] : null;
-  const isCertPage = previewPage === totalPages - 1;
+  useEffect(() => {
+    if (!user) return;
+    void loadContent();
+  }, [user, loadContent]);
+
+  const hasStructuredDays = days.length > 0;
+  const fullCourseText = fullCourseMarkdown.trim();
+  const hasFullManuscript = /day\s*1/i.test(fullCourseText) || fullCourseText.length > 2000;
+  const canPublish = hasStructuredDays || hasFullManuscript;
+
+  const duration = hasStructuredDays ? days.length : Number(setup.duration) || 30;
+  const totalPages = hasStructuredDays ? days.length + 2 : 1;
+  const currentDay = hasStructuredDays && previewPage > 0 && previewPage <= days.length ? days[previewPage - 1] : null;
+  const isCertPage = hasStructuredDays && previewPage === totalPages - 1;
+
+  useEffect(() => {
+    setPreviewPage((prev) => Math.min(prev, Math.max(totalPages - 1, 0)));
+  }, [totalPages]);
 
   const handleSave = async () => {
     if (!user) return;
@@ -124,6 +194,15 @@ export default function HomeStudyReviewView({
   };
 
   const handlePublish = async () => {
+    if (!canPublish) {
+      toast({
+        title: "Home Study content is incomplete",
+        description: "Generate your daily lessons in the Home Study Builder before publishing.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setPublishing(true);
     try {
       const token = await getActiveToken();
@@ -271,133 +350,159 @@ export default function HomeStudyReviewView({
           </Card>
         </div>
       ) : (
-        /* ── PREVIEW MODE ─────────────────────────────────── */
         <div className="space-y-4">
-          {/* View toggle + pagination */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setPreviewPage(Math.max(0, previewPage - 1))} disabled={previewPage === 0} className="text-xs">
-                <ChevronLeft className="h-3.5 w-3.5" />
-              </Button>
-              <span className="text-xs text-muted-foreground">
-                Page {previewPage + 1} of {totalPages}
-              </span>
-              <Button variant="outline" size="sm" onClick={() => setPreviewPage(Math.min(totalPages - 1, previewPage + 1))} disabled={previewPage === totalPages - 1} className="text-xs">
-                <ChevronRight className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-            <div className="flex items-center gap-1 border border-border rounded-lg overflow-hidden">
-              <button onClick={() => setViewMode("desktop")} className={`p-1.5 ${viewMode === "desktop" ? "bg-secondary text-secondary-foreground" : "text-muted-foreground"}`}>
-                <Monitor className="h-3.5 w-3.5" />
-              </button>
-              <button onClick={() => setViewMode("mobile")} className={`p-1.5 ${viewMode === "mobile" ? "bg-secondary text-secondary-foreground" : "text-muted-foreground"}`}>
-                <Smartphone className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Course Preview */}
-          <div className={`mx-auto border border-border rounded-xl overflow-hidden bg-card shadow-lg ${viewMode === "mobile" ? "max-w-sm" : "max-w-2xl"}`}>
-            {previewPage === 0 ? (
-              /* Cover */
-              <div className="bg-gradient-to-b from-secondary/10 to-transparent p-8 text-center min-h-[450px] flex flex-col items-center justify-center">
-                <Badge variant="secondary" className="text-[10px] mb-4">
-                  {days.length}-Day Program
-                </Badge>
-                <h1 className="font-heading text-2xl font-bold mb-2">{title || "Home Study Course"}</h1>
-                <p className="text-sm text-muted-foreground mb-4 max-w-md">{description || "A guided self-paced learning experience"}</p>
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1"><CalendarDays className="h-3 w-3" /> {days.length} days</span>
-                  <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {commitment} min/day</span>
-                  <span className="flex items-center gap-1"><BookOpen className="h-3 w-3" /> {level}</span>
+          {hasStructuredDays ? (
+            <>
+              {/* View toggle + pagination */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setPreviewPage(Math.max(0, previewPage - 1))} disabled={previewPage === 0} className="text-xs">
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    Page {previewPage + 1} of {totalPages}
+                  </span>
+                  <Button variant="outline" size="sm" onClick={() => setPreviewPage(Math.min(totalPages - 1, previewPage + 1))} disabled={previewPage === totalPages - 1} className="text-xs">
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
-                {price && (
-                  <div className="mt-4">
-                    <Badge className="bg-secondary text-secondary-foreground text-sm px-4 py-1">${price}</Badge>
+                <div className="flex items-center gap-1 border border-border rounded-lg overflow-hidden">
+                  <button onClick={() => setViewMode("desktop")} className={`p-1.5 ${viewMode === "desktop" ? "bg-secondary text-secondary-foreground" : "text-muted-foreground"}`}>
+                    <Monitor className="h-3.5 w-3.5" />
+                  </button>
+                  <button onClick={() => setViewMode("mobile")} className={`p-1.5 ${viewMode === "mobile" ? "bg-secondary text-secondary-foreground" : "text-muted-foreground"}`}>
+                    <Smartphone className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Course Preview */}
+              <div className={`mx-auto border border-border rounded-xl overflow-hidden bg-card shadow-lg ${viewMode === "mobile" ? "max-w-sm" : "max-w-2xl"}`}>
+                {previewPage === 0 ? (
+                  /* Cover */
+                  <div className="bg-gradient-to-b from-secondary/10 to-transparent p-8 text-center min-h-[450px] flex flex-col items-center justify-center">
+                    <Badge variant="secondary" className="text-[10px] mb-4">
+                      {duration}-Day Program
+                    </Badge>
+                    <h1 className="font-heading text-2xl font-bold mb-2">{title || "Home Study Course"}</h1>
+                    <p className="text-sm text-muted-foreground mb-4 max-w-md">{description || "A guided self-paced learning experience"}</p>
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1"><CalendarDays className="h-3 w-3" /> {duration} days</span>
+                      <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {commitment} min/day</span>
+                      <span className="flex items-center gap-1"><BookOpen className="h-3 w-3" /> {level}</span>
+                    </div>
+                    {price && (
+                      <div className="mt-4">
+                        <Badge className="bg-secondary text-secondary-foreground text-sm px-4 py-1">${price}</Badge>
+                      </div>
+                    )}
+                    <div className="mt-6 p-4 bg-muted/30 rounded-lg max-w-sm">
+                      <p className="text-xs text-muted-foreground">
+                        <strong>How to use this guide:</strong> Spend {commitment} minutes each day completing the reading,
+                        exercise, and reflection. Check off each day on your progress tracker.
+                      </p>
+                    </div>
+                  </div>
+                ) : isCertPage ? (
+                  /* Certificate */
+                  <div className="p-8 text-center min-h-[450px] flex flex-col items-center justify-center">
+                    <Award className="h-12 w-12 text-secondary mb-4" />
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-secondary mb-2">Certificate of Completion</p>
+                    <h2 className="font-heading text-xl font-bold mb-1">{title || "Home Study Course"}</h2>
+                    <p className="text-sm text-muted-foreground mb-4">{duration}-Day Program</p>
+                    <div className="border-t border-b border-border py-3 my-4 w-48">
+                      <p className="text-xs text-muted-foreground">[Student Name]</p>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">Completed on [Date]</p>
+                  </div>
+                ) : currentDay ? (
+                  /* Day page */
+                  <div className="p-6 min-h-[450px]">
+                    <div className="flex items-center justify-between mb-4">
+                      <Badge variant={currentDay.isCatchUp ? "outline" : "secondary"} className="text-[10px]">
+                        {currentDay.isCatchUp ? "☕ Catch-Up Day" : `Day ${currentDay.dayNumber}`}
+                      </Badge>
+                      <span className="text-[10px] text-muted-foreground">Week {currentDay.weekNumber}</span>
+                    </div>
+                    <h3 className="font-heading text-lg font-bold mb-4">{currentDay.theme}</h3>
+                    <div className="space-y-4">
+                      <div className="p-3 bg-muted/20 rounded-lg">
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">📖 Today's Reading</p>
+                        <p className="text-xs">{currentDay.reading || currentDay.chapterRef}</p>
+                      </div>
+                      {currentDay.concept && (
+                        <div>
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">💡 Key Concept</p>
+                          <p className="text-xs text-muted-foreground whitespace-pre-line line-clamp-6">{currentDay.concept}</p>
+                        </div>
+                      )}
+                      <div className="p-3 bg-accent/5 rounded-lg border border-accent/10">
+                        <p className="text-[10px] font-bold text-accent uppercase tracking-wider mb-1">🏋️ Exercise</p>
+                        <p className="text-xs text-muted-foreground">{currentDay.exercise}</p>
+                      </div>
+                      <div className="p-3 bg-secondary/10 rounded-lg border border-secondary/20">
+                        <p className="text-[10px] font-bold text-secondary uppercase tracking-wider mb-1">🪞 Reflection</p>
+                        <p className="text-xs text-muted-foreground">{currentDay.reflection}</p>
+                      </div>
+                      <div className="flex items-center gap-2 pt-2">
+                        <div className="w-5 h-5 rounded border-2 border-muted-foreground/20" />
+                        <span className="text-xs text-muted-foreground">I completed Day {currentDay.dayNumber}</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              {/* Quick page thumbnails */}
+              <div className="flex items-center gap-1 justify-center flex-wrap">
+                <button
+                  onClick={() => setPreviewPage(0)}
+                  className={`text-[9px] px-2 py-1 rounded ${previewPage === 0 ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+                >
+                  Cover
+                </button>
+                {days.slice(0, 15).map((day, idx) => (
+                  <button
+                    key={day.id || idx}
+                    onClick={() => setPreviewPage(idx + 1)}
+                    className={`text-[9px] px-2 py-1 rounded ${previewPage === idx + 1 ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+                  >
+                    {day.isCatchUp ? "☕" : `D${day.dayNumber}`}
+                  </button>
+                ))}
+                {days.length > 15 && <span className="text-[9px] text-muted-foreground">+{days.length - 15} more</span>}
+                <button
+                  onClick={() => setPreviewPage(totalPages - 1)}
+                  className={`text-[9px] px-2 py-1 rounded ${isCertPage ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+                >
+                  Certificate
+                </button>
+              </div>
+            </>
+          ) : (
+            <Card className="border-border overflow-hidden">
+              <div className="border-b border-border bg-muted/30 p-4">
+                <p className="text-sm font-semibold">Full Home Study Course Preview</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {hasFullManuscript
+                    ? "Showing your complete generated Home Study curriculum."
+                    : "No day-by-day lessons were found yet. Go back to the Home Study Builder to generate the daily schedule and content."}
+                </p>
+              </div>
+              <div className="max-h-[68vh] overflow-y-auto p-6">
+                {hasFullManuscript ? (
+                  <div className="prose prose-sm dark:prose-invert max-w-none">
+                    <MarkdownRenderer content={fullCourseMarkdown} />
+                  </div>
+                ) : (
+                  <div className="py-12 text-center">
+                    <BookOpen className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+                    <p className="text-sm text-muted-foreground">This draft currently only has setup details (cover + certificate metadata).</p>
                   </div>
                 )}
-                <div className="mt-6 p-4 bg-muted/30 rounded-lg max-w-sm">
-                  <p className="text-xs text-muted-foreground">
-                    <strong>How to use this guide:</strong> Spend {commitment} minutes each day completing the reading,
-                    exercise, and reflection. Check off each day on your progress tracker.
-                  </p>
-                </div>
               </div>
-            ) : isCertPage ? (
-              /* Certificate */
-              <div className="p-8 text-center min-h-[450px] flex flex-col items-center justify-center">
-                <Award className="h-12 w-12 text-secondary mb-4" />
-                <p className="text-[10px] font-bold uppercase tracking-widest text-secondary mb-2">Certificate of Completion</p>
-                <h2 className="font-heading text-xl font-bold mb-1">{title || "Home Study Course"}</h2>
-                <p className="text-sm text-muted-foreground mb-4">{days.length}-Day Program</p>
-                <div className="border-t border-b border-border py-3 my-4 w-48">
-                  <p className="text-xs text-muted-foreground">[Student Name]</p>
-                </div>
-                <p className="text-[10px] text-muted-foreground">Completed on [Date]</p>
-              </div>
-            ) : currentDay ? (
-              /* Day page */
-              <div className="p-6 min-h-[450px]">
-                <div className="flex items-center justify-between mb-4">
-                  <Badge variant={currentDay.isCatchUp ? "outline" : "secondary"} className="text-[10px]">
-                    {currentDay.isCatchUp ? "☕ Catch-Up Day" : `Day ${currentDay.dayNumber}`}
-                  </Badge>
-                  <span className="text-[10px] text-muted-foreground">Week {currentDay.weekNumber}</span>
-                </div>
-                <h3 className="font-heading text-lg font-bold mb-4">{currentDay.theme}</h3>
-                <div className="space-y-4">
-                  <div className="p-3 bg-muted/20 rounded-lg">
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">📖 Today's Reading</p>
-                    <p className="text-xs">{currentDay.reading || currentDay.chapterRef}</p>
-                  </div>
-                  {currentDay.concept && (
-                    <div>
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">💡 Key Concept</p>
-                      <p className="text-xs text-muted-foreground whitespace-pre-line line-clamp-6">{currentDay.concept}</p>
-                    </div>
-                  )}
-                  <div className="p-3 bg-accent/5 rounded-lg border border-accent/10">
-                    <p className="text-[10px] font-bold text-accent uppercase tracking-wider mb-1">🏋️ Exercise</p>
-                    <p className="text-xs text-muted-foreground">{currentDay.exercise}</p>
-                  </div>
-                  <div className="p-3 bg-violet-500/5 rounded-lg border border-violet-500/10">
-                    <p className="text-[10px] font-bold text-violet-600 uppercase tracking-wider mb-1">🪞 Reflection</p>
-                    <p className="text-xs text-muted-foreground">{currentDay.reflection}</p>
-                  </div>
-                  <div className="flex items-center gap-2 pt-2">
-                    <div className="w-5 h-5 rounded border-2 border-muted-foreground/20" />
-                    <span className="text-xs text-muted-foreground">I completed Day {currentDay.dayNumber}</span>
-                  </div>
-                </div>
-              </div>
-            ) : null}
-          </div>
-
-          {/* Quick page thumbnails */}
-          <div className="flex items-center gap-1 justify-center flex-wrap">
-            <button
-              onClick={() => setPreviewPage(0)}
-              className={`text-[9px] px-2 py-1 rounded ${previewPage === 0 ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
-            >
-              Cover
-            </button>
-            {days.slice(0, 15).map((day, idx) => (
-              <button
-                key={day.id || idx}
-                onClick={() => setPreviewPage(idx + 1)}
-                className={`text-[9px] px-2 py-1 rounded ${previewPage === idx + 1 ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
-              >
-                {day.isCatchUp ? "☕" : `D${day.dayNumber}`}
-              </button>
-            ))}
-            {days.length > 15 && <span className="text-[9px] text-muted-foreground">+{days.length - 15} more</span>}
-            <button
-              onClick={() => setPreviewPage(totalPages - 1)}
-              className={`text-[9px] px-2 py-1 rounded ${isCertPage ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
-            >
-              Certificate
-            </button>
-          </div>
+            </Card>
+          )}
         </div>
       )}
 
@@ -406,10 +511,17 @@ export default function HomeStudyReviewView({
         <div className="flex items-center gap-3">
           <CheckCircle2 className="h-5 w-5 text-secondary" />
           <div>
-            <p className="text-sm font-semibold">{days.length} days of structured content</p>
+            <p className="text-sm font-semibold">
+              {hasStructuredDays
+                ? `${days.length} days of structured content`
+                : hasFullManuscript
+                ? "Full curriculum manuscript loaded"
+                : "Home Study draft is incomplete"}
+            </p>
             <p className="text-xs text-muted-foreground">
               {price ? `$${price} · ` : ""}
               {commitment} min/day · {level}
+              {!canPublish ? " · Publish disabled until lessons are generated" : ""}
             </p>
           </div>
         </div>
@@ -417,15 +529,17 @@ export default function HomeStudyReviewView({
           <Button variant="outline" size="sm" onClick={() => setMode("edit")}>
             <Edit3 className="h-3.5 w-3.5 mr-1" /> Edit
           </Button>
-          <Button
-            size="sm"
-            onClick={handlePublish}
-            disabled={publishing}
-            className="bg-accent text-accent-foreground hover:bg-accent/90"
-          >
-            {publishing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Send className="h-4 w-4 mr-1" />}
-            Publish to Microsite
-          </Button>
+          {canPublish && (
+            <Button
+              size="sm"
+              onClick={handlePublish}
+              disabled={publishing}
+              className="bg-accent text-accent-foreground hover:bg-accent/90"
+            >
+              {publishing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Send className="h-4 w-4 mr-1" />}
+              Publish to Microsite
+            </Button>
+          )}
         </div>
       </Card>
     </div>
