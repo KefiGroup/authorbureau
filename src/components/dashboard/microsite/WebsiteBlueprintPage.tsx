@@ -566,10 +566,10 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
               </div>
 
               {isPaidTier ? (
-                /* Paid tier: custom domain connect */
+                /* Paid tier: save website URL to profile */
                 <div className="space-y-3">
                   <p className="text-xs text-muted-foreground">
-                    Connect your own custom domain to your author website.
+                    Enter the URL of your published author website (built via Manus AI or another platform).
                   </p>
                   <div className="flex gap-2">
                     <Input
@@ -583,12 +583,23 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
                       size="sm"
                       className="text-xs bg-secondary text-secondary-foreground hover:bg-secondary/90"
                       disabled={!customDomain.trim()}
-                      onClick={() => {
-                        toast({ title: "Domain connection initiated", description: "Follow the DNS instructions to complete setup." });
-                        setDnsHelpOpen(true);
+                      onClick={async () => {
+                        // Save the website URL to the author profile
+                        if (profileData?.id) {
+                          const url = customDomain.trim().startsWith("http") ? customDomain.trim() : `https://${customDomain.trim()}`;
+                          const { error } = await supabase
+                            .from("author_profiles")
+                            .update({ website_url: url })
+                            .eq("id", profileData.id);
+                          if (error) {
+                            toast({ title: "Error saving URL", description: error.message, variant: "destructive" });
+                          } else {
+                            toast({ title: "Website URL saved!", description: "Your Directory Profile will now link visitors to this website." });
+                          }
+                        }
                       }}
                     >
-                      Connect
+                      Save
                     </Button>
                   </div>
                   <button
@@ -596,7 +607,7 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
                     className="inline-flex items-center gap-1 text-xs text-secondary hover:underline"
                   >
                     <HelpCircle className="h-3 w-3" />
-                    How to update your DNS records
+                    Where do I point my domain?
                   </button>
                 </div>
               ) : (
@@ -638,43 +649,28 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
             <Dialog open={dnsHelpOpen} onOpenChange={setDnsHelpOpen}>
               <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
-                  <DialogTitle className="font-heading text-lg">Connect Your Custom Domain</DialogTitle>
+                  <DialogTitle className="font-heading text-lg">Where to Point Your Domain</DialogTitle>
                   <DialogDescription className="text-sm text-muted-foreground pt-1">
-                    Follow these steps to point your domain to your author website.
+                    Your author website is built and hosted externally (e.g., by Manus AI). Point your domain to that host — not to Authors Bureau.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-3 text-sm">
                   <div className="space-y-2">
-                    <p className="font-semibold">Step 1: Add DNS Records</p>
-                    <p className="text-muted-foreground text-xs">Log in to your domain registrar (GoDaddy, Namecheap, Cloudflare, etc.) and add these records:</p>
-                    <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2 text-xs font-mono">
-                      <div className="flex gap-4">
-                        <span className="text-muted-foreground w-12">Type</span>
-                        <span className="text-muted-foreground w-16">Name</span>
-                        <span className="text-muted-foreground">Value</span>
-                      </div>
-                      <div className="flex gap-4">
-                        <span className="font-semibold w-12">A</span>
-                        <span className="w-16">@</span>
-                        <span className="text-secondary">185.158.133.1</span>
-                      </div>
-                      <div className="flex gap-4">
-                        <span className="font-semibold w-12">A</span>
-                        <span className="w-16">www</span>
-                        <span className="text-secondary">185.158.133.1</span>
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                      <strong>Note:</strong> If your registrar doesn't allow A records for www, use a CNAME with value <code className="text-secondary">proxy.authorsbureau.com</code> instead.
+                    <p className="font-semibold">Step 1: Build Your Website</p>
+                    <p className="text-muted-foreground text-xs">Click "Build My Website with Manus AI" above. Manus will build and host your site, providing you with a live URL or hosting instructions.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="font-semibold">Step 2: Point Your Domain</p>
+                    <p className="text-muted-foreground text-xs">Follow Manus's DNS/hosting instructions to connect your custom domain (e.g., besuckcessful.com) to their servers. This varies by hosting provider — typically a CNAME or A record pointing to their infrastructure.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="font-semibold">Step 3: Save URL Here</p>
+                    <p className="text-muted-foreground text-xs">Once your site is live, paste the URL in the field above and click <strong>Save</strong>. Your Directory Profile will display a "Visit Full Website" link to drive visitors there.</p>
+                  </div>
+                  <div className="rounded-lg bg-secondary/5 border border-secondary/15 p-3">
+                    <p className="text-xs text-muted-foreground">
+                      <strong>Important:</strong> Your domain's DNS records should point to where Manus hosts your site — not to Authors Bureau. Authors Bureau only stores your URL as a link.
                     </p>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="font-semibold">Step 2: Wait for Propagation</p>
-                    <p className="text-muted-foreground text-xs">DNS changes can take up to 48 hours to propagate. SSL will be provisioned automatically once verified.</p>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="font-semibold">Step 3: Verify</p>
-                    <p className="text-muted-foreground text-xs">Once propagation is complete, your custom domain will automatically serve your author website.</p>
                   </div>
                 </div>
                 <Button variant="outline" className="w-full" onClick={() => setDnsHelpOpen(false)}>
