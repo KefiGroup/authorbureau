@@ -34,13 +34,13 @@ export default function AuthorProductPage() {
   });
 
   useEffect(() => {
-    if (!authorSlug || !config) {
+    if (!authorSlug || !bookSlug || !config) {
       setNotFound(true);
       setLoading(false);
       return;
     }
     loadProduct();
-  }, [authorSlug, productType]);
+  }, [authorSlug, bookSlug, productType]);
 
   async function loadProduct() {
     setLoading(true);
