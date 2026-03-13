@@ -93,20 +93,22 @@ function ProductMarkdown({ content }: { content: string }) {
       {lines.map((line, i) => {
         const trimmed = line.trim();
         if (!trimmed) return null;
-        if (trimmed.startsWith("### ")) return <h3 key={i} className="text-lg font-bold mt-4">{trimmed.slice(4)}</h3>;
-        if (trimmed.startsWith("## ")) return <h2 key={i} className="text-xl font-bold mt-5">{trimmed.slice(3)}</h2>;
-        if (trimmed.startsWith("# ")) return <h1 key={i} className="text-2xl font-bold mt-6">{trimmed.slice(2)}</h1>;
+        // Skip bracket CTA lines like [YES! I'm Ready...]
+        if (/^\[.+\]$/.test(trimmed)) return null;
+        if (trimmed.startsWith("### ")) return <h3 key={i} className="text-lg font-bold mt-4">{renderInline(stripStars(trimmed.slice(4)))}</h3>;
+        if (trimmed.startsWith("## ")) return <h2 key={i} className="text-xl font-bold mt-5">{renderInline(stripStars(trimmed.slice(3)))}</h2>;
+        if (trimmed.startsWith("# ")) return <h1 key={i} className="text-2xl font-bold mt-6">{renderInline(stripStars(trimmed.slice(2)))}</h1>;
         if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
-          return <li key={i} className="ml-4 list-disc text-sm">{renderInline(trimmed.slice(2))}</li>;
+          return <li key={i} className="ml-4 list-disc text-sm">{renderInline(stripStars(trimmed.slice(2)))}</li>;
         }
         if (/^\d+\.\s/.test(trimmed)) {
-          return <li key={i} className="ml-4 list-decimal text-sm">{renderInline(trimmed.replace(/^\d+\.\s/, ""))}</li>;
+          return <li key={i} className="ml-4 list-decimal text-sm">{renderInline(stripStars(trimmed.replace(/^\d+\.\s/, "")))}</li>;
         }
         if (trimmed.startsWith("> ")) {
-          return <blockquote key={i} className="border-l-4 border-accent pl-4 italic text-sm opacity-80">{renderInline(trimmed.slice(2))}</blockquote>;
+          return <blockquote key={i} className="border-l-4 border-accent pl-4 italic text-sm opacity-80">{renderInline(stripStars(trimmed.slice(2)))}</blockquote>;
         }
         if (trimmed.startsWith("---") || trimmed.startsWith("***")) return <hr key={i} className="my-4" />;
-        return <p key={i} className="text-sm leading-relaxed">{renderInline(trimmed)}</p>;
+        return <p key={i} className="text-sm leading-relaxed">{renderInline(stripStars(trimmed))}</p>;
       })}
     </div>
   );
