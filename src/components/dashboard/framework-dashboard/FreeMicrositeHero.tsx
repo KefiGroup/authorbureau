@@ -49,12 +49,12 @@ export default function FreeMicrositeHero({
             <div className="flex items-center gap-2 bg-white/80 rounded-lg border border-amber-200 px-3 py-2 w-fit">
               <Globe className="h-3.5 w-3.5 text-green-600" />
               <a
-                href={`/authors/${authorSlug}`}
+                href={`/${authorSlug}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm font-medium text-amber-800 hover:underline"
               >
-                authorsbureau.com/authors/{authorSlug}
+                authorsbureau.com/{authorSlug}
               </a>
             </div>
           )}
