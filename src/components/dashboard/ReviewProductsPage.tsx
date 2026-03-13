@@ -533,6 +533,7 @@ function SummaryCard({ label, value, icon: Icon, accent }: { label: string; valu
 function ProductCard({
   product,
   publishing,
+  deletingId,
   onPreview,
   onEdit,
   onDelete,
