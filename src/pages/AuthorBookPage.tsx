@@ -531,7 +531,7 @@ export default function AuthorBookPage() {
           <div className="container max-w-3xl">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
               <h2 className="bp-heading text-xl md:text-2xl font-bold mb-6" style={{ color: `hsl(${c.heroBackground})` }}>
-                More Books by {authorName}
+                {otherBooks.length === 1 ? "Also by" : "More Books by"} {authorName}
               </h2>
               <div className="flex gap-4 overflow-x-auto pb-2">
                 {otherBooks.map((ob) => (
