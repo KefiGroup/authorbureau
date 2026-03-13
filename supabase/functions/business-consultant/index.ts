@@ -3417,7 +3417,7 @@ request_meta: ${JSON.stringify({
     const aiRequestBody = JSON.stringify({
       model: "openai/gpt-5.2",
       messages: aiMessages,
-      temperature: 0.85,
+      temperature,
       max_completion_tokens: maxTokens,
       stream: true,
     });
