@@ -170,6 +170,31 @@ export default function HomeStudyReviewView({
   const hasFullManuscript = /day\s*1/i.test(fullCourseText) || fullCourseText.length > 2000;
   const canPublish = hasStructuredDays || hasFullManuscript;
 
+  // Split sales page from curriculum content
+  const splitContent = (() => {
+    if (!fullCourseText) return { salesPage: "", curriculum: "" };
+    // Common split patterns between sales copy and curriculum
+    const splitPatterns = [
+      /\n(?=#{1,2}\s*(?:Home Study|Study Guide|Course Curriculum|Daily Lessons|Program Structure|Week\s*1|Day\s*1\b))/i,
+      /\n---+\n/,
+    ];
+    for (const pattern of splitPatterns) {
+      const match = fullCourseText.search(pattern);
+      if (match > 200) {
+        return {
+          salesPage: fullCourseText.slice(0, match).trim(),
+          curriculum: fullCourseText.slice(match).trim(),
+        };
+      }
+    }
+    // If no split found, check if it looks like it starts with sales copy
+    if (/^#\s*Sales\s*Page/i.test(fullCourseText)) {
+      return { salesPage: fullCourseText, curriculum: "" };
+    }
+    return { salesPage: "", curriculum: fullCourseText };
+  })();
+  const [manuscriptTab, setManuscriptTab] = useState<"curriculum" | "sales">("curriculum");
+
   const duration = hasStructuredDays ? days.length : Number(setup.duration) || 30;
   const totalPages = hasStructuredDays ? days.length + 2 : 1;
   const currentDay = hasStructuredDays && previewPage > 0 && previewPage <= days.length ? days[previewPage - 1] : null;
@@ -518,11 +543,35 @@ export default function HomeStudyReviewView({
                     ? "Showing your complete generated Home Study curriculum."
                     : "No day-by-day lessons were found yet. Go back to the Home Study Builder to generate the daily schedule and content."}
                 </p>
+                {hasFullManuscript && splitContent.salesPage && splitContent.curriculum && (
+                  <div className="flex items-center gap-1 mt-3">
+                    <button
+                      onClick={() => setManuscriptTab("curriculum")}
+                      className={`text-xs px-3 py-1.5 rounded-md font-medium transition-colors ${manuscriptTab === "curriculum" ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
+                    >
+                      📚 Curriculum
+                    </button>
+                    <button
+                      onClick={() => setManuscriptTab("sales")}
+                      className={`text-xs px-3 py-1.5 rounded-md font-medium transition-colors ${manuscriptTab === "sales" ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
+                    >
+                      📄 Sales Page Copy
+                    </button>
+                  </div>
+                )}
               </div>
               <div className="max-h-[68vh] overflow-y-auto p-6">
                 {hasFullManuscript ? (
                   <div className="prose prose-sm dark:prose-invert max-w-none">
-                    <MarkdownRenderer content={fullCourseMarkdown} />
+                    <MarkdownRenderer
+                      content={
+                        splitContent.salesPage && splitContent.curriculum
+                          ? manuscriptTab === "curriculum"
+                            ? splitContent.curriculum
+                            : splitContent.salesPage
+                          : fullCourseMarkdown
+                      }
+                    />
                   </div>
                 ) : (
                   <div className="py-12 text-center">
