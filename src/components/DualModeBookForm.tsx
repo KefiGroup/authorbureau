@@ -563,6 +563,9 @@ export default function DualModeBookForm({
             </div>
           )}
 
+          {/* Website Look & Feel */}
+          <SiteThemePicker compact />
+
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4">
             <Button onClick={handleSaveBook} disabled={isLoading} className="flex-1">
