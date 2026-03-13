@@ -5,8 +5,6 @@ import {
   BookOpen, ExternalLink, Loader2, ArrowRight, GraduationCap, Users,
   Headphones, Mic, Star, Mail, CheckCircle2
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { toast } from "@/hooks/use-toast";
@@ -78,8 +76,6 @@ const fadeUp = {
   }),
 };
 
-/* ThemeStyle removed — now handled by AuthorPageLayout */
-
 /* ============================================ */
 export default function AuthorBookPage() {
   const { authorSlug, bookSlug } = useParams<{ authorSlug: string; bookSlug: string }>();
@@ -95,15 +91,15 @@ export default function AuthorBookPage() {
   const [name, setName] = useState("");
   const [subscribing, setSubscribing] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
+  const [heroVisible, setHeroVisible] = useState(true);
 
-  const c = theme?.colors;
+  const v = theme?.vars;
 
   // SEO
   const authorName = book?.author_name || authorProfile?.pen_name || "Author";
   const seoTitle = book ? `${book.title} by ${authorName} | Authors Bureau` : "Book | Authors Bureau";
   const canonicalUrl = `https://authorsbureau.com/${authorSlug}/${bookSlug}`;
 
-  // Dynamic meta description
   const bookDescFirstSentence = book?.description ? (book.description.split(/[.!?]\s/)[0] + ".") : "";
   const formatParts: string[] = [];
   if (book?.kindle_price) formatParts.push(`Kindle ${book.kindle_price}`);
@@ -152,6 +148,18 @@ export default function AuthorBookPage() {
       : undefined,
   });
 
+  // Intersection observer for sticky mobile CTA
+  useEffect(() => {
+    const heroEl = document.getElementById("book-hero");
+    if (!heroEl) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setHeroVisible(entry.isIntersecting),
+      { threshold: 0 }
+    );
+    observer.observe(heroEl);
+    return () => observer.disconnect();
+  }, [book]);
+
   useEffect(() => {
     if (!authorSlug || !bookSlug) { setNotFound(true); setLoading(false); return; }
     loadBookPage();
@@ -182,7 +190,6 @@ export default function AuthorBookPage() {
       profile = data;
     }
 
-    // Fallback redirect
     if (!profile) {
       const { data: bookBySlug } = await supabase
         .from("books")
@@ -207,7 +214,6 @@ export default function AuthorBookPage() {
     setAuthorProfile(profile);
     setTheme(getThemeById(profile.site_theme || "classic-elegant"));
 
-    // Fetch book
     const { data: bookData } = await supabase
       .from("books")
       .select("*")
@@ -218,7 +224,6 @@ export default function AuthorBookPage() {
     if (!bookData) { setNotFound(true); setLoading(false); return; }
     setBook(bookData as unknown as Book);
 
-    // Fetch products + other books in parallel
     const bookId = bookData.id;
     const [hsRes, cRes, abRes, podRes, otherBooksRes] = await Promise.all([
       supabase.from("home_study_courses").select("id, title, price, currency, description").eq("book_id", bookId).eq("status", "published"),
@@ -272,21 +277,19 @@ export default function AuthorBookPage() {
     );
   }
 
-  if (notFound || !book || !c || !theme) return <NotFound />;
+  if (notFound || !book || !v || !theme) return <NotFound />;
 
   const badgeList = Array.isArray(book.badges) ? book.badges : [];
   const isAmazonLink = book.amazon_url?.includes("amazon.com") || book.amazon_url?.includes("a.co");
   const authorBio = book.author_bio || authorProfile?.bio_short || "";
   const authorPhoto = book.author_photo_url || authorProfile?.photo_url || "";
 
-  // Price formats — only show fields with values
   const priceFormats = [
     book.kindle_price ? { label: "Kindle", value: book.kindle_price } : null,
     book.paperback_price ? { label: "Paperback", value: book.paperback_price } : null,
     book.price ? { label: book.kindle_price || book.paperback_price ? "Hardcover" : "Price", value: book.price } : null,
   ].filter(Boolean) as { label: string; value: string }[];
 
-  // Lowest price for sticky CTA
   const lowestPrice = priceFormats.length > 0
     ? priceFormats.reduce((min, pf) => {
         const val = parseFloat(pf.value.replace(/[^0-9.]/g, ""));
@@ -303,9 +306,14 @@ export default function AuthorBookPage() {
     ]}>
 
       {/* ===== SECTION 1: HERO ===== */}
-      <section className="relative overflow-hidden" style={{ background: `linear-gradient(135deg, hsl(${c.heroBackground}), hsl(${c.heroBackground} / 0.92))`, color: `hsl(${c.heroForeground})` }}>
-        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='1' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/svg%3E\")" }} />
-
+      <section
+        id="book-hero"
+        className="relative overflow-hidden"
+        style={{
+          background: v.primary,
+          backgroundImage: `radial-gradient(ellipse at 30% 50%, ${v.accent}0D 0%, transparent 70%)`,
+        }}
+      >
         <div className="relative container max-w-5xl py-12 md:py-20">
           <div className="flex flex-col md:flex-row items-center gap-8 md:gap-14">
             {/* LEFT: Book Cover with 3D tilt */}
@@ -318,25 +326,34 @@ export default function AuthorBookPage() {
                   <img
                     src={book.cover_image_url}
                     alt={book.title}
-                    className="w-full rounded-lg shadow-2xl"
+                    className="w-full rounded-lg"
                     style={{
                       transform: "rotateY(-5deg)",
-                      boxShadow: `12px 12px 30px rgba(0,0,0,0.4), -2px -2px 8px rgba(255,255,255,0.05)`,
+                      boxShadow: "0 20px 40px rgba(0,0,0,0.4)",
+                      border: `1px solid ${v.accent}4D`,
+                      opacity: 1,
                     }}
                   />
                 ) : (
                   <div
-                    className="w-full aspect-[2/3] rounded-lg flex items-center justify-center"
-                    style={{ background: `hsl(${c.heroForeground} / 0.1)`, transform: "rotateY(-5deg)" }}
+                    className="w-full aspect-[2/3] rounded-lg flex flex-col items-center justify-center p-4"
+                    style={{
+                      background: `linear-gradient(135deg, ${v.primary}, ${v.accent})`,
+                      transform: "rotateY(-5deg)",
+                      boxShadow: "0 20px 40px rgba(0,0,0,0.4)",
+                    }}
                   >
-                    <BookOpen className="h-16 w-16" style={{ color: `hsl(${c.heroForeground} / 0.3)` }} />
+                    <BookOpen className="h-16 w-16 mb-3" style={{ color: "rgba(255,255,255,0.4)" }} />
+                    <span className="text-center font-semibold text-sm" style={{ color: "#FFFFFF", fontFamily: theme.headingFont }}>
+                      {book.title}
+                    </span>
                   </div>
                 )}
                 {/* Bestseller ribbon */}
                 {badgeList.length > 0 && (
                   <div
                     className="absolute -top-2 -right-2 px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full shadow-lg z-10"
-                    style={{ background: `hsl(${c.accent})`, color: `hsl(${c.accentForeground})` }}
+                    style={{ background: v.accent, color: v.accentText }}
                   >
                     ⭐ {badgeList[0]}
                   </div>
@@ -346,16 +363,16 @@ export default function AuthorBookPage() {
 
             {/* RIGHT: Book Info */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="flex-1 text-center md:text-left">
-              <h1 className="bp-heading text-3xl md:text-4xl lg:text-5xl font-bold mb-3" style={{ color: `hsl(${c.accent})` }}>
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3" style={{ color: "#FFFFFF", fontFamily: theme.headingFont }}>
                 {book.title}
               </h1>
 
               {book.subtitle && (
-                <p className="text-lg mb-3" style={{ opacity: 0.7 }}>{book.subtitle}</p>
+                <p className="text-lg mb-3" style={{ color: "#E8E0D0" }}>{book.subtitle}</p>
               )}
 
-              <p className="mb-4" style={{ opacity: 0.6 }}>
-                by <Link to={`/${authorSlug}`} className="font-semibold hover:underline" style={{ color: `hsl(${c.accent})` }}>{authorName}</Link>
+              <p className="mb-4" style={{ color: "#E8E0D0" }}>
+                by <Link to={`/${authorSlug}`} className="font-semibold hover:underline" style={{ color: v.accent }}>{authorName}</Link>
               </p>
 
               {/* Badge Row */}
@@ -364,35 +381,37 @@ export default function AuthorBookPage() {
                   {badgeList.map((badge) => (
                     <span
                       key={badge}
-                      className="px-3 py-1 text-xs font-semibold rounded-full"
-                      style={{ background: `hsl(${c.accent} / 0.15)`, color: `hsl(${c.accent})` }}
+                      className="px-3 py-1 text-xs font-bold rounded-full"
+                      style={{ background: v.accent, color: v.accentText }}
                     >
                       ⭐ {badge}
                     </span>
                   ))}
                   {book.rating && (
                     <span className="px-3 py-1 text-xs font-semibold rounded-full flex items-center gap-1"
-                      style={{ background: `hsl(${c.accent} / 0.15)`, color: `hsl(${c.accent})` }}
+                      style={{ background: `${v.accent}26`, color: v.accent }}
                     >
-                      <Star className="h-3 w-3 fill-current" /> {book.rating} out of 5
+                      <Star className="h-3 w-3 fill-current" style={{ color: v.accent }} /> {book.rating} out of 5
                     </span>
                   )}
                 </div>
               )}
 
-              {/* Quick Stats — only fields with values, NO published date */}
-              <div className="flex flex-wrap gap-4 mb-5 justify-center md:justify-start text-sm" style={{ opacity: 0.6 }}>
-                {book.pages && <span>Pages: {book.pages}</span>}
-                {book.genre && <span>Genre: {book.genre}</span>}
-              </div>
+              {/* Quick Stats */}
+              {(book.pages || book.genre) && (
+                <div className="flex flex-wrap gap-4 mb-5 justify-center md:justify-start text-sm" style={{ color: "#E8E0D0" }}>
+                  {book.pages && <span>Pages: {book.pages}</span>}
+                  {book.genre && <span>Genre: {book.genre}</span>}
+                </div>
+              )}
 
               {/* Price Display */}
               {priceFormats.length > 0 && (
                 <div className="flex flex-wrap gap-3 mb-6 justify-center md:justify-start">
                   {priceFormats.map((pf) => (
-                    <div key={pf.label} className="text-center px-4 py-2 rounded-lg" style={{ background: `hsl(${c.heroForeground} / 0.08)` }}>
-                      <span className="block text-[10px] uppercase tracking-wider" style={{ opacity: 0.5 }}>{pf.label}</span>
-                      <span className="bp-heading text-lg font-bold" style={{ color: `hsl(${c.accent})` }}>{pf.value}</span>
+                    <div key={pf.label} className="text-center px-4 py-2 rounded-lg" style={{ background: "rgba(255,255,255,0.08)" }}>
+                      <span className="block text-[10px] uppercase tracking-wider" style={{ color: "#E8E0D0" }}>{pf.label}</span>
+                      <span className="text-xl font-bold" style={{ color: "#FFFFFF", fontFamily: theme.headingFont }}>{pf.value}</span>
                     </div>
                   ))}
                 </div>
@@ -401,23 +420,36 @@ export default function AuthorBookPage() {
               {/* CTAs */}
               <div className="flex flex-wrap gap-3 justify-center md:justify-start">
                 {book.amazon_url && (
-                  <Button asChild className="rounded-full font-semibold px-6 h-11"
-                    style={{ background: `hsl(${c.accent})`, color: `hsl(${c.accentForeground})` }}
+                  <a
+                    href={book.amazon_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 font-bold rounded-lg transition-all"
+                    style={{
+                      background: v.accent,
+                      color: v.accentText,
+                      padding: "14px 32px",
+                      borderRadius: "8px",
+                      boxShadow: `0 4px 12px ${v.accent}4D`,
+                    }}
                   >
-                    <a href={book.amazon_url} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="mr-2 h-4 w-4" />
-                      {isAmazonLink ? "Buy on Amazon" : "Get Your Copy"}
-                    </a>
-                  </Button>
+                    <ExternalLink className="h-4 w-4" />
+                    {isAmazonLink ? "Buy on Amazon" : "Get Your Copy"}
+                  </a>
                 )}
-                <Button
+                <button
                   onClick={() => document.getElementById("book-subscribe")?.scrollIntoView({ behavior: "smooth" })}
-                  variant="outline"
-                  className="rounded-full font-semibold px-6 h-11"
-                  style={{ borderColor: `hsl(${c.heroForeground} / 0.3)`, color: `hsl(${c.heroForeground})`, background: "transparent" }}
+                  className="inline-flex items-center gap-2 font-bold rounded-lg transition-all"
+                  style={{
+                    background: "transparent",
+                    border: `2px solid ${v.accent}`,
+                    color: v.accent,
+                    padding: "12px 32px",
+                    borderRadius: "8px",
+                  }}
                 >
-                  <Mail className="mr-2 h-4 w-4" /> Get Updates
-                </Button>
+                  <Mail className="h-4 w-4" /> Get Updates
+                </button>
               </div>
             </motion.div>
           </div>
@@ -426,15 +458,14 @@ export default function AuthorBookPage() {
 
       {/* ===== SECTION 2: ABOUT THIS BOOK ===== */}
       {book.description && (
-        <section className="py-14" style={{ borderBottom: `1px solid hsl(${c.cardBorder})` }}>
+        <section className="py-14 md:py-20" style={{ background: "#FFFFFF" }}>
           <div className="container max-w-3xl">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-              <h2 className="bp-heading text-2xl md:text-3xl font-bold mb-6" style={{ color: `hsl(${c.heroBackground})` }}>
+              <h2 className="text-2xl md:text-3xl font-bold mb-6" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
                 About This Book
               </h2>
-              <div className="text-base leading-relaxed space-y-4" style={{ color: `hsl(${c.heroBackground} / 0.7)` }}>
+              <div className="text-base space-y-4" style={{ color: v.bodyText, lineHeight: 1.7 }}>
                 {book.description.split(/\n\n+/).filter(Boolean).map((paragraph, i) => {
-                  // Check if paragraph contains bullet-like patterns
                   const lines = paragraph.split(/\n/).filter(Boolean);
                   const isBulletList = lines.every(line => /^\s*[-*•]\s+/.test(line));
                   if (isBulletList) {
@@ -446,7 +477,6 @@ export default function AuthorBookPage() {
                       </ul>
                     );
                   }
-                  // Handle inline line breaks
                   const parts = paragraph.split(/\n/);
                   if (parts.length > 1) {
                     return (
@@ -470,29 +500,37 @@ export default function AuthorBookPage() {
 
       {/* ===== SECTION 3: BESTSELLER PROOF ===== */}
       {book.bestseller_proof_url && (
-        <section className="py-14" style={{ background: `hsl(${c.heroBackground})`, color: `hsl(${c.heroForeground})` }}>
+        <section className="py-14 md:py-20" style={{ background: v.secondaryBg }}>
           <div className="container max-w-3xl">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-              <h2 className="bp-heading text-xl md:text-2xl font-bold mb-6">
-                <Star className="inline h-5 w-5 mr-2" style={{ color: `hsl(${c.accent})` }} />
+              <h2 className="text-xl md:text-2xl font-bold mb-6" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
+                <Star className="inline h-5 w-5 mr-2" style={{ color: v.accent }} />
                 Amazon Bestseller Proof
               </h2>
               <div
-                className="rounded-lg overflow-hidden shadow-lg p-1"
-                style={{ background: "white", borderRadius: theme.borderRadius }}
+                className="rounded-xl overflow-hidden shadow-lg"
+                style={{ background: "#1E293B", borderRadius: "12px" }}
               >
                 {/* Browser mockup frame */}
-                <div className="flex items-center gap-1.5 px-3 py-2 rounded-t-md" style={{ background: "#f5f5f5" }}>
-                  <div className="w-2.5 h-2.5 rounded-full" style={{ background: "#ef4444" }} />
-                  <div className="w-2.5 h-2.5 rounded-full" style={{ background: "#eab308" }} />
-                  <div className="w-2.5 h-2.5 rounded-full" style={{ background: "#22c55e" }} />
-                  <span className="ml-2 text-[10px] flex-1 text-center truncate text-gray-400">
-                    amazon.com
-                  </span>
+                <div className="flex items-center gap-1.5 px-4 py-3">
+                  <div className="w-3 h-3 rounded-full" style={{ background: "#ef4444" }} />
+                  <div className="w-3 h-3 rounded-full" style={{ background: "#eab308" }} />
+                  <div className="w-3 h-3 rounded-full" style={{ background: "#22c55e" }} />
+                  <div className="ml-3 flex-1 flex justify-center">
+                    <span className="text-xs px-4 py-1 rounded-md" style={{ background: "#F1F1F1", color: "#666666" }}>
+                      amazon.com
+                    </span>
+                  </div>
                 </div>
-                <img src={book.bestseller_proof_url} alt={`${book.title} bestseller proof`} className="w-full" />
+                <img
+                  src={book.bestseller_proof_url}
+                  alt={`${book.title} bestseller proof`}
+                  loading="lazy"
+                  className="w-full"
+                  style={{ maxHeight: "400px", objectFit: "contain", opacity: 1 }}
+                />
               </div>
-              <p className="text-sm text-center mt-4" style={{ opacity: 0.5 }}>
+              <p className="text-sm text-center mt-4 italic" style={{ color: v.bodyText }}>
                 {book.title} reached #1 on Amazon Best Sellers
               </p>
             </motion.div>
@@ -502,33 +540,43 @@ export default function AuthorBookPage() {
 
       {/* ===== SECTION 4: ABOUT THE AUTHOR ===== */}
       {(authorBio || authorPhoto) && (
-        <section className="py-14" style={{ borderBottom: `1px solid hsl(${c.cardBorder})` }}>
+        <section className="py-14 md:py-20" style={{ background: "#FFFFFF" }}>
           <div className="container max-w-3xl">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-              <h2 className="bp-heading text-xl md:text-2xl font-bold mb-6" style={{ color: `hsl(${c.heroBackground})` }}>About the Author</h2>
+              <h2 className="text-xl md:text-2xl font-bold mb-6" style={{ color: v.headingText, fontFamily: theme.headingFont }}>About the Author</h2>
               <div className="flex flex-col sm:flex-row gap-5 items-start">
-                {authorPhoto && (
+                {authorPhoto ? (
                   <img
                     src={authorPhoto}
                     alt={authorName}
+                    loading="lazy"
                     className="w-20 h-20 rounded-full object-cover shrink-0"
-                    style={{ borderColor: `hsl(${c.accent} / 0.3)`, borderWidth: "3px", borderStyle: "solid" }}
+                    style={{ border: `3px solid ${v.accent}`, opacity: 1 }}
                   />
+                ) : (
+                  <div
+                    className="w-20 h-20 rounded-full shrink-0 flex items-center justify-center"
+                    style={{ background: v.accent }}
+                  >
+                    <span className="text-2xl font-bold" style={{ color: v.primaryText }}>
+                      {authorName.charAt(0)}
+                    </span>
+                  </div>
                 )}
                 <div className="flex-1">
-                  <h3 className="bp-heading font-bold text-lg mb-1" style={{ color: `hsl(${c.heroBackground})` }}>{authorName}</h3>
+                  <h3 className="font-bold text-lg mb-1" style={{ color: v.headingText, fontFamily: theme.headingFont }}>{authorName}</h3>
                   {authorProfile?.tagline && (
-                    <p className="text-sm mb-3" style={{ color: `hsl(${c.heroBackground} / 0.5)` }}>{authorProfile.tagline}</p>
+                    <p className="text-sm mb-3" style={{ color: v.bodyText }}>{authorProfile.tagline}</p>
                   )}
                   {authorBio && (
-                    <p className="text-sm leading-relaxed mb-4" style={{ color: `hsl(${c.heroBackground} / 0.6)` }}>
+                    <p className="text-sm leading-relaxed mb-4" style={{ color: v.bodyText, lineHeight: 1.7 }}>
                       {authorBio.length > 200 ? authorBio.slice(0, 200) + "..." : authorBio}
                     </p>
                   )}
                   <Link
                     to={`/${authorSlug}`}
                     className="inline-flex items-center gap-1 text-sm font-semibold transition-colors hover:underline"
-                    style={{ color: `hsl(${c.accent})` }}
+                    style={{ color: v.accent }}
                   >
                     View Full Profile <ArrowRight className="h-4 w-4" />
                   </Link>
@@ -541,10 +589,10 @@ export default function AuthorBookPage() {
 
       {/* ===== SECTION 5: MORE BOOKS BY AUTHOR ===== */}
       {otherBooks.length > 0 && (
-        <section className="py-14" style={{ borderBottom: `1px solid hsl(${c.cardBorder})` }}>
+        <section className="py-14 md:py-20" style={{ background: v.secondaryBg }}>
           <div className="container max-w-3xl">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-              <h2 className="bp-heading text-xl md:text-2xl font-bold mb-6" style={{ color: `hsl(${c.heroBackground})` }}>
+              <h2 className="text-xl md:text-2xl font-bold mb-6" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
                 {otherBooks.length === 1 ? "Also by" : "More Books by"} {authorName}
               </h2>
               <div className="flex gap-4 overflow-x-auto pb-2">
@@ -558,17 +606,20 @@ export default function AuthorBookPage() {
                       <img
                         src={ob.cover_image_url}
                         alt={ob.title}
+                        loading="lazy"
                         className="w-24 h-36 rounded-md object-cover shadow-md group-hover:shadow-lg transition-shadow"
+                        style={{ opacity: 1 }}
                       />
                     ) : (
                       <div
-                        className="w-24 h-36 rounded-md flex items-center justify-center"
-                        style={{ background: `hsl(${c.heroBackground} / 0.05)` }}
+                        className="w-24 h-36 rounded-md flex flex-col items-center justify-center p-2"
+                        style={{ background: `linear-gradient(135deg, ${v.primary}, ${v.accent})` }}
                       >
-                        <BookOpen className="h-6 w-6" style={{ color: `hsl(${c.cardBorder})` }} />
+                        <BookOpen className="h-6 w-6 mb-1" style={{ color: "rgba(255,255,255,0.5)" }} />
+                        <span className="text-[10px] text-center leading-tight" style={{ color: "#FFFFFF" }}>{ob.title}</span>
                       </div>
                     )}
-                    <p className="text-xs mt-1.5 text-center max-w-[96px] truncate" style={{ color: `hsl(${c.heroBackground} / 0.6)` }}>{ob.title}</p>
+                    <p className="text-xs mt-1.5 text-center max-w-[96px] truncate" style={{ color: v.bodyText }}>{ob.title}</p>
                   </Link>
                 ))}
               </div>
@@ -579,13 +630,13 @@ export default function AuthorBookPage() {
 
       {/* ===== SECTION 6: CONTINUE YOUR JOURNEY (Products) ===== */}
       {products.length > 0 && (
-        <section className="py-16" style={{ background: "var(--theme-secondary-bg)" }}>
+        <section className="py-16 md:py-20" style={{ background: "#FFFFFF" }}>
           <div className="container max-w-5xl">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-              <h2 className="theme-heading text-2xl md:text-[2rem] font-bold mb-2" style={{ color: "var(--theme-heading-text)" }}>
+              <h2 className="text-2xl md:text-[2rem] font-bold mb-2" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
                 Continue Your Journey with {book.title}
               </h2>
-              <p className="text-sm mb-10" style={{ color: "var(--theme-muted-text)" }}>
+              <p className="text-sm mb-10" style={{ color: v.mutedText }}>
                 Products and resources built from this book to deepen your learning
               </p>
             </motion.div>
@@ -600,43 +651,39 @@ export default function AuthorBookPage() {
                       to={`/${authorSlug}/${bookSlug}/${p.route}`}
                       className="group flex flex-col h-full p-5 rounded-xl transition-all hover:-translate-y-1 hover:shadow-lg"
                       style={{
-                        background: "var(--theme-card-bg)",
-                        border: "1px solid var(--theme-card-border)",
+                        background: v.cardBg,
+                        border: `1px solid ${v.cardBorder}`,
                         boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
                       }}
                     >
-                      {/* Badge */}
                       <span
                         className="inline-flex items-center gap-1.5 self-start rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wide mb-3"
-                        style={{ background: "var(--theme-accent)", color: "var(--theme-accent-text)" }}
+                        style={{ background: v.accent, color: v.accentText }}
                       >
                         <PIcon className="h-3 w-3" />
                         {label}
                       </span>
 
-                      {/* Title */}
-                      <h3 className="theme-heading font-bold text-base mb-1.5 group-hover:underline" style={{ color: "var(--theme-heading-text)" }}>
+                      <h3 className="font-bold text-base mb-1.5 group-hover:underline" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
                         {p.title}
                       </h3>
 
-                      {/* Description */}
                       {p.description && (
-                        <p className="text-xs leading-relaxed line-clamp-2 mb-4 flex-1" style={{ color: "var(--theme-body-text)" }}>
+                        <p className="text-xs leading-relaxed line-clamp-2 mb-4 flex-1" style={{ color: v.bodyText }}>
                           {p.description}
                         </p>
                       )}
                       {!p.description && <div className="flex-1" />}
 
-                      {/* Price + CTA */}
-                      <div className="flex items-center justify-between mt-auto pt-3" style={{ borderTop: "1px solid var(--theme-card-border)" }}>
+                      <div className="flex items-center justify-between mt-auto pt-3" style={{ borderTop: `1px solid ${v.cardBorder}` }}>
                         {p.price ? (
-                          <span className="font-bold text-sm" style={{ color: "var(--theme-accent)" }}>{p.price}</span>
+                          <span className="font-bold text-sm" style={{ color: v.accent }}>{p.price}</span>
                         ) : (
-                          <span className="font-bold text-sm" style={{ color: "var(--theme-accent)" }}>Free</span>
+                          <span className="font-bold text-sm" style={{ color: v.accent }}>Free</span>
                         )}
                         <span
-                          className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-md transition-all group-hover:brightness-110"
-                          style={{ background: "var(--theme-primary)", color: "var(--theme-primary-text)" }}
+                          className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-md transition-all group-hover:brightness-110"
+                          style={{ background: v.primary, color: v.primaryText }}
                         >
                           View Product <ArrowRight className="h-3 w-3" />
                         </span>
@@ -651,54 +698,70 @@ export default function AuthorBookPage() {
       )}
 
       {/* ===== SECTION 7: LEAD CAPTURE ===== */}
-      <section id="book-subscribe" className="py-14" style={{ background: `linear-gradient(135deg, hsl(43 74% 54% / 0.12), hsl(43 74% 54% / 0.06))` }}>
+      <section id="book-subscribe" className="relative py-14 md:py-20" style={{ background: v.secondaryBg }}>
+        <div className="absolute top-0 left-0 right-0 h-[1px]" style={{ background: v.accent }} />
         <div className="container max-w-xl text-center">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
             {subscribed ? (
               <div className="py-6">
-                <CheckCircle2 className="h-12 w-12 mx-auto mb-4" style={{ color: `hsl(${c.accent})` }} />
-                <h3 className="bp-heading text-xl font-bold mb-2" style={{ color: `hsl(${c.heroBackground})` }}>You're subscribed!</h3>
-                <p className="text-sm" style={{ color: `hsl(${c.heroBackground} / 0.6)` }}>You'll receive updates about {book.title}.</p>
+                <CheckCircle2 className="h-12 w-12 mx-auto mb-4" style={{ color: v.accent }} />
+                <h3 className="text-xl font-bold mb-2" style={{ color: v.headingText, fontFamily: theme.headingFont }}>You're subscribed!</h3>
+                <p className="text-sm" style={{ color: v.bodyText }}>You'll receive updates about {book.title}.</p>
               </div>
             ) : (
               <>
-                <Mail className="h-10 w-10 mx-auto mb-4" style={{ color: `hsl(${c.accent})` }} />
-                <h2 className="bp-heading text-2xl font-bold mb-3" style={{ color: `hsl(${c.heroBackground})` }}>
+                <Mail className="h-12 w-12 mx-auto mb-4" style={{ color: v.accent }} />
+                <h2 className="text-[1.75rem] font-bold mb-3" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
                   Enjoyed {book.title}?
                 </h2>
-                <p className="text-sm mb-8" style={{ color: `hsl(${c.heroBackground} / 0.6)` }}>
+                <p className="text-base mb-8" style={{ color: v.bodyText }}>
                   Subscribe for bonus content, new releases, and exclusive resources from {authorName}.
                 </p>
                 <form onSubmit={handleSubscribe} className="flex flex-col gap-3 max-w-md mx-auto">
-                  <Input
+                  <input
                     type="text"
                     placeholder="First name (optional)"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="h-11 text-base"
-                    style={{ borderRadius: theme.borderRadius, borderColor: `hsl(${c.cardBorder})` }}
+                    className="h-12 text-base w-full outline-none"
+                    style={{
+                      borderRadius: "8px",
+                      border: `2px solid ${v.cardBorder}`,
+                      padding: "14px 16px",
+                      background: "#FFFFFF",
+                      color: v.headingText,
+                    }}
                   />
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <Input
-                      type="email"
-                      placeholder="your@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      className="h-12 text-base flex-1"
-                      style={{ borderRadius: theme.borderRadius, borderColor: `hsl(${c.cardBorder})` }}
-                    />
-                    <Button
+                  <input
+                    type="email"
+                    placeholder="your@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="h-12 text-base w-full outline-none"
+                    style={{
+                      borderRadius: "8px",
+                      border: `2px solid ${v.cardBorder}`,
+                      padding: "14px 16px",
+                      background: "#FFFFFF",
+                      color: v.headingText,
+                    }}
+                  />
+                  <button
                     type="submit"
                     disabled={subscribing}
-                    className="shrink-0 h-12 px-6 font-semibold"
-                    style={{ background: `hsl(${c.accent})`, color: `hsl(${c.accentForeground})`, borderRadius: theme.borderRadius }}
+                    className="w-full h-12 font-bold text-base transition-all"
+                    style={{
+                      background: v.accent,
+                      color: v.accentText,
+                      borderRadius: "8px",
+                      padding: "14px",
+                    }}
                   >
-                    {subscribing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Subscribe"}
-                    </Button>
-                  </div>
+                    {subscribing ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Subscribe"}
+                  </button>
                 </form>
-                <p className="text-xs mt-4" style={{ color: `hsl(${c.heroBackground} / 0.3)` }}>
+                <p className="text-xs mt-4" style={{ color: v.mutedText, fontSize: "0.8rem" }}>
                   We respect your privacy. Unsubscribe anytime.
                 </p>
               </>
@@ -708,30 +771,35 @@ export default function AuthorBookPage() {
       </section>
 
       {/* ===== STICKY MOBILE CTA ===== */}
-      {book.amazon_url && (
+      {book.amazon_url && !heroVisible && (
         <div
-          className="fixed bottom-0 left-0 right-0 z-50 md:hidden py-3 px-4 flex items-center justify-between shadow-2xl"
-          style={{ background: `hsl(${c.heroBackground})`, borderTop: `1px solid hsl(${c.heroForeground} / 0.1)` }}
+          className="fixed bottom-0 left-0 right-0 z-50 md:hidden py-3 px-4 flex items-center justify-between"
+          style={{
+            background: v.primary,
+            boxShadow: "0 -4px 12px rgba(0,0,0,0.15)",
+          }}
         >
           <div>
             {lowestPrice && (
               <div>
-                <span className="text-[10px] uppercase tracking-wider" style={{ color: `hsl(${c.heroForeground} / 0.5)` }}>
-                  Lowest Price
+                <span className="text-[10px] uppercase tracking-wider" style={{ color: "#E8E0D0" }}>
+                  From
                 </span>
-                <span className="bp-heading block text-lg font-bold" style={{ color: `hsl(${c.accent})` }}>
+                <span className="block text-lg font-bold" style={{ color: "#FFFFFF" }}>
                   {lowestPrice.value}
                 </span>
               </div>
             )}
           </div>
-          <Button asChild size="sm" className="rounded-full font-semibold px-5"
-            style={{ background: `hsl(${c.accent})`, color: `hsl(${c.accentForeground})` }}
+          <a
+            href={book.amazon_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 font-bold text-sm rounded-lg px-5 py-2.5"
+            style={{ background: v.accent, color: v.accentText }}
           >
-            <a href={book.amazon_url} target="_blank" rel="noopener noreferrer">
-              {isAmazonLink ? "Buy on Amazon" : "Get Your Copy"}
-            </a>
-          </Button>
+            {isAmazonLink ? "Buy on Amazon" : "Get Your Copy"}
+          </a>
         </div>
       )}
 
