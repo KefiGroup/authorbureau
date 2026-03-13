@@ -617,10 +617,23 @@ function ProductCard({
             </Button>
           )}
           <Button
+            variant="outline"
+            size="sm"
+            className="text-xs h-7 w-full justify-start text-destructive hover:text-destructive"
+            onClick={onDelete}
+            disabled={publishing === product.id || deletingId === product.id}
+          >
+            {deletingId === product.id ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <><Trash2 className="h-3 w-3 mr-1.5" /> Delete</>
+            )}
+          </Button>
+          <Button
             size="sm"
             className="text-xs h-7 w-full justify-start bg-accent text-accent-foreground hover:bg-accent/90"
             onClick={onPublish}
-            disabled={publishing === product.id}
+            disabled={publishing === product.id || deletingId === product.id}
           >
             {publishing === product.id ? (
               <Loader2 className="h-3 w-3 animate-spin" />
