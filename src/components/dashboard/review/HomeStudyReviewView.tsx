@@ -60,41 +60,39 @@ export default function HomeStudyReviewView({
     setLoading(true);
 
     try {
-      const coursePromise =
-        productTable === "home_study_courses"
-          ? supabase
-              .from("home_study_courses")
-              .select("title, description, price, duration_days, study_schedule_json, content_markdown")
-              .eq("id", productId)
-              .maybeSingle()
-          : Promise.resolve({ data: null, error: null });
+      // Load all data via edge function (bypasses RLS, uses admin access)
+      const token = await getActiveToken();
+      if (!token) throw new Error("Not authenticated");
 
-      const [assetsResult, courseResult] = await Promise.all([
-        supabase
-          .from("generated_assets")
-          .select("asset_type, content")
-          .eq("author_id", user.id)
-          .eq("book_id", bookId)
-          .in("asset_type", [DRAFT_ASSET_TYPE, CONTENT_ASSET_TYPE]),
-        coursePromise,
-      ]);
+      const resp = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/builder-draft-state`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            action: "get-product-detail",
+            productId,
+            table: productTable,
+            nodeId: "home-study-course",
+            bookId,
+          }),
+        }
+      );
+      const result = await resp.json();
 
-      if (assetsResult.error) throw assetsResult.error;
-
-      const assets = assetsResult.data || [];
-      const draftAsset = assets.find((asset) => asset.asset_type === DRAFT_ASSET_TYPE);
-      const contentAsset = assets.find((asset) => asset.asset_type === CONTENT_ASSET_TYPE);
-      const courseRecord = (courseResult as any)?.data ?? null;
+      const courseRecord = result.product || null;
+      const draftContentRaw = result.draftContent || null;
+      const generatedContentRaw = result.generatedContent || null;
 
       let draftSetup: Record<string, any> = {};
       let nextDays: StudyDay[] = [];
       let nextRawDraftContent = "";
 
       // Parse the builder draft from generated_assets
-      if (draftAsset?.content) {
-        nextRawDraftContent = draftAsset.content;
+      if (draftContentRaw) {
+        nextRawDraftContent = draftContentRaw;
         try {
-          const parsed = JSON.parse(draftAsset.content);
+          const parsed = JSON.parse(draftContentRaw);
           const sd = parsed?.stepData || {};
           draftSetup = sd.setup || {};
           nextDays = Array.isArray(sd.schedule?.days) ? sd.schedule.days : [];
@@ -126,7 +124,6 @@ export default function HomeStudyReviewView({
       }
 
       // Merge setup: prioritise draft setup → course table record → prop fallbacks
-      // The course table record is the authoritative source after Abby generates
       const mergedSetup = {
         ...draftSetup,
         title: draftSetup.title || courseRecord?.title || productTitle,
@@ -138,9 +135,8 @@ export default function HomeStudyReviewView({
       };
 
       // Full markdown fallback for preview
-      let markdownFallback = contentAsset?.content || "";
+      let markdownFallback = generatedContentRaw || "";
       if (!markdownFallback && courseRecord?.content_markdown) {
-        // Only use content_markdown as markdown if it's NOT a JSON array
         try {
           JSON.parse(courseRecord.content_markdown);
           // It's JSON, not markdown — skip
