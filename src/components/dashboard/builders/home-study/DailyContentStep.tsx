@@ -57,6 +57,7 @@ export default function DailyContentStep({ stepData, setStepData, onMarkEdited, 
         concept: string;
         exercise: string;
         reflection: string;
+        actionPlan: string;
         audioScript?: string;
       }>(
         `Generate detailed daily content for Day ${currentDay.dayNumber} of a home study program based on the book "${bookTitle}".
@@ -69,6 +70,7 @@ Return a JSON object with:
 - "concept": string (markdown, 200-300 words, with sections: Core Idea, Why This Matters, Today's Focus)
 - "exercise": string (markdown, practical exercise with numbered steps, ${commitment} minutes)
 - "reflection": string (markdown, evening journal prompts, 4 questions)
+- "actionPlan": string (markdown, 3-5 concrete action items the reader should complete today, with checkboxes using "- [ ]" syntax)
 ${hasAudio ? '- "audioScript": string (narration script with [INTRO MUSIC], [PAUSE], [OUTRO] markers, 200 words)' : ""}
 
 Make content specific to the book topic and day theme. Return ONLY valid JSON.`,
@@ -77,12 +79,16 @@ Make content specific to the book topic and day theme. Return ONLY valid JSON.`,
 
       setGenerationState("generating");
 
-      updateDay("concept", result.concept);
-      updateDay("exercise", result.exercise);
-      updateDay("reflection", result.reflection);
+      const batch: Partial<StudyDay> = {
+        concept: result.concept,
+        exercise: result.exercise,
+        reflection: result.reflection,
+        actionPlan: result.actionPlan,
+      };
       if (hasAudio && result.audioScript) {
-        updateDay("audioScript", result.audioScript);
+        batch.audioScript = result.audioScript;
       }
+      updateDayBatch(batch);
 
       setGenerationState("complete");
       toast({ title: "Day content generated!", description: `Content for Day ${currentDay.dayNumber} is ready.` });
