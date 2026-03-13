@@ -30,6 +30,7 @@ import ConnectStripePage from "@/components/dashboard/ConnectStripePage";
 import HowItWorksSection from "@/components/dashboard/HowItWorksSection";
 import ReviewProductsPage from "@/components/dashboard/ReviewProductsPage";
 import AuthorCRMPage from "@/components/dashboard/AuthorCRMPage";
+import AuthorMessagesPage from "@/components/dashboard/AuthorMessagesPage";
 import AuthorReadingClub from "@/components/dashboard/AuthorReadingClub";
 // AbbyConsultantBanner removed from dashboard per reorganization
 import ABBYJourneyOnboarding from "@/components/dashboard/ABBYJourneyOnboarding";
