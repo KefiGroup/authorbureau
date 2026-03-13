@@ -519,9 +519,46 @@ Deno.serve(async (req) => {
           });
         }
 
+        // Before publishing, inject the sales page content into the product description
+        const updatePayload: Record<string, any> = { status: "published" };
+
+        // Look up book_id from the product to find the sales page asset
+        const { data: productFull } = await cloudAdmin
+          .from(table)
+          .select("book_id, author_id")
+          .eq("id", productId)
+          .maybeSingle();
+
+        if (productFull?.book_id && productFull?.author_id) {
+          // Determine the node ID from the table name
+          const tableToNode: Record<string, string> = {
+            home_study_courses: "home-study-course",
+            courses: "online-course",
+            coaching_packages: "coaching",
+            audiobooks: "audiobook",
+            podcasts: "podcast",
+          };
+          const nodeId = tableToNode[table] || table.replace(/_/g, "-");
+
+          // Look for a saved sales page asset
+          const { data: salesAsset } = await cloudAdmin
+            .from("generated_assets")
+            .select("content")
+            .eq("book_id", productFull.book_id)
+            .eq("author_id", productFull.author_id)
+            .eq("asset_type", `builder_sales_page_${nodeId}`)
+            .order("updated_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (salesAsset?.content && salesAsset.content.trim().length > 50) {
+            updatePayload.description = salesAsset.content.trim();
+          }
+        }
+
         const { error: updateErr } = await cloudAdmin
           .from(table)
-          .update({ status: "published" })
+          .update(updatePayload)
           .eq("id", productId);
 
         if (updateErr) throw updateErr;

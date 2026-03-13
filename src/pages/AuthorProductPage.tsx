@@ -513,7 +513,13 @@ export default function AuthorProductPage() {
                   <h2 className="text-xl font-bold mb-4" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
                     About This {config.label}
                   </h2>
-                  <p className="text-sm leading-relaxed" style={{ color: v.bodyText }}>{product.description}</p>
+                  {isMarkdown(product.description) ? (
+                    <div className="prose prose-sm max-w-none" style={{ color: v.bodyText }}>
+                      <ProductMarkdown content={product.description} />
+                    </div>
+                  ) : (
+                    <p className="text-sm leading-relaxed" style={{ color: v.bodyText }}>{product.description}</p>
+                  )}
                 </div>
               </motion.div>
             )}
