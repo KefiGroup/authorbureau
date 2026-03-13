@@ -1,20 +1,22 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Clock, Calendar, BookOpen, GraduationCap, Users, Loader2, Star } from "lucide-react";
+import { ArrowLeft, Clock, Calendar, BookOpen, GraduationCap, Users, Headphones, Mic, Loader2, Star, Play } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import NotFound from "./NotFound";
 
-type ProductType = "homestudy" | "onlinecourse" | "workbook" | "coaching" | "book";
+type ProductType = "homestudy" | "onlinecourse" | "workbook" | "coaching" | "audiobook" | "podcast" | "book";
 
 const PRODUCT_CONFIG: Record<ProductType, { table: string; label: string; icon: any; statusField: string; statusValue: string }> = {
   homestudy: { table: "home_study_courses", label: "Home Study Course", icon: BookOpen, statusField: "status", statusValue: "published" },
   onlinecourse: { table: "courses", label: "Online Course", icon: GraduationCap, statusField: "status", statusValue: "published" },
-  workbook: { table: "home_study_courses", label: "Workbook", icon: BookOpen, statusField: "status", statusValue: "published" }, // placeholder
+  workbook: { table: "home_study_courses", label: "Workbook", icon: BookOpen, statusField: "status", statusValue: "published" },
   coaching: { table: "coaching_packages", label: "Coaching", icon: Users, statusField: "status", statusValue: "active" },
+  audiobook: { table: "audiobooks", label: "Audiobook", icon: Headphones, statusField: "status", statusValue: "published" },
+  podcast: { table: "podcasts", label: "Podcast", icon: Mic, statusField: "status", statusValue: "published" },
   book: { table: "books", label: "Book", icon: BookOpen, statusField: "published_at", statusValue: "not_null" },
 };
 
