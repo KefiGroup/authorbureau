@@ -74,46 +74,31 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
     setLoading(true);
 
     try {
-      // Fetch all tables in parallel for performance (BUG-058)
-      const results = await Promise.all(
-        TABLES.map(async (table) => {
-          const { data } = await supabase
-            .from(table)
-            .select("id, title, book_id, created_at, status, description")
-            .eq("author_id", user.id)
-            .in("status", ["draft", "ready_for_review"]);
-          return { table, data: data || [] };
-        })
-      );
+      const token = await getActiveToken();
+      if (!token) throw new Error("Not authenticated");
 
-      const drafts: DraftProduct[] = [];
-      for (const { table, data } of results) {
-        for (const item of data as any[]) {
-          drafts.push({
-            id: item.id,
-            title: item.title,
-            type: typeLabels[table] || table,
-            bookTitle: "",
-            bookId: item.book_id,
-            table,
-            status: item.status,
-            description: item.description || undefined,
-            createdAt: item.created_at,
-          });
+      const resp = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/builder-draft-state`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ action: "list-drafts" }),
         }
-      }
+      );
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result.error || "Failed to load");
 
-      // Get book titles in a single query
-      const bookIds = [...new Set(drafts.map(d => d.bookId).filter(Boolean))];
-      if (bookIds.length > 0) {
-        const { data: books } = await supabase
-          .from("books")
-          .select("id, title")
-          .in("id", bookIds);
-        const titleMap: Record<string, string> = {};
-        (books || []).forEach((b: any) => { titleMap[b.id] = b.title; });
-        drafts.forEach(d => { d.bookTitle = titleMap[d.bookId] || "Unknown Book"; });
-      }
+      const drafts: DraftProduct[] = (result.drafts || []).map((item: any) => ({
+        id: item.id,
+        title: item.title,
+        type: typeLabels[item.table] || item.table,
+        bookTitle: item.bookTitle || "Unknown Book",
+        bookId: item.book_id,
+        table: item.table,
+        status: item.status,
+        description: item.description || undefined,
+        createdAt: item.created_at,
+      }));
 
       setProducts(drafts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
     } catch (err) {
