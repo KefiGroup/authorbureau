@@ -271,6 +271,7 @@ export default function AuthorProductPage() {
         source: "subscribe_form",
         source_detail: `product_page: ${authorSlug}/${bookSlug}/${productType}${subMessage.trim() ? ` | Message: ${subMessage.trim().slice(0, 200)}` : ""}`,
         author_id: author.user_id,
+        message: subMessage.trim() || undefined,
       },
     });
 

@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { adminApi } from "@/lib/admin-api";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { LogOut, BookOpen, BarChart3, ShieldCheck, Globe, UserCheck, Users, BookMarked, Headphones } from "lucide-react";
+import { LogOut, BookOpen, BarChart3, ShieldCheck, Globe, UserCheck, Users, BookMarked, Headphones, MessageSquare } from "lucide-react";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import logoIcon from "@/assets/logo-icon.png";
 
@@ -16,10 +16,11 @@ import AuthorsTab from "@/components/admin/AuthorsTab";
 import AdminCRMTab from "@/components/admin/AdminCRMTab";
 import ReadingClubTab from "@/components/admin/ReadingClubTab";
 import SupportTab from "@/components/admin/SupportTab";
+import AdminMessagesTab from "@/components/admin/AdminMessagesTab";
 
 import type { AdminStats, AdminBook, AdminInfo } from "@/types/admin";
 
-type Tab = "overview" | "books" | "authors" | "admins" | "platforms" | "crm" | "reading-club" | "support";
+type Tab = "overview" | "books" | "authors" | "admins" | "platforms" | "crm" | "messages" | "reading-club" | "support";
 
 async function adminFetch(action: string, body: Record<string, unknown> = {}) {
   const token = await getActiveToken();
@@ -251,6 +252,7 @@ export default function AdminDashboard() {
     { key: "authors", label: "Authors", icon: UserCheck },
     { key: "books", label: "Books", icon: BookOpen },
     { key: "crm", label: "CRM", icon: Users },
+    { key: "messages", label: "Messages", icon: MessageSquare },
     { key: "reading-club", label: "Reading Club", icon: BookMarked },
     { key: "support", label: "Support", icon: Headphones },
     { key: "admins", label: "Admins", icon: ShieldCheck, superOnly: true },
@@ -332,6 +334,7 @@ export default function AdminDashboard() {
             />
           )}
           {tab === "crm" && <AdminCRMTab />}
+          {tab === "messages" && <AdminMessagesTab />}
           {tab === "reading-club" && <ReadingClubTab />}
           {tab === "support" && <SupportTab />}
           {tab === "platforms" && <PlatformAccessTab />}

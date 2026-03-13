@@ -30,6 +30,7 @@ import ConnectStripePage from "@/components/dashboard/ConnectStripePage";
 import HowItWorksSection from "@/components/dashboard/HowItWorksSection";
 import ReviewProductsPage from "@/components/dashboard/ReviewProductsPage";
 import AuthorCRMPage from "@/components/dashboard/AuthorCRMPage";
+import AuthorMessagesPage from "@/components/dashboard/AuthorMessagesPage";
 import AuthorReadingClub from "@/components/dashboard/AuthorReadingClub";
 // AbbyConsultantBanner removed from dashboard per reorganization
 import ABBYJourneyOnboarding from "@/components/dashboard/ABBYJourneyOnboarding";
@@ -53,7 +54,7 @@ export type DashboardSection =
   | "retreats" | "certification" | "masterminds"
   | "email-marketing" | "subscribers" | "email-templates"
   | "revenue-streams" | "marketing-channels" | "authority-builders"
-  | "marketing" | "crm" | "author-crm" | "reading-club" | "how-it-works"
+  | "marketing" | "crm" | "author-crm" | "messages" | "reading-club" | "how-it-works"
   | "analytics" | "microsite-manager"
   | "connect-stripe" | "review-products"
   | "book-sales" | "special-editions" | "lead-magnet"
@@ -349,6 +350,8 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         return <ReviewProductsPage onNavigate={handleNavigate} />;
       case "author-crm":
         return gate("My Contacts", <AuthorCRMPage onNavigate={handleNavigate} />, "pro");
+      case "messages":
+        return <AuthorMessagesPage />;
       case "reading-club":
         return <AuthorReadingClub onNavigate={handleNavigate} />;
       case "book-sales":

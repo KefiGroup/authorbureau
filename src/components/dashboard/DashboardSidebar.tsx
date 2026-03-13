@@ -2,7 +2,7 @@ import {
   LayoutDashboard, User, BookOpen, Sparkles,
   ChevronLeft, ChevronRight, Crown, ExternalLink, PenLine, BookMarked,
   Lock, Globe, BarChart3, Contact, DollarSign, Radio, Award, CreditCard, Package,
-  BookHeart, HelpCircle, ChevronDown, ChevronUp,
+  BookHeart, HelpCircle, ChevronDown, ChevronUp, MessageSquare,
 } from "lucide-react";
 import { useState } from "react";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
@@ -117,6 +117,10 @@ export default function DashboardSidebar({
       id: "author-crm" as DashboardSection, label: "My Contacts",
       icon: Contact,
       lockMessage: !tierAccess("pro") ? "Upgrade to Pro to access your CRM" : undefined,
+    },
+    {
+      id: "messages" as DashboardSection, label: "Messages",
+      icon: MessageSquare,
     },
   ];
 
