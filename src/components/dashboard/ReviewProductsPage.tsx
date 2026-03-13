@@ -297,7 +297,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
                   product={product}
                   publishing={publishing}
                   onPreview={() => handlePreview(product)}
-                  onEdit={() => onNavigate?.(product.nodeId)}
+                  onEdit={() => onNavigate?.(NODE_TO_ROUTE[product.nodeId] || product.nodeId)}
                   onPublish={() => setConfirmProduct(product)}
                   onExport={product.table === "home_study_courses" ? () => setExportProduct(product) : undefined}
                 />
