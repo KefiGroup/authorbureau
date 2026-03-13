@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
+import SiteThemePicker from "@/components/dashboard/SiteThemePicker";
 
 interface BookFormData {
   title: string;
