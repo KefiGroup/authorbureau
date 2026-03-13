@@ -59,6 +59,7 @@ const PRODUCT_ICONS: Record<string, typeof BookOpen> = {
   course: GraduationCap,
   coaching: Users,
   audiobook: Headphones,
+  podcast: Mic,
 };
 
 const PRODUCT_LABELS: Record<string, string> = {
@@ -66,6 +67,7 @@ const PRODUCT_LABELS: Record<string, string> = {
   course: "Online Course",
   coaching: "Coaching",
   audiobook: "Audiobook",
+  podcast: "Podcast",
 };
 
 const PRODUCT_ROUTES: Record<string, string> = {
@@ -73,6 +75,7 @@ const PRODUCT_ROUTES: Record<string, string> = {
   course: "onlinecourse",
   coaching: "coaching",
   audiobook: "audiobook",
+  podcast: "podcast",
 };
 
 const fadeUp = {
