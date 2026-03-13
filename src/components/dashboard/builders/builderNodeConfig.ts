@@ -831,6 +831,7 @@ const revenueShareBuilder: BuilderNodeConfig = {
   dbTable: "generated_assets",
   icon: "TrendingUp",
   color: "text-amber-500",
+  customRenderer: "revenue-share",
   abbyGreeting: "Revenue sharing aligns incentives and creates win-win partnerships. Let's structure your offers.",
   abbyPublishMessage: "Your revenue sharing framework is ready! Approach potential partners with a clear value proposition.",
   loadingMessages: [
