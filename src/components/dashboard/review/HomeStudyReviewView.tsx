@@ -13,16 +13,17 @@ import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import { splitSalesAndContent } from "@/hooks/useBuilderGeneration";
 import MarkdownRenderer from "../MarkdownRenderer";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import {
   ArrowLeft, Monitor, Smartphone, ChevronLeft, ChevronRight,
   BookOpen, Clock, CalendarDays, Award, Send, Save, Loader2,
   DollarSign, Edit3, Eye, CheckCircle2, FileText, GraduationCap,
+  Plus, X,
 } from "lucide-react";
 import type { StudyDay } from "../builders/home-study/types";
 
@@ -62,7 +63,15 @@ export default function HomeStudyReviewView({
   const [commitment, setCommitment] = useState("30");
   const [level, setLevel] = useState("Beginner");
 
-  // Drawer-local draft for sales page markdown
+  // Structured sales page fields
+  const [salesHeadline, setSalesHeadline] = useState("");
+  const [salesSubheadline, setSalesSubheadline] = useState("");
+  const [salesBody, setSalesBody] = useState("");
+  const [salesBullets, setSalesBullets] = useState<string[]>([""]);
+  const [salesTestimonials, setSalesTestimonials] = useState<{ name: string; quote: string }[]>([]);
+  const [salesCta, setSalesCta] = useState("Enroll Now");
+
+  // Drawer-local draft for sales page markdown (kept for serialization)
   const [salesDraft, setSalesDraft] = useState("");
 
   const loadContent = useCallback(async () => {
@@ -237,9 +246,25 @@ export default function HomeStudyReviewView({
     if (!user) return;
     setSaving(true);
     try {
-      setSalesPageMarkdown(salesDraft);
+      // Serialize structured fields to markdown
+      const parts: string[] = [];
+      if (salesHeadline) parts.push(`## ${salesHeadline}`);
+      if (salesSubheadline) parts.push(`### ${salesSubheadline}`);
+      if (salesBody) parts.push("", salesBody);
+      const validBullets = salesBullets.filter(b => b.trim());
+      if (validBullets.length > 0) {
+        parts.push("", "**What's Included:**", ...validBullets.map(b => `- ${b}`));
+      }
+      if (salesTestimonials.length > 0) {
+        parts.push("", "**What Others Say:**");
+        salesTestimonials.forEach(t => {
+          parts.push(`> "${t.quote}"${t.name ? ` — ${t.name}` : ""}`);
+        });
+      }
+      const serialized = parts.join("\n");
+      setSalesPageMarkdown(serialized);
+      setSalesDraft(serialized);
 
-      // Save sales page as separate asset via edge function
       const token = await getActiveToken();
       if (!token) throw new Error("Not authenticated");
 
@@ -252,7 +277,7 @@ export default function HomeStudyReviewView({
             action: "save-sales-page",
             bookId,
             nodeId: "home-study-course",
-            content: salesDraft,
+            content: serialized,
           }),
         }
       );
@@ -326,7 +351,22 @@ export default function HomeStudyReviewView({
             variant="outline"
             size="sm"
             onClick={() => {
-              setSalesDraft(effectiveSalesPage || fullCourseMarkdown);
+              // Parse existing sales markdown into structured fields
+              const md = effectiveSalesPage || fullCourseMarkdown || "";
+              const lines = md.split("\n").filter(l => l.trim());
+              const h1 = lines.find(l => /^##?\s/.test(l));
+              setSalesHeadline(h1 ? h1.replace(/^#+\s*/, "") : title || "");
+              const h2 = lines.find(l => /^###\s/.test(l));
+              setSalesSubheadline(h2 ? h2.replace(/^#+\s*/, "") : "");
+              const bullets = lines.filter(l => /^[-*]\s/.test(l)).map(l => l.replace(/^[-*]\s*/, ""));
+              setSalesBullets(bullets.length > 0 ? bullets : [""]);
+              const bodyLines = lines.filter(l => !l.startsWith("#") && !l.startsWith("-") && !l.startsWith("*") && !l.startsWith(">"));
+              setSalesBody(bodyLines.join("\n").trim());
+              // Look for quoted testimonials
+              const quoteLines = lines.filter(l => l.startsWith(">"));
+              const testimonials = quoteLines.map(q => ({ name: "", quote: q.replace(/^>\s*/, "").replace(/^"/, "").replace(/"$/, "") }));
+              setSalesTestimonials(testimonials.length > 0 ? testimonials : []);
+              setSalesCta("Enroll Now");
               setDrawerOpen("sales");
             }}
           >
@@ -559,32 +599,133 @@ export default function HomeStudyReviewView({
         </div>
       </Card>
 
-      {/* ── EDIT SALES PAGE DRAWER ──────────────────────── */}
-      <Sheet open={drawerOpen === "sales"} onOpenChange={(open) => !open && setDrawerOpen(null)}>
-        <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
+      {/* ── EDIT SALES PAGE DIALOG ──────────────────────── */}
+      <Dialog open={drawerOpen === "sales"} onOpenChange={(open) => !open && setDrawerOpen(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
               <FileText className="h-4 w-4" /> Edit Sales Page
-            </SheetTitle>
-            <SheetDescription>
+            </DialogTitle>
+            <DialogDescription>
               Edit the sales copy that buyers see before purchasing your Home Study Course.
-            </SheetDescription>
-          </SheetHeader>
-          <div className="space-y-4 mt-6">
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-5 mt-2">
             <div>
-              <Label className="text-xs font-semibold">Sales Page Content (Markdown)</Label>
-              <Textarea
-                value={salesDraft}
-                onChange={(e) => setSalesDraft(e.target.value)}
-                rows={24}
-                className="mt-1.5 font-mono text-xs leading-relaxed"
-                placeholder="# Your Sales Page Headline..."
+              <Label className="text-xs font-semibold">Headline</Label>
+              <Input
+                value={salesHeadline}
+                onChange={(e) => setSalesHeadline(e.target.value)}
+                placeholder="e.g. Transform Your Setbacks into Your Greatest Strengths"
+                className="mt-1"
               />
-              <p className="text-[10px] text-muted-foreground mt-1">
-                Supports Markdown: **bold**, *italic*, ## headings, - bullet lists
-              </p>
             </div>
-            <div className="flex gap-2">
+
+            <div>
+              <Label className="text-xs font-semibold">Subheadline</Label>
+              <Input
+                value={salesSubheadline}
+                onChange={(e) => setSalesSubheadline(e.target.value)}
+                placeholder="e.g. A 21-day guided challenge to unlock your potential"
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label className="text-xs font-semibold">Body Copy</Label>
+              <Textarea
+                value={salesBody}
+                onChange={(e) => setSalesBody(e.target.value)}
+                rows={6}
+                className="mt-1 text-sm"
+                placeholder="Describe your program, who it's for, and the transformation they'll experience..."
+              />
+            </div>
+
+            <div>
+              <Label className="text-xs font-semibold mb-2 block">What's Included (Bullet Points)</Label>
+              <div className="space-y-2">
+                {salesBullets.map((bullet, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <span className="text-muted-foreground text-xs">•</span>
+                    <Input
+                      value={bullet}
+                      onChange={(e) => {
+                        const updated = [...salesBullets];
+                        updated[idx] = e.target.value;
+                        setSalesBullets(updated);
+                      }}
+                      placeholder="e.g. 21 days of guided exercises"
+                      className="flex-1 h-8 text-sm"
+                    />
+                    {salesBullets.length > 1 && (
+                      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0"
+                        onClick={() => setSalesBullets(salesBullets.filter((_, i) => i !== idx))}>
+                        <X className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" className="text-xs"
+                  onClick={() => setSalesBullets([...salesBullets, ""])}>
+                  <Plus className="h-3 w-3 mr-1" /> Add Bullet
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs font-semibold mb-2 block">Testimonials (Optional)</Label>
+              <div className="space-y-3">
+                {salesTestimonials.map((t, idx) => (
+                  <div key={idx} className="p-3 border border-border rounded-lg space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-[10px] text-muted-foreground">Quote #{idx + 1}</Label>
+                      <Button variant="ghost" size="icon" className="h-6 w-6"
+                        onClick={() => setSalesTestimonials(salesTestimonials.filter((_, i) => i !== idx))}>
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <Textarea
+                      value={t.quote}
+                      onChange={(e) => {
+                        const updated = [...salesTestimonials];
+                        updated[idx] = { ...updated[idx], quote: e.target.value };
+                        setSalesTestimonials(updated);
+                      }}
+                      rows={2}
+                      className="text-sm"
+                      placeholder="This program changed my life..."
+                    />
+                    <Input
+                      value={t.name}
+                      onChange={(e) => {
+                        const updated = [...salesTestimonials];
+                        updated[idx] = { ...updated[idx], name: e.target.value };
+                        setSalesTestimonials(updated);
+                      }}
+                      placeholder="Name (e.g. Sarah M.)"
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" className="text-xs"
+                  onClick={() => setSalesTestimonials([...salesTestimonials, { name: "", quote: "" }])}>
+                  <Plus className="h-3 w-3 mr-1" /> Add Testimonial
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs font-semibold">CTA Button Text</Label>
+              <Input
+                value={salesCta}
+                onChange={(e) => setSalesCta(e.target.value)}
+                placeholder="Enroll Now"
+                className="mt-1 h-8"
+              />
+            </div>
+
+            <div className="flex gap-2 pt-2">
               <Button onClick={handleSaveSalesPage} disabled={saving} className="flex-1">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
                 Save Sales Page
@@ -592,21 +733,21 @@ export default function HomeStudyReviewView({
               <Button variant="outline" onClick={() => setDrawerOpen(null)}>Cancel</Button>
             </div>
           </div>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
 
-      {/* ── EDIT CONTENT DRAWER ─────────────────────────── */}
-      <Sheet open={drawerOpen === "content"} onOpenChange={(open) => !open && setDrawerOpen(null)}>
-        <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
+      {/* ── EDIT CONTENT DIALOG ─────────────────────────── */}
+      <Dialog open={drawerOpen === "content"} onOpenChange={(open) => !open && setDrawerOpen(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
               <GraduationCap className="h-4 w-4" /> Edit Course Content
-            </SheetTitle>
-            <SheetDescription>
+            </DialogTitle>
+            <DialogDescription>
               Update course details, pricing, and review the daily curriculum structure.
-            </SheetDescription>
-          </SheetHeader>
-          <div className="space-y-6 mt-6">
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 mt-2">
             {/* Course details */}
             <div className="space-y-3">
               <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Course Details</h4>
@@ -690,8 +831,8 @@ export default function HomeStudyReviewView({
               <Button variant="outline" onClick={() => setDrawerOpen(null)}>Cancel</Button>
             </div>
           </div>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
