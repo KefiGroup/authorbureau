@@ -51,6 +51,7 @@ export default function HomeStudyReviewView({
   const [days, setDays] = useState<StudyDay[]>([]);
   const [rawDraftContent, setRawDraftContent] = useState<string>("");
   const [fullCourseMarkdown, setFullCourseMarkdown] = useState<string>("");
+  const [salesPageMarkdown, setSalesPageMarkdown] = useState<string>("");
 
   // Editable fields
   const [title, setTitle] = useState("");
