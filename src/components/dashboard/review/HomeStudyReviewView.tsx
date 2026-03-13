@@ -66,7 +66,6 @@ export default function HomeStudyReviewView({
               .from("home_study_courses")
               .select("title, description, price, duration_days, study_schedule_json, content_markdown")
               .eq("id", productId)
-              .eq("author_id", user.id)
               .maybeSingle()
           : Promise.resolve({ data: null, error: null });
 
@@ -87,24 +86,26 @@ export default function HomeStudyReviewView({
       const contentAsset = assets.find((asset) => asset.asset_type === CONTENT_ASSET_TYPE);
       const courseRecord = (courseResult as any)?.data ?? null;
 
-      let nextSetup: Record<string, any> = {};
+      let draftSetup: Record<string, any> = {};
       let nextDays: StudyDay[] = [];
       let nextRawDraftContent = "";
 
+      // Parse the builder draft from generated_assets
       if (draftAsset?.content) {
         nextRawDraftContent = draftAsset.content;
         try {
           const parsed = JSON.parse(draftAsset.content);
           const sd = parsed?.stepData || {};
-          nextSetup = sd.setup || {};
+          draftSetup = sd.setup || {};
           nextDays = Array.isArray(sd.schedule?.days) ? sd.schedule.days : [];
         } catch (parseError) {
           console.error("Failed to parse home study draft asset:", parseError);
         }
       }
 
-      if (!nextDays.length) {
-        const tableSchedule = courseRecord?.study_schedule_json;
+      // Fallback: try study_schedule_json from the table
+      if (!nextDays.length && courseRecord?.study_schedule_json) {
+        const tableSchedule = courseRecord.study_schedule_json;
         if (Array.isArray(tableSchedule)) {
           nextDays = tableSchedule as StudyDay[];
         } else if (Array.isArray(tableSchedule?.days)) {
@@ -112,20 +113,41 @@ export default function HomeStudyReviewView({
         }
       }
 
+      // Fallback: try parsing content_markdown as JSON (builder stores days as JSON.stringify)
+      if (!nextDays.length && courseRecord?.content_markdown) {
+        try {
+          const parsed = JSON.parse(courseRecord.content_markdown);
+          if (Array.isArray(parsed)) {
+            nextDays = parsed as StudyDay[];
+          }
+        } catch {
+          // It's real markdown, not JSON — handled below
+        }
+      }
+
+      // Merge setup: prioritise draft setup → course table record → prop fallbacks
+      // The course table record is the authoritative source after Abby generates
       const mergedSetup = {
-        ...nextSetup,
-        title: nextSetup.title || courseRecord?.title || productTitle,
-        description: nextSetup.description || courseRecord?.description || "",
-        price: nextSetup.price ?? courseRecord?.price ?? "",
-        duration: nextSetup.duration || courseRecord?.duration_days || 30,
-        commitment: nextSetup.commitment || 30,
-        level: nextSetup.level || "Beginner",
+        ...draftSetup,
+        title: draftSetup.title || courseRecord?.title || productTitle,
+        description: draftSetup.description || courseRecord?.description || "",
+        price: draftSetup.price ?? courseRecord?.price ?? "",
+        duration: draftSetup.duration || courseRecord?.duration_days || nextDays.length || 30,
+        commitment: draftSetup.commitment || 30,
+        level: draftSetup.level || "Beginner",
       };
 
-      const markdownFallback =
-        contentAsset?.content ||
-        courseRecord?.content_markdown ||
-        "";
+      // Full markdown fallback for preview
+      let markdownFallback = contentAsset?.content || "";
+      if (!markdownFallback && courseRecord?.content_markdown) {
+        // Only use content_markdown as markdown if it's NOT a JSON array
+        try {
+          JSON.parse(courseRecord.content_markdown);
+          // It's JSON, not markdown — skip
+        } catch {
+          markdownFallback = courseRecord.content_markdown;
+        }
+      }
 
       setRawDraftContent(nextRawDraftContent);
       setSetup(mergedSetup);
