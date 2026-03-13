@@ -3334,10 +3334,34 @@ CURRENT TURN: 1. Follow Turn 1 instructions EXACTLY. Maximum 150 words.
 
     let fullSystemPrompt: string;
     let maxTokens: number;
+    let temperature = 0.85;
 
     if (builderMode && builderId) {
       // ─── BUILDER MODE: V2 builder-specific prompt with 3-phase enforcement ─────
       const builderPrompt = BUILDER_PROMPTS[builderId] || `You are Abby, the AI business advisor for Authors Bureau. You're helping build a "${builderLabel || builderId}" product. Follow the 3-phase workflow: ANALYSE → BUILD → BRIDGE.`;
+
+      const normalizedBuilderStep = (builderStep || "").toLowerCase();
+      const isHomeStudyDailySchedule = builderId === "home-study-course" && normalizedBuilderStep.includes("daily schedule");
+      const isHomeStudyDailyContent = builderId === "home-study-course" && normalizedBuilderStep.includes("daily content");
+
+      const structuredStepOverride = isHomeStudyDailySchedule
+        ? `
+
+STEP OVERRIDE — STRUCTURED JSON MODE (HIGH PRIORITY):
+- Ignore the normal 3-phase conversational workflow for this request.
+- Return ONLY valid JSON.
+- Output must be a JSON array with exactly 21 objects unless the user explicitly requests a different duration.
+- Each object must include: dayNumber, weekNumber, theme, chapterRef, reading, exercise, reflection, isCatchUp.
+- Do NOT include markdown, prose, headings, or explanations.
+- Keep reading/exercise/reflection concise and practical so the full array is complete and not truncated.`
+        : isHomeStudyDailyContent
+        ? `
+
+STEP OVERRIDE — STRUCTURED JSON MODE (HIGH PRIORITY):
+- Ignore the normal 3-phase conversational workflow for this request.
+- Return ONLY valid JSON matching the requested schema.
+- Do NOT include markdown, prose, headings, or explanations.`
+        : "";
 
       fullSystemPrompt = `${builderPrompt}
 
@@ -3354,13 +3378,14 @@ CRITICAL BUILDER RULES:
 - When suggesting titles, suggest exactly 3 options.
 - Keep responses brief (under 150 words), actionable, and encouraging.
 - Reference progress_log to acknowledge what's already built and connect this product to existing ones.
-- Address the author by name from author_profile.name. NEVER use email.`;
+- Address the author by name from author_profile.name. NEVER use email.${structuredStepOverride}`;
 
-      const normalizedBuilderStep = (builderStep || "").toLowerCase();
-      if (builderId === "home-study-course" && normalizedBuilderStep.includes("daily schedule")) {
-        maxTokens = 2200;
-      } else if (builderId === "home-study-course" && normalizedBuilderStep.includes("daily content")) {
+      if (isHomeStudyDailySchedule) {
+        maxTokens = 4800;
+        temperature = 0.2;
+      } else if (isHomeStudyDailyContent) {
         maxTokens = 3200;
+        temperature = 0.25;
       } else {
         maxTokens = 1200;
       }
