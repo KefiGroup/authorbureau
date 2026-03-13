@@ -290,7 +290,7 @@ export default function AuthorSite() {
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {products.map((product, i) => (
                 <motion.div key={product.id} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i + 1}>
-                  <Link to={`/${authorSlug}/${productTypeRoutes[product.type]}`}>
+                  <Link to={`/${authorSlug}/${product.book_slug}/${productTypeRoutes[product.type]}`}>
                     <Card className="overflow-hidden hover:shadow-lg hover:border-secondary/30 transition-all h-full flex flex-col cursor-pointer group">
                       {product.cover_image_url && (
                         <div className="aspect-video bg-muted overflow-hidden">
