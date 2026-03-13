@@ -294,6 +294,45 @@ Deno.serve(async (req) => {
         });
       }
 
+      /* ─── GET PRODUCT DETAIL (for review view) ─────────────── */
+      if (action === "get-product-detail") {
+        const { productId, table, nodeId: detailNodeId, bookId: detailBookId } = body;
+        const result: Record<string, any> = {};
+
+        // 1) Load from product table (e.g. home_study_courses)
+        if (productId && table && table !== "generated_assets") {
+          const { data: product } = await cloudAdmin
+            .from(table)
+            .select("*")
+            .eq("id", productId)
+            .maybeSingle();
+          if (product && allUserIds.includes(product.author_id)) {
+            result.product = product;
+          }
+        }
+
+        // 2) Load draft & content from generated_assets
+        if (detailNodeId && detailBookId) {
+          const draftType = `builder_draft_${detailNodeId}`;
+          const contentType = `builder_content_${detailNodeId}`;
+          const { data: assets } = await cloudAdmin
+            .from("generated_assets")
+            .select("asset_type, content")
+            .eq("book_id", detailBookId)
+            .in("asset_type", [draftType, contentType])
+            .in("author_id", allUserIds);
+
+          for (const asset of assets || []) {
+            if (asset.asset_type === draftType) result.draftContent = asset.content;
+            if (asset.asset_type === contentType) result.generatedContent = asset.content;
+          }
+        }
+
+        return new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       /* ─── PUBLISH PRODUCT ──────────────────────────────────── */
       if (action === "publish-product") {
         const { productId, table } = body;
