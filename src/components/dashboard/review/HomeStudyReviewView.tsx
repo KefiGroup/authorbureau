@@ -476,25 +476,25 @@ export default function HomeStudyReviewView({
                   ? "Showing your complete generated Home Study curriculum."
                   : "No day-by-day lessons were found yet. Go back to the Home Study Builder to generate the daily schedule and content."}
               </p>
-              {hasSeparatedManuscript && (
+              {hasSalesPage && (
                 <p className="text-xs text-muted-foreground mt-2">Sales page and course content are shown in separate sections below.</p>
               )}
             </div>
             <div className="max-h-[68vh] overflow-y-auto p-6">
               {hasFullManuscript ? (
-                hasSeparatedManuscript ? (
+                hasSalesPage ? (
                   <div className="space-y-6">
                     <div>
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Sales Page</p>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">📄 Sales Page</p>
                       <div className="prose prose-sm dark:prose-invert max-w-none">
-                        <MarkdownRenderer content={splitContent.salesPage} />
+                        <MarkdownRenderer content={salesPageMarkdown} />
                       </div>
                     </div>
                     <Separator />
                     <div>
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Home Study Content</p>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">📚 Home Study Content</p>
                       <div className="prose prose-sm dark:prose-invert max-w-none">
-                        <MarkdownRenderer content={splitContent.curriculum} />
+                        <MarkdownRenderer content={fullCourseMarkdown} />
                       </div>
                     </div>
                   </div>
