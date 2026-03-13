@@ -23,12 +23,12 @@ export default function DailyScheduleStep({ stepData, setStepData, onMarkEdited,
   const generatedSetup = stepData.schedule?._generatedFromSetup;
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
 
-  // Reset stuck generation state on mount (e.g. if previous attempt crashed)
-  useState(() => {
-    if (generationState !== "idle" && generationState !== "complete" && generationState !== "error") {
-      setGenerationState("idle");
-    }
-  });
+  // Reset stuck generation state on mount
+  const isStuck = generationState !== "idle" && generationState !== "complete" && generationState !== "error";
+  if (isStuck && days.length === 0) {
+    // Use a timeout to avoid setting state during render
+    setTimeout(() => setGenerationState("idle"), 0);
+  }
 
   const updateDays = (newDays: StudyDay[]) => {
     setStepData(prev => ({ ...prev, schedule: { ...prev.schedule, days: newDays } }));
