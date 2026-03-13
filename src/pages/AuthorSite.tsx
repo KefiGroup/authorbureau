@@ -130,6 +130,7 @@ export default function AuthorSite() {
   const [subscribing, setSubscribing] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
   const [bioExpanded, setBioExpanded] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
 
   const theme = useMemo(() => getThemeById(author?.site_theme || "classic-elegant"), [author?.site_theme]);
 
