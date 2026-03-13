@@ -820,7 +820,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
         </div>
 
         {/* Sticky action bar */}
-        <div className="sticky bottom-0 z-10 flex items-center justify-between px-6 py-3 border-t border-border bg-card">
+        <div className="sticky bottom-0 z-10 flex items-center gap-3 px-6 py-3 border-t border-border bg-card">
           <Button
             variant="ghost"
             onClick={goPrev}
@@ -829,13 +829,13 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
           >
             <ArrowLeft className="h-4 w-4 mr-1" /> Previous
           </Button>
-          <div className="flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-2">
             {!abbyOpen && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setAbbyOpen(true)}
-                className="text-secondary border-secondary/30 hover:bg-secondary/5"
+                className="border-secondary/40 text-secondary hover:bg-secondary/10"
               >
                 <Sparkles className="h-3.5 w-3.5 mr-1" /> Ask Abby
               </Button>
@@ -931,7 +931,8 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                   setTimeout(() => onNavigate?.("review-products"), 800);
                 }
               } : goNext}
-              className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold px-6"
+              variant="secondary"
+              className="rounded-full font-semibold px-6 shadow-sm"
             >
               {isLastStep ? (
                 saving ? <><Loader2 className="h-4 w-4 animate-spin mr-1" /> Publishing&hellip;</> : <>Publish</>
