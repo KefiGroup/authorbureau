@@ -150,7 +150,7 @@ export default function AuthorBookPage() {
 
   const badgeList = Array.isArray(book.badges) ? book.badges : [];
   const isAmazonLink = book.amazon_url?.includes("amazon.com") || book.amazon_url?.includes("a.co");
-  const heroColors = theme ? { background: `hsl(${theme.colors.heroBackground})`, color: `hsl(${theme.colors.heroText})` } : {};
+  const heroColors = theme ? { background: `hsl(${theme.colors.heroBackground})`, color: `hsl(${theme.colors.heroForeground})` } : {};
 
   return (
     <div className="min-h-screen">
