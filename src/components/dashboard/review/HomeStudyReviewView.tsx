@@ -172,53 +172,9 @@ export default function HomeStudyReviewView({
 
   const hasStructuredDays = days.length > 0;
   const fullCourseText = fullCourseMarkdown.trim();
+  const hasSalesPage = salesPageMarkdown.trim().length > 50;
   const hasFullManuscript = /day\s*1/i.test(fullCourseText) || fullCourseText.length > 2000;
   const canPublish = hasStructuredDays || hasFullManuscript;
-
-  // Split sales page from curriculum content
-  const splitContent = (() => {
-    if (!fullCourseText) return { salesPage: "", curriculum: "" };
-
-    const normalized = fullCourseText.replace(/\r\n/g, "\n");
-    const salesMarker = normalized.search(/(?:^|\n)(?:#{0,3}\s*)?(?:Sales\s*Page\s*Copy|Sales\s*Page)\b/i);
-
-    const curriculumMarkers = [
-      /(?:^|\n)(?:#{0,3}\s*)?(?:\d{1,3}-Day[^\n]*Daily\s*Content\s*Plan|Daily\s*Content\s*Plan|Home\s*Study\s*(?:Course\s*)?(?:Content|Curriculum|Guide)|Course\s*Content|Curriculum(?:\s*Manuscript)?|Daily\s*Lessons|Lesson\s*Plan|Program\s*Content|Workbook\s*Content|Introduction\s*Email\b|Week\s*1\b|Day\s*1\b)/i,
-      /(?:^|\n)(?:Day|DAY)\s*1\s*[:\-]/,
-      /(?:^|\n)\*\*(?:Day|DAY)\s*1\b/i,
-    ];
-
-    const searchStart = salesMarker >= 0 ? salesMarker + 1 : 0;
-    const minDistance = salesMarker >= 0 ? 120 : 260;
-    let splitAt: number | null = null;
-
-    for (const marker of curriculumMarkers) {
-      const relativeMatch = normalized.slice(searchStart).search(marker);
-      if (relativeMatch > minDistance) {
-        const absoluteMatch = searchStart + relativeMatch;
-        if (splitAt === null || absoluteMatch < splitAt) splitAt = absoluteMatch;
-      }
-    }
-
-    if (splitAt !== null) {
-      return {
-        salesPage: normalized.slice(0, splitAt).trim(),
-        curriculum: normalized.slice(splitAt).trim(),
-      };
-    }
-
-    // Generic fallback
-    const genericMatch = normalized.search(/\n---+\n/);
-    if (genericMatch > 200) {
-      return {
-        salesPage: normalized.slice(0, genericMatch).trim(),
-        curriculum: normalized.slice(genericMatch).trim(),
-      };
-    }
-
-    return { salesPage: "", curriculum: normalized };
-  })();
-  const hasSeparatedManuscript = Boolean(splitContent.salesPage && splitContent.curriculum);
 
   const duration = hasStructuredDays ? days.length : Number(setup.duration) || 30;
   const totalPages = hasStructuredDays ? days.length + 2 : 1;
