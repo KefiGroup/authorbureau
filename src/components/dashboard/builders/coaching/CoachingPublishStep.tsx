@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Check, Eye, Smartphone, Monitor, Download, Rocket, UserCheck, DollarSign, Users, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/shared-backend";
 import type { CoachingConfig } from "./types";
 import { STRUCTURE_LABELS } from "./types";
 
