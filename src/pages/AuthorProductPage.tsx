@@ -141,6 +141,7 @@ function parseChecklistItems(description: string | null | undefined): string[] {
 
 export default function AuthorProductPage() {
   const { authorSlug, bookSlug, productType } = useParams<{ authorSlug: string; bookSlug: string; productType: string }>();
+  const navigate = useNavigate();
   const [author, setAuthor] = useState<any>(null);
   const [book, setBook] = useState<any>(null);
   const [product, setProduct] = useState<any>(null);
@@ -158,6 +159,47 @@ export default function AuthorProductPage() {
   const [subscribed, setSubscribed] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
   const [salesPageContent, setSalesPageContent] = useState<string | null>(null);
+  const [buying, setBuying] = useState(false);
+
+  const handleBuyNow = useCallback(async () => {
+    if (!product || !author || buying) return;
+    setBuying(true);
+    try {
+      const { data: sessionData } = await sharedSupabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
+      if (!token) {
+        // Redirect to auth with return URL
+        navigate(`/auth?redirect=/${authorSlug}/${bookSlug}/${productType}`);
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("create-product-checkout", {
+        body: {
+          productId: product.id,
+          productType: pType,
+          productTitle: product.title,
+          authorId: author.user_id,
+          price: product.price,
+          currency: product.currency || "USD",
+          bookSlug,
+          authorSlug,
+        },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (error || !data?.url) {
+        toast({ title: "Error", description: "Could not start checkout. Please try again.", variant: "destructive" });
+        return;
+      }
+
+      window.location.href = data.url;
+    } catch {
+      toast({ title: "Error", description: "Something went wrong. Please try again.", variant: "destructive" });
+    } finally {
+      setBuying(false);
+    }
+  }, [product, author, buying, authorSlug, bookSlug, productType]);
 
   const pType = productType as ProductType;
   const config = PRODUCT_CONFIG[pType];
