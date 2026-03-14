@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
 import {
   BookOpen, ChevronDown, ChevronRight, Check, Lock, Loader2, ArrowLeft, CalendarDays, Rocket,
-  Trophy, Target, Flame,
+  Trophy, Target, Flame, Sparkles, ShoppingBag, GraduationCap, Headphones, Users, ArrowRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
@@ -31,6 +31,16 @@ interface ProgressEntry {
   completed_at: string;
 }
 
+interface UpsellProduct {
+  type: "workbook" | "home_study" | "online_course" | "audiobook" | "coaching";
+  title: string;
+  description: string;
+  price?: number;
+  productId?: string;
+  authorSlug?: string;
+  bookSlug?: string;
+}
+
 export default function ReaderContentViewer() {
   const { purchaseId } = useParams<{ purchaseId: string }>();
   const { user, loading: authLoading } = useAuth();
@@ -47,6 +57,8 @@ export default function ReaderContentViewer() {
   const [chosenDate, setChosenDate] = useState<string>("");
   const [settingStart, setSettingStart] = useState(false);
   const [expandedDay, setExpandedDay] = useState<number | null>(null);
+  const [upsellProducts, setUpsellProducts] = useState<UpsellProduct[]>([]);
+  const [bookId, setBookId] = useState<string | null>(null);
 
   useDocumentMeta({ title: title ? `${title} | Readers Bureau` : "Readers Bureau" });
 
@@ -75,7 +87,8 @@ export default function ReaderContentViewer() {
     setUnlockedUpTo(data.unlockedUpToDay || 0);
     setStartDate(data.startDate || null);
 
-    // Get book cover image
+    // Get book cover image and upsell products
+    let currentBookId: string | null = null;
     if (data.purchase?.product_id) {
       const { data: hsc } = await supabase
         .from("home_study_courses")
@@ -92,6 +105,13 @@ export default function ReaderContentViewer() {
           .eq("id", hsc.book_id)
           .maybeSingle();
         if (book?.cover_image_url) setCoverImageUrl(book.cover_image_url);
+      }
+      currentBookId = hsc?.book_id || null;
+      setBookId(currentBookId);
+
+      // Fetch upsell products for this book
+      if (currentBookId) {
+        fetchUpsellProducts(currentBookId, data.purchase.product_type || "home_study");
       }
     }
 
@@ -115,6 +135,97 @@ export default function ReaderContentViewer() {
     setProgress(completedDays);
     setLoading(false);
   }, [purchaseId, getToken]);
+
+  // Fetch upsell products for this book's ecosystem
+  const fetchUpsellProducts = useCallback(async (forBookId: string, currentProductType: string) => {
+    const upsells: UpsellProduct[] = [];
+
+    // Get book info for slugs
+    const { data: bookInfo } = await supabase
+      .from("books")
+      .select("title, slug, author_id")
+      .eq("id", forBookId)
+      .maybeSingle();
+
+    let authorSlug: string | undefined;
+    if (bookInfo?.author_id) {
+      const { data: profile } = await supabase
+        .from("author_profiles")
+        .select("author_slug")
+        .eq("user_id", bookInfo.author_id)
+        .maybeSingle();
+      authorSlug = profile?.author_slug || undefined;
+    }
+
+    const bookSlug = bookInfo?.slug;
+
+    // The journey sequence: book → workbook → home_study → online_course → coaching
+    // Current user is viewing a home_study, so suggest what comes NEXT
+
+    // Check for online course
+    const { data: courses } = await supabase
+      .from("courses")
+      .select("id, title, price, status, description")
+      .eq("book_id", forBookId)
+      .eq("status", "published")
+      .limit(1);
+
+    if (courses && courses.length > 0) {
+      upsells.push({
+        type: "online_course",
+        title: courses[0].title,
+        description: courses[0].description || "Take your learning to the next level with structured video lessons and guided modules.",
+        price: courses[0].price ?? undefined,
+        productId: courses[0].id,
+        authorSlug,
+        bookSlug: bookSlug || undefined,
+      });
+    }
+
+    // Check for audiobook
+    const { data: audiobooks } = await supabase
+      .from("audiobooks")
+      .select("id, title, price, status, description")
+      .eq("book_id", forBookId)
+      .eq("status", "published")
+      .limit(1);
+
+    if (audiobooks && audiobooks.length > 0) {
+      upsells.push({
+        type: "audiobook",
+        title: audiobooks[0].title,
+        description: audiobooks[0].description || "Listen on the go and reinforce what you've learned with the audiobook companion.",
+        price: audiobooks[0].price ?? undefined,
+        productId: audiobooks[0].id,
+        authorSlug,
+        bookSlug: bookSlug || undefined,
+      });
+    }
+
+    // Check for coaching packages
+    if (bookInfo?.author_id) {
+      const { data: coaching } = await supabase
+        .from("coaching_packages")
+        .select("id, title, price, description, type, status")
+        .eq("author_id", bookInfo.author_id)
+        .eq("status", "active")
+        .limit(1);
+
+      if (coaching && coaching.length > 0) {
+        upsells.push({
+          type: "coaching",
+          title: coaching[0].title,
+          description: coaching[0].description || "Get personalized guidance and accelerate your transformation with 1-on-1 coaching.",
+          price: coaching[0].price ?? undefined,
+          productId: coaching[0].id,
+          authorSlug,
+          bookSlug: bookSlug || undefined,
+        });
+      }
+    }
+
+    setUpsellProducts(upsells);
+  }, []);
 
   useEffect(() => {
     if (user) loadContent();
@@ -522,6 +633,46 @@ export default function ReaderContentViewer() {
                 </div>
               );
             })}
+
+            {/* Completion celebration + Upsell */}
+            {progressPercent === 100 && (
+              <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-background border border-primary/20 rounded-2xl p-8 text-center space-y-4">
+                <div className="mx-auto w-16 h-16 rounded-full bg-primary/15 flex items-center justify-center">
+                  <Trophy className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="text-xl font-bold text-foreground">🎉 Congratulations!</h3>
+                <p className="text-muted-foreground text-sm max-w-md mx-auto">
+                  You've completed the entire {totalDays}-day program! Your dedication to growth is truly impressive.
+                </p>
+              </div>
+            )}
+
+            {/* Upsell: What's Next in Your Journey */}
+            {upsellProducts.length > 0 && (
+              <div className="border border-secondary/20 bg-secondary/5 rounded-2xl overflow-hidden">
+                <div className="p-6 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-secondary/20 flex items-center justify-center shrink-0">
+                      <Sparkles className="h-5 w-5 text-secondary" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-foreground">Continue Your Journey</h3>
+                      <p className="text-xs text-muted-foreground">
+                        {progressPercent === 100
+                          ? "You've mastered this program! Here's what to explore next."
+                          : "Ready to go deeper? These are your next steps after this program."}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3">
+                    {upsellProducts.map((product) => (
+                      <UpsellCard key={product.productId || product.type} product={product} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>
@@ -538,6 +689,73 @@ function StatBadge({ icon, label, value }: { icon: React.ReactNode; label: strin
       <div className="text-left">
         <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</p>
         <p className="text-sm font-bold text-foreground leading-tight">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+const UPSELL_META: Record<string, { icon: React.ReactNode; badge: string; cta: string; gradient: string }> = {
+  online_course: {
+    icon: <GraduationCap className="h-5 w-5" />,
+    badge: "Next Step",
+    cta: "Enroll Now",
+    gradient: "from-violet-500/10 to-violet-500/5",
+  },
+  audiobook: {
+    icon: <Headphones className="h-5 w-5" />,
+    badge: "Listen & Learn",
+    cta: "Get the Audiobook",
+    gradient: "from-sky-500/10 to-sky-500/5",
+  },
+  coaching: {
+    icon: <Users className="h-5 w-5" />,
+    badge: "Go Deeper",
+    cta: "Book a Session",
+    gradient: "from-amber-500/10 to-amber-500/5",
+  },
+  workbook: {
+    icon: <BookOpen className="h-5 w-5" />,
+    badge: "Apply It",
+    cta: "Get the Workbook",
+    gradient: "from-emerald-500/10 to-emerald-500/5",
+  },
+  home_study: {
+    icon: <Target className="h-5 w-5" />,
+    badge: "Study Program",
+    cta: "Start the Program",
+    gradient: "from-rose-500/10 to-rose-500/5",
+  },
+};
+
+function UpsellCard({ product }: { product: UpsellProduct }) {
+  const meta = UPSELL_META[product.type] || UPSELL_META.online_course;
+  const productUrl = product.authorSlug && product.bookSlug
+    ? `/${product.authorSlug}/${product.bookSlug}/${product.type === "online_course" ? "course" : product.type}`
+    : "#";
+
+  return (
+    <div className={cn("rounded-xl border border-border/60 bg-gradient-to-r p-4 flex items-center gap-4 hover:shadow-md transition-shadow", meta.gradient)}>
+      <div className="w-10 h-10 rounded-lg bg-background/80 border border-border/50 flex items-center justify-center shrink-0 text-primary">
+        {meta.icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-0.5">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-primary">{meta.badge}</span>
+        </div>
+        <h4 className="font-semibold text-foreground text-sm truncate">{product.title}</h4>
+        <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{product.description}</p>
+      </div>
+      <div className="shrink-0 text-right space-y-1">
+        {product.price != null && product.price > 0 && (
+          <p className="text-sm font-bold text-foreground">${product.price}</p>
+        )}
+        <Link
+          to={productUrl}
+          className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+        >
+          {meta.cta}
+          <ArrowRight className="h-3 w-3" />
+        </Link>
       </div>
     </div>
   );
