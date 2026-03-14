@@ -132,7 +132,7 @@ Return ONLY valid JSON.`;
         theme: d.theme,
         chapterRef: d.chapterRef,
         reading: d.reading,
-        concept: "",
+        concept: d.reading || "",
         exercise: d.exercise,
         reflection: d.reflection,
         audioScript: undefined,
