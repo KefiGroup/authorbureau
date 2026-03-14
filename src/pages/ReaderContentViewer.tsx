@@ -585,7 +585,34 @@ export default function ReaderContentViewer() {
                                     content={day.concept}
                                   />
                                 )}
-                                {day.exercise && (
+                                {/* New implementation-focused fields */}
+                                {day.fieldAssignment && (
+                                  <ContentSection
+                                    emoji="🚀"
+                                    label="Field Assignment"
+                                    content={day.fieldAssignment}
+                                    hint="This is a real-world action — go do it in your life today"
+                                    highlight
+                                  />
+                                )}
+                                {day.microHabit && (
+                                  <ContentSection
+                                    emoji="🔄"
+                                    label="Today's Micro-Habit"
+                                    content={day.microHabit}
+                                    hint="Add this to your daily routine — it compounds over the program"
+                                  />
+                                )}
+                                {day.accountabilityCheck && (
+                                  <WritableSection
+                                    emoji="✅"
+                                    label="Accountability Check-In"
+                                    prompt={day.accountabilityCheck}
+                                    storageKey={`rv-${purchaseId}-d${day.dayNumber}-accountability`}
+                                  />
+                                )}
+                                {/* Legacy fields for backward compat */}
+                                {day.exercise && !day.fieldAssignment && (
                                   <WritableSection
                                     emoji="✍️"
                                     label="Exercise"
@@ -593,7 +620,7 @@ export default function ReaderContentViewer() {
                                     storageKey={`rv-${purchaseId}-d${day.dayNumber}-exercise`}
                                   />
                                 )}
-                                {day.reflection && (
+                                {day.reflection && !day.accountabilityCheck && (
                                   <WritableSection
                                     emoji="🪞"
                                     label="Reflection"
@@ -606,6 +633,8 @@ export default function ReaderContentViewer() {
                                     emoji="🎯"
                                     label="Action Plan"
                                     content={day.actionPlan}
+                                  />
+                                )}
                                   />
                                 )}
 
