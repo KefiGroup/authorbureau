@@ -59,6 +59,7 @@ import RevenueShareStepRenderer from "./revenue-share/RevenueShareStepRenderer";
 import WhiteLabelStepRenderer from "./white-label/WhiteLabelStepRenderer";
 import EventsStepRenderer from "./events/EventsStepRenderer";
 import FranchiseStepRenderer from "./franchise/FranchiseStepRenderer";
+import SharedSalesPageStep from "./shared/SharedSalesPageStep";
 import type { BuilderNodeConfig, BuilderStep } from "./builderNodeConfig";
 
 // Map of customRenderer key → component
@@ -905,8 +906,34 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                   </Card>
                 )}
 
-                {/* Step content \u2014 custom renderer or generic placeholder */}
+                {/* Step content — shared sales page, custom renderer, or generic placeholder */}
                 {(() => {
+                  // Universal Sales Page step — rendered for any builder with a "sales-page" step
+                  if (currentStepConfig.id === "sales-page" || currentStepConfig.id === "sales") {
+                    return (
+                      <SharedSalesPageStep
+                        stepId={currentStepConfig.id}
+                        stepData={stepData}
+                        setStepData={setStepData}
+                        onMarkEdited={(id: string) => setEditedSteps(prev => new Set([...prev, id]))}
+                        bookId={bookId}
+                        bookTitle={bookTitle}
+                        productLabel={nodeConfig.label.replace(" Builder", "").replace(" Studio", "")}
+                        productContext={(() => {
+                          // Build context string from stepData for AI
+                          const parts: string[] = [];
+                          if (stepData.foundation?.title) parts.push(`Title: ${stepData.foundation.title}`);
+                          if (stepData.foundation?.transformation) parts.push(`Transformation: ${stepData.foundation.transformation}`);
+                          if (stepData.setup?.title) parts.push(`Title: ${stepData.setup.title}`);
+                          if (stepData.setup?.duration) parts.push(`Duration: ${stepData.setup.duration} days`);
+                          if (stepData.curriculum?.modules?.length) parts.push(`${stepData.curriculum.modules.length} modules`);
+                          if (stepData.schedule?.days?.length) parts.push(`${stepData.schedule.days.length}-day program`);
+                          return parts.join(". ") || undefined;
+                        })()}
+                      />
+                    );
+                  }
+
                   const RendererComponent = nodeConfig.customRenderer ? RENDERER_MAP[nodeConfig.customRenderer] : null;
                   if (RendererComponent) {
                     return (

@@ -37,7 +37,7 @@ export interface SalesPageData {
   designTemplate?: SalesPageDesignId;
   price?: string;
   comparePrice?: string;
-  currency?: string;
+  
 }
 
 interface Props {
@@ -385,9 +385,9 @@ Return ONLY valid JSON, no markdown fences.`,
               <ShoppingCart className="h-4 w-4 text-secondary" /> Pricing
             </h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-[10px] font-semibold text-muted-foreground block mb-1">Price</label>
+                <label className="text-[10px] font-semibold text-muted-foreground block mb-1">Price (USD)</label>
                 <div className="relative">
                   <DollarSign className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                   <Input
@@ -401,25 +401,7 @@ Return ONLY valid JSON, no markdown fences.`,
                 </div>
               </div>
               <div>
-                <label className="text-[10px] font-semibold text-muted-foreground block mb-1">Currency</label>
-                <div className="flex gap-1.5">
-                  {["USD", "EUR", "GBP"].map(cur => (
-                    <button
-                      key={cur}
-                      onClick={() => update("currency", cur)}
-                      className={`flex-1 h-9 rounded-md border-2 text-xs font-bold transition-all ${
-                        (data.currency || "USD") === cur
-                          ? "border-secondary bg-secondary/10 text-secondary"
-                          : "border-border text-muted-foreground hover:border-secondary/30"
-                      }`}
-                    >
-                      {cur}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="text-[10px] font-semibold text-muted-foreground block mb-1">Compare-at Price</label>
+                <label className="text-[10px] font-semibold text-muted-foreground block mb-1">Compare-at Price (USD)</label>
                 <div className="relative">
                   <DollarSign className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                   <Input

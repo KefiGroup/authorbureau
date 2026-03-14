@@ -959,18 +959,46 @@ const trainingProgramsBuilder: BuilderNodeConfig = {
   ],
 };
 
-// ─── Auto-assign 3-Act phases to all steps ─────────────────────────
+// ─── Standard Sales Page step injected into every builder ────────────
+const SALES_PAGE_STEP: BuilderStep = {
+  id: "sales-page",
+  label: "Sales Page",
+  description: "Edit copy, takeaways, FAQ, choose a design template, and set pricing",
+  abbyTip: "Lead with the transformation, not the features. 'You will...' beats 'This course includes...' A compare-at price creates urgency — aim for 40-60% perceived savings.",
+};
+
+// Builders that already handle sales-page in their own renderer or don't need one
+const SALES_PAGE_SKIP = new Set([
+  "online-course",    // has its own SalesPageStep
+  "website",          // not a sellable product
+  "social-media",     // not a sellable product
+  "email-flows",      // not a sellable product
+  "lead-magnet",      // free product
+  "book-sales",       // physical sales, not a landing page
+]);
+
+// ─── Auto-assign 3-Act phases and inject sales-page step ─────────────
 function assignActPhases(node: BuilderNodeConfig): BuilderNodeConfig {
-  const steps = node.steps.map((step, i) => {
-    if (step.act) return step; // already assigned
-    const total = node.steps.length;
+  // Inject sales-page step if not already present and not skipped
+  let steps = node.steps;
+  const hasSalesPage = steps.some(s => s.id === "sales-page" || s.id === "sales");
+  if (!hasSalesPage && !SALES_PAGE_SKIP.has(node.id)) {
+    // Insert before the last step (preview/publish)
+    const lastStep = steps[steps.length - 1];
+    steps = [...steps.slice(0, -1), SALES_PAGE_STEP, lastStep];
+  }
+
+  // Assign act phases
+  steps = steps.map((step, i) => {
+    if (step.act) return step;
+    const total = steps.length;
     let act: 1 | 2 | 3;
     if (i === 0) {
-      act = 1; // First step is always Act 1 (Analyse)
+      act = 1;
     } else if (i === total - 1) {
-      act = 3; // Last step is always Act 3 (Bridge/Yield)
+      act = 3;
     } else {
-      act = 2; // Middle steps are Act 2 (Build)
+      act = 2;
     }
     return { ...step, act };
   });
