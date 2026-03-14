@@ -59,6 +59,7 @@ import RevenueShareStepRenderer from "./revenue-share/RevenueShareStepRenderer";
 import WhiteLabelStepRenderer from "./white-label/WhiteLabelStepRenderer";
 import EventsStepRenderer from "./events/EventsStepRenderer";
 import FranchiseStepRenderer from "./franchise/FranchiseStepRenderer";
+import SharedSalesPageStep from "./shared/SharedSalesPageStep";
 import type { BuilderNodeConfig, BuilderStep } from "./builderNodeConfig";
 
 // Map of customRenderer key → component
