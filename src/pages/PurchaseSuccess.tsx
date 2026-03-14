@@ -72,7 +72,7 @@ export default function PurchaseSuccess() {
                 What's next?
               </h3>
               <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
-                <li>Sign in to your <strong>Reader Portal</strong> with the email you used to purchase</li>
+                <li>Sign in to your <strong>Readers Bureau</strong> with the email you used to purchase</li>
                 <li>Access your content anytime from your personal library</li>
                 <li>Start learning and transforming!</li>
               </ol>
