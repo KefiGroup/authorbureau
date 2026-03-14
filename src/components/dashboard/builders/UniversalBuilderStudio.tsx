@@ -166,48 +166,86 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
     setLegacyGenerationState("idle");
   }, [currentStep]);
 
-  // Auto-populate home-study setup fields when Act 3 completes
+  // Auto-populate home-study setup fields AND parse daily content when Act 3 completes
   useEffect(() => {
     if (builderGen.act !== "act3_complete" || nodeConfig.customRenderer !== "home-study") return;
     const salesText = previewSalesText;
-    if (!salesText) return;
+    const contentText = previewContentText;
 
     setStepData(prev => {
       const setup = prev.setup || {};
-      // Only populate fields that are still empty
       const updates: Record<string, any> = {};
 
-      if (!setup.subtitle) {
-        // Try to extract subtitle from sales page (first short line after headline)
-        const lines = salesText.split("\n").map((l: string) => l.replace(/^#+\s*/, "").trim()).filter(Boolean);
-        const subtitle = lines.find((l: string, i: number) => i > 0 && l.length > 10 && l.length < 120 && !l.startsWith("-") && !l.startsWith("*"));
-        if (subtitle) updates.subtitle = subtitle;
+      // Parse daily content JSON from Act 3 output
+      if (contentText) {
+        try {
+          // Extract JSON from ```json ... ``` fences or raw JSON array
+          let jsonStr = contentText;
+          const fenceMatch = contentText.match(/```json\s*([\s\S]*?)```/);
+          if (fenceMatch) {
+            jsonStr = fenceMatch[1].trim();
+          } else {
+            // Try to find a JSON array directly
+            const arrayMatch = contentText.match(/\[\s*\{[\s\S]*\}\s*\]/);
+            if (arrayMatch) jsonStr = arrayMatch[0];
+          }
+
+          const parsedDays = JSON.parse(jsonStr);
+          if (Array.isArray(parsedDays) && parsedDays.length > 0) {
+            const existingDays = prev.schedule?.days || [];
+            const mergedDays = existingDays.map((day: any) => {
+              const match = parsedDays.find((pd: any) => pd.dayNumber === day.dayNumber);
+              if (match) {
+                return {
+                  ...day,
+                  concept: match.concept || day.concept || "",
+                  exercise: match.exercise || day.exercise || "",
+                  reflection: match.reflection || day.reflection || "",
+                  actionPlan: match.actionPlan || day.actionPlan || "",
+                  fieldAssignment: match.fieldAssignment || day.fieldAssignment || "",
+                  accountabilityCheck: match.accountabilityCheck || day.accountabilityCheck || "",
+                  microHabit: match.microHabit || day.microHabit || "",
+                  theme: match.theme || day.theme,
+                  chapterRef: match.chapterRef || day.chapterRef,
+                };
+              }
+              return day;
+            });
+            updates.schedule = { ...prev.schedule, days: mergedDays };
+          }
+        } catch (e) {
+          console.warn("Failed to parse home study daily content from Act 3:", e);
+        }
       }
 
-      if (!setup.salesCopy) {
-        // Use the full sales page text as sales copy
-        updates.salesCopy = salesText;
+      // Sales copy extraction
+      if (salesText) {
+        if (!setup.subtitle) {
+          const lines = salesText.split("\n").map((l: string) => l.replace(/^#+\s*/, "").trim()).filter(Boolean);
+          const subtitle = lines.find((l: string, i: number) => i > 0 && l.length > 10 && l.length < 120 && !l.startsWith("-") && !l.startsWith("*"));
+          if (subtitle) updates.subtitle = subtitle;
+        }
+        if (!setup.salesCopy) updates.salesCopy = salesText;
+        if (!setup.whatsIncluded) {
+          const bulletLines = salesText.split("\n")
+            .filter((l: string) => /^\s*[-*•]\s/.test(l))
+            .map((l: string) => l.trim())
+            .join("\n");
+          if (bulletLines) updates.whatsIncluded = bulletLines;
+        }
       }
 
-      if (!setup.whatsIncluded) {
-        // Extract bullet points from sales text
-        const bulletLines = salesText.split("\n")
-          .filter((l: string) => /^\s*[-*•]\s/.test(l))
-          .map((l: string) => l.trim())
-          .join("\n");
-        if (bulletLines) updates.whatsIncluded = bulletLines;
-      }
-
-      // Set compare-at price if not set (use proposal price as compare, discount for actual)
       if (!setup.comparePrice && setup.price) {
         const price = parseInt(setup.price);
         if (price > 0) updates.comparePrice = String(Math.ceil(price * 2));
       }
 
       if (Object.keys(updates).length === 0) return prev;
-      return { ...prev, setup: { ...setup, ...updates } };
+      const result = { ...prev, setup: { ...setup, ...updates } };
+      if (updates.schedule) result.schedule = updates.schedule;
+      return result;
     });
-  }, [builderGen.act, nodeConfig.customRenderer, previewSalesText]);
+  }, [builderGen.act, nodeConfig.customRenderer, previewSalesText, previewContentText]);
 
   // Abby advisor panel
   const [abbyOpen, setAbbyOpen] = useState(false);
