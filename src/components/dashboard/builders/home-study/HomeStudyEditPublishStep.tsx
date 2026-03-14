@@ -18,14 +18,15 @@ import type { HomeStudyStepProps, StudyDay } from "./types";
 import { mdToHtml } from "@/lib/md-to-html";
 
 const SEGMENTS = [
-  { id: "schedule", label: "Duration & Frequency", icon: Clock, num: 1 },
-  { id: "sales", label: "Sales & Pricing", icon: ShoppingCart, num: 2 },
-  { id: "design", label: "Portal Design", icon: Palette, num: 3 },
-  { id: "preview", label: "Preview", icon: Eye, num: 4 },
+  { id: "content", label: "Day Content", icon: BookOpen, num: 1 },
+  { id: "schedule", label: "Duration & Frequency", icon: Clock, num: 2 },
+  { id: "sales", label: "Sales & Pricing", icon: ShoppingCart, num: 3 },
+  { id: "design", label: "Portal Design", icon: Palette, num: 4 },
+  { id: "preview", label: "Preview", icon: Eye, num: 5 },
 ] as const;
 
 type SegmentId = (typeof SEGMENTS)[number]["id"];
-// EditableDayField type removed - content editing moved to Step 1
+type EditableDayField = "concept" | "exercise" | "reflection" | "actionPlan";
 
 const stripMarkdownForEditing = (content?: string | null): string => {
   if (!content) return "";
@@ -54,7 +55,10 @@ export default function HomeStudyEditPublishStep({
   const { toast } = useToast();
   const days: StudyDay[] = stepData.schedule?.days || [];
   const setup = stepData.setup || {};
-  const [activeSegment, setActiveSegment] = useState<SegmentId>("schedule");
+  const hasAudio = setup.format === "pdf-audio";
+  const [selectedIdx, setSelectedIdx] = useState(0);
+  const [activeSegment, setActiveSegment] = useState<SegmentId>("content");
+  const [editingTab, setEditingTab] = useState<string | null>(null);
   const [previewMode, setPreviewMode] = useState<"sales" | "portal">("sales");
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
   const [previewPage, setPreviewPage] = useState(0);
@@ -97,13 +101,47 @@ export default function HomeStudyEditPublishStep({
     );
   }
 
+  const currentDay = days[selectedIdx];
   const weeks = Array.from(new Set(days.map(d => d.weekNumber))).sort((a, b) => a - b);
+
+  const toggleTabEditing = (field: EditableDayField) => {
+    if (editingTab === field) {
+      setEditingTab(null);
+      return;
+    }
+
+    const normalized = stripMarkdownForEditing(currentDay?.[field]);
+    if (normalized !== (currentDay?.[field] || "")) {
+      updateDay(field, normalized);
+    }
+
+    setEditingTab(field);
+  };
+
+  const updateDay = (field: string, value: any) => {
+    setStepData(prev => {
+      const prevDays: StudyDay[] = prev.schedule?.days || [];
+      const newDays = prevDays.map((d, i) => i === selectedIdx ? { ...d, [field]: value } : d);
+      return { ...prev, schedule: { ...prev.schedule, days: newDays } };
+    });
+    onMarkEdited("edit");
+  };
+
+  const updateDayBatch = (fields: Partial<StudyDay>) => {
+    setStepData(prev => {
+      const prevDays: StudyDay[] = prev.schedule?.days || [];
+      const newDays = prevDays.map((d, i) => i === selectedIdx ? { ...d, ...fields } : d);
+      return { ...prev, schedule: { ...prev.schedule, days: newDays } };
+    });
+    onMarkEdited("edit");
+  };
 
   const updateSetup = (field: string, value: any) => {
     setStepData(prev => ({ ...prev, setup: { ...prev.setup, [field]: value } }));
     onMarkEdited("edit");
   };
 
+  const isGenerating = false; // Per-day generation removed; content comes from Act 3
   const contentCount = days.filter(d => d.concept || d.exercise || d.reflection).length;
 
   return (
@@ -138,7 +176,245 @@ export default function HomeStudyEditPublishStep({
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
 
-      {/* ─── SEGMENT 1: Duration & Frequency ─── */}
+      {/* ─── SEGMENT 1: Day Content ─── */}
+      {activeSegment === "content" && (
+        <div className="space-y-5">
+          <Card className="p-4 bg-muted/30 border-border/60">
+            <div className="flex items-center gap-3 flex-wrap">
+              <Badge variant="secondary" className="text-[10px]">
+                <CalendarDays className="h-2.5 w-2.5 mr-1" /> {days.length} Days
+              </Badge>
+              <Badge variant="outline" className="text-[10px]">{weeks.length} Weeks</Badge>
+              <span className="text-[10px] text-muted-foreground ml-auto">
+                {contentCount}/{days.length} days have content
+              </span>
+            </div>
+          </Card>
+
+          {/* Week/Day navigator */}
+          <div className="border border-border rounded-lg bg-card">
+            <ScrollArea className="w-full">
+              <div className="p-3 space-y-2.5">
+                {weeks.map(weekNum => (
+                  <div key={weekNum}>
+                    <p className="text-[10px] font-bold text-secondary uppercase tracking-wider mb-1">Week {weekNum}</p>
+                    <div className="flex gap-1.5 flex-wrap">
+                      {days.map((day, globalIdx) => {
+                        if (day.weekNumber !== weekNum) return null;
+                        const hasContent = Boolean(day.concept || day.exercise || day.reflection);
+                        return (
+                          <button
+                            key={day.id}
+                            onClick={() => setSelectedIdx(globalIdx)}
+                            className={`shrink-0 w-14 rounded-lg border-2 p-1.5 text-center transition-all ${
+                              globalIdx === selectedIdx
+                                ? "border-secondary bg-secondary/10 shadow-sm"
+                                : day.isCatchUp
+                                ? "border-dashed border-muted-foreground/20 bg-muted/30 hover:border-secondary/30"
+                                : hasContent
+                                ? "border-accent/30 bg-accent/5 hover:border-secondary/30"
+                                : "border-border hover:border-secondary/30"
+                            }`}
+                          >
+                            {day.isCatchUp ? (
+                              <Coffee className="h-3 w-3 text-muted-foreground mx-auto" />
+                            ) : (
+                              <span className={`text-xs font-bold ${globalIdx === selectedIdx ? "text-secondary" : hasContent ? "text-accent" : ""}`}>
+                                {day.dayNumber}
+                              </span>
+                            )}
+                            <p className="text-[7px] text-muted-foreground truncate mt-0.5">
+                              {day.isCatchUp ? "Review" : day.chapterRef?.slice(0, 8) || day.theme?.slice(0, 8)}
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+          </div>
+
+          {/* Day editor */}
+          {currentDay && (
+            <>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" disabled={selectedIdx === 0}
+                    onClick={() => setSelectedIdx(selectedIdx - 1)}>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Week {currentDay.weekNumber} · {currentDay.chapterRef}</p>
+                    <h3 className="font-heading text-base font-bold">Day {currentDay.dayNumber}: {currentDay.theme}</h3>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" disabled={selectedIdx === days.length - 1}
+                    onClick={() => setSelectedIdx(selectedIdx + 1)}>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-semibold text-muted-foreground block mb-1">Theme</label>
+                  <Input value={currentDay.theme} onChange={e => updateDay("theme", e.target.value)} className="text-sm h-8" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold text-muted-foreground block mb-1">Chapter Ref</label>
+                  <Input value={currentDay.chapterRef} onChange={e => updateDay("chapterRef", e.target.value)} className="text-sm h-8" />
+                </div>
+              </div>
+
+              {/* Field Assignment, Accountability, Micro-Habit summary */}
+              {(currentDay.fieldAssignment || currentDay.accountabilityCheck || currentDay.microHabit) && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {currentDay.fieldAssignment && (
+                    <Card className="p-3 border-secondary/20 bg-secondary/5">
+                      <p className="text-[10px] font-bold text-secondary uppercase tracking-wider mb-1">🎯 Field Assignment</p>
+                      <p className="text-xs leading-relaxed">{currentDay.fieldAssignment}</p>
+                    </Card>
+                  )}
+                  {currentDay.accountabilityCheck && (
+                    <Card className="p-3 border-accent/20 bg-accent/5">
+                      <p className="text-[10px] font-bold text-accent uppercase tracking-wider mb-1">✅ Accountability</p>
+                      <p className="text-xs leading-relaxed">{currentDay.accountabilityCheck}</p>
+                    </Card>
+                  )}
+                  {currentDay.microHabit && (
+                    <Card className="p-3 border-primary/20 bg-primary/5">
+                      <p className="text-[10px] font-bold text-primary uppercase tracking-wider mb-1">🔁 Micro-Habit</p>
+                      <p className="text-xs leading-relaxed">{currentDay.microHabit}</p>
+                    </Card>
+                  )}
+                </div>
+              )}
+
+              <Tabs defaultValue="concept" className="w-full">
+                <TabsList className="w-full justify-start">
+                  <TabsTrigger value="concept" className="text-xs">📖 Reading</TabsTrigger>
+                  <TabsTrigger value="exercise" className="text-xs">🏋️ Exercise</TabsTrigger>
+                  <TabsTrigger value="reflection" className="text-xs">🪞 Reflection</TabsTrigger>
+                  <TabsTrigger value="actionPlan" className="text-xs">🎯 Action Plan</TabsTrigger>
+                  {hasAudio && <TabsTrigger value="audio" className="text-xs">🎙️ Audio</TabsTrigger>}
+                </TabsList>
+                <TabsContent value="concept">
+                  <Card className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-semibold text-muted-foreground">Key Concept</p>
+                      <div className="flex items-center gap-2">
+                        {currentDay.concept && <Badge variant="outline" className="text-[9px]"><Wand2 className="h-2 w-2 mr-0.5" /> AI Generated</Badge>}
+                        {currentDay.concept && (
+                          <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]" onClick={() => toggleTabEditing("concept")}>
+                            {editingTab === "concept" ? <><Check className="h-3 w-3 mr-1" /> Done</> : <><Pencil className="h-3 w-3 mr-1" /> Edit</>}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    {editingTab === "concept" ? (
+                      <Textarea
+                        value={currentDay.concept || ""}
+                        onChange={e => updateDay("concept", stripMarkdownForEditing(e.target.value))}
+                        rows={12}
+                        className="text-sm"
+                      />
+                    ) : currentDay.concept ? (
+                      <div className="prose prose-sm max-w-none text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: mdToHtml(currentDay.concept) }} />
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">No content yet. Generate content from Step 1 (Program Setup).</p>
+                    )}
+                  </Card>
+                </TabsContent>
+                <TabsContent value="exercise">
+                  <Card className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-semibold text-muted-foreground">Practical Exercise</p>
+                      {currentDay.exercise && (
+                        <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]" onClick={() => toggleTabEditing("exercise")}>
+                          {editingTab === "exercise" ? <><Check className="h-3 w-3 mr-1" /> Done</> : <><Pencil className="h-3 w-3 mr-1" /> Edit</>}
+                        </Button>
+                      )}
+                    </div>
+                    {editingTab === "exercise" ? (
+                      <Textarea
+                        value={currentDay.exercise || ""}
+                        onChange={e => updateDay("exercise", stripMarkdownForEditing(e.target.value))}
+                        rows={12}
+                        className="text-sm"
+                      />
+                    ) : currentDay.exercise ? (
+                      <div className="prose prose-sm max-w-none text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: mdToHtml(currentDay.exercise) }} />
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">No content yet. Generate content from Step 1 (Program Setup).</p>
+                    )}
+                  </Card>
+                </TabsContent>
+                <TabsContent value="reflection">
+                  <Card className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-semibold text-muted-foreground">Reflection Journal Prompt</p>
+                      {currentDay.reflection && (
+                        <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]" onClick={() => toggleTabEditing("reflection")}>
+                          {editingTab === "reflection" ? <><Check className="h-3 w-3 mr-1" /> Done</> : <><Pencil className="h-3 w-3 mr-1" /> Edit</>}
+                        </Button>
+                      )}
+                    </div>
+                    {editingTab === "reflection" ? (
+                      <Textarea
+                        value={currentDay.reflection || ""}
+                        onChange={e => updateDay("reflection", stripMarkdownForEditing(e.target.value))}
+                        rows={12}
+                        className="text-sm"
+                      />
+                    ) : currentDay.reflection ? (
+                      <div className="prose prose-sm max-w-none text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: mdToHtml(currentDay.reflection) }} />
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">No content yet. Generate content from Step 1 (Program Setup).</p>
+                    )}
+                  </Card>
+                </TabsContent>
+                <TabsContent value="actionPlan">
+                  <Card className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-semibold text-muted-foreground">Action Plan</p>
+                      {currentDay.actionPlan && (
+                        <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]" onClick={() => toggleTabEditing("actionPlan")}>
+                          {editingTab === "actionPlan" ? <><Check className="h-3 w-3 mr-1" /> Done</> : <><Pencil className="h-3 w-3 mr-1" /> Edit</>}
+                        </Button>
+                      )}
+                    </div>
+                    {editingTab === "actionPlan" ? (
+                      <Textarea
+                        value={currentDay.actionPlan || ""}
+                        onChange={e => updateDay("actionPlan", stripMarkdownForEditing(e.target.value))}
+                        rows={12}
+                        className="text-sm"
+                      />
+                    ) : currentDay.actionPlan ? (
+                      <div className="prose prose-sm max-w-none text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: mdToHtml(currentDay.actionPlan) }} />
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">No content yet. Generate content from Step 1 (Program Setup).</p>
+                    )}
+                  </Card>
+                </TabsContent>
+                {hasAudio && (
+                  <TabsContent value="audio">
+                    <Card className="p-4">
+                      <p className="text-xs font-semibold text-muted-foreground mb-2">Audio Narration Script</p>
+                      <Textarea value={currentDay.audioScript || ""} onChange={e => updateDay("audioScript", e.target.value)}
+                        placeholder="Audio narration script..." rows={10} className="font-mono text-sm" />
+                    </Card>
+                  </TabsContent>
+                )}
+              </Tabs>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ─── SEGMENT 2: Duration & Frequency ─── */}
       {activeSegment === "schedule" && (
         <div className="space-y-5">
           <Card className="p-6 space-y-5">
@@ -278,7 +554,7 @@ Return JSON: { "salesCopy": "..." }`,
                       toast({ title: "Generation failed", variant: "destructive" });
                     }
                   }}
-                  disabled={false}
+                  disabled={isGenerating}
                 >
                   <Sparkles className="h-3 w-3 mr-1" /> Generate Sales Copy with Abby
                 </Button>
