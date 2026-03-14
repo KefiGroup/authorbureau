@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Check, Crown, Loader2, ArrowUpRight, Shield, Sparkles,
-  TrendingUp, Star, Lock, X,
+  TrendingUp, Star, Lock, X, Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -271,6 +271,11 @@ export default function SubscriptionSalesPitch({
                   ) : isLower ? (
                     <Button className="w-full mt-auto" variant="outline" disabled>
                       Included
+                    </Button>
+                  ) : plan.id === "enterprise" ? (
+                    <Button className="w-full mt-auto" variant="outline" disabled>
+                      <Clock className="h-4 w-4 mr-2 shrink-0" />
+                      Coming Soon
                     </Button>
                   ) : (
                     <Button
