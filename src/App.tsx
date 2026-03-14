@@ -25,6 +25,7 @@ import HowItWorks from "./pages/HowItWorks";
 import SSO from "./pages/SSO";
 import NotFound from "./pages/NotFound";
 import BookHub from "./pages/BookHub";
+import Portal from "./pages/Portal";
 import Solutions from "./pages/Solutions";
 import SolutionsIndex from "./pages/SolutionsIndex";
 import AuthorSite from "./pages/AuthorSite";
@@ -89,6 +90,8 @@ const AppRoutes = () => (
       <Route path="/solutions" element={<SolutionsIndex />} />
       <Route path="/solutions/:genre" element={<Solutions />} />
       <Route path="/sso" element={<SSO />} />
+      <Route path="/portal" element={<Portal />} />
+      <Route path="/portal/*" element={<Portal />} />
       <Route path="/purchase-success" element={<PurchaseSuccess />} />
       <Route path="/reader-portal" element={<ReaderPortal />} />
       <Route path="/reader-portal/:purchaseId" element={<ReaderContentViewer />} />
