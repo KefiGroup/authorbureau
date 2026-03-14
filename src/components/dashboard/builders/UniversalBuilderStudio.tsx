@@ -166,6 +166,49 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
     setLegacyGenerationState("idle");
   }, [currentStep]);
 
+  // Auto-populate home-study setup fields when Act 3 completes
+  useEffect(() => {
+    if (builderGen.act !== "act3_complete" || nodeConfig.customRenderer !== "home-study") return;
+    const salesText = previewSalesText;
+    if (!salesText) return;
+
+    setStepData(prev => {
+      const setup = prev.setup || {};
+      // Only populate fields that are still empty
+      const updates: Record<string, any> = {};
+
+      if (!setup.subtitle) {
+        // Try to extract subtitle from sales page (first short line after headline)
+        const lines = salesText.split("\n").map((l: string) => l.replace(/^#+\s*/, "").trim()).filter(Boolean);
+        const subtitle = lines.find((l: string, i: number) => i > 0 && l.length > 10 && l.length < 120 && !l.startsWith("-") && !l.startsWith("*"));
+        if (subtitle) updates.subtitle = subtitle;
+      }
+
+      if (!setup.salesCopy) {
+        // Use the full sales page text as sales copy
+        updates.salesCopy = salesText;
+      }
+
+      if (!setup.whatsIncluded) {
+        // Extract bullet points from sales text
+        const bulletLines = salesText.split("\n")
+          .filter((l: string) => /^\s*[-*•]\s/.test(l))
+          .map((l: string) => l.trim())
+          .join("\n");
+        if (bulletLines) updates.whatsIncluded = bulletLines;
+      }
+
+      // Set compare-at price if not set (use proposal price as compare, discount for actual)
+      if (!setup.comparePrice && setup.price) {
+        const price = parseInt(setup.price);
+        if (price > 0) updates.comparePrice = String(Math.ceil(price * 2));
+      }
+
+      if (Object.keys(updates).length === 0) return prev;
+      return { ...prev, setup: { ...setup, ...updates } };
+    });
+  }, [builderGen.act, nodeConfig.customRenderer, previewSalesText]);
+
   // Abby advisor panel
   const [abbyOpen, setAbbyOpen] = useState(false);
   const [abbyMessages, setAbbyMessages] = useState<Array<{ role: string; content: string }>>([]);
