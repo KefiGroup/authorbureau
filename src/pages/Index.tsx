@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import {
   ArrowRight, BookOpen, Users, Globe, Award, Building2, GraduationCap,
   Mic, MapPin, CheckCircle2, Sparkles, ChevronDown, Zap, TrendingUp,
@@ -7,6 +8,7 @@ import {
   Video, MessageSquare, Calendar, Trophy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 import DynamicMeetOurAuthors from "@/components/DynamicMeetOurAuthors";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -46,6 +48,25 @@ const jsonLd = {
 };
 
 export default function Index() {
+  const { data: stats } = useQuery({
+    queryKey: ["homepage-stats"],
+    queryFn: async () => {
+      const [authorsRes, booksRes, readersRes] = await Promise.all([
+        supabase.from("author_profiles").select("id", { count: "exact", head: true }),
+        supabase.from("books").select("id", { count: "exact", head: true }).not("published_at", "is", null),
+        supabase.from("reading_club_members").select("id", { count: "exact", head: true }),
+      ]);
+      return {
+        authors: authorsRes.count ?? 0,
+        books: booksRes.count ?? 0,
+        readers: readersRes.count ?? 0,
+      };
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const formatStat = (n: number) => (n > 10 ? `${n}+` : "Growing");
+
   return (
     <div className="min-h-screen">
       <script
@@ -121,7 +142,7 @@ export default function Index() {
                 ))}
               </div>
               <Button asChild className="w-full font-semibold text-base py-5 rounded-xl" style={{ backgroundColor: "#C5A55A", color: "#0B1D3A" }}>
-                <Link to={SIGNUP_URL}>
+                <Link to="/get-started">
                   Start Building Your Empire <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
@@ -352,7 +373,7 @@ export default function Index() {
                 </div>
               ))}
               <Button asChild className="w-full mt-4 font-semibold rounded-xl" style={{ backgroundColor: "#C5A55A", color: "#0B1D3A" }}>
-                <Link to={SIGNUP_URL}>Start as an Author <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                <Link to="/get-started">Start as an Author <ArrowRight className="ml-2 h-4 w-4" /></Link>
               </Button>
             </motion.div>
 
@@ -392,10 +413,10 @@ export default function Index() {
         <div className="container">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             {[
-              { stat: "Growing", label: "Authors" },
-              { stat: "Growing", label: "Books Published" },
+              { stat: stats ? formatStat(stats.authors) : "Growing", label: "Authors" },
+              { stat: stats ? formatStat(stats.books) : "Growing", label: "Books Published" },
               { stat: "28", label: "Revenue Streams" },
-              { stat: "Growing", label: "Readers" },
+              { stat: stats ? formatStat(stats.readers) : "Growing", label: "Readers" },
             ].map((item, i) => (
               <motion.div key={item.label} variants={fadeUp} custom={i} className="py-6">
                 <p className="text-3xl md:text-4xl font-heading font-bold text-secondary">{item.stat}</p>
@@ -429,7 +450,7 @@ export default function Index() {
             </motion.p>
             <motion.div variants={fadeUp} custom={2} className="flex flex-wrap justify-center gap-4">
               <Button asChild size="lg" className="rounded-full font-semibold text-base px-8" style={{ backgroundColor: "#C5A55A", color: "#0B1D3A" }}>
-                <Link to={SIGNUP_URL}>I'm an Author - Get Started <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                <Link to="/get-started">I'm an Author - Get Started <ArrowRight className="ml-2 h-4 w-4" /></Link>
               </Button>
               <Button asChild size="lg" className="rounded-full font-semibold text-base px-8 text-white" style={{ backgroundColor: "#4A9E8E" }}>
                 <Link to="/reading-club">I'm a Reader - Explore <ArrowRight className="ml-2 h-4 w-4" /></Link>
