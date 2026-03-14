@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
 import {
   BookOpen, ChevronDown, ChevronRight, Check, Lock, Loader2, ArrowLeft, CalendarDays, Rocket,
+  Trophy, Target, Flame,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
@@ -9,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
 interface StudyDay {
@@ -35,6 +37,7 @@ export default function ReaderContentViewer() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [title, setTitle] = useState("");
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
   const [days, setDays] = useState<StudyDay[]>([]);
   const [progress, setProgress] = useState<Set<number>>(new Set());
   const [unlockedUpTo, setUnlockedUpTo] = useState(0);
@@ -43,6 +46,7 @@ export default function ReaderContentViewer() {
   const [startDate, setStartDate] = useState<string | null>(null);
   const [chosenDate, setChosenDate] = useState<string>("");
   const [settingStart, setSettingStart] = useState(false);
+  const [expandedDay, setExpandedDay] = useState<number | null>(null);
 
   useDocumentMeta({ title: title ? `${title} | Readers Bureau` : "Readers Bureau" });
 
@@ -71,7 +75,26 @@ export default function ReaderContentViewer() {
     setUnlockedUpTo(data.unlockedUpToDay || 0);
     setStartDate(data.startDate || null);
 
-    // Parse days from study_schedule_json
+    // Get book cover image
+    if (data.purchase?.product_id) {
+      const { data: hsc } = await supabase
+        .from("home_study_courses")
+        .select("book_id, cover_image_url")
+        .eq("id", data.purchase.product_id)
+        .maybeSingle();
+
+      if (hsc?.cover_image_url) {
+        setCoverImageUrl(hsc.cover_image_url);
+      } else if (hsc?.book_id) {
+        const { data: book } = await supabase
+          .from("books")
+          .select("cover_image_url")
+          .eq("id", hsc.book_id)
+          .maybeSingle();
+        if (book?.cover_image_url) setCoverImageUrl(book.cover_image_url);
+      }
+    }
+
     const schedule = data.studyData?.study_schedule_json;
     if (Array.isArray(schedule) && schedule.length > 0) {
       setDays(schedule.map((d: any, i: number) => ({
@@ -97,11 +120,9 @@ export default function ReaderContentViewer() {
     if (user) loadContent();
   }, [user, loadContent]);
 
-  // Default the date picker to today
   useEffect(() => {
     if (!chosenDate) {
-      const today = new Date();
-      setChosenDate(today.toISOString().split("T")[0]);
+      setChosenDate(new Date().toISOString().split("T")[0]);
     }
   }, [chosenDate]);
 
@@ -118,7 +139,6 @@ export default function ReaderContentViewer() {
 
     if (!err) {
       setStartDate(chosenDate);
-      // Recalculate unlocked days
       const start = new Date(chosenDate + "T00:00:00Z");
       const now = new Date();
       const daysSinceStart = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
@@ -171,6 +191,7 @@ export default function ReaderContentViewer() {
   const totalDays = days.length || 21;
   const completedCount = progress.size;
   const progressPercent = Math.round((completedCount / totalDays) * 100);
+  const currentStreak = calculateStreak(progress, unlockedUpTo);
 
   const weeks = Array.from(new Set(days.map(d => d.weekNumber))).sort((a, b) => a - b);
   if (weeks.length === 0) weeks.push(1, 2, 3);
@@ -179,11 +200,15 @@ export default function ReaderContentViewer() {
   const startDateObj = startDate ? new Date(startDate + "T00:00:00Z") : null;
   const hasNotBegunYet = startDateObj && startDateObj.getTime() > Date.now();
 
-  // Format date nicely
   function formatDate(dateStr: string) {
     const d = new Date(dateStr + "T00:00:00Z");
     return d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
   }
+
+  // Find which day is "today"
+  const todayDayNumber = startDate
+    ? Math.floor((Date.now() - new Date(startDate + "T00:00:00Z").getTime()) / 86400000) + 1
+    : 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -222,6 +247,9 @@ export default function ReaderContentViewer() {
           /* START DATE PICKER */
           <div className="max-w-md mx-auto py-12">
             <div className="bg-card border border-border rounded-2xl p-8 text-center space-y-6 shadow-sm">
+              {coverImageUrl && (
+                <img src={coverImageUrl} alt={title} className="w-32 h-auto mx-auto rounded-lg shadow-md" />
+              )}
               <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
                 <CalendarDays className="h-8 w-8 text-primary" />
               </div>
@@ -252,19 +280,18 @@ export default function ReaderContentViewer() {
                 className="w-full h-12 text-base font-semibold"
                 size="lg"
               >
-                {settingStart ? (
-                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                ) : (
-                  <Rocket className="h-5 w-5 mr-2" />
-                )}
+                {settingStart ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Rocket className="h-5 w-5 mr-2" />}
                 {settingStart ? "Setting up..." : "Start My Journey"}
               </Button>
             </div>
           </div>
         ) : hasNotBegunYet ? (
-          /* COUNTDOWN — start date is in the future */
+          /* COUNTDOWN */
           <div className="max-w-md mx-auto py-12">
             <div className="bg-card border border-border rounded-2xl p-8 text-center space-y-6 shadow-sm">
+              {coverImageUrl && (
+                <img src={coverImageUrl} alt={title} className="w-32 h-auto mx-auto rounded-lg shadow-md" />
+              )}
               <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
                 <CalendarDays className="h-8 w-8 text-primary" />
               </div>
@@ -284,21 +311,57 @@ export default function ReaderContentViewer() {
             </div>
           </div>
         ) : (
-          /* MAIN CONTENT — weekly accordion */
-          <div className="space-y-3">
-            {startDate && (
-              <p className="text-xs text-muted-foreground text-center mb-4">
-                Started {formatDate(startDate)}
-              </p>
-            )}
+          /* MAIN CONTENT */
+          <div className="space-y-6">
+            {/* Course overview card */}
+            <div className="bg-card border border-border rounded-2xl p-6 flex flex-col sm:flex-row items-center gap-6">
+              {coverImageUrl && (
+                <img src={coverImageUrl} alt={title} className="w-24 h-auto rounded-lg shadow-md shrink-0" />
+              )}
+              <div className="flex-1 text-center sm:text-left space-y-3">
+                <h2 className="text-lg font-bold text-foreground">{title}</h2>
+                {startDate && (
+                  <p className="text-xs text-muted-foreground">
+                    Started {formatDate(startDate)}
+                  </p>
+                )}
+                {/* Stats row */}
+                <div className="flex flex-wrap justify-center sm:justify-start gap-4">
+                  <StatBadge icon={<Target className="h-4 w-4" />} label="Progress" value={`${progressPercent}%`} />
+                  <StatBadge icon={<Check className="h-4 w-4" />} label="Completed" value={`${completedCount}/${totalDays}`} />
+                  <StatBadge icon={<Flame className="h-4 w-4" />} label="Streak" value={`${currentStreak} days`} />
+                  {todayDayNumber > 0 && todayDayNumber <= totalDays && (
+                    <StatBadge icon={<CalendarDays className="h-4 w-4" />} label="Today" value={`Day ${todayDayNumber}`} />
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Instructions banner */}
+            <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
+              <h3 className="font-semibold text-foreground text-sm mb-2 flex items-center gap-2">
+                <BookOpen className="h-4 w-4 text-primary" />
+                How This Program Works
+              </h3>
+              <ul className="text-xs text-muted-foreground space-y-1.5 ml-6 list-disc">
+                <li>A new day of content unlocks each day from your start date</li>
+                <li>Read the assigned content, then complete the exercises and reflection below</li>
+                <li>Use the writing boxes to journal your thoughts — they're your personal workspace</li>
+                <li>Check off each day when you've completed it to track your progress</li>
+                <li>Come back each day to build momentum and grow consistently</li>
+              </ul>
+            </div>
+
+            {/* Weekly accordion */}
             {weeks.map(week => {
               const weekDays = days.filter(d => d.weekNumber === week);
-              const weekComplete = weekDays.every(d => progress.has(d.dayNumber));
+              const weekCompletedCount = weekDays.filter(d => progress.has(d.dayNumber)).length;
+              const weekComplete = weekCompletedCount === weekDays.length;
+              const weekPercent = Math.round((weekCompletedCount / weekDays.length) * 100);
               const isOpen = openWeeks.has(week);
 
               return (
                 <div key={week} className="border border-border rounded-xl overflow-hidden bg-card">
-                  {/* Week header */}
                   <button
                     onClick={() => toggleWeek(week)}
                     className="w-full flex items-center justify-between p-4 hover:bg-accent/50 transition-colors"
@@ -306,34 +369,46 @@ export default function ReaderContentViewer() {
                     <div className="flex items-center gap-3">
                       {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                       <span className="font-semibold text-foreground">Week {week}</span>
+                      <Progress value={weekPercent} className="h-1.5 w-20" />
                       <span className="text-xs text-muted-foreground">
-                        {weekDays.filter(d => progress.has(d.dayNumber)).length}/{weekDays.length} complete
+                        {weekCompletedCount}/{weekDays.length}
                       </span>
                     </div>
-                    {weekComplete && <Check className="h-4 w-4 text-primary" />}
+                    {weekComplete && <Trophy className="h-4 w-4 text-primary" />}
                   </button>
 
-                  {/* Day cards */}
                   {isOpen && (
                     <div className="border-t border-border divide-y divide-border">
                       {weekDays.map(day => {
                         const isLocked = day.dayNumber > unlockedUpTo;
                         const isComplete = progress.has(day.dayNumber);
+                        const isToday = day.dayNumber === todayDayNumber;
+                        const isExpanded = expandedDay === day.dayNumber;
 
                         return (
-                          <div key={day.dayNumber} className={cn("p-4", isLocked && "opacity-50")}>
-                            {/* Day title row */}
-                            <div className="flex items-start gap-3">
+                          <div
+                            key={day.dayNumber}
+                            className={cn(
+                              "transition-colors",
+                              isLocked && "opacity-40",
+                              isToday && !isLocked && "bg-primary/5 border-l-4 border-l-primary"
+                            )}
+                          >
+                            {/* Day header row */}
+                            <div
+                              className={cn("flex items-start gap-3 p-4 cursor-pointer", !isLocked && "hover:bg-accent/30")}
+                              onClick={() => !isLocked && setExpandedDay(isExpanded ? null : day.dayNumber)}
+                            >
                               {isLocked ? (
-                                <div className="mt-0.5 h-5 w-5 rounded-full border border-border flex items-center justify-center">
+                                <div className="mt-0.5 h-6 w-6 rounded-full border border-border flex items-center justify-center shrink-0">
                                   <Lock className="h-3 w-3 text-muted-foreground" />
                                 </div>
                               ) : (
                                 <button
-                                  onClick={() => toggleDay(day.dayNumber)}
+                                  onClick={(e) => { e.stopPropagation(); toggleDay(day.dayNumber); }}
                                   disabled={toggling === day.dayNumber}
                                   className={cn(
-                                    "mt-0.5 h-5 w-5 rounded-full border-2 flex items-center justify-center transition-colors shrink-0",
+                                    "mt-0.5 h-6 w-6 rounded-full border-2 flex items-center justify-center transition-colors shrink-0",
                                     isComplete
                                       ? "bg-primary border-primary text-primary-foreground"
                                       : "border-border hover:border-primary/50"
@@ -347,40 +422,96 @@ export default function ReaderContentViewer() {
                                 </button>
                               )}
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-baseline gap-2">
-                                  <span className="font-medium text-foreground text-sm">Day {day.dayNumber}</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold text-foreground text-sm">Day {day.dayNumber}</span>
                                   {day.chapterRef && (
-                                    <span className="text-xs text-muted-foreground">({day.chapterRef})</span>
+                                    <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                                      {day.chapterRef}
+                                    </span>
+                                  )}
+                                  {isToday && !isLocked && (
+                                    <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                                      TODAY
+                                    </span>
+                                  )}
+                                  {isComplete && (
+                                    <span className="text-xs text-primary/70">✓ Done</span>
                                   )}
                                 </div>
                                 <p className="text-sm text-primary/80 font-medium mt-0.5">{day.theme}</p>
                               </div>
+                              {!isLocked && (
+                                <ChevronDown className={cn(
+                                  "h-4 w-4 text-muted-foreground transition-transform shrink-0 mt-1",
+                                  isExpanded && "rotate-180"
+                                )} />
+                              )}
                             </div>
 
-                            {/* Day content (only if not locked) */}
-                            {!isLocked && (
-                              <div className="ml-8 mt-3 space-y-3">
+                            {/* Expanded day content */}
+                            {!isLocked && isExpanded && (
+                              <div className="px-4 pb-5 ml-9 space-y-4">
                                 {day.reading && (
-                                  <ContentBlock label="📖 Reading" content={day.reading} />
+                                  <ContentSection
+                                    emoji="📖"
+                                    label="Reading Assignment"
+                                    content={day.reading}
+                                    hint="Read the assigned section and highlight key passages"
+                                  />
                                 )}
                                 {day.concept && (
-                                  <ContentBlock label="💡 Key Concept" content={day.concept} />
+                                  <ContentSection
+                                    emoji="💡"
+                                    label="Key Concept"
+                                    content={day.concept}
+                                  />
                                 )}
                                 {day.exercise && (
-                                  <ContentBlock label="✍️ Exercise" content={day.exercise} />
+                                  <WritableSection
+                                    emoji="✍️"
+                                    label="Exercise"
+                                    prompt={day.exercise}
+                                    storageKey={`rv-${purchaseId}-d${day.dayNumber}-exercise`}
+                                  />
                                 )}
                                 {day.reflection && (
-                                  <ContentBlock label="🪞 Reflection" content={day.reflection} />
+                                  <WritableSection
+                                    emoji="🪞"
+                                    label="Reflection"
+                                    prompt={day.reflection}
+                                    storageKey={`rv-${purchaseId}-d${day.dayNumber}-reflection`}
+                                  />
                                 )}
                                 {day.actionPlan && (
-                                  <ContentBlock label="🎯 Action Plan" content={day.actionPlan} />
+                                  <ContentSection
+                                    emoji="🎯"
+                                    label="Action Plan"
+                                    content={day.actionPlan}
+                                  />
+                                )}
+
+                                {/* Mark complete CTA */}
+                                {!isComplete && (
+                                  <Button
+                                    onClick={() => toggleDay(day.dayNumber)}
+                                    disabled={toggling === day.dayNumber}
+                                    className="w-full mt-2"
+                                    size="lg"
+                                  >
+                                    {toggling === day.dayNumber ? (
+                                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                    ) : (
+                                      <Check className="h-4 w-4 mr-2" />
+                                    )}
+                                    Mark Day {day.dayNumber} Complete
+                                  </Button>
                                 )}
                               </div>
                             )}
 
                             {isLocked && (
-                              <p className="ml-8 mt-2 text-xs text-muted-foreground italic">
-                                Unlocks in {day.dayNumber - unlockedUpTo} day{day.dayNumber - unlockedUpTo > 1 ? "s" : ""}
+                              <p className="ml-13 px-4 pb-3 text-xs text-muted-foreground italic">
+                                🔒 Unlocks in {day.dayNumber - unlockedUpTo} day{day.dayNumber - unlockedUpTo > 1 ? "s" : ""}
                               </p>
                             )}
                           </div>
@@ -398,11 +529,69 @@ export default function ReaderContentViewer() {
   );
 }
 
-function ContentBlock({ label, content }: { label: string; content: string }) {
+/* --- Sub-components --- */
+
+function StatBadge({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="bg-muted/50 rounded-lg p-3">
-      <p className="text-xs font-semibold text-muted-foreground mb-1">{label}</p>
-      <p className="text-sm text-foreground whitespace-pre-line">{content}</p>
+    <div className="flex items-center gap-1.5 bg-muted/60 rounded-lg px-3 py-1.5">
+      <span className="text-primary">{icon}</span>
+      <div className="text-left">
+        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</p>
+        <p className="text-sm font-bold text-foreground leading-tight">{value}</p>
+      </div>
     </div>
   );
+}
+
+function ContentSection({ emoji, label, content, hint }: { emoji: string; label: string; content: string; hint?: string }) {
+  return (
+    <div className="bg-muted/40 rounded-xl p-4 border border-border/50">
+      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
+        {emoji} {label}
+      </p>
+      <p className="text-sm text-foreground whitespace-pre-line leading-relaxed">{content}</p>
+      {hint && <p className="text-xs text-muted-foreground/70 mt-2 italic">{hint}</p>}
+    </div>
+  );
+}
+
+function WritableSection({ emoji, label, prompt, storageKey }: { emoji: string; label: string; prompt: string; storageKey: string }) {
+  const [value, setValue] = useState(() => {
+    try { return localStorage.getItem(storageKey) || ""; } catch { return ""; }
+  });
+
+  const handleChange = (text: string) => {
+    setValue(text);
+    try { localStorage.setItem(storageKey, text); } catch {}
+  };
+
+  return (
+    <div className="bg-muted/40 rounded-xl p-4 border border-border/50 space-y-3">
+      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+        {emoji} {label}
+      </p>
+      <p className="text-sm text-foreground whitespace-pre-line leading-relaxed">{prompt}</p>
+      <div className="relative">
+        <Textarea
+          placeholder={`Write your ${label.toLowerCase()} here...`}
+          value={value}
+          onChange={(e) => handleChange(e.target.value)}
+          className="min-h-[120px] bg-background border-border resize-y text-sm leading-relaxed"
+        />
+        <p className="text-[10px] text-muted-foreground/60 mt-1 text-right">
+          Auto-saved locally
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function calculateStreak(progress: Set<number>, unlockedUpTo: number): number {
+  if (progress.size === 0) return 0;
+  let streak = 0;
+  for (let d = unlockedUpTo; d >= 1; d--) {
+    if (progress.has(d)) streak++;
+    else break;
+  }
+  return streak;
 }

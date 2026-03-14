@@ -163,23 +163,36 @@ export default function ReadersBureau() {
     }
   }, [authLoading, user]);
 
+  const getToken = useCallback(async () => {
+    const { data: sessionData } = await sharedSupabase.auth.getSession();
+    return sessionData?.session?.access_token || null;
+  }, []);
+
   const startChallenge = async (bookId: string) => {
     if (!user) return "Please sign in first";
-    const { error } = await supabase.from("reading_challenge_entries").insert({
-      user_id: user.id,
-      book_id: bookId,
+    const token = await getToken();
+    if (!token) return "Not authenticated";
+
+    const { data, error: fnErr } = await supabase.functions.invoke("reading-challenge", {
+      body: { action: "start-challenge", bookId },
+      headers: { Authorization: `Bearer ${token}` },
     });
-    if (error) return error.message;
+
+    if (fnErr || data?.error) return data?.error || "Failed to start challenge";
     await fetchEntries();
     return null;
   };
 
   const logToday = async (entryId: string, minutes: number) => {
-    const { error } = await supabase.from("reading_challenge_daily_logs").insert({
-      entry_id: entryId,
-      minutes_read: minutes,
+    const token = await getToken();
+    if (!token) return "Not authenticated";
+
+    const { data, error: fnErr } = await supabase.functions.invoke("reading-challenge", {
+      body: { action: "log-reading", entryId, minutes },
+      headers: { Authorization: `Bearer ${token}` },
     });
-    if (error) return error.message;
+
+    if (fnErr || data?.error) return data?.error || "Failed to log reading";
     await fetchEntries();
     return null;
   };
@@ -281,44 +294,7 @@ export default function ReadersBureau() {
                 </Button>
               </div>
             ) : (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {purchases.map((purchase) => {
-                  const author = authors[purchase.author_id];
-                  const IconComponent = PRODUCT_ICON_MAP[purchase.product_type] || BookOpen;
-
-                  return (
-                    <div
-                      key={purchase.id}
-                      className="group bg-card border border-border rounded-xl overflow-hidden hover:shadow-lg transition-shadow"
-                    >
-                      <div className="bg-primary/5 p-6 flex items-center justify-center">
-                        <IconComponent className="h-12 w-12 text-primary/60" />
-                      </div>
-                      <div className="p-5 space-y-3">
-                        <h3 className="font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors">
-                          {purchase.product_title}
-                        </h3>
-                        {author && (
-                          <p className="text-sm text-muted-foreground">
-                            by {author.pen_name || "Author"}
-                          </p>
-                        )}
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Clock className="h-3 w-3" />
-                          Purchased {new Date(purchase.created_at).toLocaleDateString()}
-                        </div>
-                        <Link
-                          to={`/readers-bureau/learn/${purchase.id}`}
-                          className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline mt-2"
-                        >
-                          Access Content
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </Link>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              <LibraryGrid purchases={purchases} authors={authors} />
             )}
           </TabsContent>
 
@@ -394,6 +370,98 @@ export default function ReadersBureau() {
       </div>
 
       <Footer />
+    </div>
+  );
+}
+
+/* Library grid with book covers */
+function LibraryGrid({ purchases, authors }: { purchases: Purchase[]; authors: Record<string, AuthorInfo> }) {
+  const [covers, setCovers] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    async function fetchCovers() {
+      const productIds = purchases.map(p => p.product_id);
+      if (productIds.length === 0) return;
+
+      // Try home_study_courses first
+      const { data: hscs } = await supabase
+        .from("home_study_courses")
+        .select("id, book_id, cover_image_url")
+        .in("id", productIds);
+
+      const coverMap: Record<string, string> = {};
+      const bookIdsToFetch: string[] = [];
+
+      (hscs || []).forEach((hsc: any) => {
+        if (hsc.cover_image_url) {
+          coverMap[hsc.id] = hsc.cover_image_url;
+        } else if (hsc.book_id) {
+          bookIdsToFetch.push(hsc.book_id);
+        }
+      });
+
+      if (bookIdsToFetch.length > 0) {
+        const { data: books } = await supabase
+          .from("books")
+          .select("id, cover_image_url")
+          .in("id", bookIdsToFetch);
+
+        const bookCoverMap: Record<string, string> = {};
+        (books || []).forEach((b: any) => {
+          if (b.cover_image_url) bookCoverMap[b.id] = b.cover_image_url;
+        });
+
+        (hscs || []).forEach((hsc: any) => {
+          if (!coverMap[hsc.id] && hsc.book_id && bookCoverMap[hsc.book_id]) {
+            coverMap[hsc.id] = bookCoverMap[hsc.book_id];
+          }
+        });
+      }
+
+      setCovers(coverMap);
+    }
+    fetchCovers();
+  }, [purchases]);
+
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {purchases.map((purchase) => {
+        const author = authors[purchase.author_id];
+        const coverUrl = covers[purchase.product_id];
+
+        return (
+          <Link
+            key={purchase.id}
+            to={`/readers-bureau/learn/${purchase.id}`}
+            className="group bg-card border border-border rounded-xl overflow-hidden hover:shadow-lg hover:border-primary/50 transition-all"
+          >
+            <div className="bg-primary/5 p-6 flex items-center justify-center h-48">
+              {coverUrl ? (
+                <img src={coverUrl} alt={purchase.product_title} className="h-full w-auto object-contain rounded-md shadow-md" />
+              ) : (
+                <BookOpen className="h-16 w-16 text-primary/30" />
+              )}
+            </div>
+            <div className="p-5 space-y-2">
+              <h3 className="font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors">
+                {purchase.product_title}
+              </h3>
+              {author && (
+                <p className="text-sm text-muted-foreground">
+                  by {author.pen_name || "Author"}
+                </p>
+              )}
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Clock className="h-3 w-3" />
+                Purchased {new Date(purchase.created_at).toLocaleDateString()}
+              </div>
+              <p className="text-xs font-medium text-primary mt-1">
+                Access Content →
+              </p>
+            </div>
+          </Link>
+        );
+      })}
     </div>
   );
 }
