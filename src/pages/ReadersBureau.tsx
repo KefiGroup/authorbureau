@@ -163,23 +163,36 @@ export default function ReadersBureau() {
     }
   }, [authLoading, user]);
 
+  const getToken = useCallback(async () => {
+    const { data: sessionData } = await sharedSupabase.auth.getSession();
+    return sessionData?.session?.access_token || null;
+  }, []);
+
   const startChallenge = async (bookId: string) => {
     if (!user) return "Please sign in first";
-    const { error } = await supabase.from("reading_challenge_entries").insert({
-      user_id: user.id,
-      book_id: bookId,
+    const token = await getToken();
+    if (!token) return "Not authenticated";
+
+    const { data, error: fnErr } = await supabase.functions.invoke("reading-challenge", {
+      body: { action: "start-challenge", bookId },
+      headers: { Authorization: `Bearer ${token}` },
     });
-    if (error) return error.message;
+
+    if (fnErr || data?.error) return data?.error || "Failed to start challenge";
     await fetchEntries();
     return null;
   };
 
   const logToday = async (entryId: string, minutes: number) => {
-    const { error } = await supabase.from("reading_challenge_daily_logs").insert({
-      entry_id: entryId,
-      minutes_read: minutes,
+    const token = await getToken();
+    if (!token) return "Not authenticated";
+
+    const { data, error: fnErr } = await supabase.functions.invoke("reading-challenge", {
+      body: { action: "log-reading", entryId, minutes },
+      headers: { Authorization: `Bearer ${token}` },
     });
-    if (error) return error.message;
+
+    if (fnErr || data?.error) return data?.error || "Failed to log reading";
     await fetchEntries();
     return null;
   };
