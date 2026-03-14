@@ -90,6 +90,8 @@ const AppRoutes = () => (
       <Route path="/solutions" element={<SolutionsIndex />} />
       <Route path="/solutions/:genre" element={<Solutions />} />
       <Route path="/sso" element={<SSO />} />
+      <Route path="/portal" element={<Portal />} />
+      <Route path="/portal/*" element={<Portal />} />
       <Route path="/purchase-success" element={<PurchaseSuccess />} />
       <Route path="/reader-portal" element={<ReaderPortal />} />
       <Route path="/reader-portal/:purchaseId" element={<ReaderContentViewer />} />
