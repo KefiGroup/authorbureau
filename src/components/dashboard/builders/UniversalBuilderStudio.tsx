@@ -776,10 +776,10 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                   <div>
                     {/* 3-Act Phase Badge */}
                     <ActPhaseBadge act={
-                      currentStepConfig.act || (currentStep === 0 ? 1 : currentStep === nodeConfig.steps.length - 1 ? 3 : 2)
+                      currentStepConfig.act || (currentStepIndex === 0 ? 1 : currentStepIndex === nodeConfig.steps.length - 1 ? 3 : 2)
                     } />
                     <h2 className="font-heading text-xl font-bold mb-1">
-                      Step {currentStep + 1}: {currentStepConfig.label}
+                      Step {currentStepIndex + 1}: {currentStepConfig.label}
                     </h2>
                     <p className="text-sm text-muted-foreground">{currentStepConfig.description}</p>
                   </div>
