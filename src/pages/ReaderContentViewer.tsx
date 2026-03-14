@@ -1,13 +1,14 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
 import {
-  BookOpen, ChevronDown, ChevronRight, Check, Lock, Loader2, ArrowLeft,
+  BookOpen, ChevronDown, ChevronRight, Check, Lock, Loader2, ArrowLeft, CalendarDays, Rocket,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { useAuth } from "@/hooks/useAuth";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface StudyDay {
@@ -36,16 +37,23 @@ export default function ReaderContentViewer() {
   const [title, setTitle] = useState("");
   const [days, setDays] = useState<StudyDay[]>([]);
   const [progress, setProgress] = useState<Set<number>>(new Set());
-  const [unlockedUpTo, setUnlockedUpTo] = useState(1);
+  const [unlockedUpTo, setUnlockedUpTo] = useState(0);
   const [openWeeks, setOpenWeeks] = useState<Set<number>>(new Set([1]));
   const [toggling, setToggling] = useState<number | null>(null);
+  const [startDate, setStartDate] = useState<string | null>(null);
+  const [chosenDate, setChosenDate] = useState<string>("");
+  const [settingStart, setSettingStart] = useState(false);
 
   useDocumentMeta({ title: title ? `${title} | Reader Portal` : "Reader Portal" });
 
+  const getToken = useCallback(async () => {
+    const { data: sessionData } = await sharedSupabase.auth.getSession();
+    return sessionData?.session?.access_token || null;
+  }, []);
+
   const loadContent = useCallback(async () => {
     setLoading(true);
-    const { data: sessionData } = await sharedSupabase.auth.getSession();
-    const token = sessionData?.session?.access_token;
+    const token = await getToken();
     if (!token) { setError("Not authenticated"); setLoading(false); return; }
 
     const { data, error: fnErr } = await supabase.functions.invoke("reader-content", {
@@ -60,7 +68,8 @@ export default function ReaderContentViewer() {
     }
 
     setTitle(data.studyData?.title || data.purchase?.product_title || "Home Study");
-    setUnlockedUpTo(data.unlockedUpToDay || 1);
+    setUnlockedUpTo(data.unlockedUpToDay || 0);
+    setStartDate(data.startDate || null);
 
     // Parse days from study_schedule_json
     const schedule = data.studyData?.study_schedule_json;
@@ -82,16 +91,45 @@ export default function ReaderContentViewer() {
     (data.progress || []).forEach((p: ProgressEntry) => completedDays.add(p.day_number));
     setProgress(completedDays);
     setLoading(false);
-  }, [purchaseId]);
+  }, [purchaseId, getToken]);
 
   useEffect(() => {
     if (user) loadContent();
   }, [user, loadContent]);
 
+  // Default the date picker to today
+  useEffect(() => {
+    if (!chosenDate) {
+      const today = new Date();
+      setChosenDate(today.toISOString().split("T")[0]);
+    }
+  }, [chosenDate]);
+
+  async function handleSetStartDate() {
+    if (!chosenDate) return;
+    setSettingStart(true);
+    const token = await getToken();
+    if (!token) { setSettingStart(false); return; }
+
+    const { error: err } = await supabase.functions.invoke("reader-content", {
+      body: { action: "set-start-date", purchaseId, startDate: chosenDate },
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!err) {
+      setStartDate(chosenDate);
+      // Recalculate unlocked days
+      const start = new Date(chosenDate + "T00:00:00Z");
+      const now = new Date();
+      const daysSinceStart = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      setUnlockedUpTo(Math.max(0, daysSinceStart));
+    }
+    setSettingStart(false);
+  }
+
   async function toggleDay(dayNumber: number) {
     setToggling(dayNumber);
-    const { data: sessionData } = await sharedSupabase.auth.getSession();
-    const token = sessionData?.session?.access_token;
+    const token = await getToken();
     if (!token) { setToggling(null); return; }
 
     const isComplete = progress.has(dayNumber);
@@ -137,6 +175,16 @@ export default function ReaderContentViewer() {
   const weeks = Array.from(new Set(days.map(d => d.weekNumber))).sort((a, b) => a - b);
   if (weeks.length === 0) weeks.push(1, 2, 3);
 
+  const hasStarted = !!startDate;
+  const startDateObj = startDate ? new Date(startDate + "T00:00:00Z") : null;
+  const hasNotBegunYet = startDateObj && startDateObj.getTime() > Date.now();
+
+  // Format date nicely
+  function formatDate(dateStr: string) {
+    const d = new Date(dateStr + "T00:00:00Z");
+    return d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -170,8 +218,79 @@ export default function ReaderContentViewer() {
             <BookOpen className="h-12 w-12 text-muted-foreground/30 mx-auto" />
             <p className="text-muted-foreground">Content is being prepared. Check back soon!</p>
           </div>
+        ) : !hasStarted ? (
+          /* START DATE PICKER */
+          <div className="max-w-md mx-auto py-12">
+            <div className="bg-card border border-border rounded-2xl p-8 text-center space-y-6 shadow-sm">
+              <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                <CalendarDays className="h-8 w-8 text-primary" />
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-xl font-bold text-foreground">Choose Your Start Date</h2>
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  Pick the day you'd like to begin your {totalDays}-day journey. One new day of content will unlock each day from your chosen start date.
+                </p>
+              </div>
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-foreground text-left">Start Date</label>
+                <input
+                  type="date"
+                  value={chosenDate}
+                  min={new Date().toISOString().split("T")[0]}
+                  onChange={e => setChosenDate(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 text-center text-lg"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {chosenDate && `Your program will run from ${formatDate(chosenDate)} through ${formatDate(
+                    new Date(new Date(chosenDate + "T00:00:00Z").getTime() + (totalDays - 1) * 86400000).toISOString().split("T")[0]
+                  )}`}
+                </p>
+              </div>
+              <Button
+                onClick={handleSetStartDate}
+                disabled={!chosenDate || settingStart}
+                className="w-full h-12 text-base font-semibold"
+                size="lg"
+              >
+                {settingStart ? (
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                ) : (
+                  <Rocket className="h-5 w-5 mr-2" />
+                )}
+                {settingStart ? "Setting up..." : "Start My Journey"}
+              </Button>
+            </div>
+          </div>
+        ) : hasNotBegunYet ? (
+          /* COUNTDOWN — start date is in the future */
+          <div className="max-w-md mx-auto py-12">
+            <div className="bg-card border border-border rounded-2xl p-8 text-center space-y-6 shadow-sm">
+              <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                <CalendarDays className="h-8 w-8 text-primary" />
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-xl font-bold text-foreground">Your Journey Begins Soon!</h2>
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  Your {totalDays}-day program starts on <strong className="text-foreground">{formatDate(startDate!)}</strong>.
+                  Day 1 content will be available on that day.
+                </p>
+              </div>
+              <div className="bg-muted/50 rounded-lg py-4 px-6">
+                <p className="text-2xl font-bold text-primary">
+                  {Math.ceil((startDateObj!.getTime() - Date.now()) / 86400000)} day{Math.ceil((startDateObj!.getTime() - Date.now()) / 86400000) !== 1 ? "s" : ""} to go
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">until your program begins</p>
+              </div>
+            </div>
+          </div>
         ) : (
+          /* MAIN CONTENT — weekly accordion */
           <div className="space-y-3">
+            {startDate && (
+              <p className="text-xs text-muted-foreground text-center mb-4">
+                Started {formatDate(startDate)}
+              </p>
+            )}
             {weeks.map(week => {
               const weekDays = days.filter(d => d.weekNumber === week);
               const weekComplete = weekDays.every(d => progress.has(d.dayNumber));
