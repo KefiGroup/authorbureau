@@ -496,59 +496,27 @@ Make all copy compelling, benefit-driven, and plain text only. No markdown.`,
             <div className={`mx-auto border border-border rounded-xl overflow-hidden bg-card shadow-lg ${
               previewDevice === "mobile" ? "max-w-sm" : "max-w-2xl"
             }`}>
-              <div className="bg-gradient-to-b from-secondary/10 to-transparent p-8 text-center">
-                {setup.comparePrice && (
-                  <Badge variant="destructive" className="text-[10px] mb-3">
-                    Save ${parseInt(setup.comparePrice) - parseInt(setup.price || "0")}
-                  </Badge>
-                )}
-                <Badge variant="secondary" className="text-[10px] mb-4">
-                  {setup.duration || days.length}-Day Program
-                </Badge>
-                <h1 className="font-heading text-2xl font-bold mb-2">{setup.title || "Home Study Course"}</h1>
-                <p className="text-sm text-muted-foreground mb-4">{setup.subtitle || "A guided self-paced learning experience"}</p>
-                <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground mb-6">
-                  <span className="flex items-center gap-1"><CalendarDays className="h-3 w-3" /> {setup.duration || days.length} days</span>
-                  <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {setup.commitment || 15} min/day</span>
-                  <span className="flex items-center gap-1"><BookOpen className="h-3 w-3" /> {setup.level || "Beginner"}</span>
-                </div>
-                <div className="flex items-center justify-center gap-3 mb-6">
-                  {setup.comparePrice && (
-                    <span className="text-lg text-muted-foreground line-through">${setup.comparePrice}</span>
-                  )}
-                  <span className="text-3xl font-heading font-bold text-secondary">
-                    ${setup.price || "47"}
-                  </span>
-                  <span className="text-xs text-muted-foreground">{setup.currency || "USD"}</span>
-                </div>
-                <Button className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 px-8 h-10">
-                  Enroll Now
-                </Button>
-              </div>
-              {setup.salesCopy && (
-                <div className="px-8 pb-6">
-                  <p className="text-xs text-muted-foreground whitespace-pre-line leading-relaxed">{setup.salesCopy}</p>
-                </div>
-              )}
-              {setup.whatsIncluded && (
-                <div className="px-8 pb-8">
-                  <h3 className="text-sm font-bold mb-2">What's Included</h3>
-                  <div className="text-xs text-muted-foreground whitespace-pre-line">{setup.whatsIncluded}</div>
-                </div>
-               )}
-              {setup.faqs && setup.faqs.length > 0 && (
-                <div className="px-8 pb-8">
-                  <h3 className="text-sm font-bold mb-3">Frequently Asked Questions</h3>
-                  <div className="space-y-3">
-                    {setup.faqs.map((faq: { q: string; a: string }, i: number) => (
-                      <div key={i}>
-                        <p className="text-xs font-semibold">{faq.q}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{faq.a}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <SharedSalesCopyPreview
+                data={setup.salesCopyData || {
+                  ...DEFAULT_SALES_COPY,
+                  hero: { ...DEFAULT_SALES_COPY.hero, title: setup.title || bookTitle || "" },
+                  pricing: {
+                    ...DEFAULT_SALES_COPY.pricing,
+                    price: setup.price || "",
+                    comparePrice: setup.comparePrice || "",
+                    currency: setup.currency || "USD",
+                  },
+                  introduction: { paragraph: setup.salesCopy || "" },
+                  whatsInside: { items: setup.whatsIncluded ? setup.whatsIncluded.split("\n").filter(Boolean) : [] },
+                  faq: { items: setup.faqs || [] },
+                }}
+                productMeta={{
+                  badge: `${setup.duration || days.length}-Day Program`,
+                  duration: `${setup.duration || days.length} days`,
+                  commitment: `${setup.commitment || 15} min/day`,
+                  level: setup.level || "Beginner",
+                }}
+              />
             </div>
           )}
 
