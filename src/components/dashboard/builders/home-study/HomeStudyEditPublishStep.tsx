@@ -47,6 +47,28 @@ const sanitizeSalesCopy = (content?: string | null): string =>
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
+/** Extract Q&A pairs and return cleaned description + faqs array */
+function extractFaqsFromCopy(text: string): { cleanedCopy: string; faqs: { q: string; a: string }[] } {
+  const faqs: { q: string; a: string }[] = [];
+  // Match "Frequently Asked Questions" header and everything after it
+  const faqHeaderPattern = /\n*(?:Frequently Asked Questions|FAQ)\s*\n/i;
+  const headerIdx = text.search(faqHeaderPattern);
+  if (headerIdx === -1) return { cleanedCopy: text, faqs };
+
+  const beforeFaq = text.slice(0, headerIdx).trim();
+  const faqSection = text.slice(headerIdx);
+
+  // Parse Q:/A: pairs
+  const qaPairs = faqSection.matchAll(/Q:\s*(.+?)(?:\n+)A:\s*([\s\S]*?)(?=\nQ:|$)/gi);
+  for (const match of qaPairs) {
+    const q = match[1].trim();
+    const a = match[2].trim();
+    if (q && a) faqs.push({ q, a });
+  }
+
+  return { cleanedCopy: beforeFaq, faqs };
+}
+
 export default function HomeStudyEditPublishStep({
   stepData, setStepData, onMarkEdited, bookId, bookTitle,
   generationState, setGenerationState,
@@ -84,6 +106,24 @@ export default function HomeStudyEditPublishStep({
     }));
     onMarkEdited("edit");
   }, [activeSegment, onMarkEdited, setStepData, setup.salesCopy, setup.whatsIncluded]);
+
+  // Auto-extract FAQs from salesCopy on first load
+  const [faqExtracted, setFaqExtracted] = useState(false);
+  useEffect(() => {
+    if (faqExtracted || !setup.salesCopy) return;
+    // Only extract if no faqs exist yet and salesCopy contains FAQ content
+    if ((!setup.faqs || setup.faqs.length === 0) && /\bQ:\s/i.test(setup.salesCopy)) {
+      const { cleanedCopy, faqs } = extractFaqsFromCopy(setup.salesCopy);
+      if (faqs.length > 0) {
+        setStepData(prev => ({
+          ...prev,
+          setup: { ...prev.setup, salesCopy: cleanedCopy, faqs },
+        }));
+        onMarkEdited("edit");
+      }
+    }
+    setFaqExtracted(true);
+  }, [setup.salesCopy, setup.faqs, faqExtracted, setStepData, onMarkEdited]);
 
   if (days.length === 0) {
     return (
@@ -287,6 +327,66 @@ Return JSON: { "salesCopy": "..." }`,
               <Textarea value={setup.whatsIncluded || ""} onChange={e => updateSetup("whatsIncluded", sanitizeSalesCopy(e.target.value))}
                 placeholder="21 daily guided lessons&#10;Practical exercises and action plans&#10;Reflection journal prompts&#10;Weekly accountability check-ins"
                 rows={5} className="text-sm" />
+            </div>
+
+            {/* FAQ Section */}
+            <div className="border-t border-border pt-5">
+              <h4 className="text-sm font-bold mb-3">❓ Frequently Asked Questions</h4>
+              <div className="space-y-3">
+                {(setup.faqs || []).map((faq: { q: string; a: string }, idx: number) => (
+                  <div key={idx} className="rounded-lg border border-border p-3 space-y-2">
+                    <div className="flex items-start gap-2">
+                      <span className="text-xs font-bold text-secondary shrink-0 mt-1">Q:</span>
+                      <Input
+                        value={faq.q}
+                        onChange={e => {
+                          const updated = [...(setup.faqs || [])];
+                          updated[idx] = { ...updated[idx], q: e.target.value };
+                          updateSetup("faqs", updated);
+                        }}
+                        className="h-8 text-sm font-medium"
+                        placeholder="Question..."
+                      />
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-xs font-bold text-muted-foreground shrink-0 mt-1">A:</span>
+                      <Textarea
+                        value={faq.a}
+                        onChange={e => {
+                          const updated = [...(setup.faqs || [])];
+                          updated[idx] = { ...updated[idx], a: e.target.value };
+                          updateSetup("faqs", updated);
+                        }}
+                        rows={2}
+                        className="text-sm"
+                        placeholder="Answer..."
+                      />
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-[10px] text-destructive h-6"
+                      onClick={() => {
+                        const updated = (setup.faqs || []).filter((_: any, i: number) => i !== idx);
+                        updateSetup("faqs", updated);
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs"
+                  onClick={() => {
+                    const updated = [...(setup.faqs || []), { q: "", a: "" }];
+                    updateSetup("faqs", updated);
+                  }}
+                >
+                  + Add FAQ
+                </Button>
+              </div>
             </div>
 
             <div className="border-t border-border pt-5">
@@ -514,6 +614,19 @@ Return JSON: { "salesCopy": "..." }`,
                 <div className="px-8 pb-8">
                   <h3 className="text-sm font-bold mb-2">What's Included</h3>
                   <div className="text-xs text-muted-foreground whitespace-pre-line">{setup.whatsIncluded}</div>
+                </div>
+               )}
+              {setup.faqs && setup.faqs.length > 0 && (
+                <div className="px-8 pb-8">
+                  <h3 className="text-sm font-bold mb-3">Frequently Asked Questions</h3>
+                  <div className="space-y-3">
+                    {setup.faqs.map((faq: { q: string; a: string }, i: number) => (
+                      <div key={i}>
+                        <p className="text-xs font-semibold">{faq.q}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{faq.a}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
