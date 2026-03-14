@@ -15,6 +15,9 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { generateJSONWithAI } from "@/lib/ai-generate";
 import type { HomeStudyStepProps, StudyDay } from "./types";
+import SharedSalesCopyEditor from "../shared/SharedSalesCopyEditor";
+import SharedSalesCopyPreview from "../shared/SharedSalesCopyPreview";
+import { DEFAULT_SALES_COPY, type SalesCopyData } from "../shared/salesCopyTypes";
 
 
 const SEGMENTS = [
