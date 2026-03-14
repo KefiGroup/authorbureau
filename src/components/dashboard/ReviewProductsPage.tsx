@@ -131,10 +131,14 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
 
       const drafts: DraftProduct[] = (result.drafts || []).map((item: any) => {
         const nodeConfig = ALL_BUILDER_NODES.find(n => n.id === item.nodeId);
-        const totalSteps = nodeConfig?.steps.length || 5;
-        const stepsCompleted = item.stepsCompleted || 0;
+        const totalSteps = nodeConfig?.steps.length || 2;
+        const rawCompleted = item.stepsCompleted || 0;
+        // Cap stepsCompleted to totalSteps (draft stepData keys can exceed step count)
+        const stepsCompleted = Math.min(rawCompleted, totalSteps);
         const actProgress = Math.round((stepsCompleted / totalSteps) * 100);
-        const currentAct = stepsCompleted === 0 ? 1 : stepsCompleted >= totalSteps - 1 ? 3 : 2;
+        // For 2-step builders: step 0 = Act 1, step 1+ = Act 2 (Build), completed = done
+        const isComplete = stepsCompleted >= totalSteps;
+        const currentAct = stepsCompleted === 0 ? 1 : isComplete ? 3 : 2;
 
         return {
           id: item.id,
@@ -149,7 +153,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
           description: item.description || undefined,
           price: item.price,
           createdAt: item.created_at,
-          actProgress,
+          actProgress: isComplete ? 100 : actProgress,
           currentAct: currentAct as 1 | 2 | 3,
           stepsCompleted,
           totalSteps,
