@@ -412,7 +412,7 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
       isMounted = false;
       if (retryTimer) clearTimeout(retryTimer);
     };
-  }, [user, bookId, nodeConfig.id, inferStepFromDraftData, draftLoadAttempt]);
+  }, [user, bookId, nodeConfig.id, inferStepFromDraftData, draftLoadAttempt, clampStepIndex]);
 
   // Abby chat
   const getToken = async (): Promise<string> => {
