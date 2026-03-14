@@ -590,17 +590,21 @@ function ProductCard({
             <p className="text-xs text-muted-foreground line-clamp-2">{product.description}</p>
           )}
 
-          {/* 3-Act Progress Bar */}
+          {/* Progress Bar */}
           <div className="flex items-center gap-3">
             <div className="flex-1">
               <Progress value={product.actProgress} className="h-1.5" />
             </div>
             <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-              {product.stepsCompleted}/{product.totalSteps} steps
+              {product.stepsCompleted >= product.totalSteps
+                ? "Complete"
+                : `${product.stepsCompleted}/${product.totalSteps} steps`}
             </span>
-            <Badge variant="outline" className={`text-[8px] h-4 px-1.5 ${actColor.bg} ${actColor.text} ${actColor.border}`}>
-              {actColor.label.split(" — ")[1]}
-            </Badge>
+            {product.stepsCompleted < product.totalSteps && (
+              <Badge variant="outline" className={`text-[8px] h-4 px-1.5 ${actColor.bg} ${actColor.text} ${actColor.border}`}>
+                {actColor.label.split(" — ")[1]}
+              </Badge>
+            )}
           </div>
         </div>
 
