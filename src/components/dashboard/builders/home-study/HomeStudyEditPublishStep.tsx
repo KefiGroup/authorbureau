@@ -179,17 +179,60 @@ export default function HomeStudyEditPublishStep({
       {/* ─── SEGMENT 1: Day Content ─── */}
       {activeSegment === "content" && (
         <div className="space-y-5">
-          <Card className="p-4 bg-muted/30 border-border/60">
-            <div className="flex items-center gap-3 flex-wrap">
-              <Badge variant="secondary" className="text-[10px]">
-                <CalendarDays className="h-2.5 w-2.5 mr-1" /> {days.length} Days
-              </Badge>
-              <Badge variant="outline" className="text-[10px]">{weeks.length} Weeks</Badge>
-              <span className="text-[10px] text-muted-foreground ml-auto">
-                {contentCount}/{days.length} days have content
-              </span>
-            </div>
-          </Card>
+          {(() => {
+            const CONTENT_FIELDS: { key: EditableDayField; label: string }[] = [
+              { key: "concept", label: "Reading" },
+              { key: "exercise", label: "Exercise" },
+              { key: "reflection", label: "Reflection" },
+              { key: "actionPlan", label: "Action Plan" },
+            ];
+            const incompleteDays = days
+              .filter(d => !d.isCatchUp)
+              .map(d => {
+                const missing = CONTENT_FIELDS.filter(f => !d[f.key]?.trim());
+                return missing.length > 0 ? { day: d, missing } : null;
+              })
+              .filter(Boolean) as { day: StudyDay; missing: { key: string; label: string }[] }[];
+
+            return (
+              <Card className="p-4 bg-muted/30 border-border/60 space-y-3">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <Badge variant="secondary" className="text-[10px]">
+                    <CalendarDays className="h-2.5 w-2.5 mr-1" /> {days.length} Days
+                  </Badge>
+                  <Badge variant="outline" className="text-[10px]">{weeks.length} Weeks</Badge>
+                  {incompleteDays.length === 0 ? (
+                    <Badge variant="outline" className="text-[10px] border-green-500/40 text-green-700 ml-auto">
+                      <CheckCircle2 className="h-2.5 w-2.5 mr-1" /> All days complete
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-[10px] border-orange-400/40 text-orange-600 ml-auto">
+                      {incompleteDays.length} day{incompleteDays.length > 1 ? "s" : ""} with missing content
+                    </Badge>
+                  )}
+                </div>
+
+                {incompleteDays.length > 0 && (
+                  <div className="border border-orange-300/30 rounded-md bg-orange-50/50 dark:bg-orange-900/10 p-3 space-y-1.5">
+                    <p className="text-[10px] font-semibold text-orange-700 dark:text-orange-400 uppercase tracking-wider">Missing Content</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {incompleteDays.map(({ day, missing }) => (
+                        <button
+                          key={day.id}
+                          onClick={() => setSelectedIdx(days.findIndex(d => d.id === day.id))}
+                          className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded border border-orange-300/40 bg-background hover:border-secondary transition-colors cursor-pointer"
+                        >
+                          <span className="font-bold text-orange-600 dark:text-orange-400">Day {day.dayNumber}</span>
+                          <span className="text-muted-foreground">—</span>
+                          <span className="text-muted-foreground">{missing.map(m => m.label).join(", ")}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </Card>
+            );
+          })()}
 
           {/* Week/Day navigator */}
           <div className="border border-border rounded-lg bg-card">
