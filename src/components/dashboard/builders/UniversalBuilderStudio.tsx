@@ -552,15 +552,15 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
     }
   }, [abbyInput, abbyMessages, abbyStreaming, bookId, bookTitle, nodeConfig, currentStep, plan, manuscriptSummary, frameworks, clampStepIndex]);
 
-  const goToStep = useCallback((targetStep: number) => {
+  const goToStep = useCallback(async (targetStep: number) => {
     const boundedStep = clampStepIndex(targetStep);
     currentStepRef.current = boundedStep;
     setCurrentStep(boundedStep);
-    void handleSaveDraft(true);
+    await handleSaveDraft(true);
   }, [clampStepIndex, handleSaveDraft]);
 
-  const goNext = () => {
-    if (currentStep < nodeConfig.steps.length - 1) goToStep(currentStep + 1);
+  const goNext = async () => {
+    if (currentStep < nodeConfig.steps.length - 1) await goToStep(currentStep + 1);
   };
 
   const goPrev = () => {
