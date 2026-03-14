@@ -450,7 +450,7 @@ export default function Index() {
             </motion.p>
             <motion.div variants={fadeUp} custom={2} className="flex flex-wrap justify-center gap-4">
               <Button asChild size="lg" className="rounded-full font-semibold text-base px-8" style={{ backgroundColor: "#C5A55A", color: "#0B1D3A" }}>
-                <Link to={SIGNUP_URL}>I'm an Author - Get Started <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                <Link to="/get-started">I'm an Author - Get Started <ArrowRight className="ml-2 h-4 w-4" /></Link>
               </Button>
               <Button asChild size="lg" className="rounded-full font-semibold text-base px-8 text-white" style={{ backgroundColor: "#4A9E8E" }}>
                 <Link to="/reading-club">I'm a Reader - Explore <ArrowRight className="ml-2 h-4 w-4" /></Link>
