@@ -104,19 +104,8 @@ export default function HomeStudyEditPublishStep({
   const currentDay = days[selectedIdx];
   const weeks = Array.from(new Set(days.map(d => d.weekNumber))).sort((a, b) => a - b);
 
-  const toggleTabEditing = (field: EditableDayField) => {
-    if (editingTab === field) {
-      setEditingTab(null);
-      return;
-    }
 
-    const normalized = stripMarkdownForEditing(currentDay?.[field]);
-    if (normalized !== (currentDay?.[field] || "")) {
-      updateDay(field, normalized);
-    }
 
-    setEditingTab(field);
-  };
 
   const updateDay = (field: string, value: any) => {
     setStepData(prev => {
