@@ -249,7 +249,7 @@ export default function ABBYJourneyOnboarding({ userId, onComplete }: Props) {
                       Authors often confuse similar products. Here's a plain-English breakdown.
                     </p>
                   </div>
-                  <img src="/images/journey-comparison.png" alt="Product Comparison Guide" className="w-full rounded-lg" />
+                  <img src="/images/abby-journey-framework.png" alt="ABBY Journey Framework" className="w-full rounded-lg" />
                   <ComparisonAccordion />
                 </div>
               )}

@@ -296,7 +296,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-3">
             <img
-              src="/images/journey-flow-diagram.png"
+              src="/images/abby-journey-framework.png"
               alt="How Your 28 Revenue Streams Connect"
               className="w-full rounded-2xl shadow-lg"
               loading="lazy"
