@@ -413,10 +413,10 @@ export default function Index() {
         <div className="container">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             {[
-              { stat: "Growing", label: "Authors" },
-              { stat: "Growing", label: "Books Published" },
+              { stat: stats ? formatStat(stats.authors) : "Growing", label: "Authors" },
+              { stat: stats ? formatStat(stats.books) : "Growing", label: "Books Published" },
               { stat: "28", label: "Revenue Streams" },
-              { stat: "Growing", label: "Readers" },
+              { stat: stats ? formatStat(stats.readers) : "Growing", label: "Readers" },
             ].map((item, i) => (
               <motion.div key={item.label} variants={fadeUp} custom={i} className="py-6">
                 <p className="text-3xl md:text-4xl font-heading font-bold text-secondary">{item.stat}</p>
