@@ -26,7 +26,6 @@ import HowItWorks from "./pages/HowItWorks";
 import SSO from "./pages/SSO";
 import NotFound from "./pages/NotFound";
 import BookHub from "./pages/BookHub";
-import Portal from "./pages/Portal";
 import Solutions from "./pages/Solutions";
 import SolutionsIndex from "./pages/SolutionsIndex";
 import AuthorSite from "./pages/AuthorSite";
@@ -38,6 +37,12 @@ import AbbyHelpChatbot from "./components/AbbyHelpChatbot";
 import PurchaseSuccess from "./pages/PurchaseSuccess";
 import ReaderPortal from "./pages/ReaderPortal";
 import ReaderContentViewer from "./pages/ReaderContentViewer";
+import PortalLayout from "./components/portal/PortalLayout";
+import PortalHome from "./pages/portal/PortalHome";
+import PortalReadingClub from "./pages/portal/PortalReadingClub";
+import PortalChallengeDetail from "./pages/portal/PortalChallengeDetail";
+import PortalLibrary from "./pages/portal/PortalLibrary";
+import PortalComingSoon from "./pages/portal/PortalComingSoon";
 
 const queryClient = new QueryClient();
 
@@ -92,8 +97,21 @@ const AppRoutes = () => (
       <Route path="/solutions" element={<SolutionsIndex />} />
       <Route path="/solutions/:genre" element={<Solutions />} />
       <Route path="/sso" element={<SSO />} />
-      <Route path="/portal" element={<Portal />} />
-      <Route path="/portal/*" element={<Portal />} />
+      <Route path="/portal" element={<PortalLayout />}>
+        <Route index element={<PortalHome />} />
+        <Route path="reading-club" element={<PortalReadingClub />} />
+        <Route path="reading-club/challenge/:challengeId" element={<PortalChallengeDetail />} />
+        <Route path="library" element={<PortalLibrary />} />
+        <Route path="courses" element={<PortalComingSoon title="My Courses" />} />
+        <Route path="workbooks" element={<PortalComingSoon title="My Workbooks" />} />
+        <Route path="coaching" element={<PortalComingSoon title="My Coaching" />} />
+        <Route path="memberships" element={<PortalComingSoon title="My Memberships" />} />
+        <Route path="events" element={<PortalComingSoon title="My Events" />} />
+        <Route path="badges" element={<PortalComingSoon title="My Badges" />} />
+        <Route path="reviews" element={<PortalComingSoon title="My Reviews" />} />
+        <Route path="profile" element={<PortalComingSoon title="Profile" />} />
+        <Route path="settings" element={<PortalComingSoon title="Settings" />} />
+      </Route>
       <Route path="/purchase-success" element={<PurchaseSuccess />} />
       <Route path="/reader-portal" element={<ReaderPortal />} />
       <Route path="/reader-portal/:purchaseId" element={<ReaderContentViewer />} />
