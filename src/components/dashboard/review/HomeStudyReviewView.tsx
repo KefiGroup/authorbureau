@@ -230,37 +230,79 @@ export default function HomeStudyReviewView({
 
   const stripMd = (s: string) => s.replace(/\*\*(.+?)\*\*/g, "$1").replace(/\*(.+?)\*/g, "$1").replace(/__(.+?)__/g, "$1").replace(/_(.+?)_/g, "$1").replace(/`(.+?)`/g, "$1").replace(/^#+\s*/gm, "").replace(/^\s*>\s*/gm, "").trim();
 
-  const openSalesEditor = useCallback(() => {
+  const splitSalesCopyAndFaq = (markdown: string) => {
+    const lines = markdown.split("\n");
+    const normalize = (line: string) => line.replace(/\*\*/g, "").trim();
+
+    const faqHeaderIdx = lines.findIndex((line) => /^(?:#{1,6}\s*)?(?:frequently asked questions?|faq)\b[:\s]*$/i.test(normalize(line)));
+    const firstQuestionIdx = lines.findIndex((line) => /^(?:Q|Question)\s*:/i.test(normalize(line)));
+    const splitIdx = faqHeaderIdx >= 0 ? faqHeaderIdx : firstQuestionIdx;
+
+    const body = (splitIdx >= 0 ? lines.slice(0, splitIdx) : lines).join("\n").trim();
+    const faqLines = splitIdx >= 0 ? lines.slice(splitIdx) : [];
+
+    const faqs: { question: string; answer: string }[] = [];
+    let currentQuestion = "";
+    let answerLines: string[] = [];
+
+    const pushFaq = () => {
+      if (currentQuestion) {
+        faqs.push({ question: currentQuestion, answer: answerLines.join(" ").trim() });
+      }
+      currentQuestion = "";
+      answerLines = [];
+    };
+
+    for (const raw of faqLines) {
+      const line = normalize(raw);
+      if (!line || /^(?:frequently asked questions?|faq)\b/i.test(line)) continue;
+
+      const qMatch = line.match(/^(?:Q|Question)\s*:\s*(.+)$/i);
+      if (qMatch) {
+        pushFaq();
+        currentQuestion = stripMd(qMatch[1]);
+        continue;
+      }
+
+      const aMatch = line.match(/^(?:A|Answer)\s*:\s*(.+)$/i);
+      if (aMatch) {
+        answerLines.push(stripMd(aMatch[1]));
+        continue;
+      }
+
+      if (currentQuestion) answerLines.push(stripMd(line));
+    }
+
+    pushFaq();
+    return { body, faqs };
+  };
+
+  const previewSalesSplit = splitSalesCopyAndFaq(effectiveSalesPage);
+  const previewSalesFaqs = previewSalesSplit.faqs.filter((f) => f.question && f.answer);
+  const previewSalesBody = previewSalesSplit.body.trim();
+
+  const openSalesEditor = () => {
     const md = effectiveSalesPage || "";
     if (md.trim()) {
-      const lines = md.split("\n").filter(l => l.trim());
+      const parsedSales = splitSalesCopyAndFaq(md);
+      const contentSource = parsedSales.body || md;
+      const lines = contentSource.split("\n").filter(l => l.trim());
       const h1 = lines.find(l => /^##?\s/.test(l));
       setSalesHeadline(stripMd(h1 || title || ""));
       const h2 = lines.find(l => /^###\s/.test(l));
       setSalesSubheadline(stripMd(h2 || ""));
       const bullets = lines.filter(l => /^[-*]\s/.test(l)).map(l => stripMd(l.replace(/^[-*]\s*/, "")));
       setSalesBullets(bullets.length > 0 ? bullets : [""]);
-      // Filter out headings, bullets, blockquotes, Q&A lines, testimonial attributions, and section labels
       const isNoise = (l: string) =>
         l.startsWith("#") || l.startsWith("-") || l.startsWith("*") || l.startsWith(">") ||
         /^[QA]:\s/i.test(l) || /^—\s/.test(l) || /^\*\*[QA]:/i.test(l) ||
-        /^(frequently asked|faq|testimonial|what others say|what's included)/i.test(l.replace(/^[#*\s]+/, ""));
+        /^(testimonial|what others say|what's included)/i.test(l.replace(/^[#*\s]+/, ""));
       const bodyLines = lines.filter(l => !isNoise(l));
       setSalesBody(stripMd(bodyLines.join("\n")));
       const quoteLines = lines.filter(l => l.startsWith(">"));
       const testimonials = quoteLines.map(q => ({ name: "", quote: stripMd(q.replace(/^>\s*/, "").replace(/^"/, "").replace(/"$/, "")) }));
       setSalesTestimonials(testimonials.length > 0 ? testimonials : []);
-      // Extract FAQ pairs (Q: ... A: ...)
-      const faqs: { question: string; answer: string }[] = [];
-      for (let i = 0; i < lines.length; i++) {
-        const qMatch = lines[i].match(/^\*{0,2}Q:\s*(.*)/i) || lines[i].match(/^\*{0,2}Question:\s*(.*)/i);
-        if (qMatch) {
-          const aLine = lines[i + 1];
-          const aMatch = aLine?.match(/^\*{0,2}A:\s*(.*)/i) || aLine?.match(/^\*{0,2}Answer:\s*(.*)/i);
-          faqs.push({ question: stripMd(qMatch[1].replace(/\*+$/g, "").trim()), answer: aMatch ? stripMd(aMatch[1].replace(/\*+$/g, "").trim()) : "" });
-        }
-      }
-      setSalesFaqs(faqs);
+      setSalesFaqs(parsedSales.faqs);
       setSalesCta("Enroll Now");
     } else {
       setSalesHeadline(title || productTitle || "");
@@ -278,7 +320,7 @@ export default function HomeStudyReviewView({
     }
     setSalesDraft(md);
     setDrawerOpen("sales");
-  }, [effectiveSalesPage, title, productTitle, description, duration, bookTitle]);
+  };
 
   const handleSave = async () => {
     if (!user) return;
