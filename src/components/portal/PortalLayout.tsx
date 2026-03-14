@@ -59,7 +59,10 @@ export default function PortalLayout() {
 
   // Auto-create reader profile
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setProfileLoading(false);
+      return;
+    }
     async function ensureProfile() {
       try {
         setProfileLoading(true);
