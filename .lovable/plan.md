@@ -1,189 +1,74 @@
-# Authors Bureau — Full Platform Bug Audit
-**Generated: 2026-03-11**
 
----
 
-## 1. AUTHOR DASHBOARD
+# Plan: Readers Bureau — Unified Reader Portal with Separate Auth
 
-### 1A. Sidebar Navigation (`DashboardSidebar.tsx`)
+## Overview
 
-| ID | Bug | Severity | File(s) |
-|----|-----|----------|---------|
-| SD-01 | `buildUnlocked` counter on Build tab passes `stats.products.totalBuilt` which counts ALL products, not just Build-category products | Medium | `AuthorDashboard.tsx:373` |
-| SD-02 | `bridgeUnlocked` counter incorrectly sums ALL `perTable` entries instead of filtering to Bridge-category tables only | Medium | `AuthorDashboard.tsx:374` |
-| SD-03 | `yieldUnlocked` reuses `stats.products.totalBuilt` (same as Build), should count only Yield-category products | Medium | `AuthorDashboard.tsx:375` |
-| SD-04 | CRM lock message says `"Upgrade to Pro to Pro"` when tier is starter (string concatenation bug at line 110) | Low | `DashboardSidebar.tsx:110` |
-| SD-05 | Revenue Dashboard `hidden` when `!hasMicrosite && !isPremium` — should always show for subscribers | Low | `DashboardSidebar.tsx:118-119` |
+Rename "Reader Portal" to **Readers Bureau**, consolidate it under the `/reading-club` route (now `/readers-bureau`), and give readers their own sign-up/sign-in flow distinct from the author auth.
 
-### 1B. Dashboard Overview (`ABBYFrameworkDashboard.tsx`)
+## What Changes
 
-| ID | Bug | Severity |
-|----|-----|----------|
-| DO-01 | Fetches `dashboard-state` edge function — need to verify it exists and handles identity resolution | High |
-| DO-02 | `bookCovers` populated from `state.bookCovers` but never verified if edge function returns this field | Medium |
+### 1. Rename routes and branding
+- `/reading-club` → `/readers-bureau` (add redirect from old path)
+- `/reader-portal` → `/readers-bureau/library` (add redirect from old path)  
+- `/reader-portal/:purchaseId` → `/readers-bureau/learn/:purchaseId`
+- All "Reader Portal" / "Reading Club" labels → **"Readers Bureau"**
+- Update Navbar, Footer, sidebar references
 
-### 1C. Journey Breadcrumb (`AuthorDashboard.tsx:389-418`)
+### 2. Create a tabbed Readers Bureau hub page
+**New file: `src/pages/ReadersBureau.tsx`**
 
-| ID | Bug | Severity |
-|----|-----|----------|
-| JB-01 | Step 4 "Launch Microsite" uses `hasMicrosite` from profile existence, but breadcrumb state logic on line 409 duplicates the check | Low |
-| JB-02 | Journey steps don't account for admin users who may not have books — shows "Analyze First Book" even for admins | Low |
+A tabbed layout (similar to the Author Dashboard pattern) with:
+- **Reading Club** tab — the existing 100-day challenge (current `ReadingClub.tsx` content)
+- **My Library** tab — purchased courses/content (current `ReaderPortal.tsx` content)
+- **My Learning** — links into `/readers-bureau/learn/:purchaseId` for the home study viewer
 
-### 1D. Build/Bridge/Yield Tabs (`PortfolioStepView.tsx`)
+The hub checks for auth and shows the reader sign-up prompt if not logged in (for protected tabs like Library).
 
-| ID | Bug | Severity |
-|----|-----|----------|
-| PV-01 | `getActiveToken()` is redefined locally (line 25-30) instead of importing from `@/lib/get-active-token` — possible stale session handling | Medium |
-| PV-02 | ✅ FIXED — Product state detection `nodeIdMap` expanded to cover all 10 node-to-table mappings | Done |
-| PV-03 | ✅ FIXED — `builtProducts` now checks all 7 product tables + expanded generated_assets types | Done |
-| PV-04 | ✅ FIXED — Removed non-existent `webinars` table from published products check | Done |
-| PV-05 | "Planned" feature cards have no "Notify Me" button or disabled state mechanism | Medium |
-| PV-06 | ✅ FIXED — Added book-sales, special-editions, lead-magnet section routing to AuthorDashboard | Done |
+### 3. Separate Reader Auth flow
+**New file: `src/pages/ReaderAuth.tsx`**
 
-### 1E. Revenue Dashboard (`RevenueDashboard.tsx`)
+A dedicated sign-in/sign-up page at `/readers-bureau/auth` that:
+- Uses the same `user-auth` edge function on the shared backend (same auth system)
+- Brands as "Readers Bureau" instead of "Authors Bureau"
+- Sets `redirect` to `/readers-bureau` after login
+- Sign-up form includes a "Reader" role indicator (stored via the existing `reader_profiles` table auto-creation)
+- Authors can also sign in here — they just use their same credentials, but the redirect goes to Readers Bureau
 
-| ID | Bug | Severity |
-|----|-----|----------|
-| RD-01 | Chart `XAxis` has no left padding — first month label cut off | Low |
-| RD-02 | "Platform Fee (5%)" stat card shown even when `grossSales === 0` — should be hidden or show "—" | Low |
-| RD-03 | Category breakdown cards say "from 0 products" — should say "No products built yet" when 0 | Low |
-| RD-04 | `useAuth()` called twice (lines 43 and 48) — duplicate hook call | Low |
+This is not a separate auth system — it's the same authentication backend, just a different entry point with reader-specific branding and redirect. Authors who sign in here simply land in the reader experience.
 
-### 1F. My Microsite (`MicrositeManager.tsx`)
+### 4. Route updates in App.tsx
 
-| ID | Bug | Severity |
-|----|-----|----------|
-| MS-01 | Profile detection uses `supabase` (Cloud) client — may miss profiles created on shared backend | Medium |
-| MS-02 | No "View My Microsite" CTA when profile already exists and is live — always shows setup flow | Medium |
-| MS-03 | Premium features don't show lock icons with tooltips — just show as `locked` status | Low |
+```text
+/readers-bureau              → ReadersBureau (tabbed hub)
+/readers-bureau/auth         → ReaderAuth (reader sign-in/up)
+/readers-bureau/learn/:id    → ReaderContentViewer
+/reading-club                → Redirect to /readers-bureau
+/reader-portal               → Redirect to /readers-bureau/library
+/reader-portal/:id           → Redirect to /readers-bureau/learn/:id
+```
 
-### 1G. Reading Club (`AuthorReadingClub.tsx`)
+### 5. Navigation updates
+- **Navbar**: "Reading Club" link → "Readers Bureau" pointing to `/readers-bureau`
+- **Footer**: Same rename
+- **Dashboard sidebar**: "Reading Club" → "Readers Bureau"
+- **PurchaseSuccess**: Update link from `/reader-portal` to `/readers-bureau/library`
 
-| ID | Bug | Severity |
-|----|-----|----------|
-| RC-01 | Book query uses `supabase` (Cloud) client with `author_id = user.id` — may return empty if books are on shared backend only | Medium |
+### 6. Files modified
+- `src/App.tsx` — route changes + redirects
+- `src/components/Navbar.tsx` — label + path
+- `src/components/Footer.tsx` — label + path
+- `src/components/dashboard/DashboardSidebar.tsx` — label
+- `src/pages/PurchaseSuccess.tsx` — link update
+- `src/pages/ReaderContentViewer.tsx` — back link + redirect updates
 
-### 1H. Author CRM (`AuthorCRMPage.tsx`)
+### 7. New files
+- `src/pages/ReadersBureau.tsx` — tabbed hub combining Reading Club + Library
+- `src/pages/ReaderAuth.tsx` — reader-branded sign-in/sign-up page
 
-| ID | Bug | Severity |
-|----|-----|----------|
-| CRM-01 | Empty state CTA button styling not verified — may have inconsistent colors | Low |
-| CRM-02 | No CSV template download or column preview in empty state | Low |
+### 8. Existing files repurposed
+- `ReadingClub.tsx` content moves into the ReadersBureau hub as a tab component
+- `ReaderPortal.tsx` content moves into the ReadersBureau hub as the Library tab
 
----
+No database changes required — `reader_profiles` table already exists with the right schema.
 
-## 2. BUILDER STUDIOS
-
-### 2A. Home Study Builder
-
-| ID | Bug | Severity |
-|----|-----|----------|
-| HS-01 | ✅ FIXED — Stale content banner now shows when setup fields change after generation | Done |
-| HS-02 | Generated content uses placeholder text (not real AI) — `handleGenerate` in DailyContentStep uses `setTimeout` with static strings | Medium |
-| HS-03 | `DailyScheduleStep.handleGenerate` generates mock data with `setTimeout` — no real AI call to `abby-builder-generate` | Medium |
-
-### 2B. Course Builder (`CourseBuilder.tsx`)
-
-| ID | Bug | Severity |
-|----|-----|----------|
-| CB-01 | Need to verify CourseStepRenderer steps all route correctly | Medium |
-
-### 2C. Workbook Builder (`WorkbooksManager.tsx`)
-
-| ID | Bug | Severity |
-|----|-----|----------|
-| WB-01 | Need to verify all 5 steps render and save correctly | Medium |
-
-### 2D. Universal Builder Studio
-
-| ID | Bug | Severity |
-|----|-----|----------|
-| UB-01 | `builderNodeConfig` maps nodes to studios — need to verify all 27 nodes have valid configs | High |
-| UB-02 | ✅ FIXED — Planned nodes now show "Coming Soon" state with disabled button, preventing navigation to empty pages | Done |
-
----
-
-## 3. ADMIN PANEL
-
-### 3A. Admin Dashboard (`AdminDashboard.tsx`)
-
-| ID | Bug | Severity |
-|----|-----|----------|
-| AD-01 | ✅ Previously fixed — dedicated admin header, no public navbar | Done |
-| AD-02 | Need to verify all 6 tabs (Overview, Authors, Books, CRM, Reading Club, Support) load data correctly | Medium |
-| AD-03 | `admin-data` edge function needs verification that it handles all actions without errors | Medium |
-
-### 3B. Authors Tab (`AuthorsTab.tsx`)
-
-| ID | Bug | Severity |
-|----|-----|----------|
-| AT-01 | ✅ Previously fixed — red border removed from search | Done |
-| AT-02 | Edit Profile dialog needs verification that saves propagate to database | Medium |
-| AT-03 | "Listed" status application on approval needs verification | Medium |
-
----
-
-## 4. PUBLIC PAGES
-
-### 4A. Landing Page (`Index.tsx`)
-
-| ID | Bug | Severity |
-|----|-----|----------|
-| LP-01 | Google Fonts CSS requests may still be failing — need to check | Low |
-
-### 4B. Author Directory (`Directory.tsx`)
-
-| ID | Bug | Severity |
-|----|-----|----------|
-| DIR-01 | Need to verify directory correctly shows listed/featured authors | Medium |
-
-### 4C. Auth Flow (`Auth.tsx`)
-
-| ID | Bug | Severity |
-|----|-----|----------|
-| AF-01 | ✅ Previously fixed — admin redirect race condition | Done |
-| AF-02 | Dual-backend auth token resolution via `getActiveToken()` — working | Done |
-
-### 4D. Dynamic Microsites (`DynamicBookMicrosite.tsx`)
-
-| ID | Bug | Severity |
-|----|-----|----------|
-| DM-01 | Need to verify microsites render with correct data for listed authors | Medium |
-
----
-
-## PRIORITY FIX ORDER
-
-### Critical (breaks core functionality):
-1. **PV-02/PV-03**: Product state detection incomplete — counters always wrong
-2. **PV-06**: Missing section routing for book-sales, special-editions, lead-magnet
-3. **UB-02**: Planned nodes may lead to empty pages when clicked
-
-### High (major UX issues):
-4. **SD-01/SD-02/SD-03**: Sidebar counters inaccurate
-5. **PV-04**: Queries non-existent `webinars` table
-6. **MS-01/RC-01**: Shared backend profile/book detection issues
-
-### Medium (functional but broken UX):
-7. **RD-01/RD-02/RD-03**: Revenue dashboard polish
-8. **SD-04**: CRM lock message typo
-9. **MS-02**: Missing "View My Microsite" CTA
-10. **HS-02/HS-03**: Mock AI generation (placeholder timeouts)
-
-### Low (cosmetic):
-11. **CRM-01/CRM-02**: Empty state polish
-12. **JB-01/JB-02**: Journey breadcrumb edge cases
-13. **LP-01**: Google Fonts
-
----
-
-## Previous Roadmap (Phase 1)
-
-### CRM Foundation + Reading Club Enhancement (Weeks 1-4)
-
-The roadmap says to build the CRM ("nervous system") and Reading Club ("demand engine") first, so every subsequent feature automatically captures contacts and drives conversions.
-
-### Current State
-
-- **CRM**: A basic `CRMDashboard.tsx` that reads from `profiles`, `reading_club_members`, and `newsletter_signups` as a unified contact list. Separate `crm_contacts`, `crm_contact_tags`, and `crm_activity_log` tables exist but are only used by the `CoachingCRM` component.
-- **Reading Club**: A public page with featured books, member signup (email+name), and basic discussions. No book catalog browsing, no challenges, no CRM integration.
