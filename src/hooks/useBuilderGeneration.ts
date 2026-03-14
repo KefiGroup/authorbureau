@@ -411,6 +411,11 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
     }));
   }, []);
 
+  // ── Set generated content (for manual edits) ──────────────────
+  const setGeneratedContent = useCallback((content: string) => {
+    setState(prev => ({ ...prev, generatedContent: content }));
+  }, []);
+
   // ── Reset ──────────────────────────────────────────────────────
   const reset = useCallback(() => {
     abortRef.current?.abort();
