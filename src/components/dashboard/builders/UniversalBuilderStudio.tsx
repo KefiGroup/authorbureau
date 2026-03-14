@@ -692,8 +692,8 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
         <div className="px-6 py-3 border-b border-border bg-card/50">
           <div className="flex items-center gap-1">
             {nodeConfig.steps.map((step, idx) => {
-              const isCompleted = idx < currentStep;
-              const isCurrent = idx === currentStep;
+              const isCompleted = idx < currentStepIndex;
+              const isCurrent = idx === currentStepIndex;
               return (
                 <div key={step.id} className="flex items-center">
                   <button
