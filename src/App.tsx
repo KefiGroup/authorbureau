@@ -25,6 +25,7 @@ import HowItWorks from "./pages/HowItWorks";
 import SSO from "./pages/SSO";
 import NotFound from "./pages/NotFound";
 import BookHub from "./pages/BookHub";
+import Portal from "./pages/Portal";
 import Solutions from "./pages/Solutions";
 import SolutionsIndex from "./pages/SolutionsIndex";
 import AuthorSite from "./pages/AuthorSite";
