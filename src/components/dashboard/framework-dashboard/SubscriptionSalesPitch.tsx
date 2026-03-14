@@ -272,6 +272,11 @@ export default function SubscriptionSalesPitch({
                     <Button className="w-full mt-auto" variant="outline" disabled>
                       Included
                     </Button>
+                  ) : plan.id === "enterprise" ? (
+                    <Button className="w-full mt-auto" variant="outline" disabled>
+                      <Clock className="h-4 w-4 mr-2 shrink-0" />
+                      Coming Soon
+                    </Button>
                   ) : (
                     <Button
                       className={`w-full mt-auto text-xs sm:text-sm ${
