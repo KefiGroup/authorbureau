@@ -649,11 +649,15 @@ Write ONLY the paid product content (what buyers receive AFTER purchase):
 6. Do NOT include any certificate of completion section — certificates are handled separately by the platform
 
 IMPORTANT for Home Study courses specifically:
-- Each day must have: theme, reading, concept, fieldAssignment, accountabilityCheck, microHabit, actionPlan
+- After the ===CONTENT_START=== delimiter, output a JSON block wrapped in \`\`\`json ... \`\`\` fences.
+- The JSON must be an array of day objects with these fields for EVERY day in the approved schedule:
+  { "dayNumber": number, "theme": string, "chapterRef": string, "concept": string (200-300 words, rich HTML with <h4>, <p>, <ul> tags — sections: Core Idea, Why This Matters, Today's Focus), "exercise": string (HTML, practical exercise with numbered steps), "reflection": string (HTML, evening journal prompts, 4 questions), "actionPlan": string (HTML, 3-5 concrete action items as <ul><li> list), "fieldAssignment": string (one sentence real-world ACTION), "accountabilityCheck": string (yes/no or 1-10 scale check-in), "microHabit": string (small daily habit that compounds) }
 - fieldAssignment = a real-world ACTION (not a written exercise) — e.g. "Have the conversation", "Implement the process at work"
 - accountabilityCheck = a yes/no or 1-10 scale check-in question
 - microHabit = a small daily habit that compounds across the program
 - Do NOT duplicate workbook content (no reflection questions or self-assessment exercises)
+- Use direct address (you/your), NEVER use placeholders like "[Participant Name]"
+- Content must be HTML formatted (not markdown). Use <h4>, <p>, <strong>, <ul>, <li>, <ol> tags.
 ===CONTENT_END===
 
 SELF-CHECK BEFORE FINALIZING:
