@@ -2478,6 +2478,60 @@ export type Database = {
         }
         Relationships: []
       }
+      testimonials: {
+        Row: {
+          author_id: string
+          book_id: string | null
+          created_at: string
+          id: string
+          is_verified: boolean | null
+          product_id: string | null
+          rating: number | null
+          review_text: string
+          reviewer_name: string
+          reviewer_title: string | null
+        }
+        Insert: {
+          author_id: string
+          book_id?: string | null
+          created_at?: string
+          id?: string
+          is_verified?: boolean | null
+          product_id?: string | null
+          rating?: number | null
+          review_text: string
+          reviewer_name: string
+          reviewer_title?: string | null
+        }
+        Update: {
+          author_id?: string
+          book_id?: string | null
+          created_at?: string
+          id?: string
+          is_verified?: boolean | null
+          product_id?: string | null
+          rating?: number | null
+          review_text?: string
+          reviewer_name?: string
+          reviewer_title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "testimonials_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "testimonials_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string

@@ -1,9 +1,10 @@
 /**
  * Dynamic copy helpers for product pages.
- * Used for CTA text, taglines, section headings, and persona generation.
+ * Used for CTA text, taglines, section headings, persona generation,
+ * trust signals, trust bar, and quick stats.
  */
 
-/* ===== CTA Text ===== */
+/* ===== CTA Text (Hero) ===== */
 export function getProductCTAText(type: string, authorFirstName: string): string {
   const map: Record<string, string> = {
     workbook: "Get the Workbook",
@@ -15,6 +16,7 @@ export function getProductCTAText(type: string, authorFirstName: string): string
     membership: "Become a Member",
     coaching_membership: "Become a Member",
     webinar: "Register Now",
+    workshop: "Reserve Your Spot",
     speaking: `Book ${authorFirstName}`,
     keynote: `Book ${authorFirstName}`,
     consulting: "Schedule a Consultation",
@@ -27,10 +29,20 @@ export function getProductCTAText(type: string, authorFirstName: string): string
     special_edition: "Order Now",
     podcast: "Listen Now",
     big_ticket: "Get Access",
+    companion_journal: "Get the Journal",
+    assessment: "Take the Assessment",
+    templates: "Get the Toolkit",
+    book_club_kit: "Get the Kit",
+    media_kit: "Download Media Kit",
+    affiliate: "Become an Affiliate",
+    corporate: "Request a Quote",
+    licensing: "Request Licensing Info",
+    franchise: "Apply for Partnership",
   };
   return map[type] || "Get Access";
 }
 
+/* ===== CTA Text (Book Page Card) ===== */
 export function getProductCardCTAText(type: string): string {
   const map: Record<string, string> = {
     workbook: "Get the Workbook →",
@@ -42,6 +54,7 @@ export function getProductCardCTAText(type: string): string {
     membership: "Join Now →",
     coaching_membership: "Join Now →",
     webinar: "Register →",
+    workshop: "Join the Workshop →",
     speaking: "Book for Your Event →",
     keynote: "Book for Your Event →",
     consulting: "Get Started →",
@@ -54,6 +67,15 @@ export function getProductCardCTAText(type: string): string {
     special_edition: "Order Now →",
     podcast: "Listen Now →",
     big_ticket: "Learn More →",
+    companion_journal: "Get the Journal →",
+    assessment: "Take the Quiz →",
+    templates: "Get the Toolkit →",
+    book_club_kit: "Get the Kit →",
+    media_kit: "Get Media Kit →",
+    affiliate: "Join the Program →",
+    corporate: "Get Bulk Pricing →",
+    licensing: "Learn More →",
+    franchise: "Learn More →",
   };
   return map[type] || "Learn More →";
 }
@@ -68,7 +90,9 @@ export function getProductTagline(type: string, bookTitle: string, authorFirstNa
     coaching: `Personal, one-on-one guidance from ${authorFirstName} to apply ${bookTitle} to your life.`,
     group_coaching: `Learn alongside a community of action-takers, guided by ${authorFirstName}.`,
     membership: `Your ongoing connection to ${authorFirstName}'s latest thinking, tools, and community.`,
+    coaching_membership: `Your ongoing connection to ${authorFirstName}'s latest thinking, tools, and community.`,
     webinar: `A live, interactive deep-dive into the most powerful ideas from ${bookTitle}.`,
+    workshop: `A hands-on, intensive session to apply ${bookTitle}'s frameworks to your situation.`,
     speaking: `Bring ${authorFirstName}'s transformative message to your audience.`,
     keynote: `Bring ${authorFirstName}'s transformative message to your audience.`,
     consulting: `Strategic, high-impact consulting based on ${authorFirstName}'s proven frameworks.`,
@@ -77,7 +101,18 @@ export function getProductTagline(type: string, bookTitle: string, authorFirstNa
     bootcamp: `An immersive, transformational experience that brings ${bookTitle} to life.`,
     training: `Equip your team with actionable skills from ${bookTitle}.`,
     certification: `Become a certified practitioner of ${authorFirstName}'s ${bookTitle} methodology.`,
-    podcast: `Listen to ${bookTitle} insights on the go.`,
+    podcast: `Hear ${authorFirstName} discuss the key ideas from ${bookTitle} across top podcasts.`,
+    special_edition: `The definitive edition of ${bookTitle} - with exclusive bonus content.`,
+    companion_journal: `Reflect, plan, and grow with this guided journal inspired by ${bookTitle}.`,
+    assessment: `Discover where you stand - a personalized assessment based on ${bookTitle}.`,
+    templates: `Ready-to-use templates and tools to implement ${bookTitle}'s strategies immediately.`,
+    book_club_kit: `Everything you need to lead a powerful ${bookTitle} book club discussion.`,
+    media_kit: `Press resources, interview topics, and media assets for ${bookTitle}.`,
+    affiliate: `Earn commissions by sharing ${bookTitle} and its resources with your audience.`,
+    corporate: `Equip your entire team with copies of ${bookTitle} at volume pricing.`,
+    licensing: `License ${authorFirstName}'s proven ${bookTitle} framework for your organization.`,
+    convention: `Join ${authorFirstName} and fellow readers at the ${bookTitle} experience.`,
+    franchise: `Partner with ${authorFirstName} to bring ${bookTitle}'s impact to your market.`,
   };
   return map[type] || `A powerful resource from ${authorFirstName}, built on the foundation of ${bookTitle}.`;
 }
@@ -90,8 +125,11 @@ export function getWhatsIncludedHeading(type: string): string {
     homestudy: "What You'll Learn",
     coaching: "What You'll Get",
     consulting: "What You'll Get",
+    group_coaching: "What You'll Get",
     membership: "What's Included in Your Membership",
+    coaching_membership: "What's Included in Your Membership",
     webinar: "What We'll Cover",
+    workshop: "What We'll Cover",
     speaking: "What Your Audience Will Experience",
     keynote: "What Your Audience Will Experience",
     mastermind: "The Experience Includes",
@@ -99,8 +137,88 @@ export function getWhatsIncludedHeading(type: string): string {
     bootcamp: "The Experience Includes",
     training: "Program Curriculum",
     certification: "Program Curriculum",
+    assessment: "What You'll Discover",
+    templates: "What's in the Toolkit",
+    companion_journal: "Inside the Journal",
+    book_club_kit: "What's in the Kit",
+    media_kit: "What's Included",
+    audiobook: "The Listening Experience",
+    special_edition: "What Makes This Edition Special",
   };
   return map[type] || "What's Included";
+}
+
+/* ===== Trust Signal (below CTA) ===== */
+export function getTrustSignal(type: string): string {
+  if (["workbook", "homestudy", "onlinecourse", "special_edition", "audiobook", "companion_journal", "assessment", "templates"].includes(type))
+    return "Secure checkout · 30-day money-back guarantee · Instant access";
+  if (["coaching", "consulting"].includes(type))
+    return "Free discovery call · No commitment required · 100% confidential";
+  if (["group_coaching", "membership", "coaching_membership"].includes(type))
+    return "Cancel anytime · Private community";
+  if (["webinar", "workshop"].includes(type))
+    return "Limited spots · Replay included · Certificate of attendance";
+  if (["mastermind", "retreat", "bootcamp"].includes(type))
+    return "Application required · Limited spots · Premium experience";
+  if (["training", "certification"].includes(type))
+    return "Accredited program · Team discounts available · Certificate included";
+  if (["speaking", "keynote"].includes(type))
+    return "Customized for your event · Professional speaker";
+  if (["affiliate"].includes(type))
+    return "Generous commissions · Real-time tracking · Monthly payouts";
+  if (["corporate"].includes(type))
+    return "Volume discounts · Custom packaging · Dedicated account manager";
+  return "Secure checkout · Satisfaction guaranteed";
+}
+
+/* ===== Trust Bar (when no reviews exist) ===== */
+export function getTrustBarItems(type: string): string[] {
+  const digital = ["workbook", "onlinecourse", "homestudy", "audiobook", "companion_journal", "templates", "assessment", "special_edition"];
+  const services = ["coaching", "consulting", "speaking", "keynote"];
+  const group = ["group_coaching", "membership", "coaching_membership", "mastermind"];
+  const events = ["webinar", "workshop", "retreat", "bootcamp", "convention"];
+  const business = ["corporate", "licensing", "franchise", "affiliate"];
+
+  if (digital.includes(type)) return ["Self-Paced Learning", "Expert-Designed Content", "Instant Access"];
+  if (services.includes(type)) return ["Personalized Guidance", "Proven Methodology", "Flexible Scheduling"];
+  if (group.includes(type)) return ["Supportive Community", "Expert Facilitation", "Ongoing Support"];
+  if (events.includes(type)) return ["Live Experience", "Interactive Format", "Networking Opportunities"];
+  if (business.includes(type)) return ["Proven Framework", "Scalable Solution", "Dedicated Support"];
+  return ["Expert-Designed", "Proven Framework", "Instant Access"];
+}
+
+/* ===== Quick Stats Metadata ===== */
+export function getQuickStats(type: string, product: any): { label: string; value: string }[] {
+  const stats: { label: string; value: string }[] = [];
+
+  if (type === "homestudy") {
+    if (product.duration_days) stats.push({ label: "Duration", value: `${product.duration_days} days` });
+    const schedule = product.study_schedule_json;
+    if (Array.isArray(schedule) && schedule.length > 0) stats.push({ label: "Lessons", value: `${schedule.length} days` });
+  }
+  if (type === "onlinecourse") {
+    // Would need module count from separate query
+  }
+  if (type === "audiobook") {
+    if (product.duration_minutes) {
+      const h = Math.floor(product.duration_minutes / 60);
+      const m = product.duration_minutes % 60;
+      stats.push({ label: "Length", value: `${h}h ${m}m` });
+    }
+    if (product.narrator_credit) stats.push({ label: "Narrator", value: product.narrator_credit });
+  }
+  if (["coaching"].includes(type)) {
+    if (product.sessions_count) stats.push({ label: "Sessions", value: `${product.sessions_count} sessions` });
+    if (product.duration_minutes) stats.push({ label: "Duration", value: `${product.duration_minutes} min each` });
+  }
+  if (["group_coaching"].includes(type)) {
+    if (product.sessions_count) stats.push({ label: "Sessions", value: `${product.sessions_count} sessions` });
+  }
+  if (["webinar", "workshop"].includes(type)) {
+    if (product.duration_minutes) stats.push({ label: "Duration", value: `${product.duration_minutes} min` });
+  }
+
+  return stats;
 }
 
 /* ===== Go Deeper Section Copy ===== */
@@ -164,14 +282,61 @@ export function getAutoPersonas(genre: string | null, productType: string, bookT
   const g = (genre || "").toLowerCase();
   const t = productType;
 
-  if (g.includes("business") && ["workbook", "homestudy"].includes(t)) {
-    return ["Entrepreneurs who want a structured plan", "Professionals looking to level up", "Teams implementing new strategies"];
+  if (g.includes("business") && ["workbook", "homestudy", "onlinecourse", "templates"].includes(t)) {
+    return [
+      "Entrepreneurs who want a structured plan to implement these strategies",
+      "Professionals looking to level up their skills with proven frameworks",
+      "Teams implementing new strategies and need a shared resource",
+    ];
   }
-  if ((g.includes("self-help") || g.includes("personal")) && ["onlinecourse", "homestudy"].includes(t)) {
-    return ["Anyone feeling stuck and ready for change", "Lifelong learners who want guided growth", `People who loved ${bookTitle} and want to go deeper`];
+  if (g.includes("business") && ["coaching", "consulting", "mastermind"].includes(t)) {
+    return [
+      "Leaders who want personalized guidance applying these principles",
+      "Executives seeking a trusted advisor for strategic decisions",
+      "Organizations ready to transform their approach",
+    ];
   }
-  if ((g.includes("self-help") || g.includes("personal")) && ["coaching"].includes(t)) {
-    return ["Individuals ready for personalized transformation", "Professionals seeking accountability", "Anyone who wants faster results than going it alone"];
+  if ((g.includes("self-help") || g.includes("personal")) && ["workbook", "onlinecourse", "homestudy"].includes(t)) {
+    return [
+      "Anyone feeling stuck and ready for a structured path forward",
+      "Lifelong learners who want guided, step-by-step growth",
+      `People who loved the book and want to go deeper`,
+    ];
+  }
+  if ((g.includes("self-help") || g.includes("personal")) && ["coaching", "consulting"].includes(t)) {
+    return [
+      "Individuals ready for personalized transformation",
+      "Professionals seeking accountability and faster results",
+      "Anyone who wants expert guidance, not just information",
+    ];
+  }
+  if ((g.includes("memoir") || g.includes("biography"))) {
+    return [
+      "Readers inspired by the story who want to apply its lessons",
+      "Anyone facing similar challenges who wants practical guidance",
+      "People who believe in learning from real-life experiences",
+    ];
+  }
+  if ((g.includes("fiction") || g.includes("literary") || g.includes("poetry"))) {
+    return [
+      `Fans who want to immerse deeper in the world of ${bookTitle}`,
+      "Aspiring writers who want to learn from the craft",
+      "Book clubs looking for rich discussion material",
+    ];
+  }
+  if ((g.includes("health") || g.includes("wellness"))) {
+    return [
+      "Anyone ready to prioritize their wellbeing with expert guidance",
+      "People who want a structured, evidence-based approach to health",
+      "Those who've tried generic advice and want something personalized",
+    ];
+  }
+  if ((g.includes("tech") || g.includes("science"))) {
+    return [
+      "Professionals who want to stay ahead of industry trends",
+      "Teams looking to implement cutting-edge practices",
+      "Curious minds who want deeper understanding beyond the book",
+    ];
   }
 
   const formatLabel: Record<string, string> = {
@@ -181,6 +346,9 @@ export function getAutoPersonas(genre: string | null, productType: string, bookT
     coaching: "one-on-one guidance",
     audiobook: "audio",
     podcast: "podcast episodes",
+    webinar: "live interactive sessions",
+    workshop: "intensive workshops",
+    membership: "ongoing community access",
   };
 
   return [
@@ -188,4 +356,42 @@ export function getAutoPersonas(genre: string | null, productType: string, bookT
     "Anyone ready to put these ideas into practice",
     `People who learn best through ${formatLabel[t] || "interactive formats"}`,
   ];
+}
+
+/* ===== Product Type Label ===== */
+export function getProductTypeLabel(type: string): string {
+  const map: Record<string, string> = {
+    workbook: "Workbook",
+    onlinecourse: "Online Course",
+    homestudy: "Home Study Course",
+    audiobook: "Audiobook",
+    coaching: "1-on-1 Coaching",
+    group_coaching: "Group Coaching",
+    membership: "Membership",
+    coaching_membership: "Membership",
+    webinar: "Webinar",
+    workshop: "Workshop",
+    speaking: "Speaking / Keynote",
+    keynote: "Keynote",
+    consulting: "Consulting",
+    mastermind: "Mastermind",
+    retreat: "Retreat",
+    bootcamp: "Bootcamp",
+    training: "Training Program",
+    certification: "Certification",
+    convention: "Convention",
+    special_edition: "Special Edition",
+    podcast: "Podcast Tour",
+    big_ticket: "Premium Program",
+    companion_journal: "Companion Journal",
+    assessment: "Assessment",
+    templates: "Templates & Toolkit",
+    book_club_kit: "Book Club Kit",
+    media_kit: "Media Kit",
+    affiliate: "Affiliate Program",
+    corporate: "Corporate Bulk Sales",
+    licensing: "Licensing",
+    franchise: "Partnership",
+  };
+  return map[type] || "Product";
 }
