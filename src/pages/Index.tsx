@@ -117,7 +117,7 @@ export default function Index() {
             <motion.div
               variants={fadeUp}
               custom={2}
-              className="bg-background rounded-[20px] p-8 md:p-10 border-t-4 shadow-[0_20px_60px_rgba(0,0,0,0.15)] hover:-translate-y-1 hover:shadow-[0_25px_70px_rgba(0,0,0,0.2)] transition-all duration-300"
+              className="bg-background rounded-[20px] p-8 md:p-10 border-t-4 shadow-[0_20px_60px_rgba(0,0,0,0.15)] hover:-translate-y-1 hover:shadow-[0_25px_70px_rgba(0,0,0,0.2)] transition-all duration-300 flex flex-col"
               style={{ borderTopColor: "#C5A55A" }}
             >
               <div className="flex items-center gap-3 mb-4">
@@ -141,21 +141,23 @@ export default function Index() {
                   </div>
                 ))}
               </div>
-              <Button asChild className="w-full font-semibold text-base py-5 rounded-xl" style={{ backgroundColor: "#C5A55A", color: "#0B1D3A" }}>
-                <Link to="/get-started">
-                  Start Building Your Empire <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-              <p className="text-center text-xs text-muted-foreground/60 mt-3">
-                Free to start · No credit card required
-              </p>
+              <div className="mt-auto">
+                <Button asChild className="w-full font-semibold text-base py-5 rounded-xl" style={{ backgroundColor: "#C5A55A", color: "#0B1D3A" }}>
+                  <Link to="/get-started">
+                    Start Building Your Empire <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+                <p className="text-center text-xs text-muted-foreground/60 mt-3">
+                  Free to start · No credit card required
+                </p>
+              </div>
             </motion.div>
 
             {/* Reader Card */}
             <motion.div
               variants={fadeUp}
               custom={3}
-              className="bg-background rounded-[20px] p-8 md:p-10 border-t-4 shadow-[0_20px_60px_rgba(0,0,0,0.15)] hover:-translate-y-1 hover:shadow-[0_25px_70px_rgba(0,0,0,0.2)] transition-all duration-300"
+              className="bg-background rounded-[20px] p-8 md:p-10 border-t-4 shadow-[0_20px_60px_rgba(0,0,0,0.15)] hover:-translate-y-1 hover:shadow-[0_25px_70px_rgba(0,0,0,0.2)] transition-all duration-300 flex flex-col"
               style={{ borderTopColor: "#4A9E8E" }}
             >
               <div className="flex items-center gap-3 mb-4">
@@ -179,14 +181,16 @@ export default function Index() {
                   </div>
                 ))}
               </div>
-              <Button asChild className="w-full font-semibold text-base py-5 rounded-xl text-white" style={{ backgroundColor: "#4A9E8E" }}>
-                <Link to="/reading-club">
-                  Explore as a Reader <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-              <p className="text-center text-xs text-muted-foreground/60 mt-3">
-                Browse 1000+ authors · Free to join
-              </p>
+              <div className="mt-auto">
+                <Button asChild className="w-full font-semibold text-base py-5 rounded-xl text-white" style={{ backgroundColor: "#4A9E8E" }}>
+                  <Link to="/reading-club">
+                    Explore as a Reader <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+                <p className="text-center text-xs text-muted-foreground/60 mt-3">
+                  Browse authors · Free to join
+                </p>
+              </div>
             </motion.div>
           </motion.div>
         </div>
