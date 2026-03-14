@@ -339,17 +339,20 @@ export default function AuthorProductPage() {
   const isPurchasable = product.price != null && product.price > 0 && ["homestudy", "onlinecourse", "workbook", "audiobook"].includes(pType);
 
   // Parse FAQs from salesPageContent
+  const faqRegex = /(?:^|\n)#{1,3}\s*(?:FAQ|Frequently Asked Questions)[^\n]*\n([\s\S]*)$/i;
+  const faqRegexPlain = /(?:^|\n)(?:FAQ|Frequently Asked Questions)[:\s]*\n([\s\S]*)$/i;
   const faqs: { q: string; a: string }[] = [];
   if (salesPageContent) {
-    const faqMatch = salesPageContent.match(/(?:^|\n)##?\s*(?:FAQ|Frequently Asked Questions)[^\n]*\n([\s\S]*?)(?=\n##?\s|$)/i);
+    const faqMatch = salesPageContent.match(faqRegex) || salesPageContent.match(faqRegexPlain);
     if (faqMatch) {
       const faqBlock = faqMatch[1];
-      const qaPairs = faqBlock.split(/\n(?:\*\*Q:|###?\s)/i).filter(Boolean);
+      // Support Q:/A: pairs, **Q:** pairs, or ### heading pairs
+      const qaPairs = faqBlock.split(/\n(?=(?:\*\*)?Q[:\s]|###?\s)/i).filter(Boolean);
       qaPairs.forEach(pair => {
         const lines = pair.trim().split("\n").filter(l => l.trim());
         if (lines.length >= 2) {
-          const q = lines[0].replace(/^\*\*|\*\*$/g, "").replace(/^Q:\s*/i, "").trim();
-          const a = lines.slice(1).join(" ").replace(/^\*\*A:\*\*\s*/i, "").replace(/^\*\*|\*\*$/g, "").trim();
+          const q = lines[0].replace(/^\*\*|\*\*$/g, "").replace(/^#{1,3}\s*/, "").replace(/^Q[:\s]\s*/i, "").trim();
+          const a = lines.slice(1).join(" ").replace(/^\*\*A[:\s]\*\*\s*/i, "").replace(/^A[:\s]\s*/i, "").replace(/^\*\*|\*\*$/g, "").trim();
           if (q && a) faqs.push({ q, a });
         }
       });
@@ -566,7 +569,10 @@ export default function AuthorProductPage() {
 
       {/* 8. BODY COPY — Full-width with accent left border for impact (FAQ stripped) */}
       {salesPageContent && (() => {
-        const contentWithoutFaq = salesPageContent.replace(/(?:^|\n)##?\s*(?:FAQ|Frequently Asked Questions)[^\n]*\n[\s\S]*?(?=\n##?\s|$)/i, "").trim();
+        const contentWithoutFaq = salesPageContent
+          .replace(/(?:^|\n)#{1,3}\s*(?:FAQ|Frequently Asked Questions)[^\n]*\n[\s\S]*$/i, "")
+          .replace(/(?:^|\n)(?:FAQ|Frequently Asked Questions)[:\s]*\n[\s\S]*$/i, "")
+          .trim();
         return contentWithoutFaq ? (
           <section className="py-16 md:py-24" style={{ background: v.secondaryBg }}>
             <div className="container max-w-4xl px-4">
