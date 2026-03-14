@@ -798,7 +798,7 @@ function UpsellCard({ product }: { product: UpsellProduct }) {
 
 function ContentSection({ emoji, label, content, hint, highlight }: { emoji: string; label: string; content: string; hint?: string; highlight?: boolean }) {
   return (
-    <div className="bg-muted/40 rounded-xl p-4 border border-border/50">
+    <div className={cn("rounded-xl p-4 border", highlight ? "bg-primary/5 border-primary/20" : "bg-muted/40 border-border/50")}>
       <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
         {emoji} {label}
       </p>
