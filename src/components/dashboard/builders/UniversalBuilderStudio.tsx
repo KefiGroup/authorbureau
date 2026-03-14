@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, ArrowRight, BookOpen, Check, Loader2, Save,
   Sparkles, X, Send, ChevronLeft, Lock, AlertCircle, Wand2,
+  Crown, Clock,
 } from "lucide-react";
 import AbbyNarrativeLoading from "./AbbyNarrativeLoading";
 import ActPhaseBadge from "./shared/ActPhaseBadge";
