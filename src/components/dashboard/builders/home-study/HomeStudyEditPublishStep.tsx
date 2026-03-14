@@ -107,6 +107,24 @@ export default function HomeStudyEditPublishStep({
     onMarkEdited("edit");
   }, [activeSegment, onMarkEdited, setStepData, setup.salesCopy, setup.whatsIncluded]);
 
+  // Auto-extract FAQs from salesCopy on first load
+  const [faqExtracted, setFaqExtracted] = useState(false);
+  useEffect(() => {
+    if (faqExtracted || !setup.salesCopy) return;
+    // Only extract if no faqs exist yet and salesCopy contains FAQ content
+    if ((!setup.faqs || setup.faqs.length === 0) && /\bQ:\s/i.test(setup.salesCopy)) {
+      const { cleanedCopy, faqs } = extractFaqsFromCopy(setup.salesCopy);
+      if (faqs.length > 0) {
+        setStepData(prev => ({
+          ...prev,
+          setup: { ...prev.setup, salesCopy: cleanedCopy, faqs },
+        }));
+        onMarkEdited("edit");
+      }
+    }
+    setFaqExtracted(true);
+  }, [setup.salesCopy, setup.faqs, faqExtracted, setStepData, onMarkEdited]);
+
   if (days.length === 0) {
     return (
       <div className="text-center py-12">
