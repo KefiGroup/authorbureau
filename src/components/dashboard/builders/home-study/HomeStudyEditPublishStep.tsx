@@ -60,21 +60,6 @@ export default function HomeStudyEditPublishStep({
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
   const [previewPage, setPreviewPage] = useState(0);
 
-  if (days.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <BookOpen className="h-12 w-12 text-muted-foreground/20 mx-auto mb-4" />
-        <h3 className="font-heading text-lg font-semibold mb-2">No Program Generated Yet</h3>
-        <p className="text-sm text-muted-foreground">
-          Go back to Program Setup and let Abby generate your home study program first.
-        </p>
-      </div>
-    );
-  }
-
-  const currentDay = days[selectedIdx];
-  const weeks = Array.from(new Set(days.map(d => d.weekNumber))).sort((a, b) => a - b);
-
   useEffect(() => {
     if (activeSegment !== "sales") return;
 
@@ -100,6 +85,21 @@ export default function HomeStudyEditPublishStep({
     }));
     onMarkEdited("edit");
   }, [activeSegment, onMarkEdited, setStepData, setup.salesCopy, setup.whatsIncluded]);
+
+  if (days.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <BookOpen className="h-12 w-12 text-muted-foreground/20 mx-auto mb-4" />
+        <h3 className="font-heading text-lg font-semibold mb-2">No Program Generated Yet</h3>
+        <p className="text-sm text-muted-foreground">
+          Go back to Program Setup and let Abby generate your home study program first.
+        </p>
+      </div>
+    );
+  }
+
+  const currentDay = days[selectedIdx];
+  const weeks = Array.from(new Set(days.map(d => d.weekNumber))).sort((a, b) => a - b);
 
   const toggleTabEditing = (field: EditableDayField) => {
     if (editingTab === field) {
