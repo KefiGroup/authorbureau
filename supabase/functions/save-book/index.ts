@@ -324,6 +324,45 @@ serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    // ─── Push to shared backend (non-fatal) ───
+    try {
+      const crossSecret = Deno.env.get("CROSS_PLATFORM_SECRET");
+      if (crossSecret) {
+        let pushEmail = isPlatformPush ? body.email : null;
+        if (!pushEmail) {
+          const { data: { user: emailUser } } = await cloudAdmin.auth.admin.getUserById(userId);
+          pushEmail = emailUser?.email || null;
+        }
+        if (pushEmail) {
+          const pushRes = await fetch(
+            `${SHARED_BACKEND_URL}/functions/v1/receive-book-from-ab`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                platform_secret: crossSecret,
+                email: pushEmail,
+                book: {
+                  source_book_id: newBook.id,
+                  title: bookData.title,
+                  subtitle: bookData.subtitle || null,
+                  description: bookData.description || null,
+                  content: bookData.description || bookData.title,
+                  author_name: authorName,
+                  author_bio: authorBio,
+                  cover_image_url: bookData.coverImageUrl || bookData.cover_image_url || null,
+                  genre: bookData.genre || null,
+                },
+              }),
+            }
+          );
+          const pushData = await pushRes.json().catch(() => ({}));
+          console.log("[save-book] Push to shared backend:", pushRes.status, pushData);
+        }
+      }
+    } catch (pushErr) {
+      console.error("[save-book] Push to shared backend failed (non-fatal):", pushErr);
+    }
 
     // ─── Send "Under Review" email notification ───
     try {
