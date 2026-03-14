@@ -136,6 +136,97 @@ export default function ReaderContentViewer() {
     setLoading(false);
   }, [purchaseId, getToken]);
 
+  // Fetch upsell products for this book's ecosystem
+  const fetchUpsellProducts = useCallback(async (forBookId: string, currentProductType: string) => {
+    const upsells: UpsellProduct[] = [];
+
+    // Get book info for slugs
+    const { data: bookInfo } = await supabase
+      .from("books")
+      .select("title, slug, author_id")
+      .eq("id", forBookId)
+      .maybeSingle();
+
+    let authorSlug: string | undefined;
+    if (bookInfo?.author_id) {
+      const { data: profile } = await supabase
+        .from("author_profiles")
+        .select("author_slug")
+        .eq("user_id", bookInfo.author_id)
+        .maybeSingle();
+      authorSlug = profile?.author_slug || undefined;
+    }
+
+    const bookSlug = bookInfo?.slug;
+
+    // The journey sequence: book → workbook → home_study → online_course → coaching
+    // Current user is viewing a home_study, so suggest what comes NEXT
+
+    // Check for online course
+    const { data: courses } = await supabase
+      .from("courses")
+      .select("id, title, price, status, description")
+      .eq("book_id", forBookId)
+      .eq("status", "published")
+      .limit(1);
+
+    if (courses && courses.length > 0) {
+      upsells.push({
+        type: "online_course",
+        title: courses[0].title,
+        description: courses[0].description || "Take your learning to the next level with structured video lessons and guided modules.",
+        price: courses[0].price ?? undefined,
+        productId: courses[0].id,
+        authorSlug,
+        bookSlug: bookSlug || undefined,
+      });
+    }
+
+    // Check for audiobook
+    const { data: audiobooks } = await supabase
+      .from("audiobooks")
+      .select("id, title, price, status, description")
+      .eq("book_id", forBookId)
+      .eq("status", "published")
+      .limit(1);
+
+    if (audiobooks && audiobooks.length > 0) {
+      upsells.push({
+        type: "audiobook",
+        title: audiobooks[0].title,
+        description: audiobooks[0].description || "Listen on the go and reinforce what you've learned with the audiobook companion.",
+        price: audiobooks[0].price ?? undefined,
+        productId: audiobooks[0].id,
+        authorSlug,
+        bookSlug: bookSlug || undefined,
+      });
+    }
+
+    // Check for coaching packages
+    if (bookInfo?.author_id) {
+      const { data: coaching } = await supabase
+        .from("coaching_packages")
+        .select("id, title, price, description, type, status")
+        .eq("author_id", bookInfo.author_id)
+        .eq("status", "active")
+        .limit(1);
+
+      if (coaching && coaching.length > 0) {
+        upsells.push({
+          type: "coaching",
+          title: coaching[0].title,
+          description: coaching[0].description || "Get personalized guidance and accelerate your transformation with 1-on-1 coaching.",
+          price: coaching[0].price ?? undefined,
+          productId: coaching[0].id,
+          authorSlug,
+          bookSlug: bookSlug || undefined,
+        });
+      }
+    }
+
+    setUpsellProducts(upsells);
+  }, []);
+
   useEffect(() => {
     if (user) loadContent();
   }, [user, loadContent]);
