@@ -283,8 +283,8 @@ export default function HomeStudyEditPublishStep({
                     </div>
                     {editingTab === "concept" ? (
                       <Textarea
-                        value={stripMarkdownForEditing(currentDay.concept || "")}
-                        onChange={e => updateDay("concept", e.target.value)}
+                        value={currentDay.concept || ""}
+                        onChange={e => updateDay("concept", stripMarkdownForEditing(e.target.value))}
                         rows={12}
                         className="text-sm"
                       />
@@ -307,8 +307,8 @@ export default function HomeStudyEditPublishStep({
                     </div>
                     {editingTab === "exercise" ? (
                       <Textarea
-                        value={stripMarkdownForEditing(currentDay.exercise || "")}
-                        onChange={e => updateDay("exercise", e.target.value)}
+                        value={currentDay.exercise || ""}
+                        onChange={e => updateDay("exercise", stripMarkdownForEditing(e.target.value))}
                         rows={12}
                         className="text-sm"
                       />
@@ -331,8 +331,8 @@ export default function HomeStudyEditPublishStep({
                     </div>
                     {editingTab === "reflection" ? (
                       <Textarea
-                        value={stripMarkdownForEditing(currentDay.reflection || "")}
-                        onChange={e => updateDay("reflection", e.target.value)}
+                        value={currentDay.reflection || ""}
+                        onChange={e => updateDay("reflection", stripMarkdownForEditing(e.target.value))}
                         rows={12}
                         className="text-sm"
                       />
@@ -355,8 +355,8 @@ export default function HomeStudyEditPublishStep({
                     </div>
                     {editingTab === "actionPlan" ? (
                       <Textarea
-                        value={stripMarkdownForEditing(currentDay.actionPlan || "")}
-                        onChange={e => updateDay("actionPlan", e.target.value)}
+                        value={currentDay.actionPlan || ""}
+                        onChange={e => updateDay("actionPlan", stripMarkdownForEditing(e.target.value))}
                         rows={12}
                         className="text-sm"
                       />
