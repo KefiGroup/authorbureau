@@ -43,7 +43,32 @@ serve(async (req) => {
     if (!email) throw new Error("Could not resolve user email");
     email = email.toLowerCase();
 
-    const { action, purchaseId, dayNumber } = await req.json();
+    const { action, purchaseId, dayNumber, startDate } = await req.json();
+
+    if (action === "set-start-date") {
+      // Verify purchase ownership
+      const { data: purchase } = await admin
+        .from("purchases")
+        .select("id")
+        .eq("id", purchaseId)
+        .eq("customer_email", email)
+        .eq("refund_status", "none")
+        .single();
+      if (!purchase) throw new Error("Purchase not found");
+
+      // Upsert start date
+      const { error } = await admin
+        .from("reader_start_dates")
+        .upsert(
+          { purchase_id: purchaseId, user_email: email, start_date: startDate },
+          { onConflict: "purchase_id" }
+        );
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (action === "get-content") {
       // 1. Verify purchase ownership
@@ -74,16 +99,31 @@ serve(async (req) => {
         .select("day_number, completed_at")
         .eq("purchase_id", purchaseId);
 
-      // 4. Calculate drip: days since purchase
-      const purchaseDate = new Date(purchase.created_at);
-      const now = new Date();
-      const daysSincePurchase = Math.floor((now.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      // 4. Get reader's chosen start date
+      const { data: startDateRow } = await admin
+        .from("reader_start_dates")
+        .select("start_date")
+        .eq("purchase_id", purchaseId)
+        .maybeSingle();
+
+      // 5. Calculate drip based on start date (or null if not started)
+      let unlockedUpToDay = 0;
+      let readerStartDate: string | null = null;
+
+      if (startDateRow?.start_date) {
+        readerStartDate = startDateRow.start_date;
+        const start = new Date(startDateRow.start_date + "T00:00:00Z");
+        const now = new Date();
+        const daysSinceStart = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        unlockedUpToDay = Math.max(0, daysSinceStart);
+      }
 
       return new Response(JSON.stringify({
         purchase,
         studyData,
         progress: progress || [],
-        unlockedUpToDay: daysSincePurchase,
+        unlockedUpToDay,
+        startDate: readerStartDate,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -93,18 +133,26 @@ serve(async (req) => {
       // Verify purchase ownership first
       const { data: purchase } = await admin
         .from("purchases")
-        .select("id, created_at")
+        .select("id")
         .eq("id", purchaseId)
         .eq("customer_email", email)
         .eq("refund_status", "none")
         .single();
       if (!purchase) throw new Error("Purchase not found");
 
-      // Check drip lock
-      const purchaseDate = new Date(purchase.created_at);
+      // Check drip lock using start date
+      const { data: startDateRow } = await admin
+        .from("reader_start_dates")
+        .select("start_date")
+        .eq("purchase_id", purchaseId)
+        .maybeSingle();
+
+      if (!startDateRow?.start_date) throw new Error("Start date not set");
+
+      const start = new Date(startDateRow.start_date + "T00:00:00Z");
       const now = new Date();
-      const daysSincePurchase = Math.floor((now.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-      if (dayNumber > daysSincePurchase) throw new Error("Day not yet unlocked");
+      const daysSinceStart = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      if (dayNumber > daysSinceStart) throw new Error("Day not yet unlocked");
 
       const { error } = await admin
         .from("reader_progress")
