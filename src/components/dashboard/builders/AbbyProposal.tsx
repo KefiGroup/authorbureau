@@ -255,9 +255,6 @@ export default function AbbyProposal({ proposal, builderLabel, bookTitle, onAppr
           Looks Great — Generate Everything
         </Button>
       </div>
-      <p className="text-[10px] text-center text-muted-foreground/50">
-        You can edit any field above before generating. Abby will use your changes.
-      </p>
     </motion.div>
   );
 }
