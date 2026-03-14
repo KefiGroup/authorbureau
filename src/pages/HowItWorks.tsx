@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
-const STAIRCASE_IMAGE = "/images/journey-staircase.webp";
-const FLOW_DIAGRAM_IMAGE = "/images/journey-flow-diagram.png";
-const COMPARISON_IMAGE = "/images/journey-comparison.png";
-const THREE_PATHS_IMAGE = "/images/journey-three-paths.png";
+const STAIRCASE_IMAGE = "/images/abby-journey-framework.png";
+const FLOW_DIAGRAM_IMAGE = "/images/abby-journey-framework.png";
+const COMPARISON_IMAGE = "/images/abby-journey-framework.png";
+const THREE_PATHS_IMAGE = "/images/abby-journey-framework.png";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },

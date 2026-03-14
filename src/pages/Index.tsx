@@ -256,7 +256,7 @@ export default function Index() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            src="/images/journey-staircase.webp"
+            src="/images/abby-journey-framework.png"
             alt="The ABBY Journey Framework — FREE to BUILD to BRIDGE to YIELD"
             className="w-full max-w-[900px] mx-auto rounded-2xl shadow-xl mb-12"
             loading="lazy"

@@ -4,22 +4,22 @@ import { ChevronRight, X, Eye, EyeOff } from "lucide-react";
 
 const CARDS = [
   {
-    image: "/images/journey-staircase.webp",
+    image: "/images/abby-journey-framework.png",
     label: "The Journey",
     subtitle: "FREE → BUILD → BRIDGE → YIELD",
   },
   {
-    image: "/images/journey-flow-diagram.png",
+    image: "/images/abby-journey-framework.png",
     label: "How It Connects",
     subtitle: "28 streams, one ecosystem",
   },
   {
-    image: "/images/journey-comparison.png",
+    image: "/images/abby-journey-framework.png",
     label: "Know Your Products",
     subtitle: "What's the difference?",
   },
   {
-    image: "/images/journey-three-paths.png",
+    image: "/images/abby-journey-framework.png",
     label: "Choose Your Path",
     subtitle: "Side Hustler · Serious · Enterprise",
   },
