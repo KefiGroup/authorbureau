@@ -989,6 +989,8 @@ export default function HomeStudyReviewView({
                 })}
               </div>
             </div>
+
+            <div className="flex gap-2 pt-2">
               <Button onClick={handleSaveSalesPage} disabled={saving} className="flex-1">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
                 Save Sales Page
