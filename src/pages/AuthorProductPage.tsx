@@ -255,7 +255,7 @@ export default function AuthorProductPage() {
     if (config.statusField === "published_at") query = query.not("published_at", "is", null);
     else query = query.eq(config.statusField, config.statusValue);
     if ((config as any).typeFilter && config.table === "coaching_packages") query = query.eq("type", (config as any).typeFilter);
-    const { data: productData } = await query.limit(1).maybeSingle();
+    const { data: productData } = await query.limit(1).maybeSingle() as { data: any };
     if (!productData) { setNotFound(true); setLoading(false); return; }
     setProduct(productData);
 
