@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Check, Crown, Loader2, ArrowUpRight, Shield, Sparkles,
-  TrendingUp, Star, Lock, X,
+  TrendingUp, Star, Lock, X, Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
