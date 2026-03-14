@@ -266,7 +266,7 @@ export default function AuthorProductPage() {
       salesAssetType
         ? supabase.from("generated_assets").select("content").eq("book_id", bookId).eq("author_id", profile.user_id).eq("asset_type", salesAssetType).order("updated_at", { ascending: false }).limit(1).maybeSingle()
         : Promise.resolve({ data: null }),
-      supabase.from("testimonials" as any).select("*").eq("author_id", profile.user_id).order("created_at", { ascending: false }).limit(10),
+      supabase.from("testimonials" as any).select("*").eq("author_id", profile.user_id).order("created_at", { ascending: false }).limit(10) as any,
       ...[
         { table: "home_study_courses", status: "published", fields: "id, title, price, currency, description, cover_image_url", byBook: true },
         { table: "courses", status: "published", fields: "id, title, price, currency, description, cover_image_url", byBook: true },
