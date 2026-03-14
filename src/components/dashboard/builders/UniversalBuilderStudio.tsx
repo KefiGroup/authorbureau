@@ -611,6 +611,33 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
   const currentStepConfig = nodeConfig.steps[safeCurrentStep] || nodeConfig.steps[0];
   const isLastStep = safeCurrentStep === nodeConfig.steps.length - 1;
 
+  // ─── ENTERPRISE COMING SOON GATE ──────────────────────────────────
+  if (nodeConfig.requiredTier === "enterprise") {
+    return (
+      <div className="max-w-2xl mx-auto py-16 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-100 to-amber-50 flex items-center justify-center mx-auto mb-6">
+            <Crown className="h-9 w-9 text-amber-500" />
+          </div>
+          <Badge className="bg-amber-100 text-amber-700 border-amber-200 mb-4">Coming Soon</Badge>
+          <h1 className="font-heading text-2xl md:text-3xl font-bold mb-3">
+            {nodeConfig.label}
+          </h1>
+          <p className="text-muted-foreground text-sm max-w-md mx-auto mb-6">
+            {nodeConfig.abbyGreeting || `The ${nodeConfig.label} builder is coming soon as part of our Enterprise tier. We're working hard to bring you the most powerful tools for maximizing your book's revenue potential.`}
+          </p>
+          <div className="inline-flex items-center gap-2 rounded-full bg-muted/50 px-5 py-2.5 text-xs text-muted-foreground">
+            <Clock className="h-3.5 w-3.5" />
+            We'll notify you when this builder launches
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   // ─── SUBSCRIPTION GATE ─────────────────────────────────────────────
   if (!hasAccess) {
     return (
