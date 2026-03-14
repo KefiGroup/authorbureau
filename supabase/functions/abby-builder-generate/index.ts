@@ -646,7 +646,7 @@ Write ONLY the paid product content (what buyers receive AFTER purchase):
 3. Full professional lesson content + exercises + worksheets/prompts
 4. Supporting materials (scripts, templates, quizzes, reflection prompts)
 5. Author voice + manuscript terminology + chapter references
-6. Completion/certificate section
+6. Do NOT include any certificate of completion section — certificates are handled separately by the platform
 
 IMPORTANT for Home Study courses specifically:
 - Each day must have: theme, reading, concept, fieldAssignment, accountabilityCheck, microHabit, actionPlan
