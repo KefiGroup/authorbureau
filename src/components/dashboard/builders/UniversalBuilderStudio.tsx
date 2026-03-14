@@ -387,13 +387,14 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
         if (!isMounted || !result?.draft) return;
         const parsed = result.draft;
 
+        const maxStepIndex = Math.max(0, nodeConfig.steps.length - 1);
         if (parsed.stepData) {
           setStepData(parsed.stepData);
           const inferredStep = inferStepFromDraftData(parsed.stepData);
           const savedStep = typeof parsed.currentStep === "number" ? parsed.currentStep : 0;
-          setCurrentStep(Math.max(savedStep, inferredStep));
+          setCurrentStep(Math.max(0, Math.min(Math.max(savedStep, inferredStep), maxStepIndex)));
         } else if (typeof parsed.currentStep === "number") {
-          setCurrentStep(parsed.currentStep);
+          setCurrentStep(Math.max(0, Math.min(parsed.currentStep, maxStepIndex)));
         }
 
         if (Array.isArray(parsed.editedSteps)) setEditedSteps(new Set(parsed.editedSteps));
