@@ -215,7 +215,7 @@ export default function ABBYJourneyOnboarding({ userId, onComplete }: Props) {
                       Most authors stop at the book. You're about to discover 28 ways to monetize your expertise.
                     </p>
                   </div>
-                  <img src="/images/journey-staircase.webp" alt="ABBY Journey Staircase" className="w-full rounded-lg" />
+                  <img src="/images/abby-journey-framework.png" alt="ABBY Journey Framework" className="w-full rounded-lg" />
                 </div>
               )}
 
