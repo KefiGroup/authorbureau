@@ -26,6 +26,22 @@ const SEGMENTS = [
 ] as const;
 
 type SegmentId = (typeof SEGMENTS)[number]["id"];
+type EditableDayField = "concept" | "exercise" | "reflection" | "actionPlan";
+
+const stripMarkdownForEditing = (content?: string | null): string => {
+  if (!content) return "";
+
+  return content
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/\*\*\*(.*?)\*\*\*/g, "$1")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/^[-•]\s+/gm, "")
+    .replace(/^\d+\.\s+/gm, "")
+    .replace(/^>\s?/gm, "")
+    .replace(/`{1,3}/g, "")
+    .trim();
+};
 
 export default function HomeStudyEditPublishStep({
   stepData, setStepData, onMarkEdited, bookId, bookTitle,
