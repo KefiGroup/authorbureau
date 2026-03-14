@@ -910,7 +910,85 @@ export default function HomeStudyReviewView({
               />
             </div>
 
-            <div className="flex gap-2 pt-2">
+            <Separator />
+
+            {/* ── PRICING ── */}
+            <div>
+              <Label className="text-xs font-semibold mb-2 block">Pricing</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">Price (USD)</Label>
+                  <div className="relative mt-1">
+                    <DollarSign className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      value={salesPrice}
+                      onChange={(e) => setSalesPrice(e.target.value)}
+                      placeholder="47"
+                      className="pl-8 h-8 text-sm"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">Compare-at Price (optional)</Label>
+                  <div className="relative mt-1">
+                    <DollarSign className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      value={salesComparePrice}
+                      onChange={(e) => setSalesComparePrice(e.target.value)}
+                      placeholder="97"
+                      className="pl-8 h-8 text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+              {salesPrice && salesComparePrice && Number(salesComparePrice) > Number(salesPrice) && (
+                <p className="text-[10px] text-accent mt-1">
+                  {Math.round((1 - Number(salesPrice) / Number(salesComparePrice)) * 100)}% discount shown to buyers
+                </p>
+              )}
+            </div>
+
+            <Separator />
+
+            {/* ── DESIGN TEMPLATE ── */}
+            <div>
+              <Label className="text-xs font-semibold mb-1 flex items-center gap-1.5">
+                <Palette className="h-3.5 w-3.5" /> Sales Page Design
+              </Label>
+              <p className="text-[10px] text-muted-foreground mb-3">Choose a visual template for your public sales page.</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {SALES_PAGE_DESIGNS.map(design => {
+                  const isSelected = salesDesignTemplate === design.id;
+                  return (
+                    <button
+                      key={design.id}
+                      type="button"
+                      onClick={() => setSalesDesignTemplate(design.id)}
+                      className={`relative rounded-lg border-2 overflow-hidden transition-all text-left ${
+                        isSelected
+                          ? "border-secondary ring-2 ring-secondary/20"
+                          : "border-border hover:border-secondary/40"
+                      }`}
+                    >
+                      <div className={`h-12 ${design.preview} flex items-center justify-center`}>
+                        <span className={`text-[7px] font-bold ${design.preview.includes("text-white") || design.preview.includes("text-amber") ? "" : "text-foreground"}`}>
+                          Preview
+                        </span>
+                      </div>
+                      <div className="p-1.5 bg-background">
+                        <p className="text-[10px] font-bold leading-tight">{design.label}</p>
+                        <p className="text-[8px] text-muted-foreground leading-snug">{design.description}</p>
+                      </div>
+                      {isSelected && (
+                        <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-secondary flex items-center justify-center">
+                          <span className="text-secondary-foreground text-[8px]">✓</span>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
               <Button onClick={handleSaveSalesPage} disabled={saving} className="flex-1">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
                 Save Sales Page
