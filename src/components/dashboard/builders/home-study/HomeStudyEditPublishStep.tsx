@@ -15,6 +15,9 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { generateJSONWithAI } from "@/lib/ai-generate";
 import type { HomeStudyStepProps, StudyDay } from "./types";
+import SharedSalesCopyEditor from "../shared/SharedSalesCopyEditor";
+import SharedSalesCopyPreview from "../shared/SharedSalesCopyPreview";
+import { DEFAULT_SALES_COPY, type SalesCopyData } from "../shared/salesCopyTypes";
 
 
 const SEGMENTS = [
@@ -273,168 +276,85 @@ export default function HomeStudyEditPublishStep({
       {/* ─── SEGMENT 3: Sales Copy & Pricing ─── */}
       {activeSegment === "sales" && (
         <div className="space-y-5">
-          <Card className="p-6 space-y-5">
-            <h3 className="font-heading text-base font-bold flex items-center gap-2">
-              <ShoppingCart className="h-4 w-4 text-secondary" /> Sales Page & Pricing
+          <Card className="p-6">
+            <h3 className="font-heading text-base font-bold flex items-center gap-2 mb-4">
+              <ShoppingCart className="h-4 w-4 text-secondary" /> Sales Page Copy (11-Section Framework)
             </h3>
+            <SharedSalesCopyEditor
+              data={setup.salesCopyData || {
+                ...DEFAULT_SALES_COPY,
+                hero: { ...DEFAULT_SALES_COPY.hero, title: setup.title || bookTitle || "" },
+                pricing: {
+                  ...DEFAULT_SALES_COPY.pricing,
+                  price: setup.price || "",
+                  comparePrice: setup.comparePrice || "",
+                  currency: setup.currency || "USD",
+                },
+                faq: { items: setup.faqs || [] },
+                introduction: { paragraph: setup.salesCopy || "" },
+                whatsInside: { items: setup.whatsIncluded ? setup.whatsIncluded.split("\n").filter(Boolean) : [""] },
+              }}
+              onChange={(salesCopyData) => {
+                updateSetup("salesCopyData", salesCopyData);
+                // Sync key fields back to setup for publish compatibility
+                updateSetup("title", salesCopyData.hero.title);
+                updateSetup("price", salesCopyData.pricing.price);
+                updateSetup("comparePrice", salesCopyData.pricing.comparePrice);
+                updateSetup("currency", salesCopyData.pricing.currency || "USD");
+              }}
+              productLabel="Home Study"
+              onGenerateWithAbby={async () => {
+                setGenerationState("analyzing");
+                try {
+                  const result = await generateJSONWithAI<{ salesCopy: SalesCopyData }>(
+                    `Generate a complete 11-section sales page for a home study course called "${setup.title || bookTitle}" based on the book "${bookTitle}".
+The course is ${days.length} days, ${setup.commitment || 15} min/day, ${setup.level || "Beginner"} level.
 
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground block mb-1.5">Program Title</label>
-              <Input value={setup.title || ""} onChange={e => updateSetup("title", e.target.value)}
-                placeholder="e.g., 21-Day Transformation Journey" className="h-9" />
-            </div>
+Return a JSON object with key "salesCopy" containing:
+{
+  "hero": { "title": "...", "tagline": "one-line tagline", "ctaText": "Start the Program" },
+  "problem": { "headline": "Are you struggling with...", "painPoints": ["point1", "point2", "point3"] },
+  "transformation": { "before": ["struggle1", "struggle2", "struggle3"], "after": ["result1", "result2", "result3"] },
+  "introduction": { "paragraph": "What it is, who it's for, 2-3 sentences" },
+  "whatsInside": { "items": ["item1", "item2", "item3", "item4", "item5"] },
+  "howItWorks": { "steps": [{ "title": "Enroll", "description": "..." }, { "title": "Learn", "description": "..." }, { "title": "Transform", "description": "..." }] },
+  "author": { "name": "", "bio": "", "credentials": "" },
+  "socialProof": { "testimonials": [] },
+  "pricing": { "price": "${setup.price || "47"}", "comparePrice": "${setup.comparePrice || ""}", "currency": "USD", "ctaText": "Start the Program", "included": ["item1", "item2", "item3"] },
+  "faq": { "items": [{ "q": "question", "a": "answer" }, ...5-7 items] },
+  "finalCta": { "headline": "...", "subheadline": "...", "ctaText": "Get Started Today", "urgency": "..." }
+}
+Make all copy compelling, benefit-driven, and plain text only. No markdown.`,
+                    { bookId, isPremium: true },
+                  );
+                  updateSetup("salesCopyData", result.salesCopy);
+                  updateSetup("title", result.salesCopy.hero.title);
+                  updateSetup("price", result.salesCopy.pricing.price);
+                  updateSetup("comparePrice", result.salesCopy.pricing.comparePrice);
+                  setGenerationState("complete");
+                  toast({ title: "Sales copy generated!" });
+                } catch {
+                  setGenerationState("error");
+                  toast({ title: "Generation failed", variant: "destructive" });
+                }
+              }}
+              generating={generationState === "analyzing" || generationState === "generating"}
+            />
+          </Card>
 
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground block mb-1.5">Program Subtitle / Tagline</label>
-              <Input value={setup.subtitle || ""} onChange={e => updateSetup("subtitle", e.target.value)}
-                placeholder="A guided self-paced learning experience..." className="h-9" />
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground block mb-1.5">Sales Description</label>
-              <Textarea value={setup.salesCopy || ""} onChange={e => updateSetup("salesCopy", sanitizeSalesCopy(e.target.value))}
-                placeholder="Write compelling sales copy that describes the transformation your student will experience..."
-                rows={8} className="text-sm" />
-              {!setup.salesCopy && (
-                <Button variant="outline" size="sm" className="mt-2 text-xs"
-                  onClick={async () => {
-                    setGenerationState("analyzing");
-                    try {
-                      const result = await generateJSONWithAI<{ salesCopy: string }>(
-                        `Write a compelling sales page description (300-400 words, plain text only) for a home study course called "${setup.title || bookTitle}" based on the book "${bookTitle}".
-Do not use markdown symbols, headings, bullets, asterisks, or hashtags.
-Include: transformation promise, who it's for, what they'll learn, what's included (${days.length} days, ${setup.commitment || 15} min/day), and a call to action.
-Return JSON: { "salesCopy": "..." }`,
-                        { bookId, isPremium: true },
-                      );
-                      updateSetup("salesCopy", sanitizeSalesCopy(result.salesCopy));
-                      setGenerationState("complete");
-                      toast({ title: "Sales copy generated!" });
-                    } catch {
-                      setGenerationState("error");
-                      toast({ title: "Generation failed", variant: "destructive" });
-                    }
-                  }}
-                  disabled={generationState === "analyzing" || generationState === "generating"}
-                >
-                  <Sparkles className="h-3 w-3 mr-1" /> Generate Sales Copy with Abby
-                </Button>
-              )}
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground block mb-1.5">What's Included (Bullet Points)</label>
-              <Textarea value={setup.whatsIncluded || ""} onChange={e => updateSetup("whatsIncluded", sanitizeSalesCopy(e.target.value))}
-                placeholder="21 daily guided lessons&#10;Practical exercises and action plans&#10;Reflection journal prompts&#10;Weekly accountability check-ins"
-                rows={5} className="text-sm" />
-            </div>
-
-            {/* FAQ Section */}
-            <div className="border-t border-border pt-5">
-              <h4 className="text-sm font-bold mb-3">❓ Frequently Asked Questions</h4>
-              <div className="space-y-3">
-                {(setup.faqs || []).map((faq: { q: string; a: string }, idx: number) => (
-                  <div key={idx} className="rounded-lg border border-border p-3 space-y-2">
-                    <div className="flex items-start gap-2">
-                      <span className="text-xs font-bold text-secondary shrink-0 mt-1">Q:</span>
-                      <Input
-                        value={faq.q}
-                        onChange={e => {
-                          const updated = [...(setup.faqs || [])];
-                          updated[idx] = { ...updated[idx], q: e.target.value };
-                          updateSetup("faqs", updated);
-                        }}
-                        className="h-8 text-sm font-medium"
-                        placeholder="Question..."
-                      />
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="text-xs font-bold text-muted-foreground shrink-0 mt-1">A:</span>
-                      <Textarea
-                        value={faq.a}
-                        onChange={e => {
-                          const updated = [...(setup.faqs || [])];
-                          updated[idx] = { ...updated[idx], a: e.target.value };
-                          updateSetup("faqs", updated);
-                        }}
-                        rows={2}
-                        className="text-sm"
-                        placeholder="Answer..."
-                      />
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-[10px] text-destructive h-6"
-                      onClick={() => {
-                        const updated = (setup.faqs || []).filter((_: any, i: number) => i !== idx);
-                        updateSetup("faqs", updated);
-                      }}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                ))}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-xs"
-                  onClick={() => {
-                    const updated = [...(setup.faqs || []), { q: "", a: "" }];
-                    updateSetup("faqs", updated);
-                  }}
-                >
-                  + Add FAQ
-                </Button>
-              </div>
-            </div>
-
-            <div className="border-t border-border pt-5">
-              <h4 className="text-sm font-bold mb-3">💰 Pricing</h4>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="text-[10px] font-semibold text-muted-foreground block mb-1">Price ($)</label>
-                  <Input type="number" min={0} value={setup.price || ""} onChange={e => updateSetup("price", e.target.value)}
-                    placeholder="47" className="h-9" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-semibold text-muted-foreground block mb-1">Currency</label>
-                  <div className="flex gap-1.5">
-                    {["USD", "EUR", "GBP"].map(cur => (
-                      <button key={cur} onClick={() => updateSetup("currency", cur)}
-                        className={`flex-1 h-9 rounded-md border-2 text-xs font-bold transition-all ${
-                          (setup.currency || "USD") === cur
-                            ? "border-secondary bg-secondary/10 text-secondary"
-                            : "border-border text-muted-foreground hover:border-secondary/30"
-                        }`}>
-                        {cur}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-[10px] font-semibold text-muted-foreground block mb-1">Compare-at Price</label>
-                  <Input type="number" min={0} value={setup.comparePrice || ""} onChange={e => updateSetup("comparePrice", e.target.value)}
-                    placeholder="97" className="h-9" />
-                  <p className="text-[9px] text-muted-foreground mt-0.5">Shown as strikethrough</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="border-t border-border pt-5">
-              <h4 className="text-sm font-bold mb-3">📦 Workbook Cross-sell</h4>
-              <div className="flex items-start gap-3 bg-muted/30 rounded-lg p-4">
+          <div className="border-t border-border pt-5">
+            <Card className="p-4 bg-muted/30 border-border/60">
+              <div className="flex items-start gap-3">
                 <BookOpen className="h-5 w-5 text-secondary shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-xs font-medium">Companion Workbook Add-on</p>
+                  <p className="text-xs font-medium">📦 Companion Workbook Add-on</p>
                   <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">
                     If a Workbook exists for this book, it will automatically be offered as a recommended add-on purchase on the sales page.
-                    The design and branding will match the workbook's style.
                   </p>
                 </div>
               </div>
-            </div>
-          </Card>
+            </Card>
+          </div>
         </div>
       )}
 
@@ -576,59 +496,27 @@ Return JSON: { "salesCopy": "..." }`,
             <div className={`mx-auto border border-border rounded-xl overflow-hidden bg-card shadow-lg ${
               previewDevice === "mobile" ? "max-w-sm" : "max-w-2xl"
             }`}>
-              <div className="bg-gradient-to-b from-secondary/10 to-transparent p-8 text-center">
-                {setup.comparePrice && (
-                  <Badge variant="destructive" className="text-[10px] mb-3">
-                    Save ${parseInt(setup.comparePrice) - parseInt(setup.price || "0")}
-                  </Badge>
-                )}
-                <Badge variant="secondary" className="text-[10px] mb-4">
-                  {setup.duration || days.length}-Day Program
-                </Badge>
-                <h1 className="font-heading text-2xl font-bold mb-2">{setup.title || "Home Study Course"}</h1>
-                <p className="text-sm text-muted-foreground mb-4">{setup.subtitle || "A guided self-paced learning experience"}</p>
-                <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground mb-6">
-                  <span className="flex items-center gap-1"><CalendarDays className="h-3 w-3" /> {setup.duration || days.length} days</span>
-                  <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {setup.commitment || 15} min/day</span>
-                  <span className="flex items-center gap-1"><BookOpen className="h-3 w-3" /> {setup.level || "Beginner"}</span>
-                </div>
-                <div className="flex items-center justify-center gap-3 mb-6">
-                  {setup.comparePrice && (
-                    <span className="text-lg text-muted-foreground line-through">${setup.comparePrice}</span>
-                  )}
-                  <span className="text-3xl font-heading font-bold text-secondary">
-                    ${setup.price || "47"}
-                  </span>
-                  <span className="text-xs text-muted-foreground">{setup.currency || "USD"}</span>
-                </div>
-                <Button className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 px-8 h-10">
-                  Enroll Now
-                </Button>
-              </div>
-              {setup.salesCopy && (
-                <div className="px-8 pb-6">
-                  <p className="text-xs text-muted-foreground whitespace-pre-line leading-relaxed">{setup.salesCopy}</p>
-                </div>
-              )}
-              {setup.whatsIncluded && (
-                <div className="px-8 pb-8">
-                  <h3 className="text-sm font-bold mb-2">What's Included</h3>
-                  <div className="text-xs text-muted-foreground whitespace-pre-line">{setup.whatsIncluded}</div>
-                </div>
-               )}
-              {setup.faqs && setup.faqs.length > 0 && (
-                <div className="px-8 pb-8">
-                  <h3 className="text-sm font-bold mb-3">Frequently Asked Questions</h3>
-                  <div className="space-y-3">
-                    {setup.faqs.map((faq: { q: string; a: string }, i: number) => (
-                      <div key={i}>
-                        <p className="text-xs font-semibold">{faq.q}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{faq.a}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <SharedSalesCopyPreview
+                data={setup.salesCopyData || {
+                  ...DEFAULT_SALES_COPY,
+                  hero: { ...DEFAULT_SALES_COPY.hero, title: setup.title || bookTitle || "" },
+                  pricing: {
+                    ...DEFAULT_SALES_COPY.pricing,
+                    price: setup.price || "",
+                    comparePrice: setup.comparePrice || "",
+                    currency: setup.currency || "USD",
+                  },
+                  introduction: { paragraph: setup.salesCopy || "" },
+                  whatsInside: { items: setup.whatsIncluded ? setup.whatsIncluded.split("\n").filter(Boolean) : [] },
+                  faq: { items: setup.faqs || [] },
+                }}
+                productMeta={{
+                  badge: `${setup.duration || days.length}-Day Program`,
+                  duration: `${setup.duration || days.length} days`,
+                  commitment: `${setup.commitment || 15} min/day`,
+                  level: setup.level || "Beginner",
+                }}
+              />
             </div>
           )}
 
