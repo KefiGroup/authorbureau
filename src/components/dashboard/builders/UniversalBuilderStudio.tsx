@@ -237,6 +237,10 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
   currentStepRef.current = currentStep;
   editedStepsRef.current = editedSteps;
 
+  const clampStepIndex = useCallback((step: number) => {
+    return Math.max(0, Math.min(step, nodeConfig.steps.length - 1));
+  }, [nodeConfig.steps.length]);
+
   const handleSaveDraft = useCallback(async (silent = false): Promise<boolean> => {
     if (!user || !bookId) return false;
     setSaving(true);
