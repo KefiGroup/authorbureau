@@ -56,8 +56,7 @@ export default function HomeStudyEditPublishStep({
   const setup = stepData.setup || {};
   const hasAudio = setup.format === "pdf-audio";
   const [selectedIdx, setSelectedIdx] = useState(0);
-  const [activeSegment, setActiveSegment] = useState<SegmentId>("content");
-  
+  const [activeSegment, setActiveSegment] = useState<SegmentId>("schedule");
   const [previewMode, setPreviewMode] = useState<"sales" | "portal">("sales");
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
   const [previewPage, setPreviewPage] = useState(0);
