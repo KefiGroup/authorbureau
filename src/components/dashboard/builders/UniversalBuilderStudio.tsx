@@ -507,10 +507,10 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
     } finally {
       setAbbyStreaming(false);
     }
-  }, [abbyInput, abbyMessages, abbyStreaming, bookId, bookTitle, nodeConfig, currentStep, plan, manuscriptSummary, frameworks]);
+  }, [abbyInput, abbyMessages, abbyStreaming, bookId, bookTitle, nodeConfig, currentStep, plan, manuscriptSummary, frameworks, clampStepIndex]);
 
   const goToStep = useCallback((targetStep: number) => {
-    const boundedStep = Math.max(0, Math.min(targetStep, nodeConfig.steps.length - 1));
+    const boundedStep = clampStepIndex(targetStep);
     currentStepRef.current = boundedStep;
     setCurrentStep(boundedStep);
     void handleSaveDraft(true);
