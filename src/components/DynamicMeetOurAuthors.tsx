@@ -164,7 +164,7 @@ export default function DynamicMeetOurAuthors() {
               Featured Authors
             </p>
             <h2 className="font-heading text-3xl font-bold md:text-4xl text-primary-foreground">
-              Meet Our Authors
+              Meet Our Amazon Best Selling Authors
             </h2>
           </div>
           <div className="text-center text-muted-foreground">Loading authors...</div>
