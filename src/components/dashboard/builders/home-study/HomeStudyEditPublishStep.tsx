@@ -308,45 +308,39 @@ export default function HomeStudyEditPublishStep({
                 try {
                   const authorName = setup.authorName || "";
                   const authorBio = setup.authorBio || "";
-                  const result = await generateJSONWithAI<{ salesCopy: SalesCopyData }>(
-                    `Generate a COMPLETE 11-section sales page for a home study course called "${setup.title || bookTitle}" based on the book "${bookTitle}".
-The course is ${days.length} days, ${setup.commitment || 15} min/day, ${setup.level || "Beginner"} level.
-${authorName ? `The author is ${authorName}. ${authorBio ? `Bio: ${authorBio}` : ""}` : ""}
+                  const productTitle = setup.title || bookTitle || "Home Study Course";
+                  const result = await generateJSONWithAI<SalesCopyData>(
+                    `You are a sales copywriter. Generate a JSON object (NOT wrapped in another object) for an 11-section sales page.
 
-IMPORTANT: You MUST generate compelling content for EVERY section. Do NOT leave any section empty.
+Product: "${productTitle}" (home study course based on the book "${bookTitle}")
+Duration: ${days.length} days, ${setup.commitment || 15} min/day, Level: ${setup.level || "Beginner"}
+${authorName ? `Author: ${authorName}. ${authorBio || ""}` : ""}
 
-Return a JSON object with key "salesCopy" containing ALL of these sections fully populated:
-{
-  "hero": { "title": "compelling product title", "tagline": "one-line benefit-driven tagline", "ctaText": "Start the Program" },
-  "problem": { "headline": "Are you struggling with...", "painPoints": ["pain point 1", "pain point 2", "pain point 3", "pain point 4"] },
-  "transformation": { "before": ["current struggle 1", "current struggle 2", "current struggle 3"], "after": ["desired result 1", "desired result 2", "desired result 3"] },
-  "introduction": { "paragraph": "2-3 sentences about what this program is and who it's for" },
-  "whatsInside": { "items": ["deliverable 1", "deliverable 2", "deliverable 3", "deliverable 4", "deliverable 5"] },
-  "howItWorks": { "steps": [{ "title": "Step 1 title", "description": "what happens" }, { "title": "Step 2 title", "description": "what happens" }, { "title": "Step 3 title", "description": "what happens" }] },
-  "author": { "name": "${authorName || "Author Name"}", "bio": "2-3 sentences about the author's background and expertise", "credentials": "key credential or achievement" },
-  "socialProof": { "testimonials": [{ "name": "Student Name", "quote": "testimonial quote" }, { "name": "Student Name", "quote": "testimonial quote" }, { "name": "Student Name", "quote": "testimonial quote" }] },
-  "pricing": { "price": "${setup.price || "47"}", "comparePrice": "${setup.comparePrice || "97"}", "currency": "USD", "ctaText": "Start the Program", "included": ["included benefit 1", "included benefit 2", "included benefit 3", "included benefit 4"] },
-  "faq": { "items": [{ "q": "objection question 1", "a": "reassuring answer" }, { "q": "objection question 2", "a": "reassuring answer" }, { "q": "objection question 3", "a": "reassuring answer" }, { "q": "objection question 4", "a": "reassuring answer" }, { "q": "objection question 5", "a": "reassuring answer" }] },
-  "finalCta": { "headline": "urgency headline", "subheadline": "motivating subheadline", "ctaText": "Get Started Today", "urgency": "urgency line" }
-}
+Return ONLY this JSON structure with ALL fields populated with compelling copy:
+{"hero":{"title":"${productTitle}","tagline":"one-line tagline","ctaText":"Start the Program"},"problem":{"headline":"Are you struggling with...","painPoints":["point1","point2","point3","point4"]},"transformation":{"before":["struggle1","struggle2","struggle3"],"after":["result1","result2","result3"]},"introduction":{"paragraph":"2-3 sentences about what this is and who it's for"},"whatsInside":{"items":["item1","item2","item3","item4","item5"]},"howItWorks":{"steps":[{"title":"Enroll","description":"desc"},{"title":"Learn","description":"desc"},{"title":"Transform","description":"desc"}]},"author":{"name":"${authorName || "Author"}","bio":"2-3 sentences bio","credentials":"key credential"},"socialProof":{"testimonials":[{"name":"Name1","quote":"quote1"},{"name":"Name2","quote":"quote2"},{"name":"Name3","quote":"quote3"}]},"pricing":{"price":"${setup.price || "47"}","comparePrice":"${setup.comparePrice || "97"}","currency":"USD","ctaText":"Enroll Now","included":["benefit1","benefit2","benefit3","benefit4"]},"faq":{"items":[{"q":"q1","a":"a1"},{"q":"q2","a":"a2"},{"q":"q3","a":"a3"},{"q":"q4","a":"a4"},{"q":"q5","a":"a5"}]},"finalCta":{"headline":"urgency headline","subheadline":"motivating line","ctaText":"Get Started Today","urgency":"limited time"}}
 
-RULES:
-- Generate 3 realistic sample testimonials with believable names and specific quotes about results.
-- Generate 5-7 FAQ items addressing common objections (refund policy, time commitment, skill level, etc.).
-- Generate 4+ pricing "included" items highlighting value.
-- Author bio must sound professional and credible.
-- ALL copy must be compelling, benefit-driven, and plain text only. No markdown.`,
-                    { bookId, isPremium: true },
+RULES: Generate 3 testimonials with real-sounding names. 5 FAQ items addressing objections. 4+ pricing included items. Professional author bio. Compelling benefit-driven copy. Plain text only, no markdown. Return raw JSON only.`,
+                    {
+                      bookId,
+                      isPremium: true,
+                      builderMode: true,
+                      builderId: "home-study",
+                      builderLabel: "Home Study Course",
+                      builderStep: "Sales Copy",
+                    },
                   );
-                  updateSetup("salesCopyData", result.salesCopy);
-                  updateSetup("title", result.salesCopy.hero.title);
-                  updateSetup("price", result.salesCopy.pricing.price);
-                  updateSetup("comparePrice", result.salesCopy.pricing.comparePrice);
+                  // Result is now directly SalesCopyData (not wrapped)
+                  const salesCopy = (result as any).salesCopy || result;
+                  updateSetup("salesCopyData", salesCopy);
+                  if (salesCopy.hero?.title) updateSetup("title", salesCopy.hero.title);
+                  if (salesCopy.pricing?.price) updateSetup("price", salesCopy.pricing.price);
+                  if (salesCopy.pricing?.comparePrice) updateSetup("comparePrice", salesCopy.pricing.comparePrice);
                   setGenerationState("complete");
                   toast({ title: "Sales copy generated!" });
-                } catch {
+                } catch (err) {
+                  console.error("[SalesCopy] Generation failed:", err);
                   setGenerationState("error");
-                  toast({ title: "Generation failed", variant: "destructive" });
+                  toast({ title: "Generation failed", description: String((err as Error)?.message || ""), variant: "destructive" });
                 }
               }}
               generating={generationState === "analyzing" || generationState === "generating"}
