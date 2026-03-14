@@ -706,13 +706,13 @@ Write ONLY the paid product content (what buyers receive AFTER purchase):
 IMPORTANT for Home Study courses specifically:
 - After the ===CONTENT_START=== delimiter, output a JSON block wrapped in \`\`\`json ... \`\`\` fences.
 - The JSON must be an array of day objects with these fields for EVERY day in the approved schedule:
-  { "dayNumber": number, "theme": string, "chapterRef": string, "concept": string (200-300 words, rich HTML with <h4>, <p>, <ul> tags — sections: Core Idea, Why This Matters, Today's Focus), "exercise": string (HTML, practical exercise with numbered steps), "reflection": string (HTML, evening journal prompts, 4 questions), "actionPlan": string (HTML, 3-5 concrete action items as <ul><li> list), "fieldAssignment": string (one sentence real-world ACTION), "accountabilityCheck": string (yes/no or 1-10 scale check-in), "microHabit": string (small daily habit that compounds) }
+  { "dayNumber": number, "theme": string, "chapterRef": string, "concept": string (200-300 words plain text — sections: Core Idea, Why This Matters, Today's Focus), "exercise": string (plain text, practical exercise with numbered steps), "reflection": string (plain text, evening journal prompts, 4 questions), "actionPlan": string (plain text, 3-5 concrete action items as a numbered or bulleted list), "fieldAssignment": string (one sentence real-world ACTION), "accountabilityCheck": string (yes/no or 1-10 scale check-in), "microHabit": string (small daily habit that compounds) }
 - fieldAssignment = a real-world ACTION (not a written exercise) — e.g. "Have the conversation", "Implement the process at work"
 - accountabilityCheck = a yes/no or 1-10 scale check-in question
 - microHabit = a small daily habit that compounds across the program
 - Do NOT duplicate workbook content (no reflection questions or self-assessment exercises)
 - Use direct address (you/your), NEVER use placeholders like "[Participant Name]"
-- Content must be HTML formatted (not markdown). Use <h4>, <p>, <strong>, <ul>, <li>, <ol> tags.
+- CRITICAL: Content must be PLAIN TEXT only. Do NOT use any HTML tags (<h4>, <p>, <ul>, <li>, <ol>, <strong>, <b>, etc.). Use simple line breaks and dashes/numbers for lists instead.
 ===CONTENT_END===
 
 SELF-CHECK BEFORE FINALIZING:
