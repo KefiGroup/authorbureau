@@ -245,7 +245,7 @@ export default function HomeStudyEditPublishStep({
                       {currentDay.concept && <Badge variant="outline" className="text-[9px]"><Wand2 className="h-2 w-2 mr-0.5" /> AI Generated</Badge>}
                     </div>
                     {currentDay.concept ? (
-                      <div className="prose prose-sm max-w-none text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: currentDay.concept }} />
+                      <div className="prose prose-sm max-w-none text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: mdToHtml(currentDay.concept) }} />
                     ) : (
                       <p className="text-sm text-muted-foreground italic">No content yet. Generate content from Step 1 (Program Setup).</p>
                     )}
