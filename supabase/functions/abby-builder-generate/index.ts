@@ -647,6 +647,13 @@ Write ONLY the paid product content (what buyers receive AFTER purchase):
 4. Supporting materials (scripts, templates, quizzes, reflection prompts)
 5. Author voice + manuscript terminology + chapter references
 6. Completion/certificate section
+
+IMPORTANT for Home Study courses specifically:
+- Each day must have: theme, reading, concept, fieldAssignment, accountabilityCheck, microHabit, actionPlan
+- fieldAssignment = a real-world ACTION (not a written exercise) — e.g. "Have the conversation", "Implement the process at work"
+- accountabilityCheck = a yes/no or 1-10 scale check-in question
+- microHabit = a small daily habit that compounds across the program
+- Do NOT duplicate workbook content (no reflection questions or self-assessment exercises)
 ===CONTENT_END===
 
 SELF-CHECK BEFORE FINALIZING:
