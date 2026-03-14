@@ -21,8 +21,13 @@ interface StudyDay {
   chapterRef?: string;
   reading: string;
   concept?: string;
-  exercise: string;
-  reflection: string;
+  // New home-study-specific fields (implementation-focused)
+  fieldAssignment?: string;
+  accountabilityCheck?: string;
+  microHabit?: string;
+  // Legacy workbook-style fields (backward compat)
+  exercise?: string;
+  reflection?: string;
   actionPlan?: string;
 }
 
@@ -124,6 +129,9 @@ export default function ReaderContentViewer() {
         chapterRef: d.chapterRef,
         reading: d.reading || "",
         concept: d.concept || "",
+        fieldAssignment: d.fieldAssignment || "",
+        accountabilityCheck: d.accountabilityCheck || "",
+        microHabit: d.microHabit || "",
         exercise: d.exercise || "",
         reflection: d.reflection || "",
         actionPlan: d.actionPlan || "",
@@ -456,10 +464,10 @@ export default function ReaderContentViewer() {
               </h3>
               <ul className="text-xs text-muted-foreground space-y-1.5 ml-6 list-disc">
                 <li>A new day of content unlocks each day from your start date</li>
-                <li>Read the assigned content, then complete the exercises and reflection below</li>
-                <li>Use the writing boxes to journal your thoughts — they're your personal workspace</li>
-                <li>Check off each day when you've completed it to track your progress</li>
-                <li>Come back each day to build momentum and grow consistently</li>
+                <li>Read the assigned content, then complete your daily field assignment</li>
+                <li>Field assignments are real-world actions — do them in your life, not just on paper</li>
+                <li>Build your micro-habit daily — small consistent actions create massive change</li>
+                <li>Check off each day when you've completed it to track your streak</li>
               </ul>
             </div>
 
@@ -577,7 +585,34 @@ export default function ReaderContentViewer() {
                                     content={day.concept}
                                   />
                                 )}
-                                {day.exercise && (
+                                {/* New implementation-focused fields */}
+                                {day.fieldAssignment && (
+                                  <ContentSection
+                                    emoji="🚀"
+                                    label="Field Assignment"
+                                    content={day.fieldAssignment}
+                                    hint="This is a real-world action — go do it in your life today"
+                                    highlight
+                                  />
+                                )}
+                                {day.microHabit && (
+                                  <ContentSection
+                                    emoji="🔄"
+                                    label="Today's Micro-Habit"
+                                    content={day.microHabit}
+                                    hint="Add this to your daily routine — it compounds over the program"
+                                  />
+                                )}
+                                {day.accountabilityCheck && (
+                                  <WritableSection
+                                    emoji="✅"
+                                    label="Accountability Check-In"
+                                    prompt={day.accountabilityCheck}
+                                    storageKey={`rv-${purchaseId}-d${day.dayNumber}-accountability`}
+                                  />
+                                )}
+                                {/* Legacy fields for backward compat */}
+                                {day.exercise && !day.fieldAssignment && (
                                   <WritableSection
                                     emoji="✍️"
                                     label="Exercise"
@@ -585,7 +620,7 @@ export default function ReaderContentViewer() {
                                     storageKey={`rv-${purchaseId}-d${day.dayNumber}-exercise`}
                                   />
                                 )}
-                                {day.reflection && (
+                                {day.reflection && !day.accountabilityCheck && (
                                   <WritableSection
                                     emoji="🪞"
                                     label="Reflection"
@@ -761,9 +796,9 @@ function UpsellCard({ product }: { product: UpsellProduct }) {
   );
 }
 
-function ContentSection({ emoji, label, content, hint }: { emoji: string; label: string; content: string; hint?: string }) {
+function ContentSection({ emoji, label, content, hint, highlight }: { emoji: string; label: string; content: string; hint?: string; highlight?: boolean }) {
   return (
-    <div className="bg-muted/40 rounded-xl p-4 border border-border/50">
+    <div className={cn("rounded-xl p-4 border", highlight ? "bg-primary/5 border-primary/20" : "bg-muted/40 border-border/50")}>
       <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
         {emoji} {label}
       </p>

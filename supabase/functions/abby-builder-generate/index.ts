@@ -76,21 +76,37 @@ DESIGN:
 
   "home-study-course": `You are Abby, expert in self-paced learning design. Design a home study course.
 
+CRITICAL — DIFFERENTIATION FROM WORKBOOK:
+The WORKBOOK is a separate product that covers deep reflection questions, self-assessment exercises, and written exploration of concepts. The HOME STUDY must NOT duplicate this.
+The Home Study is a DAILY IMPLEMENTATION PROGRAM focused on:
+- Real-world micro-actions and experiments the reader does IN THEIR LIFE each day
+- Habit-building routines and accountability check-ins
+- Application scenarios and "field assignments" (not worksheet exercises)
+- Daily wins tracking and momentum building
+- Progressive skill stacking — each day builds on the previous day's action
+
 DESIGN:
-1. PROGRAM_TITLE: 3 options. Pattern: "[Duration]-Day [Outcome] Challenge" or "The [Book] Study Guide"
+1. PROGRAM_TITLE: 3 options. Pattern: "[Duration]-Day [Outcome] Challenge" or "The [Book] Implementation Sprint"
 2. DURATION: 7, 14, 21, or 30 days based on book content depth
 3. DAILY_COMMITMENT: 15-30 minutes per day
-4. DAILY_SCHEDULE: For each day: theme, reading assignment, key concept, exercise, reflection prompt, action plan (3-5 concrete tasks to apply the lesson today)
+4. DAILY_SCHEDULE: For each day provide:
+   - theme: The day's focus area
+   - reading: Specific chapter/section to read or re-read (brief)
+   - concept: The ONE key idea to internalize today (2-3 sentences max)
+   - fieldAssignment: A real-world ACTION to perform today — NOT a written exercise. Examples: "Have a difficult conversation using the framework", "Track your reactions for 4 hours", "Implement the 3-step process at work today"
+   - accountabilityCheck: A yes/no or scale question to answer at end of day. Example: "Did you complete the field assignment? Rate your comfort level 1-10"
+   - microHabit: A small daily habit to start building from this day forward (compounds across the program)
+   - actionPlan: 2-3 concrete next steps to apply the lesson today
 5. PRICING: If tripwire ($27-$47) or standalone ($97-$147)
 6. UPSELL_PATHWAY: What comes after completion
 7. MATERIALS: Progress tracker, daily emails, completion certificate
 8. CROSS_BUILDER_PREVIEW: Daily emails→Email, sales page→Website
 
 IMPORTANT — WORKBOOK REFERENCES:
-- Do NOT include a free downloadable workbook or companion workbook as part of this course.
-- The Workbook is a SEPARATE purchasable product in the author's ecosystem.
-- If you mention a workbook, frame it as a recommended add-on purchase: "Get the companion workbook to deepen your results" with a call-to-action to buy it separately.
-- Never say "Download Your Workbook Here" or provide a download link for a workbook.`,
+- Do NOT include reflection questions, self-assessment exercises, or written exploration activities — those belong in the WORKBOOK.
+- The Workbook is a SEPARATE purchasable product. Frame it as: "Get the companion workbook to deepen your self-reflection" with a CTA to buy it separately.
+- Never say "Download Your Workbook Here" or provide a download link for a workbook.
+- Each day should feel like a COACHING SESSION, not a worksheet.`,
 
   "audiobook": `You are Abby, expert in audiobook production. Prepare this manuscript for audiobook production.
 
@@ -631,6 +647,13 @@ Write ONLY the paid product content (what buyers receive AFTER purchase):
 4. Supporting materials (scripts, templates, quizzes, reflection prompts)
 5. Author voice + manuscript terminology + chapter references
 6. Completion/certificate section
+
+IMPORTANT for Home Study courses specifically:
+- Each day must have: theme, reading, concept, fieldAssignment, accountabilityCheck, microHabit, actionPlan
+- fieldAssignment = a real-world ACTION (not a written exercise) — e.g. "Have the conversation", "Implement the process at work"
+- accountabilityCheck = a yes/no or 1-10 scale check-in question
+- microHabit = a small daily habit that compounds across the program
+- Do NOT duplicate workbook content (no reflection questions or self-assessment exercises)
 ===CONTENT_END===
 
 SELF-CHECK BEFORE FINALIZING:

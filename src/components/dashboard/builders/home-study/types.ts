@@ -21,8 +21,11 @@ export interface StudyDay {
   chapterRef: string;
   reading: string;
   concept: string;
-  exercise: string;
-  reflection: string;
+  fieldAssignment?: string;
+  accountabilityCheck?: string;
+  microHabit?: string;
+  exercise?: string;
+  reflection?: string;
   actionPlan?: string;
   audioScript?: string;
   isCatchUp?: boolean;
