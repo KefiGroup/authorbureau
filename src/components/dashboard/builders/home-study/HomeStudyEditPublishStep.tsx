@@ -7,10 +7,10 @@ import { Badge } from "@/components/ui/badge";
 
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
-  Sparkles, Loader2, BookOpen, Wand2, Coffee,
+  Sparkles, Loader2, BookOpen, Wand2,
   ChevronLeft, ChevronRight, CalendarDays, CheckCircle2,
   Clock, Palette, Eye, ShoppingCart, Monitor, Smartphone,
-  Award, FileText,
+  Award,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateJSONWithAI } from "@/lib/ai-generate";
