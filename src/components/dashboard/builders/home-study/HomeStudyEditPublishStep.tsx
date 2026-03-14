@@ -77,48 +77,7 @@ export default function HomeStudyEditPublishStep({
     onMarkEdited("edit");
   };
 
-  const handleGenerateDay = async () => {
-    if (!currentDay) return;
-    setGenerationState("queued");
-    try {
-      setGenerationState("analyzing");
-      const commitment = setup.commitment || 15;
-      const result = await generateJSONWithAI<{
-        concept: string; exercise: string; reflection: string; actionPlan: string; audioScript?: string;
-      }>(
-        `Generate detailed daily content for Day ${currentDay.dayNumber} of a home study program based on the book "${bookTitle}".
-Day theme: "${currentDay.theme}"
-Chapter reference: "${currentDay.chapterRef}"
-Daily commitment: ${commitment} minutes
-${currentDay.isCatchUp ? "This is a catch-up/review day." : ""}
-
-Return a JSON object with:
-- "concept": string (markdown, 200-300 words, with sections: Core Idea, Why This Matters, Today's Focus)
-- "exercise": string (markdown, practical exercise with numbered steps, ${commitment} minutes)
-- "reflection": string (markdown, evening journal prompts, 4 questions)
-- "actionPlan": string (markdown, 3-5 concrete action items using "- [ ]" checkbox syntax)
-${hasAudio ? '- "audioScript": string (narration script with [INTRO MUSIC], [PAUSE], [OUTRO] markers, 200 words)' : ""}
-
-Make content specific to the book topic and day theme. Return ONLY valid JSON.`,
-        { bookId, isPremium: true, builderMode: true, builderId: "home-study-course", builderLabel: "Home Study Course", builderStep: "Daily Content" },
-      );
-      setGenerationState("generating");
-      const batch: Partial<StudyDay> = {
-        concept: result.concept, exercise: result.exercise,
-        reflection: result.reflection, actionPlan: result.actionPlan,
-      };
-      if (hasAudio && result.audioScript) batch.audioScript = result.audioScript;
-      updateDayBatch(batch);
-      setGenerationState("complete");
-      toast({ title: "Day content generated!", description: `Day ${currentDay.dayNumber} is ready.` });
-    } catch (err) {
-      console.error(err);
-      setGenerationState("error");
-      toast({ title: "Generation failed", variant: "destructive" });
-    }
-  };
-
-  const isGenerating = generationState !== "idle" && generationState !== "complete" && generationState !== "error";
+  const isGenerating = false; // Per-day generation removed; content comes from Act 3
   const contentCount = days.filter(d => d.concept || d.exercise || d.reflection).length;
 
   return (
