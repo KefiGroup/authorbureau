@@ -514,7 +514,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
     currentStepRef.current = boundedStep;
     setCurrentStep(boundedStep);
     void handleSaveDraft(true);
-  }, [nodeConfig.steps.length, handleSaveDraft]);
+  }, [clampStepIndex, handleSaveDraft]);
 
   const goNext = () => {
     if (currentStep < nodeConfig.steps.length - 1) goToStep(currentStep + 1);
