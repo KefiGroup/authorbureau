@@ -190,7 +190,7 @@ export default function ReaderContentViewer() {
       {/* Header */}
       <header className="border-b border-border bg-card sticky top-0 z-10">
         <div className="container max-w-4xl flex items-center gap-3 py-3 px-4">
-          <Link to="/reader-portal" className="text-muted-foreground hover:text-foreground transition-colors">
+          <Link to="/readers-bureau?tab=library" className="text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div className="flex-1 min-w-0">
