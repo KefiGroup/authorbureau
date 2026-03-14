@@ -425,27 +425,29 @@ export default function HomeStudyReviewView({
 
   const handleSaveSalesPage = async () => {
     if (!user) {
-      console.error("handleSaveSalesPage: no user");
       toast({ title: "Not logged in", variant: "destructive" });
       return;
     }
+
     setSaving(true);
     try {
-      // Serialize structured fields to markdown
       const parts: string[] = [];
       if (salesHeadline) parts.push(`## ${salesHeadline}`);
       if (salesSubheadline) parts.push(`### ${salesSubheadline}`);
       if (salesBody) parts.push("", salesBody);
+
       const validBullets = salesBullets.filter(b => b.trim());
       if (validBullets.length > 0) {
         parts.push("", "**What's Included:**", ...validBullets.map(b => `- ${b}`));
       }
+
       if (salesTestimonials.length > 0) {
         parts.push("", "**What Others Say:**");
         salesTestimonials.forEach(t => {
           parts.push(`> "${t.quote}"${t.name ? ` — ${t.name}` : ""}`);
         });
       }
+
       const validFaqs = salesFaqs.filter(f => f.question.trim() && f.answer.trim());
       if (validFaqs.length > 0) {
         parts.push("", "## Frequently Asked Questions");
@@ -453,22 +455,23 @@ export default function HomeStudyReviewView({
           parts.push(`Q: ${f.question.trim()}`, `A: ${f.answer.trim()}`, "");
         });
       }
-      // Add metadata for price, compare price, and design template
+
       if (salesPrice || salesComparePrice || salesDesignTemplate) {
-        parts.push("", `<!-- SALES_META:${JSON.stringify({ price: salesPrice, comparePrice: salesComparePrice, designTemplate: salesDesignTemplate, cta: salesCta })} -->`);
+        parts.push("", `<!-- SALES_META:${JSON.stringify({
+          price: salesPrice,
+          comparePrice: salesComparePrice,
+          designTemplate: salesDesignTemplate,
+          cta: salesCta,
+        })} -->`);
       }
+
       const serialized = parts.join("\n");
       setSalesPageMarkdown(serialized);
       setSalesDraft(serialized);
 
-      console.log("handleSaveSalesPage: getting token...");
       const token = await getActiveToken();
-      if (!token) {
-        console.error("handleSaveSalesPage: no token");
-        throw new Error("Not authenticated");
-      }
+      if (!token) throw new Error("Not authenticated");
 
-      console.log("handleSaveSalesPage: calling edge function with bookId=", bookId);
       const resp = await fetchWithTimeout(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/builder-draft-state`,
         {
@@ -486,18 +489,18 @@ export default function HomeStudyReviewView({
 
       if (!resp.ok) {
         const errText = await resp.text().catch(() => "");
-        console.error("Save sales page failed:", resp.status, errText);
         throw new Error(errText || `Save failed (${resp.status})`);
       }
 
-      console.log("handleSaveSalesPage: success");
+      await loadContent();
       toast({ title: "Sales page saved!" });
       setDrawerOpen(null);
     } catch (err) {
       console.error("Save sales page error:", err);
-      toast({ title: "Save failed", description: String(err), variant: "destructive" });
+      toast({ title: "Save failed", description: err instanceof Error ? err.message : String(err), variant: "destructive" });
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const handlePublish = async () => {
