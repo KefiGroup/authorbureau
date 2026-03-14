@@ -635,8 +635,6 @@ export default function ReaderContentViewer() {
                                     content={day.actionPlan}
                                   />
                                 )}
-                                  />
-                                )}
 
                                 {/* Mark complete CTA */}
                                 {!isComplete && (
