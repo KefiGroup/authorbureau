@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, ArrowRight, BookOpen, Check, Loader2, Save,
   Sparkles, X, Send, ChevronLeft, Lock, AlertCircle, Wand2,
-  Crown, Clock,
 } from "lucide-react";
 import AbbyNarrativeLoading from "./AbbyNarrativeLoading";
 import ActPhaseBadge from "./shared/ActPhaseBadge";
@@ -60,7 +59,6 @@ import RevenueShareStepRenderer from "./revenue-share/RevenueShareStepRenderer";
 import WhiteLabelStepRenderer from "./white-label/WhiteLabelStepRenderer";
 import EventsStepRenderer from "./events/EventsStepRenderer";
 import FranchiseStepRenderer from "./franchise/FranchiseStepRenderer";
-import SharedSalesPageStep from "./shared/SharedSalesPageStep";
 import type { BuilderNodeConfig, BuilderStep } from "./builderNodeConfig";
 
 // Map of customRenderer key → component
@@ -343,7 +341,7 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
       }
     }
 
-    return Math.max(0, Math.min(inferredStep, nodeConfig.steps.length - 1));
+    return inferredStep;
   }, [nodeConfig.steps, nodeConfig.id]);
 
   useEffect(() => {
@@ -389,14 +387,13 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
         if (!isMounted || !result?.draft) return;
         const parsed = result.draft;
 
-        const maxStepIndex = Math.max(0, nodeConfig.steps.length - 1);
         if (parsed.stepData) {
           setStepData(parsed.stepData);
           const inferredStep = inferStepFromDraftData(parsed.stepData);
           const savedStep = typeof parsed.currentStep === "number" ? parsed.currentStep : 0;
-          setCurrentStep(Math.max(0, Math.min(Math.max(savedStep, inferredStep), maxStepIndex)));
+          setCurrentStep(Math.max(savedStep, inferredStep));
         } else if (typeof parsed.currentStep === "number") {
-          setCurrentStep(Math.max(0, Math.min(parsed.currentStep, maxStepIndex)));
+          setCurrentStep(parsed.currentStep);
         }
 
         if (Array.isArray(parsed.editedSteps)) setEditedSteps(new Set(parsed.editedSteps));
@@ -429,8 +426,7 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
 
     try {
       const token = await getToken();
-      const safeStepIndex = Math.max(0, Math.min(currentStep, nodeConfig.steps.length - 1));
-      const currentStepConfig = nodeConfig.steps[safeStepIndex] || nodeConfig.steps[0];
+      const currentStepConfig = nodeConfig.steps[currentStep];
       const resp = await fetch(AI_GATEWAY_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -548,7 +544,6 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                   content_markdown: stepData.schedule?.days ? JSON.stringify(stepData.schedule.days) : "",
                   duration_days: stepData.setup?.duration || 30,
                   price: stepData.setup?.price ? parseFloat(stepData.setup.price) : null,
-                  study_schedule_json: stepData.schedule?.days || null,
                 },
               }),
             },
@@ -608,36 +603,8 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
     }
   };
 
-  const safeCurrentStep = Math.max(0, Math.min(currentStep, nodeConfig.steps.length - 1));
-  const currentStepConfig = nodeConfig.steps[safeCurrentStep] || nodeConfig.steps[0];
-  const isLastStep = safeCurrentStep === nodeConfig.steps.length - 1;
-
-  // ─── ENTERPRISE COMING SOON GATE ──────────────────────────────────
-  if (nodeConfig.requiredTier === "enterprise") {
-    return (
-      <div className="max-w-2xl mx-auto py-16 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-100 to-amber-50 flex items-center justify-center mx-auto mb-6">
-            <Crown className="h-9 w-9 text-amber-500" />
-          </div>
-          <Badge className="bg-amber-100 text-amber-700 border-amber-200 mb-4">Coming Soon</Badge>
-          <h1 className="font-heading text-2xl md:text-3xl font-bold mb-3">
-            {nodeConfig.label}
-          </h1>
-          <p className="text-muted-foreground text-sm max-w-md mx-auto mb-6">
-            {nodeConfig.abbyGreeting || `The ${nodeConfig.label} builder is coming soon as part of our Enterprise tier. We're working hard to bring you the most powerful tools for maximizing your book's revenue potential.`}
-          </p>
-          <div className="inline-flex items-center gap-2 rounded-full bg-muted/50 px-5 py-2.5 text-xs text-muted-foreground">
-            <Clock className="h-3.5 w-3.5" />
-            We'll notify you when this builder launches
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
+  const currentStepConfig = nodeConfig.steps[currentStep];
+  const isLastStep = currentStep === nodeConfig.steps.length - 1;
 
   // ─── SUBSCRIPTION GATE ─────────────────────────────────────────────
   if (!hasAccess) {
@@ -889,7 +856,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                   <Card className="p-6 mb-6 border-accent/30 bg-accent/5">
                     <div className="flex items-center gap-2 mb-4">
                       <Check className="h-5 w-5 text-accent" />
-                      <p className="text-sm font-bold text-accent">Content generated successfully! 🎉</p>
+                      <p className="text-sm font-bold text-accent">Content generated successfully! \uD83C\uDF89</p>
                     </div>
                     <div className="max-h-[520px] overflow-y-auto border rounded-lg p-4 bg-background space-y-4">
                       <div className="space-y-2">
@@ -934,34 +901,8 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                   </Card>
                 )}
 
-                {/* Step content — shared sales page, custom renderer, or generic placeholder */}
+                {/* Step content \u2014 custom renderer or generic placeholder */}
                 {(() => {
-                  // Universal Sales Page step — rendered for any builder with a "sales-page" step
-                  if (currentStepConfig.id === "sales-page" || currentStepConfig.id === "sales") {
-                    return (
-                      <SharedSalesPageStep
-                        stepId={currentStepConfig.id}
-                        stepData={stepData}
-                        setStepData={setStepData}
-                        onMarkEdited={(id: string) => setEditedSteps(prev => new Set([...prev, id]))}
-                        bookId={bookId}
-                        bookTitle={bookTitle}
-                        productLabel={nodeConfig.label.replace(" Builder", "").replace(" Studio", "")}
-                        productContext={(() => {
-                          // Build context string from stepData for AI
-                          const parts: string[] = [];
-                          if (stepData.foundation?.title) parts.push(`Title: ${stepData.foundation.title}`);
-                          if (stepData.foundation?.transformation) parts.push(`Transformation: ${stepData.foundation.transformation}`);
-                          if (stepData.setup?.title) parts.push(`Title: ${stepData.setup.title}`);
-                          if (stepData.setup?.duration) parts.push(`Duration: ${stepData.setup.duration} days`);
-                          if (stepData.curriculum?.modules?.length) parts.push(`${stepData.curriculum.modules.length} modules`);
-                          if (stepData.schedule?.days?.length) parts.push(`${stepData.schedule.days.length}-day program`);
-                          return parts.join(". ") || undefined;
-                        })()}
-                      />
-                    );
-                  }
-
                   const RendererComponent = nodeConfig.customRenderer ? RENDERER_MAP[nodeConfig.customRenderer] : null;
                   if (RendererComponent) {
                     return (

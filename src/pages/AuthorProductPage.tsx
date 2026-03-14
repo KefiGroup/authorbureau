@@ -339,20 +339,17 @@ export default function AuthorProductPage() {
   const isPurchasable = product.price != null && product.price > 0 && ["homestudy", "onlinecourse", "workbook", "audiobook"].includes(pType);
 
   // Parse FAQs from salesPageContent
-  const faqRegex = /(?:^|\n)#{1,3}\s*(?:FAQ|Frequently Asked Questions)[^\n]*\n([\s\S]*)$/i;
-  const faqRegexPlain = /(?:^|\n)(?:FAQ|Frequently Asked Questions)[:\s]*\n([\s\S]*)$/i;
   const faqs: { q: string; a: string }[] = [];
   if (salesPageContent) {
-    const faqMatch = salesPageContent.match(faqRegex) || salesPageContent.match(faqRegexPlain);
+    const faqMatch = salesPageContent.match(/(?:^|\n)##?\s*(?:FAQ|Frequently Asked Questions)[^\n]*\n([\s\S]*?)(?=\n##?\s|$)/i);
     if (faqMatch) {
       const faqBlock = faqMatch[1];
-      // Support Q:/A: pairs, **Q:** pairs, or ### heading pairs
-      const qaPairs = faqBlock.split(/\n(?=(?:\*\*)?Q[:\s]|###?\s)/i).filter(Boolean);
+      const qaPairs = faqBlock.split(/\n(?:\*\*Q:|###?\s)/i).filter(Boolean);
       qaPairs.forEach(pair => {
         const lines = pair.trim().split("\n").filter(l => l.trim());
         if (lines.length >= 2) {
-          const q = lines[0].replace(/^\*\*|\*\*$/g, "").replace(/^#{1,3}\s*/, "").replace(/^Q[:\s]\s*/i, "").trim();
-          const a = lines.slice(1).join(" ").replace(/^\*\*A[:\s]\*\*\s*/i, "").replace(/^A[:\s]\s*/i, "").replace(/^\*\*|\*\*$/g, "").trim();
+          const q = lines[0].replace(/^\*\*|\*\*$/g, "").replace(/^Q:\s*/i, "").trim();
+          const a = lines.slice(1).join(" ").replace(/^\*\*A:\*\*\s*/i, "").replace(/^\*\*|\*\*$/g, "").trim();
           if (q && a) faqs.push({ q, a });
         }
       });
@@ -490,112 +487,60 @@ export default function AuthorProductPage() {
         </div>
       </section>
 
-      {/* 6. IS THIS FOR YOU? — Immersive two-column card layout */}
-      <section id="product-details" className="py-16 md:py-24" style={{ background: v.secondaryBg }}>
-        <div className="container max-w-5xl px-4">
+      {/* 6. IS THIS FOR YOU? */}
+      <section id="product-details" className="py-16 md:py-20" style={{ background: "white" }}>
+        <div className="container max-w-3xl px-4">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-            <div className="text-center mb-10 md:mb-14">
-              <span className="inline-block text-xs font-semibold tracking-widest uppercase mb-3 px-4 py-1.5 rounded-full" style={{ background: v.accent + "18", color: v.accent }}>
-                Perfect Match?
-              </span>
-              <h2 className="text-[2rem] md:text-[2.5rem] font-bold mb-3" style={{ color: v.headingText, fontFamily: theme.headingFont }}>Is This For You?</h2>
-              <p className="text-[1rem] max-w-lg mx-auto" style={{ color: v.mutedText }}>This {config.label.toLowerCase()} is designed for people who are ready to take action.</p>
-            </div>
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <h2 className="text-[2rem] font-bold mb-2" style={{ color: v.headingText, fontFamily: theme.headingFont }}>Is This For You?</h2>
+            <p className="text-[0.9rem] mb-8" style={{ color: v.mutedText }}>This {config.label.toLowerCase()} is perfect for you if...</p>
+            <div className="grid gap-4 sm:grid-cols-2">
               {personas.map((persona, i) => (
-                <motion.div
-                  key={i}
-                  className="relative p-6 rounded-2xl overflow-hidden transition-shadow hover:shadow-lg"
-                  style={{ background: v.cardBg, border: `1px solid ${v.cardBorder}` }}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.1, duration: 0.4 }}
-                >
-                  {/* Decorative accent corner */}
-                  <div className="absolute top-0 right-0 w-20 h-20 rounded-bl-[60px] opacity-[0.07]" style={{ background: v.accent }} />
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4" style={{ background: v.accent + "18" }}>
-                    <Check className="h-5 w-5" style={{ color: v.accent }} />
-                  </div>
-                  <p className="text-[0.95rem] leading-relaxed font-medium" style={{ color: v.bodyText }}>{persona}</p>
-                </motion.div>
+                <div key={i} className="p-5 rounded-xl" style={{ background: v.cardBg, border: `1px solid ${v.cardBorder}` }}>
+                  <Check className="h-5 w-5 mb-3" style={{ color: v.accent }} />
+                  <p className="text-[0.9rem]" style={{ color: v.bodyText }}>{persona}</p>
+                </div>
               ))}
             </div>
           </motion.div>
         </div>
       </section>
 
-      {/* 7. WHAT'S INSIDE — Numbered checklist with accent sidebar */}
+      {/* 7. WHAT'S INSIDE */}
       {checklistItems.length > 0 && (
-        <section className="py-16 md:py-24" style={{ background: "white" }}>
-          <div className="container max-w-5xl px-4">
+        <section className="py-16 md:py-20" style={{ background: v.secondaryBg }}>
+          <div className="container max-w-3xl px-4">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-              <div className="grid md:grid-cols-[1fr_1.4fr] gap-10 md:gap-16 items-start">
-                {/* Left: sticky heading block */}
-                <div className="md:sticky md:top-32">
-                  <span className="inline-block text-xs font-semibold tracking-widest uppercase mb-3 px-4 py-1.5 rounded-full" style={{ background: v.accent + "18", color: v.accent }}>
-                    What's Included
-                  </span>
-                  <h2 className="text-[2rem] md:text-[2.5rem] font-bold mb-3" style={{ color: v.headingText, fontFamily: theme.headingFont }}>{whatsIncludedHeading}</h2>
-                  <p className="text-[0.95rem] leading-relaxed" style={{ color: v.mutedText }}>
-                    Everything you need to transform knowledge into results.
-                  </p>
-                  <div className="hidden md:block mt-6 w-16 h-1 rounded-full" style={{ background: v.accent }} />
-                </div>
-                {/* Right: items */}
-                <div className="space-y-4">
-                  {checklistItems.map((item, i) => (
-                    <motion.div
-                      key={i}
-                      className="flex items-start gap-4 p-5 rounded-xl transition-all hover:shadow-md"
-                      style={{ background: v.secondaryBg, border: `1px solid ${v.cardBorder}` }}
-                      initial={{ opacity: 0, x: 20 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: i * 0.08, duration: 0.4 }}
-                    >
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-sm font-bold" style={{ background: v.accent, color: v.accentText }}>
-                        {i + 1}
-                      </div>
-                      <p className="text-[0.95rem] leading-relaxed pt-0.5" style={{ color: v.bodyText }}>{item}</p>
-                    </motion.div>
-                  ))}
-                </div>
+              <h2 className="text-[2rem] font-bold mb-8" style={{ color: v.headingText, fontFamily: theme.headingFont }}>{whatsIncludedHeading}</h2>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {checklistItems.map((item, i) => (
+                  <div key={i} className="flex items-start gap-3 p-4 rounded-lg" style={{ background: v.cardBg }}>
+                    <div className="mt-0.5 w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ background: v.accent }}>
+                      <Check className="h-3.5 w-3.5" style={{ color: v.accentText }} />
+                    </div>
+                    <p className="text-[0.9rem] leading-relaxed" style={{ color: v.bodyText }}>{item}</p>
+                  </div>
+                ))}
               </div>
             </motion.div>
           </div>
         </section>
       )}
 
-      {/* 8. BODY COPY — Full-width with accent left border for impact (FAQ stripped) */}
-      {salesPageContent && (() => {
-        const contentWithoutFaq = salesPageContent
-          .replace(/(?:^|\n)#{1,3}\s*(?:FAQ|Frequently Asked Questions)[^\n]*\n[\s\S]*$/i, "")
-          .replace(/(?:^|\n)(?:FAQ|Frequently Asked Questions)[:\s]*\n[\s\S]*$/i, "")
-          .trim();
-        return contentWithoutFaq ? (
-          <section className="py-16 md:py-24" style={{ background: v.secondaryBg }}>
-            <div className="container max-w-4xl px-4">
-              <motion.div
-                initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}
-                className="rounded-2xl p-8 md:p-12"
-                style={{ background: v.cardBg, borderLeft: `4px solid ${v.accent}`, boxShadow: `0 4px 24px ${v.primary}08` }}
-              >
-                <ProductMarkdown content={contentWithoutFaq} vars={v} />
-              </motion.div>
-            </div>
-          </section>
-        ) : null;
-      })()}
+      {/* 8. BODY COPY (from sales page content or description) */}
+      {salesPageContent && (
+        <section className="py-16 md:py-20" style={{ background: "white" }}>
+          <div className="container max-w-3xl px-4">
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
+              <ProductMarkdown content={salesPageContent} vars={v} />
+            </motion.div>
+          </div>
+        </section>
+      )}
 
       {!salesPageContent && product.description && (
-        <section className="py-16 md:py-24" style={{ background: v.secondaryBg }}>
-          <div className="container max-w-4xl px-4">
-            <motion.div
-              initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}
-              className="rounded-2xl p-8 md:p-12"
-              style={{ background: v.cardBg, borderLeft: `4px solid ${v.accent}`, boxShadow: `0 4px 24px ${v.primary}08` }}
-            >
+        <section className="py-16 md:py-20" style={{ background: "white" }}>
+          <div className="container max-w-3xl px-4">
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
               <h2 className="text-xl font-bold mb-4" style={{ color: v.headingText, fontFamily: theme.headingFont }}>About This {config.label}</h2>
               <p className="text-[1.125rem] leading-[1.8]" style={{ color: v.bodyText }}>{product.description}</p>
             </motion.div>
@@ -603,22 +548,12 @@ export default function AuthorProductPage() {
         </section>
       )}
 
-      {/* 10. FAQ ACCORDION — Distinct card with accent top border */}
+      {/* 10. FAQ ACCORDION */}
       {faqs.length > 0 && (
-        <section className="py-16 md:py-20" style={{ background: "white" }}>
+        <section className="py-16 md:py-20" style={{ background: v.secondaryBg }}>
           <div className="container max-w-3xl px-4">
-            <motion.div
-              initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}
-              className="rounded-2xl p-8 md:p-12 overflow-hidden"
-              style={{
-                background: v.secondaryBg,
-                borderTop: `4px solid ${v.accent}`,
-                boxShadow: `0 8px 32px ${v.primary}12`,
-              }}
-            >
-              <h2 className="text-[2rem] font-bold mb-8" style={{ color: v.headingText, fontFamily: theme.headingFont }}>Frequently Asked Questions</h2>
-              <FAQAccordion faqs={faqs} vars={v} headingFont={theme.headingFont} />
-            </motion.div>
+            <h2 className="text-[2rem] font-bold mb-6" style={{ color: v.headingText, fontFamily: theme.headingFont }}>Frequently Asked Questions</h2>
+            <FAQAccordion faqs={faqs} vars={v} headingFont={theme.headingFont} />
           </div>
         </section>
       )}

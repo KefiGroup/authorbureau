@@ -337,15 +337,11 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
           </Button>
           <Button
             className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
-            size="sm"
             onClick={() => onNavigate?.("revenue-streams")}
           >
             Build Your First Product <ArrowRight className="h-4 w-4 ml-1.5" />
           </Button>
         </div>
-        <p className="text-[11px] text-muted-foreground/60">
-          CSV format: columns for <span className="font-medium">Name</span>, <span className="font-medium">Email</span>, Phone, Company (headers in first row)
-        </p>
         <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleCSVImport} />
       </div>
     );

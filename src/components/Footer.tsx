@@ -15,24 +15,24 @@ export default function Footer() {
 
           <div>
             <h4 className="mb-4 font-heading text-sm font-semibold uppercase tracking-wider text-secondary">
-              For Authors
+              Platform
             </h4>
             <ul className="space-y-2 text-sm text-primary-foreground/70">
-              <li><Link to="/how-it-works" className="hover:text-secondary transition-colors">How It Works</Link></li>
-              <li><a href="/#pricing" className="hover:text-secondary transition-colors">Pricing & Plans</a></li>
-              <li><Link to="/dashboard" className="hover:text-secondary transition-colors">Authors Portal</Link></li>
+              <li><Link to="/directory" className="hover:text-secondary transition-colors">Author Directory</Link></li>
               <li><Link to="/get-featured" className="hover:text-secondary transition-colors">Get Featured</Link></li>
+              <li><Link to="/how-it-works" className="hover:text-secondary transition-colors">How It Works</Link></li>
+              <li><a href="/#pricing" className="hover:text-secondary transition-colors">Pricing</a></li>
             </ul>
           </div>
 
           <div>
             <h4 className="mb-4 font-heading text-sm font-semibold uppercase tracking-wider text-secondary">
-              For Readers
+              Writing & Publishing
             </h4>
             <ul className="space-y-2 text-sm text-primary-foreground/70">
-              <li><Link to="/directory" className="hover:text-secondary transition-colors">Browse Authors</Link></li>
-              <li><Link to="/reading-club" className="hover:text-secondary transition-colors">Reading Club</Link></li>
-              <li><Link to="/portal" className="hover:text-secondary transition-colors">Readers Portal</Link></li>
+              <li><a href="https://publishnow.io" target="_blank" rel="noopener noreferrer" className="hover:text-secondary transition-colors">PublishNow.io</a></li>
+              <li><a href="https://publishnow.io/ai-writing-studio" target="_blank" rel="noopener noreferrer" className="hover:text-secondary transition-colors">AI Writing Studio</a></li>
+              <li><a href="https://publishnow.io/ai-publishing-studio" target="_blank" rel="noopener noreferrer" className="hover:text-secondary transition-colors">AI Publishing Studio</a></li>
             </ul>
           </div>
 
@@ -43,7 +43,7 @@ export default function Footer() {
             <ul className="space-y-2 text-sm text-primary-foreground/70">
               <li><Link to="/contact" className="hover:text-secondary transition-colors">Contact Us</Link></li>
               <li><Link to="/faq" className="hover:text-secondary transition-colors">Help Center</Link></li>
-              <li><a href="https://publishnow.io" target="_blank" rel="noopener noreferrer" className="hover:text-secondary transition-colors">PublishNow.io</a></li>
+              <li><Link to="/reading-club" className="hover:text-secondary transition-colors">Reading Club</Link></li>
             </ul>
           </div>
         </div>

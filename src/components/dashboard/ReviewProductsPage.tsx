@@ -131,14 +131,10 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
 
       const drafts: DraftProduct[] = (result.drafts || []).map((item: any) => {
         const nodeConfig = ALL_BUILDER_NODES.find(n => n.id === item.nodeId);
-        const totalSteps = nodeConfig?.steps.length || 2;
-        const rawCompleted = item.stepsCompleted || 0;
-        // Cap stepsCompleted to totalSteps (draft stepData keys can exceed step count)
-        const stepsCompleted = Math.min(rawCompleted, totalSteps);
+        const totalSteps = nodeConfig?.steps.length || 5;
+        const stepsCompleted = item.stepsCompleted || 0;
         const actProgress = Math.round((stepsCompleted / totalSteps) * 100);
-        // For 2-step builders: step 0 = Act 1, step 1+ = Act 2 (Build), completed = done
-        const isComplete = stepsCompleted >= totalSteps;
-        const currentAct = stepsCompleted === 0 ? 1 : isComplete ? 3 : 2;
+        const currentAct = stepsCompleted === 0 ? 1 : stepsCompleted >= totalSteps - 1 ? 3 : 2;
 
         return {
           id: item.id,
@@ -153,7 +149,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
           description: item.description || undefined,
           price: item.price,
           createdAt: item.created_at,
-          actProgress: isComplete ? 100 : actProgress,
+          actProgress,
           currentAct: currentAct as 1 | 2 | 3,
           stepsCompleted,
           totalSteps,
@@ -590,21 +586,17 @@ function ProductCard({
             <p className="text-xs text-muted-foreground line-clamp-2">{product.description}</p>
           )}
 
-          {/* Progress Bar */}
+          {/* 3-Act Progress Bar */}
           <div className="flex items-center gap-3">
             <div className="flex-1">
               <Progress value={product.actProgress} className="h-1.5" />
             </div>
             <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-              {product.stepsCompleted >= product.totalSteps
-                ? "Complete"
-                : `${product.stepsCompleted}/${product.totalSteps} steps`}
+              {product.stepsCompleted}/{product.totalSteps} steps
             </span>
-            {product.stepsCompleted < product.totalSteps && (
-              <Badge variant="outline" className={`text-[8px] h-4 px-1.5 ${actColor.bg} ${actColor.text} ${actColor.border}`}>
-                {actColor.label.split(" — ")[1]}
-              </Badge>
-            )}
+            <Badge variant="outline" className={`text-[8px] h-4 px-1.5 ${actColor.bg} ${actColor.text} ${actColor.border}`}>
+              {actColor.label.split(" — ")[1]}
+            </Badge>
           </div>
         </div>
 

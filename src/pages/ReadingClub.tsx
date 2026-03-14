@@ -129,21 +129,6 @@ export default function ReadingClub() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-
-      {/* Portal banner for logged-in readers */}
-      {user && (
-        <div className="bg-[hsl(var(--accent))]/5 border-b border-[hsl(var(--accent))]/20">
-          <div className="container py-3 flex items-center justify-between gap-4 flex-wrap">
-            <p className="text-sm text-muted-foreground">
-              Your reading progress and library are in your <strong className="text-foreground">Readers Portal</strong>
-            </p>
-            <a href="/portal" className="text-sm font-semibold text-secondary hover:text-secondary/80 transition-colors inline-flex items-center gap-1">
-              Go to My Portal →
-            </a>
-          </div>
-        </div>
-      )}
-
       <ReadingClubHero user={user} activeCount={entries.filter(e => e.status === "active").length} />
 
       {user && entries.filter(e => e.status === "active").length > 0 && (

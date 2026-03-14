@@ -23,9 +23,8 @@ import {
   ArrowLeft, Monitor, Smartphone, ChevronLeft, ChevronRight,
   BookOpen, Clock, CalendarDays, Award, Send, Save, Loader2,
   DollarSign, Edit3, Eye, CheckCircle2, FileText, GraduationCap,
-  Plus, X, Palette,
+  Plus, X,
 } from "lucide-react";
-import { SALES_PAGE_DESIGNS, type SalesPageDesignId } from "../builders/shared/SharedSalesPageStep";
 import type { StudyDay } from "../builders/home-study/types";
 
 interface HomeStudyReviewViewProps {
@@ -100,9 +99,6 @@ export default function HomeStudyReviewView({
   const [salesTestimonials, setSalesTestimonials] = useState<{ name: string; quote: string }[]>([]);
   const [salesCta, setSalesCta] = useState("Enroll Now");
   const [salesFaqs, setSalesFaqs] = useState<{ question: string; answer: string }[]>([]);
-  const [salesPrice, setSalesPrice] = useState("");
-  const [salesComparePrice, setSalesComparePrice] = useState("");
-  const [salesDesignTemplate, setSalesDesignTemplate] = useState<SalesPageDesignId>("classic-elegant");
 
   // Drawer-local draft for sales page markdown (kept for serialization)
   const [salesDraft, setSalesDraft] = useState("");
@@ -219,112 +215,9 @@ export default function HomeStudyReviewView({
   const effectiveSalesPage = salesPageMarkdown.trim() || splitFromCombined.salesPageText;
   const effectiveContent = splitFromCombined.contentText || fullCourseMarkdown;
   const fullCourseText = effectiveContent.trim();
-
-  const stripMd = (s: string) => s.replace(/\*\*(.+?)\*\*/g, "$1").replace(/\*(.+?)\*/g, "$1").replace(/__(.+?)__/g, "$1").replace(/_(.+?)_/g, "$1").replace(/`(.+?)`/g, "$1").replace(/^#+\s*/gm, "").replace(/^\s*>\s*/gm, "").trim();
-
-  const extractSalesMeta = (markdown: string) => {
-    const metaMatch = markdown.match(/<!--\s*SALES_META:([\s\S]*?)-->/i);
-    const cleanedMarkdown = metaMatch ? markdown.replace(metaMatch[0], "").trim() : markdown.trim();
-
-    const meta: {
-      price?: string;
-      comparePrice?: string;
-      cta?: string;
-      designTemplate?: SalesPageDesignId;
-    } = {};
-
-    if (metaMatch?.[1]) {
-      try {
-        const parsed = JSON.parse(metaMatch[1].trim()) as Record<string, unknown>;
-        if (typeof parsed.price === "string" || typeof parsed.price === "number") meta.price = String(parsed.price);
-        if (typeof parsed.comparePrice === "string" || typeof parsed.comparePrice === "number") meta.comparePrice = String(parsed.comparePrice);
-        if (typeof parsed.cta === "string") meta.cta = parsed.cta;
-        if (typeof parsed.designTemplate === "string" && SALES_PAGE_DESIGNS.some((d) => d.id === parsed.designTemplate)) {
-          meta.designTemplate = parsed.designTemplate as SalesPageDesignId;
-        }
-      } catch (err) {
-        console.error("Failed to parse SALES_META:", err);
-      }
-    }
-
-    return { cleanedMarkdown, meta };
-  };
-
-  const splitSalesCopyAndFaq = (markdown: string) => {
-    const lines = markdown.split("\n");
-    const normalize = (line: string) => line.replace(/\*\*/g, "").trim();
-
-    const faqHeaderIdx = lines.findIndex((line) => /^(?:#{1,6}\s*)?(?:frequently asked questions?|faq)\b[:\s]*$/i.test(normalize(line)));
-    const firstQuestionIdx = lines.findIndex((line) => /^(?:Q|Question)\s*:/i.test(normalize(line)));
-    const splitIdx = faqHeaderIdx >= 0 ? faqHeaderIdx : firstQuestionIdx;
-
-    const body = (splitIdx >= 0 ? lines.slice(0, splitIdx) : lines).join("\n").trim();
-    const faqLines = splitIdx >= 0 ? lines.slice(splitIdx) : [];
-
-    const faqs: { question: string; answer: string }[] = [];
-    let currentQuestion = "";
-    let answerLines: string[] = [];
-
-    const pushFaq = () => {
-      if (currentQuestion) {
-        faqs.push({ question: currentQuestion, answer: answerLines.join(" ").trim() });
-      }
-      currentQuestion = "";
-      answerLines = [];
-    };
-
-    for (const raw of faqLines) {
-      const line = normalize(raw);
-      if (!line || /^(?:frequently asked questions?|faq)\b/i.test(line)) continue;
-
-      const qMatch = line.match(/^(?:Q|Question)\s*:\s*(.+)$/i);
-      if (qMatch) {
-        pushFaq();
-        currentQuestion = stripMd(qMatch[1]);
-        continue;
-      }
-
-      const aMatch = line.match(/^(?:A|Answer)\s*:\s*(.+)$/i);
-      if (aMatch) {
-        answerLines.push(stripMd(aMatch[1]));
-        continue;
-      }
-
-      if (currentQuestion) answerLines.push(stripMd(line));
-    }
-
-    pushFaq();
-    return { body, faqs };
-  };
-
-  const isSalesNoiseLine = (line: string) => {
-    const normalized = line.replace(/^[#*\s]+/, "");
-    return (
-      line.startsWith("#") ||
-      line.startsWith("-") ||
-      line.startsWith("*") ||
-      line.startsWith(">") ||
-      /^[QA]:\s/i.test(line) ||
-      /^—\s/.test(line) ||
-      /^\*\*[QA]:/i.test(line) ||
-      /^(testimonial|what others say|what's included|frequently asked questions|faq)/i.test(normalized)
-    );
-  };
-
-  const { cleanedMarkdown: salesMarkdownWithoutMeta, meta: salesMeta } = extractSalesMeta(effectiveSalesPage);
-  const hasSalesPage = salesMarkdownWithoutMeta.trim().length > 50;
+  const hasSalesPage = effectiveSalesPage.trim().length > 50;
   const hasFullManuscript = /day\s*1/i.test(fullCourseText) || fullCourseText.length > 2000;
   const canPublish = hasStructuredDays || hasFullManuscript;
-
-  const previewSalesSplit = splitSalesCopyAndFaq(salesMarkdownWithoutMeta);
-  const previewSalesFaqs = previewSalesSplit.faqs.filter((f) => f.question && f.answer);
-  const previewSalesBody = previewSalesSplit.body.trim();
-
-  const heroLines = (previewSalesBody || salesMarkdownWithoutMeta).split("\n").map((l) => l.trim()).filter(Boolean);
-  const previewHeroTitle = stripMd(heroLines.find((l) => /^##?\s/.test(l)) || "") || title || "Home Study Course";
-  const previewHeroBody = stripMd(heroLines.filter((l) => !isSalesNoiseLine(l)).join(" ")) || description || "A guided self-paced learning experience";
-  const previewHeroPrice = salesMeta.price?.trim() || price;
-  const previewHeroComparePrice = salesMeta.comparePrice?.trim() || "";
 
   const duration = hasStructuredDays ? days.length : Number(setup.duration) || 30;
   const totalPages = hasStructuredDays ? days.length + 2 : 1;
@@ -335,30 +228,40 @@ export default function HomeStudyReviewView({
     setPreviewPage((prev) => Math.min(prev, Math.max(totalPages - 1, 0)));
   }, [totalPages]);
 
-  const openSalesEditor = () => {
-    const md = effectiveSalesPage || "";
-    const { cleanedMarkdown, meta } = extractSalesMeta(md);
+  const stripMd = (s: string) => s.replace(/\*\*(.+?)\*\*/g, "$1").replace(/\*(.+?)\*/g, "$1").replace(/__(.+?)__/g, "$1").replace(/_(.+?)_/g, "$1").replace(/`(.+?)`/g, "$1").replace(/^#+\s*/gm, "").replace(/^\s*>\s*/gm, "").trim();
 
-    if (cleanedMarkdown.trim()) {
-      const parsedSales = splitSalesCopyAndFaq(cleanedMarkdown);
-      const contentSource = parsedSales.body || cleanedMarkdown;
-      const lines = contentSource.split("\n").filter(l => l.trim());
+  const openSalesEditor = useCallback(() => {
+    const md = effectiveSalesPage || "";
+    if (md.trim()) {
+      const lines = md.split("\n").filter(l => l.trim());
       const h1 = lines.find(l => /^##?\s/.test(l));
       setSalesHeadline(stripMd(h1 || title || ""));
       const h2 = lines.find(l => /^###\s/.test(l));
       setSalesSubheadline(stripMd(h2 || ""));
       const bullets = lines.filter(l => /^[-*]\s/.test(l)).map(l => stripMd(l.replace(/^[-*]\s*/, "")));
       setSalesBullets(bullets.length > 0 ? bullets : [""]);
-      const bodyLines = lines.filter(l => !isSalesNoiseLine(l));
+      // Filter out headings, bullets, blockquotes, Q&A lines, testimonial attributions, and section labels
+      const isNoise = (l: string) =>
+        l.startsWith("#") || l.startsWith("-") || l.startsWith("*") || l.startsWith(">") ||
+        /^[QA]:\s/i.test(l) || /^—\s/.test(l) || /^\*\*[QA]:/i.test(l) ||
+        /^(frequently asked|faq|testimonial|what others say|what's included)/i.test(l.replace(/^[#*\s]+/, ""));
+      const bodyLines = lines.filter(l => !isNoise(l));
       setSalesBody(stripMd(bodyLines.join("\n")));
       const quoteLines = lines.filter(l => l.startsWith(">"));
       const testimonials = quoteLines.map(q => ({ name: "", quote: stripMd(q.replace(/^>\s*/, "").replace(/^"/, "").replace(/"$/, "")) }));
       setSalesTestimonials(testimonials.length > 0 ? testimonials : []);
-      setSalesFaqs(parsedSales.faqs);
-      setSalesCta(meta.cta || "Enroll Now");
-      setSalesPrice(meta.price || price || "");
-      setSalesComparePrice(meta.comparePrice || "");
-      setSalesDesignTemplate(meta.designTemplate || "classic-elegant");
+      // Extract FAQ pairs (Q: ... A: ...)
+      const faqs: { question: string; answer: string }[] = [];
+      for (let i = 0; i < lines.length; i++) {
+        const qMatch = lines[i].match(/^\*{0,2}Q:\s*(.*)/i) || lines[i].match(/^\*{0,2}Question:\s*(.*)/i);
+        if (qMatch) {
+          const aLine = lines[i + 1];
+          const aMatch = aLine?.match(/^\*{0,2}A:\s*(.*)/i) || aLine?.match(/^\*{0,2}Answer:\s*(.*)/i);
+          faqs.push({ question: stripMd(qMatch[1].replace(/\*+$/g, "").trim()), answer: aMatch ? stripMd(aMatch[1].replace(/\*+$/g, "").trim()) : "" });
+        }
+      }
+      setSalesFaqs(faqs);
+      setSalesCta("Enroll Now");
     } else {
       setSalesHeadline(title || productTitle || "");
       setSalesSubheadline(description ? description.slice(0, 120) : `A ${duration}-day guided self-study program`);
@@ -371,14 +274,11 @@ export default function HomeStudyReviewView({
       ]);
       setSalesTestimonials([]);
       setSalesFaqs([]);
-      setSalesCta(meta.cta || "Enroll Now");
-      setSalesPrice(meta.price || price || "");
-      setSalesComparePrice(meta.comparePrice || "");
-      setSalesDesignTemplate(meta.designTemplate || "classic-elegant");
+      setSalesCta("Enroll Now");
     }
     setSalesDraft(md);
     setDrawerOpen("sales");
-  };
+  }, [effectiveSalesPage, title, productTitle, description, duration, bookTitle]);
 
   const handleSave = async () => {
     if (!user) return;
@@ -424,47 +324,30 @@ export default function HomeStudyReviewView({
   };
 
   const handleSaveSalesPage = async () => {
-    if (!user) {
-      toast({ title: "Not logged in", variant: "destructive" });
-      return;
-    }
-
+    if (!user) return;
     setSaving(true);
     try {
+      // Serialize structured fields to markdown
       const parts: string[] = [];
       if (salesHeadline) parts.push(`## ${salesHeadline}`);
       if (salesSubheadline) parts.push(`### ${salesSubheadline}`);
       if (salesBody) parts.push("", salesBody);
-
       const validBullets = salesBullets.filter(b => b.trim());
       if (validBullets.length > 0) {
         parts.push("", "**What's Included:**", ...validBullets.map(b => `- ${b}`));
       }
-
       if (salesTestimonials.length > 0) {
         parts.push("", "**What Others Say:**");
         salesTestimonials.forEach(t => {
           parts.push(`> "${t.quote}"${t.name ? ` — ${t.name}` : ""}`);
         });
       }
-
-      const validFaqs = salesFaqs.filter(f => f.question.trim() && f.answer.trim());
-      if (validFaqs.length > 0) {
-        parts.push("", "## Frequently Asked Questions");
-        validFaqs.forEach(f => {
-          parts.push(`Q: ${f.question.trim()}`, `A: ${f.answer.trim()}`, "");
+      if (salesFaqs.length > 0) {
+        parts.push("", "**Frequently Asked Questions:**");
+        salesFaqs.forEach(f => {
+          parts.push(`**Q: ${f.question}**`, `A: ${f.answer}`, "");
         });
       }
-
-      if (salesPrice || salesComparePrice || salesDesignTemplate) {
-        parts.push("", `<!-- SALES_META:${JSON.stringify({
-          price: salesPrice,
-          comparePrice: salesComparePrice,
-          designTemplate: salesDesignTemplate,
-          cta: salesCta,
-        })} -->`);
-      }
-
       const serialized = parts.join("\n");
       setSalesPageMarkdown(serialized);
       setSalesDraft(serialized);
@@ -472,7 +355,7 @@ export default function HomeStudyReviewView({
       const token = await getActiveToken();
       if (!token) throw new Error("Not authenticated");
 
-      const resp = await fetchWithTimeout(
+      await fetchWithTimeout(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/builder-draft-state`,
         {
           method: "POST",
@@ -483,24 +366,15 @@ export default function HomeStudyReviewView({
             nodeId: "home-study-course",
             content: serialized,
           }),
-        },
-        30000
+        }
       );
 
-      if (!resp.ok) {
-        const errText = await resp.text().catch(() => "");
-        throw new Error(errText || `Save failed (${resp.status})`);
-      }
-
-      await loadContent();
       toast({ title: "Sales page saved!" });
       setDrawerOpen(null);
-    } catch (err) {
-      console.error("Save sales page error:", err);
-      toast({ title: "Save failed", description: err instanceof Error ? err.message : String(err), variant: "destructive" });
-    } finally {
-      setSaving(false);
+    } catch {
+      toast({ title: "Save failed", variant: "destructive" });
     }
+    setSaving(false);
   };
 
   const handlePublish = async () => {
@@ -612,17 +486,16 @@ export default function HomeStudyReviewView({
                   <Badge variant="secondary" className="text-[10px] mb-4">
                     {duration}-Day Program
                   </Badge>
-                  <h1 className="font-heading text-2xl font-bold mb-2">{previewHeroTitle}</h1>
-                  <p className="text-sm text-muted-foreground mb-4 max-w-md">{previewHeroBody}</p>
+                  <h1 className="font-heading text-2xl font-bold mb-2">{title || "Home Study Course"}</h1>
+                  <p className="text-sm text-muted-foreground mb-4 max-w-md">{description || "A guided self-paced learning experience"}</p>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1"><CalendarDays className="h-3 w-3" /> {duration} days</span>
                     <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {commitment} min/day</span>
                     <span className="flex items-center gap-1"><BookOpen className="h-3 w-3" /> {level}</span>
                   </div>
-                  {previewHeroPrice && (
-                    <div className="mt-4 flex items-center gap-2">
-                      {previewHeroComparePrice && <span className="text-xs text-muted-foreground line-through">${previewHeroComparePrice}</span>}
-                      <Badge className="bg-secondary text-secondary-foreground text-sm px-4 py-1">${previewHeroPrice}</Badge>
+                  {price && (
+                    <div className="mt-4">
+                      <Badge className="bg-secondary text-secondary-foreground text-sm px-4 py-1">${price}</Badge>
                     </div>
                   )}
                   <div className="mt-6 p-4 bg-muted/30 rounded-lg max-w-sm">
@@ -732,22 +605,11 @@ export default function HomeStudyReviewView({
                 hasSalesPage ? (
                   <div className="space-y-6">
                     <div>
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">📄 Sales Page Copy</p>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">📄 Sales Page</p>
                       <div className="prose prose-sm dark:prose-invert max-w-none">
-                        <MarkdownRenderer content={previewSalesBody || salesMarkdownWithoutMeta} />
+                        <MarkdownRenderer content={effectiveSalesPage} />
                       </div>
                     </div>
-                    {previewSalesFaqs.length > 0 && (
-                      <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">❓ FAQ Preview</p>
-                        {previewSalesFaqs.map((faq, idx) => (
-                          <div key={`${faq.question}-${idx}`} className="space-y-1">
-                            <p className="text-sm font-semibold text-foreground">{faq.question}</p>
-                            <p className="text-sm text-muted-foreground">{faq.answer}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                     <Separator />
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">📚 Home Study Content</p>
@@ -785,7 +647,7 @@ export default function HomeStudyReviewView({
                 : "Home Study draft is incomplete"}
             </p>
             <p className="text-xs text-muted-foreground">
-              {previewHeroPrice ? `$${previewHeroPrice} · ` : ""}
+              {price ? `$${price} · ` : ""}
               {commitment} min/day · {level}
               {!canPublish ? " · Publish disabled until lessons are generated" : ""}
             </p>
@@ -978,86 +840,6 @@ export default function HomeStudyReviewView({
                 placeholder="Enroll Now"
                 className="mt-1 h-8"
               />
-            </div>
-
-            <Separator />
-
-            {/* ── PRICING ── */}
-            <div>
-              <Label className="text-xs font-semibold mb-2 block">Pricing</Label>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-[10px] text-muted-foreground">Price (USD)</Label>
-                  <div className="relative mt-1">
-                    <DollarSign className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
-                    <Input
-                      value={salesPrice}
-                      onChange={(e) => setSalesPrice(e.target.value)}
-                      placeholder="47"
-                      className="pl-8 h-8 text-sm"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-[10px] text-muted-foreground">Compare-at Price (optional)</Label>
-                  <div className="relative mt-1">
-                    <DollarSign className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
-                    <Input
-                      value={salesComparePrice}
-                      onChange={(e) => setSalesComparePrice(e.target.value)}
-                      placeholder="97"
-                      className="pl-8 h-8 text-sm"
-                    />
-                  </div>
-                </div>
-              </div>
-              {salesPrice && salesComparePrice && Number(salesComparePrice) > Number(salesPrice) && (
-                <p className="text-[10px] text-accent mt-1">
-                  {Math.round((1 - Number(salesPrice) / Number(salesComparePrice)) * 100)}% discount shown to buyers
-                </p>
-              )}
-            </div>
-
-            <Separator />
-
-            {/* ── DESIGN TEMPLATE ── */}
-            <div>
-              <Label className="text-xs font-semibold mb-1 flex items-center gap-1.5">
-                <Palette className="h-3.5 w-3.5" /> Sales Page Design
-              </Label>
-              <p className="text-[10px] text-muted-foreground mb-3">Choose a visual template for your public sales page.</p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {SALES_PAGE_DESIGNS.map(design => {
-                  const isSelected = salesDesignTemplate === design.id;
-                  return (
-                    <button
-                      key={design.id}
-                      type="button"
-                      onClick={() => setSalesDesignTemplate(design.id)}
-                      className={`relative rounded-lg border-2 overflow-hidden transition-all text-left ${
-                        isSelected
-                          ? "border-secondary ring-2 ring-secondary/20"
-                          : "border-border hover:border-secondary/40"
-                      }`}
-                    >
-                      <div className={`h-12 ${design.preview} flex items-center justify-center`}>
-                        <span className={`text-[7px] font-bold ${design.preview.includes("text-white") || design.preview.includes("text-amber") ? "" : "text-foreground"}`}>
-                          Preview
-                        </span>
-                      </div>
-                      <div className="p-1.5 bg-background">
-                        <p className="text-[10px] font-bold leading-tight">{design.label}</p>
-                        <p className="text-[8px] text-muted-foreground leading-snug">{design.description}</p>
-                      </div>
-                      {isSelected && (
-                        <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-secondary flex items-center justify-center">
-                          <span className="text-secondary-foreground text-[8px]">✓</span>
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
             </div>
 
             <div className="flex gap-2 pt-2">

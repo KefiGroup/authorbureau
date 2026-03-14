@@ -57,9 +57,7 @@ export default function Auth() {
   const { user, loading } = useAuth();
   const location = useLocation();
   const { toast } = useToast();
-  const params = new URLSearchParams(location.search);
-  const redirectTo = params.get("redirect") || "/dashboard";
-  const selectedRole = params.get("role") as "author" | "reader" | null;
+  const redirectTo = new URLSearchParams(location.search).get("redirect") || "/dashboard";
 
   const [mode, setMode] = useState<SignInMode>("password");
   const [flow, setFlow] = useState<FlowState>("password-login");
@@ -133,7 +131,6 @@ export default function Auth() {
       </div>
     );
   }
-  // Role-based redirect is handled purely by the `redirect` URL param set by /get-started
   if (user) return <Navigate to={redirectTo} replace />;
 
   // ─── Handlers ───
@@ -599,7 +596,7 @@ export default function Auth() {
             <div className="text-center pt-2 border-t border-border/50">
               <p className="text-sm text-muted-foreground">
                 Don't have an account?{" "}
-                <Link to="/get-started" className="font-semibold text-secondary hover:underline">
+                <Link to="/get-featured" className="font-semibold text-secondary hover:underline">
                   Sign Up
                 </Link>
               </p>

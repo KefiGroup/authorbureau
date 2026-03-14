@@ -71,21 +71,16 @@ export default function ReaderContentViewer() {
     setUnlockedUpTo(data.unlockedUpToDay || 0);
     setStartDate(data.startDate || null);
 
-    // Parse days from study_schedule_json (handles both flat array and {days:[]} wrapper)
-    const rawSchedule = data.studyData?.study_schedule_json;
-    const schedule = Array.isArray(rawSchedule)
-      ? rawSchedule
-      : Array.isArray(rawSchedule?.days)
-      ? rawSchedule.days
-      : [];
-    if (schedule.length > 0) {
+    // Parse days from study_schedule_json
+    const schedule = data.studyData?.study_schedule_json;
+    if (Array.isArray(schedule) && schedule.length > 0) {
       setDays(schedule.map((d: any, i: number) => ({
         dayNumber: d.dayNumber || i + 1,
         weekNumber: d.weekNumber || Math.ceil((d.dayNumber || i + 1) / 7),
         theme: d.theme || `Day ${d.dayNumber || i + 1}`,
         chapterRef: d.chapterRef,
-        reading: d.reading || d.concept || "",
-        concept: d.concept || d.reading || "",
+        reading: d.reading || "",
+        concept: d.concept || "",
         exercise: d.exercise || "",
         reflection: d.reflection || "",
         actionPlan: d.actionPlan || "",
