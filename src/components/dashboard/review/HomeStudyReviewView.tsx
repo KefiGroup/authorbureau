@@ -384,10 +384,11 @@ export default function HomeStudyReviewView({
           parts.push(`> "${t.quote}"${t.name ? ` — ${t.name}` : ""}`);
         });
       }
-      if (salesFaqs.length > 0) {
-        parts.push("", "**Frequently Asked Questions:**");
-        salesFaqs.forEach(f => {
-          parts.push(`**Q: ${f.question}**`, `A: ${f.answer}`, "");
+      const validFaqs = salesFaqs.filter(f => f.question.trim() && f.answer.trim());
+      if (validFaqs.length > 0) {
+        parts.push("", "## Frequently Asked Questions");
+        validFaqs.forEach(f => {
+          parts.push(`Q: ${f.question.trim()}`, `A: ${f.answer.trim()}`, "");
         });
       }
       const serialized = parts.join("\n");
