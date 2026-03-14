@@ -975,7 +975,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
               <Button
                 variant="ghost"
                 onClick={goPrev}
-                disabled={currentStep === 0}
+                disabled={currentStepIndex === 0}
                 className="text-muted-foreground"
               >
                 <ArrowLeft className="h-4 w-4 mr-1" /> Previous
