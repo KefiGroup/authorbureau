@@ -13,7 +13,7 @@ import {
   Award, FileText,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { generateJSONWithAI } from "@/lib/ai-generate";
+import type { HomeStudyStepProps, StudyDay } from "./types";
 import type { HomeStudyStepProps, StudyDay } from "./types";
 
 const SEGMENTS = [
