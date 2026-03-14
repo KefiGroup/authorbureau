@@ -609,16 +609,17 @@ export default function HomeStudyReviewView({
                   <Badge variant="secondary" className="text-[10px] mb-4">
                     {duration}-Day Program
                   </Badge>
-                  <h1 className="font-heading text-2xl font-bold mb-2">{title || "Home Study Course"}</h1>
-                  <p className="text-sm text-muted-foreground mb-4 max-w-md">{description || "A guided self-paced learning experience"}</p>
+                  <h1 className="font-heading text-2xl font-bold mb-2">{previewHeroTitle}</h1>
+                  <p className="text-sm text-muted-foreground mb-4 max-w-md">{previewHeroBody}</p>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1"><CalendarDays className="h-3 w-3" /> {duration} days</span>
                     <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {commitment} min/day</span>
                     <span className="flex items-center gap-1"><BookOpen className="h-3 w-3" /> {level}</span>
                   </div>
-                  {price && (
-                    <div className="mt-4">
-                      <Badge className="bg-secondary text-secondary-foreground text-sm px-4 py-1">${price}</Badge>
+                  {previewHeroPrice && (
+                    <div className="mt-4 flex items-center gap-2">
+                      {previewHeroComparePrice && <span className="text-xs text-muted-foreground line-through">${previewHeroComparePrice}</span>}
+                      <Badge className="bg-secondary text-secondary-foreground text-sm px-4 py-1">${previewHeroPrice}</Badge>
                     </div>
                   )}
                   <div className="mt-6 p-4 bg-muted/30 rounded-lg max-w-sm">
