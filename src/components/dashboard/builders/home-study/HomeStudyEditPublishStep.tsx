@@ -47,6 +47,28 @@ const sanitizeSalesCopy = (content?: string | null): string =>
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
+/** Extract Q&A pairs and return cleaned description + faqs array */
+function extractFaqsFromCopy(text: string): { cleanedCopy: string; faqs: { q: string; a: string }[] } {
+  const faqs: { q: string; a: string }[] = [];
+  // Match "Frequently Asked Questions" header and everything after it
+  const faqHeaderPattern = /\n*(?:Frequently Asked Questions|FAQ)\s*\n/i;
+  const headerIdx = text.search(faqHeaderPattern);
+  if (headerIdx === -1) return { cleanedCopy: text, faqs };
+
+  const beforeFaq = text.slice(0, headerIdx).trim();
+  const faqSection = text.slice(headerIdx);
+
+  // Parse Q:/A: pairs
+  const qaPairs = faqSection.matchAll(/Q:\s*(.+?)(?:\n+)A:\s*([\s\S]*?)(?=\nQ:|$)/gi);
+  for (const match of qaPairs) {
+    const q = match[1].trim();
+    const a = match[2].trim();
+    if (q && a) faqs.push({ q, a });
+  }
+
+  return { cleanedCopy: beforeFaq, faqs };
+}
+
 export default function HomeStudyEditPublishStep({
   stepData, setStepData, onMarkEdited, bookId, bookTitle,
   generationState, setGenerationState,
