@@ -564,20 +564,23 @@ export default function AuthorProductPage() {
         </section>
       )}
 
-      {/* 8. BODY COPY — Full-width with accent left border for impact */}
-      {salesPageContent && (
-        <section className="py-16 md:py-24" style={{ background: v.secondaryBg }}>
-          <div className="container max-w-4xl px-4">
-            <motion.div
-              initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}
-              className="rounded-2xl p-8 md:p-12"
-              style={{ background: v.cardBg, borderLeft: `4px solid ${v.accent}`, boxShadow: `0 4px 24px ${v.primary}08` }}
-            >
-              <ProductMarkdown content={salesPageContent} vars={v} />
-            </motion.div>
-          </div>
-        </section>
-      )}
+      {/* 8. BODY COPY — Full-width with accent left border for impact (FAQ stripped) */}
+      {salesPageContent && (() => {
+        const contentWithoutFaq = salesPageContent.replace(/(?:^|\n)##?\s*(?:FAQ|Frequently Asked Questions)[^\n]*\n[\s\S]*?(?=\n##?\s|$)/i, "").trim();
+        return contentWithoutFaq ? (
+          <section className="py-16 md:py-24" style={{ background: v.secondaryBg }}>
+            <div className="container max-w-4xl px-4">
+              <motion.div
+                initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}
+                className="rounded-2xl p-8 md:p-12"
+                style={{ background: v.cardBg, borderLeft: `4px solid ${v.accent}`, boxShadow: `0 4px 24px ${v.primary}08` }}
+              >
+                <ProductMarkdown content={contentWithoutFaq} vars={v} />
+              </motion.div>
+            </div>
+          </section>
+        ) : null;
+      })()}
 
       {!salesPageContent && product.description && (
         <section className="py-16 md:py-24" style={{ background: v.secondaryBg }}>
@@ -594,12 +597,22 @@ export default function AuthorProductPage() {
         </section>
       )}
 
-      {/* 10. FAQ ACCORDION */}
+      {/* 10. FAQ ACCORDION — Distinct card with accent top border */}
       {faqs.length > 0 && (
-        <section className="py-16 md:py-20" style={{ background: v.secondaryBg }}>
+        <section className="py-16 md:py-20" style={{ background: "white" }}>
           <div className="container max-w-3xl px-4">
-            <h2 className="text-[2rem] font-bold mb-6" style={{ color: v.headingText, fontFamily: theme.headingFont }}>Frequently Asked Questions</h2>
-            <FAQAccordion faqs={faqs} vars={v} headingFont={theme.headingFont} />
+            <motion.div
+              initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}
+              className="rounded-2xl p-8 md:p-12 overflow-hidden"
+              style={{
+                background: v.secondaryBg,
+                borderTop: `4px solid ${v.accent}`,
+                boxShadow: `0 8px 32px ${v.primary}12`,
+              }}
+            >
+              <h2 className="text-[2rem] font-bold mb-8" style={{ color: v.headingText, fontFamily: theme.headingFont }}>Frequently Asked Questions</h2>
+              <FAQAccordion faqs={faqs} vars={v} headingFont={theme.headingFont} />
+            </motion.div>
           </div>
         </section>
       )}
