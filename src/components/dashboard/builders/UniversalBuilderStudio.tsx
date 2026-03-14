@@ -240,8 +240,8 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
         if (price > 0) updates.comparePrice = String(Math.ceil(price * 2));
       }
 
-      if (Object.keys(updates).length === 0) return prev;
-      const result = { ...prev, setup: { ...setup, ...updates } };
+      if (Object.keys(updates).length === 0 && !updates.schedule) return prev;
+      const result: Record<string, any> = { ...prev, setup: { ...setup, ...updates } };
       if (updates.schedule) result.schedule = updates.schedule;
       return result;
     });

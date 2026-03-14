@@ -233,12 +233,6 @@ Make content specific to the book topic and day theme. Return ONLY valid JSON.`,
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
-                {!currentDay.concept && !isGenerating && (
-                  <Button onClick={handleGenerateDay} size="sm"
-                    className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90">
-                    <Sparkles className="h-3.5 w-3.5 mr-1" /> Generate Content
-                  </Button>
-                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -252,66 +246,91 @@ Make content specific to the book topic and day theme. Return ONLY valid JSON.`,
                 </div>
               </div>
 
-              {isGenerating ? (
-                <div className="text-center py-10">
-                  <Loader2 className="h-8 w-8 animate-spin text-secondary mx-auto mb-3" />
-                  <p className="text-sm font-medium">
-                    {generationState === "queued" && "Preparing content..."}
-                    {generationState === "analyzing" && `Analyzing chapter for Day ${currentDay.dayNumber}...`}
-                    {generationState === "generating" && "Writing content..."}
-                  </p>
-                </div>
-              ) : (
-                <Tabs defaultValue="concept" className="w-full">
-                  <TabsList className="w-full justify-start">
-                    <TabsTrigger value="concept" className="text-xs">📖 Reading</TabsTrigger>
-                    <TabsTrigger value="exercise" className="text-xs">🏋️ Exercise</TabsTrigger>
-                    <TabsTrigger value="reflection" className="text-xs">🪞 Reflection</TabsTrigger>
-                    <TabsTrigger value="actionPlan" className="text-xs">🎯 Action Plan</TabsTrigger>
-                    {hasAudio && <TabsTrigger value="audio" className="text-xs">🎙️ Audio</TabsTrigger>}
-                  </TabsList>
-                  <TabsContent value="concept">
-                    <Card className="p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs font-semibold text-muted-foreground">Key Concept (200-300 words)</p>
-                        {currentDay.concept && <Badge variant="outline" className="text-[9px]"><Wand2 className="h-2 w-2 mr-0.5" /> AI</Badge>}
-                      </div>
-                      <Textarea value={currentDay.concept || ""} onChange={e => updateDay("concept", e.target.value)}
-                        placeholder="Key concept explanation..." rows={10} className="font-mono text-sm" />
+              {/* Field Assignment, Accountability, Micro-Habit summary */}
+              {(currentDay.fieldAssignment || currentDay.accountabilityCheck || currentDay.microHabit) && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {currentDay.fieldAssignment && (
+                    <Card className="p-3 border-secondary/20 bg-secondary/5">
+                      <p className="text-[10px] font-bold text-secondary uppercase tracking-wider mb-1">🎯 Field Assignment</p>
+                      <p className="text-xs leading-relaxed">{currentDay.fieldAssignment}</p>
                     </Card>
-                  </TabsContent>
-                  <TabsContent value="exercise">
-                    <Card className="p-4">
-                      <p className="text-xs font-semibold text-muted-foreground mb-2">Practical Exercise</p>
-                      <Textarea value={currentDay.exercise || ""} onChange={e => updateDay("exercise", e.target.value)}
-                        placeholder="Step-by-step exercise..." rows={8} className="font-mono text-sm" />
-                    </Card>
-                  </TabsContent>
-                  <TabsContent value="reflection">
-                    <Card className="p-4">
-                      <p className="text-xs font-semibold text-muted-foreground mb-2">Reflection Journal Prompt</p>
-                      <Textarea value={currentDay.reflection || ""} onChange={e => updateDay("reflection", e.target.value)}
-                        placeholder="Journal prompts..." rows={6} className="font-mono text-sm" />
-                    </Card>
-                  </TabsContent>
-                  <TabsContent value="actionPlan">
-                    <Card className="p-4">
-                      <p className="text-xs font-semibold text-muted-foreground mb-2">Action Plan (Today's Tasks)</p>
-                      <Textarea value={currentDay.actionPlan || ""} onChange={e => updateDay("actionPlan", e.target.value)}
-                        placeholder="Concrete action items..." rows={6} className="font-mono text-sm" />
-                    </Card>
-                  </TabsContent>
-                  {hasAudio && (
-                    <TabsContent value="audio">
-                      <Card className="p-4">
-                        <p className="text-xs font-semibold text-muted-foreground mb-2">Audio Narration Script</p>
-                        <Textarea value={currentDay.audioScript || ""} onChange={e => updateDay("audioScript", e.target.value)}
-                          placeholder="Audio narration script..." rows={10} className="font-mono text-sm" />
-                      </Card>
-                    </TabsContent>
                   )}
-                </Tabs>
+                  {currentDay.accountabilityCheck && (
+                    <Card className="p-3 border-accent/20 bg-accent/5">
+                      <p className="text-[10px] font-bold text-accent uppercase tracking-wider mb-1">✅ Accountability</p>
+                      <p className="text-xs leading-relaxed">{currentDay.accountabilityCheck}</p>
+                    </Card>
+                  )}
+                  {currentDay.microHabit && (
+                    <Card className="p-3 border-primary/20 bg-primary/5">
+                      <p className="text-[10px] font-bold text-primary uppercase tracking-wider mb-1">🔁 Micro-Habit</p>
+                      <p className="text-xs leading-relaxed">{currentDay.microHabit}</p>
+                    </Card>
+                  )}
+                </div>
               )}
+
+              <Tabs defaultValue="concept" className="w-full">
+                <TabsList className="w-full justify-start">
+                  <TabsTrigger value="concept" className="text-xs">📖 Reading</TabsTrigger>
+                  <TabsTrigger value="exercise" className="text-xs">🏋️ Exercise</TabsTrigger>
+                  <TabsTrigger value="reflection" className="text-xs">🪞 Reflection</TabsTrigger>
+                  <TabsTrigger value="actionPlan" className="text-xs">🎯 Action Plan</TabsTrigger>
+                  {hasAudio && <TabsTrigger value="audio" className="text-xs">🎙️ Audio</TabsTrigger>}
+                </TabsList>
+                <TabsContent value="concept">
+                  <Card className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-semibold text-muted-foreground">Key Concept</p>
+                      {currentDay.concept && <Badge variant="outline" className="text-[9px]"><Wand2 className="h-2 w-2 mr-0.5" /> AI Generated</Badge>}
+                    </div>
+                    {currentDay.concept ? (
+                      <div className="prose prose-sm max-w-none text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: currentDay.concept }} />
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">No content yet. Generate content from Step 1 (Program Setup).</p>
+                    )}
+                  </Card>
+                </TabsContent>
+                <TabsContent value="exercise">
+                  <Card className="p-4">
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">Practical Exercise</p>
+                    {currentDay.exercise ? (
+                      <div className="prose prose-sm max-w-none text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: currentDay.exercise }} />
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">No content yet. Generate content from Step 1 (Program Setup).</p>
+                    )}
+                  </Card>
+                </TabsContent>
+                <TabsContent value="reflection">
+                  <Card className="p-4">
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">Reflection Journal Prompt</p>
+                    {currentDay.reflection ? (
+                      <div className="prose prose-sm max-w-none text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: currentDay.reflection }} />
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">No content yet. Generate content from Step 1 (Program Setup).</p>
+                    )}
+                  </Card>
+                </TabsContent>
+                <TabsContent value="actionPlan">
+                  <Card className="p-4">
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">Action Plan</p>
+                    {currentDay.actionPlan ? (
+                      <div className="prose prose-sm max-w-none text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: currentDay.actionPlan }} />
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">No content yet. Generate content from Step 1 (Program Setup).</p>
+                    )}
+                  </Card>
+                </TabsContent>
+                {hasAudio && (
+                  <TabsContent value="audio">
+                    <Card className="p-4">
+                      <p className="text-xs font-semibold text-muted-foreground mb-2">Audio Narration Script</p>
+                      <Textarea value={currentDay.audioScript || ""} onChange={e => updateDay("audioScript", e.target.value)}
+                        placeholder="Audio narration script..." rows={10} className="font-mono text-sm" />
+                    </Card>
+                  </TabsContent>
+                )}
+              </Tabs>
             </>
           )}
         </div>
