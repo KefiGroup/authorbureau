@@ -9,7 +9,7 @@ import {
   Sparkles, Loader2, BookOpen, Wand2, Coffee,
   ChevronLeft, ChevronRight, CalendarDays, CheckCircle2,
   Clock, Palette, Eye, ShoppingCart, Monitor, Smartphone,
-  Award, FileText, Pencil, Check,
+  Award, FileText, Pencil,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateJSONWithAI } from "@/lib/ai-generate";
