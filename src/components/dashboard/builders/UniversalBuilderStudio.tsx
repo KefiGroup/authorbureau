@@ -607,8 +607,16 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
     }
   };
 
-  const currentStepConfig = nodeConfig.steps[currentStep];
-  const isLastStep = currentStep === nodeConfig.steps.length - 1;
+  const currentStepIndex = clampStepIndex(currentStep);
+  const currentStepConfig = nodeConfig.steps[currentStepIndex] ?? nodeConfig.steps[0];
+  const isLastStep = currentStepIndex === nodeConfig.steps.length - 1;
+
+  useEffect(() => {
+    if (currentStep !== currentStepIndex) {
+      currentStepRef.current = currentStepIndex;
+      setCurrentStep(currentStepIndex);
+    }
+  }, [currentStep, currentStepIndex]);
 
   // ─── SUBSCRIPTION GATE ─────────────────────────────────────────────
   if (!hasAccess) {
