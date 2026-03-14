@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,14 +33,20 @@ const stripMarkdownForEditing = (content?: string | null): string => {
 
   return content
     .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^---+$/gm, "")
     .replace(/\*\*\*(.*?)\*\*\*/g, "$1")
     .replace(/\*\*(.*?)\*\*/g, "$1")
     .replace(/\*(.*?)\*/g, "$1")
-    .replace(/^[-•]\s+/gm, "")
+    .replace(/^\s*[-•*]\s+/gm, "")
     .replace(/^\d+\.\s+/gm, "")
     .replace(/^>\s?/gm, "")
     .replace(/`{1,3}/g, "");
 };
+
+const sanitizeSalesCopy = (content?: string | null): string =>
+  stripMarkdownForEditing(content)
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 
 export default function HomeStudyEditPublishStep({
   stepData, setStepData, onMarkEdited, bookId, bookTitle,
@@ -56,6 +62,32 @@ export default function HomeStudyEditPublishStep({
   const [previewMode, setPreviewMode] = useState<"sales" | "portal">("sales");
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
   const [previewPage, setPreviewPage] = useState(0);
+
+  useEffect(() => {
+    if (activeSegment !== "sales") return;
+
+    const salesCopy = setup.salesCopy;
+    const whatsIncluded = setup.whatsIncluded;
+    const nextSetup: Record<string, string> = {};
+
+    if (typeof salesCopy === "string") {
+      const cleaned = sanitizeSalesCopy(salesCopy);
+      if (cleaned !== salesCopy) nextSetup.salesCopy = cleaned;
+    }
+
+    if (typeof whatsIncluded === "string") {
+      const cleaned = sanitizeSalesCopy(whatsIncluded);
+      if (cleaned !== whatsIncluded) nextSetup.whatsIncluded = cleaned;
+    }
+
+    if (Object.keys(nextSetup).length === 0) return;
+
+    setStepData(prev => ({
+      ...prev,
+      setup: { ...prev.setup, ...nextSetup },
+    }));
+    onMarkEdited("edit");
+  }, [activeSegment, onMarkEdited, setStepData, setup.salesCopy, setup.whatsIncluded]);
 
   if (days.length === 0) {
     return (
@@ -499,7 +531,7 @@ export default function HomeStudyEditPublishStep({
 
             <div>
               <label className="text-xs font-semibold text-muted-foreground block mb-1.5">Sales Description</label>
-              <Textarea value={setup.salesCopy || ""} onChange={e => updateSetup("salesCopy", e.target.value)}
+              <Textarea value={setup.salesCopy || ""} onChange={e => updateSetup("salesCopy", sanitizeSalesCopy(e.target.value))}
                 placeholder="Write compelling sales copy that describes the transformation your student will experience..."
                 rows={8} className="text-sm" />
               {!setup.salesCopy && (
@@ -508,12 +540,13 @@ export default function HomeStudyEditPublishStep({
                     setGenerationState("analyzing");
                     try {
                       const result = await generateJSONWithAI<{ salesCopy: string }>(
-                        `Write a compelling sales page description (300-400 words, markdown) for a home study course called "${setup.title || bookTitle}" based on the book "${bookTitle}". 
+                        `Write a compelling sales page description (300-400 words, plain text only) for a home study course called "${setup.title || bookTitle}" based on the book "${bookTitle}".
+Do not use markdown symbols, headings, bullets, asterisks, or hashtags.
 Include: transformation promise, who it's for, what they'll learn, what's included (${days.length} days, ${setup.commitment || 15} min/day), and a call to action.
 Return JSON: { "salesCopy": "..." }`,
                         { bookId, isPremium: true },
                       );
-                      updateSetup("salesCopy", result.salesCopy);
+                      updateSetup("salesCopy", sanitizeSalesCopy(result.salesCopy));
                       setGenerationState("complete");
                       toast({ title: "Sales copy generated!" });
                     } catch {
@@ -530,8 +563,8 @@ Return JSON: { "salesCopy": "..." }`,
 
             <div>
               <label className="text-xs font-semibold text-muted-foreground block mb-1.5">What's Included (Bullet Points)</label>
-              <Textarea value={setup.whatsIncluded || ""} onChange={e => updateSetup("whatsIncluded", e.target.value)}
-                placeholder="- 21 daily guided lessons&#10;- Practical exercises & action plans&#10;- Reflection journal prompts&#10;- Certificate of completion"
+              <Textarea value={setup.whatsIncluded || ""} onChange={e => updateSetup("whatsIncluded", sanitizeSalesCopy(e.target.value))}
+                placeholder="21 daily guided lessons&#10;Practical exercises and action plans&#10;Reflection journal prompts&#10;Weekly accountability check-ins"
                 rows={5} className="text-sm" />
             </div>
 
