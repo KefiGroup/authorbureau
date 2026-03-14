@@ -341,7 +341,7 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
       }
     }
 
-    return inferredStep;
+    return Math.max(0, Math.min(inferredStep, nodeConfig.steps.length - 1));
   }, [nodeConfig.steps, nodeConfig.id]);
 
   useEffect(() => {
@@ -387,13 +387,14 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
         if (!isMounted || !result?.draft) return;
         const parsed = result.draft;
 
+        const maxStepIndex = Math.max(0, nodeConfig.steps.length - 1);
         if (parsed.stepData) {
           setStepData(parsed.stepData);
           const inferredStep = inferStepFromDraftData(parsed.stepData);
           const savedStep = typeof parsed.currentStep === "number" ? parsed.currentStep : 0;
-          setCurrentStep(Math.max(savedStep, inferredStep));
+          setCurrentStep(Math.max(0, Math.min(Math.max(savedStep, inferredStep), maxStepIndex)));
         } else if (typeof parsed.currentStep === "number") {
-          setCurrentStep(parsed.currentStep);
+          setCurrentStep(Math.max(0, Math.min(parsed.currentStep, maxStepIndex)));
         }
 
         if (Array.isArray(parsed.editedSteps)) setEditedSteps(new Set(parsed.editedSteps));
@@ -426,7 +427,8 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
 
     try {
       const token = await getToken();
-      const currentStepConfig = nodeConfig.steps[currentStep];
+      const safeStepIndex = Math.max(0, Math.min(currentStep, nodeConfig.steps.length - 1));
+      const currentStepConfig = nodeConfig.steps[safeStepIndex] || nodeConfig.steps[0];
       const resp = await fetch(AI_GATEWAY_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -603,8 +605,9 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
     }
   };
 
-  const currentStepConfig = nodeConfig.steps[currentStep];
-  const isLastStep = currentStep === nodeConfig.steps.length - 1;
+  const safeCurrentStep = Math.max(0, Math.min(currentStep, nodeConfig.steps.length - 1));
+  const currentStepConfig = nodeConfig.steps[safeCurrentStep] || nodeConfig.steps[0];
+  const isLastStep = safeCurrentStep === nodeConfig.steps.length - 1;
 
   // ─── SUBSCRIPTION GATE ─────────────────────────────────────────────
   if (!hasAccess) {
