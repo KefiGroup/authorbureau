@@ -546,6 +546,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                   content_markdown: stepData.schedule?.days ? JSON.stringify(stepData.schedule.days) : "",
                   duration_days: stepData.setup?.duration || 30,
                   price: stepData.setup?.price ? parseFloat(stepData.setup.price) : null,
+                  study_schedule_json: stepData.schedule?.days || null,
                 },
               }),
             },
