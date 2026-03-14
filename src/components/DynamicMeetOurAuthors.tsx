@@ -198,7 +198,7 @@ export default function DynamicMeetOurAuthors() {
             custom={1}
             className="font-heading text-3xl font-bold md:text-4xl text-primary-foreground"
           >
-            Meet Our Authors
+            Meet Our Amazon Best Selling Authors
           </motion.h2>
         </motion.div>
 
