@@ -80,10 +80,10 @@ export default function PurchaseSuccess() {
 
             <div className="flex flex-col gap-3">
               <Link
-                to="/reader-portal"
+                to="/readers-bureau?tab=library"
                 className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-bold py-3 px-6 rounded-lg hover:opacity-90 transition-opacity"
               >
-                Go to Reader Portal
+                Go to Readers Bureau
                 <ArrowRight className="h-4 w-4" />
               </Link>
               {data?.authorSlug && data?.bookSlug && (

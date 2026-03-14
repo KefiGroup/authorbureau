@@ -14,7 +14,7 @@ const navLinks = [
   { label: "How It Works", to: "/", hash: "#how-it-works" },
   { label: "Pricing", to: "/", hash: "#pricing" },
   { label: "Authors Directory", to: "/directory", hash: "" },
-  { label: "Reading Club", to: "/reading-club", hash: "" },
+  { label: "Readers Bureau", to: "/readers-bureau", hash: "" },
   { label: "Help", to: "/faq", hash: "" },
 ];
 

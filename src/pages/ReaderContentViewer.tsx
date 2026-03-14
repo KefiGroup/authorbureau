@@ -44,7 +44,7 @@ export default function ReaderContentViewer() {
   const [chosenDate, setChosenDate] = useState<string>("");
   const [settingStart, setSettingStart] = useState(false);
 
-  useDocumentMeta({ title: title ? `${title} | Reader Portal` : "Reader Portal" });
+  useDocumentMeta({ title: title ? `${title} | Readers Bureau` : "Readers Bureau" });
 
   const getToken = useCallback(async () => {
     const { data: sessionData } = await sharedSupabase.auth.getSession();
