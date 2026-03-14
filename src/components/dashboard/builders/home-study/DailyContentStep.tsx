@@ -74,7 +74,7 @@ Return a JSON object with:
 ${hasAudio ? '- "audioScript": string (narration script with [INTRO MUSIC], [PAUSE], [OUTRO] markers, 200 words)' : ""}
 
 Make content specific to the book topic and day theme. Return ONLY valid JSON.`,
-        { bookId, isPremium: true }
+        { bookId, isPremium: true, builderMode: true, builderId: "home-study-course", builderLabel: "Home Study Course", builderStep: "Daily Content" }
       );
 
       setGenerationState("generating");
