@@ -275,7 +275,7 @@ export default function HomeStudyEditPublishStep({
                   <Card className="p-4">
                     <p className="text-xs font-semibold text-muted-foreground mb-2">Action Plan</p>
                     {currentDay.actionPlan ? (
-                      <div className="prose prose-sm max-w-none text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: currentDay.actionPlan }} />
+                      <div className="prose prose-sm max-w-none text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: mdToHtml(currentDay.actionPlan) }} />
                     ) : (
                       <p className="text-sm text-muted-foreground italic">No content yet. Generate content from Step 1 (Program Setup).</p>
                     )}
