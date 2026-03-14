@@ -825,7 +825,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
         </div>
 
         {/* Step content area */}
-        <div className="flex-1 overflow-y-auto px-6 lg:px-8 pt-6 lg:pt-8 pb-0">
+        <div className="flex-1 overflow-y-auto px-6 lg:px-8 pt-6 lg:pt-8 pb-0 relative flex flex-col">
           {/* Cross-builder incoming notifications */}
           {user && bookId && (
             <CrossBuilderNotifications
