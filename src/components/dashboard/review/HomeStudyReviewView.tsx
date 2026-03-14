@@ -412,7 +412,7 @@ export default function HomeStudyReviewView({
       const token = await getActiveToken();
       if (!token) throw new Error("Not authenticated");
 
-      await fetchWithTimeout(
+      const resp = await fetchWithTimeout(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/builder-draft-state`,
         {
           method: "POST",
@@ -423,12 +423,20 @@ export default function HomeStudyReviewView({
             nodeId: "home-study-course",
             content: serialized,
           }),
-        }
+        },
+        30000
       );
+
+      if (!resp.ok) {
+        const errText = await resp.text().catch(() => "");
+        console.error("Save sales page failed:", resp.status, errText);
+        throw new Error(errText || `Save failed (${resp.status})`);
+      }
 
       toast({ title: "Sales page saved!" });
       setDrawerOpen(null);
-    } catch {
+    } catch (err) {
+      console.error("Save sales page error:", err);
       toast({ title: "Save failed", variant: "destructive" });
     }
     setSaving(false);
