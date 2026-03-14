@@ -599,7 +599,7 @@ export default function AuthorProductPage() {
 
       {/* 10. FAQ ACCORDION — Distinct card with accent top border */}
       {faqs.length > 0 && (
-        <section className="py-16 md:py-20" style={{ background: v.pageBg }}>
+        <section className="py-16 md:py-20" style={{ background: "white" }}>
           <div className="container max-w-3xl px-4">
             <motion.div
               initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}
