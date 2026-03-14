@@ -294,44 +294,7 @@ export default function ReadersBureau() {
                 </Button>
               </div>
             ) : (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {purchases.map((purchase) => {
-                  const author = authors[purchase.author_id];
-                  const IconComponent = PRODUCT_ICON_MAP[purchase.product_type] || BookOpen;
-
-                  return (
-                    <div
-                      key={purchase.id}
-                      className="group bg-card border border-border rounded-xl overflow-hidden hover:shadow-lg transition-shadow"
-                    >
-                      <div className="bg-primary/5 p-6 flex items-center justify-center">
-                        <IconComponent className="h-12 w-12 text-primary/60" />
-                      </div>
-                      <div className="p-5 space-y-3">
-                        <h3 className="font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors">
-                          {purchase.product_title}
-                        </h3>
-                        {author && (
-                          <p className="text-sm text-muted-foreground">
-                            by {author.pen_name || "Author"}
-                          </p>
-                        )}
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Clock className="h-3 w-3" />
-                          Purchased {new Date(purchase.created_at).toLocaleDateString()}
-                        </div>
-                        <Link
-                          to={`/readers-bureau/learn/${purchase.id}`}
-                          className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline mt-2"
-                        >
-                          Access Content
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </Link>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              <LibraryGrid purchases={purchases} authors={authors} />
             )}
           </TabsContent>
 
