@@ -633,6 +633,46 @@ export default function ReaderContentViewer() {
                 </div>
               );
             })}
+
+            {/* Completion celebration + Upsell */}
+            {progressPercent === 100 && (
+              <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-background border border-primary/20 rounded-2xl p-8 text-center space-y-4">
+                <div className="mx-auto w-16 h-16 rounded-full bg-primary/15 flex items-center justify-center">
+                  <Trophy className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="text-xl font-bold text-foreground">🎉 Congratulations!</h3>
+                <p className="text-muted-foreground text-sm max-w-md mx-auto">
+                  You've completed the entire {totalDays}-day program! Your dedication to growth is truly impressive.
+                </p>
+              </div>
+            )}
+
+            {/* Upsell: What's Next in Your Journey */}
+            {upsellProducts.length > 0 && (
+              <div className="border border-secondary/20 bg-secondary/5 rounded-2xl overflow-hidden">
+                <div className="p-6 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-secondary/20 flex items-center justify-center shrink-0">
+                      <Sparkles className="h-5 w-5 text-secondary" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-foreground">Continue Your Journey</h3>
+                      <p className="text-xs text-muted-foreground">
+                        {progressPercent === 100
+                          ? "You've mastered this program! Here's what to explore next."
+                          : "Ready to go deeper? These are your next steps after this program."}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3">
+                    {upsellProducts.map((product) => (
+                      <UpsellCard key={product.productId || product.type} product={product} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>
