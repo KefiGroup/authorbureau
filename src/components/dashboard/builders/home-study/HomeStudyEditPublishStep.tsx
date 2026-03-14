@@ -306,25 +306,36 @@ export default function HomeStudyEditPublishStep({
               onGenerateWithAbby={async () => {
                 setGenerationState("analyzing");
                 try {
+                  const authorName = setup.authorName || "";
+                  const authorBio = setup.authorBio || "";
                   const result = await generateJSONWithAI<{ salesCopy: SalesCopyData }>(
-                    `Generate a complete 11-section sales page for a home study course called "${setup.title || bookTitle}" based on the book "${bookTitle}".
+                    `Generate a COMPLETE 11-section sales page for a home study course called "${setup.title || bookTitle}" based on the book "${bookTitle}".
 The course is ${days.length} days, ${setup.commitment || 15} min/day, ${setup.level || "Beginner"} level.
+${authorName ? `The author is ${authorName}. ${authorBio ? `Bio: ${authorBio}` : ""}` : ""}
 
-Return a JSON object with key "salesCopy" containing:
+IMPORTANT: You MUST generate compelling content for EVERY section. Do NOT leave any section empty.
+
+Return a JSON object with key "salesCopy" containing ALL of these sections fully populated:
 {
-  "hero": { "title": "...", "tagline": "one-line tagline", "ctaText": "Start the Program" },
-  "problem": { "headline": "Are you struggling with...", "painPoints": ["point1", "point2", "point3"] },
-  "transformation": { "before": ["struggle1", "struggle2", "struggle3"], "after": ["result1", "result2", "result3"] },
-  "introduction": { "paragraph": "What it is, who it's for, 2-3 sentences" },
-  "whatsInside": { "items": ["item1", "item2", "item3", "item4", "item5"] },
-  "howItWorks": { "steps": [{ "title": "Enroll", "description": "..." }, { "title": "Learn", "description": "..." }, { "title": "Transform", "description": "..." }] },
-  "author": { "name": "", "bio": "", "credentials": "" },
-  "socialProof": { "testimonials": [] },
-  "pricing": { "price": "${setup.price || "47"}", "comparePrice": "${setup.comparePrice || ""}", "currency": "USD", "ctaText": "Start the Program", "included": ["item1", "item2", "item3"] },
-  "faq": { "items": [{ "q": "question", "a": "answer" }, ...5-7 items] },
-  "finalCta": { "headline": "...", "subheadline": "...", "ctaText": "Get Started Today", "urgency": "..." }
+  "hero": { "title": "compelling product title", "tagline": "one-line benefit-driven tagline", "ctaText": "Start the Program" },
+  "problem": { "headline": "Are you struggling with...", "painPoints": ["pain point 1", "pain point 2", "pain point 3", "pain point 4"] },
+  "transformation": { "before": ["current struggle 1", "current struggle 2", "current struggle 3"], "after": ["desired result 1", "desired result 2", "desired result 3"] },
+  "introduction": { "paragraph": "2-3 sentences about what this program is and who it's for" },
+  "whatsInside": { "items": ["deliverable 1", "deliverable 2", "deliverable 3", "deliverable 4", "deliverable 5"] },
+  "howItWorks": { "steps": [{ "title": "Step 1 title", "description": "what happens" }, { "title": "Step 2 title", "description": "what happens" }, { "title": "Step 3 title", "description": "what happens" }] },
+  "author": { "name": "${authorName || "Author Name"}", "bio": "2-3 sentences about the author's background and expertise", "credentials": "key credential or achievement" },
+  "socialProof": { "testimonials": [{ "name": "Student Name", "quote": "testimonial quote" }, { "name": "Student Name", "quote": "testimonial quote" }, { "name": "Student Name", "quote": "testimonial quote" }] },
+  "pricing": { "price": "${setup.price || "47"}", "comparePrice": "${setup.comparePrice || "97"}", "currency": "USD", "ctaText": "Start the Program", "included": ["included benefit 1", "included benefit 2", "included benefit 3", "included benefit 4"] },
+  "faq": { "items": [{ "q": "objection question 1", "a": "reassuring answer" }, { "q": "objection question 2", "a": "reassuring answer" }, { "q": "objection question 3", "a": "reassuring answer" }, { "q": "objection question 4", "a": "reassuring answer" }, { "q": "objection question 5", "a": "reassuring answer" }] },
+  "finalCta": { "headline": "urgency headline", "subheadline": "motivating subheadline", "ctaText": "Get Started Today", "urgency": "urgency line" }
 }
-Make all copy compelling, benefit-driven, and plain text only. No markdown.`,
+
+RULES:
+- Generate 3 realistic sample testimonials with believable names and specific quotes about results.
+- Generate 5-7 FAQ items addressing common objections (refund policy, time commitment, skill level, etc.).
+- Generate 4+ pricing "included" items highlighting value.
+- Author bio must sound professional and credible.
+- ALL copy must be compelling, benefit-driven, and plain text only. No markdown.`,
                     { bookId, isPremium: true },
                   );
                   updateSetup("salesCopyData", result.salesCopy);
