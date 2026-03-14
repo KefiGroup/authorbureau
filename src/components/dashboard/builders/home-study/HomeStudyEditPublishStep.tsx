@@ -40,10 +40,13 @@ const stripMarkdownForEditing = (content?: string | null): string => {
     .replace(/^\s*[-•*]\s+/gm, "")
     .replace(/^\d+\.\s+/gm, "")
     .replace(/^>\s?/gm, "")
-    .replace(/`{1,3}/g, "")
+    .replace(/`{1,3}/g, "");
+};
+
+const sanitizeSalesCopy = (content?: string | null): string =>
+  stripMarkdownForEditing(content)
     .replace(/\n{3,}/g, "\n\n")
     .trim();
-};
 
 export default function HomeStudyEditPublishStep({
   stepData, setStepData, onMarkEdited, bookId, bookTitle,
