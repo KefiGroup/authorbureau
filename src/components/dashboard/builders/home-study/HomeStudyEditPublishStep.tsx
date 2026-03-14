@@ -293,23 +293,9 @@ export default function HomeStudyEditPublishStep({
                   <Card className="p-4">
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-xs font-semibold text-muted-foreground">Key Concept</p>
-                      <div className="flex items-center gap-2">
-                        {currentDay.concept && <Badge variant="outline" className="text-[9px]"><Wand2 className="h-2 w-2 mr-0.5" /> AI Generated</Badge>}
-                        {currentDay.concept && (
-                          <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]" onClick={() => toggleTabEditing("concept")}>
-                            {editingTab === "concept" ? <><Check className="h-3 w-3 mr-1" /> Done</> : <><Pencil className="h-3 w-3 mr-1" /> Edit</>}
-                          </Button>
-                        )}
-                      </div>
+                      {currentDay.concept && <Badge variant="outline" className="text-[9px]"><Wand2 className="h-2 w-2 mr-0.5" /> AI Generated</Badge>}
                     </div>
-                    {editingTab === "concept" ? (
-                      <Textarea
-                        value={currentDay.concept || ""}
-                        onChange={e => updateDay("concept", stripMarkdownForEditing(e.target.value))}
-                        rows={12}
-                        className="text-sm"
-                      />
-                    ) : currentDay.concept ? (
+                    {currentDay.concept ? (
                       <div className="prose prose-sm max-w-none text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: mdToHtml(currentDay.concept) }} />
                     ) : (
                       <p className="text-sm text-muted-foreground italic">No content yet. Generate content from Step 1 (Program Setup).</p>
@@ -318,22 +304,8 @@ export default function HomeStudyEditPublishStep({
                 </TabsContent>
                 <TabsContent value="exercise">
                   <Card className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs font-semibold text-muted-foreground">Practical Exercise</p>
-                      {currentDay.exercise && (
-                        <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]" onClick={() => toggleTabEditing("exercise")}>
-                          {editingTab === "exercise" ? <><Check className="h-3 w-3 mr-1" /> Done</> : <><Pencil className="h-3 w-3 mr-1" /> Edit</>}
-                        </Button>
-                      )}
-                    </div>
-                    {editingTab === "exercise" ? (
-                      <Textarea
-                        value={currentDay.exercise || ""}
-                        onChange={e => updateDay("exercise", stripMarkdownForEditing(e.target.value))}
-                        rows={12}
-                        className="text-sm"
-                      />
-                    ) : currentDay.exercise ? (
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">Practical Exercise</p>
+                    {currentDay.exercise ? (
                       <div className="prose prose-sm max-w-none text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: mdToHtml(currentDay.exercise) }} />
                     ) : (
                       <p className="text-sm text-muted-foreground italic">No content yet. Generate content from Step 1 (Program Setup).</p>
@@ -342,22 +314,8 @@ export default function HomeStudyEditPublishStep({
                 </TabsContent>
                 <TabsContent value="reflection">
                   <Card className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs font-semibold text-muted-foreground">Reflection Journal Prompt</p>
-                      {currentDay.reflection && (
-                        <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]" onClick={() => toggleTabEditing("reflection")}>
-                          {editingTab === "reflection" ? <><Check className="h-3 w-3 mr-1" /> Done</> : <><Pencil className="h-3 w-3 mr-1" /> Edit</>}
-                        </Button>
-                      )}
-                    </div>
-                    {editingTab === "reflection" ? (
-                      <Textarea
-                        value={currentDay.reflection || ""}
-                        onChange={e => updateDay("reflection", stripMarkdownForEditing(e.target.value))}
-                        rows={12}
-                        className="text-sm"
-                      />
-                    ) : currentDay.reflection ? (
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">Reflection Journal Prompt</p>
+                    {currentDay.reflection ? (
                       <div className="prose prose-sm max-w-none text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: mdToHtml(currentDay.reflection) }} />
                     ) : (
                       <p className="text-sm text-muted-foreground italic">No content yet. Generate content from Step 1 (Program Setup).</p>
@@ -366,22 +324,8 @@ export default function HomeStudyEditPublishStep({
                 </TabsContent>
                 <TabsContent value="actionPlan">
                   <Card className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs font-semibold text-muted-foreground">Action Plan</p>
-                      {currentDay.actionPlan && (
-                        <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]" onClick={() => toggleTabEditing("actionPlan")}>
-                          {editingTab === "actionPlan" ? <><Check className="h-3 w-3 mr-1" /> Done</> : <><Pencil className="h-3 w-3 mr-1" /> Edit</>}
-                        </Button>
-                      )}
-                    </div>
-                    {editingTab === "actionPlan" ? (
-                      <Textarea
-                        value={currentDay.actionPlan || ""}
-                        onChange={e => updateDay("actionPlan", stripMarkdownForEditing(e.target.value))}
-                        rows={12}
-                        className="text-sm"
-                      />
-                    ) : currentDay.actionPlan ? (
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">Action Plan</p>
+                    {currentDay.actionPlan ? (
                       <div className="prose prose-sm max-w-none text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: mdToHtml(currentDay.actionPlan) }} />
                     ) : (
                       <p className="text-sm text-muted-foreground italic">No content yet. Generate content from Step 1 (Program Setup).</p>
