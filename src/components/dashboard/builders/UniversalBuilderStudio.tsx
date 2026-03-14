@@ -341,7 +341,7 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
       }
     }
 
-    return inferredStep;
+    return Math.max(0, Math.min(inferredStep, nodeConfig.steps.length - 1));
   }, [nodeConfig.steps, nodeConfig.id]);
 
   useEffect(() => {
