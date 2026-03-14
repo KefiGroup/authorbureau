@@ -219,20 +219,36 @@ export default function HomeStudyReviewView({
   const effectiveSalesPage = salesPageMarkdown.trim() || splitFromCombined.salesPageText;
   const effectiveContent = splitFromCombined.contentText || fullCourseMarkdown;
   const fullCourseText = effectiveContent.trim();
-  const hasSalesPage = effectiveSalesPage.trim().length > 50;
-  const hasFullManuscript = /day\s*1/i.test(fullCourseText) || fullCourseText.length > 2000;
-  const canPublish = hasStructuredDays || hasFullManuscript;
-
-  const duration = hasStructuredDays ? days.length : Number(setup.duration) || 30;
-  const totalPages = hasStructuredDays ? days.length + 2 : 1;
-  const currentDay = hasStructuredDays && previewPage > 0 && previewPage <= days.length ? days[previewPage - 1] : null;
-  const isCertPage = hasStructuredDays && previewPage === totalPages - 1;
-
-  useEffect(() => {
-    setPreviewPage((prev) => Math.min(prev, Math.max(totalPages - 1, 0)));
-  }, [totalPages]);
 
   const stripMd = (s: string) => s.replace(/\*\*(.+?)\*\*/g, "$1").replace(/\*(.+?)\*/g, "$1").replace(/__(.+?)__/g, "$1").replace(/_(.+?)_/g, "$1").replace(/`(.+?)`/g, "$1").replace(/^#+\s*/gm, "").replace(/^\s*>\s*/gm, "").trim();
+
+  const extractSalesMeta = (markdown: string) => {
+    const metaMatch = markdown.match(/<!--\s*SALES_META:([\s\S]*?)-->/i);
+    const cleanedMarkdown = metaMatch ? markdown.replace(metaMatch[0], "").trim() : markdown.trim();
+
+    const meta: {
+      price?: string;
+      comparePrice?: string;
+      cta?: string;
+      designTemplate?: SalesPageDesignId;
+    } = {};
+
+    if (metaMatch?.[1]) {
+      try {
+        const parsed = JSON.parse(metaMatch[1].trim()) as Record<string, unknown>;
+        if (typeof parsed.price === "string" || typeof parsed.price === "number") meta.price = String(parsed.price);
+        if (typeof parsed.comparePrice === "string" || typeof parsed.comparePrice === "number") meta.comparePrice = String(parsed.comparePrice);
+        if (typeof parsed.cta === "string") meta.cta = parsed.cta;
+        if (typeof parsed.designTemplate === "string" && SALES_PAGE_DESIGNS.some((d) => d.id === parsed.designTemplate)) {
+          meta.designTemplate = parsed.designTemplate as SalesPageDesignId;
+        }
+      } catch (err) {
+        console.error("Failed to parse SALES_META:", err);
+      }
+    }
+
+    return { cleanedMarkdown, meta };
+  };
 
   const splitSalesCopyAndFaq = (markdown: string) => {
     const lines = markdown.split("\n");
@@ -281,15 +297,51 @@ export default function HomeStudyReviewView({
     return { body, faqs };
   };
 
-  const previewSalesSplit = splitSalesCopyAndFaq(effectiveSalesPage);
+  const isSalesNoiseLine = (line: string) => {
+    const normalized = line.replace(/^[#*\s]+/, "");
+    return (
+      line.startsWith("#") ||
+      line.startsWith("-") ||
+      line.startsWith("*") ||
+      line.startsWith(">") ||
+      /^[QA]:\s/i.test(line) ||
+      /^—\s/.test(line) ||
+      /^\*\*[QA]:/i.test(line) ||
+      /^(testimonial|what others say|what's included|frequently asked questions|faq)/i.test(normalized)
+    );
+  };
+
+  const { cleanedMarkdown: salesMarkdownWithoutMeta, meta: salesMeta } = extractSalesMeta(effectiveSalesPage);
+  const hasSalesPage = salesMarkdownWithoutMeta.trim().length > 50;
+  const hasFullManuscript = /day\s*1/i.test(fullCourseText) || fullCourseText.length > 2000;
+  const canPublish = hasStructuredDays || hasFullManuscript;
+
+  const previewSalesSplit = splitSalesCopyAndFaq(salesMarkdownWithoutMeta);
   const previewSalesFaqs = previewSalesSplit.faqs.filter((f) => f.question && f.answer);
   const previewSalesBody = previewSalesSplit.body.trim();
 
+  const heroLines = (previewSalesBody || salesMarkdownWithoutMeta).split("\n").map((l) => l.trim()).filter(Boolean);
+  const previewHeroTitle = stripMd(heroLines.find((l) => /^##?\s/.test(l)) || "") || title || "Home Study Course";
+  const previewHeroBody = stripMd(heroLines.filter((l) => !isSalesNoiseLine(l)).join(" ")) || description || "A guided self-paced learning experience";
+  const previewHeroPrice = salesMeta.price?.trim() || price;
+  const previewHeroComparePrice = salesMeta.comparePrice?.trim() || "";
+
+  const duration = hasStructuredDays ? days.length : Number(setup.duration) || 30;
+  const totalPages = hasStructuredDays ? days.length + 2 : 1;
+  const currentDay = hasStructuredDays && previewPage > 0 && previewPage <= days.length ? days[previewPage - 1] : null;
+  const isCertPage = hasStructuredDays && previewPage === totalPages - 1;
+
+  useEffect(() => {
+    setPreviewPage((prev) => Math.min(prev, Math.max(totalPages - 1, 0)));
+  }, [totalPages]);
+
   const openSalesEditor = () => {
     const md = effectiveSalesPage || "";
-    if (md.trim()) {
-      const parsedSales = splitSalesCopyAndFaq(md);
-      const contentSource = parsedSales.body || md;
+    const { cleanedMarkdown, meta } = extractSalesMeta(md);
+
+    if (cleanedMarkdown.trim()) {
+      const parsedSales = splitSalesCopyAndFaq(cleanedMarkdown);
+      const contentSource = parsedSales.body || cleanedMarkdown;
       const lines = contentSource.split("\n").filter(l => l.trim());
       const h1 = lines.find(l => /^##?\s/.test(l));
       setSalesHeadline(stripMd(h1 || title || ""));
@@ -297,20 +349,16 @@ export default function HomeStudyReviewView({
       setSalesSubheadline(stripMd(h2 || ""));
       const bullets = lines.filter(l => /^[-*]\s/.test(l)).map(l => stripMd(l.replace(/^[-*]\s*/, "")));
       setSalesBullets(bullets.length > 0 ? bullets : [""]);
-      const isNoise = (l: string) =>
-        l.startsWith("#") || l.startsWith("-") || l.startsWith("*") || l.startsWith(">") ||
-        /^[QA]:\s/i.test(l) || /^—\s/.test(l) || /^\*\*[QA]:/i.test(l) ||
-        /^(testimonial|what others say|what's included)/i.test(l.replace(/^[#*\s]+/, ""));
-      const bodyLines = lines.filter(l => !isNoise(l));
+      const bodyLines = lines.filter(l => !isSalesNoiseLine(l));
       setSalesBody(stripMd(bodyLines.join("\n")));
       const quoteLines = lines.filter(l => l.startsWith(">"));
       const testimonials = quoteLines.map(q => ({ name: "", quote: stripMd(q.replace(/^>\s*/, "").replace(/^"/, "").replace(/"$/, "")) }));
       setSalesTestimonials(testimonials.length > 0 ? testimonials : []);
       setSalesFaqs(parsedSales.faqs);
-      setSalesCta("Enroll Now");
-      setSalesPrice(price || "");
-      setSalesComparePrice("");
-      setSalesDesignTemplate("classic-elegant");
+      setSalesCta(meta.cta || "Enroll Now");
+      setSalesPrice(meta.price || price || "");
+      setSalesComparePrice(meta.comparePrice || "");
+      setSalesDesignTemplate(meta.designTemplate || "classic-elegant");
     } else {
       setSalesHeadline(title || productTitle || "");
       setSalesSubheadline(description ? description.slice(0, 120) : `A ${duration}-day guided self-study program`);
@@ -323,10 +371,10 @@ export default function HomeStudyReviewView({
       ]);
       setSalesTestimonials([]);
       setSalesFaqs([]);
-      setSalesCta("Enroll Now");
-      setSalesPrice(price || "");
-      setSalesComparePrice("");
-      setSalesDesignTemplate("classic-elegant");
+      setSalesCta(meta.cta || "Enroll Now");
+      setSalesPrice(meta.price || price || "");
+      setSalesComparePrice(meta.comparePrice || "");
+      setSalesDesignTemplate(meta.designTemplate || "classic-elegant");
     }
     setSalesDraft(md);
     setDrawerOpen("sales");
@@ -377,27 +425,29 @@ export default function HomeStudyReviewView({
 
   const handleSaveSalesPage = async () => {
     if (!user) {
-      console.error("handleSaveSalesPage: no user");
       toast({ title: "Not logged in", variant: "destructive" });
       return;
     }
+
     setSaving(true);
     try {
-      // Serialize structured fields to markdown
       const parts: string[] = [];
       if (salesHeadline) parts.push(`## ${salesHeadline}`);
       if (salesSubheadline) parts.push(`### ${salesSubheadline}`);
       if (salesBody) parts.push("", salesBody);
+
       const validBullets = salesBullets.filter(b => b.trim());
       if (validBullets.length > 0) {
         parts.push("", "**What's Included:**", ...validBullets.map(b => `- ${b}`));
       }
+
       if (salesTestimonials.length > 0) {
         parts.push("", "**What Others Say:**");
         salesTestimonials.forEach(t => {
           parts.push(`> "${t.quote}"${t.name ? ` — ${t.name}` : ""}`);
         });
       }
+
       const validFaqs = salesFaqs.filter(f => f.question.trim() && f.answer.trim());
       if (validFaqs.length > 0) {
         parts.push("", "## Frequently Asked Questions");
@@ -405,22 +455,23 @@ export default function HomeStudyReviewView({
           parts.push(`Q: ${f.question.trim()}`, `A: ${f.answer.trim()}`, "");
         });
       }
-      // Add metadata for price, compare price, and design template
+
       if (salesPrice || salesComparePrice || salesDesignTemplate) {
-        parts.push("", `<!-- SALES_META:${JSON.stringify({ price: salesPrice, comparePrice: salesComparePrice, designTemplate: salesDesignTemplate, cta: salesCta })} -->`);
+        parts.push("", `<!-- SALES_META:${JSON.stringify({
+          price: salesPrice,
+          comparePrice: salesComparePrice,
+          designTemplate: salesDesignTemplate,
+          cta: salesCta,
+        })} -->`);
       }
+
       const serialized = parts.join("\n");
       setSalesPageMarkdown(serialized);
       setSalesDraft(serialized);
 
-      console.log("handleSaveSalesPage: getting token...");
       const token = await getActiveToken();
-      if (!token) {
-        console.error("handleSaveSalesPage: no token");
-        throw new Error("Not authenticated");
-      }
+      if (!token) throw new Error("Not authenticated");
 
-      console.log("handleSaveSalesPage: calling edge function with bookId=", bookId);
       const resp = await fetchWithTimeout(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/builder-draft-state`,
         {
@@ -438,18 +489,18 @@ export default function HomeStudyReviewView({
 
       if (!resp.ok) {
         const errText = await resp.text().catch(() => "");
-        console.error("Save sales page failed:", resp.status, errText);
         throw new Error(errText || `Save failed (${resp.status})`);
       }
 
-      console.log("handleSaveSalesPage: success");
+      await loadContent();
       toast({ title: "Sales page saved!" });
       setDrawerOpen(null);
     } catch (err) {
       console.error("Save sales page error:", err);
-      toast({ title: "Save failed", description: String(err), variant: "destructive" });
+      toast({ title: "Save failed", description: err instanceof Error ? err.message : String(err), variant: "destructive" });
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const handlePublish = async () => {
@@ -561,16 +612,17 @@ export default function HomeStudyReviewView({
                   <Badge variant="secondary" className="text-[10px] mb-4">
                     {duration}-Day Program
                   </Badge>
-                  <h1 className="font-heading text-2xl font-bold mb-2">{title || "Home Study Course"}</h1>
-                  <p className="text-sm text-muted-foreground mb-4 max-w-md">{description || "A guided self-paced learning experience"}</p>
+                  <h1 className="font-heading text-2xl font-bold mb-2">{previewHeroTitle}</h1>
+                  <p className="text-sm text-muted-foreground mb-4 max-w-md">{previewHeroBody}</p>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1"><CalendarDays className="h-3 w-3" /> {duration} days</span>
                     <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {commitment} min/day</span>
                     <span className="flex items-center gap-1"><BookOpen className="h-3 w-3" /> {level}</span>
                   </div>
-                  {price && (
-                    <div className="mt-4">
-                      <Badge className="bg-secondary text-secondary-foreground text-sm px-4 py-1">${price}</Badge>
+                  {previewHeroPrice && (
+                    <div className="mt-4 flex items-center gap-2">
+                      {previewHeroComparePrice && <span className="text-xs text-muted-foreground line-through">${previewHeroComparePrice}</span>}
+                      <Badge className="bg-secondary text-secondary-foreground text-sm px-4 py-1">${previewHeroPrice}</Badge>
                     </div>
                   )}
                   <div className="mt-6 p-4 bg-muted/30 rounded-lg max-w-sm">
@@ -682,7 +734,7 @@ export default function HomeStudyReviewView({
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">📄 Sales Page Copy</p>
                       <div className="prose prose-sm dark:prose-invert max-w-none">
-                        <MarkdownRenderer content={previewSalesBody || effectiveSalesPage} />
+                        <MarkdownRenderer content={previewSalesBody || salesMarkdownWithoutMeta} />
                       </div>
                     </div>
                     {previewSalesFaqs.length > 0 && (
@@ -733,7 +785,7 @@ export default function HomeStudyReviewView({
                 : "Home Study draft is incomplete"}
             </p>
             <p className="text-xs text-muted-foreground">
-              {price ? `$${price} · ` : ""}
+              {previewHeroPrice ? `$${previewHeroPrice} · ` : ""}
               {commitment} min/day · {level}
               {!canPublish ? " · Publish disabled until lessons are generated" : ""}
             </p>
