@@ -433,6 +433,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
     startAct1,
     startAct3,
     updateProposal,
+    setGeneratedContent,
     reset,
     retry,
   };
