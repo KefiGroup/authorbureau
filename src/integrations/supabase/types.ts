@@ -2041,6 +2041,7 @@ export type Database = {
           day_number: number
           id: string
           purchase_id: string
+          start_date: string | null
           user_email: string
         }
         Insert: {
@@ -2048,6 +2049,7 @@ export type Database = {
           day_number: number
           id?: string
           purchase_id: string
+          start_date?: string | null
           user_email: string
         }
         Update: {
@@ -2055,6 +2057,31 @@ export type Database = {
           day_number?: number
           id?: string
           purchase_id?: string
+          start_date?: string | null
+          user_email?: string
+        }
+        Relationships: []
+      }
+      reader_start_dates: {
+        Row: {
+          created_at: string
+          id: string
+          purchase_id: string
+          start_date: string
+          user_email: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          purchase_id: string
+          start_date: string
+          user_email: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          purchase_id?: string
+          start_date?: string
           user_email?: string
         }
         Relationships: []
