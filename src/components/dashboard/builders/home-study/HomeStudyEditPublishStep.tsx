@@ -275,7 +275,7 @@ Return JSON: { "salesCopy": "..." }`,
                       toast({ title: "Generation failed", variant: "destructive" });
                     }
                   }}
-                  disabled={isGenerating}
+                  disabled={generationState === "analyzing" || generationState === "generating"}
                 >
                   <Sparkles className="h-3 w-3 mr-1" /> Generate Sales Copy with Abby
                 </Button>
