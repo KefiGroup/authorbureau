@@ -390,7 +390,7 @@ export default function HomeStudyEditPublishStep({
               <Clock className="h-4 w-4 text-secondary" /> Duration & Frequency Settings
             </h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-4">
               <div>
                 <label className="text-xs font-semibold text-muted-foreground block mb-1.5">Program Duration (days)</label>
                 <Input type="number" min={7} max={90}
