@@ -75,6 +75,32 @@ export default function HomeStudyEditPublishStep({
   const currentDay = days[selectedIdx];
   const weeks = Array.from(new Set(days.map(d => d.weekNumber))).sort((a, b) => a - b);
 
+  useEffect(() => {
+    if (activeSegment !== "sales") return;
+
+    const salesCopy = setup.salesCopy;
+    const whatsIncluded = setup.whatsIncluded;
+    const nextSetup: Record<string, string> = {};
+
+    if (typeof salesCopy === "string") {
+      const cleaned = stripMarkdownForEditing(salesCopy);
+      if (cleaned !== salesCopy) nextSetup.salesCopy = cleaned;
+    }
+
+    if (typeof whatsIncluded === "string") {
+      const cleaned = stripMarkdownForEditing(whatsIncluded);
+      if (cleaned !== whatsIncluded) nextSetup.whatsIncluded = cleaned;
+    }
+
+    if (Object.keys(nextSetup).length === 0) return;
+
+    setStepData(prev => ({
+      ...prev,
+      setup: { ...prev.setup, ...nextSetup },
+    }));
+    onMarkEdited("edit");
+  }, [activeSegment, onMarkEdited, setStepData, setup.salesCopy, setup.whatsIncluded]);
+
   const toggleTabEditing = (field: EditableDayField) => {
     if (editingTab === field) {
       setEditingTab(null);
