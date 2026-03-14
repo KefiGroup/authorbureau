@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { HomeStudyStepProps, StudyDay } from "./types";
-import type { HomeStudyStepProps, StudyDay } from "./types";
 
 const SEGMENTS = [
   { id: "content", label: "Day Content", icon: BookOpen, num: 1 },
