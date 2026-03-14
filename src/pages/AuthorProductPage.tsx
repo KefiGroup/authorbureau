@@ -569,7 +569,10 @@ export default function AuthorProductPage() {
 
       {/* 8. BODY COPY — Full-width with accent left border for impact (FAQ stripped) */}
       {salesPageContent && (() => {
-        const contentWithoutFaq = salesPageContent.replace(/(?:^|\n)##?\s*(?:FAQ|Frequently Asked Questions)[^\n]*\n[\s\S]*?(?=\n##?\s|$)/i, "").trim();
+        const contentWithoutFaq = salesPageContent
+          .replace(/(?:^|\n)#{1,3}\s*(?:FAQ|Frequently Asked Questions)[^\n]*\n[\s\S]*$/i, "")
+          .replace(/(?:^|\n)(?:FAQ|Frequently Asked Questions)[:\s]*\n[\s\S]*$/i, "")
+          .trim();
         return contentWithoutFaq ? (
           <section className="py-16 md:py-24" style={{ background: v.secondaryBg }}>
             <div className="container max-w-4xl px-4">
