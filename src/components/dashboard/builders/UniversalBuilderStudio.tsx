@@ -430,7 +430,7 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
 
     try {
       const token = await getToken();
-      const currentStepConfig = nodeConfig.steps[currentStep];
+      const currentStepConfig = nodeConfig.steps[clampStepIndex(currentStep)] ?? nodeConfig.steps[0];
       const resp = await fetch(AI_GATEWAY_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
