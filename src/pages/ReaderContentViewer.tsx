@@ -21,8 +21,13 @@ interface StudyDay {
   chapterRef?: string;
   reading: string;
   concept?: string;
-  exercise: string;
-  reflection: string;
+  // New home-study-specific fields (implementation-focused)
+  fieldAssignment?: string;
+  accountabilityCheck?: string;
+  microHabit?: string;
+  // Legacy workbook-style fields (backward compat)
+  exercise?: string;
+  reflection?: string;
   actionPlan?: string;
 }
 
