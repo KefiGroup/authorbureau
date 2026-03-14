@@ -23,8 +23,9 @@ import {
   ArrowLeft, Monitor, Smartphone, ChevronLeft, ChevronRight,
   BookOpen, Clock, CalendarDays, Award, Send, Save, Loader2,
   DollarSign, Edit3, Eye, CheckCircle2, FileText, GraduationCap,
-  Plus, X,
+  Plus, X, Palette,
 } from "lucide-react";
+import { SALES_PAGE_DESIGNS, type SalesPageDesignId } from "../builders/shared/SharedSalesPageStep";
 import type { StudyDay } from "../builders/home-study/types";
 
 interface HomeStudyReviewViewProps {
@@ -99,6 +100,9 @@ export default function HomeStudyReviewView({
   const [salesTestimonials, setSalesTestimonials] = useState<{ name: string; quote: string }[]>([]);
   const [salesCta, setSalesCta] = useState("Enroll Now");
   const [salesFaqs, setSalesFaqs] = useState<{ question: string; answer: string }[]>([]);
+  const [salesPrice, setSalesPrice] = useState("");
+  const [salesComparePrice, setSalesComparePrice] = useState("");
+  const [salesDesignTemplate, setSalesDesignTemplate] = useState<SalesPageDesignId>("classic-elegant");
 
   // Drawer-local draft for sales page markdown (kept for serialization)
   const [salesDraft, setSalesDraft] = useState("");
@@ -304,6 +308,9 @@ export default function HomeStudyReviewView({
       setSalesTestimonials(testimonials.length > 0 ? testimonials : []);
       setSalesFaqs(parsedSales.faqs);
       setSalesCta("Enroll Now");
+      setSalesPrice(price || "");
+      setSalesComparePrice("");
+      setSalesDesignTemplate("classic-elegant");
     } else {
       setSalesHeadline(title || productTitle || "");
       setSalesSubheadline(description ? description.slice(0, 120) : `A ${duration}-day guided self-study program`);
@@ -317,6 +324,9 @@ export default function HomeStudyReviewView({
       setSalesTestimonials([]);
       setSalesFaqs([]);
       setSalesCta("Enroll Now");
+      setSalesPrice(price || "");
+      setSalesComparePrice("");
+      setSalesDesignTemplate("classic-elegant");
     }
     setSalesDraft(md);
     setDrawerOpen("sales");
@@ -390,6 +400,10 @@ export default function HomeStudyReviewView({
         validFaqs.forEach(f => {
           parts.push(`Q: ${f.question.trim()}`, `A: ${f.answer.trim()}`, "");
         });
+      }
+      // Add metadata for price, compare price, and design template
+      if (salesPrice || salesComparePrice || salesDesignTemplate) {
+        parts.push("", `<!-- SALES_META:${JSON.stringify({ price: salesPrice, comparePrice: salesComparePrice, designTemplate: salesDesignTemplate, cta: salesCta })} -->`);
       }
       const serialized = parts.join("\n");
       setSalesPageMarkdown(serialized);
@@ -894,6 +908,86 @@ export default function HomeStudyReviewView({
                 placeholder="Enroll Now"
                 className="mt-1 h-8"
               />
+            </div>
+
+            <Separator />
+
+            {/* ── PRICING ── */}
+            <div>
+              <Label className="text-xs font-semibold mb-2 block">Pricing</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">Price (USD)</Label>
+                  <div className="relative mt-1">
+                    <DollarSign className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      value={salesPrice}
+                      onChange={(e) => setSalesPrice(e.target.value)}
+                      placeholder="47"
+                      className="pl-8 h-8 text-sm"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">Compare-at Price (optional)</Label>
+                  <div className="relative mt-1">
+                    <DollarSign className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      value={salesComparePrice}
+                      onChange={(e) => setSalesComparePrice(e.target.value)}
+                      placeholder="97"
+                      className="pl-8 h-8 text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+              {salesPrice && salesComparePrice && Number(salesComparePrice) > Number(salesPrice) && (
+                <p className="text-[10px] text-accent mt-1">
+                  {Math.round((1 - Number(salesPrice) / Number(salesComparePrice)) * 100)}% discount shown to buyers
+                </p>
+              )}
+            </div>
+
+            <Separator />
+
+            {/* ── DESIGN TEMPLATE ── */}
+            <div>
+              <Label className="text-xs font-semibold mb-1 flex items-center gap-1.5">
+                <Palette className="h-3.5 w-3.5" /> Sales Page Design
+              </Label>
+              <p className="text-[10px] text-muted-foreground mb-3">Choose a visual template for your public sales page.</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {SALES_PAGE_DESIGNS.map(design => {
+                  const isSelected = salesDesignTemplate === design.id;
+                  return (
+                    <button
+                      key={design.id}
+                      type="button"
+                      onClick={() => setSalesDesignTemplate(design.id)}
+                      className={`relative rounded-lg border-2 overflow-hidden transition-all text-left ${
+                        isSelected
+                          ? "border-secondary ring-2 ring-secondary/20"
+                          : "border-border hover:border-secondary/40"
+                      }`}
+                    >
+                      <div className={`h-12 ${design.preview} flex items-center justify-center`}>
+                        <span className={`text-[7px] font-bold ${design.preview.includes("text-white") || design.preview.includes("text-amber") ? "" : "text-foreground"}`}>
+                          Preview
+                        </span>
+                      </div>
+                      <div className="p-1.5 bg-background">
+                        <p className="text-[10px] font-bold leading-tight">{design.label}</p>
+                        <p className="text-[8px] text-muted-foreground leading-snug">{design.description}</p>
+                      </div>
+                      {isSelected && (
+                        <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-secondary flex items-center justify-center">
+                          <span className="text-secondary-foreground text-[8px]">✓</span>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="flex gap-2 pt-2">
