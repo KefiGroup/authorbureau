@@ -48,6 +48,25 @@ const jsonLd = {
 };
 
 export default function Index() {
+  const { data: stats } = useQuery({
+    queryKey: ["homepage-stats"],
+    queryFn: async () => {
+      const [authorsRes, booksRes, readersRes] = await Promise.all([
+        supabase.from("author_profiles").select("id", { count: "exact", head: true }),
+        supabase.from("books").select("id", { count: "exact", head: true }).not("published_at", "is", null),
+        supabase.from("reading_club_members").select("id", { count: "exact", head: true }),
+      ]);
+      return {
+        authors: authorsRes.count ?? 0,
+        books: booksRes.count ?? 0,
+        readers: readersRes.count ?? 0,
+      };
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const formatStat = (n: number) => (n > 10 ? `${n}+` : "Growing");
+
   return (
     <div className="min-h-screen">
       <script
