@@ -615,6 +615,19 @@ Return JSON: { "salesCopy": "..." }`,
                   <h3 className="text-sm font-bold mb-2">What's Included</h3>
                   <div className="text-xs text-muted-foreground whitespace-pre-line">{setup.whatsIncluded}</div>
                 </div>
+               )}
+              {setup.faqs && setup.faqs.length > 0 && (
+                <div className="px-8 pb-8">
+                  <h3 className="text-sm font-bold mb-3">Frequently Asked Questions</h3>
+                  <div className="space-y-3">
+                    {setup.faqs.map((faq: { q: string; a: string }, i: number) => (
+                      <div key={i}>
+                        <p className="text-xs font-semibold">{faq.q}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{faq.a}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
           )}
