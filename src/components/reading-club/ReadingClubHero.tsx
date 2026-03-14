@@ -30,7 +30,7 @@ export default function ReadingClubHero({ user, activeCount }: Props) {
 
         {!user ? (
           <Button asChild size="lg">
-            <Link to="/auth">
+            <Link to="/readers-bureau/auth">
               <LogIn className="mr-2 h-4 w-4" /> Sign In to Start a Challenge
             </Link>
           </Button>
