@@ -936,7 +936,9 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                     {builderGen.generatedContent && (
                       <div className="max-h-[440px] overflow-y-auto border rounded-lg p-4 bg-muted/30 space-y-4">
                         <div className="space-y-2">
-                          <p className="text-[10px] font-semibold uppercase tracking-wider text-secondary">Product Content Draft</p>
+                          <div className="flex items-center justify-between">
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-secondary">Product Content Draft</p>
+                          </div>
                           <div className="rounded-lg border border-border bg-background p-3">
                             <MarkdownRenderer content={previewContentText || builderGen.generatedContent} />
                           </div>
