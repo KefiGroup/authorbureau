@@ -71,12 +71,12 @@ export default function HomeStudyEditPublishStep({
     const nextSetup: Record<string, string> = {};
 
     if (typeof salesCopy === "string") {
-      const cleaned = stripMarkdownForEditing(salesCopy);
+      const cleaned = sanitizeSalesCopy(salesCopy);
       if (cleaned !== salesCopy) nextSetup.salesCopy = cleaned;
     }
 
     if (typeof whatsIncluded === "string") {
-      const cleaned = stripMarkdownForEditing(whatsIncluded);
+      const cleaned = sanitizeSalesCopy(whatsIncluded);
       if (cleaned !== whatsIncluded) nextSetup.whatsIncluded = cleaned;
     }
 
