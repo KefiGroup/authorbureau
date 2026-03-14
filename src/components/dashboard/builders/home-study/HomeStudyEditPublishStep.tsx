@@ -54,10 +54,10 @@ export default function HomeStudyEditPublishStep({
   const { toast } = useToast();
   const days: StudyDay[] = stepData.schedule?.days || [];
   const setup = stepData.setup || {};
-  const hasAudio = setup.format === "pdf-audio";
-  const [selectedIdx, setSelectedIdx] = useState(0);
   const [activeSegment, setActiveSegment] = useState<SegmentId>("schedule");
-  const [editingTab, setEditingTab] = useState<string | null>(null);
+  const [previewMode, setPreviewMode] = useState<"sales" | "portal">("sales");
+  const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
+  const [previewPage, setPreviewPage] = useState(0);
   const [previewMode, setPreviewMode] = useState<"sales" | "portal">("sales");
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
   const [previewPage, setPreviewPage] = useState(0);
