@@ -329,6 +329,66 @@ Return JSON: { "salesCopy": "..." }`,
                 rows={5} className="text-sm" />
             </div>
 
+            {/* FAQ Section */}
+            <div className="border-t border-border pt-5">
+              <h4 className="text-sm font-bold mb-3">❓ Frequently Asked Questions</h4>
+              <div className="space-y-3">
+                {(setup.faqs || []).map((faq: { q: string; a: string }, idx: number) => (
+                  <div key={idx} className="rounded-lg border border-border p-3 space-y-2">
+                    <div className="flex items-start gap-2">
+                      <span className="text-xs font-bold text-secondary shrink-0 mt-1">Q:</span>
+                      <Input
+                        value={faq.q}
+                        onChange={e => {
+                          const updated = [...(setup.faqs || [])];
+                          updated[idx] = { ...updated[idx], q: e.target.value };
+                          updateSetup("faqs", updated);
+                        }}
+                        className="h-8 text-sm font-medium"
+                        placeholder="Question..."
+                      />
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-xs font-bold text-muted-foreground shrink-0 mt-1">A:</span>
+                      <Textarea
+                        value={faq.a}
+                        onChange={e => {
+                          const updated = [...(setup.faqs || [])];
+                          updated[idx] = { ...updated[idx], a: e.target.value };
+                          updateSetup("faqs", updated);
+                        }}
+                        rows={2}
+                        className="text-sm"
+                        placeholder="Answer..."
+                      />
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-[10px] text-destructive h-6"
+                      onClick={() => {
+                        const updated = (setup.faqs || []).filter((_: any, i: number) => i !== idx);
+                        updateSetup("faqs", updated);
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs"
+                  onClick={() => {
+                    const updated = [...(setup.faqs || []), { q: "", a: "" }];
+                    updateSetup("faqs", updated);
+                  }}
+                >
+                  + Add FAQ
+                </Button>
+              </div>
+            </div>
+
             <div className="border-t border-border pt-5">
               <h4 className="text-sm font-bold mb-3">💰 Pricing</h4>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
