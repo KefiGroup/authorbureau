@@ -528,7 +528,7 @@ export default function HomeStudyEditPublishStep({
 
             <div>
               <label className="text-xs font-semibold text-muted-foreground block mb-1.5">Sales Description</label>
-              <Textarea value={setup.salesCopy || ""} onChange={e => updateSetup("salesCopy", e.target.value)}
+              <Textarea value={setup.salesCopy || ""} onChange={e => updateSetup("salesCopy", stripMarkdownForEditing(e.target.value))}
                 placeholder="Write compelling sales copy that describes the transformation your student will experience..."
                 rows={8} className="text-sm" />
               {!setup.salesCopy && (
@@ -537,12 +537,13 @@ export default function HomeStudyEditPublishStep({
                     setGenerationState("analyzing");
                     try {
                       const result = await generateJSONWithAI<{ salesCopy: string }>(
-                        `Write a compelling sales page description (300-400 words, markdown) for a home study course called "${setup.title || bookTitle}" based on the book "${bookTitle}". 
+                        `Write a compelling sales page description (300-400 words, plain text only) for a home study course called "${setup.title || bookTitle}" based on the book "${bookTitle}".
+Do not use markdown symbols, headings, bullets, asterisks, or hashtags.
 Include: transformation promise, who it's for, what they'll learn, what's included (${days.length} days, ${setup.commitment || 15} min/day), and a call to action.
 Return JSON: { "salesCopy": "..." }`,
                         { bookId, isPremium: true },
                       );
-                      updateSetup("salesCopy", result.salesCopy);
+                      updateSetup("salesCopy", stripMarkdownForEditing(result.salesCopy));
                       setGenerationState("complete");
                       toast({ title: "Sales copy generated!" });
                     } catch {
@@ -559,8 +560,8 @@ Return JSON: { "salesCopy": "..." }`,
 
             <div>
               <label className="text-xs font-semibold text-muted-foreground block mb-1.5">What's Included (Bullet Points)</label>
-              <Textarea value={setup.whatsIncluded || ""} onChange={e => updateSetup("whatsIncluded", e.target.value)}
-                placeholder="- 21 daily guided lessons&#10;- Practical exercises & action plans&#10;- Reflection journal prompts&#10;- Certificate of completion"
+              <Textarea value={setup.whatsIncluded || ""} onChange={e => updateSetup("whatsIncluded", stripMarkdownForEditing(e.target.value))}
+                placeholder="21 daily guided lessons&#10;Practical exercises and action plans&#10;Reflection journal prompts&#10;Weekly accountability check-ins"
                 rows={5} className="text-sm" />
             </div>
 
