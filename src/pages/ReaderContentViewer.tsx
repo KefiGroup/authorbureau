@@ -694,6 +694,73 @@ function StatBadge({ icon, label, value }: { icon: React.ReactNode; label: strin
   );
 }
 
+const UPSELL_META: Record<string, { icon: React.ReactNode; badge: string; cta: string; gradient: string }> = {
+  online_course: {
+    icon: <GraduationCap className="h-5 w-5" />,
+    badge: "Next Step",
+    cta: "Enroll Now",
+    gradient: "from-violet-500/10 to-violet-500/5",
+  },
+  audiobook: {
+    icon: <Headphones className="h-5 w-5" />,
+    badge: "Listen & Learn",
+    cta: "Get the Audiobook",
+    gradient: "from-sky-500/10 to-sky-500/5",
+  },
+  coaching: {
+    icon: <Users className="h-5 w-5" />,
+    badge: "Go Deeper",
+    cta: "Book a Session",
+    gradient: "from-amber-500/10 to-amber-500/5",
+  },
+  workbook: {
+    icon: <BookOpen className="h-5 w-5" />,
+    badge: "Apply It",
+    cta: "Get the Workbook",
+    gradient: "from-emerald-500/10 to-emerald-500/5",
+  },
+  home_study: {
+    icon: <Target className="h-5 w-5" />,
+    badge: "Study Program",
+    cta: "Start the Program",
+    gradient: "from-rose-500/10 to-rose-500/5",
+  },
+};
+
+function UpsellCard({ product }: { product: UpsellProduct }) {
+  const meta = UPSELL_META[product.type] || UPSELL_META.online_course;
+  const productUrl = product.authorSlug && product.bookSlug
+    ? `/${product.authorSlug}/${product.bookSlug}/${product.type === "online_course" ? "course" : product.type}`
+    : "#";
+
+  return (
+    <div className={cn("rounded-xl border border-border/60 bg-gradient-to-r p-4 flex items-center gap-4 hover:shadow-md transition-shadow", meta.gradient)}>
+      <div className="w-10 h-10 rounded-lg bg-background/80 border border-border/50 flex items-center justify-center shrink-0 text-primary">
+        {meta.icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-0.5">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-primary">{meta.badge}</span>
+        </div>
+        <h4 className="font-semibold text-foreground text-sm truncate">{product.title}</h4>
+        <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{product.description}</p>
+      </div>
+      <div className="shrink-0 text-right space-y-1">
+        {product.price != null && product.price > 0 && (
+          <p className="text-sm font-bold text-foreground">${product.price}</p>
+        )}
+        <Link
+          to={productUrl}
+          className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+        >
+          {meta.cta}
+          <ArrowRight className="h-3 w-3" />
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 function ContentSection({ emoji, label, content, hint }: { emoji: string; label: string; content: string; hint?: string }) {
   return (
     <div className="bg-muted/40 rounded-xl p-4 border border-border/50">
