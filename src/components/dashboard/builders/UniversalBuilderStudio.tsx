@@ -947,7 +947,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                           <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
                             {currentStepConfig.description}
                           </p>
-                          {builderGen.act === "idle" && currentStep === 0 ? (
+                          {builderGen.act === "idle" && currentStepIndex === 0 ? (
                             <Button
                               className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90"
                               onClick={() => builderGen.startAct1(bookId)}
