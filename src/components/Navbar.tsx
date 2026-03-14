@@ -309,7 +309,7 @@ export default function Navbar() {
                 ) : (
                   <>
                     <Link to="/auth" onClick={() => setMobileOpen(false)} className="text-sm font-semibold text-secondary">Sign In</Link>
-                    <Link to="/auth" onClick={() => setMobileOpen(false)} className="inline-flex w-fit items-center rounded-full bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground">
+                    <Link to="/get-started" onClick={() => setMobileOpen(false)} className="inline-flex w-fit items-center rounded-full bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground">
                       Get Started
                     </Link>
                   </>
