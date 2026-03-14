@@ -18,11 +18,10 @@ import type { HomeStudyStepProps, StudyDay } from "./types";
 import { mdToHtml } from "@/lib/md-to-html";
 
 const SEGMENTS = [
-  { id: "content", label: "Day Content", icon: BookOpen, num: 1 },
-  { id: "schedule", label: "Duration & Frequency", icon: Clock, num: 2 },
-  { id: "sales", label: "Sales & Pricing", icon: ShoppingCart, num: 3 },
-  { id: "design", label: "Portal Design", icon: Palette, num: 4 },
-  { id: "preview", label: "Preview", icon: Eye, num: 5 },
+  { id: "schedule", label: "Duration & Frequency", icon: Clock, num: 1 },
+  { id: "sales", label: "Sales & Pricing", icon: ShoppingCart, num: 2 },
+  { id: "design", label: "Portal Design", icon: Palette, num: 3 },
+  { id: "preview", label: "Preview", icon: Eye, num: 4 },
 ] as const;
 
 type SegmentId = (typeof SEGMENTS)[number]["id"];
