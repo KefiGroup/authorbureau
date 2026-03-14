@@ -731,7 +731,7 @@ export default function HomeStudyReviewView({
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">📄 Sales Page Copy</p>
                       <div className="prose prose-sm dark:prose-invert max-w-none">
-                        <MarkdownRenderer content={previewSalesBody || effectiveSalesPage} />
+                        <MarkdownRenderer content={previewSalesBody || salesMarkdownWithoutMeta} />
                       </div>
                     </div>
                     {previewSalesFaqs.length > 0 && (
@@ -782,7 +782,7 @@ export default function HomeStudyReviewView({
                 : "Home Study draft is incomplete"}
             </p>
             <p className="text-xs text-muted-foreground">
-              {price ? `$${price} · ` : ""}
+              {previewHeroPrice ? `$${previewHeroPrice} · ` : ""}
               {commitment} min/day · {level}
               {!canPublish ? " · Publish disabled until lessons are generated" : ""}
             </p>
