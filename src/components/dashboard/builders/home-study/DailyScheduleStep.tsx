@@ -132,9 +132,10 @@ Return ONLY valid JSON.`;
         theme: d.theme,
         chapterRef: d.chapterRef,
         reading: d.reading,
-        concept: "",
+        concept: d.reading || "",
         exercise: d.exercise,
         reflection: d.reflection,
+        actionPlan: `- [ ] Complete today's reading assignment\n- [ ] Do the practical exercise\n- [ ] Write your reflection journal entry`,
         audioScript: undefined,
         isCatchUp: d.isCatchUp,
       }));
