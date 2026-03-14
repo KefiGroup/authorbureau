@@ -376,7 +376,11 @@ export default function HomeStudyReviewView({
   };
 
   const handleSaveSalesPage = async () => {
-    if (!user) return;
+    if (!user) {
+      console.error("handleSaveSalesPage: no user");
+      toast({ title: "Not logged in", variant: "destructive" });
+      return;
+    }
     setSaving(true);
     try {
       // Serialize structured fields to markdown
@@ -409,9 +413,14 @@ export default function HomeStudyReviewView({
       setSalesPageMarkdown(serialized);
       setSalesDraft(serialized);
 
+      console.log("handleSaveSalesPage: getting token...");
       const token = await getActiveToken();
-      if (!token) throw new Error("Not authenticated");
+      if (!token) {
+        console.error("handleSaveSalesPage: no token");
+        throw new Error("Not authenticated");
+      }
 
+      console.log("handleSaveSalesPage: calling edge function with bookId=", bookId);
       const resp = await fetchWithTimeout(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/builder-draft-state`,
         {
@@ -433,11 +442,12 @@ export default function HomeStudyReviewView({
         throw new Error(errText || `Save failed (${resp.status})`);
       }
 
+      console.log("handleSaveSalesPage: success");
       toast({ title: "Sales page saved!" });
       setDrawerOpen(null);
     } catch (err) {
       console.error("Save sales page error:", err);
-      toast({ title: "Save failed", variant: "destructive" });
+      toast({ title: "Save failed", description: String(err), variant: "destructive" });
     }
     setSaving(false);
   };
