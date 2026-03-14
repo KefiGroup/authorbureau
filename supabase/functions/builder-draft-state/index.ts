@@ -549,6 +549,15 @@ Deno.serve(async (req) => {
 
               if (salesAsset?.content && salesAsset.content.trim().length > 50) {
                 description = salesAsset.content.trim();
+                // Extract price/currency from SALES_META comment if present
+                const metaMatch = salesAsset.content.match(/<!--\s*SALES_META:([\s\S]*?)-->/i);
+                if (metaMatch) {
+                  try {
+                    const meta = JSON.parse(metaMatch[1]);
+                    if (meta.price) price = parseFloat(meta.price);
+                    if (meta.currency) currency = meta.currency;
+                  } catch { /* ignore */ }
+                }
               }
 
               // Get generated content
@@ -647,6 +656,15 @@ Deno.serve(async (req) => {
 
           if (salesAsset?.content && salesAsset.content.trim().length > 50) {
             updatePayload.description = salesAsset.content.trim();
+            // Extract price from SALES_META comment embedded in sales page markdown
+            const metaMatch = salesAsset.content.match(/<!--\s*SALES_META:([\s\S]*?)-->/i);
+            if (metaMatch) {
+              try {
+                const meta = JSON.parse(metaMatch[1]);
+                if (meta.price) updatePayload.price = parseFloat(meta.price);
+                if (meta.currency) updatePayload.currency = meta.currency;
+              } catch { /* ignore */ }
+            }
           }
         }
 
