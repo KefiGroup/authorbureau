@@ -464,10 +464,10 @@ export default function ReaderContentViewer() {
               </h3>
               <ul className="text-xs text-muted-foreground space-y-1.5 ml-6 list-disc">
                 <li>A new day of content unlocks each day from your start date</li>
-                <li>Read the assigned content, then complete the exercises and reflection below</li>
-                <li>Use the writing boxes to journal your thoughts — they're your personal workspace</li>
-                <li>Check off each day when you've completed it to track your progress</li>
-                <li>Come back each day to build momentum and grow consistently</li>
+                <li>Read the assigned content, then complete your daily field assignment</li>
+                <li>Field assignments are real-world actions — do them in your life, not just on paper</li>
+                <li>Build your micro-habit daily — small consistent actions create massive change</li>
+                <li>Check off each day when you've completed it to track your streak</li>
               </ul>
             </div>
 
