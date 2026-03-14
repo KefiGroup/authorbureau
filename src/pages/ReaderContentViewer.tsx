@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
 import {
   BookOpen, ChevronDown, ChevronRight, Check, Lock, Loader2, ArrowLeft, CalendarDays, Rocket,
-  Trophy, Target, Flame,
+  Trophy, Target, Flame, Sparkles, ShoppingBag, GraduationCap, Headphones, Users, ArrowRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
