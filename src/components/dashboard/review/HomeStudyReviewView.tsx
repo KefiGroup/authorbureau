@@ -308,6 +308,9 @@ export default function HomeStudyReviewView({
       setSalesTestimonials(testimonials.length > 0 ? testimonials : []);
       setSalesFaqs(parsedSales.faqs);
       setSalesCta("Enroll Now");
+      setSalesPrice(price || "");
+      setSalesComparePrice("");
+      setSalesDesignTemplate("classic-elegant");
     } else {
       setSalesHeadline(title || productTitle || "");
       setSalesSubheadline(description ? description.slice(0, 120) : `A ${duration}-day guided self-study program`);
@@ -321,6 +324,9 @@ export default function HomeStudyReviewView({
       setSalesTestimonials([]);
       setSalesFaqs([]);
       setSalesCta("Enroll Now");
+      setSalesPrice(price || "");
+      setSalesComparePrice("");
+      setSalesDesignTemplate("classic-elegant");
     }
     setSalesDraft(md);
     setDrawerOpen("sales");
