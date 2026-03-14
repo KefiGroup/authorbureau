@@ -26,7 +26,6 @@ import HowItWorks from "./pages/HowItWorks";
 import SSO from "./pages/SSO";
 import NotFound from "./pages/NotFound";
 import BookHub from "./pages/BookHub";
-import Portal from "./pages/Portal";
 import Solutions from "./pages/Solutions";
 import SolutionsIndex from "./pages/SolutionsIndex";
 import AuthorSite from "./pages/AuthorSite";
@@ -38,6 +37,12 @@ import AbbyHelpChatbot from "./components/AbbyHelpChatbot";
 import PurchaseSuccess from "./pages/PurchaseSuccess";
 import ReaderPortal from "./pages/ReaderPortal";
 import ReaderContentViewer from "./pages/ReaderContentViewer";
+import PortalLayout from "./components/portal/PortalLayout";
+import PortalHome from "./pages/portal/PortalHome";
+import PortalReadingClub from "./pages/portal/PortalReadingClub";
+import PortalChallengeDetail from "./pages/portal/PortalChallengeDetail";
+import PortalLibrary from "./pages/portal/PortalLibrary";
+import PortalComingSoon from "./pages/portal/PortalComingSoon";
 
 const queryClient = new QueryClient();
 
