@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import AccountSettings from "./pages/AccountSettings";
 import GetFeatured from "./pages/GetFeatured";
+import GetStarted from "./pages/GetStarted";
 import Directory from "./pages/Directory";
 import AuthorProfile from "./pages/AuthorProfile";
 import { AuthorSlugRedirect } from "./pages/AuthorSlugRedirect";
