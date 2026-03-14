@@ -37,7 +37,7 @@ export interface SalesPageData {
   designTemplate?: SalesPageDesignId;
   price?: string;
   comparePrice?: string;
-  currency?: string;
+  
 }
 
 interface Props {
