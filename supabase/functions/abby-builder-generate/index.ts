@@ -641,7 +641,7 @@ Use the author's voice. This section is what people see BEFORE purchase.
 SECTION 2 — BUYER CONTENT
 ===CONTENT_START===
 Write ONLY the paid product content (what buyers receive AFTER purchase):
-1. Welcome/Introduction message (personalize with "Dear [Participant Name]")
+1. Welcome/Introduction message (use direct address with "you/your" — NEVER use placeholders like "[Participant Name]")
 2. Complete content for every section/module/day in the approved structure
 3. Full professional lesson content + exercises + worksheets/prompts
 4. Supporting materials (scripts, templates, quizzes, reflection prompts)
