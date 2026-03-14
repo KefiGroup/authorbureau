@@ -11,6 +11,7 @@ export interface HomeStudyStepProps {
   onStartGeneration?: () => void;
   builderAct?: string;
   onNavigate?: (section: string) => void;
+  goToStep?: (step: number) => void;
 }
 
 export interface StudyDay {

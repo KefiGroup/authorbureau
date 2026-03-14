@@ -50,7 +50,7 @@ const sanitizeSalesCopy = (content?: string | null): string =>
 
 export default function HomeStudyEditPublishStep({
   stepData, setStepData, onMarkEdited, bookId, bookTitle,
-  generationState, setGenerationState,
+  generationState, setGenerationState, goToStep,
 }: HomeStudyStepProps) {
   const { toast } = useToast();
   const days: StudyDay[] = stepData.schedule?.days || [];
