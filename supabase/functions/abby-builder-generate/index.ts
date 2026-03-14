@@ -355,8 +355,63 @@ DESIGN:
 4. LEAD_CAPTURE: QR codes, email forms, follow-up within 24hrs
 5. CROSS_BUILDER_PREVIEW: Proposal→Website, co-marketing→Email+Social`,
 };
-
 // Tool calling schema removed — using direct JSON response for better model compatibility
+
+// ── Cross-builder output registry (server-side mirror) ──────────────
+const CROSS_BUILDER_OUTPUTS: Record<string, Array<{ builder: string; label: string; description: string }>> = {
+  "online-course": [
+    { builder: "email-marketing", label: "7-Email Nurture Sequence", description: "Full sequence with subject lines, body, timing" },
+    { builder: "website", label: "Course Sales Page", description: "Complete sales page for the author's microsite" },
+    { builder: "workbook", label: "Companion Workbook Outline", description: "Pre-filled workbook structure mapped to course modules" },
+    { builder: "webinar", label: "Webinar Pitch Script", description: "'Sell your course via webinar' script" },
+    { builder: "social-media", label: "30-Day Launch Calendar", description: "Course launch social media calendar" },
+  ],
+  "home-study-course": [
+    { builder: "email-marketing", label: "Daily Coaching Emails", description: "Daily lesson delivery emails for the study duration" },
+    { builder: "website", label: "Home Study Sales Page", description: "Dedicated sales page on the author's microsite" },
+    { builder: "social-media", label: "Promotional Posts", description: "'Join my home study' promotional posts" },
+    { builder: "upsell", label: "Upsell to Full Course", description: "Upgrade from home study to full course offer" },
+  ],
+  "workbook": [
+    { builder: "email-marketing", label: "Opt-in Email Sequence", description: "Download free workbook opt-in sequence" },
+    { builder: "website", label: "Workbook Product Listing", description: "Workbook product listing on microsite" },
+    { builder: "social-media", label: "Sneak Peek Posts", description: "Sneak peek workbook page posts" },
+  ],
+  "audiobook": [
+    { builder: "social-media", label: "Audio Sample Clips", description: "'Listen to a chapter' teaser clips" },
+    { builder: "website", label: "Audiobook Product Page", description: "Audiobook product listing with audio player" },
+    { builder: "email-marketing", label: "Launch Announcement Emails", description: "'My audiobook is live' announcement sequence" },
+  ],
+  "membership": [
+    { builder: "email-marketing", label: "Member Welcome Sequence", description: "Member onboarding drip" },
+    { builder: "website", label: "Membership Sales Pages", description: "Sales pages per tier on microsite" },
+    { builder: "social-media", label: "Member Teaser Posts", description: "'Members got this today' teaser posts" },
+  ],
+  "upsell": [
+    { builder: "website", label: "Checkout Flow Pages", description: "Funnel pages for checkout flow" },
+    { builder: "email-marketing", label: "Post-Purchase Emails", description: "Post-purchase and abandoned cart sequences" },
+  ],
+  "podcast-scripts": [
+    { builder: "website", label: "Show Notes Pages", description: "Blog-style show notes pages on microsite" },
+    { builder: "social-media", label: "Promotional Clips", description: "Audiogram/quote card posts" },
+    { builder: "email-marketing", label: "Guest Outreach Emails", description: "Guest booking email templates" },
+  ],
+  "webinar": [
+    { builder: "website", label: "Registration Page", description: "Webinar registration page on microsite" },
+    { builder: "email-marketing", label: "Reminder Email Sequence", description: "Pre-webinar reminder sequence" },
+    { builder: "social-media", label: "Key Insights Posts", description: "'Key insights from my webinar' posts" },
+  ],
+  "coaching": [
+    { builder: "website", label: "Coaching Sales Page", description: "'Work with me 1-on-1' premium page" },
+    { builder: "email-marketing", label: "Post-Call Nurture Emails", description: "Post-discovery-call nurture sequence" },
+    { builder: "social-media", label: "Client Testimonial Posts", description: "Client success story posts" },
+  ],
+  "group-coaching": [
+    { builder: "website", label: "Enrollment Page", description: "Group program sales page" },
+    { builder: "email-marketing", label: "Cohort Launch Campaign", description: "Cohort enrollment campaign" },
+    { builder: "social-media", label: "Cohort Launch Posts", description: "'Cohort X just started' posts" },
+  ],
+};
 
 // ── Resolve user from JWT ────────────────────────────────────────────
 async function resolveUser(req: Request): Promise<{ id: string; email: string } | null> {
