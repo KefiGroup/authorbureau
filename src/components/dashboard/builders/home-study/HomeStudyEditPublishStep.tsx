@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,13 +33,16 @@ const stripMarkdownForEditing = (content?: string | null): string => {
 
   return content
     .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^---+$/gm, "")
     .replace(/\*\*\*(.*?)\*\*\*/g, "$1")
     .replace(/\*\*(.*?)\*\*/g, "$1")
     .replace(/\*(.*?)\*/g, "$1")
-    .replace(/^[-•]\s+/gm, "")
+    .replace(/^\s*[-•*]\s+/gm, "")
     .replace(/^\d+\.\s+/gm, "")
     .replace(/^>\s?/gm, "")
-    .replace(/`{1,3}/g, "");
+    .replace(/`{1,3}/g, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 };
 
 export default function HomeStudyEditPublishStep({
