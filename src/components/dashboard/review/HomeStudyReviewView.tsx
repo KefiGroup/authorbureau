@@ -23,8 +23,9 @@ import {
   ArrowLeft, Monitor, Smartphone, ChevronLeft, ChevronRight,
   BookOpen, Clock, CalendarDays, Award, Send, Save, Loader2,
   DollarSign, Edit3, Eye, CheckCircle2, FileText, GraduationCap,
-  Plus, X,
+  Plus, X, Palette,
 } from "lucide-react";
+import { SALES_PAGE_DESIGNS, type SalesPageDesignId } from "../builders/shared/SharedSalesPageStep";
 import type { StudyDay } from "../builders/home-study/types";
 
 interface HomeStudyReviewViewProps {
