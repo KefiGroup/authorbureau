@@ -58,9 +58,6 @@ export default function HomeStudyEditPublishStep({
   const [previewMode, setPreviewMode] = useState<"sales" | "portal">("sales");
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
   const [previewPage, setPreviewPage] = useState(0);
-  const [previewMode, setPreviewMode] = useState<"sales" | "portal">("sales");
-  const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
-  const [previewPage, setPreviewPage] = useState(0);
 
   useEffect(() => {
     if (activeSegment !== "sales") return;
