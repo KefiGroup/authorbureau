@@ -825,7 +825,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
         </div>
 
         {/* Step content area */}
-        <div className="flex-1 overflow-y-auto p-6 lg:p-8 flex flex-col">
+        <div className="flex-1 overflow-y-auto p-6 lg:p-8">
           {/* Cross-builder incoming notifications */}
           {user && bookId && (
             <CrossBuilderNotifications
@@ -1107,8 +1107,6 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
             </motion.div>
           </AnimatePresence>
 
-          {/* Spacer to push action bar to bottom */}
-          <div className="flex-1" />
 
           {/* Action bar */}
           <div className="sticky bottom-0 z-20 -mx-6 lg:-mx-8 mt-6 px-6 lg:px-8 py-4 border-t border-border bg-card/95 backdrop-blur">
