@@ -39,8 +39,7 @@ const stripMarkdownForEditing = (content?: string | null): string => {
     .replace(/^[-•]\s+/gm, "")
     .replace(/^\d+\.\s+/gm, "")
     .replace(/^>\s?/gm, "")
-    .replace(/`{1,3}/g, "")
-    .trim();
+    .replace(/`{1,3}/g, "");
 };
 
 export default function HomeStudyEditPublishStep({
