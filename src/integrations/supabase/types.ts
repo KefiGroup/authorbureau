@@ -2035,6 +2035,30 @@ export type Database = {
         }
         Relationships: []
       }
+      reader_progress: {
+        Row: {
+          completed_at: string
+          day_number: number
+          id: string
+          purchase_id: string
+          user_email: string
+        }
+        Insert: {
+          completed_at?: string
+          day_number: number
+          id?: string
+          purchase_id: string
+          user_email: string
+        }
+        Update: {
+          completed_at?: string
+          day_number?: number
+          id?: string
+          purchase_id?: string
+          user_email?: string
+        }
+        Relationships: []
+      }
       reading_challenge_daily_logs: {
         Row: {
           created_at: string
