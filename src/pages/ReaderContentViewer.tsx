@@ -31,6 +31,16 @@ interface ProgressEntry {
   completed_at: string;
 }
 
+interface UpsellProduct {
+  type: "workbook" | "home_study" | "online_course" | "audiobook" | "coaching";
+  title: string;
+  description: string;
+  price?: number;
+  productId?: string;
+  authorSlug?: string;
+  bookSlug?: string;
+}
+
 export default function ReaderContentViewer() {
   const { purchaseId } = useParams<{ purchaseId: string }>();
   const { user, loading: authLoading } = useAuth();
@@ -47,6 +57,8 @@ export default function ReaderContentViewer() {
   const [chosenDate, setChosenDate] = useState<string>("");
   const [settingStart, setSettingStart] = useState(false);
   const [expandedDay, setExpandedDay] = useState<number | null>(null);
+  const [upsellProducts, setUpsellProducts] = useState<UpsellProduct[]>([]);
+  const [bookId, setBookId] = useState<string | null>(null);
 
   useDocumentMeta({ title: title ? `${title} | Readers Bureau` : "Readers Bureau" });
 
