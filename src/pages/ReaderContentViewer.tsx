@@ -166,7 +166,7 @@ export default function ReaderContentViewer() {
     );
   }
 
-  if (!user) return <Navigate to="/auth?redirect=/reader-portal" replace />;
+  if (!user) return <Navigate to="/readers-bureau/auth?redirect=/readers-bureau" replace />;
 
   const totalDays = days.length || 21;
   const completedCount = progress.size;
