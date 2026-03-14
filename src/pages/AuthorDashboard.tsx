@@ -442,17 +442,16 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           buildUnlocked={
             (stats.products.perTable["workbooks"]?.total || 0) +
             (stats.products.perTable["home_study_courses"]?.total || 0) +
-            (stats.products.perTable["courses"]?.total || 0) +
             (stats.products.perTable["social_media_content"]?.total || 0) +
             (stats.products.perTable["email_flows"]?.total || 0)
           }
           bridgeUnlocked={
+            (stats.products.perTable["courses"]?.total || 0) +
             (stats.products.perTable["audiobooks"]?.total || 0) +
-            (stats.products.perTable["podcasts"]?.total || 0)
-          }
-          yieldUnlocked={
+            (stats.products.perTable["podcasts"]?.total || 0) +
             (stats.products.perTable["coaching_packages"]?.total || 0)
           }
+          yieldUnlocked={0}
         />
       </div>
       <div className="flex flex-1 flex-col min-w-0">
