@@ -605,8 +605,9 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
     }
   };
 
-  const currentStepConfig = nodeConfig.steps[currentStep];
-  const isLastStep = currentStep === nodeConfig.steps.length - 1;
+  const safeCurrentStep = Math.max(0, Math.min(currentStep, nodeConfig.steps.length - 1));
+  const currentStepConfig = nodeConfig.steps[safeCurrentStep] || nodeConfig.steps[0];
+  const isLastStep = safeCurrentStep === nodeConfig.steps.length - 1;
 
   // ─── SUBSCRIPTION GATE ─────────────────────────────────────────────
   if (!hasAccess) {
