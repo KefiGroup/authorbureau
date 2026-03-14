@@ -917,10 +917,10 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                   </div>
                 )}
 
-                {/* Act 3: Streaming Generation */}
+                {/* Act 3: Streaming Generation — progress timeline only */}
                 {builderGen.act === "act3_generating" && currentStepConfig.id === "setup" && (
                   <Card className="p-6 mb-6">
-                    <div className="flex items-center gap-3 mb-4">
+                    <div className="flex items-center gap-3 mb-6">
                       <motion.div
                         className="w-10 h-10 rounded-xl bg-secondary/15 flex items-center justify-center"
                         animate={{ scale: [1, 1.05, 1] }}
@@ -933,18 +933,39 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                         <p className="text-xs text-muted-foreground">This may take 30–60 seconds. Don't navigate away.</p>
                       </div>
                     </div>
-                    {builderGen.generatedContent && (
-                      <div className="max-h-[440px] overflow-y-auto border rounded-lg p-4 bg-muted/30 space-y-4">
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-secondary">Product Content Draft</p>
+                    {/* Progress timeline */}
+                    <div className="space-y-4 pl-2">
+                      {[
+                        { label: "Reading your manuscript & frameworks", delay: 0 },
+                        { label: "Structuring curriculum outline", delay: 8 },
+                        { label: "Writing daily lessons & exercises", delay: 20 },
+                        { label: "Finalizing content & quality check", delay: 45 },
+                      ].map((step, i, arr) => {
+                        const elapsed = builderGen.generatedContent ? builderGen.generatedContent.length : 0;
+                        const isActive = i === 0 || elapsed > step.delay * 40;
+                        const isComplete = i < arr.length - 1 && elapsed > arr[i + 1].delay * 40;
+                        return (
+                          <div key={i} className="flex items-center gap-3">
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-colors duration-500 ${
+                              isComplete ? "bg-accent text-accent-foreground" : isActive ? "bg-secondary/20 text-secondary" : "bg-muted text-muted-foreground"
+                            }`}>
+                              {isComplete ? (
+                                <Check className="h-3.5 w-3.5" />
+                              ) : isActive ? (
+                                <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}>
+                                  <Loader2 className="h-3.5 w-3.5" />
+                                </motion.div>
+                              ) : (
+                                <span className="text-[10px] font-bold">{i + 1}</span>
+                              )}
+                            </div>
+                            <p className={`text-sm transition-colors duration-500 ${
+                              isComplete ? "text-accent font-medium" : isActive ? "text-foreground font-medium" : "text-muted-foreground"
+                            }`}>{step.label}</p>
                           </div>
-                          <div className="rounded-lg border border-border bg-background p-3">
-                            <MarkdownRenderer content={previewContentText || builderGen.generatedContent} />
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                        );
+                      })}
+                    </div>
                   </Card>
                 )}
 
