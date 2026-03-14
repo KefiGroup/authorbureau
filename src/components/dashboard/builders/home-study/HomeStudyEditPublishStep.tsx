@@ -15,6 +15,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { generateJSONWithAI } from "@/lib/ai-generate";
 import type { HomeStudyStepProps, StudyDay } from "./types";
+import { mdToHtml } from "@/lib/md-to-html";
 
 const SEGMENTS = [
   { id: "content", label: "Day Content", icon: BookOpen, num: 1 },
@@ -244,7 +245,7 @@ export default function HomeStudyEditPublishStep({
                       {currentDay.concept && <Badge variant="outline" className="text-[9px]"><Wand2 className="h-2 w-2 mr-0.5" /> AI Generated</Badge>}
                     </div>
                     {currentDay.concept ? (
-                      <div className="prose prose-sm max-w-none text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: currentDay.concept }} />
+                      <div className="prose prose-sm max-w-none text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: mdToHtml(currentDay.concept) }} />
                     ) : (
                       <p className="text-sm text-muted-foreground italic">No content yet. Generate content from Step 1 (Program Setup).</p>
                     )}
@@ -254,7 +255,7 @@ export default function HomeStudyEditPublishStep({
                   <Card className="p-4">
                     <p className="text-xs font-semibold text-muted-foreground mb-2">Practical Exercise</p>
                     {currentDay.exercise ? (
-                      <div className="prose prose-sm max-w-none text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: currentDay.exercise }} />
+                      <div className="prose prose-sm max-w-none text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: mdToHtml(currentDay.exercise) }} />
                     ) : (
                       <p className="text-sm text-muted-foreground italic">No content yet. Generate content from Step 1 (Program Setup).</p>
                     )}
@@ -264,7 +265,7 @@ export default function HomeStudyEditPublishStep({
                   <Card className="p-4">
                     <p className="text-xs font-semibold text-muted-foreground mb-2">Reflection Journal Prompt</p>
                     {currentDay.reflection ? (
-                      <div className="prose prose-sm max-w-none text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: currentDay.reflection }} />
+                      <div className="prose prose-sm max-w-none text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: mdToHtml(currentDay.reflection) }} />
                     ) : (
                       <p className="text-sm text-muted-foreground italic">No content yet. Generate content from Step 1 (Program Setup).</p>
                     )}
@@ -274,7 +275,7 @@ export default function HomeStudyEditPublishStep({
                   <Card className="p-4">
                     <p className="text-xs font-semibold text-muted-foreground mb-2">Action Plan</p>
                     {currentDay.actionPlan ? (
-                      <div className="prose prose-sm max-w-none text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: currentDay.actionPlan }} />
+                      <div className="prose prose-sm max-w-none text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: mdToHtml(currentDay.actionPlan) }} />
                     ) : (
                       <p className="text-sm text-muted-foreground italic">No content yet. Generate content from Step 1 (Program Setup).</p>
                     )}
