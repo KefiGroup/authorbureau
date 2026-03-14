@@ -61,26 +61,38 @@ export default function PortalLayout() {
   useEffect(() => {
     if (!user) return;
     async function ensureProfile() {
-      setProfileLoading(true);
-      const { data } = await supabase
-        .from("reader_profiles")
-        .select("id, display_name, avatar_url, total_streak_days")
-        .eq("user_id", user!.id)
-        .maybeSingle();
-
-      if (data) {
-        setReaderProfile(data);
-      } else {
-        // Auto-create
-        const displayName = user!.user_metadata?.display_name || user!.email?.split("@")[0] || "Reader";
-        const { data: newProfile } = await supabase
+      try {
+        setProfileLoading(true);
+        const { data, error } = await supabase
           .from("reader_profiles")
-          .insert({ user_id: user!.id, display_name: displayName })
           .select("id, display_name, avatar_url, total_streak_days")
-          .single();
-        if (newProfile) setReaderProfile(newProfile);
+          .eq("user_id", user!.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error("Error fetching reader profile:", error);
+          setProfileLoading(false);
+          return;
+        }
+
+        if (data) {
+          setReaderProfile(data);
+        } else {
+          // Auto-create
+          const displayName = user!.user_metadata?.display_name || user!.email?.split("@")[0] || "Reader";
+          const { data: newProfile, error: insertErr } = await supabase
+            .from("reader_profiles")
+            .insert({ user_id: user!.id, display_name: displayName })
+            .select("id, display_name, avatar_url, total_streak_days")
+            .single();
+          if (insertErr) console.error("Error creating reader profile:", insertErr);
+          if (newProfile) setReaderProfile(newProfile);
+        }
+      } catch (err) {
+        console.error("ensureProfile error:", err);
+      } finally {
+        setProfileLoading(false);
       }
-      setProfileLoading(false);
     }
     ensureProfile();
   }, [user]);
