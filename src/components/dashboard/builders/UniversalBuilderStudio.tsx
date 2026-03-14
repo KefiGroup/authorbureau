@@ -931,7 +931,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                         <p className="text-xs text-muted-foreground">This may take 30–60 seconds. Don't navigate away.</p>
                       </div>
                     </div>
-                    {builderGen.generatedContent && (
+                    {builderGen.generatedContent && nodeConfig.customRenderer !== "home-study" && (
                       <div className="max-h-[440px] overflow-y-auto border rounded-lg p-4 bg-muted/30 space-y-4">
                         <div className="space-y-2">
                           <p className="text-[10px] font-semibold uppercase tracking-wider text-secondary">Product Content Draft</p>
