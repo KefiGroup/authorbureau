@@ -647,11 +647,22 @@ export default function HomeStudyReviewView({
                 hasSalesPage ? (
                   <div className="space-y-6">
                     <div>
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">📄 Sales Page</p>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">📄 Sales Page Copy</p>
                       <div className="prose prose-sm dark:prose-invert max-w-none">
-                        <MarkdownRenderer content={effectiveSalesPage} />
+                        <MarkdownRenderer content={previewSalesBody || effectiveSalesPage} />
                       </div>
                     </div>
+                    {previewSalesFaqs.length > 0 && (
+                      <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">❓ FAQ Preview</p>
+                        {previewSalesFaqs.map((faq, idx) => (
+                          <div key={`${faq.question}-${idx}`} className="space-y-1">
+                            <p className="text-sm font-semibold text-foreground">{faq.question}</p>
+                            <p className="text-sm text-muted-foreground">{faq.answer}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     <Separator />
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">📚 Home Study Content</p>
