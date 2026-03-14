@@ -57,7 +57,9 @@ export default function Auth() {
   const { user, loading } = useAuth();
   const location = useLocation();
   const { toast } = useToast();
-  const redirectTo = new URLSearchParams(location.search).get("redirect") || "/dashboard";
+  const params = new URLSearchParams(location.search);
+  const redirectTo = params.get("redirect") || "/dashboard";
+  const selectedRole = params.get("role") as "author" | "reader" | null;
 
   const [mode, setMode] = useState<SignInMode>("password");
   const [flow, setFlow] = useState<FlowState>("password-login");
