@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, ArrowRight, BookOpen, Check, Loader2, Save,
-  Sparkles, X, Send, ChevronLeft, Lock, AlertCircle, Wand2,
+  Sparkles, X, Send, ChevronLeft, Lock, AlertCircle, Wand2, Pencil,
 } from "lucide-react";
 import AbbyNarrativeLoading from "./AbbyNarrativeLoading";
 import ActPhaseBadge from "./shared/ActPhaseBadge";
@@ -160,6 +160,8 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
   const previewSalesText = builderGen.generatedSalesPage || splitPreview.salesPageText;
   const previewContentText = splitPreview.contentText || builderGen.generatedContent;
   const [editedSteps, setEditedSteps] = useState<Set<string>>(new Set());
+  const [editingContentDraft, setEditingContentDraft] = useState(false);
+  const [contentDraftText, setContentDraftText] = useState("");
   const [resolvedBookCoverUrl, setResolvedBookCoverUrl] = useState<string | null>(bookCoverUrl);
 
   useEffect(() => {
@@ -934,7 +936,9 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                     {builderGen.generatedContent && (
                       <div className="max-h-[440px] overflow-y-auto border rounded-lg p-4 bg-muted/30 space-y-4">
                         <div className="space-y-2">
-                          <p className="text-[10px] font-semibold uppercase tracking-wider text-secondary">Product Content Draft</p>
+                          <div className="flex items-center justify-between">
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-secondary">Product Content Draft</p>
+                          </div>
                           <div className="rounded-lg border border-border bg-background p-3">
                             <MarkdownRenderer content={previewContentText || builderGen.generatedContent} />
                           </div>
@@ -953,10 +957,42 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                     </div>
                     <div className="max-h-[520px] overflow-y-auto border rounded-lg p-4 bg-background space-y-4">
                       <div className="space-y-2">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-secondary">Product Content</p>
-                        <div className="rounded-lg border border-border bg-muted/20 p-3">
-                          <MarkdownRenderer content={previewContentText || builderGen.generatedContent} />
+                        <div className="flex items-center justify-between">
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-secondary">Product Content</p>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs h-7"
+                            onClick={() => {
+                              if (editingContentDraft) {
+                                // Save: update the generated content
+                                builderGen.setGeneratedContent(contentDraftText);
+                                setEditingContentDraft(false);
+                              } else {
+                                setContentDraftText(previewContentText || builderGen.generatedContent || "");
+                                setEditingContentDraft(true);
+                              }
+                            }}
+                          >
+                            {editingContentDraft ? (
+                              <><Check className="h-3 w-3 mr-1" /> Done</>
+                            ) : (
+                              <><Pencil className="h-3 w-3 mr-1" /> Edit</>
+                            )}
+                          </Button>
                         </div>
+                        {editingContentDraft ? (
+                          <Textarea
+                            value={contentDraftText}
+                            onChange={e => setContentDraftText(e.target.value)}
+                            rows={20}
+                            className="font-mono text-xs"
+                          />
+                        ) : (
+                          <div className="rounded-lg border border-border bg-muted/20 p-3">
+                            <MarkdownRenderer content={previewContentText || builderGen.generatedContent} />
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex gap-2 mt-4">
