@@ -26,7 +26,7 @@ const SEGMENTS = [
 ] as const;
 
 type SegmentId = (typeof SEGMENTS)[number]["id"];
-type EditableDayField = "concept" | "exercise" | "reflection" | "actionPlan";
+
 
 const stripMarkdownForEditing = (content?: string | null): string => {
   if (!content) return "";
