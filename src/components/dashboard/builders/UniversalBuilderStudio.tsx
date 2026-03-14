@@ -160,6 +160,8 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
   const previewSalesText = builderGen.generatedSalesPage || splitPreview.salesPageText;
   const previewContentText = splitPreview.contentText || builderGen.generatedContent;
   const [editedSteps, setEditedSteps] = useState<Set<string>>(new Set());
+  const [editingContentDraft, setEditingContentDraft] = useState(false);
+  const [contentDraftText, setContentDraftText] = useState("");
   const [resolvedBookCoverUrl, setResolvedBookCoverUrl] = useState<string | null>(bookCoverUrl);
 
   useEffect(() => {
