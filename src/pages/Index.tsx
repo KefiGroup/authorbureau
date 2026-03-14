@@ -373,7 +373,7 @@ export default function Index() {
                 </div>
               ))}
               <Button asChild className="w-full mt-4 font-semibold rounded-xl" style={{ backgroundColor: "#C5A55A", color: "#0B1D3A" }}>
-                <Link to={SIGNUP_URL}>Start as an Author <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                <Link to="/get-started">Start as an Author <ArrowRight className="ml-2 h-4 w-4" /></Link>
               </Button>
             </motion.div>
 
