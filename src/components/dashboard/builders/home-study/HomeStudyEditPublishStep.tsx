@@ -531,7 +531,7 @@ export default function HomeStudyEditPublishStep({
 
             <div>
               <label className="text-xs font-semibold text-muted-foreground block mb-1.5">Sales Description</label>
-              <Textarea value={setup.salesCopy || ""} onChange={e => updateSetup("salesCopy", stripMarkdownForEditing(e.target.value))}
+              <Textarea value={setup.salesCopy || ""} onChange={e => updateSetup("salesCopy", sanitizeSalesCopy(e.target.value))}
                 placeholder="Write compelling sales copy that describes the transformation your student will experience..."
                 rows={8} className="text-sm" />
               {!setup.salesCopy && (
@@ -546,7 +546,7 @@ Include: transformation promise, who it's for, what they'll learn, what's includ
 Return JSON: { "salesCopy": "..." }`,
                         { bookId, isPremium: true },
                       );
-                      updateSetup("salesCopy", stripMarkdownForEditing(result.salesCopy));
+                      updateSetup("salesCopy", sanitizeSalesCopy(result.salesCopy));
                       setGenerationState("complete");
                       toast({ title: "Sales copy generated!" });
                     } catch {
@@ -563,7 +563,7 @@ Return JSON: { "salesCopy": "..." }`,
 
             <div>
               <label className="text-xs font-semibold text-muted-foreground block mb-1.5">What's Included (Bullet Points)</label>
-              <Textarea value={setup.whatsIncluded || ""} onChange={e => updateSetup("whatsIncluded", stripMarkdownForEditing(e.target.value))}
+              <Textarea value={setup.whatsIncluded || ""} onChange={e => updateSetup("whatsIncluded", sanitizeSalesCopy(e.target.value))}
                 placeholder="21 daily guided lessons&#10;Practical exercises and action plans&#10;Reflection journal prompts&#10;Weekly accountability check-ins"
                 rows={5} className="text-sm" />
             </div>
