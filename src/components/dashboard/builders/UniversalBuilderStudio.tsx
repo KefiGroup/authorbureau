@@ -237,6 +237,10 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
   currentStepRef.current = currentStep;
   editedStepsRef.current = editedSteps;
 
+  const clampStepIndex = useCallback((step: number) => {
+    return Math.max(0, Math.min(step, nodeConfig.steps.length - 1));
+  }, [nodeConfig.steps.length]);
+
   const handleSaveDraft = useCallback(async (silent = false): Promise<boolean> => {
     if (!user || !bookId) return false;
     setSaving(true);
@@ -391,9 +395,9 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
           setStepData(parsed.stepData);
           const inferredStep = inferStepFromDraftData(parsed.stepData);
           const savedStep = typeof parsed.currentStep === "number" ? parsed.currentStep : 0;
-          setCurrentStep(Math.max(savedStep, inferredStep));
+          setCurrentStep(clampStepIndex(Math.max(savedStep, inferredStep)));
         } else if (typeof parsed.currentStep === "number") {
-          setCurrentStep(parsed.currentStep);
+          setCurrentStep(clampStepIndex(parsed.currentStep));
         }
 
         if (Array.isArray(parsed.editedSteps)) setEditedSteps(new Set(parsed.editedSteps));
@@ -408,7 +412,7 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
       isMounted = false;
       if (retryTimer) clearTimeout(retryTimer);
     };
-  }, [user, bookId, nodeConfig.id, inferStepFromDraftData, draftLoadAttempt]);
+  }, [user, bookId, nodeConfig.id, inferStepFromDraftData, draftLoadAttempt, clampStepIndex]);
 
   // Abby chat
   const getToken = async (): Promise<string> => {
@@ -426,7 +430,7 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
 
     try {
       const token = await getToken();
-      const currentStepConfig = nodeConfig.steps[currentStep];
+      const currentStepConfig = nodeConfig.steps[clampStepIndex(currentStep)] ?? nodeConfig.steps[0];
       const resp = await fetch(AI_GATEWAY_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -503,14 +507,14 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
     } finally {
       setAbbyStreaming(false);
     }
-  }, [abbyInput, abbyMessages, abbyStreaming, bookId, bookTitle, nodeConfig, currentStep, plan, manuscriptSummary, frameworks]);
+  }, [abbyInput, abbyMessages, abbyStreaming, bookId, bookTitle, nodeConfig, currentStep, plan, manuscriptSummary, frameworks, clampStepIndex]);
 
   const goToStep = useCallback((targetStep: number) => {
-    const boundedStep = Math.max(0, Math.min(targetStep, nodeConfig.steps.length - 1));
+    const boundedStep = clampStepIndex(targetStep);
     currentStepRef.current = boundedStep;
     setCurrentStep(boundedStep);
     void handleSaveDraft(true);
-  }, [nodeConfig.steps.length, handleSaveDraft]);
+  }, [clampStepIndex, handleSaveDraft]);
 
   const goNext = () => {
     if (currentStep < nodeConfig.steps.length - 1) goToStep(currentStep + 1);
@@ -603,8 +607,16 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
     }
   };
 
-  const currentStepConfig = nodeConfig.steps[currentStep];
-  const isLastStep = currentStep === nodeConfig.steps.length - 1;
+  const currentStepIndex = clampStepIndex(currentStep);
+  const currentStepConfig = nodeConfig.steps[currentStepIndex] ?? nodeConfig.steps[0];
+  const isLastStep = currentStepIndex === nodeConfig.steps.length - 1;
+
+  useEffect(() => {
+    if (currentStep !== currentStepIndex) {
+      currentStepRef.current = currentStepIndex;
+      setCurrentStep(currentStepIndex);
+    }
+  }, [currentStep, currentStepIndex]);
 
   // ─── SUBSCRIPTION GATE ─────────────────────────────────────────────
   if (!hasAccess) {
@@ -680,8 +692,8 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
         <div className="px-6 py-3 border-b border-border bg-card/50">
           <div className="flex items-center gap-1">
             {nodeConfig.steps.map((step, idx) => {
-              const isCompleted = idx < currentStep;
-              const isCurrent = idx === currentStep;
+              const isCompleted = idx < currentStepIndex;
+              const isCurrent = idx === currentStepIndex;
               return (
                 <div key={step.id} className="flex items-center">
                   <button
@@ -764,10 +776,10 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                   <div>
                     {/* 3-Act Phase Badge */}
                     <ActPhaseBadge act={
-                      currentStepConfig.act || (currentStep === 0 ? 1 : currentStep === nodeConfig.steps.length - 1 ? 3 : 2)
+                      currentStepConfig.act || (currentStepIndex === 0 ? 1 : currentStepIndex === nodeConfig.steps.length - 1 ? 3 : 2)
                     } />
                     <h2 className="font-heading text-xl font-bold mb-1">
-                      Step {currentStep + 1}: {currentStepConfig.label}
+                      Step {currentStepIndex + 1}: {currentStepConfig.label}
                     </h2>
                     <p className="text-sm text-muted-foreground">{currentStepConfig.description}</p>
                   </div>
@@ -935,7 +947,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                           <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
                             {currentStepConfig.description}
                           </p>
-                          {builderGen.act === "idle" && currentStep === 0 ? (
+                          {builderGen.act === "idle" && currentStepIndex === 0 ? (
                             <Button
                               className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90"
                               onClick={() => builderGen.startAct1(bookId)}
@@ -963,7 +975,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
               <Button
                 variant="ghost"
                 onClick={goPrev}
-                disabled={currentStep === 0}
+                disabled={currentStepIndex === 0}
                 className="text-muted-foreground"
               >
                 <ArrowLeft className="h-4 w-4 mr-1" /> Previous
