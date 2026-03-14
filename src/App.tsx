@@ -97,8 +97,21 @@ const AppRoutes = () => (
       <Route path="/solutions" element={<SolutionsIndex />} />
       <Route path="/solutions/:genre" element={<Solutions />} />
       <Route path="/sso" element={<SSO />} />
-      <Route path="/portal" element={<Portal />} />
-      <Route path="/portal/*" element={<Portal />} />
+      <Route path="/portal" element={<PortalLayout />}>
+        <Route index element={<PortalHome />} />
+        <Route path="reading-club" element={<PortalReadingClub />} />
+        <Route path="reading-club/challenge/:challengeId" element={<PortalChallengeDetail />} />
+        <Route path="library" element={<PortalLibrary />} />
+        <Route path="courses" element={<PortalComingSoon title="My Courses" />} />
+        <Route path="workbooks" element={<PortalComingSoon title="My Workbooks" />} />
+        <Route path="coaching" element={<PortalComingSoon title="My Coaching" />} />
+        <Route path="memberships" element={<PortalComingSoon title="My Memberships" />} />
+        <Route path="events" element={<PortalComingSoon title="My Events" />} />
+        <Route path="badges" element={<PortalComingSoon title="My Badges" />} />
+        <Route path="reviews" element={<PortalComingSoon title="My Reviews" />} />
+        <Route path="profile" element={<PortalComingSoon title="Profile" />} />
+        <Route path="settings" element={<PortalComingSoon title="Settings" />} />
+      </Route>
       <Route path="/purchase-success" element={<PurchaseSuccess />} />
       <Route path="/reader-portal" element={<ReaderPortal />} />
       <Route path="/reader-portal/:purchaseId" element={<ReaderContentViewer />} />
