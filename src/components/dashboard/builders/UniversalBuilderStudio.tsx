@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, ArrowRight, BookOpen, Check, Loader2, Save,
+  ArrowLeft, ArrowRight, BookOpen, Check, ChevronDown, Loader2, Save,
   Sparkles, X, Send, ChevronLeft, Lock, AlertCircle, Wand2, Pencil,
 } from "lucide-react";
 import AbbyNarrativeLoading from "./AbbyNarrativeLoading";
@@ -1010,8 +1010,37 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                             className="font-mono text-xs"
                           />
                         ) : (
-                          <div className="rounded-lg border border-border bg-muted/20 p-3">
-                            <MarkdownRenderer content={previewContentText || builderGen.generatedContent} />
+                          <div className="space-y-3">
+                            {(() => {
+                              try {
+                                const raw = previewContentText || builderGen.generatedContent || "";
+                                const jsonMatch = raw.match(/\[[\s\S]*\]/);
+                                const days = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+                                if (Array.isArray(days) && days.length > 0) {
+                                  return days.map((day: any, i: number) => (
+                                    <details key={i} className="group border border-border rounded-lg overflow-hidden">
+                                      <summary className="flex items-center gap-3 px-4 py-3 cursor-pointer bg-muted/30 hover:bg-muted/50 transition-colors">
+                                        <span className="w-6 h-6 rounded-full bg-secondary/15 text-secondary flex items-center justify-center text-xs font-bold shrink-0">{day.dayNumber || i + 1}</span>
+                                        <span className="font-medium text-sm">Day {day.dayNumber || i + 1}: {day.theme || "Untitled"}</span>
+                                        <ChevronDown className="h-4 w-4 ml-auto text-muted-foreground transition-transform group-open:rotate-180" />
+                                      </summary>
+                                      <div className="px-4 py-3 space-y-2 text-sm">
+                                        {day.chapterRef && <p className="text-xs text-muted-foreground">📖 {day.chapterRef}</p>}
+                                        {day.concept && <div><p className="font-semibold text-xs uppercase text-secondary mb-0.5">Core Concept</p><p className="text-muted-foreground">{day.concept}</p></div>}
+                                        {day.exercise && <div><p className="font-semibold text-xs uppercase text-secondary mb-0.5">Exercise</p><p className="text-muted-foreground">{day.exercise}</p></div>}
+                                        {day.fieldAssignment && <div><p className="font-semibold text-xs uppercase text-secondary mb-0.5">Field Assignment</p><p className="text-muted-foreground">{day.fieldAssignment}</p></div>}
+                                        {day.accountabilityCheck && <div><p className="font-semibold text-xs uppercase text-secondary mb-0.5">Accountability Check</p><p className="text-muted-foreground">{day.accountabilityCheck}</p></div>}
+                                        {day.microHabit && <div><p className="font-semibold text-xs uppercase text-secondary mb-0.5">Micro Habit</p><p className="text-muted-foreground">{day.microHabit}</p></div>}
+                                        {day.actionPlan && <div><p className="font-semibold text-xs uppercase text-secondary mb-0.5">Action Plan</p><p className="text-muted-foreground">{day.actionPlan}</p></div>}
+                                        {day.reflection && <div><p className="font-semibold text-xs uppercase text-secondary mb-0.5">Reflection</p><p className="text-muted-foreground">{day.reflection}</p></div>}
+                                      </div>
+                                    </details>
+                                  ));
+                                }
+                              } catch {}
+                              // Fallback: plain text
+                              return <p className="text-sm text-muted-foreground whitespace-pre-wrap">{previewContentText || builderGen.generatedContent}</p>;
+                            })()}
                           </div>
                         )}
                       </div>
