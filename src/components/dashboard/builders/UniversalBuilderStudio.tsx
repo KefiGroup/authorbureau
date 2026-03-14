@@ -859,7 +859,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                   <Card className="p-6 mb-6 border-accent/30 bg-accent/5">
                     <div className="flex items-center gap-2 mb-4">
                       <Check className="h-5 w-5 text-accent" />
-                      <p className="text-sm font-bold text-accent">Content generated successfully! \uD83C\uDF89</p>
+                      <p className="text-sm font-bold text-accent">Content generated successfully! 🎉</p>
                     </div>
                     <div className="max-h-[520px] overflow-y-auto border rounded-lg p-4 bg-background space-y-4">
                       <div className="space-y-2">
