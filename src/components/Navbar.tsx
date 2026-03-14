@@ -226,7 +226,7 @@ export default function Navbar() {
                 Sign In
               </Link>
               <Button asChild size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-none rounded-full">
-                <Link to="/auth">Get Started</Link>
+                <Link to="/get-started">Get Started</Link>
               </Button>
             </>
           )}
