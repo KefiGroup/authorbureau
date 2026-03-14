@@ -401,6 +401,10 @@ export default function HomeStudyReviewView({
           parts.push(`Q: ${f.question.trim()}`, `A: ${f.answer.trim()}`, "");
         });
       }
+      // Add metadata for price, compare price, and design template
+      if (salesPrice || salesComparePrice || salesDesignTemplate) {
+        parts.push("", `<!-- SALES_META:${JSON.stringify({ price: salesPrice, comparePrice: salesComparePrice, designTemplate: salesDesignTemplate, cta: salesCta })} -->`);
+      }
       const serialized = parts.join("\n");
       setSalesPageMarkdown(serialized);
       setSalesDraft(serialized);
