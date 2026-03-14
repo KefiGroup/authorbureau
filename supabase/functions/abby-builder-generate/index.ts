@@ -630,7 +630,7 @@ Write ONLY the paid product content (what buyers receive AFTER purchase):
 3. Full professional lesson content + exercises + worksheets/prompts
 4. Supporting materials (scripts, templates, quizzes, reflection prompts)
 5. Author voice + manuscript terminology + chapter references
-6. Completion/certificate section
+6. A motivational closing/summary for the final day (do NOT include any certificate of completion section or download links)
 ===CONTENT_END===
 
 SELF-CHECK BEFORE FINALIZING:
