@@ -133,21 +133,7 @@ export default function Auth() {
       </div>
     );
   }
-  // ─── Role assignment + redirect when user is authenticated ───
-  const roleAssigned = useRef(false);
-  useEffect(() => {
-    if (!user || roleAssigned.current) return;
-    if (!selectedRole || (selectedRole !== "author" && selectedRole !== "reader")) return;
-    roleAssigned.current = true;
-    // Fire-and-forget: assign role to user_roles (ignore duplicates)
-    cloudSupabase
-      .from("user_roles")
-      .upsert({ user_id: user.id, role: selectedRole }, { onConflict: "user_id,role" })
-      .then(({ error }) => {
-        if (error) console.warn("[Auth] Role assignment warning:", error.message);
-      });
-  }, [user, selectedRole]);
-
+  // Role-based redirect is handled purely by the `redirect` URL param set by /get-started
   if (user) return <Navigate to={redirectTo} replace />;
 
   // ─── Handlers ───
