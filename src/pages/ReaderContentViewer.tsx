@@ -87,7 +87,8 @@ export default function ReaderContentViewer() {
     setUnlockedUpTo(data.unlockedUpToDay || 0);
     setStartDate(data.startDate || null);
 
-    // Get book cover image
+    // Get book cover image and upsell products
+    let currentBookId: string | null = null;
     if (data.purchase?.product_id) {
       const { data: hsc } = await supabase
         .from("home_study_courses")
@@ -104,6 +105,13 @@ export default function ReaderContentViewer() {
           .eq("id", hsc.book_id)
           .maybeSingle();
         if (book?.cover_image_url) setCoverImageUrl(book.cover_image_url);
+      }
+      currentBookId = hsc?.book_id || null;
+      setBookId(currentBookId);
+
+      // Fetch upsell products for this book
+      if (currentBookId) {
+        fetchUpsellProducts(currentBookId, data.purchase.product_type || "home_study");
       }
     }
 
