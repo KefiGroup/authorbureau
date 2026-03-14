@@ -114,7 +114,7 @@ export default function BookCatalog({ books, user, activeEntryBookIds, onStartCh
                         </Button>
                       ) : (
                         <Button size="sm" variant="outline" className="w-full" asChild>
-                          <Link to="/auth">Sign in to start</Link>
+                          <Link to="/readers-bureau/auth">Sign in to start</Link>
                         </Button>
                       )}
                     </div>

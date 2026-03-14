@@ -44,7 +44,7 @@ export default function ReaderContentViewer() {
   const [chosenDate, setChosenDate] = useState<string>("");
   const [settingStart, setSettingStart] = useState(false);
 
-  useDocumentMeta({ title: title ? `${title} | Reader Portal` : "Reader Portal" });
+  useDocumentMeta({ title: title ? `${title} | Readers Bureau` : "Readers Bureau" });
 
   const getToken = useCallback(async () => {
     const { data: sessionData } = await sharedSupabase.auth.getSession();
@@ -166,7 +166,7 @@ export default function ReaderContentViewer() {
     );
   }
 
-  if (!user) return <Navigate to="/auth?redirect=/reader-portal" replace />;
+  if (!user) return <Navigate to="/readers-bureau/auth?redirect=/readers-bureau" replace />;
 
   const totalDays = days.length || 21;
   const completedCount = progress.size;
@@ -190,7 +190,7 @@ export default function ReaderContentViewer() {
       {/* Header */}
       <header className="border-b border-border bg-card sticky top-0 z-10">
         <div className="container max-w-4xl flex items-center gap-3 py-3 px-4">
-          <Link to="/reader-portal" className="text-muted-foreground hover:text-foreground transition-colors">
+          <Link to="/readers-bureau?tab=library" className="text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div className="flex-1 min-w-0">
@@ -211,7 +211,7 @@ export default function ReaderContentViewer() {
         ) : error ? (
           <div className="text-center py-20 space-y-3">
             <p className="text-destructive font-medium">{error}</p>
-            <Link to="/reader-portal" className="text-primary hover:underline text-sm">← Back to Library</Link>
+            <Link to="/readers-bureau?tab=library" className="text-primary hover:underline text-sm">← Back to Library</Link>
           </div>
         ) : days.length === 0 ? (
           <div className="text-center py-20 space-y-3">

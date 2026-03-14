@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import AccountSettings from "./pages/AccountSettings";
@@ -20,7 +20,8 @@ import AdminAuth from "./pages/AdminAuth";
 import AuthorDashboard from "./pages/AuthorDashboard";
 import Contact from "./pages/Contact";
 import FAQ from "./pages/FAQ";
-import ReadingClub from "./pages/ReadingClub";
+import ReadersBureau from "./pages/ReadersBureau";
+import ReaderAuth from "./pages/ReaderAuth";
 import HowItWorks from "./pages/HowItWorks";
 import SSO from "./pages/SSO";
 import NotFound from "./pages/NotFound";
@@ -34,7 +35,6 @@ import BookSlugRedirect from "./pages/BookSlugRedirect";
 import ScrollToTop from "./components/ScrollToTop";
 import AbbyHelpChatbot from "./components/AbbyHelpChatbot";
 import PurchaseSuccess from "./pages/PurchaseSuccess";
-import ReaderPortal from "./pages/ReaderPortal";
 import ReaderContentViewer from "./pages/ReaderContentViewer";
 
 const queryClient = new QueryClient();
@@ -54,13 +54,18 @@ function AuthTokenRedirect() {
   useEffect(() => {
     const hash = location.hash || "";
     if (location.pathname !== "/auth" && hash.includes("auth_token")) {
-      // Normalize hash: #/?auth_token=... → #?auth_token=...
       const normalizedHash = hash.replace(/^#\/?/, "#");
       navigate(`/auth${normalizedHash}`, { replace: true });
     }
   }, [location, navigate]);
 
   return null;
+}
+
+// Legacy redirect for /reader-portal/:id
+function ReaderPortalIdRedirect() {
+  const { id } = useParams();
+  return <Navigate to={`/readers-bureau/learn/${id}`} replace />;
 }
 
 const AppRoutes = () => (
@@ -84,14 +89,22 @@ const AppRoutes = () => (
       <Route path="/my-books" element={<AuthorDashboard initialSection="my-books" />} />
       <Route path="/contact" element={<Contact />} />
       <Route path="/faq" element={<FAQ />} />
-      <Route path="/reading-club" element={<ReadingClub />} />
+
+      {/* Readers Bureau */}
+      <Route path="/readers-bureau" element={<ReadersBureau />} />
+      <Route path="/readers-bureau/auth" element={<ReaderAuth />} />
+      <Route path="/readers-bureau/learn/:purchaseId" element={<ReaderContentViewer />} />
+
+      {/* Legacy redirects */}
+      <Route path="/reading-club" element={<Navigate to="/readers-bureau" replace />} />
+      <Route path="/reader-portal" element={<Navigate to="/readers-bureau?tab=library" replace />} />
+      <Route path="/reader-portal/:id" element={<ReaderPortalIdRedirect />} />
+
       <Route path="/how-it-works" element={<HowItWorks />} />
       <Route path="/solutions" element={<SolutionsIndex />} />
       <Route path="/solutions/:genre" element={<Solutions />} />
       <Route path="/sso" element={<SSO />} />
       <Route path="/purchase-success" element={<PurchaseSuccess />} />
-      <Route path="/reader-portal" element={<ReaderPortal />} />
-      <Route path="/reader-portal/:purchaseId" element={<ReaderContentViewer />} />
       <Route path="/:authorSlug/:bookSlug/:productType" element={<AuthorProductPage />} />
       <Route path="/:authorSlug/:bookSlug" element={<AuthorBookPage />} />
       <Route path="/:authorSlug" element={<AuthorSite />} />
