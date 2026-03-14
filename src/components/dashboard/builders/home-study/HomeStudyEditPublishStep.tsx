@@ -15,7 +15,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { generateJSONWithAI } from "@/lib/ai-generate";
 import type { HomeStudyStepProps, StudyDay } from "./types";
-import { mdToHtml } from "@/lib/md-to-html";
+
 
 const SEGMENTS = [
   { id: "schedule", label: "Duration & Frequency", icon: Clock, num: 1 },
