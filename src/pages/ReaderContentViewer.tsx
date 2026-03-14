@@ -211,7 +211,7 @@ export default function ReaderContentViewer() {
         ) : error ? (
           <div className="text-center py-20 space-y-3">
             <p className="text-destructive font-medium">{error}</p>
-            <Link to="/reader-portal" className="text-primary hover:underline text-sm">← Back to Library</Link>
+            <Link to="/readers-bureau?tab=library" className="text-primary hover:underline text-sm">← Back to Library</Link>
           </div>
         ) : days.length === 0 ? (
           <div className="text-center py-20 space-y-3">
