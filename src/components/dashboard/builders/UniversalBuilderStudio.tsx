@@ -241,43 +241,46 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
 
       // Parse daily content JSON from Act 3 output
       if (contentText) {
-        try {
-          // Extract JSON from ```json ... ``` fences or raw JSON array
-          let jsonStr = contentText;
-          const fenceMatch = contentText.match(/```json\s*([\s\S]*?)```/);
-          if (fenceMatch) {
-            jsonStr = fenceMatch[1].trim();
-          } else {
-            // Try to find a JSON array directly
-            const arrayMatch = contentText.match(/\[\s*\{[\s\S]*\}\s*\]/);
-            if (arrayMatch) jsonStr = arrayMatch[0];
-          }
+        const generatedDays = extractHomeStudyDaysFromContent(contentText);
 
-          const parsedDays = JSON.parse(jsonStr);
-          if (Array.isArray(parsedDays) && parsedDays.length > 0) {
-            const existingDays = prev.schedule?.days || [];
-            const mergedDays = existingDays.map((day: any) => {
-              const match = parsedDays.find((pd: any) => pd.dayNumber === day.dayNumber);
-              if (match) {
-                return {
-                  ...day,
-                  concept: match.concept || day.concept || "",
-                  exercise: match.exercise || day.exercise || "",
-                  reflection: match.reflection || day.reflection || "",
-                  actionPlan: match.actionPlan || day.actionPlan || "",
-                  fieldAssignment: match.fieldAssignment || day.fieldAssignment || "",
-                  accountabilityCheck: match.accountabilityCheck || day.accountabilityCheck || "",
-                  microHabit: match.microHabit || day.microHabit || "",
-                  theme: match.theme || day.theme,
-                  chapterRef: match.chapterRef || day.chapterRef,
-                };
-              }
-              return day;
-            });
-            updates.schedule = { ...prev.schedule, days: mergedDays };
-          }
-        } catch (e) {
-          console.warn("Failed to parse home study daily content from Act 3:", e);
+        if (generatedDays.length > 0) {
+          const existingDays = Array.isArray(prev.schedule?.days) ? prev.schedule.days : [];
+          const existingByDayNumber = new Map<number, any>(
+            existingDays.map((day: any) => [Number(day?.dayNumber), day]),
+          );
+
+          const hydratedDays = generatedDays.map((generatedDay, idx) => {
+            const dayNumber = Number(generatedDay?.dayNumber ?? idx + 1);
+            const existingDay = existingByDayNumber.get(dayNumber);
+
+            return {
+              ...generatedDay,
+              ...existingDay,
+              id: existingDay?.id || generatedDay?.id || crypto.randomUUID(),
+              dayNumber,
+              weekNumber: Number(generatedDay?.weekNumber ?? existingDay?.weekNumber ?? Math.floor((dayNumber - 1) / 7) + 1),
+              theme: generatedDay?.theme || existingDay?.theme || "",
+              chapterRef: generatedDay?.chapterRef || existingDay?.chapterRef || "",
+              reading: generatedDay?.reading || existingDay?.reading || generatedDay?.concept || existingDay?.concept || "",
+              concept: generatedDay?.concept || existingDay?.concept || generatedDay?.reading || existingDay?.reading || "",
+              exercise: generatedDay?.exercise || existingDay?.exercise || "",
+              reflection: generatedDay?.reflection || existingDay?.reflection || "",
+              actionPlan: generatedDay?.actionPlan || existingDay?.actionPlan || "",
+              fieldAssignment: generatedDay?.fieldAssignment || existingDay?.fieldAssignment || "",
+              accountabilityCheck: generatedDay?.accountabilityCheck || existingDay?.accountabilityCheck || "",
+              microHabit: generatedDay?.microHabit || existingDay?.microHabit || "",
+              isCatchUp: Boolean(generatedDay?.isCatchUp ?? existingDay?.isCatchUp ?? (dayNumber % 7 === 0)),
+            };
+          });
+
+          const generatedDayNumbers = new Set(hydratedDays.map((day) => Number(day.dayNumber)));
+          const preservedExistingDays = existingDays.filter((day: any) => !generatedDayNumbers.has(Number(day?.dayNumber)));
+
+          updates.schedule = {
+            ...prev.schedule,
+            days: [...hydratedDays, ...preservedExistingDays].sort((a: any, b: any) => Number(a.dayNumber) - Number(b.dayNumber)),
+            _generatedFromSetup: { ...prev.setup },
+          };
         }
       }
 
