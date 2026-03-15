@@ -22,6 +22,8 @@ import AuthorBrandedNav from "@/components/public/AuthorBrandedNav";
 import AuthorContactModal from "@/components/public/AuthorContactModal";
 import BookProductNav, { getProductTabMeta } from "@/components/public/BookProductNav";
 import NotFound from "./NotFound";
+import SharedSalesCopyPreview from "@/components/dashboard/builders/shared/SharedSalesCopyPreview";
+import type { SalesCopyData } from "@/components/dashboard/builders/shared/salesCopyTypes";
 
 /* ---------- Types & Config ---------- */
 type ProductType =
