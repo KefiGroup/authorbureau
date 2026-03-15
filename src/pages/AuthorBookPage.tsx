@@ -189,7 +189,7 @@ export default function AuthorBookPage() {
         .from("author_profiles")
         .select("user_id, pen_name, bio_short, bio_long, photo_url, site_theme, author_slug, tagline, credentials, website_url, linkedin_url, twitter_url, instagram_url, youtube_url, genres")
         .eq("author_slug", authorSlug)
-        .in("directory_status", ["listed", "featured"])
+        .in("directory_status", ["listed", "verified", "featured"])
         .maybeSingle();
       profile = data;
     }
