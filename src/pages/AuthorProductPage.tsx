@@ -284,7 +284,20 @@ export default function AuthorProductPage() {
       }),
     ]);
 
-    if (salesRes?.data?.content) setSalesPageContent(salesRes.data.content);
+    if (salesRes?.data?.content) {
+      const rawContent = salesRes.data.content;
+      // Try parsing as structured JSON sales copy
+      try {
+        const parsed = JSON.parse(rawContent);
+        if (parsed && typeof parsed === "object" && (parsed.hero || parsed.problem || parsed.pricing)) {
+          setSalesCopyData(parsed as SalesCopyData);
+        } else {
+          setSalesPageContent(rawContent);
+        }
+      } catch {
+        setSalesPageContent(rawContent);
+      }
+    }
 
     // Filter testimonials for this product or book
     const allTestimonials = (testimonialsRes.data || []) as any[];
