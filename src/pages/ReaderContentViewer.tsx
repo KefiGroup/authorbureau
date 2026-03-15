@@ -621,11 +621,10 @@ export default function ReaderContentViewer() {
                                   />
                                 )}
                                 {day.accountabilityCheck && (
-                                  <WritableSection
-                                    emoji="✅"
-                                    label="Accountability Check-In"
+                                  <AccountabilityRatingSection
                                     prompt={day.accountabilityCheck}
                                     storageKey={`rv-${purchaseId}-d${day.dayNumber}-accountability`}
+                                    ratingStorageKey={`rv-${purchaseId}-d${day.dayNumber}-accountability-rating`}
                                   />
                                 )}
                                 {/* Legacy fields for backward compat */}
@@ -853,6 +852,77 @@ function WritableSection({ emoji, label, prompt, storageKey, hint }: { emoji: st
         <p className="text-[10px] text-muted-foreground/60 mt-1 text-right">
           Auto-saved locally
         </p>
+      </div>
+    </div>
+  );
+}
+
+function AccountabilityRatingSection({ prompt, storageKey, ratingStorageKey }: { prompt: string; storageKey: string; ratingStorageKey: string }) {
+  const [value, setValue] = useState(() => {
+    try { return localStorage.getItem(storageKey) || ""; } catch { return ""; }
+  });
+  const [rating, setRating] = useState<number | null>(() => {
+    try {
+      const stored = localStorage.getItem(ratingStorageKey);
+      return stored ? parseInt(stored, 10) : null;
+    } catch { return null; }
+  });
+
+  const handleChange = (text: string) => {
+    setValue(text);
+    try { localStorage.setItem(storageKey, text); } catch {}
+  };
+
+  const handleRating = (val: number) => {
+    const next = rating === val ? null : val;
+    setRating(next);
+    try {
+      if (next !== null) localStorage.setItem(ratingStorageKey, String(next));
+      else localStorage.removeItem(ratingStorageKey);
+    } catch {}
+  };
+
+  return (
+    <div className="bg-muted/40 rounded-xl p-4 border border-border/50 space-y-3">
+      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+        ✅ Accountability Check-In
+      </p>
+      <p className="text-sm text-foreground whitespace-pre-line leading-relaxed">{prompt}</p>
+
+      {/* 1-10 Rating */}
+      <div className="space-y-1.5">
+        <p className="text-xs font-medium text-muted-foreground">Rate yourself today (1-10)</p>
+        <div className="flex gap-1.5 flex-wrap">
+          {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+            <button
+              key={n}
+              onClick={() => handleRating(n)}
+              className={`
+                h-9 w-9 rounded-lg text-sm font-semibold transition-all duration-150 border
+                ${rating === n
+                  ? "bg-primary text-primary-foreground border-primary shadow-sm scale-105"
+                  : "bg-background text-muted-foreground border-border hover:border-primary/50 hover:text-foreground"
+                }
+              `}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
+        {rating !== null && (
+          <p className="text-xs text-primary font-medium">Your rating: {rating}/10</p>
+        )}
+      </div>
+
+      {/* Notes */}
+      <div className="relative">
+        <Textarea
+          placeholder="Add notes about your check-in..."
+          value={value}
+          onChange={(e) => handleChange(e.target.value)}
+          className="min-h-[80px] bg-background border-border resize-y text-sm leading-relaxed"
+        />
+        <p className="text-[10px] text-muted-foreground/60 mt-1 text-right">Auto-saved locally</p>
       </div>
     </div>
   );
