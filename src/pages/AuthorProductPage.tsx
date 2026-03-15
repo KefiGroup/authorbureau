@@ -150,6 +150,7 @@ export default function AuthorProductPage() {
   const [subscribed, setSubscribed] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
   const [salesPageContent, setSalesPageContent] = useState<string | null>(null);
+  const [salesCopyData, setSalesCopyData] = useState<SalesCopyData | null>(null);
   const [buying, setBuying] = useState(false);
   const [heroVisible, setHeroVisible] = useState(true);
 
