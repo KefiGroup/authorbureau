@@ -830,6 +830,7 @@ Deno.serve(async (req) => {
         duration_days?: number;
         price?: number | null;
         study_schedule_json?: any;
+        sales_copy_json?: any;
       };
 
       const title = (payload.title || "").trim() || `${bookId} — Home Study Course`;
@@ -852,6 +853,29 @@ Deno.serve(async (req) => {
             study_schedule_json = { days: parsed };
           }
         } catch { /* not JSON, that's fine */ }
+      }
+
+      // Save sales copy JSON as a generated_assets record
+      if (payload.sales_copy_json) {
+        const salesCopyContent = typeof payload.sales_copy_json === "string"
+          ? payload.sales_copy_json
+          : JSON.stringify(payload.sales_copy_json);
+        
+        const { error: spErr } = await cloudAdmin
+          .from("generated_assets")
+          .upsert(
+            {
+              author_id: book.author_id,
+              book_id: bookId,
+              asset_type: `builder_sales_page_${nodeId}`,
+              content: salesCopyContent,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "book_id,asset_type" }
+          );
+        if (spErr) {
+          console.error("Failed to save sales copy asset:", spErr);
+        }
       }
 
       const { data: existing, error: fetchErr } = await cloudAdmin

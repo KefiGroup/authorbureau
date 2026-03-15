@@ -22,6 +22,8 @@ import AuthorBrandedNav from "@/components/public/AuthorBrandedNav";
 import AuthorContactModal from "@/components/public/AuthorContactModal";
 import BookProductNav, { getProductTabMeta } from "@/components/public/BookProductNav";
 import NotFound from "./NotFound";
+import SharedSalesCopyPreview from "@/components/dashboard/builders/shared/SharedSalesCopyPreview";
+import type { SalesCopyData } from "@/components/dashboard/builders/shared/salesCopyTypes";
 
 /* ---------- Types & Config ---------- */
 type ProductType =
@@ -148,6 +150,7 @@ export default function AuthorProductPage() {
   const [subscribed, setSubscribed] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
   const [salesPageContent, setSalesPageContent] = useState<string | null>(null);
+  const [salesCopyData, setSalesCopyData] = useState<SalesCopyData | null>(null);
   const [buying, setBuying] = useState(false);
   const [heroVisible, setHeroVisible] = useState(true);
 
@@ -281,7 +284,20 @@ export default function AuthorProductPage() {
       }),
     ]);
 
-    if (salesRes?.data?.content) setSalesPageContent(salesRes.data.content);
+    if (salesRes?.data?.content) {
+      const rawContent = salesRes.data.content;
+      // Try parsing as structured JSON sales copy
+      try {
+        const parsed = JSON.parse(rawContent);
+        if (parsed && typeof parsed === "object" && (parsed.hero || parsed.problem || parsed.pricing)) {
+          setSalesCopyData(parsed as SalesCopyData);
+        } else {
+          setSalesPageContent(rawContent);
+        }
+      } catch {
+        setSalesPageContent(rawContent);
+      }
+    }
 
     // Filter testimonials for this product or book
     const allTestimonials = (testimonialsRes.data || []) as any[];
@@ -526,8 +542,18 @@ export default function AuthorProductPage() {
         </section>
       )}
 
-      {/* 8. BODY COPY (from sales page content or description) */}
-      {salesPageContent && (
+      {/* 8. BODY COPY (structured sales copy, markdown, or description) */}
+      {salesCopyData && (
+        <section className="py-16 md:py-20" style={{ background: "white" }}>
+          <div className="container max-w-3xl px-4">
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
+              <SharedSalesCopyPreview data={salesCopyData} />
+            </motion.div>
+          </div>
+        </section>
+      )}
+
+      {!salesCopyData && salesPageContent && (
         <section className="py-16 md:py-20" style={{ background: "white" }}>
           <div className="container max-w-3xl px-4">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
@@ -537,7 +563,7 @@ export default function AuthorProductPage() {
         </section>
       )}
 
-      {!salesPageContent && product.description && (
+      {!salesCopyData && !salesPageContent && product.description && (
         <section className="py-16 md:py-20" style={{ background: "white" }}>
           <div className="container max-w-3xl px-4">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
