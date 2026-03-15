@@ -542,8 +542,18 @@ export default function AuthorProductPage() {
         </section>
       )}
 
-      {/* 8. BODY COPY (from sales page content or description) */}
-      {salesPageContent && (
+      {/* 8. BODY COPY (structured sales copy, markdown, or description) */}
+      {salesCopyData && (
+        <section className="py-16 md:py-20" style={{ background: "white" }}>
+          <div className="container max-w-3xl px-4">
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
+              <SharedSalesCopyPreview data={salesCopyData} />
+            </motion.div>
+          </div>
+        </section>
+      )}
+
+      {!salesCopyData && salesPageContent && (
         <section className="py-16 md:py-20" style={{ background: "white" }}>
           <div className="container max-w-3xl px-4">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
@@ -553,7 +563,7 @@ export default function AuthorProductPage() {
         </section>
       )}
 
-      {!salesPageContent && product.description && (
+      {!salesCopyData && !salesPageContent && product.description && (
         <section className="py-16 md:py-20" style={{ background: "white" }}>
           <div className="container max-w-3xl px-4">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
