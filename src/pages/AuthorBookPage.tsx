@@ -669,12 +669,21 @@ export default function AuthorBookPage() {
                         boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
                       }}
                     >
-                      {/* Product image placeholder */}
+                      {/* Product image */}
                       <div
-                        className="h-40 flex items-center justify-center relative"
-                        style={{ background: `linear-gradient(135deg, ${v.primary}, ${v.accent}40)` }}
+                        className="h-44 flex items-center justify-center relative overflow-hidden"
+                        style={{ background: p.coverImageUrl ? undefined : `linear-gradient(135deg, ${v.primary}, ${v.accent}40)` }}
                       >
-                        <PIcon className="h-12 w-12" style={{ color: `${v.primaryText}66` }} />
+                        {p.coverImageUrl ? (
+                          <img
+                            src={p.coverImageUrl}
+                            alt={p.title}
+                            loading="lazy"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <PIcon className="h-12 w-12" style={{ color: `${v.primaryText}66` }} />
+                        )}
                         {/* Type badge */}
                         <span
                           className="absolute bottom-2 right-2 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full"
