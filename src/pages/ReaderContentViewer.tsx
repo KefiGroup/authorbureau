@@ -120,9 +120,25 @@ export default function ReaderContentViewer() {
       }
     }
 
+    // Resolve schedule from study_schedule_json (could be array or {days:[...]})
+    // or fall back to parsing content_markdown as JSON
+    let rawDays: any[] | null = null;
     const schedule = data.studyData?.study_schedule_json;
-    if (Array.isArray(schedule) && schedule.length > 0) {
-      setDays(schedule.map((d: any, i: number) => ({
+    if (Array.isArray(schedule)) {
+      rawDays = schedule;
+    } else if (schedule?.days && Array.isArray(schedule.days)) {
+      rawDays = schedule.days;
+    }
+    // Fallback: try parsing content_markdown as JSON array
+    if ((!rawDays || rawDays.length === 0) && data.studyData?.content_markdown) {
+      try {
+        const parsed = JSON.parse(data.studyData.content_markdown);
+        if (Array.isArray(parsed)) rawDays = parsed;
+        else if (parsed?.days && Array.isArray(parsed.days)) rawDays = parsed.days;
+      } catch { /* not JSON */ }
+    }
+    if (rawDays && rawDays.length > 0) {
+      setDays(rawDays.map((d: any, i: number) => ({
         dayNumber: d.dayNumber || i + 1,
         weekNumber: d.weekNumber || Math.ceil((d.dayNumber || i + 1) / 7),
         theme: d.theme || `Day ${d.dayNumber || i + 1}`,
