@@ -539,8 +539,37 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
         const parsed = result.draft;
 
         if (parsed.stepData) {
-          setStepData(parsed.stepData);
-          const inferredStep = inferStepFromDraftData(parsed.stepData);
+          let hydratedStepData = parsed.stepData as Record<string, any>;
+
+          if (nodeConfig.id === "home-study-course") {
+            const existingDays = Array.isArray(hydratedStepData?.schedule?.days) ? hydratedStepData.schedule.days : [];
+            if (existingDays.length === 0) {
+              try {
+                const { data: generatedContentAsset } = await supabase
+                  .from("generated_assets")
+                  .select("content")
+                  .eq("book_id", bookId)
+                  .eq("asset_type", "builder_content_home-study-course")
+                  .maybeSingle();
+
+                const recoveredDays = extractHomeStudyDaysFromContent(String(generatedContentAsset?.content || ""));
+                if (recoveredDays.length > 0) {
+                  hydratedStepData = {
+                    ...hydratedStepData,
+                    schedule: {
+                      ...(hydratedStepData.schedule || {}),
+                      days: recoveredDays,
+                    },
+                  };
+                }
+              } catch (recoveryError) {
+                console.warn("Failed to recover home study days from generated content:", recoveryError);
+              }
+            }
+          }
+
+          setStepData(hydratedStepData);
+          const inferredStep = inferStepFromDraftData(hydratedStepData);
           const savedStep = typeof parsed.currentStep === "number" ? parsed.currentStep : 0;
           setCurrentStep(clampStepIndex(Math.max(savedStep, inferredStep)));
         } else if (typeof parsed.currentStep === "number") {
