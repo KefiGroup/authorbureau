@@ -855,9 +855,10 @@ Deno.serve(async (req) => {
         } catch { /* not JSON, that's fine */ }
       }
 
-      // Save sales copy JSON as a generated_assets record
+      // Save sales copy JSON as a generated_assets record AND use as description
+      let salesCopyJsonStr = "";
       if (payload.sales_copy_json) {
-        const salesCopyContent = typeof payload.sales_copy_json === "string"
+        salesCopyJsonStr = typeof payload.sales_copy_json === "string"
           ? payload.sales_copy_json
           : JSON.stringify(payload.sales_copy_json);
         
@@ -868,13 +869,43 @@ Deno.serve(async (req) => {
               author_id: book.author_id,
               book_id: bookId,
               asset_type: `builder_sales_page_${nodeId}`,
-              content: salesCopyContent,
+              content: salesCopyJsonStr,
               updated_at: new Date().toISOString(),
             },
             { onConflict: "book_id,asset_type" }
           );
         if (spErr) {
           console.error("Failed to save sales copy asset:", spErr);
+        }
+      } else {
+        // Try to extract salesCopyData from the draft
+        const { data: draftAsset } = await cloudAdmin
+          .from("generated_assets")
+          .select("content")
+          .eq("book_id", bookId)
+          .eq("author_id", book.author_id)
+          .eq("asset_type", `builder_draft_${nodeId}`)
+          .maybeSingle();
+        if (draftAsset?.content) {
+          try {
+            const draftParsed = JSON.parse(draftAsset.content);
+            const scd = draftParsed?.stepData?.setup?.salesCopyData;
+            if (scd && typeof scd === "object" && (scd.hero || scd.pricing)) {
+              salesCopyJsonStr = JSON.stringify(scd);
+              await cloudAdmin
+                .from("generated_assets")
+                .upsert(
+                  {
+                    author_id: book.author_id,
+                    book_id: bookId,
+                    asset_type: `builder_sales_page_${nodeId}`,
+                    content: salesCopyJsonStr,
+                    updated_at: new Date().toISOString(),
+                  },
+                  { onConflict: "book_id,asset_type" }
+                );
+            }
+          } catch { /* ignore */ }
         }
       }
 
