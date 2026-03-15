@@ -922,7 +922,7 @@ Deno.serve(async (req) => {
         author_id: book.author_id,
         book_id: bookId,
         title,
-        description,
+        description: salesCopyJsonStr || description,
         status: "published",
         content_markdown,
         duration_days,
