@@ -826,7 +826,7 @@ function ContentSection({ emoji, label, content, hint, highlight }: { emoji: str
   );
 }
 
-function WritableSection({ emoji, label, prompt, storageKey }: { emoji: string; label: string; prompt: string; storageKey: string }) {
+function WritableSection({ emoji, label, prompt, storageKey, hint }: { emoji: string; label: string; prompt: string; storageKey: string; hint?: string }) {
   const [value, setValue] = useState(() => {
     try { return localStorage.getItem(storageKey) || ""; } catch { return ""; }
   });
