@@ -545,14 +545,18 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
             const existingDays = Array.isArray(hydratedStepData?.schedule?.days) ? hydratedStepData.schedule.days : [];
             if (existingDays.length === 0) {
               try {
-                const { data: generatedContentAsset } = await supabase
-                  .from("generated_assets")
-                  .select("content")
-                  .eq("book_id", bookId)
-                  .eq("asset_type", "builder_content_home-study-course")
-                  .maybeSingle();
+                let recoveredDays = extractHomeStudyDaysFromContent(String(result?.generatedContent || ""));
 
-                const recoveredDays = extractHomeStudyDaysFromContent(String(generatedContentAsset?.content || ""));
+                if (recoveredDays.length === 0) {
+                  const { data: generatedContentAsset } = await supabase
+                    .from("generated_assets")
+                    .select("content")
+                    .eq("book_id", bookId)
+                    .eq("asset_type", "builder_content_home-study-course")
+                    .maybeSingle();
+                  recoveredDays = extractHomeStudyDaysFromContent(String(generatedContentAsset?.content || ""));
+                }
+
                 if (recoveredDays.length > 0) {
                   hydratedStepData = {
                     ...hydratedStepData,
