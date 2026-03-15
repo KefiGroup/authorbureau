@@ -106,6 +106,44 @@ interface Props {
 
 const AI_GATEWAY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/business-consultant`;
 
+function extractBalancedJsonBlock(source: string, openChar: "[" | "{", closeChar: "]" | "}"): string | null {
+  for (let start = source.indexOf(openChar); start !== -1; start = source.indexOf(openChar, start + 1)) {
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+
+    for (let i = start; i < source.length; i++) {
+      const char = source[i];
+
+      if (inString) {
+        if (escaped) {
+          escaped = false;
+        } else if (char === "\\") {
+          escaped = true;
+        } else if (char === '"') {
+          inString = false;
+        }
+        continue;
+      }
+
+      if (char === '"') {
+        inString = true;
+        continue;
+      }
+
+      if (char === openChar) depth += 1;
+      if (char === closeChar) {
+        depth -= 1;
+        if (depth === 0) {
+          return source.slice(start, i + 1).trim();
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
 function extractHomeStudyDaysFromContent(rawContent: string): Array<Record<string, any>> {
   const trimmed = (rawContent || "").trim();
   if (!trimmed) return [];
@@ -114,11 +152,11 @@ function extractHomeStudyDaysFromContent(rawContent: string): Array<Record<strin
   const fencedMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
   if (fencedMatch?.[1]) candidates.unshift(fencedMatch[1].trim());
 
-  const arrayMatch = trimmed.match(/\[[\s\S]*\]/);
-  if (arrayMatch?.[0]) candidates.push(arrayMatch[0].trim());
+  const arrayCandidate = extractBalancedJsonBlock(trimmed, "[", "]");
+  if (arrayCandidate) candidates.push(arrayCandidate);
 
-  const objectMatch = trimmed.match(/\{[\s\S]*\}/);
-  if (objectMatch?.[0]) candidates.push(objectMatch[0].trim());
+  const objectCandidate = extractBalancedJsonBlock(trimmed, "{", "}");
+  if (objectCandidate) candidates.push(objectCandidate);
 
   const seen = new Set<string>();
   for (const candidate of candidates) {
