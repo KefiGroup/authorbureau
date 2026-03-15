@@ -29,7 +29,7 @@ function FAQItem({ q, a }: { q: string; a: string }) {
   );
 }
 
-export default function SharedSalesCopyPreview({ data, productMeta }: Props) {
+export default function SharedSalesCopyPreview({ data, productMeta, onCtaClick }: Props) {
   const hasTestimonials = data.socialProof.testimonials.some(t => t.name && t.quote);
   const hasFaqs = data.faq.items.some(f => f.q && f.a);
   const hasProblem = data.problem.headline || data.problem.painPoints.some(p => p);
