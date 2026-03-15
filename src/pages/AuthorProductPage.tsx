@@ -503,26 +503,28 @@ export default function AuthorProductPage() {
         </div>
       </section>
 
-      {/* 6. IS THIS FOR YOU? */}
-      <section id="product-details" className="py-16 md:py-20" style={{ background: "white" }}>
-        <div className="container max-w-3xl px-4">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-            <h2 className="text-[2rem] font-bold mb-2" style={{ color: v.headingText, fontFamily: theme.headingFont }}>Is This For You?</h2>
-            <p className="text-[0.9rem] mb-8" style={{ color: v.mutedText }}>This {config.label.toLowerCase()} is perfect for you if...</p>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {personas.map((persona, i) => (
-                <div key={i} className="p-5 rounded-xl" style={{ background: v.cardBg, border: `1px solid ${v.cardBorder}` }}>
-                  <Check className="h-5 w-5 mb-3" style={{ color: v.accent }} />
-                  <p className="text-[0.9rem]" style={{ color: v.bodyText }}>{persona}</p>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        </div>
-      </section>
+      {/* 6. IS THIS FOR YOU? – hidden when full sales copy is available */}
+      {!salesCopyData && (
+        <section id="product-details" className="py-16 md:py-20" style={{ background: "white" }}>
+          <div className="container max-w-3xl px-4">
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
+              <h2 className="text-[2rem] font-bold mb-2" style={{ color: v.headingText, fontFamily: theme.headingFont }}>Is This For You?</h2>
+              <p className="text-[0.9rem] mb-8" style={{ color: v.mutedText }}>This {config.label.toLowerCase()} is perfect for you if...</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {personas.map((persona, i) => (
+                  <div key={i} className="p-5 rounded-xl" style={{ background: v.cardBg, border: `1px solid ${v.cardBorder}` }}>
+                    <Check className="h-5 w-5 mb-3" style={{ color: v.accent }} />
+                    <p className="text-[0.9rem]" style={{ color: v.bodyText }}>{persona}</p>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        </section>
+      )}
 
-      {/* 7. WHAT'S INSIDE */}
-      {checklistItems.length > 0 && (
+      {/* 7. WHAT'S INSIDE – hidden when full sales copy is available */}
+      {!salesCopyData && checklistItems.length > 0 && (
         <section className="py-16 md:py-20" style={{ background: v.secondaryBg }}>
           <div className="container max-w-3xl px-4">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
