@@ -603,19 +603,20 @@ export default function ReaderContentViewer() {
                                 )}
                                 {/* New implementation-focused fields */}
                                 {day.fieldAssignment && (
-                                  <ContentSection
+                                  <WritableSection
                                     emoji="🚀"
                                     label="Field Assignment"
-                                    content={day.fieldAssignment}
+                                    prompt={day.fieldAssignment}
+                                    storageKey={`rv-${purchaseId}-d${day.dayNumber}-field-assignment`}
                                     hint="This is a real-world action — go do it in your life today"
-                                    highlight
                                   />
                                 )}
                                 {day.microHabit && (
-                                  <ContentSection
+                                  <WritableSection
                                     emoji="🔄"
                                     label="Today's Micro-Habit"
-                                    content={day.microHabit}
+                                    prompt={day.microHabit}
+                                    storageKey={`rv-${purchaseId}-d${day.dayNumber}-micro-habit`}
                                     hint="Add this to your daily routine — it compounds over the program"
                                   />
                                 )}
@@ -645,10 +646,11 @@ export default function ReaderContentViewer() {
                                   />
                                 )}
                                 {day.actionPlan && (
-                                  <ContentSection
+                                  <WritableSection
                                     emoji="🎯"
                                     label="Action Plan"
-                                    content={day.actionPlan}
+                                    prompt={day.actionPlan}
+                                    storageKey={`rv-${purchaseId}-d${day.dayNumber}-action-plan`}
                                   />
                                 )}
 
@@ -824,7 +826,7 @@ function ContentSection({ emoji, label, content, hint, highlight }: { emoji: str
   );
 }
 
-function WritableSection({ emoji, label, prompt, storageKey }: { emoji: string; label: string; prompt: string; storageKey: string }) {
+function WritableSection({ emoji, label, prompt, storageKey, hint }: { emoji: string; label: string; prompt: string; storageKey: string; hint?: string }) {
   const [value, setValue] = useState(() => {
     try { return localStorage.getItem(storageKey) || ""; } catch { return ""; }
   });
@@ -840,6 +842,7 @@ function WritableSection({ emoji, label, prompt, storageKey }: { emoji: string; 
         {emoji} {label}
       </p>
       <p className="text-sm text-foreground whitespace-pre-line leading-relaxed">{prompt}</p>
+      {hint && <p className="text-xs text-muted-foreground/70 italic">{hint}</p>}
       <div className="relative">
         <Textarea
           placeholder={`Write your ${label.toLowerCase()} here...`}
