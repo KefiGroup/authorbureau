@@ -47,6 +47,24 @@ interface ProductLink {
   route: string;
   price?: string;
   description?: string;
+  coverImageUrl?: string;
+}
+
+/** Extract a human-readable description from potentially JSON-encoded sales copy */
+function parseProductDescription(raw?: string | null): string | undefined {
+  if (!raw) return undefined;
+  const trimmed = raw.trim();
+  if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) return trimmed;
+  try {
+    const parsed = JSON.parse(trimmed);
+    // Sales copy JSON structure
+    if (parsed.hero?.tagline) return parsed.hero.tagline;
+    if (parsed.introduction?.paragraph) return parsed.introduction.paragraph;
+    if (parsed.problem?.headline) return parsed.problem.headline;
+    return undefined;
+  } catch {
+    return trimmed;
+  }
 }
 
 interface OtherBook {
