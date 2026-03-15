@@ -621,11 +621,10 @@ export default function ReaderContentViewer() {
                                   />
                                 )}
                                 {day.accountabilityCheck && (
-                                  <WritableSection
-                                    emoji="✅"
-                                    label="Accountability Check-In"
+                                  <AccountabilityRatingSection
                                     prompt={day.accountabilityCheck}
                                     storageKey={`rv-${purchaseId}-d${day.dayNumber}-accountability`}
+                                    ratingStorageKey={`rv-${purchaseId}-d${day.dayNumber}-accountability-rating`}
                                   />
                                 )}
                                 {/* Legacy fields for backward compat */}
