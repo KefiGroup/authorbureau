@@ -657,7 +657,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
             book_id: bookId,
             title: stepData.setup?.title || `${bookTitle} — ${nodeConfig.label}`,
             description: stepData.setup?.description || "",
-            status: "ready_for_review",
+            status: "published",
           };
           if (nodeConfig.dbTable === "courses") {
             productRecord.price = stepData.foundation?.exactPrice ? parseFloat(stepData.foundation.exactPrice) : null;

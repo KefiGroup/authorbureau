@@ -230,7 +230,7 @@ export default function AuthorProductPage() {
       profile = data;
     }
     if (!profile) {
-      const { data } = await supabase.from("author_profiles").select("*").eq("author_slug", authorSlug).in("directory_status", ["listed", "featured"]).maybeSingle();
+      const { data } = await supabase.from("author_profiles").select("*").eq("author_slug", authorSlug).in("directory_status", ["listed", "verified", "featured"]).maybeSingle();
       profile = data;
     }
     if (!profile) { setNotFound(true); setLoading(false); return; }

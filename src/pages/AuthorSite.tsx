@@ -212,7 +212,7 @@ export default function AuthorSite() {
         .from("author_profiles")
         .select("*")
         .eq("author_slug", authorSlug)
-        .in("directory_status", ["listed", "featured"])
+        .in("directory_status", ["listed", "verified", "featured"])
         .maybeSingle();
       profile = data;
     }
@@ -257,7 +257,7 @@ export default function AuthorSite() {
       const { data: related } = await supabase
         .from("author_profiles")
         .select("author_slug, pen_name, photo_url, genres")
-        .in("directory_status", ["listed", "featured"])
+        .in("directory_status", ["listed", "verified", "featured"])
         .neq("user_id", profile.user_id)
         .limit(20);
 

@@ -1,0 +1,1 @@
+UPDATE home_study_courses SET status = 'published' WHERE id = 'a6b1ce8e-67ef-4762-a3df-6a239d7339fd' AND status = 'ready_for_review';

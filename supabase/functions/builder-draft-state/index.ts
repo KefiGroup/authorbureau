@@ -868,7 +868,7 @@ Deno.serve(async (req) => {
         book_id: bookId,
         title,
         description,
-        status: "ready_for_review",
+        status: "published",
         content_markdown,
         duration_days,
         price,
