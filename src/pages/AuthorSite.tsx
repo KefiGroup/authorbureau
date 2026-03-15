@@ -212,7 +212,7 @@ export default function AuthorSite() {
         .from("author_profiles")
         .select("*")
         .eq("author_slug", authorSlug)
-        .in("directory_status", ["listed", "featured"])
+        .in("directory_status", ["listed", "verified", "featured"])
         .maybeSingle();
       profile = data;
     }
