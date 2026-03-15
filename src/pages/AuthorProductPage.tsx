@@ -549,7 +549,7 @@ export default function AuthorProductPage() {
         <section className="py-16 md:py-20" style={{ background: "white" }}>
           <div className="container max-w-3xl px-4">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-              <SharedSalesCopyPreview data={salesCopyData} />
+              <SharedSalesCopyPreview data={salesCopyData} onCtaClick={handleCTA} />
             </motion.div>
           </div>
         </section>

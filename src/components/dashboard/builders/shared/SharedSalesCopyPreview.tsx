@@ -7,6 +7,7 @@ import type { SalesCopyData } from "./salesCopyTypes";
 
 interface Props {
   data: SalesCopyData;
+  onCtaClick?: () => void;
   productMeta?: {
     badge?: string; // e.g., "21-Day Program"
     duration?: string;
@@ -28,7 +29,7 @@ function FAQItem({ q, a }: { q: string; a: string }) {
   );
 }
 
-export default function SharedSalesCopyPreview({ data, productMeta }: Props) {
+export default function SharedSalesCopyPreview({ data, productMeta, onCtaClick }: Props) {
   const hasTestimonials = data.socialProof.testimonials.some(t => t.name && t.quote);
   const hasFaqs = data.faq.items.some(f => f.q && f.a);
   const hasProblem = data.problem.headline || data.problem.painPoints.some(p => p);
@@ -53,7 +54,7 @@ export default function SharedSalesCopyPreview({ data, productMeta }: Props) {
             {productMeta.level && <span>{productMeta.level}</span>}
           </div>
         )}
-        <Button className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 px-8 h-10 text-sm">
+        <Button onClick={onCtaClick} className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 px-8 h-10 text-sm cursor-pointer">
           {data.hero.ctaText || "Start Now"}
         </Button>
       </div>
@@ -204,7 +205,7 @@ export default function SharedSalesCopyPreview({ data, productMeta }: Props) {
                 ))}
               </div>
             )}
-            <Button className="w-full rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 h-10">
+            <Button onClick={onCtaClick} className="w-full rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 h-10 cursor-pointer">
               {data.pricing.ctaText || "Enroll Now"}
             </Button>
           </Card>
@@ -229,7 +230,7 @@ export default function SharedSalesCopyPreview({ data, productMeta }: Props) {
         {data.finalCta.subheadline && (
           <p className="text-sm text-muted-foreground mb-4">{data.finalCta.subheadline}</p>
         )}
-        <Button className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 px-8 h-10 text-sm">
+        <Button onClick={onCtaClick} className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 px-8 h-10 text-sm cursor-pointer">
           {data.finalCta.ctaText || "Get Started Today"}
         </Button>
         {data.finalCta.urgency && (
