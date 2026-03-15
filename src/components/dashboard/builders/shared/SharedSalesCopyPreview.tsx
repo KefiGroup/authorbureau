@@ -54,7 +54,7 @@ export default function SharedSalesCopyPreview({ data, productMeta, onCtaClick }
             {productMeta.level && <span>{productMeta.level}</span>}
           </div>
         )}
-        <Button className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 px-8 h-10 text-sm">
+        <Button onClick={onCtaClick} className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 px-8 h-10 text-sm cursor-pointer">
           {data.hero.ctaText || "Start Now"}
         </Button>
       </div>
