@@ -106,6 +106,67 @@ interface Props {
 
 const AI_GATEWAY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/business-consultant`;
 
+function extractHomeStudyDaysFromContent(rawContent: string): Array<Record<string, any>> {
+  const trimmed = (rawContent || "").trim();
+  if (!trimmed) return [];
+
+  const candidates: string[] = [trimmed];
+  const fencedMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fencedMatch?.[1]) candidates.unshift(fencedMatch[1].trim());
+
+  const arrayMatch = trimmed.match(/\[[\s\S]*\]/);
+  if (arrayMatch?.[0]) candidates.push(arrayMatch[0].trim());
+
+  const objectMatch = trimmed.match(/\{[\s\S]*\}/);
+  if (objectMatch?.[0]) candidates.push(objectMatch[0].trim());
+
+  const seen = new Set<string>();
+  for (const candidate of candidates) {
+    const normalized = candidate.trim();
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+
+    try {
+      const parsed = JSON.parse(normalized);
+      const rawDays = Array.isArray(parsed)
+        ? parsed
+        : Array.isArray(parsed?.days)
+          ? parsed.days
+          : Array.isArray(parsed?.daily_schedule)
+            ? parsed.daily_schedule
+            : [];
+
+      if (!Array.isArray(rawDays) || rawDays.length === 0) continue;
+
+      return rawDays.map((day: any, idx: number) => {
+        const dayNumber = Number(day?.dayNumber ?? day?.day_number ?? idx + 1);
+        const weekNumber = Number(day?.weekNumber ?? day?.week_number ?? Math.floor((dayNumber - 1) / 7) + 1);
+
+        return {
+          id: typeof day?.id === "string" && day.id ? day.id : crypto.randomUUID(),
+          dayNumber,
+          weekNumber,
+          theme: String(day?.theme ?? ""),
+          chapterRef: String(day?.chapterRef ?? day?.chapter_ref ?? ""),
+          reading: String(day?.reading ?? day?.concept ?? ""),
+          concept: String(day?.concept ?? day?.reading ?? ""),
+          exercise: String(day?.exercise ?? ""),
+          reflection: String(day?.reflection ?? ""),
+          actionPlan: String(day?.actionPlan ?? day?.action_plan ?? ""),
+          fieldAssignment: String(day?.fieldAssignment ?? day?.field_assignment ?? ""),
+          accountabilityCheck: String(day?.accountabilityCheck ?? day?.accountability_check ?? ""),
+          microHabit: String(day?.microHabit ?? day?.micro_habit ?? ""),
+          isCatchUp: Boolean(day?.isCatchUp ?? day?.is_catch_up ?? (dayNumber % 7 === 0)),
+        };
+      });
+    } catch {
+      // try next parse candidate
+    }
+  }
+
+  return [];
+}
+
 export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
