@@ -284,18 +284,18 @@ export default function AuthorProductPage() {
       }),
     ]);
 
-    if (salesRes?.data?.content) {
-      const rawContent = salesRes.data.content;
-      // Try parsing as structured JSON sales copy
+    // Try sales page asset first, then fall back to product.description
+    const rawSalesContent = salesRes?.data?.content || productData?.description || "";
+    if (rawSalesContent) {
       try {
-        const parsed = JSON.parse(rawContent);
+        const parsed = JSON.parse(rawSalesContent);
         if (parsed && typeof parsed === "object" && (parsed.hero || parsed.problem || parsed.pricing)) {
           setSalesCopyData(parsed as SalesCopyData);
         } else {
-          setSalesPageContent(rawContent);
+          setSalesPageContent(rawSalesContent);
         }
       } catch {
-        setSalesPageContent(rawContent);
+        setSalesPageContent(rawSalesContent);
       }
     }
 
