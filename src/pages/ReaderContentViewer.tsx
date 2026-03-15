@@ -646,10 +646,11 @@ export default function ReaderContentViewer() {
                                   />
                                 )}
                                 {day.actionPlan && (
-                                  <ContentSection
+                                  <WritableSection
                                     emoji="🎯"
                                     label="Action Plan"
-                                    content={day.actionPlan}
+                                    prompt={day.actionPlan}
+                                    storageKey={`rv-${purchaseId}-d${day.dayNumber}-action-plan`}
                                   />
                                 )}
 
