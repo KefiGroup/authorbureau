@@ -751,10 +751,22 @@ Deno.serve(async (req) => {
         parsed = null;
       }
 
+      let generatedContent: string | null = null;
+      if (nodeId === "home-study-course") {
+        const { data: contentRow } = await cloudAdmin
+          .from("generated_assets")
+          .select("content")
+          .eq("book_id", bookId)
+          .eq("asset_type", `builder_content_${nodeId}`)
+          .maybeSingle();
+        generatedContent = contentRow?.content ?? null;
+      }
+
       return new Response(JSON.stringify({
         draft: parsed
           ? { ...parsed, savedAt: parsed.savedAt || draftRow.updated_at }
           : null,
+        generatedContent,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

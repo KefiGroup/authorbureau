@@ -106,6 +106,105 @@ interface Props {
 
 const AI_GATEWAY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/business-consultant`;
 
+function extractBalancedJsonBlock(source: string, openChar: "[" | "{", closeChar: "]" | "}"): string | null {
+  for (let start = source.indexOf(openChar); start !== -1; start = source.indexOf(openChar, start + 1)) {
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+
+    for (let i = start; i < source.length; i++) {
+      const char = source[i];
+
+      if (inString) {
+        if (escaped) {
+          escaped = false;
+        } else if (char === "\\") {
+          escaped = true;
+        } else if (char === '"') {
+          inString = false;
+        }
+        continue;
+      }
+
+      if (char === '"') {
+        inString = true;
+        continue;
+      }
+
+      if (char === openChar) depth += 1;
+      if (char === closeChar) {
+        depth -= 1;
+        if (depth === 0) {
+          return source.slice(start, i + 1).trim();
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+function extractHomeStudyDaysFromContent(rawContent: string): Array<Record<string, any>> {
+  const trimmed = (rawContent || "").trim();
+  if (!trimmed) return [];
+
+  const candidates: string[] = [trimmed];
+  const fencedMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fencedMatch?.[1]) candidates.unshift(fencedMatch[1].trim());
+
+  const arrayCandidate = extractBalancedJsonBlock(trimmed, "[", "]");
+  if (arrayCandidate) candidates.push(arrayCandidate);
+
+  const objectCandidate = extractBalancedJsonBlock(trimmed, "{", "}");
+  if (objectCandidate) candidates.push(objectCandidate);
+
+  const seen = new Set<string>();
+  for (const candidate of candidates) {
+    const normalized = candidate.trim();
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+
+    try {
+      const parsed = JSON.parse(normalized);
+      const rawDays = Array.isArray(parsed)
+        ? parsed
+        : Array.isArray(parsed?.days)
+          ? parsed.days
+          : Array.isArray(parsed?.daily_schedule)
+            ? parsed.daily_schedule
+            : [];
+
+      if (!Array.isArray(rawDays) || rawDays.length === 0) continue;
+
+      return rawDays.map((day: any, idx: number) => {
+        const dayNumber = Number(day?.dayNumber ?? day?.day_number ?? idx + 1);
+        const weekNumber = Number(day?.weekNumber ?? day?.week_number ?? Math.floor((dayNumber - 1) / 7) + 1);
+
+        return {
+          id: typeof day?.id === "string" && day.id ? day.id : crypto.randomUUID(),
+          dayNumber,
+          weekNumber,
+          theme: String(day?.theme ?? ""),
+          chapterRef: String(day?.chapterRef ?? day?.chapter_ref ?? ""),
+          reading: String(day?.reading ?? day?.concept ?? ""),
+          concept: String(day?.concept ?? day?.reading ?? ""),
+          exercise: String(day?.exercise ?? ""),
+          reflection: String(day?.reflection ?? ""),
+          actionPlan: String(day?.actionPlan ?? day?.action_plan ?? ""),
+          fieldAssignment: String(day?.fieldAssignment ?? day?.field_assignment ?? ""),
+          accountabilityCheck: String(day?.accountabilityCheck ?? day?.accountability_check ?? ""),
+          microHabit: String(day?.microHabit ?? day?.micro_habit ?? ""),
+          isCatchUp: Boolean(day?.isCatchUp ?? day?.is_catch_up ?? (dayNumber % 7 === 0)),
+        };
+      });
+    } catch {
+      // try next parse candidate
+    }
+  }
+
+  return [];
+}
+
 export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -180,43 +279,46 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
 
       // Parse daily content JSON from Act 3 output
       if (contentText) {
-        try {
-          // Extract JSON from ```json ... ``` fences or raw JSON array
-          let jsonStr = contentText;
-          const fenceMatch = contentText.match(/```json\s*([\s\S]*?)```/);
-          if (fenceMatch) {
-            jsonStr = fenceMatch[1].trim();
-          } else {
-            // Try to find a JSON array directly
-            const arrayMatch = contentText.match(/\[\s*\{[\s\S]*\}\s*\]/);
-            if (arrayMatch) jsonStr = arrayMatch[0];
-          }
+        const generatedDays = extractHomeStudyDaysFromContent(contentText);
 
-          const parsedDays = JSON.parse(jsonStr);
-          if (Array.isArray(parsedDays) && parsedDays.length > 0) {
-            const existingDays = prev.schedule?.days || [];
-            const mergedDays = existingDays.map((day: any) => {
-              const match = parsedDays.find((pd: any) => pd.dayNumber === day.dayNumber);
-              if (match) {
-                return {
-                  ...day,
-                  concept: match.concept || day.concept || "",
-                  exercise: match.exercise || day.exercise || "",
-                  reflection: match.reflection || day.reflection || "",
-                  actionPlan: match.actionPlan || day.actionPlan || "",
-                  fieldAssignment: match.fieldAssignment || day.fieldAssignment || "",
-                  accountabilityCheck: match.accountabilityCheck || day.accountabilityCheck || "",
-                  microHabit: match.microHabit || day.microHabit || "",
-                  theme: match.theme || day.theme,
-                  chapterRef: match.chapterRef || day.chapterRef,
-                };
-              }
-              return day;
-            });
-            updates.schedule = { ...prev.schedule, days: mergedDays };
-          }
-        } catch (e) {
-          console.warn("Failed to parse home study daily content from Act 3:", e);
+        if (generatedDays.length > 0) {
+          const existingDays = Array.isArray(prev.schedule?.days) ? prev.schedule.days : [];
+          const existingByDayNumber = new Map<number, any>(
+            existingDays.map((day: any) => [Number(day?.dayNumber), day]),
+          );
+
+          const hydratedDays = generatedDays.map((generatedDay, idx) => {
+            const dayNumber = Number(generatedDay?.dayNumber ?? idx + 1);
+            const existingDay = existingByDayNumber.get(dayNumber);
+
+            return {
+              ...generatedDay,
+              ...existingDay,
+              id: existingDay?.id || generatedDay?.id || crypto.randomUUID(),
+              dayNumber,
+              weekNumber: Number(generatedDay?.weekNumber ?? existingDay?.weekNumber ?? Math.floor((dayNumber - 1) / 7) + 1),
+              theme: generatedDay?.theme || existingDay?.theme || "",
+              chapterRef: generatedDay?.chapterRef || existingDay?.chapterRef || "",
+              reading: generatedDay?.reading || existingDay?.reading || generatedDay?.concept || existingDay?.concept || "",
+              concept: generatedDay?.concept || existingDay?.concept || generatedDay?.reading || existingDay?.reading || "",
+              exercise: generatedDay?.exercise || existingDay?.exercise || "",
+              reflection: generatedDay?.reflection || existingDay?.reflection || "",
+              actionPlan: generatedDay?.actionPlan || existingDay?.actionPlan || "",
+              fieldAssignment: generatedDay?.fieldAssignment || existingDay?.fieldAssignment || "",
+              accountabilityCheck: generatedDay?.accountabilityCheck || existingDay?.accountabilityCheck || "",
+              microHabit: generatedDay?.microHabit || existingDay?.microHabit || "",
+              isCatchUp: Boolean(generatedDay?.isCatchUp ?? existingDay?.isCatchUp ?? (dayNumber % 7 === 0)),
+            };
+          });
+
+          const generatedDayNumbers = new Set(hydratedDays.map((day) => Number(day.dayNumber)));
+          const preservedExistingDays = existingDays.filter((day: any) => !generatedDayNumbers.has(Number(day?.dayNumber)));
+
+          updates.schedule = {
+            ...prev.schedule,
+            days: [...hydratedDays, ...preservedExistingDays].sort((a: any, b: any) => Number(a.dayNumber) - Number(b.dayNumber)),
+            _generatedFromSetup: { ...prev.setup },
+          };
         }
       }
 
@@ -475,8 +577,41 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
         const parsed = result.draft;
 
         if (parsed.stepData) {
-          setStepData(parsed.stepData);
-          const inferredStep = inferStepFromDraftData(parsed.stepData);
+          let hydratedStepData = parsed.stepData as Record<string, any>;
+
+          if (nodeConfig.id === "home-study-course") {
+            const existingDays = Array.isArray(hydratedStepData?.schedule?.days) ? hydratedStepData.schedule.days : [];
+            if (existingDays.length === 0) {
+              try {
+                let recoveredDays = extractHomeStudyDaysFromContent(String(result?.generatedContent || ""));
+
+                if (recoveredDays.length === 0) {
+                  const { data: generatedContentAsset } = await supabase
+                    .from("generated_assets")
+                    .select("content")
+                    .eq("book_id", bookId)
+                    .eq("asset_type", "builder_content_home-study-course")
+                    .maybeSingle();
+                  recoveredDays = extractHomeStudyDaysFromContent(String(generatedContentAsset?.content || ""));
+                }
+
+                if (recoveredDays.length > 0) {
+                  hydratedStepData = {
+                    ...hydratedStepData,
+                    schedule: {
+                      ...(hydratedStepData.schedule || {}),
+                      days: recoveredDays,
+                    },
+                  };
+                }
+              } catch (recoveryError) {
+                console.warn("Failed to recover home study days from generated content:", recoveryError);
+              }
+            }
+          }
+
+          setStepData(hydratedStepData);
+          const inferredStep = inferStepFromDraftData(hydratedStepData);
           const savedStep = typeof parsed.currentStep === "number" ? parsed.currentStep : 0;
           setCurrentStep(clampStepIndex(Math.max(savedStep, inferredStep)));
         } else if (typeof parsed.currentStep === "number") {
