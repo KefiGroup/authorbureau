@@ -669,25 +669,37 @@ export default function AuthorBookPage() {
                         boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
                       }}
                     >
-                      {/* Product image */}
+                      {/* Product image — book cover + product icon overlay */}
                       <div
-                        className="h-44 flex items-center justify-center relative overflow-hidden"
-                        style={{ background: p.coverImageUrl ? undefined : `linear-gradient(135deg, ${v.primary}, ${v.accent}40)` }}
+                        className="h-48 relative overflow-hidden"
                       >
-                        {p.coverImageUrl ? (
+                        {/* Background: book cover or product cover or gradient fallback */}
+                        {(p.coverImageUrl || book.cover_image_url) ? (
                           <img
-                            src={p.coverImageUrl}
+                            src={p.coverImageUrl || book.cover_image_url!}
                             alt={p.title}
                             loading="lazy"
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           />
                         ) : (
-                          <PIcon className="h-12 w-12" style={{ color: `${v.primaryText}66` }} />
+                          <div
+                            className="w-full h-full"
+                            style={{ background: `linear-gradient(135deg, ${v.primary}, ${v.accent}40)` }}
+                          />
                         )}
+                        {/* Dark overlay for readability */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                        {/* Product type icon circle */}
+                        <div
+                          className="absolute top-3 left-3 w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
+                          style={{ background: v.accent, color: v.accentText }}
+                        >
+                          <PIcon className="h-5 w-5" />
+                        </div>
                         {/* Type badge */}
                         <span
-                          className="absolute bottom-2 right-2 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full"
-                          style={{ background: v.accent, color: v.accentText }}
+                          className="absolute bottom-3 right-3 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full shadow-sm backdrop-blur-sm"
+                          style={{ background: `${v.accent}dd`, color: v.accentText }}
                         >
                           {label}
                         </span>
