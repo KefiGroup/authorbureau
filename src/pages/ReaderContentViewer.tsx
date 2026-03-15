@@ -842,6 +842,7 @@ function WritableSection({ emoji, label, prompt, storageKey, hint }: { emoji: st
         {emoji} {label}
       </p>
       <p className="text-sm text-foreground whitespace-pre-line leading-relaxed">{prompt}</p>
+      {hint && <p className="text-xs text-muted-foreground/70 italic">{hint}</p>}
       <div className="relative">
         <Textarea
           placeholder={`Write your ${label.toLowerCase()} here...`}
