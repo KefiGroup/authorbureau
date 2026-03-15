@@ -7,6 +7,7 @@ import type { SalesCopyData } from "./salesCopyTypes";
 
 interface Props {
   data: SalesCopyData;
+  onCtaClick?: () => void;
   productMeta?: {
     badge?: string; // e.g., "21-Day Program"
     duration?: string;
