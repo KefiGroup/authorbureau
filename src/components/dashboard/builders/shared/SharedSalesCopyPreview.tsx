@@ -205,7 +205,7 @@ export default function SharedSalesCopyPreview({ data, productMeta, onCtaClick }
                 ))}
               </div>
             )}
-            <Button className="w-full rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 h-10">
+            <Button onClick={onCtaClick} className="w-full rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 h-10 cursor-pointer">
               {data.pricing.ctaText || "Enroll Now"}
             </Button>
           </Card>
