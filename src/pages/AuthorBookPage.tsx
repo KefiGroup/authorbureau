@@ -47,6 +47,24 @@ interface ProductLink {
   route: string;
   price?: string;
   description?: string;
+  coverImageUrl?: string;
+}
+
+/** Extract a human-readable description from potentially JSON-encoded sales copy */
+function parseProductDescription(raw?: string | null): string | undefined {
+  if (!raw) return undefined;
+  const trimmed = raw.trim();
+  if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) return trimmed;
+  try {
+    const parsed = JSON.parse(trimmed);
+    // Sales copy JSON structure
+    if (parsed.hero?.tagline) return parsed.hero.tagline;
+    if (parsed.introduction?.paragraph) return parsed.introduction.paragraph;
+    if (parsed.problem?.headline) return parsed.problem.headline;
+    return undefined;
+  } catch {
+    return trimmed;
+  }
 }
 
 interface OtherBook {
@@ -230,10 +248,10 @@ export default function AuthorBookPage() {
 
     const bookId = bookData.id;
     const [hsRes, cRes, abRes, podRes, otherBooksRes, allBooksRes, coachRes, speakRes] = await Promise.all([
-      supabase.from("home_study_courses").select("id, title, price, currency, description").eq("book_id", bookId).eq("status", "published"),
-      supabase.from("courses").select("id, title, price, currency, description").eq("book_id", bookId).eq("status", "published"),
+      supabase.from("home_study_courses").select("id, title, price, currency, description, cover_image_url").eq("book_id", bookId).eq("status", "published"),
+      supabase.from("courses").select("id, title, price, currency, description, cover_image_url").eq("book_id", bookId).eq("status", "published"),
       supabase.from("audiobooks").select("id, title, price, currency, description").eq("book_id", bookId).eq("status", "published"),
-      supabase.from("podcasts").select("id, title, description").eq("book_id", bookId).eq("status", "published"),
+      supabase.from("podcasts").select("id, title, description, cover_image_url").eq("book_id", bookId).eq("status", "published"),
       supabase.from("books").select("id, title, slug, cover_image_url").eq("author_id", profile.user_id).not("published_at", "is", null).neq("id", bookId).limit(4),
       supabase.from("books").select("slug, title, cover_image_url, genre").eq("author_id", profile.user_id).not("published_at", "is", null).order("created_at", { ascending: false }),
       supabase.from("coaching_packages").select("id, title, price, currency, description, type").eq("author_id", profile.user_id).eq("status", "active"),
@@ -256,15 +274,15 @@ export default function AuthorBookPage() {
     };
 
     const prods: ProductLink[] = [];
-    (hsRes.data || []).forEach((p: any) => prods.push({ type: "homestudy", title: p.title, route: "homestudy", price: p.price ? `$${p.price}` : undefined, description: p.description }));
-    (cRes.data || []).forEach((p: any) => prods.push({ type: "onlinecourse", title: p.title, route: "onlinecourse", price: p.price ? `$${p.price}` : undefined, description: p.description }));
-    (abRes.data || []).forEach((p: any) => prods.push({ type: "audiobook", title: p.title, route: "audiobook", price: p.price ? `$${p.price}` : undefined, description: p.description }));
-    (podRes.data || []).forEach((p: any) => prods.push({ type: "podcast", title: p.title, route: "podcast", description: p.description }));
+    (hsRes.data || []).forEach((p: any) => prods.push({ type: "homestudy", title: p.title, route: "homestudy", price: p.price ? `$${p.price}` : undefined, description: parseProductDescription(p.description), coverImageUrl: p.cover_image_url }));
+    (cRes.data || []).forEach((p: any) => prods.push({ type: "onlinecourse", title: p.title, route: "onlinecourse", price: p.price ? `$${p.price}` : undefined, description: parseProductDescription(p.description), coverImageUrl: p.cover_image_url }));
+    (abRes.data || []).forEach((p: any) => prods.push({ type: "audiobook", title: p.title, route: "audiobook", price: p.price ? `$${p.price}` : undefined, description: parseProductDescription(p.description) }));
+    (podRes.data || []).forEach((p: any) => prods.push({ type: "podcast", title: p.title, route: "podcast", description: parseProductDescription(p.description), coverImageUrl: p.cover_image_url }));
     (coachRes.data || []).forEach((p: any) => {
       const route = COACHING_TYPE_TO_ROUTE[p.type] || "coaching";
-      prods.push({ type: route, title: p.title, route, price: p.price ? `$${p.price}` : undefined, description: p.description });
+      prods.push({ type: route, title: p.title, route, price: p.price ? `$${p.price}` : undefined, description: parseProductDescription(p.description) });
     });
-    (speakRes.data || []).forEach((p: any) => prods.push({ type: "speaking", title: p.title, route: "speaking", price: p.fee ? `$${p.fee}` : undefined, description: p.description }));
+    (speakRes.data || []).forEach((p: any) => prods.push({ type: "speaking", title: p.title, route: "speaking", price: p.fee ? `$${p.fee}` : undefined, description: parseProductDescription(p.description) }));
 
     setProducts(prods);
     setOtherBooks((otherBooksRes.data || []) as OtherBook[]);
@@ -651,12 +669,21 @@ export default function AuthorBookPage() {
                         boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
                       }}
                     >
-                      {/* Product image placeholder */}
+                      {/* Product image */}
                       <div
-                        className="h-40 flex items-center justify-center relative"
-                        style={{ background: `linear-gradient(135deg, ${v.primary}, ${v.accent}40)` }}
+                        className="h-44 flex items-center justify-center relative overflow-hidden"
+                        style={{ background: p.coverImageUrl ? undefined : `linear-gradient(135deg, ${v.primary}, ${v.accent}40)` }}
                       >
-                        <PIcon className="h-12 w-12" style={{ color: `${v.primaryText}66` }} />
+                        {p.coverImageUrl ? (
+                          <img
+                            src={p.coverImageUrl}
+                            alt={p.title}
+                            loading="lazy"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <PIcon className="h-12 w-12" style={{ color: `${v.primaryText}66` }} />
+                        )}
                         {/* Type badge */}
                         <span
                           className="absolute bottom-2 right-2 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full"
