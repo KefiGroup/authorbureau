@@ -248,10 +248,10 @@ export default function AuthorBookPage() {
 
     const bookId = bookData.id;
     const [hsRes, cRes, abRes, podRes, otherBooksRes, allBooksRes, coachRes, speakRes] = await Promise.all([
-      supabase.from("home_study_courses").select("id, title, price, currency, description").eq("book_id", bookId).eq("status", "published"),
-      supabase.from("courses").select("id, title, price, currency, description").eq("book_id", bookId).eq("status", "published"),
+      supabase.from("home_study_courses").select("id, title, price, currency, description, cover_image_url").eq("book_id", bookId).eq("status", "published"),
+      supabase.from("courses").select("id, title, price, currency, description, cover_image_url").eq("book_id", bookId).eq("status", "published"),
       supabase.from("audiobooks").select("id, title, price, currency, description").eq("book_id", bookId).eq("status", "published"),
-      supabase.from("podcasts").select("id, title, description").eq("book_id", bookId).eq("status", "published"),
+      supabase.from("podcasts").select("id, title, description, cover_image_url").eq("book_id", bookId).eq("status", "published"),
       supabase.from("books").select("id, title, slug, cover_image_url").eq("author_id", profile.user_id).not("published_at", "is", null).neq("id", bookId).limit(4),
       supabase.from("books").select("slug, title, cover_image_url, genre").eq("author_id", profile.user_id).not("published_at", "is", null).order("created_at", { ascending: false }),
       supabase.from("coaching_packages").select("id, title, price, currency, description, type").eq("author_id", profile.user_id).eq("status", "active"),
