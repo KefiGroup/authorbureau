@@ -603,19 +603,20 @@ export default function ReaderContentViewer() {
                                 )}
                                 {/* New implementation-focused fields */}
                                 {day.fieldAssignment && (
-                                  <ContentSection
+                                  <WritableSection
                                     emoji="🚀"
                                     label="Field Assignment"
-                                    content={day.fieldAssignment}
+                                    prompt={day.fieldAssignment}
+                                    storageKey={`rv-${purchaseId}-d${day.dayNumber}-field-assignment`}
                                     hint="This is a real-world action — go do it in your life today"
-                                    highlight
                                   />
                                 )}
                                 {day.microHabit && (
-                                  <ContentSection
+                                  <WritableSection
                                     emoji="🔄"
                                     label="Today's Micro-Habit"
-                                    content={day.microHabit}
+                                    prompt={day.microHabit}
+                                    storageKey={`rv-${purchaseId}-d${day.dayNumber}-micro-habit`}
                                     hint="Add this to your daily routine — it compounds over the program"
                                   />
                                 )}
