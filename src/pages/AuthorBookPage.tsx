@@ -274,15 +274,15 @@ export default function AuthorBookPage() {
     };
 
     const prods: ProductLink[] = [];
-    (hsRes.data || []).forEach((p: any) => prods.push({ type: "homestudy", title: p.title, route: "homestudy", price: p.price ? `$${p.price}` : undefined, description: p.description }));
-    (cRes.data || []).forEach((p: any) => prods.push({ type: "onlinecourse", title: p.title, route: "onlinecourse", price: p.price ? `$${p.price}` : undefined, description: p.description }));
-    (abRes.data || []).forEach((p: any) => prods.push({ type: "audiobook", title: p.title, route: "audiobook", price: p.price ? `$${p.price}` : undefined, description: p.description }));
-    (podRes.data || []).forEach((p: any) => prods.push({ type: "podcast", title: p.title, route: "podcast", description: p.description }));
+    (hsRes.data || []).forEach((p: any) => prods.push({ type: "homestudy", title: p.title, route: "homestudy", price: p.price ? `$${p.price}` : undefined, description: parseProductDescription(p.description), coverImageUrl: p.cover_image_url }));
+    (cRes.data || []).forEach((p: any) => prods.push({ type: "onlinecourse", title: p.title, route: "onlinecourse", price: p.price ? `$${p.price}` : undefined, description: parseProductDescription(p.description), coverImageUrl: p.cover_image_url }));
+    (abRes.data || []).forEach((p: any) => prods.push({ type: "audiobook", title: p.title, route: "audiobook", price: p.price ? `$${p.price}` : undefined, description: parseProductDescription(p.description) }));
+    (podRes.data || []).forEach((p: any) => prods.push({ type: "podcast", title: p.title, route: "podcast", description: parseProductDescription(p.description), coverImageUrl: p.cover_image_url }));
     (coachRes.data || []).forEach((p: any) => {
       const route = COACHING_TYPE_TO_ROUTE[p.type] || "coaching";
-      prods.push({ type: route, title: p.title, route, price: p.price ? `$${p.price}` : undefined, description: p.description });
+      prods.push({ type: route, title: p.title, route, price: p.price ? `$${p.price}` : undefined, description: parseProductDescription(p.description) });
     });
-    (speakRes.data || []).forEach((p: any) => prods.push({ type: "speaking", title: p.title, route: "speaking", price: p.fee ? `$${p.fee}` : undefined, description: p.description }));
+    (speakRes.data || []).forEach((p: any) => prods.push({ type: "speaking", title: p.title, route: "speaking", price: p.fee ? `$${p.fee}` : undefined, description: parseProductDescription(p.description) }));
 
     setProducts(prods);
     setOtherBooks((otherBooksRes.data || []) as OtherBook[]);
