@@ -33,7 +33,7 @@ export default function LessonContentStep({ stepData, setStepData, onMarkEdited,
     if (!currentModule || !currentLesson) return;
     const newModules = modules.map((m, mi) =>
       mi === selectedModIdx
-        ? { ...m, lessons: m.lessons.map((l, li) => li === selectedLessonIdx ? { ...l, [field]: value } : l) }
+        ? { ...m, lessons: (m.lessons || []).map((l, li) => li === selectedLessonIdx ? { ...l, [field]: value } : l) }
         : m
     );
     setStepData(prev => ({
