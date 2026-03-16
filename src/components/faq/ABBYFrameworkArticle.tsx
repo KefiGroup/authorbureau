@@ -4,7 +4,7 @@ import { ChevronDown, ChevronUp, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const STAIRCASE = "/images/journey-staircase.webp";
+const STAIRCASE = "/images/journey-staircase.png";
 const FLOW_DIAGRAM = "/images/journey-flow-diagram.png";
 const COMPARISON = "/images/journey-comparison.png";
 const THREE_PATHS = "/images/journey-three-paths.png";
