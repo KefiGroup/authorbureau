@@ -137,8 +137,8 @@ function SpecialEditionSetup({ stepData, setStepData, onMarkEdited, stepId, plan
       </div>
 
       {/* ── Extras ── */}
-      <div className="space-y-2">
-        <Label className="text-xs font-semibold">Extras Included</Label>
+      <div className="space-y-2.5">
+        <Label className="text-sm font-semibold tracking-tight">Extras Included</Label>
         <Textarea
           value={config.extras || ""}
           onChange={e => update("extras", e.target.value)}
@@ -148,8 +148,8 @@ function SpecialEditionSetup({ stepData, setStepData, onMarkEdited, stepId, plan
       </div>
 
       {/* ── Price ── */}
-      <div className="space-y-2">
-        <Label className="text-xs font-semibold">Edition Price (USD)</Label>
+      <div className="space-y-2.5">
+        <Label className="text-sm font-semibold tracking-tight">Edition Price (USD)</Label>
         <div className="flex items-center gap-2">
           <span className="text-lg font-bold text-muted-foreground">$</span>
           <Input

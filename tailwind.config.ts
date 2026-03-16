@@ -88,6 +88,10 @@ export default {
           "0%": { opacity: "0", transform: "scale(0.5)" },
           "100%": { opacity: "1", transform: "scale(1)" },
         },
+        "abby-glow": {
+          "0%, 100%": { boxShadow: "0 0 20px -4px hsl(38 55% 50% / 0.25), 0 0 40px -8px hsl(38 55% 50% / 0.15)" },
+          "50%": { boxShadow: "0 0 30px -4px hsl(38 55% 50% / 0.35), 0 0 60px -8px hsl(38 55% 50% / 0.2)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
