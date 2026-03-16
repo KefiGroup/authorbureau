@@ -13,8 +13,8 @@ export default function CoursePreviewStep({ stepData }: CourseStepProps) {
   const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
   const foundation = stepData.foundation || {};
   const modules: CourseModule[] = stepData.curriculum?.modules || [];
-  const totalLessons = modules.reduce((a, m) => a + m.lessons.length, 0);
-  const totalMinutes = modules.reduce((a, m) => a + m.lessons.reduce((b, l) => b + l.estimatedMinutes, 0), 0);
+  const totalLessons = modules.reduce((a, m) => a + (m.lessons?.length || 0), 0);
+  const totalMinutes = modules.reduce((a, m) => a + (m.lessons || []).reduce((b, l) => b + (l.estimatedMinutes || 0), 0), 0);
 
   return (
     <div className="space-y-6">
@@ -77,10 +77,10 @@ export default function CoursePreviewStep({ stepData }: CourseStepProps) {
                       <span className="w-6 h-6 rounded-full bg-secondary/10 text-secondary text-[10px] font-bold flex items-center justify-center">{i + 1}</span>
                       <span className="text-sm font-medium">{mod.title}</span>
                     </div>
-                    <span className="text-[10px] text-muted-foreground">{mod.lessons.length} lessons</span>
+                    <span className="text-[10px] text-muted-foreground">{(mod.lessons || []).length} lessons</span>
                   </div>
                   <div className="divide-y divide-border">
-                    {mod.lessons.map((lesson, li) => (
+                    {(mod.lessons || []).map((lesson, li) => (
                       <div key={lesson.id} className="flex items-center gap-3 px-3 py-2 hover:bg-muted/10 transition-colors">
                         <PlayCircle className="h-4 w-4 text-muted-foreground/30 shrink-0" />
                         <span className="text-xs flex-1">{lesson.title}</span>

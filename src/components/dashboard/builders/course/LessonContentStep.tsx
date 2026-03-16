@@ -27,13 +27,13 @@ export default function LessonContentStep({ stepData, setStepData, onMarkEdited,
   }
 
   const currentModule = modules[selectedModIdx];
-  const currentLesson = currentModule?.lessons[selectedLessonIdx];
+  const currentLesson = currentModule?.lessons?.[selectedLessonIdx];
 
   const updateLesson = (field: string, value: any) => {
     if (!currentModule || !currentLesson) return;
     const newModules = modules.map((m, mi) =>
       mi === selectedModIdx
-        ? { ...m, lessons: m.lessons.map((l, li) => li === selectedLessonIdx ? { ...l, [field]: value } : l) }
+        ? { ...m, lessons: (m.lessons || []).map((l, li) => li === selectedLessonIdx ? { ...l, [field]: value } : l) }
         : m
     );
     setStepData(prev => ({
@@ -112,7 +112,7 @@ Return ONLY valid JSON, no markdown fences.`,
       <div className="flex gap-2 overflow-x-auto pb-2">
         {modules.map((mod, mi) => (
           <div key={mod.id} className="flex gap-1">
-            {mod.lessons.map((lesson, li) => (
+            {(mod.lessons || []).map((lesson, li) => (
               <button
                 key={lesson.id}
                 onClick={() => { setSelectedModIdx(mi); setSelectedLessonIdx(li); }}
