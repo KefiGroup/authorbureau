@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Check } from "lucide-react";
 
 const EDITION_TYPE_OPTIONS = [
   { value: "signed", label: "Signed Copy", badge: "$29.99–$49.99" },
