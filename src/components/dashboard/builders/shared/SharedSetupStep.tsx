@@ -114,6 +114,10 @@ export default function SharedSetupStep({
           <div key={field.key} className="space-y-2.5">
             <div className="flex items-center gap-2">
               <Label className="text-sm font-semibold tracking-tight">{field.label}</Label>
+              {(() => {
+                const reasoning = getAbbyExplainsReasoning(field.key, field.type);
+                return reasoning ? <AbbyExplainsTooltip reasoning={reasoning} /> : null;
+              })()}
               {showMarketAdvice && (
                 <AbbyMarketAdvice
                   fieldType={marketFieldType!}
