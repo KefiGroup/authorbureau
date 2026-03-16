@@ -1374,9 +1374,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
 
 
           {/* Connected Products */}
-          <div className="max-w-4xl">
-            <ConnectedProductsSection builderId={nodeConfig.id} />
-          </div>
+          <ConnectedProductsSection builderId={nodeConfig.id} />
 
           <div className="flex-grow" />
           {/* Action bar */}
