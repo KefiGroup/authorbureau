@@ -33,7 +33,8 @@ function isMajorSectionHeader(line: string): boolean {
   if (!trimmed) return false;
 
   // Exclude sub-item prefixes — these are NEVER major headers
-  if (/^(Prompt\s*[:—–]|Source|Why it matters|Note|Tip|Hint|Answer|Option|Step\s+\d)/i.test(trimmed)) return false;
+  if (/^Prompt/i.test(trimmed)) return false;
+  if (/^(Source|Why it matters|Note|Tip|Hint|Answer|Option|Step\s+\d)/i.test(trimmed)) return false;
 
   // Numbered section: "1) EDITION IDENTITY" or "2) THEMED FOREWORD..."
   if (/^\d+\)\s+[A-Z]/.test(trimmed)) return true;
@@ -74,7 +75,11 @@ function parseContentSections(content: string): ContentSection[] {
     for (let i = 0; i < lines.length; i++) {
       const match = lines[i].match(/^#{1,4}\s+(.+)/);
       if (match) {
-        sectionStarts.push({ index: i, title: match[1].replace(/\*\*/g, "").trim() });
+        const headingText = match[1].replace(/\*\*/g, "").trim();
+        // Skip prompt/source sub-items even as markdown headings
+        if (/^Prompt/i.test(headingText)) continue;
+        if (/^(Source|Why it matters)/i.test(headingText)) continue;
+        sectionStarts.push({ index: i, title: headingText });
       }
     }
   }
