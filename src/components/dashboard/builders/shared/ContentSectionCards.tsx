@@ -253,6 +253,8 @@ function isInlineHeader(line: string): boolean {
   // Ends with ":" and is short-ish, not a bullet or numbered item
   if (/^[-•●]\s/.test(trimmed) || /^\d+[\.\)]\s/.test(trimmed)) return false;
   if (/^(Prompt|Source|Why it matters)/i.test(trimmed)) return false;
+  // Edition identity sub-fields rendered as interactive chooser, not headers
+  if (/^(Title|Subtitle|Tagline|Option\s+\d)\s*:/i.test(trimmed)) return false;
   // "Label:" or "Label (detail):" pattern, under 80 chars
   if (/^[A-Z][^.!?]*:\s*$/.test(trimmed) && trimmed.length < 80) return true;
   // "Label (parenthetical):" pattern
