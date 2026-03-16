@@ -34,7 +34,7 @@ const comparisonRows = [
   { need: "Author Website", without: "WordPress ($30/mo) + you build it", withAB: "Abby builds your microsite" },
   { need: "Social Media", without: "Buffer ($15/mo) + you create content", withAB: "Abby generates 90-day content calendar" },
   { need: "Speaking Kit", without: "You create your own pitch deck", withAB: "Abby writes your keynote proposal" },
-  { need: "Total Cost", without: "$273+/mo + 40 hours of your time", withAB: "From $49/mo + Abby does the work" },
+  { need: "Total Cost", without: "$273+/mo + 40hrs/wk of your time", withAB: "From $49/mo + Abby does the work" },
 ];
 
 const pricingPaths = [
