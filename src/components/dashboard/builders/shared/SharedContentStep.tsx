@@ -125,6 +125,10 @@ export default function SharedContentStep({
         messages,
         bookId,
         isPremium: true,
+        builderMode: true,
+        builderId: builderId || stepId,
+        builderLabel: builderLabel || title,
+        builderStep: stepId,
       }),
     });
 
