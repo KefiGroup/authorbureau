@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Sparkles, Wand2, Check, BookOpen, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import ProductDistinctionCard from "../shared/ProductDistinctionCard";
 import type { HomeStudyStepProps } from "./types";
 
 export default function ProgramSetupStep({ stepData, setStepData, onMarkEdited, plan, onStartGeneration, builderAct, bookId, onNavigate }: HomeStudyStepProps) {
