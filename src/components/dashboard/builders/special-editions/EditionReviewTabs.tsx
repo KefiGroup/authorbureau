@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -378,7 +378,150 @@ const TAB_CONFIG = [
   { id: "preview", label: "Preview", icon: Monitor },
 ];
 
+/**
+ * Extract structured data from raw AI-generated editionContent markdown.
+ * Parses sections like EDITION IDENTITY, THEMED FOREWORD, GIFT JOURNAL PROMPTS, etc.
+ */
+function extractFromContent(raw: string): {
+  identity: Record<string, any>;
+  bonus: Record<string, string>;
+} {
+  const identity: Record<string, any> = {};
+  const bonus: Record<string, string> = {};
+
+  if (!raw) return { identity, bonus };
+
+  // Split into numbered sections: "1) EDITION IDENTITY", "2) THEMED FOREWORD", etc.
+  const sectionRegex = /\d+\)\s+([A-Z][A-Z\s\-&/(),:—–]+)/g;
+  const sectionStarts: { title: string; index: number }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = sectionRegex.exec(raw)) !== null) {
+    sectionStarts.push({ title: m[1].trim(), index: m.index });
+  }
+
+  const getSectionBody = (idx: number) => {
+    const start = raw.indexOf("\n", sectionStarts[idx].index);
+    const end = idx + 1 < sectionStarts.length ? sectionStarts[idx + 1].index : raw.length;
+    return raw.slice(start, end).trim();
+  };
+
+  for (let i = 0; i < sectionStarts.length; i++) {
+    const title = sectionStarts[i].title.toLowerCase();
+    const body = getSectionBody(i);
+
+    if (title.includes("identity") || title.includes("title")) {
+      // Extract Option blocks
+      const optionRegex = /Option\s+\d+:\s*\n\s*Title:\s*(.+)/gi;
+      const titles: string[] = [];
+      let om: RegExpExecArray | null;
+      while ((om = optionRegex.exec(body)) !== null) {
+        titles.push(om[1].trim());
+      }
+      if (titles.length > 0) identity.titleOptions = titles;
+
+      // Extract subtitle from first option
+      const subMatch = body.match(/Subtitle:\s*(.+)/i);
+      if (subMatch) identity.subtitle = subMatch[1].trim();
+
+      const tagMatch = body.match(/Tagline:\s*(.+)/i);
+      if (tagMatch) identity.tagline = tagMatch[1].trim();
+
+      // Cover concept
+      const coverIdx = body.toLowerCase().indexOf("cover concept");
+      if (coverIdx !== -1) {
+        const coverText = body.slice(coverIdx).replace(/^[^\n]*\n/, "").trim();
+        identity.coverConcept = coverText;
+      }
+    } else if (title.includes("foreword")) {
+      bonus.foreword = body;
+    } else if (title.includes("journal") || title.includes("prompt") || title.includes("reflection")) {
+      bonus.reflectionPrompts = body;
+    } else if (title.includes("exclusive") || title.includes("bonus") || title.includes("chapter")) {
+      bonus.exclusiveChapter = body;
+    } else if (title.includes("inscription")) {
+      bonus.giftInscription = body;
+    } else if (title.includes("companion") || title.includes("resource")) {
+      bonus.companionResource = body;
+    }
+  }
+
+  return { identity, bonus };
+}
+
+/**
+ * Extract marketing calendar and sales copy from editionSales content.
+ */
+function extractFromSales(raw: string): {
+  salesCopy: string;
+  marketing: Record<string, string>;
+} {
+  if (!raw) return { salesCopy: raw || "", marketing: {} };
+
+  // Try to split out marketing calendar (section 3 typically)
+  const calendarIdx = raw.search(/\d+\)\s+.*MARKETING\s+CALENDAR/i);
+  const fulfillIdx = raw.search(/\d+\)\s+.*(FULFILLMENT|PRE-ORDER)/i);
+
+  let salesCopy = raw;
+  const marketing: Record<string, string> = {};
+
+  if (calendarIdx > -1) {
+    const endIdx = fulfillIdx > calendarIdx ? fulfillIdx : raw.length;
+    const calendarSection = raw.slice(calendarIdx, endIdx);
+    salesCopy = raw.slice(0, calendarIdx) + raw.slice(endIdx);
+
+    // Try to split by weeks
+    const weekSections = calendarSection.split(/Week\s+(\d+)/i);
+    for (let w = 1; w <= 4; w++) {
+      const wIdx = weekSections.findIndex((s, i) => i > 0 && s.trim() === String(w));
+      if (wIdx !== -1 && weekSections[wIdx + 1]) {
+        marketing[`week${w}`] = weekSections[wIdx + 1].trim();
+      }
+    }
+  }
+
+  return { salesCopy: salesCopy.trim(), marketing };
+}
+
 export default function EditionReviewTabs(props: Props) {
+  const hasExtracted = useRef(false);
+
+  // Auto-populate review tabs from generated content (once)
+  useEffect(() => {
+    if (hasExtracted.current) return;
+
+    const { editionContent, editionSales, editionIdentity, editionBonusContent, editionSalesCopy } = props.stepData;
+    const needsIdentity = !editionIdentity && editionContent;
+    const needsBonus = !editionBonusContent && editionContent;
+    const needsSales = !editionSalesCopy && editionSales;
+
+    if (!needsIdentity && !needsBonus && !needsSales) return;
+    hasExtracted.current = true;
+
+    const updates: Record<string, any> = {};
+
+    if (editionContent && (needsIdentity || needsBonus)) {
+      const { identity, bonus } = extractFromContent(editionContent);
+      if (needsIdentity && Object.keys(identity).length > 0) {
+        updates.editionIdentity = identity;
+      }
+      if (needsBonus && Object.keys(bonus).length > 0) {
+        updates.editionBonusContent = bonus;
+      }
+    }
+
+    if (needsSales && editionSales) {
+      const { salesCopy, marketing } = extractFromSales(editionSales);
+      updates.editionSalesCopy = salesCopy;
+      if (Object.keys(marketing).length > 0) {
+        updates.editionMarketing = marketing;
+      }
+    }
+
+    if (Object.keys(updates).length > 0) {
+      props.setStepData(prev => ({ ...prev, ...updates }));
+    }
+  }, [props.stepData.editionContent, props.stepData.editionSales]);
+
   return (
     <Tabs defaultValue="identity" className="w-full">
       <TabsList className="w-full flex flex-wrap h-auto gap-1 bg-muted/50 p-1.5 rounded-lg">
