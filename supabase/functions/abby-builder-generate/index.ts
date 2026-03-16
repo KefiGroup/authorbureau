@@ -439,14 +439,22 @@ DESIGN THE FOLLOWING:
 
 2. BONUS_CONTENT (generate 5 pieces — only if occasion is NOT "none")
    - themed_foreword: 500-800 word foreword connecting the book's core message to the occasion, written as a letter from the author
-   - reflection_prompts: 10 prompts themed to the occasion, each tied to a specific chapter. Format: prompt text + source chapter + why it matters
+   - gift_journal_prompts: 10 FILLABLE gift-journal prompts the gift-giver completes and gives to the recipient. These are NOT self-reflection prompts — they are direct, heartfelt sentence stems addressed TO the recipient (e.g., "Dear Mum, one thing you taught me without knowing it was..."). Adapt the recipient role based on the occasion:
+      * Mother's Day → addressed to "Mum/Mom"
+      * Father's Day → addressed to "Dad"
+      * Valentine's Day / Wedding / Anniversary → addressed to "My Love" or partner
+      * Graduation → addressed to "Graduate" from a mentor/parent
+      * Teacher Appreciation → addressed to "Teacher/Mentor"
+      * Birthday → addressed to the birthday person
+      * Christmas / General → addressed to "You" (universal)
+     Each prompt: sentence stem, source chapter, why it matters for this occasion.
    - exclusive_chapter: 1,500-2,500 word new chapter bridging the book's message with the occasion theme
    - gift_inscription_page: Design brief for a gift inscription page — header text, prompt for the gift-giver, decorative elements, 3 example inscriptions
    - companion_resource: A downloadable companion resource. Choose format based on occasion:
-     * Relationship occasions (Valentine's, Wedding): "7-Day [Theme] Challenge" with daily exercises
-     * Gratitude occasions (Mother's/Father's Day, Teacher): "Letters of [Theme]" guided writing prompts
-     * Growth occasions (Graduation, New Year, Back to School): "[X]-Day Action Plan" with daily goals
-     * Celebration occasions (Birthday, Christmas): "Reflection & Celebration Journal" with themed prompts
+      * Relationship occasions (Valentine's, Wedding): "7-Day [Theme] Challenge" with daily exercises for the couple
+      * Gratitude occasions (Mother's/Father's Day, Teacher): "Letters to [Recipient]" — guided letter-writing prompts the gift-giver completes
+      * Growth occasions (Graduation, New Year, Back to School): "[X]-Day Action Plan" with daily goals
+      * Celebration occasions (Birthday, Christmas): "Reflection & Celebration Journal" with themed prompts
 
 3. SALES_PAGE_COPY
    Write the complete 11-section sales page, reframed for the GIFT BUYER persona (if occasion selected):
