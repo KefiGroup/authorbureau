@@ -52,6 +52,8 @@ function isMajorSectionHeader(line: string): boolean {
   if (/^Day\s+\d/i.test(normalized)) return false;
   // Companion micro-steps are sub-items, not top-level cards
   if (/^(Warm start|Story share|Bridge question|Keepsake line|Close|Tiny add-on)/i.test(normalized)) return false;
+  // Edition identity sub-fields are not section headers
+  if (/^(Title|Subtitle|Tagline)\s*:/i.test(normalized)) return false;
 
   // Numbered section: "1) EDITION IDENTITY" or "2) THEMED FOREWORD..."
   if (/^\d+\)\s+[A-Z]/.test(trimmed)) return true;
@@ -251,6 +253,8 @@ function isInlineHeader(line: string): boolean {
   // Ends with ":" and is short-ish, not a bullet or numbered item
   if (/^[-•●]\s/.test(trimmed) || /^\d+[\.\)]\s/.test(trimmed)) return false;
   if (/^(Prompt|Source|Why it matters)/i.test(trimmed)) return false;
+  // Edition identity sub-fields rendered as interactive chooser, not headers
+  if (/^(Title|Subtitle|Tagline|Option\s+\d)\s*:/i.test(trimmed)) return false;
   // "Label:" or "Label (detail):" pattern, under 80 chars
   if (/^[A-Z][^.!?]*:\s*$/.test(trimmed) && trimmed.length < 80) return true;
   // "Label (parenthetical):" pattern
@@ -258,7 +262,69 @@ function isInlineHeader(line: string): boolean {
   return false;
 }
 
-/** Detect "N Title Options (choose 1)" pattern and extract numbered options */
+/** Parse structured "Option N:" blocks with Title/Subtitle/Tagline fields */
+interface EditionOption {
+  title: string;
+  subtitle: string;
+  tagline: string;
+}
+
+function extractEditionOptions(body: string): { preamble: string; options: EditionOption[]; rest: string } | null {
+  const lines = body.split("\n");
+  // Look for the "TITLE/SUBTITLE/TAGLINE OPTIONS" or similar header
+  const headerIdx = lines.findIndex(l => /title.*subtitle.*tagline.*options?\s*\(choose/i.test(l.trim()) || /options?\s*\(choose\s*\d+\)/i.test(l.trim()));
+  if (headerIdx === -1) return null;
+
+  const preamble = lines.slice(0, headerIdx).join("\n").trim();
+  const options: EditionOption[] = [];
+  let afterIdx = headerIdx + 1;
+  let currentOption: Partial<EditionOption> | null = null;
+
+  for (let i = headerIdx + 1; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+
+    // "Option N:" starts a new option block
+    if (/^Option\s+\d+\s*:/i.test(trimmed)) {
+      if (currentOption?.title) options.push(currentOption as EditionOption);
+      currentOption = { title: "", subtitle: "", tagline: "" };
+      afterIdx = i + 1;
+      continue;
+    }
+
+    if (currentOption) {
+      const titleMatch = trimmed.match(/^Title\s*:\s*(.+)/i);
+      const subtitleMatch = trimmed.match(/^Subtitle\s*:\s*(.+)/i);
+      const taglineMatch = trimmed.match(/^Tagline\s*:\s*(.+)/i);
+
+      if (titleMatch) { currentOption.title = titleMatch[1].trim(); afterIdx = i + 1; continue; }
+      if (subtitleMatch) { currentOption.subtitle = subtitleMatch[1].trim(); afterIdx = i + 1; continue; }
+      if (taglineMatch) { currentOption.tagline = taglineMatch[1].trim(); afterIdx = i + 1; continue; }
+
+      // Blank line after a complete option — keep scanning
+      if (!trimmed) { afterIdx = i + 1; continue; }
+
+      // Non-matching content = end of options block
+      if (currentOption.title) options.push(currentOption as EditionOption);
+      currentOption = null;
+      afterIdx = i;
+      break;
+    }
+
+    // Skip blank lines between header and first option
+    if (!trimmed) { afterIdx = i + 1; continue; }
+
+    // Non-option content after header but before any "Option N:" — treat as end
+    if (!currentOption && options.length === 0) { afterIdx = i; break; }
+  }
+
+  if (currentOption?.title) options.push(currentOption as EditionOption);
+  if (options.length < 2) return null;
+
+  const rest = lines.slice(afterIdx).join("\n").trim();
+  return { preamble, options, rest };
+}
+
+/** Fallback: Detect simple "N Title Options (choose 1)" pattern with numbered list */
 function extractChoiceOptions(body: string): { preamble: string; options: string[]; rest: string } | null {
   const lines = body.split("\n");
   const choiceIdx = lines.findIndex(l => /title options?\s*\(choose\s*\d+\)/i.test(l.trim()));
@@ -361,13 +427,69 @@ function TitleChoiceSelector({ options, onSelect }: { options: string[]; onSelec
   );
 }
 
+/** Edition option selector with Title + Subtitle + Tagline per card */
+function EditionOptionSelector({ options }: { options: EditionOption[] }) {
+  const [selected, setSelected] = useState<number | null>(null);
+
+  return (
+    <div className="space-y-3 my-4">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Choose your edition identity</p>
+      {options.map((opt, idx) => {
+        const isActive = selected === idx;
+        return (
+          <button
+            key={idx}
+            type="button"
+            onClick={() => setSelected(idx)}
+            className={`w-full text-left px-5 py-4 rounded-xl border-2 transition-all ${
+              isActive
+                ? "border-secondary bg-secondary/10"
+                : "border-border/60 bg-background hover:border-border hover:bg-muted/30"
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold shrink-0 mt-0.5 ${
+                isActive ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground"
+              }`}>
+                {idx + 1}
+              </span>
+              <div className="min-w-0 flex-1 space-y-1">
+                <p className={`text-sm font-bold ${isActive ? "text-foreground" : "text-foreground"}`}>
+                  {opt.title}
+                </p>
+                {opt.subtitle && (
+                  <p className="text-xs text-muted-foreground italic">{opt.subtitle}</p>
+                )}
+                {opt.tagline && (
+                  <p className="text-xs text-secondary font-medium">"{opt.tagline}"</p>
+                )}
+              </div>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 /** Render formatted body content with proper paragraphs, bold headers, and workbook lines */
 function FormattedBody({ body, sectionTitle }: { body: string; sectionTitle: string }) {
   const showWritingSpaces = isWorkbookContent(sectionTitle, body);
 
-  // Check for title choice options
-  const choiceData = extractChoiceOptions(body);
+  // Check for structured edition options (Title/Subtitle/Tagline per option)
+  const editionData = extractEditionOptions(body);
+  if (editionData) {
+    return (
+      <div className="space-y-4">
+        {editionData.preamble && <FormattedBodyInner body={editionData.preamble} sectionTitle={sectionTitle} showWritingSpaces={showWritingSpaces} />}
+        <EditionOptionSelector options={editionData.options} />
+        {editionData.rest && <FormattedBodyInner body={editionData.rest} sectionTitle={sectionTitle} showWritingSpaces={showWritingSpaces} />}
+      </div>
+    );
+  }
 
+  // Fallback: simple title choice options
+  const choiceData = extractChoiceOptions(body);
   if (choiceData) {
     return (
       <div className="space-y-4">

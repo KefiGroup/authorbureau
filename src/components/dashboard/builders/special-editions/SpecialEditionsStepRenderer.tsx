@@ -191,7 +191,26 @@ export default function SpecialEditionsStepRenderer({ stepId, stepData, setStepD
 
 Generate ALL 6 components:
 
-1) EDITION IDENTITY: 3 title options combining book brand with ${occasionLabel} theme (format: "[Book Title]: The [Occasion] Edition — [Tagline]"), gift-focused subtitle, one-line tagline for gift buyers, and a detailed cover concept brief (mood, colors, imagery, typography).
+1) EDITION IDENTITY: Output EXACTLY this structure:
+
+TITLE/SUBTITLE/TAGLINE OPTIONS (choose 1)
+
+Option 1:
+Title: [Full title combining book brand with ${occasionLabel} theme]
+Subtitle: [Gift-focused subtitle]
+Tagline: [One-line tagline for gift buyers]
+
+Option 2:
+Title: [Second option]
+Subtitle: [Subtitle]
+Tagline: [Tagline]
+
+Option 3:
+Title: [Third option]
+Subtitle: [Subtitle]
+Tagline: [Tagline]
+
+Then a COVER CONCEPT BRIEF section with mood, colors, imagery, typography.
 
 2) THEMED FOREWORD: 500-800 word foreword connecting the book's core message to ${occasionLabel}, written as a letter from the author. Start with "Dear Reader..."
 
