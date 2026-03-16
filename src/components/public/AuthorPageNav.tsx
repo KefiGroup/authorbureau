@@ -8,7 +8,7 @@ import logoIcon from "@/assets/logo-icon.png";
 const NAV_LINKS = [
   { label: "Authors Directory", to: "/directory" },
   { label: "How It Works", to: "/how-it-works" },
-  { label: "Pricing", to: "/pricing" },
+  { label: "Methodology", to: "/methodology" },
 ];
 
 const PUBLISHNOW_AUTH_URL = getPublishNowAuthUrl("/dashboard");
