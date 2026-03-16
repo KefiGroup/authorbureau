@@ -488,11 +488,10 @@ export default function ContentSectionCards({ content, onChange, stepTitle }: Pr
                 </div>
 
                 {isEditing ? (
-                  <Textarea
-                    value={section.body}
-                    onChange={e => handleSectionEdit(idx, e.target.value)}
-                    rows={Math.max(8, section.body.split("\n").length + 2)}
-                    className="text-sm font-mono"
+                  <SectionEditor
+                    body={section.body}
+                    sectionTitle={section.title}
+                    onChange={(newBody) => handleSectionEdit(idx, newBody)}
                   />
                 ) : (
                   <div className="rounded-lg bg-muted/20 p-4">
