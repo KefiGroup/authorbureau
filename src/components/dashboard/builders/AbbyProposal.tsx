@@ -172,55 +172,60 @@ export default function AbbyProposal({ proposal, builderLabel, bookTitle, onAppr
           {builderLabel} Structure
         </h3>
         <div className="space-y-1">
-          {(proposal.structure || []).map((section, idx) => (
-            <div key={idx} className="border rounded-lg overflow-hidden">
-              <button
-                onClick={() => setExpandedSection(expandedSection === idx ? null : idx)}
-                className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-muted/30 transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-secondary/10 flex items-center justify-center text-[10px] font-bold text-secondary">
-                    {idx + 1}
-                  </span>
-                  <span className="text-sm font-medium">{section.title}</span>
-                </div>
-                {expandedSection === idx ? (
-                  <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
-                ) : (
-                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                )}
-              </button>
-              {expandedSection === idx && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  className="px-3 pb-3 border-t"
+          {(proposal.structure || []).map((section, idx) => {
+            const hasContent = !!(section.description || section.source_chapters || (section.items && section.items.length > 0));
+            return (
+              <div key={idx} className="border rounded-lg overflow-hidden">
+                <button
+                  onClick={() => hasContent ? setExpandedSection(expandedSection === idx ? null : idx) : null}
+                  className={`w-full flex items-center justify-between px-3 py-2.5 text-left transition-colors ${hasContent ? 'hover:bg-muted/30 cursor-pointer' : 'cursor-default'}`}
                 >
-                  {section.description && (
-                    <p className="text-xs text-muted-foreground mt-2 mb-2">{section.description}</p>
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-secondary/10 flex items-center justify-center text-[10px] font-bold text-secondary">
+                      {idx + 1}
+                    </span>
+                    <span className="text-sm font-medium">{section.title}</span>
+                  </div>
+                  {hasContent && (
+                    expandedSection === idx ? (
+                      <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                    )
                   )}
-                  {section.source_chapters && (
-                    <p className="text-[10px] text-secondary/70 mb-2">
-                      📖 Source: {section.source_chapters}
-                    </p>
-                  )}
-                  {section.items && section.items.length > 0 && (
-                    <ul className="space-y-1 ml-7">
-                      {section.items.map((item, j) => (
-                        <li key={j} className="text-xs text-muted-foreground flex items-start gap-1.5">
-                          <span className="text-muted-foreground/40">•</span>
-                          <span>
-                            <strong>{item.title}</strong>
-                            {item.description && ` — ${item.description}`}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </motion.div>
-              )}
-            </div>
-          ))}
+                </button>
+                {hasContent && expandedSection === idx && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    className="px-3 pb-3 border-t"
+                  >
+                    {section.description && (
+                      <p className="text-xs text-muted-foreground mt-2 mb-2">{section.description}</p>
+                    )}
+                    {section.source_chapters && (
+                      <p className="text-[10px] text-secondary/70 mb-2">
+                        📖 Source: {section.source_chapters}
+                      </p>
+                    )}
+                    {section.items && section.items.length > 0 && (
+                      <ul className="space-y-1 ml-7">
+                        {section.items.map((item, j) => (
+                          <li key={j} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                            <span className="text-muted-foreground/40">•</span>
+                            <span>
+                              <strong>{item.title}</strong>
+                              {item.description && ` — ${item.description}`}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </motion.div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </Card>
 
