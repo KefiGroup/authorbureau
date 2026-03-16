@@ -103,7 +103,7 @@ function parseContentSections(content: string): ContentSection[] {
   // Merge sub-item sections (Prompt:, Source:, etc.) back into their parent
   const sections: ContentSection[] = [];
   for (const sec of rawSections) {
-    if (/^Prompt/i.test(sec.title) || /^(Source|Why it matters)/i.test(sec.title)) {
+    if (/^Prompt/i.test(sec.title) || /^(Source|Why it matters)/i.test(sec.title) || /^To:/i.test(sec.title)) {
       if (sections.length > 0) {
         const parent = sections[sections.length - 1];
         parent.body = parent.body + "\n\n" + sec.title + "\n" + sec.body;
