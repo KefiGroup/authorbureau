@@ -4,7 +4,7 @@ import { ChevronRight, X, Eye, EyeOff } from "lucide-react";
 
 const CARDS = [
   {
-    image: "/images/journey-staircase.webp",
+    image: "/images/journey-staircase.png",
     label: "The Journey",
     subtitle: "FREE → BUILD → BRIDGE → YIELD",
   },

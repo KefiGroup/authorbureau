@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
-const STAIRCASE_IMAGE = "/images/journey-staircase.webp";
+const STAIRCASE_IMAGE = "/images/journey-staircase.png";
 const FLOW_DIAGRAM_IMAGE = "/images/journey-flow-diagram.png";
 const COMPARISON_IMAGE = "/images/journey-comparison.png";
 const THREE_PATHS_IMAGE = "/images/journey-three-paths.png";
