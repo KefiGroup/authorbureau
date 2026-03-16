@@ -39,9 +39,11 @@ export default function CourseFoundationStep({ stepData, setStepData, onMarkEdit
     <div className="space-y-6">
       <AbbyRecommendationCard>
         <p className="text-sm text-foreground leading-relaxed">
-          Online courses are the <strong>#1 revenue stream</strong> for non-fiction authors. Your book's framework is perfect for a structured learning experience. I recommend the <strong>$97–$197 price point</strong> for your first course.
+          Online courses are <strong>facilitated workshops</strong> — you lead the transformation live or via recorded sessions over <strong>2–3 intensive days</strong>. Think Zoom workshops with activities, debriefs, workbook exercises, and mindmaps. I recommend the <strong>$297+ price point</strong> for this premium experience.
         </p>
       </AbbyRecommendationCard>
+
+      <ProductDistinctionCard highlight="online-course" />
 
       {/* Abby Generate CTA */}
       {canGenerate && onStartGeneration && (
