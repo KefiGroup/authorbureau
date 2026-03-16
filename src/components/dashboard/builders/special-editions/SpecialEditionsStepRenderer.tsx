@@ -1,7 +1,7 @@
 import SharedSetupStep, { type SetupField } from "../shared/SharedSetupStep";
 import SharedContentStep from "../shared/SharedContentStep";
 import SharedPublishStep from "../shared/SharedPublishStep";
-import OccasionTemplateGrid from "./OccasionTemplateGrid";
+import OccasionTemplateGrid, { OCCASION_TEMPLATES } from "./OccasionTemplateGrid";
 import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 import StepInstructions from "../shared/StepInstructions";
 import { Badge } from "@/components/ui/badge";
@@ -160,10 +160,88 @@ export default function SpecialEditionsStepRenderer({ stepId, stepData, setStepD
           plan={plan}
         />
       );
-    case "content":
-      return <SharedContentStep contentKey="editionContent" title="Edition Content" description="Author's foreword, bonus chapter, discussion guide, photo suggestions, and packaging description." abbyTip="New exclusive content justifies the premium price. An author's letter about the book's journey creates emotional connection." aiPrompt={`Generate special edition content for "{bookTitle}". Config: {config}. Include: 1) AUTHOR'S FOREWORD OR LETTER (new content exclusive to this edition, personal story about the book's journey), 2) BONUS CHAPTER OR BEHIND-THE-SCENES content, 3) DISCUSSION GUIDE / BOOK CLUB QUESTIONS (15-20 questions), 4) PHOTO/ILLUSTRATION SUGGESTIONS (describe 5-8 potential images), 5) PACKAGING DESCRIPTION AND MOCKUP details (unboxing experience). Format as markdown.`} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="editionConfig" />;
-    case "sales":
-      return <SharedContentStep contentKey="editionSales" title="Sales & Fulfillment" description="Pre-order page, numbering system, fulfillment checklist, launch emails, and social posts." abbyTip="Create FOMO with a countdown and 'X of Y remaining' counter. Pre-orders with a specific ship date work best." aiPrompt={`Generate special edition sales and fulfillment materials for "{bookTitle}". Config: {config}. Include: 1) PRE-ORDER PAGE copy (countdown, edition details, what's included, limited availability messaging), 2) LIMITED EDITION NUMBERING SYSTEM, 3) FULFILLMENT CHECKLIST (printing, signing, packaging, shipping), 4) LAUNCH EMAIL SEQUENCE (5 emails), 5) SOCIAL MEDIA ANNOUNCEMENT POSTS (8 posts with countdown). Format as markdown.`} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="editionConfig" />;
+    case "content": {
+      const cfg = stepData.editionConfig || {};
+      const occasionObj = OCCASION_TEMPLATES.find(o => o.id === cfg.occasion);
+      const hasOccasion = cfg.occasion && cfg.occasion !== "none";
+      const occasionLabel = hasOccasion ? (cfg.occasion === "custom" ? cfg.customOccasionName || "Custom" : occasionObj?.label || cfg.occasion) : "";
+      const occasionContext = hasOccasion
+        ? `\n\nOCCASION THEME: ${occasionLabel}\nTheme Focus: ${occasionObj?.themeFocus || "Author-defined"}\nGift Buyer Persona: ${occasionObj?.giftBuyer || "Author-defined"}\nPeak Sales Window: ${occasionObj?.peakWindow || "Year-round"}`
+        : "\n\nNo occasion selected — focus on physical premium edition only.";
+
+      const contentPrompt = hasOccasion
+        ? `Generate themed Special Edition content for "{bookTitle}". Config: {config}.${occasionContext}
+
+Generate ALL 6 components:
+
+1) EDITION IDENTITY: 3 title options combining book brand with ${occasionLabel} theme (format: "[Book Title]: The [Occasion] Edition — [Tagline]"), gift-focused subtitle, one-line tagline for gift buyers, and a detailed cover concept brief (mood, colors, imagery, typography).
+
+2) THEMED FOREWORD: 500-800 word foreword connecting the book's core message to ${occasionLabel}, written as a letter from the author. Start with "Dear Reader..."
+
+3) REFLECTION PROMPTS: 10 prompts themed to ${occasionLabel}, each tied to a specific chapter. For each: prompt text, source chapter, why it matters for this occasion.
+
+4) EXCLUSIVE CHAPTER: 1,500-2,500 word new chapter bridging the book's message with ${occasionLabel}. Must feel like a natural extension.
+
+5) GIFT INSCRIPTION PAGE: Design brief with header text, prompt for the gift-giver, decorative element suggestions, and 3 example inscriptions (e.g., "To: ___ I chose this book for you because ___").
+
+6) COMPANION RESOURCE: A downloadable companion (7-Day Challenge, Letters prompt set, Action Plan, or Reflection Journal — choose based on occasion type). Include daily structure and content.
+
+Format each component with a clear heading. Make all content publication-ready.`
+        : `Generate special edition content for "{bookTitle}". Config: {config}.${occasionContext}
+
+Include: 1) AUTHOR'S FOREWORD OR LETTER (new content exclusive to this edition, personal story about the book's journey), 2) BONUS CHAPTER OR BEHIND-THE-SCENES content, 3) DISCUSSION GUIDE / BOOK CLUB QUESTIONS (15-20 questions), 4) PHOTO/ILLUSTRATION SUGGESTIONS (describe 5-8 potential images), 5) PACKAGING DESCRIPTION AND MOCKUP details (unboxing experience). Format as markdown.`;
+
+      const contentTip = hasOccasion
+        ? `This ${occasionLabel} Edition gets 6 themed components: edition identity, foreword, reflection prompts, exclusive chapter, gift inscription page, and companion resource. All content will be tied to the ${occasionLabel} theme.`
+        : "New exclusive content justifies the premium price. An author's letter about the book's journey creates emotional connection.";
+
+      return <SharedContentStep contentKey="editionContent" title={hasOccasion ? `${occasionLabel} Edition Content` : "Edition Content"} description={hasOccasion ? `Abby generates 6 themed components for your ${occasionLabel} Special Edition: identity, foreword, prompts, exclusive chapter, inscription page, and companion resource.` : "Author's foreword, bonus chapter, discussion guide, photo suggestions, and packaging description."} abbyTip={contentTip} aiPrompt={contentPrompt} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="editionConfig" />;
+    }
+    case "sales": {
+      const cfg2 = stepData.editionConfig || {};
+      const hasOcc = cfg2.occasion && cfg2.occasion !== "none";
+      const occObj = OCCASION_TEMPLATES.find(o => o.id === cfg2.occasion);
+      const occLabel = hasOcc ? (cfg2.occasion === "custom" ? cfg2.customOccasionName || "Custom" : occObj?.label || cfg2.occasion) : "";
+
+      const salesPrompt = hasOcc
+        ? `Generate gift-buyer sales copy and marketing materials for the ${occLabel} Special Edition of "{bookTitle}". Config: {config}.
+
+Occasion: ${occLabel}
+Gift Buyer Persona: ${occObj?.giftBuyer || "Author-defined"}
+Peak Window: ${occObj?.peakWindow || "Year-round"}
+
+Generate:
+
+1) GIFT-BUYER SALES PAGE (11 sections reframed for gift buyers):
+   - Hero: "${bookTitle}: The ${occLabel} Edition" + CTA "Give This Gift" + mention edition type and extras
+   - Problem: "Still searching for a gift that actually means something?" — why generic gifts fail
+   - Transformation: What happens when the recipient receives AND reads this gift
+   - Introduction: What makes this edition special — physical format + emotional content
+   - What's Inside: ALL items — physical extras + all bonus content
+   - How It Works: Choose Bundle → Personalize (inscription page) → Gift with Impact
+   - Meet the Author: Bio + personal note about why this occasion matters
+   - Social Proof: Placeholder section
+   - Pricing: 3 bundle tiers (Essential $${cfg2.price || 49}, Premium ~$${(cfg2.price || 49) + 30}, Ultimate ~$${(cfg2.price || 49) + 100})
+   - FAQ: 7 gift-buying questions (delivery time, personalization, returns, what makes it different)
+   - Final CTA: Urgency — "Only X days until ${occLabel}"
+
+2) BUNDLE DESCRIPTIONS: Essential (book only), Premium (book + workbook + companion PDF), Ultimate (book + workbook + course access). For each: name, what's included, why a gift buyer would choose it.
+
+3) 30-DAY MARKETING CALENDAR: 4 weeks (Teaser → Reveal → Social Proof → Urgency). 12 social posts (3/week), 4 email subjects, key milestones.
+
+4) PRE-ORDER PAGE COPY: Countdown, edition details, limited availability messaging.
+
+5) FULFILLMENT CHECKLIST: Printing, signing, packaging, shipping timeline.
+
+Format as markdown with clear headings.`
+        : `Generate special edition sales and fulfillment materials for "{bookTitle}". Config: {config}. Include: 1) PRE-ORDER PAGE copy (countdown, edition details, what's included, limited availability messaging), 2) LIMITED EDITION NUMBERING SYSTEM, 3) FULFILLMENT CHECKLIST (printing, signing, packaging, shipping), 4) LAUNCH EMAIL SEQUENCE (5 emails), 5) SOCIAL MEDIA ANNOUNCEMENT POSTS (8 posts with countdown). Format as markdown.`;
+
+      const salesTip = hasOcc
+        ? `Gift-buyer copy shifts the perspective: instead of "Buy this book," it's "Give this gift." The ${occLabel} urgency drives conversion — countdown to the occasion date.`
+        : "Create FOMO with a countdown and 'X of Y remaining' counter. Pre-orders with a specific ship date work best.";
+
+      return <SharedContentStep contentKey="editionSales" title={hasOcc ? `${occLabel} Gift Sales & Marketing` : "Sales & Fulfillment"} description={hasOcc ? `Gift-buyer sales copy, 3 bundle tiers, 30-day marketing calendar, and fulfillment plan for your ${occLabel} Edition.` : "Pre-order page, numbering system, fulfillment checklist, launch emails, and social posts."} abbyTip={salesTip} aiPrompt={salesPrompt} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="editionConfig" />;
+    }
     case "preview":
       return <SharedPublishStep builderLabel="Special Edition" userId={userId} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookTitle={bookTitle} checklist={[
         { label: "Edition configured", check: d => !!d.editionConfig?.editionType },
