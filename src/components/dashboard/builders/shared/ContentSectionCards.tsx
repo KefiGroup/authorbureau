@@ -75,7 +75,11 @@ function parseContentSections(content: string): ContentSection[] {
     for (let i = 0; i < lines.length; i++) {
       const match = lines[i].match(/^#{1,4}\s+(.+)/);
       if (match) {
-        sectionStarts.push({ index: i, title: match[1].replace(/\*\*/g, "").trim() });
+        const headingText = match[1].replace(/\*\*/g, "").trim();
+        // Skip prompt/source sub-items even as markdown headings
+        if (/^Prompt/i.test(headingText)) continue;
+        if (/^(Source|Why it matters)/i.test(headingText)) continue;
+        sectionStarts.push({ index: i, title: headingText });
       }
     }
   }
