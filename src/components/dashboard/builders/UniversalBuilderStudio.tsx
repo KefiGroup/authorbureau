@@ -1119,7 +1119,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                 )}
 
                 {/* Act 3: Streaming Generation — progress timeline only */}
-                {builderGen.act === "act3_generating" && currentStepConfig.id === "setup" && (
+                {builderGen.act === "act3_generating" && currentStepConfig.id === firstStepId && (
                   <Card className="p-6 mb-6">
                     <div className="flex items-center gap-3 mb-6">
                       <motion.div
@@ -1171,7 +1171,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                 )}
 
                 {/* Act 3 Complete: Show generated content */}
-                {builderGen.act === "act3_complete" && builderGen.generatedContent && currentStepConfig.id === "setup" && (
+                {builderGen.act === "act3_complete" && builderGen.generatedContent && currentStepConfig.id === firstStepId && (
                   <Card className="p-6 mb-6 border-accent/30 bg-accent/5">
                     <div className="flex items-center gap-2 mb-4">
                       <Check className="h-5 w-5 text-accent" />
