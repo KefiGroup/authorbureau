@@ -298,28 +298,93 @@ Format as markdown with clear headings.`
         />
       );
     }
-    case "preview":
+    case "preview": {
+      const cfgP = stepData.editionConfig || {};
+      const identityP = stepData.editionIdentity || {};
+      const bonusP = stepData.editionBonusContent || {};
+      const hasOccP = cfgP.occasion && cfgP.occasion !== "none";
+      const occObjP = OCCASION_TEMPLATES.find(o => o.id === cfgP.occasion);
+      const editionTitle = identityP.customTitle || identityP.selectedTitle || `${bookTitle}: The Special Edition`;
+      const bonusCount = Object.values(bonusP).filter((v: any) => typeof v === "string" && v.trim().length > 0).length;
+
       return <SharedPublishStep builderLabel="Special Edition" userId={userId} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookTitle={bookTitle} checklist={[
-        { label: "Edition configured", check: d => !!d.editionConfig?.editionType },
-        { label: "Edition content created", check: d => !!d.editionContent },
-        { label: "Sales materials ready", check: d => !!d.editionSales },
+        { label: "Edition type & pricing configured", check: d => !!d.editionConfig?.editionType && (d.editionConfig?.price || 0) > 0 },
+        { label: "Edition content generated", check: d => !!d.editionContent && d.editionContent.length > 50 },
+        { label: "Sales & marketing materials ready", check: d => !!d.editionSales && d.editionSales.length > 50 },
+        { label: "Edition identity reviewed", check: d => !!(d.editionIdentity?.selectedTitle || d.editionIdentity?.customTitle || d.editionIdentity?.subtitle) },
+        { label: "Bonus content reviewed", check: d => Object.values(d.editionBonusContent || {}).some((v: any) => typeof v === "string" && v.trim().length > 0) },
       ]} revenue={{ calculate: d => {
         const price = d.editionConfig?.price || 49;
         const qty = d.editionConfig?.printRun === "limited" ? 100 : d.editionConfig?.printRun === "standard" ? 500 : 1000;
         return { amount: price * qty, description: `${qty} copies at $${price} each` };
       }}} previewContent={(d) => (
-        <div className="p-6 text-center">
-          <BookOpen className="h-8 w-8 text-amber-500 mx-auto mb-3" />
-          <h2 className="font-heading text-xl font-bold mb-1">{bookTitle} — Special Edition</h2>
-          <p className="text-sm text-muted-foreground mb-3">{d.editionConfig?.editionType?.replace("-", " ") || "Signed Copy"} • {d.editionConfig?.printRun || "Limited"} run</p>
-          {d.editionConfig?.occasion && d.editionConfig.occasion !== "none" && (
-            <Badge className="bg-secondary/10 text-secondary text-[10px] px-2 py-0.5 mb-2">
-              🎁 {d.editionConfig.occasion.replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())} Edition
-            </Badge>
+        <div className="p-6 space-y-5">
+          {/* Hero */}
+          <div className="text-center space-y-2">
+            <BookOpen className="h-8 w-8 text-amber-500 mx-auto" />
+            <h2 className="font-heading text-xl font-bold">{editionTitle}</h2>
+            {identityP.subtitle && <p className="text-sm text-muted-foreground">{identityP.subtitle}</p>}
+            {identityP.tagline && <p className="text-xs text-secondary italic">"{identityP.tagline}"</p>}
+            <div className="flex justify-center gap-2 flex-wrap mt-2">
+              <Badge variant="outline">{cfgP.editionType?.replace("-", " ") || "Signed Copy"}</Badge>
+              <Badge variant="outline">{cfgP.printRun === "limited" ? "Limited Run" : cfgP.printRun || "Limited"}</Badge>
+              {hasOccP && (
+                <Badge className="bg-secondary/10 text-secondary text-[10px]">
+                  🎁 {occObjP?.label || cfgP.occasion} Edition
+                </Badge>
+              )}
+            </div>
+            <Badge className="bg-amber-500/10 text-amber-700 text-sm px-4 py-1 mt-2">${(cfgP.price || 49).toLocaleString()}</Badge>
+          </div>
+
+          {/* Extras */}
+          {cfgP.extras && (
+            <div className="text-center">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Includes</p>
+              <p className="text-sm text-foreground">{cfgP.extras}</p>
+            </div>
           )}
-          <Badge className="bg-amber-500/10 text-amber-700 text-sm px-4 py-1">${(d.editionConfig?.price || 49).toLocaleString()}</Badge>
+
+          {/* Bonus content summary */}
+          {bonusCount > 0 && (
+            <div className="border-t pt-4">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 text-center">Bonus Content ({bonusCount} sections)</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {bonusP.foreword && <Badge variant="outline" className="justify-center py-1.5 text-xs">📜 Foreword</Badge>}
+                {bonusP.reflectionPrompts && <Badge variant="outline" className="justify-center py-1.5 text-xs">💭 Prompts</Badge>}
+                {bonusP.exclusiveChapter && <Badge variant="outline" className="justify-center py-1.5 text-xs">📖 Chapter</Badge>}
+                {bonusP.giftInscription && <Badge variant="outline" className="justify-center py-1.5 text-xs">✍️ Inscription</Badge>}
+                {bonusP.companionResource && <Badge variant="outline" className="justify-center py-1.5 text-xs">📋 Companion</Badge>}
+              </div>
+            </div>
+          )}
+
+          {/* Bundles preview */}
+          {(d.editionBundles || []).length > 0 && (
+            <div className="border-t pt-4">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 text-center">Bundle Tiers</p>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {(d.editionBundles || []).map((b: any) => (
+                  <div key={b.tier} className="border rounded-lg p-3 text-center">
+                    <Badge variant="outline" className="mb-1 text-[10px]">{b.tier}</Badge>
+                    <p className="text-xs font-semibold">{b.name}</p>
+                    <p className="text-sm font-bold mt-1">${b.price}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Cover concept */}
+          {identityP.coverConcept && (
+            <div className="border-t pt-4">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Cover Concept</p>
+              <p className="text-xs text-muted-foreground line-clamp-3">{identityP.coverConcept}</p>
+            </div>
+          )}
         </div>
       )} />;
+    }
     default: return <div className="text-sm text-muted-foreground">Unknown step: {stepId}</div>;
   }
 }
