@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Loader2, Wand2, FileText, Send, MessageCircle } from "lucide-react";
+import ContentSectionCards from "./ContentSectionCards";
 import StepInstructions, { type BuilderCategory } from "./StepInstructions";
 import AbbyRecommendationCard from "./AbbyRecommendationCard";
 import { useToast } from "@/hooks/use-toast";
@@ -349,14 +350,13 @@ export default function SharedContentStep({
               </Button>
             </div>
           </div>
-          <Textarea
-            value={content}
-            onChange={e => {
+          <ContentSectionCards
+            content={content}
+            onChange={val => {
               onMarkEdited(stepId);
-              setStepData(prev => ({ ...prev, [contentKey]: e.target.value }));
+              setStepData(prev => ({ ...prev, [contentKey]: val }));
             }}
-            rows={20}
-            className="text-sm font-mono"
+            stepTitle={title}
           />
         </div>
       )}
