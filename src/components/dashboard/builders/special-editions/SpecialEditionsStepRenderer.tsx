@@ -195,7 +195,7 @@ Generate ALL 6 components:
 
 2) THEMED FOREWORD: 500-800 word foreword connecting the book's core message to ${occasionLabel}, written as a letter from the author. Start with "Dear Reader..."
 
-3) REFLECTION PROMPTS: 10 prompts themed to ${occasionLabel}, each tied to a specific chapter. For each: prompt text, source chapter, why it matters for this occasion.
+3) GIFT JOURNAL PROMPTS: 10 fillable gift-journal prompts the GIFT-GIVER completes and gives TO the recipient. These are NOT self-reflection questions — they are heartfelt sentence stems addressed directly to the recipient (e.g., "Dear Mum, one thing you taught me without knowing it was..."). Adapt the recipient role for ${occasionLabel} (Mother's Day → Mum/Mom, Father's Day → Dad, Valentine's → My Love, etc.). For each: the prompt stem, source chapter, why it matters.
 
 4) EXCLUSIVE CHAPTER: 1,500-2,500 word new chapter bridging the book's message with ${occasionLabel}. Must feel like a natural extension.
 
@@ -209,7 +209,7 @@ Format each component with a clear heading. Make all content publication-ready.`
 Include: 1) AUTHOR'S FOREWORD OR LETTER (new content exclusive to this edition, personal story about the book's journey), 2) BONUS CHAPTER OR BEHIND-THE-SCENES content, 3) DISCUSSION GUIDE / BOOK CLUB QUESTIONS (15-20 questions), 4) PHOTO/ILLUSTRATION SUGGESTIONS (describe 5-8 potential images), 5) PACKAGING DESCRIPTION AND MOCKUP details (unboxing experience). Format as markdown.`;
 
       const contentTip = hasOccasion
-        ? `This ${occasionLabel} Edition gets 6 themed components: edition identity, foreword, reflection prompts, exclusive chapter, gift inscription page, and companion resource. All content will be tied to the ${occasionLabel} theme.`
+        ? `This ${occasionLabel} Edition gets 6 themed components: edition identity, foreword, fillable gift-journal prompts (addressed to the recipient), exclusive chapter, gift inscription page, and companion resource. The gift-giver fills in the prompts to create a personalised keepsake.`
         : "New exclusive content justifies the premium price. An author's letter about the book's journey creates emotional connection.";
 
       return <SharedContentStep contentKey="editionContent" title={hasOccasion ? `${occasionLabel} Edition Content` : "Edition Content"} description={hasOccasion ? `Abby generates 6 themed components for your ${occasionLabel} Special Edition: identity, foreword, prompts, exclusive chapter, inscription page, and companion resource.` : "Author's foreword, bonus chapter, discussion guide, photo suggestions, and packaging description."} abbyTip={contentTip} aiPrompt={contentPrompt} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="editionConfig" builderId="special-editions" builderLabel="Special Editions" />;
