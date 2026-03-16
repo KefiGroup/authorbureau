@@ -81,6 +81,7 @@ function parseContentSections(content: string): ContentSection[] {
         // Skip prompt/source sub-items even as markdown headings
         if (/^Prompt/i.test(headingText)) continue;
         if (/^(Source|Why it matters)/i.test(headingText)) continue;
+        if (/^To:/i.test(headingText)) continue;
         sectionStarts.push({ index: i, title: headingText });
       }
     }
