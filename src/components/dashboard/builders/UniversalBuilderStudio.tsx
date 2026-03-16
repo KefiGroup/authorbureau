@@ -205,6 +205,37 @@ function extractHomeStudyDaysFromContent(rawContent: string): Array<Record<strin
   return [];
 }
 
+function mapCoursePriceTier(price: number): string {
+  if (!Number.isFinite(price) || price <= 0) return "0";
+  if (price <= 47) return "37";
+  if (price <= 197) return "147";
+  return "297";
+}
+
+function buildCourseModulesFromStructure(structure: any[] | undefined): Array<Record<string, any>> {
+  if (!Array.isArray(structure)) return [];
+
+  return structure
+    .filter((section) => section && (section.title || (Array.isArray(section.items) && section.items.length > 0)))
+    .map((section, moduleIndex) => {
+      const items = Array.isArray(section.items) ? section.items : [];
+      return {
+        id: crypto.randomUUID(),
+        title: String(section.title || `Module ${moduleIndex + 1}`),
+        description: String(section.description || ""),
+        position: moduleIndex,
+        lessons: items.map((item: any, lessonIndex: number) => ({
+          id: crypto.randomUUID(),
+          title: String(item?.title || `Lesson ${lessonIndex + 1}`),
+          description: String(item?.description || ""),
+          keyTakeaway: "",
+          estimatedMinutes: 15,
+          position: lessonIndex,
+        })),
+      };
+    });
+}
+
 export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
