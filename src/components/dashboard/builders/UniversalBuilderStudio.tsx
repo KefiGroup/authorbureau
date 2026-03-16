@@ -1043,7 +1043,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
             >
-              <div className="max-w-4xl">
+              <div>
                 <div className="flex items-start justify-between mb-1">
                   <div>
                     {/* 3-Act Phase Badge */}
