@@ -724,7 +724,7 @@ const specialEditionsBuilder: BuilderNodeConfig = {
   icon: "BookHeart",
   color: "text-amber-500",
   customRenderer: "special-editions",
-  abbyGreeting: "Special editions create urgency and premium positioning. A limited run of 100 signed copies at $49.99 sells out fast and generates $4,999 in a single launch.",
+  abbyGreeting: "Special editions create urgency and premium positioning. Choose an edition type, then theme it to an occasion like Valentine's Day or Christmas for gift-ready packaging with bonus content and targeted marketing.",
   abbyPublishMessage: "Your special edition is designed! Launch it to your email list for maximum impact.",
   loadingMessages: [
     "Reading your manuscript",
