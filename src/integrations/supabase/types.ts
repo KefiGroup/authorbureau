@@ -2844,6 +2844,250 @@ export type Database = {
         }
         Relationships: []
       }
+      special_edition_bonus_content: {
+        Row: {
+          content: string
+          content_type: string
+          created_at: string
+          id: string
+          is_custom_upload: boolean | null
+          sort_order: number | null
+          special_edition_id: string
+          title: string
+        }
+        Insert: {
+          content?: string
+          content_type: string
+          created_at?: string
+          id?: string
+          is_custom_upload?: boolean | null
+          sort_order?: number | null
+          special_edition_id: string
+          title: string
+        }
+        Update: {
+          content?: string
+          content_type?: string
+          created_at?: string
+          id?: string
+          is_custom_upload?: boolean | null
+          sort_order?: number | null
+          special_edition_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "special_edition_bonus_content_special_edition_id_fkey"
+            columns: ["special_edition_id"]
+            isOneToOne: false
+            referencedRelation: "special_editions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      special_edition_bundles: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          included_items: Json
+          name: string
+          price_cents: number
+          special_edition_id: string
+          stripe_price_id: string | null
+          tier: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          included_items?: Json
+          name: string
+          price_cents?: number
+          special_edition_id: string
+          stripe_price_id?: string | null
+          tier: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          included_items?: Json
+          name?: string
+          price_cents?: number
+          special_edition_id?: string
+          stripe_price_id?: string | null
+          tier?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "special_edition_bundles_special_edition_id_fkey"
+            columns: ["special_edition_id"]
+            isOneToOne: false
+            referencedRelation: "special_editions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      special_edition_marketing: {
+        Row: {
+          body: string
+          channel: string
+          created_at: string
+          day_number: number
+          id: string
+          is_published: boolean | null
+          scheduled_date: string | null
+          special_edition_id: string
+          title: string
+          week_theme: string | null
+        }
+        Insert: {
+          body?: string
+          channel: string
+          created_at?: string
+          day_number: number
+          id?: string
+          is_published?: boolean | null
+          scheduled_date?: string | null
+          special_edition_id: string
+          title: string
+          week_theme?: string | null
+        }
+        Update: {
+          body?: string
+          channel?: string
+          created_at?: string
+          day_number?: number
+          id?: string
+          is_published?: boolean | null
+          scheduled_date?: string | null
+          special_edition_id?: string
+          title?: string
+          week_theme?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "special_edition_marketing_special_edition_id_fkey"
+            columns: ["special_edition_id"]
+            isOneToOne: false
+            referencedRelation: "special_editions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      special_editions: {
+        Row: {
+          author_id: string
+          book_id: string
+          bundle_strategy_json: Json | null
+          cover_concept: string | null
+          created_at: string
+          cross_builder_json: Json | null
+          currency: string | null
+          edition_identity_json: Json | null
+          edition_type: string
+          extras: string | null
+          gift_buyer_persona: string | null
+          id: string
+          marketing_calendar_json: Json | null
+          occasion: string | null
+          occasion_date: string | null
+          occasion_tagline: string | null
+          price: number | null
+          print_quantity: number | null
+          print_run: string
+          print_specs_json: Json | null
+          published_at: string | null
+          sales_copy_json: Json | null
+          slug: string | null
+          source_asset_id: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          book_id: string
+          bundle_strategy_json?: Json | null
+          cover_concept?: string | null
+          created_at?: string
+          cross_builder_json?: Json | null
+          currency?: string | null
+          edition_identity_json?: Json | null
+          edition_type?: string
+          extras?: string | null
+          gift_buyer_persona?: string | null
+          id?: string
+          marketing_calendar_json?: Json | null
+          occasion?: string | null
+          occasion_date?: string | null
+          occasion_tagline?: string | null
+          price?: number | null
+          print_quantity?: number | null
+          print_run?: string
+          print_specs_json?: Json | null
+          published_at?: string | null
+          sales_copy_json?: Json | null
+          slug?: string | null
+          source_asset_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          book_id?: string
+          bundle_strategy_json?: Json | null
+          cover_concept?: string | null
+          created_at?: string
+          cross_builder_json?: Json | null
+          currency?: string | null
+          edition_identity_json?: Json | null
+          edition_type?: string
+          extras?: string | null
+          gift_buyer_persona?: string | null
+          id?: string
+          marketing_calendar_json?: Json | null
+          occasion?: string | null
+          occasion_date?: string | null
+          occasion_tagline?: string | null
+          price?: number | null
+          print_quantity?: number | null
+          print_run?: string
+          print_specs_json?: Json | null
+          published_at?: string | null
+          sales_copy_json?: Json | null
+          slug?: string | null
+          source_asset_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "special_editions_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "special_editions_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "special_editions_source_asset_id_fkey"
+            columns: ["source_asset_id"]
+            isOneToOne: false
+            referencedRelation: "generated_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       testimonials: {
         Row: {
           author_id: string
