@@ -36,6 +36,7 @@ interface Props {
 
 export default function BookSalesStepRenderer({ stepId, stepData, setStepData, onMarkEdited, bookId, bookTitle, plan, userId }: Props) {
   switch (stepId) {
+    case "setup":
     case "configure":
       return <SharedSetupStep configKey="bookSalesConfig" fields={SETUP_FIELDS} abbyTip="Back-of-room book sales after a keynote convert at 30-50% of the audience. For a 200-person event, bring 60-100 books." stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} plan={plan} bookTitle={bookTitle} defaults={{ eventType: "speaking", attendance: "100", pricingStrategy: "bundle" }} />;
     case "materials":
