@@ -8,6 +8,10 @@ import {
 import AbbyNarrativeLoading from "./AbbyNarrativeLoading";
 import ActPhaseBadge from "./shared/ActPhaseBadge";
 import AbbyProposal from "./AbbyProposal";
+import BuilderGetStartedPage from "./shared/BuilderGetStartedPage";
+import BuilderProgressBar from "./shared/BuilderProgressBar";
+import ConnectedProductsSection from "./shared/ConnectedProductsSection";
+import EstimatedRevenueCard from "./shared/EstimatedRevenueCard";
 import CrossBuilderNotifications from "./CrossBuilderNotifications";
 import CrossBuilderPushSummary from "./CrossBuilderPushSummary";
 import BuilderUpgradeGate from "./BuilderUpgradeGate";
