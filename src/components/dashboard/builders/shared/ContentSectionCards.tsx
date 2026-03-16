@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -136,7 +136,8 @@ function groupIntoParagraphs(body: string): string[][] {
       /^[-•●]\s/.test(trimmed) ||
       /^\d+[\.\)]\s/.test(trimmed) ||
       /^Prompt\s*[:—–]/i.test(trimmed) ||
-      /^(Source\s*(Chapter)?|Why it matters)\s*[:—]/i.test(trimmed);
+      /^(Source\s*(Chapter)?|Why it matters)\s*[:—]/i.test(trimmed) ||
+      isInlineHeader(trimmed);
 
     if (isStructural) {
       if (current.length > 0) {
@@ -152,9 +153,105 @@ function groupIntoParagraphs(body: string): string[][] {
   return groups;
 }
 
-/** Render formatted body content with proper paragraphs, bold, and workbook lines */
+/** Detect if a line looks like a label/header (e.g. "Cover Concept Brief (publication-ready):") */
+function isInlineHeader(line: string): boolean {
+  const trimmed = line.trim();
+  // Ends with ":" and is short-ish, not a bullet or numbered item
+  if (/^[-•●]\s/.test(trimmed) || /^\d+[\.\)]\s/.test(trimmed)) return false;
+  if (/^(Prompt|Source|Why it matters)/i.test(trimmed)) return false;
+  // "Label:" or "Label (detail):" pattern, under 80 chars
+  if (/^[A-Z][^.!?]*:\s*$/.test(trimmed) && trimmed.length < 80) return true;
+  // "Label (parenthetical):" pattern
+  if (/^[A-Z][^:]+\([^)]+\)\s*:\s*$/.test(trimmed) && trimmed.length < 100) return true;
+  return false;
+}
+
+/** Detect "N Title Options (choose 1)" pattern and extract numbered options */
+function extractChoiceOptions(body: string): { preamble: string; options: string[]; rest: string } | null {
+  const lines = body.split("\n");
+  const choiceIdx = lines.findIndex(l => /title options?\s*\(choose\s*\d+\)/i.test(l.trim()));
+  if (choiceIdx === -1) return null;
+
+  const preamble = lines.slice(0, choiceIdx).join("\n").trim();
+  const options: string[] = [];
+  let afterIdx = choiceIdx + 1;
+
+  for (let i = choiceIdx + 1; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+    if (/^\d+[\.\)]\s/.test(trimmed)) {
+      options.push(trimmed.replace(/^\d+[\.\)]\s*/, ""));
+      afterIdx = i + 1;
+    } else if (trimmed === "") {
+      if (options.length > 0) { afterIdx = i + 1; break; }
+    } else {
+      break;
+    }
+  }
+
+  if (options.length < 2) return null;
+  const rest = lines.slice(afterIdx).join("\n").trim();
+  return { preamble, options, rest };
+}
+
+/** Title choice selector component */
+function TitleChoiceSelector({ options, onSelect }: { options: string[]; onSelect?: (idx: number) => void }) {
+  const [selected, setSelected] = useState<number | null>(null);
+
+  const handleSelect = useCallback((idx: number) => {
+    setSelected(idx);
+    onSelect?.(idx);
+  }, [onSelect]);
+
+  return (
+    <div className="space-y-2 my-3">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Choose a title</p>
+      {options.map((opt, idx) => {
+        const isActive = selected === idx;
+        return (
+          <button
+            key={idx}
+            type="button"
+            onClick={() => handleSelect(idx)}
+            className={`w-full text-left px-4 py-3 rounded-lg border-2 text-sm transition-all ${
+              isActive
+                ? "border-secondary bg-secondary/10 font-semibold text-foreground"
+                : "border-border/60 bg-background hover:border-border hover:bg-muted/30 text-foreground"
+            }`}
+          >
+            <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full mr-2.5 text-xs font-bold shrink-0 ${
+              isActive ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground"
+            }`}>
+              {idx + 1}
+            </span>
+            {opt}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Render formatted body content with proper paragraphs, bold headers, and workbook lines */
 function FormattedBody({ body, sectionTitle }: { body: string; sectionTitle: string }) {
   const showWritingSpaces = isWorkbookContent(sectionTitle, body);
+
+  // Check for title choice options
+  const choiceData = extractChoiceOptions(body);
+
+  if (choiceData) {
+    return (
+      <div className="space-y-4">
+        {choiceData.preamble && <FormattedBodyInner body={choiceData.preamble} sectionTitle={sectionTitle} showWritingSpaces={showWritingSpaces} />}
+        <TitleChoiceSelector options={choiceData.options} />
+        {choiceData.rest && <FormattedBodyInner body={choiceData.rest} sectionTitle={sectionTitle} showWritingSpaces={showWritingSpaces} />}
+      </div>
+    );
+  }
+
+  return <FormattedBodyInner body={body} sectionTitle={sectionTitle} showWritingSpaces={showWritingSpaces} />;
+}
+
+function FormattedBodyInner({ body, sectionTitle, showWritingSpaces }: { body: string; sectionTitle: string; showWritingSpaces: boolean }) {
   const groups = groupIntoParagraphs(body);
 
   return (
@@ -163,6 +260,15 @@ function FormattedBody({ body, sectionTitle }: { body: string; sectionTitle: str
         // Single structural line
         if (lines.length === 1) {
           const lt = lines[0];
+
+          // Inline header (e.g. "Cover Concept Brief (publication-ready):")
+          if (isInlineHeader(lt)) {
+            return (
+              <p key={gIdx} className="text-sm font-bold text-foreground mt-2">
+                {renderInlineFormatting(lt)}
+              </p>
+            );
+          }
 
           // Prompt line
           const promptMatch = lt.match(/^Prompt\s*[:—–]\s*[""\u201C]?(.+?)[""\u201D]?\s*$/i);
@@ -218,6 +324,16 @@ function FormattedBody({ body, sectionTitle }: { body: string; sectionTitle: str
 
         // Multi-line prose paragraph — join into a single <p>
         const merged = lines.join(" ");
+
+        // Check if it looks like a header line (short, ends with colon)
+        if (isInlineHeader(merged)) {
+          return (
+            <p key={gIdx} className="text-sm font-bold text-foreground mt-2">
+              {renderInlineFormatting(merged)}
+            </p>
+          );
+        }
+
         return (
           <p key={gIdx} className="text-sm text-foreground leading-relaxed">
             {renderInlineFormatting(merged)}
