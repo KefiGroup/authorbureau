@@ -58,6 +58,12 @@
     --shadow-card: 0 1px 3px 0 hsl(219 47% 20% / 0.06), 0 1px 2px -1px hsl(219 47% 20% / 0.06);
     --shadow-card-hover: 0 10px 25px -5px hsl(219 47% 20% / 0.1), 0 8px 10px -6px hsl(219 47% 20% / 0.08);
     --shadow-gold: 0 4px 20px -4px hsl(38 55% 50% / 0.35);
+    --shadow-abby-glow: 0 0 20px -4px hsl(38 55% 50% / 0.25), 0 0 40px -8px hsl(38 55% 50% / 0.15);
+
+    /* Builder category accent tokens */
+    --builder-build: 152 69% 31%;
+    --builder-bridge: 258 55% 55%;
+    --builder-yield: 199 89% 48%;
   }
 
   .dark {
