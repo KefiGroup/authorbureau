@@ -33,7 +33,7 @@ function isMajorSectionHeader(line: string): boolean {
   if (!trimmed) return false;
 
   // Exclude sub-item prefixes — these are NEVER major headers
-  if (/^(Prompt|Source|Why it matters|Note|Tip|Hint|Answer|Option|Step\s+\d)/i.test(trimmed)) return false;
+  if (/^(Prompt\s*[:—–]|Source|Why it matters|Note|Tip|Hint|Answer|Option|Step\s+\d)/i.test(trimmed)) return false;
 
   // Numbered section: "1) EDITION IDENTITY" or "2) THEMED FOREWORD..."
   if (/^\d+\)\s+[A-Z]/.test(trimmed)) return true;
