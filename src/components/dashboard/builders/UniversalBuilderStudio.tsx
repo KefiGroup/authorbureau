@@ -258,6 +258,7 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
 
   // Builder state
   const [currentStep, setCurrentStep] = useState(0);
+  const firstStepId = nodeConfig.steps[0]?.id;
   const [stepData, setStepData] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
