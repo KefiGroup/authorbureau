@@ -31,18 +31,29 @@ export interface CrossBuilderOutputMap {
  * Source: ABBY 27-Node Ecosystem document §1.3
  */
 export const CROSS_BUILDER_REGISTRY: CrossBuilderOutputMap = {
-  // ─── BUILDER 1: ONLINE COURSES ────────────────────────────
+  // ─── BUILDER 1: ONLINE COURSES (Self-Paced) ────────────────────────
   "online-course": [
     { destinationBuilder: "email-marketing", pushType: "nurture-sequence", label: "7-Email Nurture Sequence", description: "Full sequence with subject lines, body, timing — appears as a ready-to-activate campaign", destinationTable: "email_flows" },
     { destinationBuilder: "website", pushType: "sales-page", label: "Course Sales Page", description: "Complete sales page auto-added to the author's microsite product catalog" },
     { destinationBuilder: "workbook", pushType: "companion-outline", label: "Companion Workbook Outline", description: "Pre-filled workbook structure mapped to course modules", destinationTable: "generated_assets" },
     { destinationBuilder: "webinar", pushType: "pitch-script", label: "Webinar Pitch Script", description: "'Sell your course via webinar' script pre-loaded in Webinar Builder", destinationTable: "generated_assets" },
     { destinationBuilder: "social-media", pushType: "launch-calendar", label: "30-Day Launch Calendar", description: "Course launch social media calendar pre-loaded in Social Media Builder" },
-    { destinationBuilder: "upsell", pushType: "funnel-pages", label: "Upsell/Downsell Pages", description: "Complete funnel pages pre-loaded in Upsell Builder" },
+    { destinationBuilder: "training-programs", pushType: "upgrade-curriculum", label: "Training Program Upgrade", description: "Upgrade this course to a premium facilitated training program", destinationTable: "training_programs" },
     { destinationBuilder: "coaching", pushType: "coaching-pathway", label: "Coaching Pathway", description: "Course graduates → coaching program structure", destinationTable: "coaching_packages" },
-    { destinationBuilder: "group-coaching", pushType: "group-curriculum", label: "Group Coaching Curriculum", description: "Premium tier group coaching pre-loaded" },
-    { destinationBuilder: "podcast-scripts", pushType: "episode-ideas", label: "Podcast Episode Ideas", description: "Teach your course content on podcast episodes" },
     { destinationBuilder: "affiliates", pushType: "affiliate-swipe", label: "Affiliate Swipe Copy", description: "Promote this course affiliate materials" },
+  ],
+
+  // ─── BUILDER 1B: TRAINING PROGRAMS (Facilitated Workshop) ─────────
+  "training-programs": [
+    { destinationBuilder: "email-marketing", pushType: "nurture-sequence", label: "7-Email Nurture Sequence", description: "Full sequence with subject lines, body, timing for workshop enrollment", destinationTable: "email_flows" },
+    { destinationBuilder: "website", pushType: "sales-page", label: "Training Program Sales Page", description: "Complete sales page for the author's microsite" },
+    { destinationBuilder: "workbook", pushType: "companion-outline", label: "Companion Workbook Outline", description: "Pre-filled workbook structure mapped to training modules", destinationTable: "generated_assets" },
+    { destinationBuilder: "webinar", pushType: "pitch-script", label: "Webinar Pitch Script", description: "'Sell your training via webinar' script", destinationTable: "generated_assets" },
+    { destinationBuilder: "social-media", pushType: "launch-calendar", label: "30-Day Launch Calendar", description: "Training program launch social media calendar" },
+    { destinationBuilder: "coaching", pushType: "coaching-pathway", label: "Post-Training Coaching", description: "Training graduates → coaching program structure", destinationTable: "coaching_packages" },
+    { destinationBuilder: "group-coaching", pushType: "group-curriculum", label: "Group Coaching Curriculum", description: "Premium tier group coaching pre-loaded" },
+    { destinationBuilder: "podcast-scripts", pushType: "episode-ideas", label: "Podcast Episode Ideas", description: "Teach your training content on podcast episodes" },
+    { destinationBuilder: "affiliates", pushType: "affiliate-swipe", label: "Affiliate Swipe Copy", description: "Promote this training program affiliate materials" },
   ],
 
   // ─── BUILDER 2: HOME STUDY COURSES ────────────────────────
