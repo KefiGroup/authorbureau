@@ -227,8 +227,18 @@ function buildCourseModulesFromStructure(structure: any[] | undefined): Array<Re
       const items = Array.isArray(section.items) ? section.items : [];
       return {
         id: crypto.randomUUID(),
+        moduleNumber: moduleIndex + 1,
         title: String(section.title || `Module ${moduleIndex + 1}`),
         description: String(section.description || ""),
+        bloomsLevel: String(section.blooms_level || ""),
+        kolbsStage: String(section.kolbs_stage || ""),
+        learningObjectives: Array.isArray(section.learning_objectives) ? section.learning_objectives.map(String) : [],
+        contentSummary: String(section.content_summary || section.description || ""),
+        facilitatorActivity: String(section.facilitator_activity || ""),
+        debriefPoints: Array.isArray(section.debrief_points) ? section.debrief_points.map(String) : ["", "", ""],
+        workbookPageDescription: String(section.workbook_page || ""),
+        durationMinutes: Number(section.duration_minutes) || 60,
+        sourceChapters: Array.isArray(section.source_chapters) ? section.source_chapters : [],
         position: moduleIndex,
         lessons: items.map((item: any, lessonIndex: number) => ({
           id: crypto.randomUUID(),

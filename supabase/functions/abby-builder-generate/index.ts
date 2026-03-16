@@ -743,7 +743,7 @@ EXISTING PRODUCTS: ${existingProducts || "None built yet."}`;
 - recommended_price: number (USD)
 - price_justification: string
 - value_ladder_position: one of "bait", "tripwire", "core", "premium", "high_ticket"
-- structure: array of objects with { title, description, source_chapters, items: [{ title, description }] }. KEEP THIS CONCISE — max 8 modules with 3-4 items each. Use short descriptions (1 sentence).
+- structure: array of objects with { title, description, source_chapters, blooms_level (e.g. "Remember + Understand"), kolbs_stage (e.g. "Concrete Experience"), learning_objectives (array of 2-3 strings using Bloom's verbs), content_summary (1-2 sentences), facilitator_activity (hands-on activity description), debrief_points (array of 3 open-ended questions), workbook_page (description of the workbook page for this module), duration_minutes (number), items: [{ title, description }] }. KEEP THIS CONCISE — max 8 modules with 3-4 items each. Use short descriptions (1 sentence).
 - cross_builder_outputs: USE EXACTLY this array (do not invent or modify): ${JSON.stringify(CROSS_BUILDER_OUTPUTS[builderId] || [])}
 - abby_commentary: string (your personal note about why this will work — 2-3 sentences max)
 - revenue_projection: string (1 sentence)
