@@ -187,6 +187,8 @@ ${plan ? `\nBUSINESS PLAN WORKBOOK INFO: ${JSON.stringify(plan.products?.workboo
         ]}
       />
 
+      <ProductDistinctionCard highlight="workbook" />
+
       {/* ─── ABBY PROACTIVE GUIDE ──────────────────────────────────── */}
       <AbbyRecommendationCard>
             {suggestingTitles ? (

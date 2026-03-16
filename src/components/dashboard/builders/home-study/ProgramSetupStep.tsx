@@ -77,6 +77,8 @@ export default function ProgramSetupStep({ stepData, setStepData, onMarkEdited, 
 
   return (
     <div className="space-y-6">
+      <ProductDistinctionCard highlight="home-study" />
+
       {/* Journey overview */}
       <Card className="p-5 border-border/60 bg-muted/30">
         <h4 className="font-heading text-sm font-bold mb-3">🗺️ How It Works</h4>
