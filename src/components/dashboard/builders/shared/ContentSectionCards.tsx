@@ -32,31 +32,88 @@ function isMajorSectionHeader(line: string): boolean {
   const trimmed = line.trim();
   if (!trimmed) return false;
 
+  // Normalize markdown/numbering before classifying header vs sub-item
+  const normalized = trimmed
+    .replace(/^#{1,4}\s+/, "")
+    .replace(/^\d+[\.)]\s+/, "")
+    .replace(/\*\*/g, "")
+    .trim();
+
+  if (!normalized) return false;
+
   // Exclude sub-item prefixes — these are NEVER major headers
-  if (/^Prompt/i.test(trimmed)) return false;
-  if (/^(Source|Why it matters|Note|Tip|Hint|Answer|Option|Step\s+\d)/i.test(trimmed)) return false;
+  if (/^Prompt/i.test(normalized)) return false;
+  if (/^(Source|Why it matters|Note|Tip|Hint|Answer|Option|Step\s+\d)/i.test(normalized)) return false;
   // "To: Mum", "To: Mummy" etc. are inscription examples, not headers
-  if (/^To:/i.test(trimmed)) return false;
+  if (/^To:/i.test(normalized)) return false;
   // "Dear Mum, ..." are gift-journal prompt stems, not section headers
-  if (/^Dear\s/i.test(trimmed)) return false;
+  if (/^Dear\s/i.test(normalized)) return false;
   // "Day 1 —", "Day 2 —" etc. are sub-items within companion resources
-  if (/^Day\s+\d/i.test(trimmed)) return false;
+  if (/^Day\s+\d/i.test(normalized)) return false;
+  // Companion micro-steps are sub-items, not top-level cards
+  if (/^(Warm start|Story share|Bridge question|Keepsake line|Close|Tiny add-on)/i.test(normalized)) return false;
 
   // Numbered section: "1) EDITION IDENTITY" or "2) THEMED FOREWORD..."
   if (/^\d+\)\s+[A-Z]/.test(trimmed)) return true;
 
   // ALL-CAPS header line (at least 2 words, not a sub-item)
-  if (/^[A-Z][A-Z\s\-&/(),:]+$/.test(trimmed) && trimmed.length > 4 && trimmed.length < 120) {
+  if (/^[A-Z][A-Z\s\-&/(),:]+$/.test(normalized) && normalized.length > 4 && normalized.length < 120) {
     return true;
   }
 
   // ALL-CAPS with em-dash description: "REFLECTION PROMPTS (10) — Mother's Day Themed"
-  if (/^[A-Z][A-Z\s\-&/()0-9]+\s*[—–-]\s*.+/.test(trimmed) && /^[A-Z]/.test(trimmed)) {
-    const capsPartMatch = trimmed.match(/^([A-Z][A-Z\s\-&/()0-9]+)/);
+  if (/^[A-Z][A-Z\s\-&/()0-9]+\s*[—–-]\s*.+/.test(normalized) && /^[A-Z]/.test(normalized)) {
+    const capsPartMatch = normalized.match(/^([A-Z][A-Z\s\-&/()0-9]+)/);
     if (capsPartMatch && capsPartMatch[1].length >= 5) return true;
   }
 
   return false;
+}
+
+function isSpecialEditionPrimaryTitle(title: string): boolean {
+  const t = title.toLowerCase();
+  return (
+    (t.includes("edition") && t.includes("identity")) ||
+    t.includes("themed foreword") ||
+    (t.includes("foreword") && t.includes("letter")) ||
+    t.includes("gift journal") ||
+    t.includes("journal prompts") ||
+    (t.includes("exclusive") && t.includes("chapter")) ||
+    (t.includes("bonus") && t.includes("chapter")) ||
+    t.includes("inscription") ||
+    (t.includes("companion") && t.includes("resource"))
+  );
+}
+
+function collapseSpecialEditionSections(rawSections: ContentSection[], content: string): ContentSection[] {
+  if (rawSections.length <= 6) return rawSections;
+
+  const lower = content.toLowerCase();
+  const hasSpecialEditionSignature =
+    lower.includes("gift journal") &&
+    lower.includes("companion resource") &&
+    (lower.includes("edition identity") || lower.includes("foreword"));
+
+  if (!hasSpecialEditionSignature) return rawSections;
+
+  const collapsed: ContentSection[] = [];
+  for (const sec of rawSections) {
+    if (isSpecialEditionPrimaryTitle(sec.title)) {
+      collapsed.push({ ...sec });
+      continue;
+    }
+
+    if (collapsed.length === 0) {
+      collapsed.push({ ...sec });
+      continue;
+    }
+
+    const parent = collapsed[collapsed.length - 1];
+    const extra = [sec.title, sec.body].filter(Boolean).join("\n");
+    parent.body = [parent.body, extra].filter(Boolean).join("\n\n");
+  }
+
+  return collapsed;
 }
 
 /** Parse content into major themed sections */
@@ -67,8 +124,8 @@ function parseContentSections(content: string): ContentSection[] {
   for (let i = 0; i < lines.length; i++) {
     if (isMajorSectionHeader(lines[i])) {
       let title = lines[i].trim();
-      // Clean up: remove "1) " prefix
-      title = title.replace(/^\d+\)\s+/, "");
+      // Clean up: remove numbering prefix like "1) " or "1. "
+      title = title.replace(/^\d+[\.)]\s+/, "");
       // Remove ** markdown bold
       title = title.replace(/\*\*/g, "");
       sectionStarts.push({ index: i, title });
@@ -82,13 +139,17 @@ function parseContentSections(content: string): ContentSection[] {
       const match = lines[i].match(/^#{1,4}\s+(.+)/);
       if (match) {
         const headingText = match[1].replace(/\*\*/g, "").trim();
-        // Skip prompt/source sub-items even as markdown headings
-        if (/^Prompt/i.test(headingText)) continue;
-        if (/^(Source|Why it matters)/i.test(headingText)) continue;
-        if (/^To:/i.test(headingText)) continue;
-        if (/^Dear\s/i.test(headingText)) continue;
-        if (/^Day\s+\d/i.test(headingText)) continue;
-        sectionStarts.push({ index: i, title: headingText });
+        const normalizedHeading = headingText.replace(/^\d+[\.)]\s+/, "").trim();
+
+        // Skip sub-items even as markdown headings
+        if (/^Prompt/i.test(normalizedHeading)) continue;
+        if (/^(Source|Why it matters)/i.test(normalizedHeading)) continue;
+        if (/^To:/i.test(normalizedHeading)) continue;
+        if (/^Dear\s/i.test(normalizedHeading)) continue;
+        if (/^Day\s+\d/i.test(normalizedHeading)) continue;
+        if (/^(Warm start|Story share|Bridge question|Keepsake line|Close|Tiny add-on)/i.test(normalizedHeading)) continue;
+
+        sectionStarts.push({ index: i, title: normalizedHeading });
       }
     }
   }
@@ -106,9 +167,11 @@ function parseContentSections(content: string): ContentSection[] {
     rawSections.push({ title, body, icon: iconForTitle(title) });
   }
 
+  const normalizedSections = collapseSpecialEditionSections(rawSections, content);
+
   // Merge sub-item sections (Prompt:, Source:, etc.) back into their parent
   const sections: ContentSection[] = [];
-  for (const sec of rawSections) {
+  for (const sec of normalizedSections) {
     if (/^Prompt/i.test(sec.title) || /^(Source|Why it matters)/i.test(sec.title) || /^To:/i.test(sec.title)) {
       if (sections.length > 0) {
         const parent = sections[sections.length - 1];
