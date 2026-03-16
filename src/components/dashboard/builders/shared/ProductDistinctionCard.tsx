@@ -26,10 +26,10 @@ const PRODUCTS = [
     key: "online-course" as const,
     icon: Video,
     label: "Online Course",
-    sublabel: "Facilitated Workshop",
-    nature: "Facilitated workshop with learning design",
-    duration: "2–3 days intensive",
-    format: "Live/recorded with activities, debrief, workbook, mindmap",
+    sublabel: "Self-Paced Digital Program",
+    nature: "Recorded video lessons, exercises, and quizzes",
+    duration: "$97–$297",
+    format: "Self-paced, learn on your own schedule",
   },
 ];
 
