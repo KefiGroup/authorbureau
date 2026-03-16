@@ -407,6 +407,48 @@ function WritingLines({ count = 3 }: { count?: number }) {
   );
 }
 
+/** Edit mode that preserves title choices as UI and only edits the rest */
+function SectionEditor({ body, sectionTitle, onChange }: { body: string; sectionTitle: string; onChange: (newBody: string) => void }) {
+  const choiceData = extractChoiceOptions(body);
+
+  if (choiceData) {
+    // Show title chooser as UI, only allow editing the "rest" content
+    return (
+      <div className="space-y-4">
+        {choiceData.preamble && (
+          <p className="text-xs text-muted-foreground italic">{choiceData.preamble}</p>
+        )}
+        <TitleChoiceSelector options={choiceData.options} />
+        <Textarea
+          value={choiceData.rest}
+          onChange={e => {
+            // Reconstruct full body: preamble + choices + edited rest
+            const choiceBlock = [
+              choiceData.preamble,
+              choiceData.options.map((o, i) => `${i + 1}. ${o}`).join("\n"),
+              "",
+              e.target.value,
+            ].filter(Boolean).join("\n");
+            onChange(choiceBlock);
+          }}
+          rows={Math.max(8, choiceData.rest.split("\n").length + 2)}
+          className="text-sm"
+          placeholder="Edit the remaining content..."
+        />
+      </div>
+    );
+  }
+
+  return (
+    <Textarea
+      value={body}
+      onChange={e => onChange(e.target.value)}
+      rows={Math.max(8, body.split("\n").length + 2)}
+      className="text-sm"
+    />
+  );
+}
+
 interface Props {
   content: string;
   onChange: (newContent: string) => void;
