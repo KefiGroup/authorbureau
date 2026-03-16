@@ -1017,6 +1017,10 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
               }}
             />
           )}
+          {/* Estimated Revenue Card */}
+          <div className="mb-4">
+            <EstimatedRevenueCard builderId={nodeConfig.id} />
+          </div>
           {/* Compact ROI Banner */}
           {user && bookId && (
             <ROIBanner
