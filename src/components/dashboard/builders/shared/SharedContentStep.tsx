@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Loader2, Wand2, FileText } from "lucide-react";
+import { Sparkles, Loader2, Wand2, FileText, Send, MessageCircle } from "lucide-react";
 import StepInstructions from "./StepInstructions";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,18 +12,43 @@ import { supabase } from "@/integrations/supabase/client";
 /** Strip markdown formatting symbols, keeping plain text */
 function stripMarkdown(md: string): string {
   return md
-    .replace(/^#{1,6}\s+/gm, "")          // headings
-    .replace(/\*\*\*(.+?)\*\*\*/g, "$1")   // bold+italic
-    .replace(/\*\*(.+?)\*\*/g, "$1")       // bold
-    .replace(/\*(.+?)\*/g, "$1")           // italic
-    .replace(/^[-•]\s+/gm, "• ")           // normalize bullets
-    .replace(/^>\s?/gm, "")               // blockquotes
-    .replace(/`{1,3}[^`]*`{1,3}/g, m =>   // inline/fenced code
-      m.replace(/`/g, ""))
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // links
-    .replace(/^---$/gm, "")               // hr
-    .replace(/\n{3,}/g, "\n\n")           // excess newlines
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/\*\*\*(.+?)\*\*\*/g, "$1")
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/\*(.+?)\*/g, "$1")
+    .replace(/^[-•]\s+/gm, "• ")
+    .replace(/^>\s?/gm, "")
+    .replace(/`{1,3}[^`]*`{1,3}/g, m => m.replace(/`/g, ""))
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/^---$/gm, "")
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+/** Check if content ends with a [STOP] marker (Abby is waiting for a reply) */
+function hasStopMarker(text: string): boolean {
+  return /\[STOP\]\s*$/i.test(text.trim());
+}
+
+/** Remove [STOP] from display text */
+function stripStopMarker(text: string): string {
+  return text.replace(/\[STOP\]\s*$/gi, "").trim();
+}
+
+/** Extract numbered options like "1) ...", "2) ...", "3) ..." from text */
+function extractQuickOptions(text: string): { number: string; label: string }[] {
+  const options: { number: string; label: string }[] = [];
+  const regex = /^(\d)\)\s*(.+)$/gm;
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    options.push({ number: match[1], label: match[2].trim().slice(0, 60) });
+  }
+  return options;
+}
+
+interface ConversationMessage {
+  role: "user" | "assistant";
+  content: string;
 }
 
 interface Props {
@@ -30,14 +56,14 @@ interface Props {
   title: string;
   description: string;
   abbyTip: string;
-  aiPrompt: string; // Use {bookTitle} and {config} as placeholders
+  aiPrompt: string;
   stepData: Record<string, any>;
   setStepData: (fn: (prev: Record<string, any>) => Record<string, any>) => void;
   onMarkEdited: (id: string) => void;
   stepId: string;
   bookId: string;
   bookTitle: string;
-  configKey?: string; // key in stepData to read config from
+  configKey?: string;
 }
 
 export default function SharedContentStep({
@@ -46,45 +72,85 @@ export default function SharedContentStep({
 }: Props) {
   const { toast } = useToast();
   const [generating, setGenerating] = useState(false);
+  const [conversation, setConversation] = useState<ConversationMessage[]>([]);
+  const [replyInput, setReplyInput] = useState("");
+  const replyInputRef = useRef<HTMLInputElement>(null);
+  const conversationEndRef = useRef<HTMLDivElement>(null);
 
   const rawContent: string = stepData[contentKey] || "";
   const content: string = rawContent ? stripMarkdown(rawContent) : "";
   const config = configKey ? stepData[configKey] || {} : {};
 
+  // Check if the latest assistant message has [STOP]
+  const lastAssistantMsg = [...conversation].reverse().find(m => m.role === "assistant");
+  const isAwaitingReply = lastAssistantMsg ? hasStopMarker(lastAssistantMsg.content) : false;
+  const quickOptions = lastAssistantMsg ? extractQuickOptions(lastAssistantMsg.content) : [];
+
+  // Auto-scroll to bottom of conversation
+  useEffect(() => {
+    conversationEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [conversation]);
+
+  // Auto-focus reply input when awaiting reply
+  useEffect(() => {
+    if (isAwaitingReply) {
+      setTimeout(() => replyInputRef.current?.focus(), 100);
+    }
+  }, [isAwaitingReply]);
+
+  const callAI = async (messages: { role: string; content: string }[]): Promise<string> => {
+    const token = (await supabase.auth.getSession()).data?.session?.access_token;
+
+    const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/business-consultant`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        messages,
+        bookId,
+        isPremium: true,
+      }),
+    });
+
+    if (!resp.ok) throw new Error("Generation failed");
+
+    const text = await resp.text();
+    let fullText = "";
+    for (const line of text.split("\n")) {
+      if (!line.startsWith("data: ")) continue;
+      const json = line.slice(6).trim();
+      if (json === "[DONE]") break;
+      try {
+        const parsed = JSON.parse(json);
+        fullText += parsed.choices?.[0]?.delta?.content || "";
+      } catch {}
+    }
+    return fullText;
+  };
+
   const generate = async () => {
     setGenerating(true);
     try {
-      const token = (await supabase.auth.getSession()).data?.session?.access_token;
       const prompt = aiPrompt
         .replace(/\{bookTitle\}/g, bookTitle)
         .replace(/\{config\}/g, JSON.stringify(config, null, 2));
 
-      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/business-consultant`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          messages: [{ role: "user", content: prompt }],
-          bookId,
-          isPremium: true,
-        }),
-      });
+      const messages = [{ role: "user", content: prompt }];
+      const fullText = await callAI(messages);
 
-      if (!resp.ok) throw new Error("Generation failed");
-
-      const text = await resp.text();
-      let fullText = "";
-      for (const line of text.split("\n")) {
-        if (!line.startsWith("data: ")) continue;
-        const json = line.slice(6).trim();
-        if (json === "[DONE]") break;
-        try {
-          const parsed = JSON.parse(json);
-          fullText += parsed.choices?.[0]?.delta?.content || "";
-        } catch {}
+      // Check if Abby is asking a question
+      if (hasStopMarker(fullText)) {
+        // Enter conversation mode
+        setConversation([
+          { role: "user" as const, content: prompt },
+          { role: "assistant" as const, content: fullText },
+        ]);
+        // Don't save to stepData yet — conversation isn't finished
+      } else {
+        // No stop — save directly
+        setStepData(prev => ({ ...prev, [contentKey]: stripMarkdown(fullText) }));
+        onMarkEdited(stepId);
+        setConversation([]);
       }
-
-      setStepData(prev => ({ ...prev, [contentKey]: stripMarkdown(fullText) }));
-      onMarkEdited(stepId);
       toast({ title: `${title} generated!` });
     } catch (err) {
       console.error(err);
@@ -92,6 +158,45 @@ export default function SharedContentStep({
     }
     setGenerating(false);
   };
+
+  const sendReply = async (replyText?: string) => {
+    const reply = replyText || replyInput.trim();
+    if (!reply || generating) return;
+
+    setReplyInput("");
+    setGenerating(true);
+
+    const updatedConversation: ConversationMessage[] = [
+      ...conversation,
+      { role: "user", content: reply },
+    ];
+    setConversation(updatedConversation);
+
+    try {
+      const fullText = await callAI(updatedConversation);
+
+      const newConversation: ConversationMessage[] = [
+        ...updatedConversation,
+        { role: "assistant", content: fullText },
+      ];
+      setConversation(newConversation);
+
+      // If no more [STOP], the conversation is complete — save the final output
+      if (!hasStopMarker(fullText)) {
+        setStepData(prev => ({ ...prev, [contentKey]: stripMarkdown(fullText) }));
+        onMarkEdited(stepId);
+        toast({ title: `${title} finalized!` });
+        // Keep conversation visible so author can see the flow
+      }
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Reply failed", variant: "destructive" });
+    }
+    setGenerating(false);
+  };
+
+  // Conversation mode: show the back-and-forth with Abby
+  const isInConversation = conversation.length > 0 && !content;
 
   return (
     <div className="space-y-6">
@@ -116,7 +221,95 @@ export default function SharedContentStep({
         </div>
       </Card>
 
-      {!content ? (
+      {/* Conversation mode: Abby asked a [STOP] question */}
+      {isInConversation && (
+        <Card className="overflow-hidden border-secondary/30">
+          {/* Conversation header */}
+          <div className="px-4 py-3 bg-secondary/5 border-b border-secondary/20 flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-secondary/20 flex items-center justify-center">
+              <MessageCircle className="h-3.5 w-3.5 text-secondary" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-secondary uppercase tracking-wider">Abby needs your input</p>
+              <p className="text-[10px] text-muted-foreground">Answer below to continue generating</p>
+            </div>
+          </div>
+
+          {/* Messages */}
+          <div className="max-h-[400px] overflow-y-auto p-4 space-y-4">
+            {conversation.filter(m => m.role === "assistant").map((msg, i) => (
+              <div key={i} className="space-y-3">
+                {i > 0 && <hr className="border-border" />}
+                <div className="flex items-start gap-3">
+                  <div className="w-7 h-7 rounded-full bg-secondary/10 flex items-center justify-center shrink-0 mt-0.5">
+                    <Sparkles className="h-3.5 w-3.5 text-secondary" />
+                  </div>
+                  <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+                    {stripStopMarker(msg.content)}
+                  </p>
+                </div>
+              </div>
+            ))}
+            {/* Show user replies inline */}
+            {conversation.filter(m => m.role === "user").slice(1).map((msg, i) => (
+              <div key={`user-${i}`} className="flex justify-end">
+                <div className="bg-primary text-primary-foreground rounded-lg px-3 py-2 text-sm max-w-[80%]">
+                  {msg.content}
+                </div>
+              </div>
+            ))}
+            {generating && (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <span className="text-xs">Abby is thinking...</span>
+              </div>
+            )}
+            <div ref={conversationEndRef} />
+          </div>
+
+          {/* Quick-pick options + reply input */}
+          {isAwaitingReply && !generating && (
+            <div className="border-t border-border p-4 space-y-3 bg-muted/30">
+              {quickOptions.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {quickOptions.map(opt => (
+                    <Button
+                      key={opt.number}
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full border-secondary/40 text-secondary hover:bg-secondary/10 text-xs"
+                      onClick={() => sendReply(opt.number)}
+                    >
+                      {opt.number}) {opt.label}
+                    </Button>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-2">
+                <Input
+                  ref={replyInputRef}
+                  value={replyInput}
+                  onChange={e => setReplyInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); sendReply(); } }}
+                  placeholder="Type your answer..."
+                  className="text-sm"
+                />
+                <Button
+                  onClick={() => sendReply()}
+                  disabled={!replyInput.trim()}
+                  size="icon"
+                  className="shrink-0 bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* No content yet and no conversation */}
+      {!content && !isInConversation && (
         <Card className="p-8 text-center border-dashed border-2">
           <FileText className="h-10 w-10 text-muted-foreground/30 mx-auto mb-4" />
           <h3 className="font-heading text-lg font-semibold mb-2">{title}</h3>
@@ -126,7 +319,10 @@ export default function SharedContentStep({
             {generating ? "Generating..." : "Generate with AI"}
           </Button>
         </Card>
-      ) : (
+      )}
+
+      {/* Content ready — editable textarea */}
+      {content && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold">{title}</h3>
@@ -134,7 +330,7 @@ export default function SharedContentStep({
               <Badge variant="outline" className="text-[10px] border-violet-300 text-violet-600">
                 <Wand2 className="h-2.5 w-2.5 mr-1" /> AI Generated
               </Badge>
-              <Button variant="outline" size="sm" onClick={generate} disabled={generating}>
+              <Button variant="outline" size="sm" onClick={() => { setConversation([]); generate(); }} disabled={generating}>
                 {generating ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}
                 Regenerate
               </Button>
