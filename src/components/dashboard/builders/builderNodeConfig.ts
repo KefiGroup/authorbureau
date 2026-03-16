@@ -735,10 +735,11 @@ const specialEditionsBuilder: BuilderNodeConfig = {
     "Preparing your Special Edition",
   ],
   steps: [
-    { id: "setup", label: "Edition Setup", description: "Set edition type, print run, pricing, and extras", abbyTip: "Special editions create urgency and premium positioning. A limited run of 100 signed copies at $49.99 sells out fast." },
-    { id: "content", label: "Edition Content", description: "AI generates foreword, bonus chapter, discussion guide, and packaging description", abbyTip: "New exclusive content makes the special edition feel truly special. An author's letter adds a personal touch." },
-    { id: "sales", label: "Sales & Fulfillment", description: "Pre-order page, numbering system, fulfillment checklist, launch emails, and social posts", abbyTip: "Pre-orders with a countdown create urgency. Limited edition numbering adds collector value." },
-    { id: "preview", label: "Preview & Publish", description: "Preview sales page, edition content, and revenue projection", abbyTip: "Launch to your email list first for maximum conversion. Special editions reward your most loyal readers." },
+    { id: "setup", label: "Edition Setup", description: "Set edition type, occasion theme, print run, pricing, and extras", abbyTip: "Special editions create urgency and premium positioning. A limited run of 100 signed copies at $49.99 sells out fast." },
+    { id: "content", label: "Edition Content", description: "AI generates themed foreword, bonus chapter, reflection prompts, and companion resource", abbyTip: "New exclusive content makes the special edition feel truly special. An author's letter adds a personal touch." },
+    { id: "sales", label: "Sales & Marketing", description: "Gift-buyer sales copy, bundles, marketing calendar, and fulfillment plan", abbyTip: "Gift-buyer copy shifts the CTA from 'Buy Now' to 'Give This Gift' — and converts at 2x the rate." },
+    { id: "review", label: "Review & Edit", description: "7-tab editor: identity, bonus content, sales page, bundles, marketing, print specs, and preview", abbyTip: "Fine-tune every component. The tabbed editor lets you polish each piece before publishing." },
+    { id: "preview", label: "Preview & Publish", description: "Final preview, revenue projection, and publish to your microsite", abbyTip: "Launch to your email list first for maximum conversion. Special editions reward your most loyal readers." },
   ],
 };
 

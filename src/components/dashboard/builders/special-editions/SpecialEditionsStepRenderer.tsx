@@ -2,6 +2,7 @@ import SharedSetupStep, { type SetupField } from "../shared/SharedSetupStep";
 import SharedContentStep from "../shared/SharedContentStep";
 import SharedPublishStep from "../shared/SharedPublishStep";
 import OccasionTemplateGrid, { OCCASION_TEMPLATES } from "./OccasionTemplateGrid";
+import EditionReviewTabs from "./EditionReviewTabs";
 import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 import StepInstructions from "../shared/StepInstructions";
 import { Badge } from "@/components/ui/badge";
@@ -241,6 +242,26 @@ Format as markdown with clear headings.`
         : "Create FOMO with a countdown and 'X of Y remaining' counter. Pre-orders with a specific ship date work best.";
 
       return <SharedContentStep contentKey="editionSales" title={hasOcc ? `${occLabel} Gift Sales & Marketing` : "Sales & Fulfillment"} description={hasOcc ? `Gift-buyer sales copy, 3 bundle tiers, 30-day marketing calendar, and fulfillment plan for your ${occLabel} Edition.` : "Pre-order page, numbering system, fulfillment checklist, launch emails, and social posts."} abbyTip={salesTip} aiPrompt={salesPrompt} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="editionConfig" />;
+    }
+    case "review": {
+      const cfgR = stepData.editionConfig || {};
+      const hasOccR = cfgR.occasion && cfgR.occasion !== "none";
+      if (!hasOccR) {
+        return (
+          <div className="p-6 text-center text-muted-foreground">
+            <p className="text-sm">No occasion selected — this step is for themed editions. Skip to Preview & Publish.</p>
+          </div>
+        );
+      }
+      return (
+        <EditionReviewTabs
+          stepData={stepData}
+          setStepData={setStepData}
+          onMarkEdited={onMarkEdited}
+          stepId={stepId}
+          bookTitle={bookTitle}
+        />
+      );
     }
     case "preview":
       return <SharedPublishStep builderLabel="Special Edition" userId={userId} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookTitle={bookTitle} checklist={[
