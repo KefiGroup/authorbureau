@@ -88,13 +88,28 @@ function parseContentSections(content: string): ContentSection[] {
     return [{ title: "Content", body: content.trim(), icon: <FileText className="h-5 w-5" /> }];
   }
 
-  const sections: ContentSection[] = [];
+  const rawSections: ContentSection[] = [];
   for (let i = 0; i < sectionStarts.length; i++) {
-    const startLine = sectionStarts[i].index + 1; // skip the header line
+    const startLine = sectionStarts[i].index + 1;
     const endLine = i + 1 < sectionStarts.length ? sectionStarts[i + 1].index : lines.length;
     const body = lines.slice(startLine, endLine).join("\n").trim();
     const title = sectionStarts[i].title;
-    sections.push({ title, body, icon: iconForTitle(title) });
+    rawSections.push({ title, body, icon: iconForTitle(title) });
+  }
+
+  // Merge sub-item sections (Prompt:, Source:, etc.) back into their parent
+  const sections: ContentSection[] = [];
+  for (const sec of rawSections) {
+    if (/^Prompt/i.test(sec.title) || /^(Source|Why it matters)/i.test(sec.title)) {
+      if (sections.length > 0) {
+        const parent = sections[sections.length - 1];
+        parent.body = parent.body + "\n\n" + sec.title + "\n" + sec.body;
+      } else {
+        sections.push(sec);
+      }
+    } else {
+      sections.push(sec);
+    }
   }
 
   return sections;
