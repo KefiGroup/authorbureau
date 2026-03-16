@@ -5,7 +5,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Loader2, Wand2, FileText, Send, MessageCircle } from "lucide-react";
-import StepInstructions from "./StepInstructions";
+import StepInstructions, { type BuilderCategory } from "./StepInstructions";
+import AbbyRecommendationCard from "./AbbyRecommendationCard";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -64,11 +65,12 @@ interface Props {
   bookId: string;
   bookTitle: string;
   configKey?: string;
+  category?: BuilderCategory;
 }
 
 export default function SharedContentStep({
   contentKey, title, description, abbyTip, aiPrompt,
-  stepData, setStepData, onMarkEdited, stepId, bookId, bookTitle, configKey,
+  stepData, setStepData, onMarkEdited, stepId, bookId, bookTitle, configKey, category = "build",
 }: Props) {
   const { toast } = useToast();
   const [generating, setGenerating] = useState(false);
@@ -78,8 +80,20 @@ export default function SharedContentStep({
   const conversationEndRef = useRef<HTMLDivElement>(null);
 
   const rawContent: string = stepData[contentKey] || "";
-  const content: string = rawContent ? stripMarkdown(rawContent) : "";
+  const contentHasStop = hasStopMarker(rawContent);
+  const content: string = rawContent && !contentHasStop ? stripMarkdown(rawContent) : "";
   const config = configKey ? stepData[configKey] || {} : {};
+
+  // If saved content has [STOP], bootstrap conversation from it
+  useEffect(() => {
+    if (contentHasStop && conversation.length === 0) {
+      setConversation([
+        { role: "assistant" as const, content: rawContent },
+      ]);
+      // Clear the saved content so conversation mode activates
+      setStepData(prev => ({ ...prev, [contentKey]: "" }));
+    }
+  }, [contentHasStop]);
 
   // Check if the latest assistant message has [STOP]
   const lastAssistantMsg = [...conversation].reverse().find(m => m.role === "assistant");
@@ -201,25 +215,18 @@ export default function SharedContentStep({
   return (
     <div className="space-y-6">
       <StepInstructions
-        summary="AI generates your content based on the configuration from the previous step. You can edit everything after generation."
+        category={category}
         items={[
-          { label: "Generate with AI", description: "creates complete content using your book's themes, frameworks, and business plan." },
-          { label: "Regenerate", description: "re-runs AI generation, replacing current content with a fresh version." },
-          { label: "Text editor", description: "edit the generated content directly — your changes are auto-saved." },
-          { label: "AI Generated badge", description: "indicates content was created by AI. Editing removes this badge." },
+          { label: "Generate with AI", description: "Creates complete content from your book's themes and plan." },
+          { label: "Regenerate", description: "Re-runs AI generation with a fresh version." },
+          { label: "Text editor", description: "Edit generated content directly — auto-saved." },
+          { label: "AI Generated", description: "Badge indicates AI-created content." },
         ]}
       />
-      <Card className="p-4 border-secondary/20 bg-secondary/5">
-        <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center shrink-0">
-            <Sparkles className="h-4 w-4 text-secondary" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-secondary mb-1">Abby's Recommendation</p>
-            <p className="text-sm text-muted-foreground">{abbyTip}</p>
-          </div>
-        </div>
-      </Card>
+
+      <AbbyRecommendationCard>
+        <p className="text-sm text-foreground leading-relaxed">{abbyTip}</p>
+      </AbbyRecommendationCard>
 
       {/* Conversation mode: Abby asked a [STOP] question */}
       {isInConversation && (
