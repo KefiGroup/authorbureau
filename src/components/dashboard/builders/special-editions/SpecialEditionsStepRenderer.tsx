@@ -56,12 +56,12 @@ function SpecialEditionSetup({ stepData, setStepData, onMarkEdited, stepId, plan
   return (
     <div className="space-y-6">
       <StepInstructions
-        summary="Configure your special edition — format, occasion, and pricing. All fields auto-save."
+        category="build"
         items={[
-          { label: "Edition Type", description: "choose the physical format of your special edition." },
-          { label: "Occasion Theme", description: "optionally add a seasonal theme for gift-buyer marketing and bonus content." },
-          { label: "Print Run", description: "set scarcity level to drive urgency." },
-          { label: "Extras & Price", description: "specify physical extras and set your selling price." },
+          { label: "Edition Type", description: "Choose the physical format of your special edition." },
+          { label: "Occasion Theme", description: "Add a seasonal theme for gift-buyer marketing." },
+          { label: "Print Run", description: "Set scarcity level to drive urgency." },
+          { label: "Extras & Price", description: "Specify physical extras and set your price." },
         ]}
       />
 
@@ -70,24 +70,32 @@ function SpecialEditionSetup({ stepData, setStepData, onMarkEdited, stepId, plan
       </AbbyRecommendationCard>
 
       {/* ── Edition Type ── */}
-      <div className="space-y-2">
-        <Label className="text-xs font-semibold">Edition Type</Label>
-        <div className="grid gap-2 grid-cols-3" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
-          {EDITION_TYPE_OPTIONS.map(opt => (
-            <button
-              key={opt.value}
-              onClick={() => update("editionType", opt.value)}
-              className={`p-3 rounded-xl border-2 text-left transition-all ${
-                config.editionType === opt.value
-                  ? "border-secondary bg-secondary/5 shadow-sm"
-                  : "border-border hover:border-secondary/40"
-              }`}
-            >
-              <p className="text-sm font-semibold">{opt.label}</p>
-              {opt.description && <p className="text-xs text-muted-foreground mt-0.5">{opt.description}</p>}
-              {opt.badge && <Badge variant="outline" className="mt-1.5 text-[10px]">{opt.badge}</Badge>}
-            </button>
-          ))}
+      <div className="space-y-2.5">
+        <Label className="text-sm font-semibold tracking-tight">Edition Type</Label>
+        <div className="grid gap-3 grid-cols-3" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
+          {EDITION_TYPE_OPTIONS.map(opt => {
+            const isSelected = config.editionType === opt.value;
+            return (
+              <button
+                key={opt.value}
+                onClick={() => update("editionType", opt.value)}
+                className={`relative p-3.5 rounded-xl border-2 text-left transition-all duration-200 ${
+                  isSelected
+                    ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 ring-1 ring-emerald-500/20 shadow-sm"
+                    : "border-border bg-card hover:border-emerald-300 dark:hover:border-emerald-700 hover:shadow-sm"
+                }`}
+              >
+                {isSelected && (
+                  <span className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
+                    <Check className="h-3 w-3 text-white" />
+                  </span>
+                )}
+                <p className="text-sm font-semibold pr-6">{opt.label}</p>
+                {opt.description && <p className="text-xs text-muted-foreground mt-0.5">{opt.description}</p>}
+                {opt.badge && <Badge variant="secondary" className="mt-1.5 text-[10px] font-medium">{opt.badge}</Badge>}
+              </button>
+            );
+          })}
         </div>
       </div>
 
