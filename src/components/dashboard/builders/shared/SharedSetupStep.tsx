@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Check } from "lucide-react";
 import AbbyRecommendationCard from "./AbbyRecommendationCard";
+import AbbyExplainsTooltip from "./AbbyExplainsTooltip";
 import StepInstructions, { type BuilderCategory } from "./StepInstructions";
 import AbbyMarketAdvice from "@/components/dashboard/book-hub/AbbyMarketAdvice";
 import type { MarketResearchData } from "@/hooks/useMarketResearch";
@@ -71,6 +72,20 @@ export default function SharedSetupStep({
     return null;
   };
 
+  const getAbbyExplainsReasoning = (fieldKey: string, fieldType: string): string | null => {
+    const lower = fieldKey.toLowerCase();
+    if (fieldType === "price" || lower.includes("price")) {
+      return "Abby calibrated this price using competitive analysis, perceived value benchmarks, and your audience's willingness to pay — maximizing revenue while maintaining accessibility.";
+    }
+    if (fieldType === "number" && (lower.includes("duration") || lower.includes("day") || lower.includes("session") || lower.includes("week") || lower.includes("minute"))) {
+      return "This duration is based on learning science research — long enough to create meaningful transformation, short enough to maintain engagement and completion rates.";
+    }
+    if (fieldType === "pills" && (lower.includes("format") || lower.includes("type") || lower.includes("tier") || lower.includes("frequency"))) {
+      return "These options are curated based on market research and what performs best for your genre and audience. Each format has distinct advantages for engagement and revenue.";
+    }
+    return null;
+  };
+
   const selectedStyle = categorySelectedStyles[category];
   const checkStyle = categoryCheckStyles[category];
   const hoverStyle = categoryHoverStyles[category];
@@ -99,6 +114,10 @@ export default function SharedSetupStep({
           <div key={field.key} className="space-y-2.5">
             <div className="flex items-center gap-2">
               <Label className="text-sm font-semibold tracking-tight">{field.label}</Label>
+              {(() => {
+                const reasoning = getAbbyExplainsReasoning(field.key, field.type);
+                return reasoning ? <AbbyExplainsTooltip reasoning={reasoning} /> : null;
+              })()}
               {showMarketAdvice && (
                 <AbbyMarketAdvice
                   fieldType={marketFieldType!}

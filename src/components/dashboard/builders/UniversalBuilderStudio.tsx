@@ -12,6 +12,7 @@ import BuilderGetStartedPage from "./shared/BuilderGetStartedPage";
 import BuilderProgressBar from "./shared/BuilderProgressBar";
 import ConnectedProductsSection from "./shared/ConnectedProductsSection";
 import EstimatedRevenueCard from "./shared/EstimatedRevenueCard";
+import BehindTheDesignPanel from "./shared/BehindTheDesignPanel";
 import CrossBuilderNotifications from "./CrossBuilderNotifications";
 import CrossBuilderPushSummary from "./CrossBuilderPushSummary";
 import BuilderUpgradeGate from "./BuilderUpgradeGate";
@@ -1020,6 +1021,10 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
           {/* Estimated Revenue Card */}
           <div className="mb-4">
             <EstimatedRevenueCard builderId={nodeConfig.id} />
+          </div>
+          {/* Behind the Design Panel */}
+          <div className="mb-4">
+            <BehindTheDesignPanel builderId={nodeConfig.id} productLabel={nodeConfig.label} />
           </div>
           {/* Compact ROI Banner */}
           {user && bookId && (
