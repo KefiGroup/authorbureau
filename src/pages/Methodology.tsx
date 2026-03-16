@@ -83,7 +83,7 @@ export default function Methodology() {
       <Navbar />
 
       {/* Hero */}
-      <section className="pt-28 pb-16 md:pt-36 md:pb-24 bg-gradient-to-b from-[hsl(38,60%,96%)] to-background">
+      <section className="pt-28 pb-8 md:pt-36 md:pb-12 bg-gradient-to-b from-[hsl(38,60%,96%)] to-background">
         <div className="container max-w-4xl mx-auto text-center">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }}>
             <motion.div variants={fadeUp} custom={0} className="inline-flex items-center gap-2 mb-6 px-4 py-1.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-xs font-semibold uppercase tracking-wider">
@@ -94,7 +94,7 @@ export default function Methodology() {
               The Methodology Behind Abby
             </motion.h1>
             <motion.p variants={fadeUp} custom={2} className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-4">
-              How Your AI Business Advisor Was Built — and Why You Can Trust Her
+              How Your AI Business Advisor Was Built and Why You Can Trust Her
             </motion.p>
             <motion.p variants={fadeUp} custom={3} className="text-base text-muted-foreground max-w-3xl mx-auto">
               Abby is not a generic chatbot. Every recommendation she makes is grounded in established, peer-reviewed frameworks used by the world's leading business consultants, learning designers, pricing strategists, and marketing professionals.
@@ -104,7 +104,7 @@ export default function Methodology() {
       </section>
 
       {/* Framework Sections */}
-      <section className="py-16 md:py-24">
+      <section className="py-8 md:py-12">
         <div className="container max-w-5xl mx-auto">
           <div className="grid gap-8">
             {FRAMEWORK_SECTIONS.map((section, i) => (
