@@ -449,37 +449,67 @@ function extractFromContent(raw: string): {
 }
 
 /**
- * Extract marketing calendar and sales copy from editionSales content.
+ * Extract marketing calendar, sales copy, and print specs from editionSales content.
  */
 function extractFromSales(raw: string): {
   salesCopy: string;
   marketing: Record<string, string>;
+  printSpecs: Record<string, string>;
 } {
-  if (!raw) return { salesCopy: raw || "", marketing: {} };
+  if (!raw) return { salesCopy: raw || "", marketing: {}, printSpecs: {} };
 
-  // Try to split out marketing calendar (section 3 typically)
-  const calendarIdx = raw.search(/\d+\)\s+.*MARKETING\s+CALENDAR/i);
-  const fulfillIdx = raw.search(/\d+\)\s+.*(FULFILLMENT|PRE-ORDER)/i);
+  const marketing: Record<string, string> = {};
+  const printSpecs: Record<string, string> = {};
+
+  // Find numbered sections
+  const sectionRegex = /\d+\)\s+([^\n]+)/g;
+  const sections: { title: string; startIdx: number }[] = [];
+  let sm: RegExpExecArray | null;
+  while ((sm = sectionRegex.exec(raw)) !== null) {
+    sections.push({ title: sm[1].trim(), startIdx: sm.index });
+  }
 
   let salesCopy = raw;
-  const marketing: Record<string, string> = {};
+  let calendarBody = "";
+  let fulfillBody = "";
 
-  if (calendarIdx > -1) {
-    const endIdx = fulfillIdx > calendarIdx ? fulfillIdx : raw.length;
-    const calendarSection = raw.slice(calendarIdx, endIdx);
-    salesCopy = raw.slice(0, calendarIdx) + raw.slice(endIdx);
+  for (let i = 0; i < sections.length; i++) {
+    const t = sections[i].title.toLowerCase();
+    const bodyStart = raw.indexOf("\n", sections[i].startIdx);
+    const bodyEnd = i + 1 < sections.length ? sections[i + 1].startIdx : raw.length;
+    const body = raw.slice(bodyStart, bodyEnd).trim();
 
-    // Try to split by weeks
-    const weekSections = calendarSection.split(/Week\s+(\d+)/i);
-    for (let w = 1; w <= 4; w++) {
-      const wIdx = weekSections.findIndex((s, i) => i > 0 && s.trim() === String(w));
-      if (wIdx !== -1 && weekSections[wIdx + 1]) {
-        marketing[`week${w}`] = weekSections[wIdx + 1].trim();
-      }
+    if (t.includes("marketing") && t.includes("calendar")) {
+      calendarBody = body;
+    } else if (t.includes("fulfillment") || t.includes("checklist")) {
+      fulfillBody = body;
     }
   }
 
-  return { salesCopy: salesCopy.trim(), marketing };
+  // Parse marketing weeks
+  if (calendarBody) {
+    const weekParts = calendarBody.split(/Week\s+(\d+)/i);
+    for (let w = 1; w <= 4; w++) {
+      const wIdx = weekParts.findIndex((s, i) => i > 0 && s.trim() === String(w));
+      if (wIdx !== -1 && weekParts[wIdx + 1]) {
+        marketing[`week${w}`] = weekParts[wIdx + 1].trim();
+      }
+    }
+    // If no week splits found, put the whole section in week1
+    if (Object.keys(marketing).length === 0 && calendarBody.length > 20) {
+      marketing.week1 = calendarBody;
+    }
+  }
+
+  // Parse print/fulfillment specs
+  if (fulfillBody) {
+    printSpecs.layoutNotes = fulfillBody;
+  }
+
+  // Sales copy = everything (keep full content for the sales textarea)
+  salesCopy = raw.trim();
+
+  return { salesCopy, marketing, printSpecs };
 }
 
 export default function EditionReviewTabs(props: Props) {
