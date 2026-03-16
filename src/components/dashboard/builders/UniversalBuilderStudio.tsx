@@ -205,6 +205,37 @@ function extractHomeStudyDaysFromContent(rawContent: string): Array<Record<strin
   return [];
 }
 
+function mapCoursePriceTier(price: number): string {
+  if (!Number.isFinite(price) || price <= 0) return "0";
+  if (price <= 47) return "37";
+  if (price <= 197) return "147";
+  return "297";
+}
+
+function buildCourseModulesFromStructure(structure: any[] | undefined): Array<Record<string, any>> {
+  if (!Array.isArray(structure)) return [];
+
+  return structure
+    .filter((section) => section && (section.title || (Array.isArray(section.items) && section.items.length > 0)))
+    .map((section, moduleIndex) => {
+      const items = Array.isArray(section.items) ? section.items : [];
+      return {
+        id: crypto.randomUUID(),
+        title: String(section.title || `Module ${moduleIndex + 1}`),
+        description: String(section.description || ""),
+        position: moduleIndex,
+        lessons: items.map((item: any, lessonIndex: number) => ({
+          id: crypto.randomUUID(),
+          title: String(item?.title || `Lesson ${lessonIndex + 1}`),
+          description: String(item?.description || ""),
+          keyTakeaway: "",
+          estimatedMinutes: 15,
+          position: lessonIndex,
+        })),
+      };
+    });
+}
+
 export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -227,6 +258,7 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
 
   // Builder state
   const [currentStep, setCurrentStep] = useState(0);
+  const firstStepId = nodeConfig.steps[0]?.id;
   const [stepData, setStepData] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -1046,6 +1078,39 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                             },
                           }));
                         }
+
+                        if (nodeConfig.customRenderer === "course") {
+                          const generatedModules = buildCourseModulesFromStructure(approved.structure);
+                          const recommendedPrice = Number(approved.recommended_price || 0);
+                          const recommendedTransformation = Array.isArray(approved.transformation_promises)
+                            ? approved.transformation_promises.find((item) => typeof item === "string" && item.trim().length > 0)
+                            : "";
+
+                          setStepData(prev => {
+                            const existingFoundation = prev.foundation || {};
+                            const existingCurriculumModules = Array.isArray(prev.curriculum?.modules)
+                              ? prev.curriculum.modules
+                              : [];
+
+                            return {
+                              ...prev,
+                              foundation: {
+                                ...existingFoundation,
+                                title: existingFoundation.title || approved.recommended_title || "",
+                                subtitle: existingFoundation.subtitle || approved.subtitle || "",
+                                targetAudience: existingFoundation.targetAudience || approved.target_audience || "",
+                                transformation: existingFoundation.transformation || String(recommendedTransformation || ""),
+                                priceTier: existingFoundation.priceTier || mapCoursePriceTier(recommendedPrice),
+                                exactPrice: existingFoundation.exactPrice || (recommendedPrice > 0 ? String(Math.round(recommendedPrice)) : ""),
+                              },
+                              curriculum: {
+                                ...(prev.curriculum || {}),
+                                modules: existingCurriculumModules.length > 0 ? existingCurriculumModules : generatedModules,
+                              },
+                            };
+                          });
+                        }
+
                         builderGen.startAct3(bookId, approved);
                       }}
                       onEdit={(updates) => builderGen.updateProposal(updates)}
@@ -1054,7 +1119,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                 )}
 
                 {/* Act 3: Streaming Generation — progress timeline only */}
-                {builderGen.act === "act3_generating" && currentStepConfig.id === "setup" && (
+                {builderGen.act === "act3_generating" && currentStepConfig.id === firstStepId && (
                   <Card className="p-6 mb-6">
                     <div className="flex items-center gap-3 mb-6">
                       <motion.div
@@ -1106,7 +1171,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                 )}
 
                 {/* Act 3 Complete: Show generated content */}
-                {builderGen.act === "act3_complete" && builderGen.generatedContent && currentStepConfig.id === "setup" && (
+                {builderGen.act === "act3_complete" && builderGen.generatedContent && currentStepConfig.id === firstStepId && (
                   <Card className="p-6 mb-6 border-accent/30 bg-accent/5">
                     <div className="flex items-center gap-2 mb-4">
                       <Check className="h-5 w-5 text-accent" />
