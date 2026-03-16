@@ -702,29 +702,33 @@ export default function ContentSectionCards({ content, onChange, stepTitle }: Pr
         const isEditing = editingIdx === idx;
         const previewText = section.body.replace(/\n/g, " ").slice(0, 100);
 
+        const hasContent = section.body.trim().length > 0;
+
         return (
           <Card key={idx} className="overflow-hidden border-border/60 hover:border-border transition-colors">
             {/* Header — always visible */}
             <button
               type="button"
-              onClick={() => setExpandedIdx(isExpanded ? null : idx)}
-              className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-muted/30 transition-colors"
+              onClick={() => hasContent ? setExpandedIdx(isExpanded ? null : idx) : undefined}
+              className={`w-full flex items-center gap-3 px-5 py-4 text-left transition-colors ${hasContent ? "hover:bg-muted/30 cursor-pointer" : "cursor-default"}`}
             >
               <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0 text-amber-600 dark:text-amber-400">
                 {section.icon}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-foreground">{section.title}</p>
-                {!isExpanded && section.body && (
+                {!isExpanded && hasContent && (
                   <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
                     {previewText}…
                   </p>
                 )}
               </div>
-              {isExpanded ? (
-                <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
-              ) : (
-                <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+              {hasContent && (
+                isExpanded ? (
+                  <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                )
               )}
             </button>
 
