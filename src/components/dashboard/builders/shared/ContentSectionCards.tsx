@@ -109,103 +109,119 @@ function isWorkbookContent(title: string, body: string): boolean {
   );
 }
 
+/**
+ * Group consecutive non-empty lines into paragraphs.
+ * A blank line (or double newline) starts a new paragraph.
+ * Single newlines within prose are merged into the same paragraph.
+ * Lines that are structurally distinct (bullets, prompts, numbered items) stay separate.
+ */
+function groupIntoParagraphs(body: string): string[][] {
+  const lines = body.split("\n");
+  const groups: string[][] = [];
+  let current: string[] = [];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      // Blank line = paragraph break
+      if (current.length > 0) {
+        groups.push(current);
+        current = [];
+      }
+      continue;
+    }
+
+    // Structural lines always start a new group
+    const isStructural =
+      /^[-•●]\s/.test(trimmed) ||
+      /^\d+[\.\)]\s/.test(trimmed) ||
+      /^Prompt\s*[:—–]/i.test(trimmed) ||
+      /^(Source\s*(Chapter)?|Why it matters)\s*[:—]/i.test(trimmed);
+
+    if (isStructural) {
+      if (current.length > 0) {
+        groups.push(current);
+        current = [];
+      }
+      groups.push([trimmed]);
+    } else {
+      current.push(trimmed);
+    }
+  }
+  if (current.length > 0) groups.push(current);
+  return groups;
+}
+
 /** Render formatted body content with proper paragraphs, bold, and workbook lines */
 function FormattedBody({ body, sectionTitle }: { body: string; sectionTitle: string }) {
   const showWritingSpaces = isWorkbookContent(sectionTitle, body);
-  const paragraphs = body.split(/\n{2,}/);
+  const groups = groupIntoParagraphs(body);
 
   return (
-    <div className="space-y-3">
-      {paragraphs.map((para, pIdx) => {
-        const trimmed = para.trim();
-        if (!trimmed) return null;
+    <div className="space-y-4">
+      {groups.map((lines, gIdx) => {
+        // Single structural line
+        if (lines.length === 1) {
+          const lt = lines[0];
 
-        // Check if it's a sub-header (like "Prompt: ..." or a short bold line)
-        const isSubHeader = /^(Prompt\s*[:—]|Source\s*[:—]|Why it matters|Chapter|Day\s+\d|Week\s+\d|Module\s+\d|Section\s+\d)/i.test(trimmed);
-        const isBulletBlock = trimmed.split("\n").every(l => /^[-•●]\s/.test(l.trim()) || !l.trim());
+          // Prompt line
+          const promptMatch = lt.match(/^Prompt\s*[:—–]\s*[""\u201C]?(.+?)[""\u201D]?\s*$/i);
+          if (promptMatch) {
+            return (
+              <div key={gIdx} className="mt-2">
+                <p className="text-sm font-semibold text-foreground">
+                  {renderInlineFormatting(promptMatch[1])}
+                </p>
+                {showWritingSpaces && <WritingLines count={3} />}
+              </div>
+            );
+          }
 
-        if (isBulletBlock) {
-          const items = trimmed.split("\n").filter(l => l.trim());
-          return (
-            <ul key={pIdx} className="space-y-1.5 ml-1">
-              {items.map((item, iIdx) => (
-                <li key={iIdx} className="flex items-start gap-2 text-sm text-foreground leading-relaxed">
-                  <span className="text-muted-foreground mt-1 shrink-0">•</span>
-                  <span>{renderInlineFormatting(item.replace(/^[-•●]\s*/, ""))}</span>
-                </li>
-              ))}
-            </ul>
-          );
+          // Source/Why it matters
+          if (/^(Source\s*(Chapter)?|Why it matters)\s*[:—]/i.test(lt)) {
+            return (
+              <p key={gIdx} className="text-xs text-muted-foreground italic ml-1">
+                {renderInlineFormatting(lt)}
+              </p>
+            );
+          }
+
+          // Bullet item
+          if (/^[-•●]\s/.test(lt)) {
+            return (
+              <div key={gIdx} className="flex items-start gap-2 text-sm text-foreground leading-relaxed ml-1">
+                <span className="text-muted-foreground mt-0.5 shrink-0">•</span>
+                <span>{renderInlineFormatting(lt.replace(/^[-•●]\s*/, ""))}</span>
+              </div>
+            );
+          }
+
+          // Numbered item
+          if (/^\d+[\.\)]\s/.test(lt)) {
+            return (
+              <p key={gIdx} className="text-sm text-foreground leading-relaxed">
+                {renderInlineFormatting(lt)}
+              </p>
+            );
+          }
+
+          // Workbook writing prompt
+          if (showWritingSpaces && /^(write|describe|list|reflect|your answer|answer here)/i.test(lt)) {
+            return (
+              <div key={gIdx}>
+                <p className="text-sm text-foreground font-medium">{renderInlineFormatting(lt)}</p>
+                <WritingLines count={4} />
+              </div>
+            );
+          }
         }
 
-        // Render lines within a paragraph
-        const lines = trimmed.split("\n");
-
+        // Multi-line prose paragraph — join into a single <p>
+        const merged = lines.join(" ");
         return (
-          <div key={pIdx} className="space-y-1.5">
-            {lines.map((line, lIdx) => {
-              const lt = line.trim();
-              if (!lt) return null;
-
-              // Sub-header styling (Prompt:, Source Chapter:, etc.)
-              const promptMatch = lt.match(/^Prompt\s*[:—–]\s*[""]?(.+?)[""]?\s*$/i);
-              if (promptMatch) {
-                return (
-                  <div key={lIdx} className="mt-3 first:mt-0">
-                    <p className="text-sm font-semibold text-foreground">
-                      {renderInlineFormatting(promptMatch[1])}
-                    </p>
-                    {showWritingSpaces && <WritingLines count={3} />}
-                  </div>
-                );
-              }
-
-              // "Source Chapter:" or "Why it matters:" — secondary info
-              if (/^(Source\s*(Chapter)?|Why it matters)\s*[:—]/i.test(lt)) {
-                return (
-                  <p key={lIdx} className="text-xs text-muted-foreground italic ml-1">
-                    {renderInlineFormatting(lt)}
-                  </p>
-                );
-              }
-
-              // Numbered sub-items like "1. Title Option" — render as formatted list
-              if (/^\d+[\.\)]\s/.test(lt)) {
-                return (
-                  <p key={lIdx} className="text-sm text-foreground leading-relaxed">
-                    {renderInlineFormatting(lt)}
-                  </p>
-                );
-              }
-
-              // Bullet items
-              if (/^[-•●]\s/.test(lt)) {
-                return (
-                  <div key={lIdx} className="flex items-start gap-2 text-sm text-foreground leading-relaxed ml-1">
-                    <span className="text-muted-foreground mt-0.5 shrink-0">•</span>
-                    <span>{renderInlineFormatting(lt.replace(/^[-•●]\s*/, ""))}</span>
-                  </div>
-                );
-              }
-
-              // "Write your answer:" type prompts in workbooks
-              if (showWritingSpaces && /^(write|describe|list|reflect|your answer|answer here)/i.test(lt)) {
-                return (
-                  <div key={lIdx}>
-                    <p className="text-sm text-foreground font-medium mt-2">{renderInlineFormatting(lt)}</p>
-                    <WritingLines count={4} />
-                  </div>
-                );
-              }
-
-              // Regular paragraph line
-              return (
-                <p key={lIdx} className="text-sm text-foreground leading-relaxed">
-                  {renderInlineFormatting(lt)}
-                </p>
-              );
-            })}
-          </div>
+          <p key={gIdx} className="text-sm text-foreground leading-relaxed">
+            {renderInlineFormatting(merged)}
+          </p>
         );
       })}
     </div>
