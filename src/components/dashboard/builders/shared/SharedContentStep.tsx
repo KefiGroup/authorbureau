@@ -82,7 +82,7 @@ export default function SharedContentStep({
         } catch {}
       }
 
-      setStepData(prev => ({ ...prev, [contentKey]: fullText }));
+      setStepData(prev => ({ ...prev, [contentKey]: stripMarkdown(fullText) }));
       onMarkEdited(stepId);
       toast({ title: `${title} generated!` });
     } catch (err) {
