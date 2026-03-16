@@ -12,6 +12,7 @@ import BuilderGetStartedPage from "./shared/BuilderGetStartedPage";
 import BuilderProgressBar from "./shared/BuilderProgressBar";
 import ConnectedProductsSection from "./shared/ConnectedProductsSection";
 import EstimatedRevenueCard from "./shared/EstimatedRevenueCard";
+import BehindTheDesignPanel from "./shared/BehindTheDesignPanel";
 import CrossBuilderNotifications from "./CrossBuilderNotifications";
 import CrossBuilderPushSummary from "./CrossBuilderPushSummary";
 import BuilderUpgradeGate from "./BuilderUpgradeGate";
