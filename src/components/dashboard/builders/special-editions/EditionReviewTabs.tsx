@@ -524,7 +524,9 @@ export default function EditionReviewTabs(props: Props) {
     const needsBonus = !editionBonusContent && editionContent;
     const needsSales = !editionSalesCopy && editionSales;
 
-    if (!needsIdentity && !needsBonus && !needsSales) return;
+    const needsPrintSpecs = !props.stepData.editionPrintSpecs && editionSales;
+
+    if (!needsIdentity && !needsBonus && !needsSales && !needsPrintSpecs) return;
     hasExtracted.current = true;
 
     const updates: Record<string, any> = {};
@@ -539,11 +541,16 @@ export default function EditionReviewTabs(props: Props) {
       }
     }
 
-    if (needsSales && editionSales) {
-      const { salesCopy, marketing } = extractFromSales(editionSales);
-      updates.editionSalesCopy = salesCopy;
-      if (Object.keys(marketing).length > 0) {
+    if ((needsSales || needsPrintSpecs) && editionSales) {
+      const { salesCopy, marketing, printSpecs } = extractFromSales(editionSales);
+      if (needsSales) {
+        updates.editionSalesCopy = salesCopy;
+      }
+      if (Object.keys(marketing).length > 0 && !props.stepData.editionMarketing) {
         updates.editionMarketing = marketing;
+      }
+      if (needsPrintSpecs && Object.keys(printSpecs).length > 0) {
+        updates.editionPrintSpecs = printSpecs;
       }
     }
 
