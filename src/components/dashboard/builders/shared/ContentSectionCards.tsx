@@ -52,6 +52,8 @@ function isMajorSectionHeader(line: string): boolean {
   if (/^Day\s+\d/i.test(normalized)) return false;
   // Companion micro-steps are sub-items, not top-level cards
   if (/^(Warm start|Story share|Bridge question|Keepsake line|Close|Tiny add-on)/i.test(normalized)) return false;
+  // Edition identity sub-fields are not section headers
+  if (/^(Title|Subtitle|Tagline)\s*:/i.test(normalized)) return false;
 
   // Numbered section: "1) EDITION IDENTITY" or "2) THEMED FOREWORD..."
   if (/^\d+\)\s+[A-Z]/.test(trimmed)) return true;
