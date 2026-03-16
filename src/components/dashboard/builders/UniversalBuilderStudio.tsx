@@ -1368,6 +1368,11 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
           </AnimatePresence>
 
 
+          {/* Connected Products */}
+          <div className="max-w-4xl">
+            <ConnectedProductsSection builderId={nodeConfig.id} />
+          </div>
+
           <div className="flex-grow" />
           {/* Action bar */}
           <div className="sticky bottom-0 z-20 -mx-6 lg:-mx-8 mt-4 px-6 lg:px-8 py-4 border-t border-border bg-card/95 backdrop-blur">
