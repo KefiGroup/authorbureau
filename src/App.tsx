@@ -101,6 +101,7 @@ const AppRoutes = () => (
       <Route path="/reader-portal/:id" element={<ReaderPortalIdRedirect />} />
 
       <Route path="/how-it-works" element={<HowItWorks />} />
+      <Route path="/methodology" element={<Methodology />} />
       <Route path="/solutions" element={<SolutionsIndex />} />
       <Route path="/solutions/:genre" element={<Solutions />} />
       <Route path="/sso" element={<SSO />} />
