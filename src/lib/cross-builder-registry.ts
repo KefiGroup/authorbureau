@@ -189,14 +189,7 @@ export const CROSS_BUILDER_REGISTRY: CrossBuilderOutputMap = {
     { destinationBuilder: "social-media", pushType: "corporate-proof", label: "Corporate Social Proof", description: "'Company X trained with me' posts" },
   ],
 
-  // ─── BUILDER 18: TRAINING PROGRAMS ────────────────────────
-  "training-programs": [
-    { destinationBuilder: "website", pushType: "training-listing", label: "Training Program Listing", description: "Training program listing on microsite" },
-    { destinationBuilder: "certification", pushType: "trainer-pathway", label: "Train-the-Trainer Pathway", description: "Certification as training program capstone" },
-    { destinationBuilder: "email-marketing", pushType: "b2b-sales-emails", label: "B2B Sales Emails", description: "B2B outreach email campaigns", destinationTable: "email_flows" },
-    { destinationBuilder: "social-media", pushType: "client-proof", label: "Client Success Posts", description: "'Company X trained with me' social proof posts" },
-    { destinationBuilder: "online-course", pushType: "self-paced-version", label: "Self-Paced Version", description: "Self-paced online version of training program" },
-  ],
+  // ─── BUILDER 18: TRAINING PROGRAMS (duplicate removed — defined above as Builder 1B)
 
   // ─── BUILDER 19: AFFILIATES ───────────────────────────────
   "affiliates": [
