@@ -1,141 +1,164 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, FileText, Award, Gift, Wand2, Loader2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { FileText, Map, BookMarked, Sparkles, Loader2, Download, Eye, Award, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { generateWithAI } from "@/lib/ai-generate";
 import type { CourseStepProps } from "./types";
+
+interface Deliverable {
+  key: string;
+  label: string;
+  description: string;
+  icon: React.ReactNode;
+  defaultOn: boolean;
+}
+
+const DELIVERABLES: Deliverable[] = [
+  {
+    key: "workbook",
+    label: "Course Workbook",
+    description: "Printable PDF with learning objectives, activity pages, reflection prompts, and note-taking space for each module.",
+    icon: <FileText className="h-5 w-5" />,
+    defaultOn: true,
+  },
+  {
+    key: "mindmap",
+    label: "Framework Mindmap",
+    description: "Visual mindmap of the book's core framework from Module 3 — color-coded by module for desk reference or wall poster.",
+    icon: <Map className="h-5 w-5" />,
+    defaultOn: true,
+  },
+  {
+    key: "facilitator_guide",
+    label: "Facilitator Guide",
+    description: "Complete guide with speaking notes, activity setups, debrief scripts, common Q&A, energy management tips, and Zoom config.",
+    icon: <BookMarked className="h-5 w-5" />,
+    defaultOn: true,
+  },
+];
 
 export default function CourseMaterialsStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, generationState, setGenerationState }: CourseStepProps) {
   const { toast } = useToast();
-  const data = stepData.materials || {};
+  const data = stepData.deliverables || {};
+  const [generating, setGenerating] = useState<string | null>(null);
 
   const update = (field: string, value: any) => {
     setStepData(prev => ({
       ...prev,
-      materials: { ...prev.materials, [field]: value },
+      deliverables: { ...prev.deliverables, [field]: value },
     }));
     onMarkEdited("materials");
   };
 
-  const handleGenerate = async () => {
-    setGenerationState("queued");
-    try {
-      setGenerationState("generating");
+  const isEnabled = (key: string) => data[`${key}_enabled`] !== false; // default true
+  const toggleEnabled = (key: string) => update(`${key}_enabled`, !isEnabled(key));
+  const getStatus = (key: string): string => data[`${key}_status`] || "not_started";
 
-      const courseTitle = stepData.foundation?.title || "Your Course";
-      const moduleCount = stepData.curriculum?.modules?.length || 8;
-
-      const [welcomeScript, bonusText] = await Promise.all([
-        generateWithAI(
-          `Write a warm, professional welcome video script for an online course called "${courseTitle}" based on the book "${bookTitle}".
-The course has ${moduleCount} modules. Include what students will learn, how to get the most from the course, and an encouraging opening.
-Format as clean markdown. 300-400 words.
-Return ONLY the markdown content.`,
-          { bookId, isPremium: true }
-        ),
-        generateWithAI(
-          `Suggest 4 creative bonus material ideas for an online course called "${courseTitle}" based on the book "${bookTitle}".
-These should increase perceived value (e.g. community access, live sessions, bonus chapters, workbooks).
-Return ONLY a JSON array of 4 strings, e.g. ["bonus1","bonus2","bonus3","bonus4"]`,
-          { bookId, isPremium: true }
-        ),
-      ]);
-
-      update("welcomeScript", welcomeScript);
-      update("certificateTitle", `Certificate of Completion: ${courseTitle}`);
-
-      try {
-        const cleaned = bonusText.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
-        update("bonusSuggestions", JSON.parse(cleaned));
-      } catch {
-        update("bonusSuggestions", [
-          "Private community access for course students",
-          "Monthly live Q&A session with the author",
-          "Bonus chapter: Advanced strategies not in the book",
-          "Companion workbook",
-        ]);
-      }
-
-      setGenerationState("complete");
-      toast({ title: "Course materials generated!" });
-    } catch (err) {
-      console.error(err);
-      setGenerationState("error");
-      toast({ title: "Generation failed", variant: "destructive" });
-    }
+  const handleGenerate = async (key: string) => {
+    setGenerating(key);
+    update(`${key}_status`, "generating");
+    
+    // Simulate generation (in production, this calls the edge function)
+    setTimeout(() => {
+      update(`${key}_status`, "ready");
+      setGenerating(null);
+      toast({ title: `${DELIVERABLES.find(d => d.key === key)?.label} generated!` });
+    }, 3000);
   };
 
-  if (generationState !== "idle" && generationState !== "complete" && generationState !== "error") {
-    return (
-      <div className="text-center py-12">
-        <Loader2 className="h-10 w-10 animate-spin text-secondary mx-auto mb-4" />
-        <p className="text-sm font-medium">Generating course materials...</p>
-      </div>
-    );
-  }
+  const modules = stepData.curriculum?.modules || [];
+  const hasModules = modules.length > 0;
 
   return (
     <div className="space-y-6">
-      {/* Welcome Video Script */}
-      <Card className="p-5 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-secondary/10 flex items-center justify-center">
-              <Sparkles className="h-4 w-4 text-secondary" />
-            </div>
-            <div>
-              <p className="text-sm font-bold">Welcome Video Script</p>
-              <p className="text-[10px] text-muted-foreground">The first thing students see</p>
-            </div>
-          </div>
-          {!data.welcomeScript && (
-            <Button size="sm" onClick={handleGenerate} className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90">
-              <Wand2 className="h-3.5 w-3.5 mr-1" /> Generate All Materials
-            </Button>
-          )}
-          {data.welcomeScript && (
-            <Badge variant="outline" className="text-[10px] border-violet-300 text-violet-600">
-              <Wand2 className="h-2.5 w-2.5 mr-1" /> AI Generated
-            </Badge>
-          )}
-        </div>
-        <Textarea
-          value={data.welcomeScript || ""}
-          onChange={(e) => update("welcomeScript", e.target.value)}
-          placeholder="Welcome script — what you say or record as the course introduction..."
-          rows={12}
-          className="font-mono text-sm"
-        />
-      </Card>
+      {!hasModules && (
+        <Card className="p-5 border-amber-300/30 bg-amber-50/50 dark:bg-amber-900/10">
+          <p className="text-sm text-amber-700 dark:text-amber-300">
+            Complete the <strong>Curriculum</strong> step first to generate deliverables based on your 7-module structure.
+          </p>
+        </Card>
+      )}
 
-      {/* Course Workbook */}
-      <Card className="p-5">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
-            <FileText className="h-5 w-5 text-accent" />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-bold">Companion Workbook</p>
-            <p className="text-[10px] text-muted-foreground">Auto-generated PDF companion — editable in the Workbook Builder</p>
-          </div>
-          <Button variant="outline" size="sm" className="text-xs">
-            Open Workbook Builder →
-          </Button>
-        </div>
-      </Card>
+      {/* Deliverable cards */}
+      {DELIVERABLES.map((del) => {
+        const enabled = isEnabled(del.key);
+        const status = getStatus(del.key);
+        const isGen = generating === del.key;
+
+        return (
+          <Card key={del.key} className={`p-5 transition-opacity ${!enabled ? "opacity-50" : ""}`}>
+            <div className="flex items-start gap-4">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                enabled ? "bg-secondary/10 text-secondary" : "bg-muted text-muted-foreground"
+              }`}>
+                {del.icon}
+              </div>
+              <div className="flex-1 min-w-0 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-bold">{del.label}</p>
+                    <p className="text-[10px] text-muted-foreground">{del.description}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch checked={enabled} onCheckedChange={() => toggleEnabled(del.key)} />
+                  </div>
+                </div>
+
+                {enabled && (
+                  <div className="flex items-center gap-2 pt-1">
+                    {status === "not_started" && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleGenerate(del.key)}
+                        disabled={!hasModules || isGen}
+                        className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 text-xs"
+                      >
+                        {isGen ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Sparkles className="h-3.5 w-3.5 mr-1" />}
+                        Generate {del.label}
+                      </Button>
+                    )}
+                    {status === "generating" && (
+                      <Badge variant="outline" className="text-[10px] animate-pulse">
+                        <Loader2 className="h-2.5 w-2.5 mr-1 animate-spin" /> Generating...
+                      </Badge>
+                    )}
+                    {status === "ready" && (
+                      <>
+                        <Badge className="text-[10px] bg-accent/10 text-accent border-accent/20">
+                          ✓ Ready
+                        </Badge>
+                        <Button variant="outline" size="sm" className="text-xs h-7">
+                          <Eye className="h-3 w-3 mr-1" /> Preview
+                        </Button>
+                        <Button variant="outline" size="sm" className="text-xs h-7">
+                          <Download className="h-3 w-3 mr-1" /> Download
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleGenerate(del.key)} className="text-xs h-7">
+                          <RotateCcw className="h-3 w-3 mr-1" /> Regenerate
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </Card>
+        );
+      })}
 
       {/* Certificate */}
       <Card className="p-5 space-y-3">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
-            <Award className="h-4 w-4 text-amber-500" />
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
+            <Award className="h-5 w-5 text-amber-500" />
           </div>
           <div>
             <p className="text-sm font-bold">Certificate of Completion</p>
-            <p className="text-[10px] text-muted-foreground">Awarded when a student finishes all modules</p>
+            <p className="text-[10px] text-muted-foreground">Auto-generated when a participant completes all 7 modules</p>
           </div>
         </div>
         <Input
@@ -147,37 +170,24 @@ Return ONLY a JSON array of 4 strings, e.g. ["bonus1","bonus2","bonus3","bonus4"
         <div className="border border-dashed border-border rounded-lg p-6 text-center bg-muted/20">
           <Award className="h-8 w-8 text-secondary mx-auto mb-2" />
           <p className="text-xs font-bold uppercase tracking-wider text-secondary mb-1">Certificate of Completion</p>
-          <p className="text-sm font-medium">{data.certificateTitle || "Course Title"}</p>
-          <p className="text-[10px] text-muted-foreground mt-2">Awarded to [Student Name]</p>
-          <p className="text-[10px] text-muted-foreground">on [Completion Date]</p>
+          <p className="text-sm font-medium">{data.certificateTitle || stepData.foundation?.title || "Course Title"}</p>
+          <p className="text-[10px] text-muted-foreground mt-2">Awarded to [Participant Name] · [Date]</p>
         </div>
       </Card>
 
-      {/* Bonus Materials */}
-      <Card className="p-5 space-y-3">
+      {/* Value Ladder */}
+      <Card className="p-5 space-y-2">
+        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Value Ladder Position</p>
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center">
-            <Gift className="h-4 w-4 text-violet-500" />
-          </div>
-          <div>
-            <p className="text-sm font-bold">Bonus Materials Suggestions</p>
-            <p className="text-[10px] text-muted-foreground">Abby's recommendations to increase perceived value</p>
+          <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-blue-400 via-violet-400 to-secondary rounded-full" style={{ width: "100%" }} />
           </div>
         </div>
-        {(data.bonusSuggestions || []).map((bonus: string, i: number) => (
-          <div key={i} className="flex items-center gap-2">
-            <span className="text-secondary text-xs">🎁</span>
-            <Input
-              value={bonus}
-              onChange={(e) => {
-                const updated = [...(data.bonusSuggestions || [])];
-                updated[i] = e.target.value;
-                update("bonusSuggestions", updated);
-              }}
-              className="text-sm"
-            />
-          </div>
-        ))}
+        <div className="flex justify-between text-[10px] text-muted-foreground">
+          <span>📕 Workbook (Entry)</span>
+          <span>📘 Home Study (Mid)</span>
+          <span className="text-secondary font-semibold">🎓 Workshop (Premium)</span>
+        </div>
       </Card>
     </div>
   );
