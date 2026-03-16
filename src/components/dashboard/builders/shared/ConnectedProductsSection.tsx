@@ -82,7 +82,7 @@ export default function ConnectedProductsSection({ builderId, builtProductIds = 
       <div className="flex items-center mb-3">
         <span className="inline-flex items-center gap-1.5 rounded-full border border-secondary px-3 py-1 bg-secondary/5">
           <Link2 className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="text-sm font-semibold text-secondary">Connected</span>
+          <span className="text-sm font-semibold text-secondary">Revenue Map</span>
         </span>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
