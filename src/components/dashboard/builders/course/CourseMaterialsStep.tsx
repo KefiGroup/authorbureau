@@ -21,8 +21,15 @@ const DELIVERABLES: Deliverable[] = [
   {
     key: "workbook",
     label: "Course Workbook",
-    description: "Printable PDF with learning objectives, activity pages, reflection prompts, and note-taking space for each module.",
+    description: "Printable PDF with learning objectives, activity pages, reflection prompts, frameworks worksheets, and note-taking space for each module.",
     icon: <FileText className="h-5 w-5" />,
+    defaultOn: true,
+  },
+  {
+    key: "slides",
+    label: "Course Slides",
+    description: "Professional slide deck with key concepts, activity instructions, visual frameworks, and facilitator cues for each module.",
+    icon: <Eye className="h-5 w-5" />,
     defaultOn: true,
   },
   {
@@ -34,8 +41,8 @@ const DELIVERABLES: Deliverable[] = [
   },
   {
     key: "facilitator_guide",
-    label: "Facilitator Guide",
-    description: "Complete guide with speaking notes, activity setups, debrief scripts, common Q&A, energy management tips, and Zoom config.",
+    label: "Facilitator / Trainer's Manual",
+    description: "Complete guide with speaking notes, activity setups, debrief scripts, timing cues, common Q&A, energy management tips, and Zoom config.",
     icon: <BookMarked className="h-5 w-5" />,
     defaultOn: true,
   },
