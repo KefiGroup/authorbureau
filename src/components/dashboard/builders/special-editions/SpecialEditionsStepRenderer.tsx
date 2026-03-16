@@ -1,7 +1,7 @@
 import SharedSetupStep, { type SetupField } from "../shared/SharedSetupStep";
 import SharedContentStep from "../shared/SharedContentStep";
 import SharedPublishStep from "../shared/SharedPublishStep";
-import OccasionTemplateGrid from "./OccasionTemplateGrid";
+import OccasionTemplateGrid, { OCCASION_TEMPLATES } from "./OccasionTemplateGrid";
 import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 import StepInstructions from "../shared/StepInstructions";
 import { Badge } from "@/components/ui/badge";
