@@ -557,6 +557,11 @@ export default function Index() {
             * Projected revenue based on industry benchmarks from Teachable, Udemy, ICF Coach, National Speakers Association, and mastermind.com reports.
             Individual results vary based on book topic, audience size, and effort invested. These are not guarantees.
           </motion.p>
+
+          {/* Methodology Trust Badge */}
+          <div className="mt-10">
+            <MethodologyTrustBadge />
+          </div>
         </div>
       </section>
 
