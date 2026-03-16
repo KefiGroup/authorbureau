@@ -14,6 +14,7 @@ import heroBg from "@/assets/hero-bg.jpg";
 import paulineFullPhoto from "@/assets/pauline-teo.jpeg";
 import besuckcessfulCover from "@/assets/besuckcessful-cover.jpg";
 import { getPublishNowAuthUrl } from "@/lib/publishnow-auth";
+import MethodologyTrustBadge from "@/components/MethodologyTrustBadge";
 
 const SIGNUP_URL = getPublishNowAuthUrl("/dashboard");
 const getPlanUrl = (plan: string) => getPublishNowAuthUrl(`/dashboard?plan=${plan}`);
