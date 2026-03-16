@@ -2,49 +2,36 @@ import SharedSetupStep, { type SetupField } from "../shared/SharedSetupStep";
 import SharedContentStep from "../shared/SharedContentStep";
 import SharedPublishStep from "../shared/SharedPublishStep";
 import OccasionTemplateGrid from "./OccasionTemplateGrid";
+import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
+import StepInstructions from "../shared/StepInstructions";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { BookOpen } from "lucide-react";
 
-const SETUP_FIELDS: SetupField[] = [
-  { key: "editionType", label: "Edition Type", type: "pills", cols: 3, options: [
-    { value: "signed", label: "Signed Copy", badge: "$29.99–$49.99" },
-    { value: "collectors", label: "Hardcover Collector's", badge: "$49.99–$99.99" },
-    { value: "gift-set", label: "Gift Set", badge: "$79.99–$149.99", description: "Book + Workbook + Extras" },
-    { value: "anniversary", label: "Anniversary Edition" },
-    { value: "illustrated", label: "Illustrated Edition" },
-  ]},
-  { key: "printRun", label: "Print Run", type: "pills", cols: 3, options: [
-    { value: "limited", label: "Limited (50-200)", description: "Creates urgency" },
-    { value: "standard", label: "Standard (200-1000)" },
-    { value: "open", label: "Open Run" },
-  ]},
-  { key: "extras", label: "Extras Included", type: "textarea", placeholder: "Author letter, bookplate, bookmark, dust jacket art, sprayed edges..." },
-  { key: "price", label: "Edition Price (USD)", type: "price" },
+const EDITION_TYPE_OPTIONS = [
+  { value: "signed", label: "Signed Copy", badge: "$29.99–$49.99" },
+  { value: "collectors", label: "Hardcover Collector's", badge: "$49.99–$99.99" },
+  { value: "gift-set", label: "Gift Set", badge: "$79.99–$149.99", description: "Book + Workbook + Extras" },
+  { value: "anniversary", label: "Anniversary Edition" },
+  { value: "illustrated", label: "Illustrated Edition" },
+];
+
+const PRINT_RUN_OPTIONS = [
+  { value: "limited", label: "Limited (50-200)", description: "Creates urgency" },
+  { value: "standard", label: "Standard (200-1000)" },
+  { value: "open", label: "Open Run" },
 ];
 
 /** Get a date-aware Abby recommendation that suggests the next upcoming occasion */
 function getDateAwareAbbyTip(): string {
-  const now = new Date();
-  const month = now.getMonth(); // 0-indexed
-
-  if (month === 0) {
-    return "Special editions create urgency and premium positioning. Valentine's Day is just weeks away — a limited run of 100 signed copies themed to Valentine's Day at $49.99 sells out fast and generates $4,999 in a single launch. Add a themed foreword and reflection prompts to make it gift-ready.";
-  }
-  if (month === 1) {
-    return "Valentine's Day is days away! A signed Valentine's Edition with a themed foreword, reflection prompts, and a 7-Day Self-Love Challenge companion resource creates a gift that means something. Price the Premium Bundle at $79.99.";
-  }
-  if (month >= 2 && month <= 3) {
-    return "Mother's Day and Graduation season are approaching. A Hardcover Collector's Edition themed to either occasion, with a personal author letter and a 'Letters of Gratitude' companion resource, positions your book as the perfect meaningful gift.";
-  }
-  if (month === 4) {
-    return "Mother's Day and Father's Day are back-to-back — create themed editions for both. A limited run of 100 signed copies at $49.99 each generates $9,998 from just two occasions. Add themed forewords and inscription pages.";
-  }
-  if (month >= 5 && month <= 7) {
-    return "Graduation and Back to School seasons are here. A Special Edition with a 'Life Lessons' exclusive chapter and a career action plan companion resource makes the perfect gift from parents to graduates. Price the Ultimate Bundle at $149.99.";
-  }
-  if (month >= 8 && month <= 9) {
-    return "The holiday gift season starts now. A Hardcover Collector's Christmas Edition with sprayed edges, a themed foreword, and a 'Letters of Gratitude' companion resource positions your book as the perfect gift. Price the Ultimate Bundle at $149.99 for maximum revenue.";
-  }
+  const month = new Date().getMonth();
+  if (month <= 1) return "Special editions create urgency and premium positioning. Valentine's Day is just weeks away — a limited run of 100 signed copies themed to Valentine's Day at $49.99 sells out fast and generates $4,999 in a single launch. Add a themed foreword and reflection prompts to make it gift-ready.";
+  if (month <= 3) return "Mother's Day and Graduation season are approaching. A Hardcover Collector's Edition themed to either occasion, with a personal author letter and a 'Letters of Gratitude' companion resource, positions your book as the perfect meaningful gift.";
+  if (month === 4) return "Mother's Day and Father's Day are back-to-back — create themed editions for both. A limited run of 100 signed copies at $49.99 each generates $9,998 from just two occasions. Add themed forewords and inscription pages.";
+  if (month <= 7) return "Graduation and Back to School seasons are here. A Special Edition with a 'Life Lessons' exclusive chapter and a career action plan companion resource makes the perfect gift. Price the Ultimate Bundle at $149.99.";
+  if (month <= 9) return "The holiday gift season starts now. A Hardcover Collector's Christmas Edition with sprayed edges, a themed foreword, and a companion resource positions your book as the perfect gift. Price the Ultimate Bundle at $149.99 for maximum revenue.";
   return "Year-end is peak gift-buying season. Christmas and New Year editions sell best when launched in October with pre-orders. A limited run of 200 signed copies at $49.99 generates $9,998. Add holiday-themed bonus content and a companion journal.";
 }
 
@@ -55,48 +42,106 @@ interface Props {
   plan: any; generationState: string; setGenerationState: (s: any) => void; userId: string;
 }
 
-/** Wrapper for setup that adds the OccasionTemplateGrid below SharedSetupStep */
+/** Custom setup step that interleaves Edition Type + Occasion as a unified flow */
 function SpecialEditionSetup({ stepData, setStepData, onMarkEdited, stepId, plan, bookTitle }: Omit<Props, "bookId" | "generationState" | "setGenerationState" | "userId">) {
-  const config: Record<string, any> = stepData.editionConfig || {};
+  const defaults = { editionType: "signed", printRun: "limited", price: 49, occasion: "none" };
+  const config: Record<string, any> = stepData.editionConfig || defaults;
 
-  const handleOccasionSelect = (occasionId: string) => {
+  const update = (key: string, value: any) => {
     onMarkEdited(stepId);
-    setStepData(prev => ({
-      ...prev,
-      editionConfig: { ...config, occasion: occasionId },
-    }));
-  };
-
-  const handleCustomNameChange = (name: string) => {
-    onMarkEdited(stepId);
-    setStepData(prev => ({
-      ...prev,
-      editionConfig: { ...config, customOccasionName: name },
-    }));
+    setStepData(prev => ({ ...prev, editionConfig: { ...config, [key]: value } }));
   };
 
   return (
-    <div className="space-y-8">
-      <SharedSetupStep
-        configKey="editionConfig"
-        fields={SETUP_FIELDS}
-        abbyTip={getDateAwareAbbyTip()}
-        stepData={stepData}
-        setStepData={setStepData}
-        onMarkEdited={onMarkEdited}
-        stepId={stepId}
-        plan={plan}
-        bookTitle={bookTitle}
-        defaults={{ editionType: "signed", printRun: "limited", price: 49, occasion: "none" }}
+    <div className="space-y-6">
+      <StepInstructions
+        summary="Configure your special edition — format, occasion, and pricing. All fields auto-save."
+        items={[
+          { label: "Edition Type", description: "choose the physical format of your special edition." },
+          { label: "Occasion Theme", description: "optionally add a seasonal theme for gift-buyer marketing and bonus content." },
+          { label: "Print Run", description: "set scarcity level to drive urgency." },
+          { label: "Extras & Price", description: "specify physical extras and set your selling price." },
+        ]}
       />
 
-      <div className="border-t border-border/50 pt-6">
-        <OccasionTemplateGrid
-          selectedOccasion={config.occasion || "none"}
-          customOccasionName={config.customOccasionName}
-          onSelect={handleOccasionSelect}
-          onCustomNameChange={handleCustomNameChange}
+      <AbbyRecommendationCard>
+        <p className="text-sm text-foreground leading-relaxed">{getDateAwareAbbyTip()}</p>
+      </AbbyRecommendationCard>
+
+      {/* ── Edition Type ── */}
+      <div className="space-y-2">
+        <Label className="text-xs font-semibold">Edition Type</Label>
+        <div className="grid gap-2 grid-cols-3" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
+          {EDITION_TYPE_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => update("editionType", opt.value)}
+              className={`p-3 rounded-xl border-2 text-left transition-all ${
+                config.editionType === opt.value
+                  ? "border-secondary bg-secondary/5 shadow-sm"
+                  : "border-border hover:border-secondary/40"
+              }`}
+            >
+              <p className="text-sm font-semibold">{opt.label}</p>
+              {opt.description && <p className="text-xs text-muted-foreground mt-0.5">{opt.description}</p>}
+              {opt.badge && <Badge variant="outline" className="mt-1.5 text-[10px]">{opt.badge}</Badge>}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Occasion Theme (directly after Edition Type) ── */}
+      <OccasionTemplateGrid
+        selectedOccasion={config.occasion || "none"}
+        customOccasionName={config.customOccasionName}
+        onSelect={(id) => update("occasion", id)}
+        onCustomNameChange={(name) => update("customOccasionName", name)}
+      />
+
+      {/* ── Print Run ── */}
+      <div className="space-y-2">
+        <Label className="text-xs font-semibold">Print Run</Label>
+        <div className="grid gap-2 grid-cols-3" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
+          {PRINT_RUN_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => update("printRun", opt.value)}
+              className={`p-3 rounded-xl border-2 text-left transition-all ${
+                config.printRun === opt.value
+                  ? "border-secondary bg-secondary/5 shadow-sm"
+                  : "border-border hover:border-secondary/40"
+              }`}
+            >
+              <p className="text-sm font-semibold">{opt.label}</p>
+              {opt.description && <p className="text-xs text-muted-foreground mt-0.5">{opt.description}</p>}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Extras ── */}
+      <div className="space-y-2">
+        <Label className="text-xs font-semibold">Extras Included</Label>
+        <Textarea
+          value={config.extras || ""}
+          onChange={e => update("extras", e.target.value)}
+          placeholder="Author letter, bookplate, bookmark, dust jacket art, sprayed edges..."
+          rows={3}
         />
+      </div>
+
+      {/* ── Price ── */}
+      <div className="space-y-2">
+        <Label className="text-xs font-semibold">Edition Price (USD)</Label>
+        <div className="flex items-center gap-2">
+          <span className="text-lg font-bold text-muted-foreground">$</span>
+          <Input
+            type="number"
+            value={config.price || ""}
+            onChange={e => update("price", parseInt(e.target.value) || 0)}
+            className="max-w-[200px]"
+          />
+        </div>
       </div>
     </div>
   );
