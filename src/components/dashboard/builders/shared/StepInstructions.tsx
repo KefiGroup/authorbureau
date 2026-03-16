@@ -1,43 +1,67 @@
-import { useState } from "react";
-import { ChevronDown, ChevronUp, HelpCircle } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 
 export interface InstructionItem {
   label: string;
   description: string;
 }
 
+export type BuilderCategory = "build" | "bridge" | "yield";
+
 interface Props {
   title?: string;
-  summary: string;
+  summary?: string;
   items: InstructionItem[];
   defaultOpen?: boolean;
+  category?: BuilderCategory;
 }
 
-export default function StepInstructions({ title = "How this works", summary, items, defaultOpen = false }: Props) {
-  const [open, setOpen] = useState(defaultOpen);
+const categoryStyles: Record<BuilderCategory, { bg: string; border: string; numberBg: string; numberText: string; dot: string }> = {
+  build: {
+    bg: "bg-emerald-50 dark:bg-emerald-950/20",
+    border: "border-emerald-200/60 dark:border-emerald-800/40",
+    numberBg: "bg-emerald-500",
+    numberText: "text-white",
+    dot: "bg-emerald-500",
+  },
+  bridge: {
+    bg: "bg-violet-50 dark:bg-violet-950/20",
+    border: "border-violet-200/60 dark:border-violet-800/40",
+    numberBg: "bg-violet-500",
+    numberText: "text-white",
+    dot: "bg-violet-500",
+  },
+  yield: {
+    bg: "bg-sky-50 dark:bg-sky-950/20",
+    border: "border-sky-200/60 dark:border-sky-800/40",
+    numberBg: "bg-sky-500",
+    numberText: "text-white",
+    dot: "bg-sky-500",
+  },
+};
+
+export default function StepInstructions({ items, category = "build" }: Props) {
+  const styles = categoryStyles[category];
 
   return (
-    <div className="rounded-lg border border-border bg-muted/30 overflow-hidden">
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-2 p-3 text-left hover:bg-muted/50 transition-colors"
-      >
-        <HelpCircle className="h-4 w-4 text-muted-foreground shrink-0" />
-        <p className="font-medium text-foreground text-sm flex-1">{title}</p>
-        {open ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
-      </button>
-      {open && (
-        <div className="px-3 pb-3 text-xs text-muted-foreground space-y-1.5 border-t border-border pt-2">
-          <p>{summary}</p>
-          <ul className="list-disc list-inside space-y-0.5 ml-1">
-            {items.map((item, i) => (
-              <li key={i}>
-                <strong>{item.label}</strong> — {item.description}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+    <div className={`rounded-xl border ${styles.border} ${styles.bg} p-4`}>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {items.map((item, i) => (
+          <div
+            key={i}
+            className="flex items-start gap-2.5 rounded-lg bg-white/70 dark:bg-white/5 p-3 border border-white/80 dark:border-white/10"
+          >
+            <span
+              className={`flex items-center justify-center w-6 h-6 rounded-full ${styles.numberBg} ${styles.numberText} text-xs font-bold shrink-0 mt-0.5`}
+            >
+              {i + 1}
+            </span>
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-foreground leading-tight">{item.label}</p>
+              <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">{item.description}</p>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

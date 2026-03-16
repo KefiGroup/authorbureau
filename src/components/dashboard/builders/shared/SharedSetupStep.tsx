@@ -3,8 +3,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Check } from "lucide-react";
 import AbbyRecommendationCard from "./AbbyRecommendationCard";
-import StepInstructions from "./StepInstructions";
+import StepInstructions, { type BuilderCategory } from "./StepInstructions";
 import AbbyMarketAdvice from "@/components/dashboard/book-hub/AbbyMarketAdvice";
 import type { MarketResearchData } from "@/hooks/useMarketResearch";
 
@@ -14,7 +15,7 @@ export interface SetupField {
   type: "text" | "textarea" | "pills" | "number" | "price";
   options?: { value: string; label: string; badge?: string; description?: string }[];
   placeholder?: string;
-  cols?: number; // grid columns for pills
+  cols?: number;
 }
 
 interface Props {
@@ -30,11 +31,30 @@ interface Props {
   defaults?: Record<string, any>;
   marketData?: MarketResearchData | null;
   marketLoading?: boolean;
+  category?: BuilderCategory;
 }
+
+const categorySelectedStyles: Record<BuilderCategory, string> = {
+  build: "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 ring-1 ring-emerald-500/20",
+  bridge: "border-violet-500 bg-violet-50 dark:bg-violet-950/30 ring-1 ring-violet-500/20",
+  yield: "border-sky-500 bg-sky-50 dark:bg-sky-950/30 ring-1 ring-sky-500/20",
+};
+
+const categoryCheckStyles: Record<BuilderCategory, string> = {
+  build: "bg-emerald-500",
+  bridge: "bg-violet-500",
+  yield: "bg-sky-500",
+};
+
+const categoryHoverStyles: Record<BuilderCategory, string> = {
+  build: "hover:border-emerald-300 dark:hover:border-emerald-700",
+  bridge: "hover:border-violet-300 dark:hover:border-violet-700",
+  yield: "hover:border-sky-300 dark:hover:border-sky-700",
+};
 
 export default function SharedSetupStep({
   configKey, fields, abbyTip, stepData, setStepData, onMarkEdited, stepId, plan, bookTitle, defaults,
-  marketData, marketLoading,
+  marketData, marketLoading, category = "build",
 }: Props) {
   const config: Record<string, any> = stepData[configKey] || defaults || {};
 
@@ -43,7 +63,6 @@ export default function SharedSetupStep({
     setStepData(prev => ({ ...prev, [configKey]: { ...config, [key]: value } }));
   };
 
-  // Determine market advice field type from field key
   const getMarketFieldType = (fieldKey: string, fieldType: string): "title" | "price" | "description" | null => {
     const lower = fieldKey.toLowerCase();
     if (lower.includes("title") || lower.includes("name")) return "title";
@@ -52,15 +71,19 @@ export default function SharedSetupStep({
     return null;
   };
 
+  const selectedStyle = categorySelectedStyles[category];
+  const checkStyle = categoryCheckStyles[category];
+  const hoverStyle = categoryHoverStyles[category];
+
   return (
     <div className="space-y-6">
       <StepInstructions
-        summary="Configure the basic settings for your product. All fields auto-save as you type."
+        category={category}
         items={[
-          { label: "Text fields", description: "type to set titles, descriptions, and other details." },
-          { label: "Option cards", description: "click to select a preset (pricing tier, format, duration, etc.)." },
-          { label: "Price field", description: "set your selling price in USD. You can change this later." },
-          { label: "Abby's Recommendation", description: "personalized advice from your business plan — read before choosing." },
+          { label: "Text fields", description: "Type to set titles, descriptions, and other details." },
+          { label: "Option cards", description: "Click to select a preset format, tier, or duration." },
+          { label: "Price field", description: "Set your selling price in USD. Change anytime." },
+          { label: "Abby's Tip", description: "Personalized advice from your business plan." },
         ]}
       />
 
@@ -68,15 +91,14 @@ export default function SharedSetupStep({
         <p className="text-sm text-foreground leading-relaxed">{abbyTip}</p>
       </AbbyRecommendationCard>
 
-      {/* Fields */}
       {fields.map(field => {
         const marketFieldType = getMarketFieldType(field.key, field.type);
         const showMarketAdvice = marketFieldType && (marketData || marketLoading);
 
         return (
-          <div key={field.key} className="space-y-2">
+          <div key={field.key} className="space-y-2.5">
             <div className="flex items-center gap-2">
-              <Label className="text-xs font-semibold">{field.label}</Label>
+              <Label className="text-sm font-semibold tracking-tight">{field.label}</Label>
               {showMarketAdvice && (
                 <AbbyMarketAdvice
                   fieldType={marketFieldType!}
@@ -128,22 +150,32 @@ export default function SharedSetupStep({
             )}
 
             {field.type === "pills" && field.options && (
-              <div className={`grid gap-2 ${field.cols ? `grid-cols-${field.cols}` : ""}`} style={{ gridTemplateColumns: field.cols ? `repeat(${field.cols}, minmax(0, 1fr))` : undefined }}>
-                {field.options.map(opt => (
-                  <button
-                    key={opt.value}
-                    onClick={() => update(field.key, opt.value)}
-                    className={`p-3 rounded-xl border-2 text-left transition-all ${
-                      config[field.key] === opt.value
-                        ? "border-secondary bg-secondary/5 shadow-sm"
-                        : "border-border hover:border-secondary/40"
-                    }`}
-                  >
-                    <p className="text-sm font-semibold">{opt.label}</p>
-                    {opt.description && <p className="text-xs text-muted-foreground mt-0.5">{opt.description}</p>}
-                    {opt.badge && <Badge variant="outline" className="mt-1.5 text-[10px]">{opt.badge}</Badge>}
-                  </button>
-                ))}
+              <div className={`grid gap-3`} style={{ gridTemplateColumns: field.cols ? `repeat(${field.cols}, minmax(0, 1fr))` : undefined }}>
+                {field.options.map(opt => {
+                  const isSelected = config[field.key] === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      onClick={() => update(field.key, opt.value)}
+                      className={`relative p-3.5 rounded-xl border-2 text-left transition-all duration-200 ${
+                        isSelected
+                          ? `${selectedStyle} shadow-sm`
+                          : `border-border bg-card ${hoverStyle} hover:shadow-sm`
+                      }`}
+                    >
+                      {isSelected && (
+                        <span className={`absolute top-2.5 right-2.5 w-5 h-5 rounded-full ${checkStyle} flex items-center justify-center`}>
+                          <Check className="h-3 w-3 text-white" />
+                        </span>
+                      )}
+                      <p className="text-sm font-semibold pr-6">{opt.label}</p>
+                      {opt.description && <p className="text-xs text-muted-foreground mt-0.5">{opt.description}</p>}
+                      {opt.badge && (
+                        <Badge variant="secondary" className="mt-1.5 text-[10px] font-medium">{opt.badge}</Badge>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
