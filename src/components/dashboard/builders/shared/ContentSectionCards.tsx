@@ -35,6 +35,8 @@ function isMajorSectionHeader(line: string): boolean {
   // Exclude sub-item prefixes — these are NEVER major headers
   if (/^Prompt/i.test(trimmed)) return false;
   if (/^(Source|Why it matters|Note|Tip|Hint|Answer|Option|Step\s+\d)/i.test(trimmed)) return false;
+  // "To: Mum", "To: Mummy" etc. are inscription examples, not headers
+  if (/^To:/i.test(trimmed)) return false;
 
   // Numbered section: "1) EDITION IDENTITY" or "2) THEMED FOREWORD..."
   if (/^\d+\)\s+[A-Z]/.test(trimmed)) return true;
