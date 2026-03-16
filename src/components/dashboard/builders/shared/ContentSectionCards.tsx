@@ -671,7 +671,7 @@ interface Props {
 
 export default function ContentSectionCards({ content, onChange, stepTitle }: Props) {
   const sections = parseContentSections(content);
-  const [expandedIdx, setExpandedIdx] = useState<number | null>(0);
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
 
   const isSingleSection = sections.length === 1 && sections[0].title === "Content";
@@ -733,7 +733,7 @@ export default function ContentSectionCards({ content, onChange, stepTitle }: Pr
             </button>
 
             {/* Expanded body */}
-            {isExpanded && (
+            {isExpanded && hasContent && (
               <div className="px-5 pb-5 border-t border-border/40">
                 <div className="flex justify-end mt-3 mb-3">
                   <Button
