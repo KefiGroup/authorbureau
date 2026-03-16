@@ -66,11 +66,14 @@ interface Props {
   bookTitle: string;
   configKey?: string;
   category?: BuilderCategory;
+  builderId?: string;
+  builderLabel?: string;
 }
 
 export default function SharedContentStep({
   contentKey, title, description, abbyTip, aiPrompt,
   stepData, setStepData, onMarkEdited, stepId, bookId, bookTitle, configKey, category = "build",
+  builderId, builderLabel,
 }: Props) {
   const { toast } = useToast();
   const [generating, setGenerating] = useState(false);
@@ -122,6 +125,10 @@ export default function SharedContentStep({
         messages,
         bookId,
         isPremium: true,
+        builderMode: true,
+        builderId: builderId || stepId,
+        builderLabel: builderLabel || title,
+        builderStep: stepId,
       }),
     });
 
