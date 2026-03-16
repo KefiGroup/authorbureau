@@ -27,7 +27,7 @@ export default function LessonContentStep({ stepData, setStepData, onMarkEdited,
   }
 
   const currentModule = modules[selectedModIdx];
-  const currentLesson = currentModule?.lessons[selectedLessonIdx];
+  const currentLesson = currentModule?.lessons?.[selectedLessonIdx];
 
   const updateLesson = (field: string, value: any) => {
     if (!currentModule || !currentLesson) return;
