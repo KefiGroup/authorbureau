@@ -343,9 +343,9 @@ export default function AbbyHelpChatbot() {
 
   return (
     <>
-      {/* Floating trigger button */}
-      {!isOpen && (
-        <div className="fixed z-[9999] group" style={{ bottom: isMobile ? 16 : (location.search.includes("section=") && location.pathname.includes("/dashboard") ? 140 : 80), right: isMobile ? 16 : 24 }}>
+      {/* Floating trigger button — hidden inside builder studios (they have their own Ask Abby) */}
+      {!isOpen && !(location.search.includes("builder=") || ["workbook","course","home-study","training-program","social-media","email-marketing","audiobook","podcast","coaching","group-coaching","memberships","book-sales","special-editions","lead-magnet","big-ticket"].some(s => location.search.includes(`section=${s}`))) && (
+        <div className="fixed z-[9999] group" style={{ bottom: isMobile ? 16 : 24, right: isMobile ? 16 : 24 }}>
           {/* Tooltip */}
           <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
             <div className="bg-[#1B2A4A] text-white text-xs font-medium px-3 py-1.5 rounded-full whitespace-nowrap shadow-lg">
