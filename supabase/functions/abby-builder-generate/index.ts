@@ -432,9 +432,26 @@ The author may also have selected an OCCASION theme (emotional positioning):
 DESIGN THE FOLLOWING:
 
 1. EDITION_IDENTITY
-   - title_options: 3 compelling title options. If occasion selected, combine book brand with occasion theme: "[Book Title]: The [Occasion] Edition — [Tagline]". Make it meaningful, not just appending the occasion name.
-   - subtitle: A gift-focused subtitle for each title option
-   - tagline: One-line tagline that speaks to the gift buyer (if occasion) or collector (if no occasion)
+   Output EXACTLY this structure:
+   
+   TITLE/SUBTITLE/TAGLINE OPTIONS (choose 1)
+   
+   Option 1:
+   Title: [Full title, e.g. "Be SUCKcessful: The Mother's Day Edition — Thank You for Helping Me Rise"]
+   Subtitle: [Gift-focused subtitle for this option]
+   Tagline: [One-line tagline for gift buyers]
+   
+   Option 2:
+   Title: [Second title option]
+   Subtitle: [Subtitle for option 2]
+   Tagline: [Tagline for option 2]
+   
+   Option 3:
+   Title: [Third title option]
+   Subtitle: [Subtitle for option 3]
+   Tagline: [Tagline for option 3]
+   
+   COVER CONCEPT BRIEF
    - cover_concept: Detailed visual brief — mood, color palette, imagery, typography direction for the themed cover
 
 2. BONUS_CONTENT (generate 5 pieces — only if occasion is NOT "none")
