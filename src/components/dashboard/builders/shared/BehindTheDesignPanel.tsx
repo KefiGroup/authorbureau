@@ -14,7 +14,7 @@ const TABS = [
   { id: "market", label: "Market Research", icon: BarChart3, emoji: "📊" },
   { id: "pricing", label: "Pricing", icon: DollarSign, emoji: "💰" },
   { id: "marketing", label: "Marketing", icon: Megaphone, emoji: "📣" },
-  { id: "connected", label: "Connected", icon: Link2, emoji: "🔗" },
+  { id: "connected", label: "Revenue Map", icon: Link2, emoji: "🗺️" },
 ] as const;
 
 function renderMarkdownLite(text: string) {
