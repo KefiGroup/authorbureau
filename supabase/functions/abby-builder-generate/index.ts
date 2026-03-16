@@ -590,6 +590,13 @@ const CROSS_BUILDER_OUTPUTS: Record<string, Array<{ builder: string; label: stri
     { builder: "email-marketing", label: "Cohort Launch Campaign", description: "Cohort enrollment campaign" },
     { builder: "social-media", label: "Cohort Launch Posts", description: "'Cohort X just started' posts" },
   ],
+  "special-editions": [
+    { builder: "email-marketing", label: "Launch Email Campaign", description: "Limited edition launch + countdown email sequence" },
+    { builder: "website", label: "Special Edition Sales Page", description: "Gift-buyer optimized sales page on microsite" },
+    { builder: "social-media", label: "30-Day Marketing Calendar", description: "Occasion-themed countdown social posts" },
+    { builder: "workbook", label: "Companion Workbook", description: "Occasion-themed workbook to include in Premium bundle" },
+    { builder: "book-sales", label: "QR Code to Edition Page", description: "Updated QR code pointing to Special Edition sales page" },
+  ],
 };
 
 // ── Resolve user from JWT ────────────────────────────────────────────
