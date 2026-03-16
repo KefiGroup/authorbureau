@@ -8,6 +8,10 @@ import {
 import AbbyNarrativeLoading from "./AbbyNarrativeLoading";
 import ActPhaseBadge from "./shared/ActPhaseBadge";
 import AbbyProposal from "./AbbyProposal";
+import BuilderGetStartedPage from "./shared/BuilderGetStartedPage";
+import BuilderProgressBar from "./shared/BuilderProgressBar";
+import ConnectedProductsSection from "./shared/ConnectedProductsSection";
+import EstimatedRevenueCard from "./shared/EstimatedRevenueCard";
 import CrossBuilderNotifications from "./CrossBuilderNotifications";
 import CrossBuilderPushSummary from "./CrossBuilderPushSummary";
 import BuilderUpgradeGate from "./BuilderUpgradeGate";
@@ -940,6 +944,13 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
           </div>
         </div>
 
+        {/* Progress bar */}
+        <BuilderProgressBar
+          currentStep={currentStepIndex}
+          totalSteps={nodeConfig.steps.length}
+          stepLabels={nodeConfig.steps.map(s => s.label)}
+        />
+
         {/* Progress stepper */}
         <div className="px-6 py-3 border-b border-border bg-card/50">
           <div className="flex items-center gap-1">
@@ -1006,6 +1017,10 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
               }}
             />
           )}
+          {/* Estimated Revenue Card */}
+          <div className="mb-4">
+            <EstimatedRevenueCard builderId={nodeConfig.id} />
+          </div>
           {/* Compact ROI Banner */}
           {user && bookId && (
             <ROIBanner
@@ -1306,8 +1321,18 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                       />
                     );
                   }
-                  // Generic fallback with real AI generation
-                  if (builderGen.act === "idle" || builderGen.act === "act3_complete") {
+                  // Generic fallback — product-specific Get Started page
+                  if (builderGen.act === "idle" && currentStepIndex === 0) {
+                    return (
+                      <BuilderGetStartedPage
+                        builderId={nodeConfig.id}
+                        builderLabel={nodeConfig.label}
+                        bookTitle={bookTitle || "your book"}
+                        onStart={() => builderGen.startAct1(bookId)}
+                      />
+                    );
+                  }
+                  if (builderGen.act === "idle") {
                     return (
                       <Card className="p-6 min-h-[300px] border-dashed border-2">
                         <div className="text-center py-12">
@@ -1316,18 +1341,22 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                           <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
                             {currentStepConfig.description}
                           </p>
-                          {builderGen.act === "idle" && currentStepIndex === 0 ? (
-                            <Button
-                              className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90"
-                              onClick={() => builderGen.startAct1(bookId)}
-                            >
-                              <Sparkles className="h-4 w-4 mr-2" /> Analyze with Abby
-                            </Button>
-                          ) : builderGen.act === "idle" ? (
-                            <p className="text-xs text-muted-foreground/50">
-                              Complete Step 1 with Abby to populate this content
-                            </p>
-                          ) : null}
+                          <p className="text-xs text-muted-foreground/50">
+                            Complete Step 1 with Abby to populate this content
+                          </p>
+                        </div>
+                      </Card>
+                    );
+                  }
+                  if (builderGen.act === "act3_complete") {
+                    return (
+                      <Card className="p-6 min-h-[300px] border-dashed border-2">
+                        <div className="text-center py-12">
+                          <Wand2 className="h-10 w-10 text-muted-foreground/30 mx-auto mb-4" />
+                          <h3 className="font-heading text-lg font-semibold mb-2">{currentStepConfig.label}</h3>
+                          <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+                            {currentStepConfig.description}
+                          </p>
                         </div>
                       </Card>
                     );
@@ -1338,6 +1367,11 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
             </motion.div>
           </AnimatePresence>
 
+
+          {/* Connected Products */}
+          <div className="max-w-4xl">
+            <ConnectedProductsSection builderId={nodeConfig.id} />
+          </div>
 
           <div className="flex-grow" />
           {/* Action bar */}

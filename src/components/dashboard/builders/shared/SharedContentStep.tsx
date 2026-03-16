@@ -324,13 +324,15 @@ export default function SharedContentStep({
 
       {/* No content yet and no conversation */}
       {!content && !isInConversation && (
-        <Card className="p-8 text-center border-dashed border-2">
-          <FileText className="h-10 w-10 text-muted-foreground/30 mx-auto mb-4" />
-          <h3 className="font-heading text-lg font-semibold mb-2">{title}</h3>
-          <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">{description}</p>
+        <Card className="p-8 text-center border-2 border-secondary/20 bg-gradient-to-b from-secondary/5 to-transparent">
+          <Sparkles className="h-10 w-10 text-secondary/40 mx-auto mb-4" />
+          <h3 className="font-heading text-lg font-semibold mb-2">✨ Ready to Design</h3>
+          <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+            Abby will analyze your book and create your {title.toLowerCase()} content.
+          </p>
           <Button onClick={generate} disabled={generating} className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90">
             {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-            {generating ? "Generating..." : "Generate with AI"}
+            {generating ? "Generating..." : `Let Abby Design This →`}
           </Button>
         </Card>
       )}
