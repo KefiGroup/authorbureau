@@ -944,6 +944,13 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
           </div>
         </div>
 
+        {/* Progress bar */}
+        <BuilderProgressBar
+          currentStep={currentStepIndex}
+          totalSteps={nodeConfig.steps.length}
+          stepLabels={nodeConfig.steps.map(s => s.label)}
+        />
+
         {/* Progress stepper */}
         <div className="px-6 py-3 border-b border-border bg-card/50">
           <div className="flex items-center gap-1">
