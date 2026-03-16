@@ -33,7 +33,7 @@ function isMajorSectionHeader(line: string): boolean {
   if (!trimmed) return false;
 
   // Exclude sub-item prefixes — these are NEVER major headers
-  if (/^(Prompt|Source|Why it matters|Note|Tip|Hint|Answer|Option|Step\s+\d)/i.test(trimmed)) return false;
+  if (/^(Prompt\s*[:—–]|Source|Why it matters|Note|Tip|Hint|Answer|Option|Step\s+\d)/i.test(trimmed)) return false;
 
   // Numbered section: "1) EDITION IDENTITY" or "2) THEMED FOREWORD..."
   if (/^\d+\)\s+[A-Z]/.test(trimmed)) return true;
@@ -407,6 +407,48 @@ function WritingLines({ count = 3 }: { count?: number }) {
   );
 }
 
+/** Edit mode that preserves title choices as UI and only edits the rest */
+function SectionEditor({ body, sectionTitle, onChange }: { body: string; sectionTitle: string; onChange: (newBody: string) => void }) {
+  const choiceData = extractChoiceOptions(body);
+
+  if (choiceData) {
+    // Show title chooser as UI, only allow editing the "rest" content
+    return (
+      <div className="space-y-4">
+        {choiceData.preamble && (
+          <p className="text-xs text-muted-foreground italic">{choiceData.preamble}</p>
+        )}
+        <TitleChoiceSelector options={choiceData.options} />
+        <Textarea
+          value={choiceData.rest}
+          onChange={e => {
+            // Reconstruct full body: preamble + choices + edited rest
+            const choiceBlock = [
+              choiceData.preamble,
+              choiceData.options.map((o, i) => `${i + 1}. ${o}`).join("\n"),
+              "",
+              e.target.value,
+            ].filter(Boolean).join("\n");
+            onChange(choiceBlock);
+          }}
+          rows={Math.max(8, choiceData.rest.split("\n").length + 2)}
+          className="text-sm"
+          placeholder="Edit the remaining content..."
+        />
+      </div>
+    );
+  }
+
+  return (
+    <Textarea
+      value={body}
+      onChange={e => onChange(e.target.value)}
+      rows={Math.max(8, body.split("\n").length + 2)}
+      className="text-sm"
+    />
+  );
+}
+
 interface Props {
   content: string;
   onChange: (newContent: string) => void;
@@ -488,11 +530,10 @@ export default function ContentSectionCards({ content, onChange, stepTitle }: Pr
                 </div>
 
                 {isEditing ? (
-                  <Textarea
-                    value={section.body}
-                    onChange={e => handleSectionEdit(idx, e.target.value)}
-                    rows={Math.max(8, section.body.split("\n").length + 2)}
-                    className="text-sm font-mono"
+                  <SectionEditor
+                    body={section.body}
+                    sectionTitle={section.title}
+                    onChange={(newBody) => handleSectionEdit(idx, newBody)}
                   />
                 ) : (
                   <div className="rounded-lg bg-muted/20 p-4">
