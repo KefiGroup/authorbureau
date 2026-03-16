@@ -243,6 +243,26 @@ Format as markdown with clear headings.`
 
       return <SharedContentStep contentKey="editionSales" title={hasOcc ? `${occLabel} Gift Sales & Marketing` : "Sales & Fulfillment"} description={hasOcc ? `Gift-buyer sales copy, 3 bundle tiers, 30-day marketing calendar, and fulfillment plan for your ${occLabel} Edition.` : "Pre-order page, numbering system, fulfillment checklist, launch emails, and social posts."} abbyTip={salesTip} aiPrompt={salesPrompt} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="editionConfig" />;
     }
+    case "review": {
+      const cfgR = stepData.editionConfig || {};
+      const hasOccR = cfgR.occasion && cfgR.occasion !== "none";
+      if (!hasOccR) {
+        return (
+          <div className="p-6 text-center text-muted-foreground">
+            <p className="text-sm">No occasion selected — this step is for themed editions. Skip to Preview & Publish.</p>
+          </div>
+        );
+      }
+      return (
+        <EditionReviewTabs
+          stepData={stepData}
+          setStepData={setStepData}
+          onMarkEdited={onMarkEdited}
+          stepId={stepId}
+          bookTitle={bookTitle}
+        />
+      );
+    }
     case "preview":
       return <SharedPublishStep builderLabel="Special Edition" userId={userId} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookTitle={bookTitle} checklist={[
         { label: "Edition configured", check: d => !!d.editionConfig?.editionType },
