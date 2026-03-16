@@ -2898,6 +2898,197 @@ export type Database = {
           },
         ]
       }
+      training_deliverables: {
+        Row: {
+          content: string | null
+          created_at: string
+          file_url: string | null
+          id: string
+          status: string
+          title: string
+          training_id: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          file_url?: string | null
+          id?: string
+          status?: string
+          title?: string
+          training_id: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          file_url?: string | null
+          id?: string
+          status?: string
+          title?: string
+          training_id?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_deliverables_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "training_programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_modules: {
+        Row: {
+          blooms_level: string | null
+          created_at: string
+          debrief_points: Json | null
+          description: string | null
+          duration_minutes: number | null
+          facilitator_activity: string | null
+          id: string
+          kolbs_stage: string | null
+          learning_objectives: Json | null
+          module_number: number | null
+          position: number
+          slide_content: string | null
+          source_chapters: Json | null
+          title: string
+          training_id: string
+          workbook_page_description: string | null
+        }
+        Insert: {
+          blooms_level?: string | null
+          created_at?: string
+          debrief_points?: Json | null
+          description?: string | null
+          duration_minutes?: number | null
+          facilitator_activity?: string | null
+          id?: string
+          kolbs_stage?: string | null
+          learning_objectives?: Json | null
+          module_number?: number | null
+          position?: number
+          slide_content?: string | null
+          source_chapters?: Json | null
+          title: string
+          training_id: string
+          workbook_page_description?: string | null
+        }
+        Update: {
+          blooms_level?: string | null
+          created_at?: string
+          debrief_points?: Json | null
+          description?: string | null
+          duration_minutes?: number | null
+          facilitator_activity?: string | null
+          id?: string
+          kolbs_stage?: string | null
+          learning_objectives?: Json | null
+          module_number?: number | null
+          position?: number
+          slide_content?: string | null
+          source_chapters?: Json | null
+          title?: string
+          training_id?: string
+          workbook_page_description?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_modules_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "training_programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_programs: {
+        Row: {
+          author_id: string
+          book_id: string | null
+          course_format: string | null
+          cover_image_url: string | null
+          created_at: string
+          currency: string | null
+          description: string | null
+          id: string
+          price: number | null
+          source_asset_id: string | null
+          status: string
+          subtitle: string | null
+          target_student: string | null
+          title: string
+          transformation_promises: Json | null
+          updated_at: string
+          workshop_schedule: Json | null
+        }
+        Insert: {
+          author_id: string
+          book_id?: string | null
+          course_format?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          id?: string
+          price?: number | null
+          source_asset_id?: string | null
+          status?: string
+          subtitle?: string | null
+          target_student?: string | null
+          title: string
+          transformation_promises?: Json | null
+          updated_at?: string
+          workshop_schedule?: Json | null
+        }
+        Update: {
+          author_id?: string
+          book_id?: string | null
+          course_format?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          id?: string
+          price?: number | null
+          source_asset_id?: string | null
+          status?: string
+          subtitle?: string | null
+          target_student?: string | null
+          title?: string
+          transformation_promises?: Json | null
+          updated_at?: string
+          workshop_schedule?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_programs_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_programs_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_programs_source_asset_id_fkey"
+            columns: ["source_asset_id"]
+            isOneToOne: false
+            referencedRelation: "generated_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
