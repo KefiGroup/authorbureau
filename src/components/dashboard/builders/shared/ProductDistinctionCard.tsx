@@ -56,6 +56,7 @@ export default function ProductDistinctionCard({ highlight }: { highlight: Produ
               <div className="flex-1 min-w-0">
                 <p className={`font-bold ${isActive ? "text-foreground" : "text-muted-foreground"}`}>
                   {p.label}
+                  <span className="ml-1.5 font-normal text-[10px] text-muted-foreground">({p.sublabel})</span>
                 </p>
                 <p className="text-muted-foreground">{p.nature}</p>
               </div>
