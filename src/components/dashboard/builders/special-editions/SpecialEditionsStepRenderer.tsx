@@ -201,7 +201,7 @@ Generate ALL 6 components:
 
 5) GIFT INSCRIPTION PAGE: Design brief with header text, prompt for the gift-giver, decorative element suggestions, and 3 example inscriptions (e.g., "To: ___ I chose this book for you because ___").
 
-6) COMPANION RESOURCE: A downloadable companion (7-Day Challenge, Letters prompt set, Action Plan, or Reflection Journal — choose based on occasion type). Include daily structure and content.
+6) COMPANION RESOURCE: A downloadable companion with TWO MODES: Mode A "Gift Mode" (gift-giver completes it alone and gives it as a keepsake) and Mode B "Together Mode" (gift-giver and recipient do it together as a shared bonding experience). Generate both modes with daily structure and content.
 
 Format each component with a clear heading. Make all content publication-ready.`
         : `Generate special edition content for "{bookTitle}". Config: {config}.${occasionContext}
