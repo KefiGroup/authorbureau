@@ -65,6 +65,7 @@ interface Props {
   bookId: string;
   bookTitle: string;
   configKey?: string;
+  category?: BuilderCategory;
 }
 
 export default function SharedContentStep({
