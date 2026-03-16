@@ -16,12 +16,24 @@ export interface CourseStepProps {
   frameworks?: string;
 }
 
+/** A pedagogical module for the facilitated workshop */
 export interface CourseModule {
   id: string;
+  moduleNumber: number;
   title: string;
   description: string;
+  bloomsLevel: string;
+  kolbsStage: string;
+  learningObjectives: string[];
+  contentSummary: string;
+  facilitatorActivity: string;
+  debriefPoints: string[];
+  workbookPageDescription: string;
+  durationMinutes: number;
+  sourceChapters: string[];
   position: number;
-  lessons: CourseLesson[];
+  // Legacy compat
+  lessons?: CourseLesson[];
 }
 
 export interface CourseLesson {
@@ -52,4 +64,19 @@ export interface EmailStep {
   previewText: string;
   body: string;
   purpose: string;
+}
+
+export interface WorkshopTimeBlock {
+  id: string;
+  startTime: string;
+  endTime: string;
+  label: string;
+  type: "module" | "break" | "opening" | "closing" | "checkin";
+  moduleNumber?: number;
+}
+
+export interface WorkshopDay {
+  dayNumber: number;
+  label: string;
+  blocks: WorkshopTimeBlock[];
 }

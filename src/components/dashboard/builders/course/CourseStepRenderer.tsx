@@ -3,6 +3,7 @@ import CourseFoundationStep from "./CourseFoundationStep";
 import CurriculumBuilderStep from "./CurriculumBuilderStep";
 import LessonContentStep from "./LessonContentStep";
 import CourseMaterialsStep from "./CourseMaterialsStep";
+import WorkshopScheduleStep from "./WorkshopScheduleStep";
 import SalesPageStep from "./SalesPageStep";
 import EmailSequenceStep from "./EmailSequenceStep";
 import CoursePreviewStep from "./CoursePreviewStep";
@@ -21,6 +22,8 @@ export default function CourseStepRenderer({ stepId, ...props }: Props) {
       return <LessonContentStep {...props} />;
     case "materials":
       return <CourseMaterialsStep {...props} />;
+    case "schedule":
+      return <WorkshopScheduleStep {...props} />;
     case "sales-page":
       return <SalesPageStep {...props} />;
     case "email-sequence":
