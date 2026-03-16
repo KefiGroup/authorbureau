@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Sparkles, Wand2, Check, BookOpen, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import ProductDistinctionCard from "../shared/ProductDistinctionCard";
 import type { HomeStudyStepProps } from "./types";
 
 export default function ProgramSetupStep({ stepData, setStepData, onMarkEdited, plan, onStartGeneration, builderAct, bookId, onNavigate }: HomeStudyStepProps) {
@@ -76,6 +77,8 @@ export default function ProgramSetupStep({ stepData, setStepData, onMarkEdited, 
 
   return (
     <div className="space-y-6">
+      <ProductDistinctionCard highlight="home-study" />
+
       {/* Journey overview */}
       <Card className="p-5 border-border/60 bg-muted/30">
         <h4 className="font-heading text-sm font-bold mb-3">🗺️ How It Works</h4>
