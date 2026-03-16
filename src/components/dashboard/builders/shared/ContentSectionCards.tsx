@@ -194,13 +194,17 @@ function extractChoiceOptions(body: string): { preamble: string; options: string
 }
 
 /** Title choice selector component */
-function TitleChoiceSelector({ options, onSelect }: { options: string[]; onSelect?: (idx: number) => void }) {
+function TitleChoiceSelector({ options, onSelect }: { options: string[]; onSelect?: (idx: number, customTitle?: string) => void }) {
   const [selected, setSelected] = useState<number | null>(null);
+  const [customTitle, setCustomTitle] = useState("");
+  const customIdx = options.length; // "Write your own" is the last option
 
   const handleSelect = useCallback((idx: number) => {
     setSelected(idx);
-    onSelect?.(idx);
-  }, [onSelect]);
+    if (idx !== customIdx) {
+      onSelect?.(idx);
+    }
+  }, [onSelect, customIdx]);
 
   return (
     <div className="space-y-2 my-3">
@@ -227,6 +231,40 @@ function TitleChoiceSelector({ options, onSelect }: { options: string[]; onSelec
           </button>
         );
       })}
+
+      {/* Write your own option */}
+      <button
+        type="button"
+        onClick={() => handleSelect(customIdx)}
+        className={`w-full text-left px-4 py-3 rounded-lg border-2 text-sm transition-all ${
+          selected === customIdx
+            ? "border-secondary bg-secondary/10 font-semibold text-foreground"
+            : "border-border/60 bg-background hover:border-border hover:bg-muted/30 text-foreground"
+        }`}
+      >
+        <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full mr-2.5 text-xs font-bold shrink-0 ${
+          selected === customIdx ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground"
+        }`}>
+          ✎
+        </span>
+        Write my own title
+      </button>
+
+      {selected === customIdx && (
+        <div className="pl-8 pt-1">
+          <input
+            type="text"
+            value={customTitle}
+            onChange={e => {
+              setCustomTitle(e.target.value);
+              onSelect?.(customIdx, e.target.value);
+            }}
+            placeholder="Type your custom title here…"
+            className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary/40 focus:border-secondary"
+            autoFocus
+          />
+        </div>
+      )}
     </div>
   );
 }
