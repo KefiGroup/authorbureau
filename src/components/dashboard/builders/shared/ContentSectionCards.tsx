@@ -86,6 +86,8 @@ function parseContentSections(content: string): ContentSection[] {
         if (/^Prompt/i.test(headingText)) continue;
         if (/^(Source|Why it matters)/i.test(headingText)) continue;
         if (/^To:/i.test(headingText)) continue;
+        if (/^Dear\s/i.test(headingText)) continue;
+        if (/^Day\s+\d/i.test(headingText)) continue;
         sectionStarts.push({ index: i, title: headingText });
       }
     }
