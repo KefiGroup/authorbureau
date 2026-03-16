@@ -1404,7 +1404,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                 disabled={saving}
                 onClick={isLastStep ? handlePublish : goNext}
                 variant="secondary"
-                className="rounded-full font-semibold px-6 shadow-sm"
+                className="ml-auto rounded-full font-semibold px-6 shadow-sm"
               >
                 {isLastStep ? (
                   saving ? <><Loader2 className="h-4 w-4 animate-spin mr-1" /> Publishing&hellip;</> : <>Publish</>
