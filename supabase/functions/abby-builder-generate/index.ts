@@ -450,11 +450,14 @@ DESIGN THE FOLLOWING:
      Each prompt: sentence stem, source chapter, why it matters for this occasion.
    - exclusive_chapter: 1,500-2,500 word new chapter bridging the book's message with the occasion theme
    - gift_inscription_page: Design brief for a gift inscription page — header text, prompt for the gift-giver, decorative elements, 3 example inscriptions
-   - companion_resource: A downloadable companion resource. Choose format based on occasion:
-      * Relationship occasions (Valentine's, Wedding): "7-Day [Theme] Challenge" with daily exercises for the couple
-      * Gratitude occasions (Mother's/Father's Day, Teacher): "Letters to [Recipient]" — guided letter-writing prompts the gift-giver completes
-      * Growth occasions (Graduation, New Year, Back to School): "[X]-Day Action Plan" with daily goals
-      * Celebration occasions (Birthday, Christmas): "Reflection & Celebration Journal" with themed prompts
+   - companion_resource: A downloadable companion resource with TWO MODES that the reader chooses from:
+      MODE A — "Gift Mode": The gift-giver completes the journal/challenge alone and gives it TO the recipient as a finished keepsake.
+      MODE B — "Together Mode": The gift-giver and recipient do it TOGETHER as a shared bonding experience (e.g., 7 days of activities they do side by side).
+      Generate BOTH modes with clear instructions for each. Choose the format based on occasion:
+      * Relationship occasions (Valentine's, Wedding): "7-Day [Theme] Challenge" — Mode A: love letters; Mode B: couple's daily ritual
+      * Gratitude occasions (Mother's/Father's Day, Teacher): "7 Days of Gratitude for [Recipient]" — Mode A: fill in and gift; Mode B: do together with [Recipient]
+      * Growth occasions (Graduation, New Year, Back to School): "[X]-Day Action Plan" — Mode A: gift a completed plan; Mode B: accountability partner journey
+      * Celebration occasions (Birthday, Christmas): "Reflection & Celebration Journal" — Mode A: memory book gift; Mode B: shared reflection ritual
 
 3. SALES_PAGE_COPY
    Write the complete 11-section sales page, reframed for the GIFT BUYER persona (if occasion selected):
