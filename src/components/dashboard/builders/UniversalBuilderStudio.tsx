@@ -1078,6 +1078,39 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                             },
                           }));
                         }
+
+                        if (nodeConfig.customRenderer === "course") {
+                          const generatedModules = buildCourseModulesFromStructure(approved.structure);
+                          const recommendedPrice = Number(approved.recommended_price || 0);
+                          const recommendedTransformation = Array.isArray(approved.transformation_promises)
+                            ? approved.transformation_promises.find((item) => typeof item === "string" && item.trim().length > 0)
+                            : "";
+
+                          setStepData(prev => {
+                            const existingFoundation = prev.foundation || {};
+                            const existingCurriculumModules = Array.isArray(prev.curriculum?.modules)
+                              ? prev.curriculum.modules
+                              : [];
+
+                            return {
+                              ...prev,
+                              foundation: {
+                                ...existingFoundation,
+                                title: existingFoundation.title || approved.recommended_title || "",
+                                subtitle: existingFoundation.subtitle || approved.subtitle || "",
+                                targetAudience: existingFoundation.targetAudience || approved.target_audience || "",
+                                transformation: existingFoundation.transformation || String(recommendedTransformation || ""),
+                                priceTier: existingFoundation.priceTier || mapCoursePriceTier(recommendedPrice),
+                                exactPrice: existingFoundation.exactPrice || (recommendedPrice > 0 ? String(Math.round(recommendedPrice)) : ""),
+                              },
+                              curriculum: {
+                                ...(prev.curriculum || {}),
+                                modules: existingCurriculumModules.length > 0 ? existingCurriculumModules : generatedModules,
+                              },
+                            };
+                          });
+                        }
+
                         builderGen.startAct3(bookId, approved);
                       }}
                       onEdit={(updates) => builderGen.updateProposal(updates)}
