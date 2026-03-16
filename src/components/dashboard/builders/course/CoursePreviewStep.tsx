@@ -77,7 +77,7 @@ export default function CoursePreviewStep({ stepData }: CourseStepProps) {
                       <span className="w-6 h-6 rounded-full bg-secondary/10 text-secondary text-[10px] font-bold flex items-center justify-center">{i + 1}</span>
                       <span className="text-sm font-medium">{mod.title}</span>
                     </div>
-                    <span className="text-[10px] text-muted-foreground">{mod.lessons.length} lessons</span>
+                    <span className="text-[10px] text-muted-foreground">{(mod.lessons || []).length} lessons</span>
                   </div>
                   <div className="divide-y divide-border">
                     {mod.lessons.map((lesson, li) => (
