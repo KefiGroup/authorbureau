@@ -158,7 +158,7 @@ Return ONLY valid JSON, no markdown fences.`,
               </button>
               {expandedModule === i && (
                 <div className="px-3 pb-3 space-y-1">
-                  {mod.lessons?.map((l: any, li: number) => (
+                  {(mod.lessons || []).map((l: any, li: number) => (
                     <p key={li} className="text-xs text-muted-foreground pl-4">• {l.title}</p>
                   ))}
                 </div>

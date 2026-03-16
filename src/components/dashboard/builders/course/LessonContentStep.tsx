@@ -112,7 +112,7 @@ Return ONLY valid JSON, no markdown fences.`,
       <div className="flex gap-2 overflow-x-auto pb-2">
         {modules.map((mod, mi) => (
           <div key={mod.id} className="flex gap-1">
-            {mod.lessons.map((lesson, li) => (
+            {(mod.lessons || []).map((lesson, li) => (
               <button
                 key={lesson.id}
                 onClick={() => { setSelectedModIdx(mi); setSelectedLessonIdx(li); }}

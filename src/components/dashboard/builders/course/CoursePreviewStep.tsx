@@ -80,7 +80,7 @@ export default function CoursePreviewStep({ stepData }: CourseStepProps) {
                     <span className="text-[10px] text-muted-foreground">{(mod.lessons || []).length} lessons</span>
                   </div>
                   <div className="divide-y divide-border">
-                    {mod.lessons.map((lesson, li) => (
+                    {(mod.lessons || []).map((lesson, li) => (
                       <div key={lesson.id} className="flex items-center gap-3 px-3 py-2 hover:bg-muted/10 transition-colors">
                         <PlayCircle className="h-4 w-4 text-muted-foreground/30 shrink-0" />
                         <span className="text-xs flex-1">{lesson.title}</span>
