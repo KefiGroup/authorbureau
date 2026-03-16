@@ -350,14 +350,13 @@ export default function SharedContentStep({
               </Button>
             </div>
           </div>
-          <Textarea
-            value={content}
-            onChange={e => {
+          <ContentSectionCards
+            content={content}
+            onChange={val => {
               onMarkEdited(stepId);
-              setStepData(prev => ({ ...prev, [contentKey]: e.target.value }));
+              setStepData(prev => ({ ...prev, [contentKey]: val }));
             }}
-            rows={20}
-            className="text-sm font-mono"
+            stepTitle={title}
           />
         </div>
       )}
