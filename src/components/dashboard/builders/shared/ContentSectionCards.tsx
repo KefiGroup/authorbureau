@@ -423,13 +423,69 @@ function TitleChoiceSelector({ options, onSelect }: { options: string[]; onSelec
   );
 }
 
+/** Edition option selector with Title + Subtitle + Tagline per card */
+function EditionOptionSelector({ options }: { options: EditionOption[] }) {
+  const [selected, setSelected] = useState<number | null>(null);
+
+  return (
+    <div className="space-y-3 my-4">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Choose your edition identity</p>
+      {options.map((opt, idx) => {
+        const isActive = selected === idx;
+        return (
+          <button
+            key={idx}
+            type="button"
+            onClick={() => setSelected(idx)}
+            className={`w-full text-left px-5 py-4 rounded-xl border-2 transition-all ${
+              isActive
+                ? "border-secondary bg-secondary/10"
+                : "border-border/60 bg-background hover:border-border hover:bg-muted/30"
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold shrink-0 mt-0.5 ${
+                isActive ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground"
+              }`}>
+                {idx + 1}
+              </span>
+              <div className="min-w-0 flex-1 space-y-1">
+                <p className={`text-sm font-bold ${isActive ? "text-foreground" : "text-foreground"}`}>
+                  {opt.title}
+                </p>
+                {opt.subtitle && (
+                  <p className="text-xs text-muted-foreground italic">{opt.subtitle}</p>
+                )}
+                {opt.tagline && (
+                  <p className="text-xs text-secondary font-medium">"{opt.tagline}"</p>
+                )}
+              </div>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 /** Render formatted body content with proper paragraphs, bold headers, and workbook lines */
 function FormattedBody({ body, sectionTitle }: { body: string; sectionTitle: string }) {
   const showWritingSpaces = isWorkbookContent(sectionTitle, body);
 
-  // Check for title choice options
-  const choiceData = extractChoiceOptions(body);
+  // Check for structured edition options (Title/Subtitle/Tagline per option)
+  const editionData = extractEditionOptions(body);
+  if (editionData) {
+    return (
+      <div className="space-y-4">
+        {editionData.preamble && <FormattedBodyInner body={editionData.preamble} sectionTitle={sectionTitle} showWritingSpaces={showWritingSpaces} />}
+        <EditionOptionSelector options={editionData.options} />
+        {editionData.rest && <FormattedBodyInner body={editionData.rest} sectionTitle={sectionTitle} showWritingSpaces={showWritingSpaces} />}
+      </div>
+    );
+  }
 
+  // Fallback: simple title choice options
+  const choiceData = extractChoiceOptions(body);
   if (choiceData) {
     return (
       <div className="space-y-4">
