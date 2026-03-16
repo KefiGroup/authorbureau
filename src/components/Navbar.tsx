@@ -11,8 +11,9 @@ const PUBLISHNOW_AUTH_URL = getPublishNowAuthUrl("/dashboard");
 
 const navLinks = [
   { label: "Home", to: "/", hash: "" },
-  { label: "How It Works", to: "/", hash: "#how-it-works" },
+  { label: "How It Works", to: "/how-it-works", hash: "" },
   { label: "Pricing", to: "/", hash: "#pricing" },
+  { label: "Methodology", to: "/methodology", hash: "" },
   { label: "Authors Directory", to: "/directory", hash: "" },
   { label: "Readers Bureau", to: "/readers-bureau", hash: "" },
   { label: "Help", to: "/faq", hash: "" },
