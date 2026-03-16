@@ -8,6 +8,23 @@ import StepInstructions from "./StepInstructions";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
+/** Strip markdown formatting symbols, keeping plain text */
+function stripMarkdown(md: string): string {
+  return md
+    .replace(/^#{1,6}\s+/gm, "")          // headings
+    .replace(/\*\*\*(.+?)\*\*\*/g, "$1")   // bold+italic
+    .replace(/\*\*(.+?)\*\*/g, "$1")       // bold
+    .replace(/\*(.+?)\*/g, "$1")           // italic
+    .replace(/^[-•]\s+/gm, "• ")           // normalize bullets
+    .replace(/^>\s?/gm, "")               // blockquotes
+    .replace(/`{1,3}[^`]*`{1,3}/g, m =>   // inline/fenced code
+      m.replace(/`/g, ""))
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // links
+    .replace(/^---$/gm, "")               // hr
+    .replace(/\n{3,}/g, "\n\n")           // excess newlines
+    .trim();
+}
+
 interface Props {
   contentKey: string;
   title: string;
