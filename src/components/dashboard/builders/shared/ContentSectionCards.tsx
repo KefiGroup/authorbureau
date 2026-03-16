@@ -35,6 +35,8 @@ function isMajorSectionHeader(line: string): boolean {
   // Exclude sub-item prefixes — these are NEVER major headers
   if (/^Prompt/i.test(trimmed)) return false;
   if (/^(Source|Why it matters|Note|Tip|Hint|Answer|Option|Step\s+\d)/i.test(trimmed)) return false;
+  // "To: Mum", "To: Mummy" etc. are inscription examples, not headers
+  if (/^To:/i.test(trimmed)) return false;
 
   // Numbered section: "1) EDITION IDENTITY" or "2) THEMED FOREWORD..."
   if (/^\d+\)\s+[A-Z]/.test(trimmed)) return true;
@@ -79,6 +81,7 @@ function parseContentSections(content: string): ContentSection[] {
         // Skip prompt/source sub-items even as markdown headings
         if (/^Prompt/i.test(headingText)) continue;
         if (/^(Source|Why it matters)/i.test(headingText)) continue;
+        if (/^To:/i.test(headingText)) continue;
         sectionStarts.push({ index: i, title: headingText });
       }
     }
@@ -100,7 +103,7 @@ function parseContentSections(content: string): ContentSection[] {
   // Merge sub-item sections (Prompt:, Source:, etc.) back into their parent
   const sections: ContentSection[] = [];
   for (const sec of rawSections) {
-    if (/^Prompt/i.test(sec.title) || /^(Source|Why it matters)/i.test(sec.title)) {
+    if (/^Prompt/i.test(sec.title) || /^(Source|Why it matters)/i.test(sec.title) || /^To:/i.test(sec.title)) {
       if (sections.length > 0) {
         const parent = sections[sections.length - 1];
         parent.body = parent.body + "\n\n" + sec.title + "\n" + sec.body;
