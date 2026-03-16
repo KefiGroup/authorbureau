@@ -1022,6 +1022,10 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
           <div className="mb-4">
             <EstimatedRevenueCard builderId={nodeConfig.id} />
           </div>
+          {/* Behind the Design Panel */}
+          <div className="mb-4">
+            <BehindTheDesignPanel builderId={nodeConfig.id} productLabel={nodeConfig.label} />
+          </div>
           {/* Compact ROI Banner */}
           {user && bookId && (
             <ROIBanner

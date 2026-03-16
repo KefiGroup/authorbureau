@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Check } from "lucide-react";
 import AbbyRecommendationCard from "./AbbyRecommendationCard";
+import AbbyExplainsTooltip from "./AbbyExplainsTooltip";
 import StepInstructions, { type BuilderCategory } from "./StepInstructions";
 import AbbyMarketAdvice from "@/components/dashboard/book-hub/AbbyMarketAdvice";
 import type { MarketResearchData } from "@/hooks/useMarketResearch";
