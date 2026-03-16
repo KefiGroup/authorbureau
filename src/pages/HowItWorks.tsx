@@ -205,6 +205,54 @@ export default function HowItWorks() {
         </div>
       </section>
 
+      {/* The Frameworks Behind Abby */}
+      <section className="py-20 md:py-28 bg-[hsl(38,60%,96%)]">
+        <div className="container max-w-5xl mx-auto">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-12">
+            <motion.h2 variants={fadeUp} custom={0} className="font-heading text-3xl md:text-4xl font-bold text-foreground">
+              The Frameworks Behind Abby
+            </motion.h2>
+            <motion.p variants={fadeUp} custom={1} className="text-muted-foreground mt-3 max-w-2xl mx-auto">
+              Every recommendation is built on proven methodology
+            </motion.p>
+            <motion.p variants={fadeUp} custom={2} className="text-sm text-muted-foreground mt-2 max-w-xl mx-auto">
+              Abby's recommendations are not AI guesswork — they are grounded in frameworks from McKinsey, Harvard, the International Coaching Federation, and the world's leading pricing and marketing strategists.
+            </motion.p>
+          </motion.div>
+
+          <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+            {[
+              { icon: "💼", title: "Business Strategy", frameworks: ["McKinsey SCQ", "Lean Startup", "Business Maturity Model"] },
+              { icon: "🎓", title: "Learning Design", frameworks: ["Bloom's Taxonomy", "Kolb's Cycle", "ADDIE Model"] },
+              { icon: "📊", title: "Pricing", frameworks: ["Value Ladder", "Market Benchmarks", "Price Psychology"] },
+              { icon: "📣", title: "Marketing", frameworks: ["Know-Like-Trust-Buy", "Content Pillars", "Webinar Model"] },
+              { icon: "🎤", title: "Coaching & Speaking", frameworks: ["GROW Model (ICF)", "Signature Talk", "Mastermind Principle"] },
+            ].map((card, i) => (
+              <motion.div
+                key={card.title}
+                initial="hidden" whileInView="visible" viewport={{ once: true }}
+                variants={fadeUp} custom={i}
+                className="rounded-xl border border-border bg-card p-5 shadow-sm hover:shadow-md transition-shadow text-center"
+              >
+                <span className="text-2xl">{card.icon}</span>
+                <h3 className="font-heading font-semibold text-sm text-foreground mt-2 mb-2">{card.title}</h3>
+                <ul className="space-y-1">
+                  {card.frameworks.map(fw => (
+                    <li key={fw} className="text-xs text-muted-foreground">{fw}</li>
+                  ))}
+                </ul>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="text-center mt-8">
+            <Link to="/methodology" className="text-sm font-medium text-amber-700 dark:text-amber-300 hover:underline">
+              Read the full methodology →
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* What Authors Are Confused About */}
       <section className="py-20 md:py-28 bg-background">
         <div className="container max-w-5xl mx-auto">

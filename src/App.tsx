@@ -36,6 +36,7 @@ import ScrollToTop from "./components/ScrollToTop";
 import AbbyHelpChatbot from "./components/AbbyHelpChatbot";
 import PurchaseSuccess from "./pages/PurchaseSuccess";
 import ReaderContentViewer from "./pages/ReaderContentViewer";
+import Methodology from "./pages/Methodology";
 
 const queryClient = new QueryClient();
 
@@ -101,6 +102,7 @@ const AppRoutes = () => (
       <Route path="/reader-portal/:id" element={<ReaderPortalIdRedirect />} />
 
       <Route path="/how-it-works" element={<HowItWorks />} />
+      <Route path="/methodology" element={<Methodology />} />
       <Route path="/solutions" element={<SolutionsIndex />} />
       <Route path="/solutions/:genre" element={<Solutions />} />
       <Route path="/sso" element={<SSO />} />
