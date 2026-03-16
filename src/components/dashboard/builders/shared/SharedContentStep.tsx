@@ -80,8 +80,20 @@ export default function SharedContentStep({
   const conversationEndRef = useRef<HTMLDivElement>(null);
 
   const rawContent: string = stepData[contentKey] || "";
-  const content: string = rawContent ? stripMarkdown(rawContent) : "";
+  const contentHasStop = hasStopMarker(rawContent);
+  const content: string = rawContent && !contentHasStop ? stripMarkdown(rawContent) : "";
   const config = configKey ? stepData[configKey] || {} : {};
+
+  // If saved content has [STOP], bootstrap conversation from it
+  useEffect(() => {
+    if (contentHasStop && conversation.length === 0) {
+      setConversation([
+        { role: "assistant" as const, content: rawContent },
+      ]);
+      // Clear the saved content so conversation mode activates
+      setStepData(prev => ({ ...prev, [contentKey]: "" }));
+    }
+  }, [contentHasStop]);
 
   // Check if the latest assistant message has [STOP]
   const lastAssistantMsg = [...conversation].reverse().find(m => m.role === "assistant");
