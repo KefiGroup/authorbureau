@@ -8,7 +8,8 @@ const PRODUCTS = [
     key: "workbook" as const,
     icon: BookOpen,
     label: "Workbook",
-    nature: "Activity book — do at your own pace",
+    sublabel: "Activity Book",
+    nature: "Work through it at your own pace",
     duration: "No deadline",
     format: "Print/digital exercises",
   },
@@ -16,6 +17,7 @@ const PRODUCTS = [
     key: "home-study" as const,
     icon: Calendar,
     label: "Home Study",
+    sublabel: "Self-Guided Program",
     nature: "Self-guided accountability guide",
     duration: "21 or 30 days",
     format: "Daily habit formation",
@@ -24,6 +26,7 @@ const PRODUCTS = [
     key: "online-course" as const,
     icon: Video,
     label: "Online Course",
+    sublabel: "Facilitated Workshop",
     nature: "Facilitated workshop with learning design",
     duration: "2–3 days intensive",
     format: "Live/recorded with activities, debrief, workbook, mindmap",
@@ -53,6 +56,7 @@ export default function ProductDistinctionCard({ highlight }: { highlight: Produ
               <div className="flex-1 min-w-0">
                 <p className={`font-bold ${isActive ? "text-foreground" : "text-muted-foreground"}`}>
                   {p.label}
+                  <span className="ml-1.5 font-normal text-[10px] text-muted-foreground">({p.sublabel})</span>
                 </p>
                 <p className="text-muted-foreground">{p.nature}</p>
               </div>

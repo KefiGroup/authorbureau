@@ -768,8 +768,53 @@ export type Database = {
         }
         Relationships: []
       }
+      course_deliverables: {
+        Row: {
+          content: string | null
+          course_id: string
+          created_at: string
+          file_url: string | null
+          id: string
+          status: string
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          content?: string | null
+          course_id: string
+          created_at?: string
+          file_url?: string | null
+          id?: string
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string | null
+          course_id?: string
+          created_at?: string
+          file_url?: string | null
+          id?: string
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_deliverables_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       course_enrollments: {
         Row: {
+          certificate_url: string | null
           completed_at: string | null
           course_id: string
           enrolled_at: string
@@ -779,6 +824,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          certificate_url?: string | null
           completed_at?: string | null
           course_id: string
           enrolled_at?: string
@@ -788,6 +834,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          certificate_url?: string | null
           completed_at?: string | null
           course_id?: string
           enrolled_at?: string
@@ -846,28 +893,55 @@ export type Database = {
       }
       course_modules: {
         Row: {
+          blooms_level: string | null
           course_id: string
           created_at: string
+          debrief_points: Json | null
           description: string | null
+          duration_minutes: number | null
+          facilitator_activity: string | null
           id: string
+          kolbs_stage: string | null
+          learning_objectives: Json | null
+          module_number: number | null
           position: number
+          source_chapters: Json | null
           title: string
+          workbook_page_description: string | null
         }
         Insert: {
+          blooms_level?: string | null
           course_id: string
           created_at?: string
+          debrief_points?: Json | null
           description?: string | null
+          duration_minutes?: number | null
+          facilitator_activity?: string | null
           id?: string
+          kolbs_stage?: string | null
+          learning_objectives?: Json | null
+          module_number?: number | null
           position?: number
+          source_chapters?: Json | null
           title: string
+          workbook_page_description?: string | null
         }
         Update: {
+          blooms_level?: string | null
           course_id?: string
           created_at?: string
+          debrief_points?: Json | null
           description?: string | null
+          duration_minutes?: number | null
+          facilitator_activity?: string | null
           id?: string
+          kolbs_stage?: string | null
+          learning_objectives?: Json | null
+          module_number?: number | null
           position?: number
+          source_chapters?: Json | null
           title?: string
+          workbook_page_description?: string | null
         }
         Relationships: [
           {
@@ -924,6 +998,7 @@ export type Database = {
         Row: {
           author_id: string
           book_id: string | null
+          course_format: string | null
           cover_image_url: string | null
           created_at: string
           currency: string | null
@@ -932,12 +1007,17 @@ export type Database = {
           price: number | null
           source_asset_id: string | null
           status: string
+          subtitle: string | null
+          target_student: string | null
           title: string
+          transformation_promises: Json | null
           updated_at: string
+          workshop_schedule: Json | null
         }
         Insert: {
           author_id: string
           book_id?: string | null
+          course_format?: string | null
           cover_image_url?: string | null
           created_at?: string
           currency?: string | null
@@ -946,12 +1026,17 @@ export type Database = {
           price?: number | null
           source_asset_id?: string | null
           status?: string
+          subtitle?: string | null
+          target_student?: string | null
           title: string
+          transformation_promises?: Json | null
           updated_at?: string
+          workshop_schedule?: Json | null
         }
         Update: {
           author_id?: string
           book_id?: string | null
+          course_format?: string | null
           cover_image_url?: string | null
           created_at?: string
           currency?: string | null
@@ -960,8 +1045,12 @@ export type Database = {
           price?: number | null
           source_asset_id?: string | null
           status?: string
+          subtitle?: string | null
+          target_student?: string | null
           title?: string
+          transformation_promises?: Json | null
           updated_at?: string
+          workshop_schedule?: Json | null
         }
         Relationships: [
           {
@@ -1671,6 +1760,57 @@ export type Database = {
             columns: ["source_asset_id"]
             isOneToOne: false
             referencedRelation: "generated_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      module_progress: {
+        Row: {
+          activity_completed: boolean | null
+          completed_at: string | null
+          debrief_completed: boolean | null
+          enrollment_id: string
+          id: string
+          module_id: string
+          started_at: string | null
+          status: string
+          workbook_completed: boolean | null
+        }
+        Insert: {
+          activity_completed?: boolean | null
+          completed_at?: string | null
+          debrief_completed?: boolean | null
+          enrollment_id: string
+          id?: string
+          module_id: string
+          started_at?: string | null
+          status?: string
+          workbook_completed?: boolean | null
+        }
+        Update: {
+          activity_completed?: boolean | null
+          completed_at?: string | null
+          debrief_completed?: boolean | null
+          enrollment_id?: string
+          id?: string
+          module_id?: string
+          started_at?: string | null
+          status?: string
+          workbook_completed?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_progress_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "course_enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "module_progress_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "course_modules"
             referencedColumns: ["id"]
           },
         ]
