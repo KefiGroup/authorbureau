@@ -49,8 +49,14 @@ function getKolbColor(stage: string) {
 
 export default function CurriculumBuilderStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, generationState, setGenerationState, userId, onStartGeneration, builderAct }: CourseStepProps) {
   const { toast } = useToast();
-  const modules: CourseModule[] = stepData.curriculum?.modules || [];
-  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set(modules.map(m => m.id)));
+  const modules: CourseModule[] = Array.isArray(stepData.curriculum?.modules) ? stepData.curriculum.modules : [];
+  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set(modules.map((m) => m.id)));
+
+  const getLearningObjectives = (mod: CourseModule): string[] =>
+    Array.isArray(mod.learningObjectives) ? mod.learningObjectives : [];
+
+  const getDebriefPoints = (mod: CourseModule): string[] =>
+    Array.isArray(mod.debriefPoints) ? mod.debriefPoints : [];
 
   const updateModules = (newModules: CourseModule[]) => {
     setStepData(prev => ({
@@ -101,35 +107,34 @@ export default function CurriculumBuilderStep({ stepData, setStepData, onMarkEdi
     updateModules(modules.filter(m => m.id !== id).map((m, i) => ({ ...m, moduleNumber: i + 1, position: i })));
   };
 
-  // Objective list helpers
   const addObjective = (moduleId: string) => {
     const mod = modules.find(m => m.id === moduleId);
     if (!mod) return;
-    updateModuleField(moduleId, "learningObjectives", [...mod.learningObjectives, ""]);
+    updateModuleField(moduleId, "learningObjectives", [...getLearningObjectives(mod), ""]);
   };
+
   const removeObjective = (moduleId: string, idx: number) => {
     const mod = modules.find(m => m.id === moduleId);
     if (!mod) return;
-    updateModuleField(moduleId, "learningObjectives", mod.learningObjectives.filter((_, i) => i !== idx));
+    updateModuleField(moduleId, "learningObjectives", getLearningObjectives(mod).filter((_, i) => i !== idx));
   };
+
   const updateObjective = (moduleId: string, idx: number, val: string) => {
     const mod = modules.find(m => m.id === moduleId);
     if (!mod) return;
-    const next = [...mod.learningObjectives];
+    const next = [...getLearningObjectives(mod)];
     next[idx] = val;
     updateModuleField(moduleId, "learningObjectives", next);
   };
 
-  // Debrief list helpers
   const updateDebrief = (moduleId: string, idx: number, val: string) => {
     const mod = modules.find(m => m.id === moduleId);
     if (!mod) return;
-    const next = [...mod.debriefPoints];
+    const next = [...getDebriefPoints(mod)];
     next[idx] = val;
     updateModuleField(moduleId, "debriefPoints", next);
   };
 
-  // Empty state
   if (modules.length === 0 && generationState === "idle") {
     return (
       <div className="text-center py-12">
@@ -165,184 +170,175 @@ export default function CurriculumBuilderStep({ stepData, setStepData, onMarkEdi
 
   return (
     <div className="space-y-4">
-      {/* Stats bar */}
       <div className="flex items-center gap-3 text-xs text-muted-foreground">
         <Badge variant="secondary" className="text-[10px]">{modules.length} modules</Badge>
         <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {Math.round(totalMinutes / 60)}h {totalMinutes % 60}m total</span>
         {modules.length < 7 && <span className="text-amber-600">(Recommended: 7 modules)</span>}
       </div>
 
-      {/* Accordion modules */}
       <div className="space-y-2">
-        {modules.map((mod) => (
-          <Card key={mod.id} className="overflow-hidden">
-            {/* Module header */}
-            <button
-              onClick={() => toggleModule(mod.id)}
-              className="w-full flex items-center gap-3 p-4 text-left hover:bg-muted/30 transition-colors"
-            >
-              {expandedModules.has(mod.id) ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronRight className="h-4 w-4 shrink-0" />}
-              <span className="text-xs font-mono text-muted-foreground w-5 shrink-0">{mod.moduleNumber}</span>
-              <span className="text-sm font-semibold flex-1 truncate">{mod.title}</span>
-              {mod.bloomsLevel && (
-                <Badge className={`text-[9px] shrink-0 ${getBloomColor(mod.bloomsLevel)}`}>
-                  {mod.bloomsLevel}
-                </Badge>
-              )}
-              {mod.kolbsStage && (
-                <Badge className={`text-[9px] shrink-0 ${getKolbColor(mod.kolbsStage)}`}>
-                  {mod.kolbsStage}
-                </Badge>
-              )}
-              <span className="text-[10px] text-muted-foreground shrink-0">{mod.durationMinutes}m</span>
-            </button>
+        {modules.map((mod) => {
+          const objectives = getLearningObjectives(mod);
+          const debriefPoints = getDebriefPoints(mod);
 
-            {/* Expanded content */}
-            {expandedModules.has(mod.id) && (
-              <div className="px-4 pb-4 pt-0 space-y-4 border-t border-border">
-                {/* Title */}
-                <div className="space-y-1 pt-3">
-                  <Label className="text-xs font-semibold">Module Title</Label>
-                  <Input
-                    value={mod.title}
-                    onChange={(e) => updateModuleField(mod.id, "title", e.target.value)}
-                    className="text-base font-medium"
-                  />
-                </div>
+          return (
+            <Card key={mod.id} className="overflow-hidden">
+              <button
+                onClick={() => toggleModule(mod.id)}
+                className="w-full flex items-center gap-3 p-4 text-left hover:bg-muted/30 transition-colors"
+              >
+                {expandedModules.has(mod.id) ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronRight className="h-4 w-4 shrink-0" />}
+                <span className="text-xs font-mono text-muted-foreground w-5 shrink-0">{mod.moduleNumber}</span>
+                <span className="text-sm font-semibold flex-1 truncate">{mod.title}</span>
+                {mod.bloomsLevel && (
+                  <Badge className={`text-[9px] shrink-0 ${getBloomColor(mod.bloomsLevel)}`}>
+                    {mod.bloomsLevel}
+                  </Badge>
+                )}
+                {mod.kolbsStage && (
+                  <Badge className={`text-[9px] shrink-0 ${getKolbColor(mod.kolbsStage)}`}>
+                    {mod.kolbsStage}
+                  </Badge>
+                )}
+                <span className="text-[10px] text-muted-foreground shrink-0">{mod.durationMinutes}m</span>
+              </button>
 
-                {/* Bloom's & Kolb's (display only with labels) */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs font-semibold flex items-center gap-1">
-                      <Brain className="h-3 w-3" /> Bloom's Level
-                    </Label>
-                    <div className={`px-3 py-1.5 rounded-lg text-xs font-medium ${getBloomColor(mod.bloomsLevel)}`}>
-                      {mod.bloomsLevel || "Not set"}
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs font-semibold flex items-center gap-1">
-                      <Lightbulb className="h-3 w-3" /> Kolb's Stage
-                    </Label>
-                    <div className={`px-3 py-1.5 rounded-lg text-xs font-medium ${getKolbColor(mod.kolbsStage)}`}>
-                      {mod.kolbsStage || "Not set"}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Learning Objectives */}
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold flex items-center gap-1">
-                    📋 Learning Objectives
-                  </Label>
-                  {mod.learningObjectives.map((obj, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <span className="text-[10px] text-muted-foreground font-mono w-4">{i + 1}.</span>
-                      <Input
-                        value={obj}
-                        onChange={(e) => updateObjective(mod.id, i, e.target.value)}
-                        placeholder="e.g. Identify key frameworks from the book..."
-                        className="text-sm"
-                      />
-                      {mod.learningObjectives.length > 1 && (
-                        <button onClick={() => removeObjective(mod.id, i)} className="text-destructive/50 hover:text-destructive">
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  {mod.learningObjectives.length < 5 && (
-                    <Button variant="ghost" size="sm" onClick={() => addObjective(mod.id)} className="text-[10px]">
-                      <Plus className="h-2.5 w-2.5 mr-1" /> Add Objective
-                    </Button>
-                  )}
-                </div>
-
-                {/* Content Summary */}
-                <div className="space-y-1">
-                  <Label className="text-xs font-semibold">Content Summary</Label>
-                  <Textarea
-                    value={mod.contentSummary || mod.description}
-                    onChange={(e) => updateModuleField(mod.id, "contentSummary", e.target.value)}
-                    placeholder="What does this module cover?"
-                    rows={3}
-                    className="text-sm"
-                  />
-                </div>
-
-                {/* Facilitator Activity */}
-                <div className="space-y-1 bg-secondary/5 rounded-lg p-3 border border-secondary/20">
-                  <Label className="text-xs font-semibold flex items-center gap-1 text-secondary">
-                    🎯 Facilitator Activity
-                  </Label>
-                  <Textarea
-                    value={mod.facilitatorActivity}
-                    onChange={(e) => updateModuleField(mod.id, "facilitatorActivity", e.target.value)}
-                    placeholder="Describe the hands-on activity: icebreaker, breakout exercise, case clinic, workshop sprint..."
-                    rows={3}
-                    className="text-sm"
-                  />
-                </div>
-
-                {/* Debrief Points */}
-                <div className="space-y-2 bg-accent/5 rounded-lg p-3 border border-accent/20">
-                  <Label className="text-xs font-semibold flex items-center gap-1">
-                    <MessageSquare className="h-3 w-3" /> Debrief Questions
-                  </Label>
-                  {mod.debriefPoints.map((point, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <span className="text-[10px] text-muted-foreground font-mono w-4">Q{i + 1}</span>
-                      <Input
-                        value={point}
-                        onChange={(e) => updateDebrief(mod.id, i, e.target.value)}
-                        placeholder="Guided debrief question..."
-                        className="text-sm"
-                      />
-                    </div>
-                  ))}
-                </div>
-
-                {/* Workbook Page */}
-                <div className="space-y-1 bg-primary/5 rounded-lg p-3 border border-primary/20">
-                  <Label className="text-xs font-semibold flex items-center gap-1">
-                    <FileText className="h-3 w-3" /> Workbook Page
-                  </Label>
-                  <Textarea
-                    value={mod.workbookPageDescription}
-                    onChange={(e) => updateModuleField(mod.id, "workbookPageDescription", e.target.value)}
-                    placeholder='e.g. "My Starting Point" — self-assessment worksheet with rating scales and reflection prompts'
-                    rows={2}
-                    className="text-sm"
-                  />
-                </div>
-
-                {/* Duration */}
-                <div className="flex items-center gap-3">
-                  <Label className="text-xs font-semibold">Duration</Label>
-                  <div className="flex items-center gap-1.5">
+              {expandedModules.has(mod.id) && (
+                <div className="px-4 pb-4 pt-0 space-y-4 border-t border-border">
+                  <div className="space-y-1 pt-3">
+                    <Label className="text-xs font-semibold">Module Title</Label>
                     <Input
-                      type="number"
-                      value={mod.durationMinutes}
-                      onChange={(e) => updateModuleField(mod.id, "durationMinutes", parseInt(e.target.value) || 0)}
-                      className="w-20"
+                      value={mod.title || ""}
+                      onChange={(e) => updateModuleField(mod.id, "title", e.target.value)}
+                      className="text-base font-medium"
                     />
-                    <span className="text-xs text-muted-foreground">minutes</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs font-semibold flex items-center gap-1">
+                        <Brain className="h-3 w-3" /> Bloom's Level
+                      </Label>
+                      <div className={`px-3 py-1.5 rounded-lg text-xs font-medium ${getBloomColor(mod.bloomsLevel)}`}>
+                        {mod.bloomsLevel || "Not set"}
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs font-semibold flex items-center gap-1">
+                        <Lightbulb className="h-3 w-3" /> Kolb's Stage
+                      </Label>
+                      <div className={`px-3 py-1.5 rounded-lg text-xs font-medium ${getKolbColor(mod.kolbsStage)}`}>
+                        {mod.kolbsStage || "Not set"}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold flex items-center gap-1">
+                      📋 Learning Objectives
+                    </Label>
+                    {objectives.map((obj, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <span className="text-[10px] text-muted-foreground font-mono w-4">{i + 1}.</span>
+                        <Input
+                          value={obj}
+                          onChange={(e) => updateObjective(mod.id, i, e.target.value)}
+                          placeholder="e.g. Identify key frameworks from the book..."
+                          className="text-sm"
+                        />
+                        {objectives.length > 1 && (
+                          <button onClick={() => removeObjective(mod.id, i)} className="text-destructive/50 hover:text-destructive">
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    {objectives.length < 5 && (
+                      <Button variant="ghost" size="sm" onClick={() => addObjective(mod.id)} className="text-[10px]">
+                        <Plus className="h-2.5 w-2.5 mr-1" /> Add Objective
+                      </Button>
+                    )}
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs font-semibold">Content Summary</Label>
+                    <Textarea
+                      value={mod.contentSummary || mod.description || ""}
+                      onChange={(e) => updateModuleField(mod.id, "contentSummary", e.target.value)}
+                      placeholder="What does this module cover?"
+                      rows={3}
+                      className="text-sm"
+                    />
+                  </div>
+
+                  <div className="space-y-1 bg-secondary/5 rounded-lg p-3 border border-secondary/20">
+                    <Label className="text-xs font-semibold flex items-center gap-1 text-secondary">
+                      🎯 Facilitator Activity
+                    </Label>
+                    <Textarea
+                      value={mod.facilitatorActivity || ""}
+                      onChange={(e) => updateModuleField(mod.id, "facilitatorActivity", e.target.value)}
+                      placeholder="Describe the hands-on activity: icebreaker, breakout exercise, case clinic, workshop sprint..."
+                      rows={3}
+                      className="text-sm"
+                    />
+                  </div>
+
+                  <div className="space-y-2 bg-accent/5 rounded-lg p-3 border border-accent/20">
+                    <Label className="text-xs font-semibold flex items-center gap-1">
+                      <MessageSquare className="h-3 w-3" /> Debrief Questions
+                    </Label>
+                    {debriefPoints.map((point, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <span className="text-[10px] text-muted-foreground font-mono w-4">Q{i + 1}</span>
+                        <Input
+                          value={point}
+                          onChange={(e) => updateDebrief(mod.id, i, e.target.value)}
+                          placeholder="Guided debrief question..."
+                          className="text-sm"
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="space-y-1 bg-primary/5 rounded-lg p-3 border border-primary/20">
+                    <Label className="text-xs font-semibold flex items-center gap-1">
+                      <FileText className="h-3 w-3" /> Workbook Page
+                    </Label>
+                    <Textarea
+                      value={mod.workbookPageDescription || ""}
+                      onChange={(e) => updateModuleField(mod.id, "workbookPageDescription", e.target.value)}
+                      placeholder='e.g. "My Starting Point" — self-assessment worksheet with rating scales and reflection prompts'
+                      rows={2}
+                      className="text-sm"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <Label className="text-xs font-semibold">Duration</Label>
+                    <div className="flex items-center gap-1.5">
+                      <Input
+                        type="number"
+                        value={mod.durationMinutes ?? 0}
+                        onChange={(e) => updateModuleField(mod.id, "durationMinutes", parseInt(e.target.value) || 0)}
+                        className="w-20"
+                      />
+                      <span className="text-xs text-muted-foreground">minutes</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-border">
+                    <Button variant="ghost" size="sm" onClick={() => removeModule(mod.id)} className="text-xs text-destructive">
+                      <Trash2 className="h-3 w-3 mr-1" /> Remove Module
+                    </Button>
                   </div>
                 </div>
-
-                {/* Remove module */}
-                <div className="pt-2 border-t border-border">
-                  <Button variant="ghost" size="sm" onClick={() => removeModule(mod.id)} className="text-xs text-destructive">
-                    <Trash2 className="h-3 w-3 mr-1" /> Remove Module
-                  </Button>
-                </div>
-              </div>
-            )}
-          </Card>
-        ))}
+              )}
+            </Card>
+          );
+        })}
       </div>
 
-      {/* Add module */}
       {modules.length < 10 && (
         <Button variant="outline" onClick={addModule} className="w-full text-xs">
           <Plus className="h-3 w-3 mr-1" /> Add Module (max 10)

@@ -235,7 +235,7 @@ Return ONLY valid JSON, no markdown fences.`,
                   className="font-medium"
                 />
                 <div className="space-y-1.5">
-                  {q.options.map((opt: string, oi: number) => (
+                  {(q.options || ["", "", "", ""]).map((opt: string, oi: number) => (
                     <div key={oi} className="flex items-center gap-2">
                       <button
                         onClick={() => updateQuiz(qi, "correctAnswer", oi)}
@@ -248,7 +248,7 @@ Return ONLY valid JSON, no markdown fences.`,
                       <Input
                         value={opt}
                         onChange={(e) => {
-                          const newOpts = [...q.options];
+                          const newOpts = [...(q.options || ["", "", "", ""])];
                           newOpts[oi] = e.target.value;
                           updateQuiz(qi, "options", newOpts);
                         }}

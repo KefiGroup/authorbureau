@@ -55,7 +55,6 @@ function defaultSchedule(format: string): WorkshopDay[] {
       },
     ];
   }
-  // 2-day default
   return [
     {
       dayNumber: 1, label: "Day 1 — Learn & Understand",
@@ -89,7 +88,10 @@ function defaultSchedule(format: string): WorkshopDay[] {
 
 export default function WorkshopScheduleStep({ stepData, setStepData, onMarkEdited }: CourseStepProps) {
   const format = stepData.foundation?.format || "2_day";
-  const schedule: WorkshopDay[] = stepData.schedule?.days || [];
+  const schedule: WorkshopDay[] = Array.isArray(stepData.schedule?.days) ? stepData.schedule.days : [];
+
+  const getBlocks = (day: WorkshopDay): WorkshopTimeBlock[] =>
+    Array.isArray(day.blocks) ? day.blocks : [];
 
   const updateSchedule = (days: WorkshopDay[]) => {
     setStepData(prev => ({ ...prev, schedule: { days } }));
@@ -103,7 +105,7 @@ export default function WorkshopScheduleStep({ stepData, setStepData, onMarkEdit
   const updateBlock = (dayIdx: number, blockId: string, field: string, value: any) => {
     const next = schedule.map((day, di) =>
       di === dayIdx
-        ? { ...day, blocks: day.blocks.map(b => b.id === blockId ? { ...b, [field]: value } : b) }
+        ? { ...day, blocks: getBlocks(day).map((b) => b.id === blockId ? { ...b, [field]: value } : b) }
         : day
     );
     updateSchedule(next);
@@ -112,7 +114,7 @@ export default function WorkshopScheduleStep({ stepData, setStepData, onMarkEdit
   const addBlock = (dayIdx: number) => {
     const next = schedule.map((day, di) =>
       di === dayIdx
-        ? { ...day, blocks: [...day.blocks, { id: generateId(), startTime: "00:00", endTime: "00:00", label: "New Block", type: "module" as const }] }
+        ? { ...day, blocks: [...getBlocks(day), { id: generateId(), startTime: "00:00", endTime: "00:00", label: "New Block", type: "module" as const }] }
         : day
     );
     updateSchedule(next);
@@ -121,7 +123,7 @@ export default function WorkshopScheduleStep({ stepData, setStepData, onMarkEdit
   const removeBlock = (dayIdx: number, blockId: string) => {
     const next = schedule.map((day, di) =>
       di === dayIdx
-        ? { ...day, blocks: day.blocks.filter(b => b.id !== blockId) }
+        ? { ...day, blocks: getBlocks(day).filter((b) => b.id !== blockId) }
         : day
     );
     updateSchedule(next);
@@ -153,55 +155,59 @@ export default function WorkshopScheduleStep({ stepData, setStepData, onMarkEdit
         </Button>
       </div>
 
-      {schedule.map((day, dayIdx) => (
-        <Card key={day.dayNumber} className="p-5 space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold">{day.label}</h3>
-            <Badge variant="outline" className="text-[10px]">{day.blocks.length} blocks</Badge>
-          </div>
+      {schedule.map((day, dayIdx) => {
+        const blocks = getBlocks(day);
 
-          <div className="space-y-1">
-            {day.blocks.map((block) => (
-              <div
-                key={block.id}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg border-l-4 transition-colors group ${
-                  BLOCK_COLORS[block.type] || "border-l-muted bg-muted/20"
-                }`}
-              >
-                <div className="flex items-center gap-1 shrink-0">
-                  <Input
-                    value={block.startTime}
-                    onChange={(e) => updateBlock(dayIdx, block.id, "startTime", e.target.value)}
-                    className="w-16 h-7 text-[10px] text-center p-0"
-                  />
-                  <span className="text-[10px] text-muted-foreground">–</span>
-                  <Input
-                    value={block.endTime}
-                    onChange={(e) => updateBlock(dayIdx, block.id, "endTime", e.target.value)}
-                    className="w-16 h-7 text-[10px] text-center p-0"
-                  />
-                </div>
-                {block.type === "break" && <Coffee className="h-3 w-3 text-amber-500 shrink-0" />}
-                <Input
-                  value={block.label}
-                  onChange={(e) => updateBlock(dayIdx, block.id, "label", e.target.value)}
-                  className="flex-1 h-7 text-xs border-none bg-transparent shadow-none p-0 focus-visible:ring-0"
-                />
-                <button
-                  onClick={() => removeBlock(dayIdx, block.id)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+        return (
+          <Card key={day.dayNumber} className="p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold">{day.label}</h3>
+              <Badge variant="outline" className="text-[10px]">{blocks.length} blocks</Badge>
+            </div>
+
+            <div className="space-y-1">
+              {blocks.map((block) => (
+                <div
+                  key={block.id}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg border-l-4 transition-colors group ${
+                    BLOCK_COLORS[block.type] || "border-l-muted bg-muted/20"
+                  }`}
                 >
-                  <Trash2 className="h-3 w-3 text-destructive/50" />
-                </button>
-              </div>
-            ))}
-          </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Input
+                      value={block.startTime}
+                      onChange={(e) => updateBlock(dayIdx, block.id, "startTime", e.target.value)}
+                      className="w-16 h-7 text-[10px] text-center p-0"
+                    />
+                    <span className="text-[10px] text-muted-foreground">–</span>
+                    <Input
+                      value={block.endTime}
+                      onChange={(e) => updateBlock(dayIdx, block.id, "endTime", e.target.value)}
+                      className="w-16 h-7 text-[10px] text-center p-0"
+                    />
+                  </div>
+                  {block.type === "break" && <Coffee className="h-3 w-3 text-amber-500 shrink-0" />}
+                  <Input
+                    value={block.label}
+                    onChange={(e) => updateBlock(dayIdx, block.id, "label", e.target.value)}
+                    className="flex-1 h-7 text-xs border-none bg-transparent shadow-none p-0 focus-visible:ring-0"
+                  />
+                  <button
+                    onClick={() => removeBlock(dayIdx, block.id)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Trash2 className="h-3 w-3 text-destructive/50" />
+                  </button>
+                </div>
+              ))}
+            </div>
 
-          <Button variant="ghost" size="sm" onClick={() => addBlock(dayIdx)} className="text-[10px]">
-            <Plus className="h-2.5 w-2.5 mr-1" /> Add Time Block
-          </Button>
-        </Card>
-      ))}
+            <Button variant="ghost" size="sm" onClick={() => addBlock(dayIdx)} className="text-[10px]">
+              <Plus className="h-2.5 w-2.5 mr-1" /> Add Time Block
+            </Button>
+          </Card>
+        );
+      })}
     </div>
   );
 }
