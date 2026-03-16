@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Wand2, Sparkles } from "lucide-react";
 import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
+import ProductDistinctionCard from "../shared/ProductDistinctionCard";
 import type { CourseStepProps } from "./types";
 
 const PRICE_TIERS = [
