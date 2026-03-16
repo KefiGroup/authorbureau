@@ -79,6 +79,7 @@ const RENDERER_MAP: Record<string, React.ComponentType<any>> = {
   "keynotes": KeynotesStepRenderer,
   "in-house-speaker": InHouseSpeakerStepRenderer,
   "training-programs": TrainingProgramsStepRenderer,
+  "training-program": TrainingProgramsStepRenderer,
   "affiliates": AffiliatesStepRenderer,
   "jv-partnerships": JVPartnershipsStepRenderer,
   "big-ticket": BigTicketStepRenderer,
