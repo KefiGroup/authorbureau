@@ -911,9 +911,9 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
 
   // ─── MAIN BUILDER UI ──────────────────────────────────────────────
   return (
-    <div className="flex gap-0 h-full -m-6 lg:-m-8">
+    <div className="flex gap-0 h-full min-h-0 -m-6 lg:-m-8">
       {/* Main builder area */}
-      <div className={`flex-1 flex flex-col min-w-0 transition-all ${abbyOpen ? "mr-80" : ""}`}>
+      <div className={`flex-1 flex flex-col min-w-0 min-h-0 transition-all ${abbyOpen ? "mr-80" : ""}`}>
         {/* Header bar */}
         <div className="flex items-center gap-3 px-6 py-3 border-b border-border bg-card">
           <Button
@@ -1006,7 +1006,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
         </div>
 
         {/* Step content area */}
-        <div className="flex-1 overflow-y-auto px-6 lg:px-8 pt-6 lg:pt-8 pb-0 relative flex flex-col">
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 lg:px-8 pt-6 lg:pt-8 pb-0 relative flex flex-col">
           {/* Cross-builder incoming notifications */}
           {user && bookId && (
             <CrossBuilderNotifications
@@ -1378,7 +1378,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
 
           <div className="flex-grow" />
           {/* Action bar */}
-          <div className="sticky bottom-0 z-20 -mx-6 lg:-mx-8 mt-4 px-6 lg:px-8 py-4 border-t border-border bg-card/95 backdrop-blur">
+          <div className="sticky bottom-0 z-20 shrink-0 -mx-6 lg:-mx-8 mt-4 px-6 lg:px-8 py-4 border-t border-border bg-card/95 backdrop-blur">
             <div className="flex items-center gap-2 flex-wrap">
               <Button
                 variant="ghost"

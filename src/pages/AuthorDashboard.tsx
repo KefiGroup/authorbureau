@@ -455,7 +455,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           }
         />
       </div>
-      <div className="flex flex-1 flex-col min-w-0">
+      <div className="flex flex-1 flex-col min-w-0 min-h-0">
         <DashboardHeader
           user={user}
           isPremium={isPremium}
@@ -466,7 +466,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
           onNavigate={handleNavigate}
         />
-        <main className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-4">
+        <main className="flex-1 min-h-0 overflow-y-auto p-6 lg:p-8 space-y-4">
           {/* Onboarding banners for redirected pages */}
           {activeSection === "profile" && (
             <OnboardingBanner
