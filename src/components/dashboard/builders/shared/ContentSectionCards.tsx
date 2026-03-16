@@ -37,6 +37,10 @@ function isMajorSectionHeader(line: string): boolean {
   if (/^(Source|Why it matters|Note|Tip|Hint|Answer|Option|Step\s+\d)/i.test(trimmed)) return false;
   // "To: Mum", "To: Mummy" etc. are inscription examples, not headers
   if (/^To:/i.test(trimmed)) return false;
+  // "Dear Mum, ..." are gift-journal prompt stems, not section headers
+  if (/^Dear\s/i.test(trimmed)) return false;
+  // "Day 1 —", "Day 2 —" etc. are sub-items within companion resources
+  if (/^Day\s+\d/i.test(trimmed)) return false;
 
   // Numbered section: "1) EDITION IDENTITY" or "2) THEMED FOREWORD..."
   if (/^\d+\)\s+[A-Z]/.test(trimmed)) return true;
