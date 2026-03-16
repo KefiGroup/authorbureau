@@ -203,25 +203,18 @@ export default function SharedContentStep({
   return (
     <div className="space-y-6">
       <StepInstructions
-        summary="AI generates your content based on the configuration from the previous step. You can edit everything after generation."
+        category={category}
         items={[
-          { label: "Generate with AI", description: "creates complete content using your book's themes, frameworks, and business plan." },
-          { label: "Regenerate", description: "re-runs AI generation, replacing current content with a fresh version." },
-          { label: "Text editor", description: "edit the generated content directly — your changes are auto-saved." },
-          { label: "AI Generated badge", description: "indicates content was created by AI. Editing removes this badge." },
+          { label: "Generate with AI", description: "Creates complete content from your book's themes and plan." },
+          { label: "Regenerate", description: "Re-runs AI generation with a fresh version." },
+          { label: "Text editor", description: "Edit generated content directly — auto-saved." },
+          { label: "AI Generated", description: "Badge indicates AI-created content." },
         ]}
       />
-      <Card className="p-4 border-secondary/20 bg-secondary/5">
-        <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center shrink-0">
-            <Sparkles className="h-4 w-4 text-secondary" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-secondary mb-1">Abby's Recommendation</p>
-            <p className="text-sm text-muted-foreground">{abbyTip}</p>
-          </div>
-        </div>
-      </Card>
+
+      <AbbyRecommendationCard>
+        <p className="text-sm text-foreground leading-relaxed">{abbyTip}</p>
+      </AbbyRecommendationCard>
 
       {/* Conversation mode: Abby asked a [STOP] question */}
       {isInConversation && (
