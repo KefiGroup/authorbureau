@@ -258,7 +258,69 @@ function isInlineHeader(line: string): boolean {
   return false;
 }
 
-/** Detect "N Title Options (choose 1)" pattern and extract numbered options */
+/** Parse structured "Option N:" blocks with Title/Subtitle/Tagline fields */
+interface EditionOption {
+  title: string;
+  subtitle: string;
+  tagline: string;
+}
+
+function extractEditionOptions(body: string): { preamble: string; options: EditionOption[]; rest: string } | null {
+  const lines = body.split("\n");
+  // Look for the "TITLE/SUBTITLE/TAGLINE OPTIONS" or similar header
+  const headerIdx = lines.findIndex(l => /title.*subtitle.*tagline.*options?\s*\(choose/i.test(l.trim()) || /options?\s*\(choose\s*\d+\)/i.test(l.trim()));
+  if (headerIdx === -1) return null;
+
+  const preamble = lines.slice(0, headerIdx).join("\n").trim();
+  const options: EditionOption[] = [];
+  let afterIdx = headerIdx + 1;
+  let currentOption: Partial<EditionOption> | null = null;
+
+  for (let i = headerIdx + 1; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+
+    // "Option N:" starts a new option block
+    if (/^Option\s+\d+\s*:/i.test(trimmed)) {
+      if (currentOption?.title) options.push(currentOption as EditionOption);
+      currentOption = { title: "", subtitle: "", tagline: "" };
+      afterIdx = i + 1;
+      continue;
+    }
+
+    if (currentOption) {
+      const titleMatch = trimmed.match(/^Title\s*:\s*(.+)/i);
+      const subtitleMatch = trimmed.match(/^Subtitle\s*:\s*(.+)/i);
+      const taglineMatch = trimmed.match(/^Tagline\s*:\s*(.+)/i);
+
+      if (titleMatch) { currentOption.title = titleMatch[1].trim(); afterIdx = i + 1; continue; }
+      if (subtitleMatch) { currentOption.subtitle = subtitleMatch[1].trim(); afterIdx = i + 1; continue; }
+      if (taglineMatch) { currentOption.tagline = taglineMatch[1].trim(); afterIdx = i + 1; continue; }
+
+      // Blank line after a complete option — keep scanning
+      if (!trimmed) { afterIdx = i + 1; continue; }
+
+      // Non-matching content = end of options block
+      if (currentOption.title) options.push(currentOption as EditionOption);
+      currentOption = null;
+      afterIdx = i;
+      break;
+    }
+
+    // Skip blank lines between header and first option
+    if (!trimmed) { afterIdx = i + 1; continue; }
+
+    // Non-option content after header but before any "Option N:" — treat as end
+    if (!currentOption && options.length === 0) { afterIdx = i; break; }
+  }
+
+  if (currentOption?.title) options.push(currentOption as EditionOption);
+  if (options.length < 2) return null;
+
+  const rest = lines.slice(afterIdx).join("\n").trim();
+  return { preamble, options, rest };
+}
+
+/** Fallback: Detect simple "N Title Options (choose 1)" pattern with numbered list */
 function extractChoiceOptions(body: string): { preamble: string; options: string[]; rest: string } | null {
   const lines = body.split("\n");
   const choiceIdx = lines.findIndex(l => /title options?\s*\(choose\s*\d+\)/i.test(l.trim()));
