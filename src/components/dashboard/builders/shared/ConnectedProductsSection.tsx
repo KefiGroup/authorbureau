@@ -79,9 +79,11 @@ export default function ConnectedProductsSection({ builderId, builtProductIds = 
 
   return (
     <div className="mt-6 mb-2">
-      <div className="flex items-center gap-2 mb-3">
-        <Link2 className="h-4 w-4 text-muted-foreground" />
-        <h3 className="text-sm font-semibold text-foreground">Connected Products</h3>
+      <div className="flex items-center mb-3">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-secondary px-3 py-1 bg-secondary/5">
+          <Link2 className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="text-sm font-semibold text-secondary">Connected</span>
+        </span>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
         {enriched.map(product => (
