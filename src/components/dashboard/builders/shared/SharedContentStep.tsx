@@ -47,7 +47,8 @@ export default function SharedContentStep({
   const { toast } = useToast();
   const [generating, setGenerating] = useState(false);
 
-  const content: string = stepData[contentKey] || "";
+  const rawContent: string = stepData[contentKey] || "";
+  const content: string = rawContent ? stripMarkdown(rawContent) : "";
   const config = configKey ? stepData[configKey] || {} : {};
 
   const generate = async () => {
