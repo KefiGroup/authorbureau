@@ -32,14 +32,14 @@ function isMajorSectionHeader(line: string): boolean {
   const trimmed = line.trim();
   if (!trimmed) return false;
 
+  // Exclude sub-item prefixes — these are NEVER major headers
+  if (/^(Prompt|Source|Why it matters|Note|Tip|Hint|Answer|Option|Step\s+\d)/i.test(trimmed)) return false;
+
   // Numbered section: "1) EDITION IDENTITY" or "2) THEMED FOREWORD..."
   if (/^\d+\)\s+[A-Z]/.test(trimmed)) return true;
 
   // ALL-CAPS header line (at least 2 words, not a sub-item)
-  // Must NOT start with "Prompt:", "Source:", "Why it matters:", etc.
   if (/^[A-Z][A-Z\s\-&/(),:]+$/.test(trimmed) && trimmed.length > 4 && trimmed.length < 120) {
-    // Exclude sub-items
-    if (/^(PROMPT|SOURCE|WHY|NOTE|TIP|HINT|ANSWER|OPTION|STEP\s+\d)/i.test(trimmed)) return false;
     return true;
   }
 
