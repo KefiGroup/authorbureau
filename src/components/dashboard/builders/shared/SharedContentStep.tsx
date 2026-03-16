@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Loader2, Wand2, FileText, Send, MessageCircle } from "lucide-react";
+import ContentSectionCards from "./ContentSectionCards";
 import StepInstructions, { type BuilderCategory } from "./StepInstructions";
 import AbbyRecommendationCard from "./AbbyRecommendationCard";
 import { useToast } from "@/hooks/use-toast";
