@@ -50,7 +50,13 @@ export default function EmailSequenceStep({ stepData, setStepData, onMarkEdited,
       const title = stepData.foundation?.title || "the course";
       const moduleCount = stepData.curriculum?.modules?.length || 8;
 
+      const displayName = authorName || "the author";
+
       const basePrompt = `Generate a 7-email nurture sequence for an online course called "${title}" based on the book "${bookTitle}" with ${moduleCount} modules.
+
+The author's name is "${displayName}". Use their real name throughout the emails — do NOT use a placeholder like [Author Name]. Write as if ${displayName} is personally emailing the reader.
+
+Use [First Name] as a placeholder for the reader/participant's first name — this will be dynamically replaced at send time.
 
 The sequence should cover: Welcome, Quick Win, Social Proof, Overcome Objection, Urgency, Last Chance, Post-Purchase Onboarding.
 
@@ -59,7 +65,7 @@ Return a JSON array of 7 objects, each with:
 - "purpose": string (e.g. "Welcome + what to expect")
 - "subject": string (compelling subject line)
 - "previewText": string (email preview text)
-- "body": string (full email body with [First Name], [Author Name] placeholders, and [CTA Button →] links)
+- "body": string (full email body with [First Name] for the reader and [CTA Button →] links. Use "${displayName}" directly instead of any author placeholder.)
 
 Make each email specific to the course topic. Return ONLY valid JSON.`;
 
