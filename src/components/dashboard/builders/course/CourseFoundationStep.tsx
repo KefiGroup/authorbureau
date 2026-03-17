@@ -80,6 +80,14 @@ export default function CourseFoundationStep({ stepData, setStepData, onMarkEdit
         </Card>
       )}
 
+      {/* Review & Edit Header */}
+      {(data.title || data.subtitle || data.description || (titleOptions.length > 0)) && (
+        <div className="flex items-center gap-2 pt-2">
+          <Sparkles className="h-4 w-4 text-secondary" />
+          <p className="text-sm font-semibold text-secondary">Review & Edit Abby's Output</p>
+        </div>
+      )}
+
       {/* Title Options */}
       <Card className="p-5 space-y-4">
         <h3 className="text-sm font-bold flex items-center gap-2">
