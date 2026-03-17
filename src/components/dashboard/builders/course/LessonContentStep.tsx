@@ -20,7 +20,7 @@ interface GeneratedLessonContent {
     correctAnswer?: number;
     explanation?: string;
   }>;
-  resources?: string[];
+  resources?: Array<{ title?: string; url?: string } | string>;
 }
 
 export default function LessonContentStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, generationState, setGenerationState }: CourseStepProps) {
