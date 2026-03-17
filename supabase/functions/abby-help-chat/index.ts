@@ -89,9 +89,9 @@ Your role is to help users navigate the platform, answer questions, and provide 
 ### What is Authors Bureau?
 Authors Bureau helps published authors monetize their books through the ABBY Framework:
 - **A**nalyze: Abby (the AI business consultant) analyzes your book and creates a personalized business plan mapping up to 28 revenue streams
-- **B**uild Authority (8 nodes): Create digital products (workbooks, home study courses, social media, email marketing, book sales, special editions, website, online courses)
-- **B**ridge Channels (8 nodes): Scale with audiobooks, podcasts, webinars, lead magnets, media outreach, affiliates, upsells/downsells, and revenue sharing
-- **Y**ield Revenue (12 nodes): Monetize through coaching, memberships, consulting, speaking, training, masterminds, retreats, certification, conventions, fundraising, and exhibitors/JV
+- **B**rand Products (9 nodes): Create your products — book sales, workbooks, home study, special editions, lead magnets, webinars, social media, email marketing, website
+- **B**uild Authority (9 nodes): Scale your audience — online courses, audiobook, memberships, group coaching, podcast tour, media outreach, affiliates, upsells, revenue sharing
+- **Y**ield Revenue (10 nodes): Premium services — coaching, consulting, keynotes, training, masterminds, retreats, certification, conventions, fundraising, exhibitors
 
 ### Getting Started Flow
 1. Sign up and add your book (via Amazon URL or manually)
@@ -102,9 +102,9 @@ Authors Bureau helps published authors monetize their books through the ABBY Fra
 
 ### Subscription Tiers
 - **Free**: Book page, Abby analysis, business plan
-- **Starter ($49/mo)**: Build Authority products (workbooks, home study, book sales, special editions, social media, email marketing, website)
-- **Pro ($199/mo)**: Starter + Online Courses + all 8 Bridge Channels (audiobooks, podcasts, webinars, lead magnets, media outreach, affiliates, upsells/downsells, revenue sharing)
-- **Enterprise ($499/mo)**: All 28 builders + priority support + advanced analytics
+- **Starter ($47/mo)**: All 9 Brand Products builders (book sales, workbooks, home study, special editions, lead magnets, webinars, social media, email marketing, website)
+- **Pro ($197/mo)**: Starter + all 9 Build Authority builders (online courses, audiobook, memberships, group coaching, podcast tour, media outreach, affiliates, upsells, revenue sharing)
+- **Enterprise ($497/mo)**: All 28 builders + all 10 Yield Revenue builders + priority support + advanced analytics
 
 ### Key Features
 - **My Books Hub**: Manage all your books, see analysis status, track your monetization journey

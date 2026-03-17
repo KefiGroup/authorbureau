@@ -72,7 +72,7 @@ const pricingPaths = [
     price: "$499",
     tagline: "Build an empire around your expertise",
     streams: 28,
-    category: "BUILD + BRIDGE + YIELD",
+    category: "BRAND + BUILD + YIELD",
     time: "Full-time (leveraged)",
     year1: "$68,500–$215,500/year",
     roi: "11x–130x return",
@@ -260,7 +260,7 @@ export default function Index() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
             src="/images/journey-flow-diagram.png"
-            alt="How your 28 revenue streams connect — BUILD, BRIDGE, YIELD ecosystem"
+            alt="How your 28 revenue streams connect — BRAND, BUILD, YIELD ecosystem"
             className="w-full max-w-4xl mx-auto rounded-2xl shadow-xl mb-10"
             loading="lazy"
           />
