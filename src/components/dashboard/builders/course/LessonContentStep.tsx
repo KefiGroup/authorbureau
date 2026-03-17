@@ -9,6 +9,7 @@ import { Sparkles, Loader2, BookOpen, Wand2, Plus, Trash2, RotateCcw, RefreshCw,
 import { useToast } from "@/hooks/use-toast";
 import { generateJSONWithAI } from "@/lib/ai-generate";
 import type { CourseStepProps, CourseModule, CourseQuiz, CourseLesson, CourseResource } from "./types";
+import LessonVideoUpload from "./LessonVideoUpload";
 
 interface GeneratedLessonContent {
   script?: string;
