@@ -80,8 +80,8 @@ function getRecommendationsFromPlan(planContent: string | null): Recommendation[
 }
 
 const categoryBadge: Record<string, { label: string; className: string }> = {
-  build: { label: "B·Build", className: "bg-emerald-100 text-emerald-700" },
-  bridge: { label: "B·Bridge", className: "bg-violet-100 text-violet-700" },
+  build: { label: "B·Brand", className: "bg-emerald-100 text-emerald-700" },
+  bridge: { label: "B·Build", className: "bg-violet-100 text-violet-700" },
   yield: { label: "Y·Yield", className: "bg-sky-100 text-sky-700" },
 };
 
@@ -259,7 +259,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
             <>Your plan for <strong>"{book.title}"</strong> is ready. On your Starter plan, you can build 3 products right now. Here's what I recommend starting with:</>
           )}
           {tier === "pro" && (
-            <>Your plan for <strong>"{book.title}"</strong> is ready with projected revenue potential. On Pro, you have access to 16 builders (Build + Bridge). Let's make it happen!</>
+            <>Your plan for <strong>"{book.title}"</strong> is ready with projected revenue potential. On Pro, you have access to 18 builders (Brand + Build). Let's make it happen!</>
           )}
           {tier === "enterprise" && (
             <>Your plan for <strong>"{book.title}"</strong> is ready. All 28 builders are unlocked on your Enterprise plan — let's build your author empire!</>

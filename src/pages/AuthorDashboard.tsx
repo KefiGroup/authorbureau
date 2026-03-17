@@ -274,7 +274,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
     if (!nodeId) return false;
     // If DB data loaded, use it; otherwise fall back to closed
     if (gating.length > 0) return !isNodeOpen(nodeId);
-    return true; // default closed for Bridge/Yield sections
+    return true; // default closed for Build/Yield sections
   };
 
   const renderSection = () => {
@@ -506,14 +506,15 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
             (stats.products.perTable["social_media_content"]?.total || 0) +
             (stats.products.perTable["email_flows"]?.total || 0)
           }
-          bridgeUnlocked={
+          buildAuthorityUnlocked={
             (stats.products.perTable["audiobooks"]?.total || 0) +
-            (stats.products.perTable["podcasts"]?.total || 0)
+            (stats.products.perTable["podcasts"]?.total || 0) +
+            (stats.products.perTable["courses"]?.total || 0)
           }
           yieldUnlocked={
             (stats.products.perTable["coaching_packages"]?.total || 0)
           }
-          bridgeCategoryOpen={!isCategoryFullyClosed("marketing-channels")}
+          buildAuthorityCategoryOpen={!isCategoryFullyClosed("marketing-channels")}
           yieldCategoryOpen={!isCategoryFullyClosed("authority-builders")}
         />
       </div>

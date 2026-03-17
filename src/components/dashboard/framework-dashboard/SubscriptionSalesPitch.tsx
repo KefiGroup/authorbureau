@@ -60,12 +60,12 @@ const plans = [
     priceNum: 199,
     period: "/mo",
     tagline: "Build a real business.",
-    description: "Full Build + Bridge — everything to monetize",
+    description: "Full Brand + Build Authority — everything to monetize",
     popular: true,
     features: [
       "Everything in Starter",
       "All 7 B·Build AI builders",
-      "All 14 B·Bridge builders (Courses, Coaching, Audiobooks, Podcasts)",
+      "All 9 B·Build Authority builders (Courses, Audiobooks, Memberships, Podcasts)",
       "Full microsite with unlimited sales pages",
       "Stripe Connect payment processing",
       "CRM & email automation",
@@ -73,7 +73,7 @@ const plans = [
       "Coaching booking system",
       "+ 5% platform fee on sales",
     ],
-    unlockedCategories: ["B·Build (8)", "B·Bridge (8)"],
+    unlockedCategories: ["B·Brand (9)", "B·Build (9)"],
     builderCount: 16,
   },
   {
@@ -94,7 +94,7 @@ const plans = [
       "1-on-1 strategic session with Pauline Teo",
       "+ 5% platform fee on sales",
     ],
-    unlockedCategories: ["B·Build (8)", "B·Bridge (8)", "Y·Yield (12)"],
+    unlockedCategories: ["B·Brand (9)", "B·Build (9)", "Y·Yield (10)"],
     builderCount: 28,
   },
 ];

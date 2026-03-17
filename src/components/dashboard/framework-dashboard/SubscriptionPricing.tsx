@@ -17,16 +17,16 @@ const plans = [
     price: "$49",
     period: "/mo",
     tagline: "Test the waters.",
-    description: "Start building with 3 core AI builders",
+    description: "Start building with Brand Products",
     popular: false,
     features: [
       "Abby AI Unlimited",
-      "3 B·Build builders (Workbook, Social Media, Email)",
+      "All 9 B·Brand Products builders",
       "Basic author profile page",
       "1 product sales page",
       "+ 5% platform fee on sales",
     ],
-    unlockedCategories: ["B·Build (3 of 8)"],
+    unlockedCategories: ["B·Brand (9)"],
   },
   {
     id: "pro" as const,
@@ -34,12 +34,11 @@ const plans = [
     price: "$199",
     period: "/mo",
     tagline: "Build a real business.",
-    description: "Full Build + Bridge — everything to monetize",
+    description: "Full Brand + Build Authority — everything to monetize",
     popular: true,
     features: [
       "Everything in Starter",
-      "All 7 B·Build AI builders",
-      "All 14 B·Bridge builders (Courses, Coaching, Audiobooks, Podcasts)",
+      "All 9 B·Build Authority builders (Courses, Coaching, Audiobooks, Podcasts)",
       "Full website with unlimited sales pages",
       "Stripe Connect payment processing",
       "CRM & email automation",
@@ -47,7 +46,7 @@ const plans = [
       "Coaching booking system",
       "+ 5% platform fee on sales",
     ],
-    unlockedCategories: ["B·Build (8)", "B·Bridge (8)"],
+    unlockedCategories: ["B·Brand (9)", "B·Build (9)"],
   },
   {
     id: "enterprise" as const,
@@ -59,14 +58,14 @@ const plans = [
     popular: false,
     features: [
       "Everything in Pro",
-      "All 7 Y·Yield builders (Retreats, Certification, Masterminds)",
+      "All 10 Y·Yield builders (Coaching, Retreats, Certification, Masterminds)",
       "Full site with custom domain support",
       "White-label option (Authors Bureau branding removed)",
       "Events management system",
       "1-on-1 strategic session with Pauline Teo",
       "+ 5% platform fee on sales",
     ],
-    unlockedCategories: ["B·Build (8)", "B·Bridge (8)", "Y·Yield (12)"],
+    unlockedCategories: ["B·Brand (9)", "B·Build (9)", "Y·Yield (10)"],
   },
 ];
 
@@ -96,7 +95,7 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
             ))}
             {currentTier !== "enterprise" && (
               <span className="rounded-full bg-muted text-muted-foreground text-xs font-medium px-3 py-1 border border-border">
-                🔒 {currentTier === "starter" ? "B·Bridge + Y·Yield locked" : "Y·Yield locked"}
+                🔒 {currentTier === "starter" ? "B·Build + Y·Yield locked" : "Y·Yield locked"}
               </span>
             )}
           </div>

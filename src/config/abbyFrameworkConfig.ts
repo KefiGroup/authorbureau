@@ -46,13 +46,13 @@ export interface AbbyCategoryConfig {
 
 export const ABBY_CATEGORIES: Record<AbbyCategory, AbbyCategoryConfig> = {
   /**
-   * BUILD AUTHORITY (8 nodes)
+   * BRAND PRODUCTS (9 nodes)
    * Digital products & content assets created from the book.
    */
   "revenue-streams": {
     id: "revenue-streams",
-    label: "B · Build Authority",
-    subtitle: "Digital Products & Content Assets (8 nodes)",
+    label: "B · Brand Products",
+    subtitle: "Create Your Products (9 nodes)",
     color: "text-emerald-600",
     bgColor: "bg-emerald-500/10",
     ringColor: "ring-emerald-500/30",
@@ -60,25 +60,26 @@ export const ABBY_CATEGORIES: Record<AbbyCategory, AbbyCategoryConfig> = {
     gradientTo: "to-emerald-600",
     headerIcon: DollarSign,
     nodes: [
-      { id: "workbooks", label: "Workbook", icon: FileText, section: "workbooks", navigateTo: "workbooks", description: "Companion workbook PDFs with exercises and templates.", status: "available", subCategory: "Digital Products", sequence: 1 },
-      { id: "home-study", label: "Home Study Course", icon: BookMarked, section: "home-study", navigateTo: "home-study", description: "Self-paced study guide with daily exercises.", status: "available", subCategory: "Digital Products", sequence: 2 },
-      { id: "book-sales-events", label: "Book Sales", icon: BookOpen, section: "book-sales", navigateTo: "book-sales", description: "QR code order pages & direct sales.", status: "available", subCategory: "Digital Products", sequence: 3 },
-      { id: "special-editions", label: "Special Editions", icon: Sparkles, section: "special-editions", navigateTo: "special-editions", description: "Premium editions with themed gift packaging for 12+ occasions. Signed copies, collector's editions & gift sets with bonus content.", status: "available", subCategory: "Digital Products", sequence: 4 },
-      { id: "social-media", label: "Social Media", icon: Share2, section: "social-media", navigateTo: "social-media", description: "90-day AI content calendar from your book.", status: "available", subCategory: "In-House", sequence: 5 },
-      { id: "email-marketing", label: "Email Marketing", icon: Megaphone, section: "email-marketing", navigateTo: "email-marketing", description: "AI-driven nurture sequences from book content.", status: "available", subCategory: "In-House", sequence: 6 },
-      { id: "microsite", label: "Website", icon: BookOpen, section: "microsite-manager", navigateTo: "microsite-manager", description: "Your professional author website.", status: "available", subCategory: "In-House", sequence: 7 },
-      { id: "courses", label: "Online Course", icon: GraduationCap, section: "courses", navigateTo: "courses", description: "8-12 module structured courses from your book content.", status: "available", subCategory: "Pro Products", sequence: 8, tierRequired: "Pro" },
+      { id: "book-sales-events", label: "Book Sales", icon: BookOpen, section: "book-sales", navigateTo: "book-sales", description: "QR code order pages & direct sales.", status: "available", subCategory: "Digital Products", sequence: 1 },
+      { id: "workbooks", label: "Workbook", icon: FileText, section: "workbooks", navigateTo: "workbooks", description: "Companion workbook PDFs with exercises and templates.", status: "available", subCategory: "Digital Products", sequence: 2 },
+      { id: "home-study", label: "Home Study Course", icon: BookMarked, section: "home-study", navigateTo: "home-study", description: "Self-paced study guide with daily exercises.", status: "available", subCategory: "Digital Products", sequence: 3 },
+      { id: "special-editions", label: "Special Editions", icon: Sparkles, section: "special-editions", navigateTo: "special-editions", description: "Premium editions with themed gift packaging. Signed copies, collector's editions & gift sets.", status: "available", subCategory: "Digital Products", sequence: 4 },
+      { id: "lead-magnet", label: "Lead Magnets", icon: FileText, navigateTo: "lead-magnet", description: "Free PDF downloads to grow your email list.", status: "coming-soon", subCategory: "Growth", sequence: 5 },
+      { id: "webinars", label: "Webinars", icon: Video, section: "webinars", navigateTo: "webinars", description: "Webinar scripts + slide decks + registration pages.", status: "coming-soon", subCategory: "Growth", sequence: 6 },
+      { id: "social-media", label: "Social Media", icon: Share2, section: "social-media", navigateTo: "social-media", description: "90-day AI content calendar from your book.", status: "available", subCategory: "In-House", sequence: 7 },
+      { id: "email-marketing", label: "Email Marketing", icon: Megaphone, section: "email-marketing", navigateTo: "email-marketing", description: "AI-driven nurture sequences from book content.", status: "available", subCategory: "In-House", sequence: 8 },
+      { id: "microsite", label: "Website", icon: BookOpen, section: "microsite-manager", navigateTo: "microsite-manager", description: "Your professional author website.", status: "available", subCategory: "In-House", sequence: 9 },
     ],
   },
 
   /**
-   * BUILD CHANNELS (8 nodes)
-   * Marketing channels that connect the book to a wider audience.
+   * BUILD AUTHORITY (9 nodes)
+   * Scale audience and recurring revenue.
    */
   "marketing-channels": {
     id: "marketing-channels",
-    label: "B · Build Channels",
-    subtitle: "Marketing & Audience Growth (8 nodes)",
+    label: "B · Build Authority",
+    subtitle: "Scale Your Audience (9 nodes)",
     color: "text-violet-600",
     bgColor: "bg-violet-500/10",
     ringColor: "ring-violet-500/30",
@@ -86,25 +87,26 @@ export const ABBY_CATEGORIES: Record<AbbyCategory, AbbyCategoryConfig> = {
     gradientTo: "to-violet-600",
     headerIcon: Radio,
     nodes: [
-      { id: "audiobook", label: "Audiobook", icon: Headphones, section: "audiobook-studio", navigateTo: "audiobook-studio", description: "AI-narrated audiobook from your manuscript.", status: "coming-soon", subCategory: "Outreach", sequence: 1, tierRequired: "Pro" },
-      { id: "podcast-guest", label: "Podcast Tour", icon: Podcast, section: "podcast", navigateTo: "podcast", description: "Podcast series & guest pitches from your book content.", status: "coming-soon", subCategory: "Outreach", sequence: 2, tierRequired: "Pro" },
-      { id: "webinars", label: "Webinars", icon: Video, section: "webinars", navigateTo: "webinars", description: "Webinar scripts + slide decks + registration pages.", status: "coming-soon", subCategory: "Outreach", sequence: 3, tierRequired: "Pro" },
-      { id: "lead-magnet", label: "Lead Magnet Funnel", icon: FileText, navigateTo: "lead-magnet", description: "Free PDF downloads to grow your email list.", status: "coming-soon", subCategory: "Growth", sequence: 4 },
-      { id: "in-house-speaker", label: "Media Outreach", icon: Presentation, description: "Press kit, media pitches & speaker profile.", status: "planned", subCategory: "Outreach", sequence: 5, tierRequired: "Pro" },
-      { id: "affiliates", label: "Affiliates", icon: Link2, description: "Affiliate tracking links + commission structures.", status: "planned", subCategory: "Growth", sequence: 6, tierRequired: "Pro" },
-      { id: "upsells", label: "Upsells / Downsells", icon: TrendingUp, description: "Conversion sequences and funnel optimization.", status: "planned", subCategory: "Growth", sequence: 7, tierRequired: "Pro" },
-      { id: "revenue-sharing", label: "Revenue Sharing", icon: Handshake, description: "Partnership matching + contract templates.", status: "planned", subCategory: "Growth", sequence: 8, tierRequired: "Pro" },
+      { id: "courses", label: "Online Course", icon: GraduationCap, section: "courses", navigateTo: "courses", description: "8-12 module structured courses from your book content.", status: "available", subCategory: "Products", sequence: 1, tierRequired: "Pro" },
+      { id: "audiobook", label: "Audiobook", icon: Headphones, section: "audiobook-studio", navigateTo: "audiobook-studio", description: "AI-narrated audiobook from your manuscript.", status: "coming-soon", subCategory: "Products", sequence: 2, tierRequired: "Pro" },
+      { id: "memberships", label: "Memberships", icon: CreditCard, section: "memberships", navigateTo: "memberships", description: "3-tier membership system with recurring revenue.", status: "coming-soon", subCategory: "Recurring", sequence: 3, tierRequired: "Pro" },
+      { id: "group-coaching", label: "Group Coaching", icon: Users, section: "group-coaching", navigateTo: "group-coaching", description: "8-week group coaching curriculum.", status: "coming-soon", subCategory: "Recurring", sequence: 4, tierRequired: "Pro" },
+      { id: "podcast-guest", label: "Podcast Tour", icon: Podcast, section: "podcast", navigateTo: "podcast", description: "Podcast series & guest pitches from your book content.", status: "coming-soon", subCategory: "Outreach", sequence: 5, tierRequired: "Pro" },
+      { id: "in-house-speaker", label: "Media Outreach", icon: Presentation, description: "Press kit, media pitches & speaker profile.", status: "planned", subCategory: "Outreach", sequence: 6, tierRequired: "Pro" },
+      { id: "affiliates", label: "Affiliates", icon: Link2, description: "Affiliate tracking links + commission structures.", status: "planned", subCategory: "Growth", sequence: 7, tierRequired: "Pro" },
+      { id: "upsells", label: "Upsells / Downsells", icon: TrendingUp, description: "Conversion sequences and funnel optimization.", status: "planned", subCategory: "Growth", sequence: 8, tierRequired: "Pro" },
+      { id: "revenue-sharing", label: "Revenue Sharing", icon: Handshake, description: "Partnership matching + contract templates.", status: "planned", subCategory: "Growth", sequence: 9, tierRequired: "Pro" },
     ],
   },
 
   /**
-   * YIELD REVENUE (12 nodes)
+   * YIELD REVENUE (10 nodes)
    * Premium monetization: coaching, speaking, events.
    */
   "authority-builders": {
     id: "authority-builders",
     label: "Y · Yield Revenue",
-    subtitle: "Premium Revenue & High-Ticket Offers (12 nodes)",
+    subtitle: "Premium Services (10 nodes)",
     color: "text-sky-600",
     bgColor: "bg-sky-500/10",
     ringColor: "ring-sky-500/30",
@@ -112,18 +114,16 @@ export const ABBY_CATEGORIES: Record<AbbyCategory, AbbyCategoryConfig> = {
     gradientTo: "to-sky-600",
     headerIcon: Award,
     nodes: [
-      { id: "coaching-1on1", label: "1-on-1 Coaching", icon: UserCheck, section: "coaching", navigateTo: "coaching", description: "6/12-session coaching programs with session outlines.", status: "coming-soon", subCategory: "Coaching", sequence: 1, tierRequired: "Pro" },
-      { id: "group-coaching", label: "Group Coaching", icon: Users, section: "group-coaching", navigateTo: "group-coaching", description: "8-week group coaching curriculum.", status: "coming-soon", subCategory: "Coaching", sequence: 2, tierRequired: "Pro" },
-      { id: "memberships", label: "Monthly Memberships", icon: CreditCard, section: "memberships", navigateTo: "memberships", description: "3-tier membership system with recurring revenue.", status: "coming-soon", subCategory: "Coaching", sequence: 3, tierRequired: "Pro" },
-      { id: "big-ticket", label: "Big Ticket Consulting", icon: Trophy, navigateTo: "big-ticket", description: "Premium consulting packages ($5K–$25K).", status: "planned", subCategory: "Coaching", sequence: 4, tierRequired: "Pro" },
-      { id: "keynotes", label: "Keynotes", icon: Mic, section: "speaking", navigateTo: "speaking", description: "3-5 keynote topics with slide decks.", status: "coming-soon", subCategory: "Speaking", sequence: 5 },
-      { id: "training", label: "Training Programs", icon: Building2, description: "Half/full-day corporate training programs.", status: "planned", subCategory: "Speaking", sequence: 6, tierRequired: "Enterprise" },
-      { id: "masterminds", label: "Masterminds", icon: BarChart3, description: "Quarterly mastermind group programs.", status: "planned", subCategory: "Corporate", sequence: 7, tierRequired: "Enterprise" },
-      { id: "retreats", label: "Retreats & Bootcamps", icon: Bookmark, description: "2-3 day retreat programs.", status: "planned", subCategory: "Corporate", sequence: 8, tierRequired: "Enterprise" },
-      { id: "certification", label: "Certification", icon: ShieldCheck, description: "Curriculum + exam + digital certificates.", status: "planned", subCategory: "Corporate", sequence: 9, tierRequired: "Enterprise" },
-      { id: "conventions", label: "Conventions / Conferences", icon: Calendar, description: "Conference submission generator.", status: "planned", subCategory: "Events", sequence: 10, tierRequired: "Enterprise" },
-      { id: "fundraising", label: "Fund Raising", icon: HandCoins, description: "Fundraising event templates.", status: "planned", subCategory: "Events", sequence: 11, tierRequired: "Enterprise" },
-      { id: "exhibitors", label: "Exhibitors / JV", icon: Megaphone, description: "Exhibitor prospectus + partnership matching.", status: "planned", subCategory: "Events", sequence: 12, tierRequired: "Enterprise" },
+      { id: "coaching-1on1", label: "Coaching", icon: UserCheck, section: "coaching", navigateTo: "coaching", description: "6/12-session coaching programs with session outlines.", status: "coming-soon", subCategory: "Services", sequence: 1, tierRequired: "Enterprise" },
+      { id: "big-ticket", label: "Consulting", icon: Trophy, navigateTo: "big-ticket", description: "Premium consulting packages ($5K–$25K).", status: "planned", subCategory: "Services", sequence: 2, tierRequired: "Enterprise" },
+      { id: "keynotes", label: "Keynotes", icon: Mic, section: "speaking", navigateTo: "speaking", description: "3-5 keynote topics with slide decks.", status: "coming-soon", subCategory: "Speaking", sequence: 3, tierRequired: "Enterprise" },
+      { id: "training", label: "Training Programs", icon: Building2, description: "Half/full-day corporate training programs.", status: "planned", subCategory: "Speaking", sequence: 4, tierRequired: "Enterprise" },
+      { id: "masterminds", label: "Masterminds", icon: BarChart3, description: "Quarterly mastermind group programs.", status: "planned", subCategory: "Corporate", sequence: 5, tierRequired: "Enterprise" },
+      { id: "retreats", label: "Retreats & Bootcamps", icon: Bookmark, description: "2-3 day retreat programs.", status: "planned", subCategory: "Corporate", sequence: 6, tierRequired: "Enterprise" },
+      { id: "certification", label: "Certification", icon: ShieldCheck, description: "Curriculum + exam + digital certificates.", status: "planned", subCategory: "Corporate", sequence: 7, tierRequired: "Enterprise" },
+      { id: "conventions", label: "Conventions / Conferences", icon: Calendar, description: "Conference submission generator.", status: "planned", subCategory: "Events", sequence: 8, tierRequired: "Enterprise" },
+      { id: "fundraising", label: "Fund Raising", icon: HandCoins, description: "Fundraising event templates.", status: "planned", subCategory: "Events", sequence: 9, tierRequired: "Enterprise" },
+      { id: "exhibitors", label: "Exhibitors / JV", icon: Megaphone, description: "Exhibitor prospectus + partnership matching.", status: "planned", subCategory: "Events", sequence: 10, tierRequired: "Enterprise" },
     ],
   },
 };
@@ -176,7 +176,7 @@ export const ADVISOR_CONTENT: Record<AbbyCategory, AdvisorContent> = {
   },
   "marketing-channels": {
     heading: "Which channels should you activate first?",
-    intro: "Build Channel products connect your book to a wider audience. Here's the priority order:",
+    intro: "Build Authority products scale your audience and recurring revenue. Here's the priority order:",
     recommendations: [
       { label: "Audiobook", reason: "AI-narrated from your manuscript. No recording studio needed. Expands your reach to listeners who prefer audio.", priceRange: "$9.99 – $14.99", difficulty: "Easy", nodeId: "audiobook" },
       { label: "Podcast Tour", reason: "AI generates guest pitches, talking points, and media one-sheets. The fastest way to reach new audiences.", difficulty: "Easy", nodeId: "podcast-guest" },

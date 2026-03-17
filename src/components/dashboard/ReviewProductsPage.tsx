@@ -69,8 +69,8 @@ interface DraftProduct {
 
 /* ── Category Labels ────────────────────────────────────────────── */
 const CATEGORY_CONFIG = {
-  build: { label: "B · Build Authority", badge: "Build", color: "bg-emerald-500/15 text-emerald-700 border-emerald-300", icon: Zap, count: 0 },
-  bridge: { label: "B · Build Channels", badge: "Build", color: "bg-blue-500/15 text-blue-700 border-blue-300", icon: Network, count: 0 },
+  build: { label: "B · Brand Products", badge: "Brand", color: "bg-emerald-500/15 text-emerald-700 border-emerald-300", icon: Zap, count: 0 },
+  bridge: { label: "B · Build Authority", badge: "Build", color: "bg-blue-500/15 text-blue-700 border-blue-300", icon: Network, count: 0 },
   yield: { label: "Y · Yield Revenue", badge: "Yield", color: "bg-amber-500/15 text-amber-700 border-amber-300", icon: Crown, count: 0 },
 };
 
@@ -296,7 +296,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
           Review & Publish Your Products
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Every product follows the <span className="font-semibold text-amber-600">Analyse</span> → <span className="font-semibold text-blue-600">Build</span> → <span className="font-semibold text-green-600">Bridge</span> pipeline. Review each one, then publish to your microsite.
+          Every product follows the <span className="font-semibold text-amber-600">Analyse</span> → <span className="font-semibold text-blue-600">Brand</span> → <span className="font-semibold text-green-600">Build</span> pipeline. Review each one, then publish to your microsite.
         </p>
       </div>
 
@@ -304,8 +304,8 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <SummaryCard label="Total Products" value={products.length} icon={Package} />
         <SummaryCard label="Ready for Review" value={categoryCounts.review} icon={Eye} accent />
-        <SummaryCard label="Build Authority" value={categoryCounts.build} icon={Zap} />
-        <SummaryCard label="Bridge + Yield" value={categoryCounts.bridge + categoryCounts.yield} icon={Crown} />
+        <SummaryCard label="Brand Products" value={categoryCounts.build} icon={Zap} />
+        <SummaryCard label="Build + Yield" value={categoryCounts.bridge + categoryCounts.yield} icon={Crown} />
       </div>
 
       {/* ── 3-Act Pipeline Visual ────────────────────────────── */}
@@ -338,8 +338,8 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
           <TabsTrigger value="review" className="text-xs">
             Ready for Review {categoryCounts.review > 0 && <Badge variant="destructive" className="ml-1 h-4 px-1 text-[9px]">{categoryCounts.review}</Badge>}
           </TabsTrigger>
-          <TabsTrigger value="build" className="text-xs">Build ({categoryCounts.build})</TabsTrigger>
-          <TabsTrigger value="bridge" className="text-xs">Bridge ({categoryCounts.bridge})</TabsTrigger>
+          <TabsTrigger value="build" className="text-xs">Brand ({categoryCounts.build})</TabsTrigger>
+          <TabsTrigger value="bridge" className="text-xs">Build ({categoryCounts.bridge})</TabsTrigger>
           <TabsTrigger value="yield" className="text-xs">Yield ({categoryCounts.yield})</TabsTrigger>
         </TabsList>
 
@@ -646,10 +646,10 @@ function ProductCard({
 
 function EmptyState({ tab, onNavigate }: { tab: string; onNavigate?: (s: string) => void }) {
   const messages: Record<string, string> = {
-    all: "Build products from the Build Authority, Build Channels, or Yield Revenue sections, then they'll appear here for review.",
+    all: "Build products from Brand Products, Build Authority, or Yield Revenue sections, then they'll appear here for review.",
     review: "No products are ready for review yet. Complete a product in the builder studio to move it here.",
-    build: "No Build Authority products in progress. Start with a Workbook or Home Study Course.",
-    bridge: "No Build Channel products yet. Try building an Online Course or Podcast.",
+    build: "No Brand Products in progress. Start with a Workbook or Home Study Course.",
+    bridge: "No Build Authority products yet. Try building an Online Course or Podcast.",
     yield: "No Yield Revenue products yet. These are your high-ticket offerings like Coaching and Masterminds.",
   };
 

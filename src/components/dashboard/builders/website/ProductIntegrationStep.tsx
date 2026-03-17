@@ -23,7 +23,7 @@ const DEFAULT_PRODUCTS: ProductCard[] = [
 
 const CATEGORY_LABELS: Record<string, { label: string; color: string }> = {
   build: { label: "B·Build", color: "bg-emerald-500/10 text-emerald-600" },
-  bridge: { label: "B·Bridge", color: "bg-violet-500/10 text-violet-600" },
+  bridge: { label: "B·Build", color: "bg-violet-500/10 text-violet-600" },
   yield: { label: "Y·Yield", color: "bg-amber-500/10 text-amber-600" },
 };
 
@@ -69,7 +69,7 @@ export default function ProductIntegrationStep({ stepData, setStepData, onMarkEd
         <div className="flex items-start gap-3">
           <Sparkles className="h-4 w-4 text-secondary mt-0.5 shrink-0" />
           <p className="text-xs text-muted-foreground">
-            <span className="font-semibold text-foreground">Abby's tip:</span> Products are auto-populated from all your built products. Organize them by ABBY category (Build, Bridge, Yield) so visitors can see your full ecosystem.
+            <span className="font-semibold text-foreground">Abby's tip:</span> Products are auto-populated from all your built products. Organize them by ABBY category (Brand, Build, Yield) so visitors can see your full ecosystem.
           </p>
         </div>
       </Card>
@@ -161,7 +161,7 @@ export default function ProductIntegrationStep({ stepData, setStepData, onMarkEd
           <span className="text-xs font-semibold">Product Summary</span>
         </div>
         <p className="text-xs text-muted-foreground">
-          {products.length} products • {products.filter(p => p.category === "build").length} Build • {products.filter(p => p.category === "bridge").length} Bridge • {products.filter(p => p.category === "yield").length} Yield
+          {products.length} products • {products.filter(p => p.category === "build").length} Brand • {products.filter(p => p.category === "bridge").length} Build • {products.filter(p => p.category === "yield").length} Yield
         </p>
       </Card>
     </div>

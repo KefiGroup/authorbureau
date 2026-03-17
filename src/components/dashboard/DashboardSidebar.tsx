@@ -24,11 +24,11 @@ interface Props {
   hasAnalysis?: boolean;
   hasMicrosite?: boolean;
   buildUnlocked?: number;
-  bridgeUnlocked?: number;
+  buildAuthorityUnlocked?: number;
   yieldUnlocked?: number;
   stripeConnected?: boolean;
   pendingReviewCount?: number;
-  bridgeCategoryOpen?: boolean;
+  buildAuthorityCategoryOpen?: boolean;
   yieldCategoryOpen?: boolean;
 }
 
@@ -53,9 +53,9 @@ const sisterLinks = [
 export default function DashboardSidebar({
   activeSection, onSectionChange, collapsed, onToggleCollapse,
   isPremium, isAdmin = false, isSuperAdmin: isSuperAdminProp = false, tier = "free", hasBooks = true, hasAnalysis = true, hasMicrosite = true,
-  buildUnlocked = 0, bridgeUnlocked = 0, yieldUnlocked = 0,
+  buildUnlocked = 0, buildAuthorityUnlocked = 0, yieldUnlocked = 0,
   stripeConnected = false, pendingReviewCount = 0,
-  bridgeCategoryOpen = false, yieldCategoryOpen = false,
+  buildAuthorityCategoryOpen = false, yieldCategoryOpen = false,
 }: Props) {
 
   const bypassLocks = isPremium || isAdmin;
@@ -68,7 +68,7 @@ export default function DashboardSidebar({
 
   // Collapse BUILD YOUR BUSINESS if no analysis and no products
   const [businessExpanded, setBusinessExpanded] = useState(
-    hasAnalysis || bypassLocks || buildUnlocked > 0 || bridgeUnlocked > 0 || yieldUnlocked > 0
+    hasAnalysis || bypassLocks || buildUnlocked > 0 || buildAuthorityUnlocked > 0 || yieldUnlocked > 0
   );
 
   // HOME
@@ -85,20 +85,20 @@ export default function DashboardSidebar({
   // BUILD YOUR BUSINESS
   const businessItems: NavItem[] = [
     {
-      id: "revenue-streams", label: "B·Build Authority", icon: DollarSign,
-      subtitle: "Create Digital Products",
+      id: "revenue-streams", label: "B·Brand Products", icon: DollarSign,
+      subtitle: "Create Your Products",
       tooltip: "Turn your book into 9 digital products your audience can buy.",
       color: "text-emerald-500",
       badge: hasAnalysis || bypassLocks ? `${buildUnlocked} built` : undefined,
       lockMessage: (!hasAnalysis && !bypassLocks) ? "Analyze a book first" : (!tierAccess("starter") ? "Requires Starter" : undefined),
     },
     {
-      id: "marketing-channels", label: "B·Build Channels", icon: Radio,
-      subtitle: (isSuperAdminProp || bridgeCategoryOpen) ? (isSuperAdminProp ? "Dev Access" : "Marketing & Audience Growth") : "Coming Soon",
-      tooltip: (isSuperAdminProp || bridgeCategoryOpen) ? "Build Channels — Marketing & audience connections" : "Build Channels are coming soon. Stay tuned!",
+      id: "marketing-channels", label: "B·Build Authority", icon: Radio,
+      subtitle: (isSuperAdminProp || buildAuthorityCategoryOpen) ? (isSuperAdminProp ? "Dev Access" : "Scale Your Audience") : "Coming Soon",
+      tooltip: (isSuperAdminProp || buildAuthorityCategoryOpen) ? "Build Authority — Scale audience & recurring revenue" : "Build Authority is coming soon. Stay tuned!",
       color: "text-violet-500",
-      badge: (isSuperAdminProp || bridgeCategoryOpen) ? `${bridgeUnlocked} built` : "Coming Soon",
-      lockMessage: (isSuperAdminProp || bridgeCategoryOpen) ? undefined : "Build Channels are coming soon",
+      badge: (isSuperAdminProp || buildAuthorityCategoryOpen) ? `${buildAuthorityUnlocked} built` : "Coming Soon",
+      lockMessage: (isSuperAdminProp || buildAuthorityCategoryOpen) ? undefined : "Build Authority is coming soon",
     },
     {
       id: "authority-builders", label: "Y·Yield Revenue", icon: Award,
@@ -219,7 +219,7 @@ export default function DashboardSidebar({
   );
 
   const renderCollapsibleBusinessSection = () => {
-    const shouldCollapse = !hasAnalysis && !bypassLocks && buildUnlocked === 0 && bridgeUnlocked === 0 && yieldUnlocked === 0;
+    const shouldCollapse = !hasAnalysis && !bypassLocks && buildUnlocked === 0 && buildAuthorityUnlocked === 0 && yieldUnlocked === 0;
 
     return (
       <div className="space-y-0.5">

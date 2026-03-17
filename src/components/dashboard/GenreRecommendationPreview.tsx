@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 
 interface Recommendation {
   product: string;
-  category: "Build" | "Bridge" | "Yield";
+  category: "Brand" | "Build" | "Yield";
   revenue: string;
   fit: "High" | "Medium";
 }
@@ -17,12 +17,12 @@ interface Recommendation {
 const GENRE_RECOMMENDATIONS: Record<string, Recommendation[]> = {
   "self-help": [
     { product: "Online Course", category: "Build", revenue: "$97–$497", fit: "High" },
-    { product: "Home Study Course", category: "Build", revenue: "$27–$97", fit: "High" },
-    { product: "Workbook", category: "Build", revenue: "$0–$27", fit: "High" },
+    { product: "Home Study Course", category: "Brand", revenue: "$27–$97", fit: "High" },
+    { product: "Workbook", category: "Brand", revenue: "$0–$27", fit: "High" },
     { product: "1-on-1 Coaching", category: "Yield", revenue: "$150–$500/session", fit: "High" },
     { product: "Group Coaching", category: "Yield", revenue: "$297–$997/cohort", fit: "High" },
-    { product: "Podcast", category: "Bridge", revenue: "Audience builder", fit: "High" },
-    { product: "Email Marketing", category: "Build", revenue: "Marketing asset", fit: "Medium" },
+    { product: "Podcast", category: "Build", revenue: "Audience builder", fit: "High" },
+    { product: "Email Marketing", category: "Brand", revenue: "Marketing asset", fit: "Medium" },
     { product: "Membership", category: "Yield", revenue: "$9–$97/mo", fit: "Medium" },
   ],
   "business": [
@@ -30,20 +30,20 @@ const GENRE_RECOMMENDATIONS: Record<string, Recommendation[]> = {
     { product: "Big Ticket Consulting", category: "Yield", revenue: "$2,500–$10,000+", fit: "High" },
     { product: "Keynote Speaking", category: "Yield", revenue: "$2,500–$25,000", fit: "High" },
     { product: "Mastermind", category: "Yield", revenue: "$5,000–$25,000/yr", fit: "High" },
-    { product: "Home Study Course", category: "Build", revenue: "$47–$197", fit: "High" },
-    { product: "Podcast", category: "Bridge", revenue: "Audience builder", fit: "Medium" },
+    { product: "Home Study Course", category: "Brand", revenue: "$47–$197", fit: "High" },
+    { product: "Podcast", category: "Build", revenue: "Audience builder", fit: "Medium" },
     { product: "Training Programs", category: "Yield", revenue: "$5,000–$25,000", fit: "Medium" },
-    { product: "Webinars", category: "Bridge", revenue: "$0–$97", fit: "Medium" },
+    { product: "Webinars", category: "Brand", revenue: "$0–$97", fit: "Medium" },
   ],
   "finance": [
     { product: "Online Course", category: "Build", revenue: "$197–$997", fit: "High" },
     { product: "Big Ticket Consulting", category: "Yield", revenue: "$2,500–$10,000+", fit: "High" },
-    { product: "Home Study Course", category: "Build", revenue: "$47–$197", fit: "High" },
+    { product: "Home Study Course", category: "Brand", revenue: "$47–$197", fit: "High" },
     { product: "Membership", category: "Yield", revenue: "$27–$97/mo", fit: "High" },
-    { product: "Webinars", category: "Bridge", revenue: "$0–$97", fit: "Medium" },
+    { product: "Webinars", category: "Brand", revenue: "$0–$97", fit: "Medium" },
     { product: "1-on-1 Coaching", category: "Yield", revenue: "$200–$500/session", fit: "Medium" },
-    { product: "Podcast", category: "Bridge", revenue: "Audience builder", fit: "Medium" },
-    { product: "Email Marketing", category: "Build", revenue: "Marketing asset", fit: "Medium" },
+    { product: "Podcast", category: "Build", revenue: "Audience builder", fit: "Medium" },
+    { product: "Email Marketing", category: "Brand", revenue: "Marketing asset", fit: "Medium" },
   ],
   "leadership": [
     { product: "Keynote Speaking", category: "Yield", revenue: "$5,000–$25,000", fit: "High" },
@@ -52,39 +52,39 @@ const GENRE_RECOMMENDATIONS: Record<string, Recommendation[]> = {
     { product: "Online Course", category: "Build", revenue: "$197–$997", fit: "High" },
     { product: "Mastermind", category: "Yield", revenue: "$5,000–$25,000/yr", fit: "High" },
     { product: "Group Coaching", category: "Yield", revenue: "$497–$2,000/cohort", fit: "Medium" },
-    { product: "Podcast", category: "Bridge", revenue: "Audience builder", fit: "Medium" },
+    { product: "Podcast", category: "Build", revenue: "Audience builder", fit: "Medium" },
     { product: "Retreats & Bootcamps", category: "Yield", revenue: "$997–$5,000", fit: "Medium" },
   ],
   "health": [
     { product: "Online Course", category: "Build", revenue: "$97–$497", fit: "High" },
     { product: "Group Coaching", category: "Yield", revenue: "$297–$997/cohort", fit: "High" },
-    { product: "Home Study Course", category: "Build", revenue: "$27–$97", fit: "High" },
+    { product: "Home Study Course", category: "Brand", revenue: "$27–$97", fit: "High" },
     { product: "Membership", category: "Yield", revenue: "$19–$97/mo", fit: "High" },
     { product: "1-on-1 Coaching", category: "Yield", revenue: "$100–$300/session", fit: "Medium" },
-    { product: "Podcast", category: "Bridge", revenue: "Audience builder", fit: "Medium" },
-    { product: "Workbook", category: "Build", revenue: "$0–$27", fit: "Medium" },
-    { product: "Email Marketing", category: "Build", revenue: "Marketing asset", fit: "Medium" },
+    { product: "Podcast", category: "Build", revenue: "Audience builder", fit: "Medium" },
+    { product: "Workbook", category: "Brand", revenue: "$0–$27", fit: "Medium" },
+    { product: "Email Marketing", category: "Brand", revenue: "Marketing asset", fit: "Medium" },
   ],
   "spirituality": [
     { product: "Retreats & Bootcamps", category: "Yield", revenue: "$997–$5,000", fit: "High" },
     { product: "Online Course", category: "Build", revenue: "$97–$297", fit: "High" },
     { product: "Group Coaching", category: "Yield", revenue: "$297–$997/cohort", fit: "High" },
     { product: "Membership", category: "Yield", revenue: "$9–$47/mo", fit: "High" },
-    { product: "Home Study Course", category: "Build", revenue: "$27–$97", fit: "Medium" },
-    { product: "Podcast", category: "Bridge", revenue: "Audience builder", fit: "Medium" },
-    { product: "Workbook", category: "Build", revenue: "$0–$19", fit: "Medium" },
-    { product: "Email Marketing", category: "Build", revenue: "Marketing asset", fit: "Medium" },
+    { product: "Home Study Course", category: "Brand", revenue: "$27–$97", fit: "Medium" },
+    { product: "Podcast", category: "Build", revenue: "Audience builder", fit: "Medium" },
+    { product: "Workbook", category: "Brand", revenue: "$0–$19", fit: "Medium" },
+    { product: "Email Marketing", category: "Brand", revenue: "Marketing asset", fit: "Medium" },
   ],
 };
 
 // Default for any genre not specifically mapped
 const DEFAULT_RECOMMENDATIONS: Recommendation[] = [
   { product: "Online Course", category: "Build", revenue: "$97–$497", fit: "High" },
-  { product: "Home Study Course", category: "Build", revenue: "$27–$97", fit: "High" },
-  { product: "Workbook", category: "Build", revenue: "$0–$27", fit: "Medium" },
-  { product: "Podcast", category: "Bridge", revenue: "Audience builder", fit: "Medium" },
+  { product: "Home Study Course", category: "Brand", revenue: "$27–$97", fit: "High" },
+  { product: "Workbook", category: "Brand", revenue: "$0–$27", fit: "Medium" },
+  { product: "Podcast", category: "Build", revenue: "Audience builder", fit: "Medium" },
   { product: "1-on-1 Coaching", category: "Yield", revenue: "$150–$500/session", fit: "High" },
-  { product: "Email Marketing", category: "Build", revenue: "Marketing asset", fit: "Medium" },
+  { product: "Email Marketing", category: "Brand", revenue: "Marketing asset", fit: "Medium" },
   { product: "Group Coaching", category: "Yield", revenue: "$297–$997/cohort", fit: "Medium" },
   { product: "Membership", category: "Yield", revenue: "$9–$97/mo", fit: "Medium" },
 ];
@@ -105,8 +105,8 @@ function matchGenre(genre: string): Recommendation[] {
 }
 
 const categoryColors: Record<string, string> = {
-  Build: "text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-950/40",
-  Bridge: "text-violet-700 bg-violet-50 dark:text-violet-400 dark:bg-violet-950/40",
+  Brand: "text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-950/40",
+  Build: "text-violet-700 bg-violet-50 dark:text-violet-400 dark:bg-violet-950/40",
   Yield: "text-amber-700 bg-amber-50 dark:text-amber-400 dark:bg-amber-950/40",
 };
 

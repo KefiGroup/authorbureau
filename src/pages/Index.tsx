@@ -43,8 +43,8 @@ const pricingPaths = [
     name: "The Side Hustler",
     price: "$49",
     tagline: "Build passive income while keeping your day job",
-    streams: 8,
-    category: "BUILD",
+    streams: 9,
+    category: "BRAND",
     time: "4–8 hours/week",
     year1: "$5,500–$15,500/year",
     roi: "9x–26x return",
@@ -57,8 +57,8 @@ const pricingPaths = [
     name: "The Serious Business",
     price: "$199",
     tagline: "Turn your book into a real business",
-    streams: 16,
-    category: "BUILD + BRIDGE",
+    streams: 18,
+    category: "BRAND + BUILD",
     time: "15–25 hours/week",
     year1: "$13,500–$39,500/year",
     roi: "6x–51x return",
@@ -72,7 +72,7 @@ const pricingPaths = [
     price: "$499",
     tagline: "Build an empire around your expertise",
     streams: 28,
-    category: "BUILD + BRIDGE + YIELD",
+    category: "BRAND + BUILD + YIELD",
     time: "Full-time (leveraged)",
     year1: "$68,500–$215,500/year",
     roi: "11x–130x return",
@@ -444,7 +444,7 @@ export default function Index() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
             src="/images/journey-staircase.png?v=6"
-            alt="The ABBY Journey Framework — FREE to BUILD to BRIDGE to YIELD"
+            alt="The ABBY Journey Framework — FREE to BRAND to BUILD to YIELD"
             className="w-full max-w-5xl mx-auto rounded-2xl shadow-xl mb-12"
             loading="lazy"
           />

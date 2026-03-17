@@ -43,7 +43,7 @@ export default function BusinessFramework({ onNavigate, isPremium, focusStep }: 
           Your <span className="text-gradient-gold">Monetization Framework</span>
         </h1>
         <p className="text-muted-foreground text-sm max-w-lg mx-auto">
-          Build Authority · Build Channels · Yield Revenue — your complete ABBY journey from published author to thriving business owner.
+          Brand Products · Build Authority · Yield Revenue — your complete ABBY journey from published author to thriving business owner.
         </p>
       </div>
 
@@ -192,9 +192,9 @@ export default function BusinessFramework({ onNavigate, isPremium, focusStep }: 
         transition={{ delay: 0.5 }}
       >
         <p className="text-xs text-muted-foreground leading-relaxed max-w-lg mx-auto">
-          <strong>Your monetization journey:</strong> <strong>Build</strong> authority & digital assets from your book →
-          <strong>Bridge</strong> marketing channels & connections →
-          <strong>Yield</strong> revenue streams & maximize your ROI.
+          <strong>Your monetization journey:</strong> <strong>Brand</strong> your products from your book →
+          <strong>Build</strong> authority & scale your audience →
+          <strong>Yield</strong> premium revenue & maximize your ROI.
           <br />
           <span className="text-secondary font-medium">Turn your book into revenue streams with ABBY.</span>
         </p>
