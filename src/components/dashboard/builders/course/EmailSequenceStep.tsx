@@ -245,21 +245,21 @@ Make each email specific to the course topic. Return ONLY valid JSON.`;
 
             <div>
               <div className="flex items-center gap-2">
-                <label className="text-xs font-semibold text-muted-foreground">Send Timing: Day</label>
+                <label className="text-xs font-semibold text-muted-foreground">Email Order: #</label>
                 <Input
                   type="number"
                   value={selectedEmail.dayNumber}
                   onChange={(e) => {
-                    const newDay = parseInt(e.target.value) || 0;
+                    const newDay = parseInt(e.target.value) || 1;
                     updateEmail(selectedIdx, "dayNumber", newDay);
                   }}
                   className="w-16"
-                  min={0}
+                  min={1}
+                  max={7}
                 />
               </div>
               <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">
-                <strong>Day 0</strong> = the day a reader signs up or purchases. <strong>Day 1</strong> = one day later, and so on.
-                This sets the delay between signup and when this email is sent. Adjust to control the pace of your nurture sequence.
+                This is the <strong>sequence order</strong> of this email (1–7). Actual send timing, triggers, and delays will be configured in the <strong>Email Marketing</strong> node.
               </p>
             </div>
 
