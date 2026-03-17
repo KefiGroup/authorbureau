@@ -1465,47 +1465,18 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
 
           {/* Connected Products */}
           <ConnectedProductsSection builderId={nodeConfig.id} />
-
-          {/* Action bar */}
-          <div className="sticky bottom-0 z-20 shrink-0 -mx-6 lg:-mx-8 mt-4 px-6 lg:px-8 bg-card border-t border-border" style={{ height: 64, boxShadow: '0 -2px 8px rgba(0,0,0,0.05)' }}>
-            <div className="flex items-center justify-between h-full">
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  onClick={goPrev}
-                  disabled={currentStepIndex === 0}
-                  className="text-muted-foreground"
-                >
-                  <ArrowLeft className="h-4 w-4 mr-1" /> Previous
-                </Button>
-
-                {!abbyOpen && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setAbbyOpen(true)}
-                    className="border-secondary/40 text-secondary hover:bg-secondary/10"
-                  >
-                    <Sparkles className="h-3.5 w-3.5 mr-1" /> Ask Abby
-                  </Button>
-                )}
-              </div>
-
-              <Button
-                disabled={saving}
-                onClick={isLastStep ? handlePublish : goNext}
-                variant="secondary"
-                className="rounded-full font-semibold px-6 shadow-sm"
-              >
-                {isLastStep ? (
-                  saving ? <><Loader2 className="h-4 w-4 animate-spin mr-1" /> Publishing&hellip;</> : <>Publish</>
-                ) : (
-                  <>Save &amp; Continue <ArrowRight className="h-4 w-4 ml-1" /></>
-                )}
-              </Button>
-            </div>
-          </div>
         </div>
+
+        {/* Fixed footer — outside scrollable area */}
+        <BuilderFooter
+          onPrevious={goPrev}
+          onNext={isLastStep ? handlePublish : goNext}
+          onAskAbby={() => setAbbyOpen(true)}
+          isPreviousDisabled={currentStepIndex === 0}
+          isLastStep={isLastStep}
+          isSaving={saving}
+          showAskAbby={!abbyOpen}
+        />
       </div>
 
       {/* Abby Advisor Panel */}
