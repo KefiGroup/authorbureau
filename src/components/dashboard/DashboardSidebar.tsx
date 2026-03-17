@@ -85,20 +85,20 @@ export default function DashboardSidebar({
   // BUILD YOUR BUSINESS
   const businessItems: NavItem[] = [
     {
-      id: "revenue-streams", label: "B·Build Authority", icon: DollarSign,
-      subtitle: "Create Digital Products",
+      id: "revenue-streams", label: "B·Brand Products", icon: DollarSign,
+      subtitle: "Create Your Products",
       tooltip: "Turn your book into 9 digital products your audience can buy.",
       color: "text-emerald-500",
       badge: hasAnalysis || bypassLocks ? `${buildUnlocked} built` : undefined,
       lockMessage: (!hasAnalysis && !bypassLocks) ? "Analyze a book first" : (!tierAccess("starter") ? "Requires Starter" : undefined),
     },
     {
-      id: "marketing-channels", label: "B·Build Channels", icon: Radio,
-      subtitle: (isSuperAdminProp || bridgeCategoryOpen) ? (isSuperAdminProp ? "Dev Access" : "Marketing & Audience Growth") : "Coming Soon",
-      tooltip: (isSuperAdminProp || bridgeCategoryOpen) ? "Build Channels — Marketing & audience connections" : "Build Channels are coming soon. Stay tuned!",
+      id: "marketing-channels", label: "B·Build Authority", icon: Radio,
+      subtitle: (isSuperAdminProp || buildAuthorityCategoryOpen) ? (isSuperAdminProp ? "Dev Access" : "Scale Your Audience") : "Coming Soon",
+      tooltip: (isSuperAdminProp || buildAuthorityCategoryOpen) ? "Build Authority — Scale audience & recurring revenue" : "Build Authority is coming soon. Stay tuned!",
       color: "text-violet-500",
-      badge: (isSuperAdminProp || bridgeCategoryOpen) ? `${bridgeUnlocked} built` : "Coming Soon",
-      lockMessage: (isSuperAdminProp || bridgeCategoryOpen) ? undefined : "Build Channels are coming soon",
+      badge: (isSuperAdminProp || buildAuthorityCategoryOpen) ? `${buildAuthorityUnlocked} built` : "Coming Soon",
+      lockMessage: (isSuperAdminProp || buildAuthorityCategoryOpen) ? undefined : "Build Authority is coming soon",
     },
     {
       id: "authority-builders", label: "Y·Yield Revenue", icon: Award,
