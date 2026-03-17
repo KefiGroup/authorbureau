@@ -36,6 +36,11 @@ export interface CourseModule {
   lessons?: CourseLesson[];
 }
 
+export interface CourseResource {
+  title: string;
+  url: string;
+}
+
 export interface CourseLesson {
   id: string;
   title: string;
@@ -47,7 +52,7 @@ export interface CourseLesson {
   summary?: string[];
   exercise?: string;
   quiz?: CourseQuiz[];
-  resources?: string[];
+  resources?: CourseResource[];
 }
 
 export interface CourseQuiz {
