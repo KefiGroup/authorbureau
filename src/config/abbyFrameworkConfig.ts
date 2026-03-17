@@ -228,3 +228,35 @@ export function getStudioPath(nodeId: string, bookId: string, titleParam: string
   };
   return map[nodeId] || null;
 }
+
+/** IDs of categories gated behind superadmin-only access */
+const GATED_CATEGORIES: AbbyCategory[] = ["marketing-channels", "authority-builders"];
+
+/**
+ * Returns effective node status — superadmins see original "available" for gated
+ * Bridge / Yield nodes; everyone else sees "coming-soon".
+ */
+export function getEffectiveNodeStatus(node: AbbyNode, categoryId: AbbyCategory, isAdmin: boolean): AbbyNode["status"] {
+  if (isAdmin && GATED_CATEGORIES.includes(categoryId) && node.status === "coming-soon") {
+    return "available";
+  }
+  return node.status;
+}
+
+/**
+ * Returns a copy of the category with effective statuses applied.
+ */
+export function getEffectiveCategory(catId: AbbyCategory, isAdmin: boolean): AbbyCategoryConfig {
+  const cat = ABBY_CATEGORIES[catId];
+  if (!cat) return cat;
+  if (isAdmin && GATED_CATEGORIES.includes(catId)) {
+    return {
+      ...cat,
+      nodes: cat.nodes.map(n => ({
+        ...n,
+        status: n.status === "coming-soon" ? "available" as const : n.status,
+      })),
+    };
+  }
+  return cat;
+}
