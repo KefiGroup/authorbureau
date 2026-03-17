@@ -229,7 +229,7 @@ export function getStudioPath(nodeId: string, bookId: string, titleParam: string
 }
 
 /** IDs of categories that are gated by default (fallback when DB hasn't loaded) */
-const DEFAULT_GATED_CATEGORIES: AbbyCategory[] = ["marketing-channels", "authority-builders"];
+const DEFAULT_GATED_CATEGORIES: AbbyCategory[] = ["build-authority", "yield-revenue"];
 
 /** Check if a category is gated by default (Coming Soon) — fallback only */
 export function isCategoryGated(catId: AbbyCategory): boolean {
