@@ -22,6 +22,7 @@ interface Mismatch {
   severity: "error" | "warning";
   fix: string;
   fixAction: "edit-sales" | "go-curriculum" | "regenerate";
+  locations?: string[]; // Which sales copy sections contain the flagged text
 }
 
 interface Props {
