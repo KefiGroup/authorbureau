@@ -35,11 +35,7 @@ export default function EmailSequenceStep({ stepData, setStepData, onMarkEdited,
       const title = stepData.foundation?.title || "the course";
       const moduleCount = stepData.curriculum?.modules?.length || 8;
 
-      const { data, error } = await supabase.functions.invoke("business-consultant", {
-        body: {
-          messages: [{
-            role: "user",
-            content: `Generate a 7-email nurture sequence for an online course called "${title}" based on the book "${bookTitle}" with ${moduleCount} modules.
+      const basePrompt = `Generate a 7-email nurture sequence for an online course called "${title}" based on the book "${bookTitle}" with ${moduleCount} modules.
 
 The sequence should cover: Welcome, Quick Win, Social Proof, Overcome Objection, Urgency, Last Chance, Post-Purchase Onboarding.
 
@@ -50,33 +46,42 @@ Return a JSON array of 7 objects, each with:
 - "previewText": string (email preview text)
 - "body": string (full email body with [First Name], [Author Name] placeholders, and [CTA Button →] links)
 
-Make each email specific to the course topic. Return ONLY valid JSON.`,
-          }],
-          bookId,
-          isPremium: true,
-        },
-      });
+Make each email specific to the course topic. Return ONLY valid JSON.`;
 
-      if (error) throw error;
+      const aiOptions = {
+        bookId,
+        isPremium: true,
+        builderMode: true,
+        builderId: "online-course",
+        builderLabel: "Online Course",
+        builderStep: "Email Sequence",
+      } as const;
 
-      const text = typeof data === "string" ? data : JSON.stringify(data);
-      const cleaned = text
-        .replace(/^```(?:json)?\s*\n?/i, "")
-        .replace(/\n?```\s*$/i, "")
-        .trim();
+      let parsed: any;
+      try {
+        parsed = await generateJSONWithAI<any>(basePrompt, aiOptions);
+      } catch {
+        parsed = await generateJSONWithAI<any>(
+          `${basePrompt}\n\nSTRICT FORMAT: Return ONLY a valid JSON array with exactly 7 objects. Start with [ and end with ]. No prose, no markdown, no headings.`,
+          aiOptions,
+        );
+      }
 
-      const arrayMatch = cleaned.match(/\[[\s\S]*\]/);
-      const objectMatch = cleaned.match(/\{[\s\S]*\}/);
-      const parsed = JSON.parse(arrayMatch?.[0] || objectMatch?.[0] || cleaned);
-      const result = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.emails) ? parsed.emails : []);
+      const result = Array.isArray(parsed)
+        ? parsed
+        : Array.isArray(parsed?.emails)
+          ? parsed.emails
+          : Array.isArray(parsed?.sequence)
+            ? parsed.sequence
+            : [];
 
-      if (!Array.isArray(result) || result.length === 0) {
+      if (!Array.isArray(result) || result.length < 7) {
         throw new Error("No email sequence returned");
       }
 
-      const generated: EmailStep[] = result.map((e: any, i: number) => ({
+      const generated: EmailStep[] = result.slice(0, 7).map((e: any, i: number) => ({
         id: String(i + 1),
-        dayNumber: Number(e?.dayNumber ?? i),
+        dayNumber: Number(e?.dayNumber ?? e?.day ?? i),
         purpose: String(e?.purpose || "Email purpose"),
         subject: String(e?.subject || `Email ${i + 1}`),
         previewText: String(e?.previewText || ""),

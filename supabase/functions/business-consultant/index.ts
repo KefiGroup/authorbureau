@@ -3398,6 +3398,9 @@ CRITICAL BUILDER RULES:
       } else if (isHomeStudyDailyContent) {
         maxTokens = 3200;
         temperature = 0.25;
+      } else if (isOnlineCourseEmailSequence) {
+        maxTokens = 4800;
+        temperature = 0.25;
       } else if (builderId === "special-editions") {
         maxTokens = 6000;
         temperature = 0.8;
