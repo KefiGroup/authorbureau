@@ -241,6 +241,11 @@ export default function LessonContentStep({ stepData, setStepData, onMarkEdited,
     try {
       setGenerationState("analyzing");
 
+      const isLastMod = selectedModIdx === modules.length - 1;
+      const resourceInstruction = isLastMod
+        ? `- "resources": array of 5-8 objects each with {"title": string, "url": string} — these are the recommended resources for the ENTIRE course (not just this lesson). Suggest REAL external URLs to free tools, articles, templates, or reference materials that support the overall course themes. Use well-known sites like Harvard Business Review, TED, Coursera, Google Docs templates, Notion templates, Canva, Medium articles, Wikipedia, etc. Each resource must have a descriptive title and a valid https URL.`
+        : "";
+
       const basePrompt = `Generate lesson content for a course lesson titled "${lessonTitle}" in module "${moduleTitle}" from the book "${bookTitle}".
 ${objectivesContext}
 
@@ -249,7 +254,7 @@ Return a JSON object with:
 - "summary": string[] (4 key takeaway bullet points)
 - "exercise": string (a practical exercise, 100-150 words with numbered steps)
 - "quiz": array of 3 objects each with {"question": string, "options": string[] (4 options), "correctAnswer": number (0-3), "explanation": string}
-- "resources": array of 3-5 objects each with {"title": string, "url": string} — suggest REAL external URLs to free tools, articles, templates, or reference materials that support this lesson. Use well-known sites like Harvard Business Review, TED, Coursera, Google Docs templates, Notion templates, Canva, Medium articles, Wikipedia, etc. Each resource must have a descriptive title and a valid https URL.
+${resourceInstruction}
 
 Make the content specific to the lesson topic, not generic.
 Return ONLY valid JSON.`;
