@@ -1088,7 +1088,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                 )}
 
                 {/* Act 2: Proposal Review */}
-                {builderGen.act === "act2_proposal" && builderGen.proposal && (
+                {builderGen.act === "act2_proposal" && builderGen.proposal && currentStepConfig.id === firstStepId && (
                   <div className="mb-6">
                     <AbbyProposal
                       proposal={builderGen.proposal}
@@ -1119,9 +1119,6 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
 
                           setStepData(prev => {
                             const existingFoundation = prev.foundation || {};
-                            const existingCurriculumModules = Array.isArray(prev.curriculum?.modules)
-                              ? prev.curriculum.modules
-                              : [];
 
                             return {
                               ...prev,
@@ -1136,7 +1133,9 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                               },
                               curriculum: {
                                 ...(prev.curriculum || {}),
-                                modules: existingCurriculumModules.length > 0 ? existingCurriculumModules : generatedModules,
+                                modules: generatedModules.length > 0
+                                  ? generatedModules
+                                  : (Array.isArray(prev.curriculum?.modules) ? prev.curriculum.modules : []),
                               },
                             };
                           });
@@ -1148,9 +1147,6 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
 
                           setStepData(prev => {
                             const existingFoundation = prev.foundation || {};
-                            const existingCurriculumModules = Array.isArray(prev.curriculum?.modules)
-                              ? prev.curriculum.modules
-                              : [];
 
                             return {
                               ...prev,
@@ -1172,7 +1168,9 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                               },
                               curriculum: {
                                 ...(prev.curriculum || {}),
-                                modules: existingCurriculumModules.length > 0 ? existingCurriculumModules : generatedModules,
+                                modules: generatedModules.length > 0
+                                  ? generatedModules
+                                  : (Array.isArray(prev.curriculum?.modules) ? prev.curriculum.modules : []),
                               },
                             };
                           });
