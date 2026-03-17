@@ -46,13 +46,13 @@ export interface AbbyCategoryConfig {
 
 export const ABBY_CATEGORIES: Record<AbbyCategory, AbbyCategoryConfig> = {
   /**
-   * BUILD AUTHORITY (8 nodes)
+   * BRAND PRODUCTS (9 nodes)
    * Digital products & content assets created from the book.
    */
   "revenue-streams": {
     id: "revenue-streams",
-    label: "B · Build Authority",
-    subtitle: "Digital Products & Content Assets (8 nodes)",
+    label: "B · Brand Products",
+    subtitle: "Create Your Products (9 nodes)",
     color: "text-emerald-600",
     bgColor: "bg-emerald-500/10",
     ringColor: "ring-emerald-500/30",
