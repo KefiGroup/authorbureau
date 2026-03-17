@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Monitor, Smartphone, BookOpen, Clock, Award,
-  CheckCircle2,
+  CheckCircle2, AlertTriangle,
 } from "lucide-react";
 import SharedSalesCopyPreview from "../shared/SharedSalesCopyPreview";
 import { DEFAULT_SALES_COPY } from "../shared/salesCopyTypes";
@@ -16,6 +16,7 @@ export default function CoursePreviewStep({ stepData }: CourseStepProps) {
   const foundation = stepData.foundation || {};
   const modules: CourseModule[] = stepData.curriculum?.modules || [];
   const totalMinutes = modules.reduce((a, m) => a + (m.durationMinutes || 0), 0);
+  const hasModules = modules.length > 0;
 
   return (
     <div className="space-y-6">
@@ -70,7 +71,7 @@ export default function CoursePreviewStep({ stepData }: CourseStepProps) {
 
             {/* Module list */}
             <div className="p-4 space-y-2">
-              {modules.map((mod, i) => (
+              {hasModules ? modules.map((mod, i) => (
                 <div key={mod.id} className="border border-border rounded-lg overflow-hidden">
                   <div className="flex items-center justify-between p-3 bg-muted/20">
                     <div className="flex items-center gap-2">
@@ -85,7 +86,13 @@ export default function CoursePreviewStep({ stepData }: CourseStepProps) {
                     </div>
                   )}
                 </div>
-              ))}
+              )) : (
+                <div className="text-center py-8">
+                  <AlertTriangle className="h-8 w-8 text-amber-500 mx-auto mb-2" />
+                  <p className="text-sm font-medium mb-1">No modules found</p>
+                  <p className="text-xs text-muted-foreground">Go back to the Modules & Lessons step to generate your curriculum first.</p>
+                </div>
+              )}
             </div>
           </div>
         </TabsContent>
@@ -97,8 +104,8 @@ export default function CoursePreviewStep({ stepData }: CourseStepProps) {
             <SharedSalesCopyPreview
               data={stepData.salesCopyData || DEFAULT_SALES_COPY}
               productMeta={{
-                badge: `${modules.length} Modules`,
-                duration: `${Math.round(totalMinutes / 60)}h+ of content`,
+                badge: hasModules ? `${modules.length} Modules` : "Course",
+                duration: hasModules ? `${Math.round(totalMinutes / 60)}h+ of content` : "",
               }}
             />
           </div>
@@ -106,19 +113,33 @@ export default function CoursePreviewStep({ stepData }: CourseStepProps) {
       </Tabs>
 
       {/* Abby's final review */}
-      <Card className="p-4 border-secondary/20 bg-secondary/5">
+      <Card className={`p-4 ${hasModules ? "border-secondary/20 bg-secondary/5" : "border-amber-300/30 bg-amber-50/50 dark:bg-amber-900/10"}`}>
         <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center shrink-0">
-            <CheckCircle2 className="h-4 w-4 text-secondary" />
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${hasModules ? "bg-secondary/20" : "bg-amber-100 dark:bg-amber-900/30"}`}>
+            {hasModules ? (
+              <CheckCircle2 className="h-4 w-4 text-secondary" />
+            ) : (
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+            )}
           </div>
           <div>
-            <p className="text-xs font-bold text-secondary mb-1">Abby's Final Review</p>
-             <p className="text-xs text-muted-foreground leading-relaxed">
-               Your course covers <strong>{modules.length} modules</strong>.
-               Estimated completion time: <strong>{Math.round(totalMinutes / 60)} hours</strong>.
-              {foundation.exactPrice && ` At $${foundation.exactPrice}, with even 10 students per month, that's $${parseInt(foundation.exactPrice) * 10}/month in revenue.`}
-              {" "}Everything looks solid — ready to publish!
+            <p className={`text-xs font-bold mb-1 ${hasModules ? "text-secondary" : "text-amber-700 dark:text-amber-400"}`}>
+              {hasModules ? "Abby's Final Review" : "Abby's Review — Action Needed"}
             </p>
+            {hasModules ? (
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Your course covers <strong>{modules.length} modules</strong> with{" "}
+                <strong>{modules.reduce((a, m) => a + (m.lessons?.length || 0), 0)} lessons</strong>.
+                Estimated completion time: <strong>{Math.round(totalMinutes / 60)} hours {totalMinutes % 60 > 0 ? `${totalMinutes % 60} minutes` : ""}</strong>.
+                {foundation.exactPrice && ` At $${foundation.exactPrice}, with even 10 students per month, that's $${parseInt(foundation.exactPrice) * 10}/month in revenue.`}
+                {" "}Everything looks solid — ready to publish!
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                <strong>Your course has no modules yet.</strong> The sales page and student experience can't accurately represent your course without a curriculum.
+                Go back to <strong>Step 2: Modules & Lessons</strong> to generate your curriculum first, then return here to preview and publish.
+              </p>
+            )}
           </div>
         </div>
       </Card>
