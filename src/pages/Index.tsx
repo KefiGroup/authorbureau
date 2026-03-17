@@ -72,7 +72,7 @@ const pricingPaths = [
     price: "$499",
     tagline: "Build an empire around your expertise",
     streams: 28,
-    category: "BUILD + BRIDGE + YIELD",
+    category: "BRAND + BUILD + YIELD",
     time: "Full-time (leveraged)",
     year1: "$68,500–$215,500/year",
     roi: "11x–130x return",

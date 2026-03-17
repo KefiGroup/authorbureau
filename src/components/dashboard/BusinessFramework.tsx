@@ -43,7 +43,7 @@ export default function BusinessFramework({ onNavigate, isPremium, focusStep }: 
           Your <span className="text-gradient-gold">Monetization Framework</span>
         </h1>
         <p className="text-muted-foreground text-sm max-w-lg mx-auto">
-          Build Authority · Build Channels · Yield Revenue — your complete ABBY journey from published author to thriving business owner.
+          Brand Products · Build Authority · Yield Revenue — your complete ABBY journey from published author to thriving business owner.
         </p>
       </div>
 
