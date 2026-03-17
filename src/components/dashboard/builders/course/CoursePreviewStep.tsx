@@ -4,8 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
-  Monitor, Smartphone, BookOpen, Clock, Award, Users,
-  CheckCircle2, PlayCircle, ChevronRight,
+  Monitor, Smartphone, BookOpen, Clock, Award,
+  CheckCircle2,
 } from "lucide-react";
 import type { CourseStepProps, CourseModule } from "./types";
 
