@@ -287,12 +287,12 @@ Return ONLY valid JSON.`;
       <div className="flex gap-2 overflow-x-auto pb-2">
         {modules.map((mod, mi) => (
           <div key={mod.id} className="flex gap-1">
-            {(mod.lessons || []).map((lesson, li) => (
+            {getModuleLessonsForDisplay(mod).map((lesson, li) => (
               <button
                 key={lesson.id}
                 onClick={() => { setSelectedModIdx(mi); setSelectedLessonIdx(li); }}
                 className={`px-2.5 py-1 rounded-full text-[10px] font-medium whitespace-nowrap transition-colors ${
-                  mi === selectedModIdx && li === selectedLessonIdx
+                  mi === selectedModIdx && li === activeLessonIdx
                     ? "bg-secondary text-secondary-foreground"
                     : "bg-muted text-muted-foreground hover:bg-muted/80"
                 }`}
