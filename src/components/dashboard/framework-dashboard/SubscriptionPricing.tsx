@@ -95,7 +95,7 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
             ))}
             {currentTier !== "enterprise" && (
               <span className="rounded-full bg-muted text-muted-foreground text-xs font-medium px-3 py-1 border border-border">
-                🔒 {currentTier === "starter" ? "B·Bridge + Y·Yield locked" : "Y·Yield locked"}
+                🔒 {currentTier === "starter" ? "B·Build + Y·Yield locked" : "Y·Yield locked"}
               </span>
             )}
           </div>
