@@ -138,8 +138,8 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
   };
 
   const getNodeState = (node: Node): ProductCardState => {
-    // Planned nodes are always "coming-soon" regardless of other state
-    if (node.status === "planned") return "coming-soon";
+    // Planned or coming-soon nodes are always "coming-soon" regardless of other state
+    if (node.status === "planned" || node.status === "coming-soon") return "coming-soon";
 
     const nodeIdMap: Record<string, string> = {
       "courses": "courses",
