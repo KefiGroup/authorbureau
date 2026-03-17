@@ -254,9 +254,11 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
     "marketing-channels", "authority-builders",
   ]);
 
+  const userIsSuperAdmin = isSuperAdmin(user?.email);
+
   const renderSection = () => {
-    // Gate Bridge & Yield individual builders for non-admins
-    if (!isAdmin && BRIDGE_YIELD_SECTIONS.has(activeSection)) {
+    // Gate Bridge & Yield individual builders — superadmins bypass
+    if (!isAdmin && !userIsSuperAdmin && BRIDGE_YIELD_SECTIONS.has(activeSection)) {
       return (
         <div className="max-w-2xl mx-auto text-center space-y-6 py-20">
           <div className="w-16 h-16 rounded-2xl bg-secondary/10 flex items-center justify-center mx-auto">
