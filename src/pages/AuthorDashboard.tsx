@@ -274,7 +274,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
     if (!nodeId) return false;
     // If DB data loaded, use it; otherwise fall back to closed
     if (gating.length > 0) return !isNodeOpen(nodeId);
-    return true; // default closed for Bridge/Yield sections
+    return true; // default closed for Build/Yield sections
   };
 
   const renderSection = () => {
