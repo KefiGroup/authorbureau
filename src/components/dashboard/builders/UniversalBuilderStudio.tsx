@@ -221,33 +221,78 @@ function mapCoursePriceTier(price: number): string {
 function buildCourseModulesFromStructure(structure: any[] | undefined): Array<Record<string, any>> {
   if (!Array.isArray(structure)) return [];
 
+  const getStringArray = (value: any): string[] =>
+    Array.isArray(value)
+      ? value
+          .map((item) => String(item ?? "").trim())
+          .filter(Boolean)
+      : [];
+
   return structure
-    .filter((section) => section && (section.title || (Array.isArray(section.items) && section.items.length > 0)))
+    .filter((section) => section && (section.title || section.name || Array.isArray(section.items) || Array.isArray(section.lessons)))
     .map((section, moduleIndex) => {
-      const items = Array.isArray(section.items) ? section.items : [];
-      return {
-        id: crypto.randomUUID(),
-        moduleNumber: moduleIndex + 1,
-        title: String(section.title || `Module ${moduleIndex + 1}`),
-        description: String(section.description || ""),
-        bloomsLevel: String(section.blooms_level || ""),
-        kolbsStage: String(section.kolbs_stage || ""),
-        learningObjectives: Array.isArray(section.learning_objectives) ? section.learning_objectives.map(String) : [],
-        contentSummary: String(section.content_summary || section.description || ""),
-        facilitatorActivity: String(section.facilitator_activity || ""),
-        debriefPoints: Array.isArray(section.debrief_points) ? section.debrief_points.map(String) : ["", "", ""],
-        workbookPageDescription: String(section.workbook_page || ""),
-        durationMinutes: Number(section.duration_minutes) || 60,
-        sourceChapters: Array.isArray(section.source_chapters) ? section.source_chapters : [],
-        position: moduleIndex,
-        lessons: items.map((item: any, lessonIndex: number) => ({
+      const learningObjectives = getStringArray(section.learning_objectives ?? section.learningObjectives);
+      const sourceChapters = getStringArray(section.source_chapters ?? section.sourceChapters);
+      const debriefPoints = getStringArray(section.debrief_points ?? section.debriefPoints);
+
+      const rawLessonItems =
+        (Array.isArray(section.items) && section.items) ||
+        (Array.isArray(section.lessons) && section.lessons) ||
+        (Array.isArray(section.topics) && section.topics) ||
+        learningObjectives.map((objective) => ({ title: objective }));
+
+      const lessons = rawLessonItems
+        .map((item: any, lessonIndex: number) => {
+          const normalized = typeof item === "string" ? { title: item } : (item || {});
+          const title = String(
+            normalized.title ||
+            normalized.lesson_title ||
+            normalized.name ||
+            normalized.topic ||
+            normalized.objective ||
+            `Lesson ${lessonIndex + 1}`,
+          ).trim();
+
+          if (!title) return null;
+
+          return {
+            id: crypto.randomUUID(),
+            title,
+            description: String(normalized.description || normalized.summary || ""),
+            keyTakeaway: String(normalized.keyTakeaway || normalized.key_takeaway || ""),
+            estimatedMinutes: Number(normalized.estimatedMinutes ?? normalized.estimated_minutes) || 15,
+            position: lessonIndex,
+          };
+        })
+        .filter(Boolean) as Array<Record<string, any>>;
+
+      if (lessons.length === 0) {
+        lessons.push({
           id: crypto.randomUUID(),
-          title: String(item?.title || `Lesson ${lessonIndex + 1}`),
-          description: String(item?.description || ""),
+          title: `${String(section.title || section.name || `Module ${moduleIndex + 1}`)} — Core Lesson`,
+          description: String(section.description || section.content_summary || ""),
           keyTakeaway: "",
           estimatedMinutes: 15,
-          position: lessonIndex,
-        })),
+          position: 0,
+        });
+      }
+
+      return {
+        id: crypto.randomUUID(),
+        moduleNumber: Number(section.module_number ?? section.moduleNumber) || moduleIndex + 1,
+        title: String(section.title || section.name || `Module ${moduleIndex + 1}`),
+        description: String(section.description || section.content_summary || section.contentSummary || ""),
+        bloomsLevel: String(section.blooms_level || section.bloomsLevel || section.bloom_level || ""),
+        kolbsStage: String(section.kolbs_stage || section.kolbsStage || section.kolb_stage || ""),
+        learningObjectives,
+        contentSummary: String(section.content_summary || section.contentSummary || section.description || ""),
+        facilitatorActivity: String(section.facilitator_activity || section.facilitatorActivity || ""),
+        debriefPoints: debriefPoints.length > 0 ? debriefPoints : ["", "", ""],
+        workbookPageDescription: String(section.workbook_page || section.workbookPage || section.workbook_page_description || ""),
+        durationMinutes: Number(section.duration_minutes ?? section.durationMinutes ?? section.duration) || 60,
+        sourceChapters,
+        position: moduleIndex,
+        lessons,
       };
     });
 }
