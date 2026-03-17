@@ -11,7 +11,7 @@ import {
   BookOpen, ArrowRight, Lock, Zap, CheckCircle2, Bell,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ABBY_CATEGORIES, getStudioPath as getStudioPathFromConfig, type AbbyCategory, type AbbyNode } from "@/config/abbyFrameworkConfig";
+import { ABBY_CATEGORIES, getEffectiveCategory, getStudioPath as getStudioPathFromConfig, type AbbyCategory, type AbbyNode } from "@/config/abbyFrameworkConfig";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -26,8 +26,8 @@ interface ProductNode {
 }
 
 /** Derive local ProductNode[] from shared config */
-function deriveNodes(catId: AbbyCategory): ProductNode[] {
-  const cat = ABBY_CATEGORIES[catId];
+function deriveNodes(catId: AbbyCategory, isAdmin: boolean): ProductNode[] {
+  const cat = getEffectiveCategory(catId, isAdmin);
   if (!cat) return [];
   return cat.nodes.map(n => ({
     id: n.id,
@@ -52,8 +52,8 @@ interface DerivedCategory {
   nodes: ProductNode[];
 }
 
-function deriveCategoryConfig(catId: AbbyCategory): DerivedCategory | null {
-  const cat = ABBY_CATEGORIES[catId];
+function deriveCategoryConfig(catId: AbbyCategory, isAdmin: boolean): DerivedCategory | null {
+  const cat = getEffectiveCategory(catId, isAdmin);
   if (!cat) return null;
   return {
     id: cat.id,
@@ -64,13 +64,13 @@ function deriveCategoryConfig(catId: AbbyCategory): DerivedCategory | null {
     gradientFrom: cat.gradientFrom,
     gradientTo: cat.gradientTo,
     headerIcon: cat.headerIcon,
-    nodes: deriveNodes(catId),
+    nodes: deriveNodes(catId, isAdmin),
   };
 }
 
 const statusStyles = {
   available: { badge: "Available", className: "bg-accent/15 text-accent border-accent/30" },
-  "coming-soon": { badge: "Building", className: "bg-amber-500/15 text-amber-700 dark:text-amber-400" },
+  "coming-soon": { badge: "Coming Soon", className: "bg-amber-500/15 text-amber-700 dark:text-amber-400" },
   planned: { badge: "Planned", className: "bg-muted text-muted-foreground" },
 };
 
@@ -132,11 +132,11 @@ interface Props {
 
 export default function BookHubStepTab({ categoryId, bookId, bookTitle, bookGenre, isPremium, tier }: Props) {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { plan, completedAssets } = useAbbyPlan(bookId);
   const [executingNode, setExecutingNode] = useState<ProductNode | null>(null);
   const [notifiedNodes, setNotifiedNodes] = useState<Set<string>>(new Set());
-  const catData = deriveCategoryConfig(categoryId as AbbyCategory);
+  const catData = deriveCategoryConfig(categoryId as AbbyCategory, isAdmin);
   if (!catData) return null;
 
   const HeaderIcon = catData.headerIcon;

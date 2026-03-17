@@ -1,11 +1,12 @@
 import { motion } from "framer-motion";
 import { ArrowRight, Lock } from "lucide-react";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
-import { ABBY_CATEGORIES, ABBY_CATEGORY_LIST, type AbbyCategoryConfig, type AbbyNode, type AbbyCategory } from "@/config/abbyFrameworkConfig";
+import { ABBY_CATEGORIES, ABBY_CATEGORY_LIST, getEffectiveCategory, type AbbyCategoryConfig, type AbbyNode, type AbbyCategory } from "@/config/abbyFrameworkConfig";
+import { useAuth } from "@/hooks/useAuth";
 
 const statusStyles = {
   available: { badge: "Available", className: "bg-accent/15 text-accent border-accent/30" },
-  "coming-soon": { badge: "Building", className: "bg-amber-500/15 text-amber-700 dark:text-amber-400" },
+  "coming-soon": { badge: "Coming Soon", className: "bg-amber-500/15 text-amber-700 dark:text-amber-400" },
   planned: { badge: "Planned", className: "bg-muted text-muted-foreground" },
 };
 
@@ -16,7 +17,8 @@ interface Props {
 }
 
 export default function StepDetailView({ categoryId, onNavigate, isPremium }: Props) {
-  const catData = ABBY_CATEGORIES[categoryId as AbbyCategory];
+  const { isAdmin } = useAuth();
+  const catData = getEffectiveCategory(categoryId as AbbyCategory, isAdmin);
   if (!catData) return null;
 
   const HeaderIcon = catData.headerIcon;

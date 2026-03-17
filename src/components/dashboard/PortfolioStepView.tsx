@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import SmartProductCard, { type ProductCardState, BASELINE_REVENUE } from "@/components/dashboard/SmartProductCard";
 import { toast } from "@/hooks/use-toast";
-import { ABBY_CATEGORIES, type AbbyCategory, type AbbyNode } from "@/config/abbyFrameworkConfig";
+import { ABBY_CATEGORIES, getEffectiveCategory, type AbbyCategory, type AbbyNode } from "@/config/abbyFrameworkConfig";
 
 // Re-use Node type from config
 type Node = AbbyNode;
@@ -39,13 +39,13 @@ interface AbbyRecommendation {
 
 export default function PortfolioStepView({ categoryId, tier = "free", onNavigate, analyzedBooks }: Props) {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [books, setBooks] = useState<BookSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [recommendations, setRecommendations] = useState<AbbyRecommendation[]>([]);
   const [builtProducts, setBuiltProducts] = useState<Set<string>>(new Set());
   const [publishedProducts, setPublishedProducts] = useState<Set<string>>(new Set());
-  const category = ABBY_CATEGORIES[categoryId as AbbyCategory];
+  const category = getEffectiveCategory(categoryId as AbbyCategory, isAdmin);
 
   useEffect(() => {
     async function fetchData() {

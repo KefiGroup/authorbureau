@@ -246,7 +246,35 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
 
   const handleNavigate = (s: string) => setActiveSection(s as DashboardSection);
 
+  // Sections that belong to Bridge / Yield — gated for non-admins
+  const BRIDGE_YIELD_SECTIONS = new Set([
+    "webinars", "audiobook-studio", "podcast", "lead-magnet",
+    "coaching", "group-coaching", "memberships", "speaking", "big-ticket",
+    "marketing-channels", "authority-builders",
+  ]);
+
   const renderSection = () => {
+    // Gate Bridge & Yield individual builders for non-admins
+    if (!isAdmin && BRIDGE_YIELD_SECTIONS.has(activeSection)) {
+      return (
+        <div className="max-w-2xl mx-auto text-center space-y-6 py-20">
+          <div className="w-16 h-16 rounded-2xl bg-secondary/10 flex items-center justify-center mx-auto">
+            <span className="text-3xl">🚧</span>
+          </div>
+          <h1 className="font-heading text-2xl md:text-3xl font-bold">Coming Soon</h1>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+            We're building something amazing for this section. You'll be the first to know when it's ready!
+          </p>
+          <button
+            onClick={() => setActiveSection("overview")}
+            className="text-sm font-medium text-primary hover:underline"
+          >
+            ← Back to Dashboard
+          </button>
+        </div>
+      );
+    }
+
     // Check if this is a universal builder node
     const builderNodeId = searchParams.get("builder");
     if (builderNodeId && BUILDER_NODE_MAP[builderNodeId]) {

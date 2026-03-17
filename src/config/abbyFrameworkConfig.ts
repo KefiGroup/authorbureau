@@ -86,10 +86,10 @@ export const ABBY_CATEGORIES: Record<AbbyCategory, AbbyCategoryConfig> = {
     gradientTo: "to-violet-600",
     headerIcon: Radio,
     nodes: [
-      { id: "audiobook", label: "Audiobook", icon: Headphones, section: "audiobook-studio", navigateTo: "audiobook-studio", description: "AI-narrated audiobook from your manuscript.", status: "available", subCategory: "Outreach", sequence: 1, tierRequired: "Pro" },
-      { id: "podcast-guest", label: "Podcast Tour", icon: Podcast, section: "podcast", navigateTo: "podcast", description: "Podcast series & guest pitches from your book content.", status: "available", subCategory: "Outreach", sequence: 2, tierRequired: "Pro" },
-      { id: "webinars", label: "Webinars", icon: Video, section: "webinars", navigateTo: "webinars", description: "Webinar scripts + slide decks + registration pages.", status: "available", subCategory: "Outreach", sequence: 3, tierRequired: "Pro" },
-      { id: "lead-magnet", label: "Lead Magnet Funnel", icon: FileText, navigateTo: "lead-magnet", description: "Free PDF downloads to grow your email list.", status: "available", subCategory: "Growth", sequence: 4 },
+      { id: "audiobook", label: "Audiobook", icon: Headphones, section: "audiobook-studio", navigateTo: "audiobook-studio", description: "AI-narrated audiobook from your manuscript.", status: "coming-soon", subCategory: "Outreach", sequence: 1, tierRequired: "Pro" },
+      { id: "podcast-guest", label: "Podcast Tour", icon: Podcast, section: "podcast", navigateTo: "podcast", description: "Podcast series & guest pitches from your book content.", status: "coming-soon", subCategory: "Outreach", sequence: 2, tierRequired: "Pro" },
+      { id: "webinars", label: "Webinars", icon: Video, section: "webinars", navigateTo: "webinars", description: "Webinar scripts + slide decks + registration pages.", status: "coming-soon", subCategory: "Outreach", sequence: 3, tierRequired: "Pro" },
+      { id: "lead-magnet", label: "Lead Magnet Funnel", icon: FileText, navigateTo: "lead-magnet", description: "Free PDF downloads to grow your email list.", status: "coming-soon", subCategory: "Growth", sequence: 4 },
       { id: "in-house-speaker", label: "Media Outreach", icon: Presentation, description: "Press kit, media pitches & speaker profile.", status: "planned", subCategory: "Outreach", sequence: 5, tierRequired: "Pro" },
       { id: "affiliates", label: "Affiliates", icon: Link2, description: "Affiliate tracking links + commission structures.", status: "planned", subCategory: "Growth", sequence: 6, tierRequired: "Pro" },
       { id: "upsells", label: "Upsells / Downsells", icon: TrendingUp, description: "Conversion sequences and funnel optimization.", status: "planned", subCategory: "Growth", sequence: 7, tierRequired: "Pro" },
@@ -112,11 +112,11 @@ export const ABBY_CATEGORIES: Record<AbbyCategory, AbbyCategoryConfig> = {
     gradientTo: "to-sky-600",
     headerIcon: Award,
     nodes: [
-      { id: "coaching-1on1", label: "1-on-1 Coaching", icon: UserCheck, section: "coaching", navigateTo: "coaching", description: "6/12-session coaching programs with session outlines.", status: "available", subCategory: "Coaching", sequence: 1, tierRequired: "Pro" },
-      { id: "group-coaching", label: "Group Coaching", icon: Users, section: "group-coaching", navigateTo: "group-coaching", description: "8-week group coaching curriculum.", status: "available", subCategory: "Coaching", sequence: 2, tierRequired: "Pro" },
-      { id: "memberships", label: "Monthly Memberships", icon: CreditCard, section: "memberships", navigateTo: "memberships", description: "3-tier membership system with recurring revenue.", status: "available", subCategory: "Coaching", sequence: 3, tierRequired: "Pro" },
+      { id: "coaching-1on1", label: "1-on-1 Coaching", icon: UserCheck, section: "coaching", navigateTo: "coaching", description: "6/12-session coaching programs with session outlines.", status: "coming-soon", subCategory: "Coaching", sequence: 1, tierRequired: "Pro" },
+      { id: "group-coaching", label: "Group Coaching", icon: Users, section: "group-coaching", navigateTo: "group-coaching", description: "8-week group coaching curriculum.", status: "coming-soon", subCategory: "Coaching", sequence: 2, tierRequired: "Pro" },
+      { id: "memberships", label: "Monthly Memberships", icon: CreditCard, section: "memberships", navigateTo: "memberships", description: "3-tier membership system with recurring revenue.", status: "coming-soon", subCategory: "Coaching", sequence: 3, tierRequired: "Pro" },
       { id: "big-ticket", label: "Big Ticket Consulting", icon: Trophy, navigateTo: "big-ticket", description: "Premium consulting packages ($5K–$25K).", status: "planned", subCategory: "Coaching", sequence: 4, tierRequired: "Pro" },
-      { id: "keynotes", label: "Keynotes", icon: Mic, section: "speaking", navigateTo: "speaking", description: "3-5 keynote topics with slide decks.", status: "available", subCategory: "Speaking", sequence: 5 },
+      { id: "keynotes", label: "Keynotes", icon: Mic, section: "speaking", navigateTo: "speaking", description: "3-5 keynote topics with slide decks.", status: "coming-soon", subCategory: "Speaking", sequence: 5 },
       { id: "training", label: "Training Programs", icon: Building2, description: "Half/full-day corporate training programs.", status: "planned", subCategory: "Speaking", sequence: 6, tierRequired: "Enterprise" },
       { id: "masterminds", label: "Masterminds", icon: BarChart3, description: "Quarterly mastermind group programs.", status: "planned", subCategory: "Corporate", sequence: 7, tierRequired: "Enterprise" },
       { id: "retreats", label: "Retreats & Bootcamps", icon: Bookmark, description: "2-3 day retreat programs.", status: "planned", subCategory: "Corporate", sequence: 8, tierRequired: "Enterprise" },
@@ -227,4 +227,36 @@ export function getStudioPath(nodeId: string, bookId: string, titleParam: string
     microsite: `/dashboard?section=microsite-manager`,
   };
   return map[nodeId] || null;
+}
+
+/** IDs of categories gated behind superadmin-only access */
+const GATED_CATEGORIES: AbbyCategory[] = ["marketing-channels", "authority-builders"];
+
+/**
+ * Returns effective node status — superadmins see original "available" for gated
+ * Bridge / Yield nodes; everyone else sees "coming-soon".
+ */
+export function getEffectiveNodeStatus(node: AbbyNode, categoryId: AbbyCategory, isAdmin: boolean): AbbyNode["status"] {
+  if (isAdmin && GATED_CATEGORIES.includes(categoryId) && node.status === "coming-soon") {
+    return "available";
+  }
+  return node.status;
+}
+
+/**
+ * Returns a copy of the category with effective statuses applied.
+ */
+export function getEffectiveCategory(catId: AbbyCategory, isAdmin: boolean): AbbyCategoryConfig {
+  const cat = ABBY_CATEGORIES[catId];
+  if (!cat) return cat;
+  if (isAdmin && GATED_CATEGORIES.includes(catId)) {
+    return {
+      ...cat,
+      nodes: cat.nodes.map(n => ({
+        ...n,
+        status: n.status === "coming-soon" ? "available" as const : n.status,
+      })),
+    };
+  }
+  return cat;
 }

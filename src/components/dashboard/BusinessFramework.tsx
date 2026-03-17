@@ -5,12 +5,12 @@ import {
 } from "lucide-react";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
 import ABBYFrameworkVisual from "@/components/dashboard/book-hub/ABBYFrameworkVisual";
-import { ABBY_CATEGORIES, ABBY_CATEGORY_LIST, type AbbyCategoryConfig, type AbbyNode, type AbbyCategory } from "@/config/abbyFrameworkConfig";
+import { ABBY_CATEGORIES, ABBY_CATEGORY_LIST, getEffectiveCategory, type AbbyCategoryConfig, type AbbyNode, type AbbyCategory } from "@/config/abbyFrameworkConfig";
+import { useAuth } from "@/hooks/useAuth";
 
 // Alias for backward compat in this file
 type Node = AbbyNode;
 type Category = AbbyCategoryConfig;
-const categories = ABBY_CATEGORY_LIST;
 
 interface Props {
   onNavigate: (section: DashboardSection | string) => void;
@@ -20,11 +20,13 @@ interface Props {
 
 const statusStyles = {
   available: { badge: "Available", className: "bg-accent/15 text-accent border-accent/30" },
-  "coming-soon": { badge: "Building", className: "bg-amber-500/15 text-amber-700 dark:text-amber-400" },
+  "coming-soon": { badge: "Coming Soon", className: "bg-amber-500/15 text-amber-700 dark:text-amber-400" },
   planned: { badge: "Planned", className: "bg-muted text-muted-foreground" },
 };
 
 export default function BusinessFramework({ onNavigate, isPremium, focusStep }: Props) {
+  const { isAdmin } = useAuth();
+  const categories = (Object.keys(ABBY_CATEGORIES) as AbbyCategory[]).map(k => getEffectiveCategory(k, isAdmin));
   const [activeCategory, setActiveCategory] = useState<string | null>(focusStep || null);
   useEffect(() => { if (focusStep) setActiveCategory(focusStep); }, [focusStep]);
   const activeCatData = categories.find((c) => c.id === activeCategory);
