@@ -433,12 +433,22 @@ Use well-known sites (HBR, TED, Coursera, Google Docs, Notion, Canva, Wikipedia,
       {/* Tabbed editor */}
       <Tabs defaultValue="script" className="w-full">
         <TabsList className="w-full justify-start">
+          <TabsTrigger value="video" className="text-xs"><Video className="h-3 w-3 mr-1" /> Video</TabsTrigger>
           <TabsTrigger value="script" className="text-xs">Script</TabsTrigger>
           <TabsTrigger value="summary" className="text-xs">Summary</TabsTrigger>
           <TabsTrigger value="exercise" className="text-xs">Exercise</TabsTrigger>
           <TabsTrigger value="quiz" className="text-xs">Quiz ({currentLesson?.quiz?.length || 0})</TabsTrigger>
           {isLastModule && <TabsTrigger value="resources" className="text-xs">Resources</TabsTrigger>}
         </TabsList>
+
+        <TabsContent value="video">
+          <LessonVideoUpload
+            videoUrl={currentLesson?.videoUrl || ""}
+            onVideoChange={(url) => updateLesson("videoUrl", url)}
+            bookId={bookId}
+            lessonId={currentLesson?.id || "unknown"}
+          />
+        </TabsContent>
 
         <TabsContent value="script">
           <Card className="p-4">
