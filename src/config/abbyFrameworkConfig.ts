@@ -162,47 +162,46 @@ export interface AdvisorContent {
 }
 
 export const ADVISOR_CONTENT: Record<AbbyCategory, AdvisorContent> = {
-  "revenue-streams": {
+  "brand-products": {
     heading: "Where should you start building?",
     intro: "Based on the ABBY Framework, here's my recommended build order — start with the lowest-effort, highest-impact products first:",
     recommendations: [
-      { label: "Workbook", reason: "Your fastest win. AI generates it directly from your manuscript — exercises, reflection prompts, and action plans. Most authors finish in under 30 minutes.", priceRange: "$4.99 – $9.99", difficulty: "Easy", nodeId: "workbooks" },
-      { label: "Home Study Course", reason: "A structured self-paced program with daily schedules. Great lead magnet or entry-level product.", priceRange: "$27 – $47", difficulty: "Medium", nodeId: "home-study" },
+      { label: "Workbooks", reason: "Your fastest win. AI generates it directly from your manuscript — exercises, reflection prompts, and action plans. Most authors finish in under 30 minutes.", priceRange: "$4.99 – $9.99", difficulty: "Easy", nodeId: "workbooks" },
+      { label: "Home Study", reason: "A structured self-paced program with daily schedules. Great lead magnet or entry-level product.", priceRange: "$27 – $47", difficulty: "Medium", nodeId: "home-study" },
       { label: "Book Sales", reason: "QR code order pages and direct sales funnels. Quick to set up, immediate revenue from your existing book.", priceRange: "$15 – $30/book", difficulty: "Easy", nodeId: "book-sales-events" },
       { label: "Social Media (90-day Calendar)", reason: "AI generates a full content calendar from your book. Start building your audience while creating digital products.", difficulty: "Easy", nodeId: "social-media" },
-      { label: "Online Course", reason: "Your flagship digital product. 8–12 modules generated from your book's frameworks. Best for building recurring revenue.", priceRange: "$47 – $97", difficulty: "Medium", nodeId: "courses" },
+      { label: "Lead Magnets", reason: "Free PDF downloads that capture emails and feed your nurture sequences. Essential for list building.", difficulty: "Easy", nodeId: "lead-magnet" },
     ],
-    closingNote: "Start with Workbook + Book Sales for quick wins, then add Online Course to build momentum.",
+    closingNote: "Start with Workbooks + Book Sales for quick wins, then add Lead Magnets and Webinars to build momentum.",
   },
-  "marketing-channels": {
-    heading: "Which channels should you activate first?",
-    intro: "Bridge products connect your book to a wider audience. Here's the priority order:",
+  "build-authority": {
+    heading: "Which channels should you activate to scale?",
+    intro: "Build Authority products scale your audience and establish you as the go-to expert:",
     recommendations: [
+      { label: "Online Courses", reason: "Your flagship digital product. 8–12 modules generated from your book's frameworks. Best for building recurring revenue.", priceRange: "$97 – $497", difficulty: "Medium", nodeId: "courses" },
       { label: "Audiobook", reason: "AI-narrated from your manuscript. No recording studio needed. Expands your reach to listeners who prefer audio.", priceRange: "$9.99 – $14.99", difficulty: "Easy", nodeId: "audiobook" },
       { label: "Podcast Tour", reason: "AI generates guest pitches, talking points, and media one-sheets. The fastest way to reach new audiences.", difficulty: "Easy", nodeId: "podcast-guest" },
-      { label: "Webinars", reason: "AI generates scripts, slide decks, and registration pages. Great for selling coaching and courses.", priceRange: "$47 – $197", difficulty: "Medium", nodeId: "webinars" },
-      { label: "Lead Magnet Funnel", reason: "Free PDF downloads that capture emails and feed your nurture sequences. Essential for list building.", difficulty: "Easy", nodeId: "lead-magnet" },
+      { label: "Group Coaching", reason: "Scale your coaching with 8-week group programs. Higher revenue per hour than 1-on-1.", priceRange: "$97 – $297/person", difficulty: "Medium", nodeId: "group-coaching" },
+      { label: "Memberships", reason: "3-tier membership system for predictable recurring revenue from your most engaged readers.", priceRange: "$27 – $97/mo", difficulty: "Medium", nodeId: "memberships" },
     ],
-    closingNote: "Start with Audiobook + Podcast Tour to grow your audience, then add Webinars to convert them.",
+    closingNote: "Start with Online Courses + Audiobook to grow your audience, then add Group Coaching and Memberships for recurring revenue.",
   },
-  "authority-builders": {
+  "yield-revenue": {
     heading: "When should you pursue premium revenue?",
     intro: "These are your highest-value plays — coaching, speaking, and premium offers that monetize your authority:",
     recommendations: [
-      { label: "1-on-1 Coaching", reason: "Premium service with the highest margins. Use your book's frameworks as session outlines.", priceRange: "$150 – $500/session", difficulty: "Easy", nodeId: "coaching-1on1" },
-      { label: "Group Coaching", reason: "Scale your coaching with 8-week group programs. Higher revenue per hour than 1-on-1.", priceRange: "$97 – $297/person", difficulty: "Medium", nodeId: "group-coaching" },
-      { label: "Monthly Memberships", reason: "3-tier membership system for predictable recurring revenue from your most engaged readers.", priceRange: "$27 – $97/mo", difficulty: "Medium", nodeId: "memberships" },
+      { label: "Coaching", reason: "Premium service with the highest margins. Use your book's frameworks as session outlines.", priceRange: "$150 – $500/session", difficulty: "Easy", nodeId: "coaching-1on1" },
+      { label: "Consulting", reason: "Package your expertise into premium consulting offers. AI creates proposals and session frameworks.", priceRange: "$5,000 – $25,000", difficulty: "Advanced", nodeId: "big-ticket" },
       { label: "Keynotes", reason: "Apply as a speaker to build credibility. AI generates your submission materials and speaker profile.", priceRange: "$2,500 – $10,000", difficulty: "Medium", nodeId: "keynotes" },
-      { label: "Big Ticket Consulting", reason: "Package your expertise into premium consulting offers. AI creates proposals and session frameworks.", priceRange: "$5,000 – $25,000", difficulty: "Advanced", nodeId: "big-ticket" },
-      { label: "Training Programs", reason: "Half-day and full-day corporate training programs built from your frameworks. High-ticket B2B revenue.", priceRange: "$3,000 – $15,000/day", difficulty: "Advanced", nodeId: "training" },
+      { label: "Training", reason: "Half-day and full-day corporate training programs built from your frameworks. High-ticket B2B revenue.", priceRange: "$3,000 – $15,000/day", difficulty: "Advanced", nodeId: "training" },
       { label: "Masterminds", reason: "Quarterly mastermind groups for your most committed audience. High retention and recurring revenue.", priceRange: "$500 – $2,000/quarter", difficulty: "Advanced", nodeId: "masterminds" },
-      { label: "Retreats & Bootcamps", reason: "2-3 day immersive experiences. Premium pricing with high transformation value.", priceRange: "$1,500 – $5,000", difficulty: "Advanced", nodeId: "retreats" },
+      { label: "Retreats", reason: "2-3 day immersive experiences. Premium pricing with high transformation value.", priceRange: "$1,500 – $5,000", difficulty: "Advanced", nodeId: "retreats" },
       { label: "Certification", reason: "License your methodology. Others pay to teach your frameworks — the ultimate scalable revenue.", priceRange: "$2,000 – $10,000", difficulty: "Advanced", nodeId: "certification" },
-      { label: "Conventions & Conferences", reason: "Apply to speak at industry events. AI generates submission materials and speaker profile.", difficulty: "Medium", nodeId: "conventions" },
-      { label: "Fund Raising Events", reason: "Leverage your book for cause-driven events. Works especially well for non-fiction authors with a mission.", difficulty: "Advanced", nodeId: "fundraising" },
-      { label: "Exhibitors / JV", reason: "Partner with complementary brands. AI creates exhibitor prospectus and partnership proposals.", difficulty: "Advanced", nodeId: "exhibitors" },
+      { label: "Conventions", reason: "Apply to speak at industry events. AI generates submission materials and speaker profile.", difficulty: "Medium", nodeId: "conventions" },
+      { label: "Fund Raising", reason: "Leverage your book for cause-driven events. Works especially well for non-fiction authors with a mission.", difficulty: "Advanced", nodeId: "fundraising" },
+      { label: "Exhibitors", reason: "Partner with complementary brands. AI creates exhibitor prospectus and partnership proposals.", difficulty: "Advanced", nodeId: "exhibitors" },
     ],
-    closingNote: "Start with 1-on-1 Coaching + Memberships for recurring revenue. Add Keynotes and Group Coaching as your audience grows. Pursue Masterminds, Retreats, and Certification once you have 1,000+ engaged followers.",
+    closingNote: "Start with Coaching + Keynotes for recurring revenue. Add Consulting and Training as your audience grows. Pursue Masterminds, Retreats, and Certification once you have 1,000+ engaged followers.",
   },
 };
 
