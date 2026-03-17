@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Sparkles, Loader2, BookOpen, Wand2, Plus, Trash2, RotateCcw, RefreshCw, Video } from "lucide-react";
+import { Sparkles, Loader2, BookOpen, Wand2, Plus, Trash2, RotateCcw, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateJSONWithAI } from "@/lib/ai-generate";
 import type { CourseStepProps, CourseModule, CourseQuiz, CourseLesson, CourseResource } from "./types";
@@ -433,7 +433,6 @@ Use well-known sites (HBR, TED, Coursera, Google Docs, Notion, Canva, Wikipedia,
       {/* Tabbed editor */}
       <Tabs defaultValue="script" className="w-full">
         <TabsList className="w-full justify-start">
-          <TabsTrigger value="video" className="text-xs"><Video className="h-3 w-3 mr-1" /> Video</TabsTrigger>
           <TabsTrigger value="script" className="text-xs">Script</TabsTrigger>
           <TabsTrigger value="summary" className="text-xs">Summary</TabsTrigger>
           <TabsTrigger value="exercise" className="text-xs">Exercise</TabsTrigger>
@@ -441,33 +440,32 @@ Use well-known sites (HBR, TED, Coursera, Google Docs, Notion, Canva, Wikipedia,
           {isLastModule && <TabsTrigger value="resources" className="text-xs">Resources</TabsTrigger>}
         </TabsList>
 
-        <TabsContent value="video">
-          <LessonVideoUpload
-            videoUrl={currentLesson?.videoUrl || ""}
-            onVideoChange={(url) => updateLesson("videoUrl", url)}
-            bookId={bookId}
-            lessonId={currentLesson?.id || "unknown"}
-          />
-        </TabsContent>
-
         <TabsContent value="script">
-          <Card className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-semibold text-muted-foreground">Lesson Script</p>
-              {currentLesson?.script && (
-                <Badge variant="outline" className="text-[10px] border-violet-300 text-violet-600">
-                  <Wand2 className="h-2.5 w-2.5 mr-1" /> Abby Generated
-                </Badge>
-              )}
-            </div>
-            <Textarea
-              value={currentLesson?.script || ""}
-              onChange={(e) => updateLesson("script", e.target.value)}
-              placeholder="The lesson script — what the student reads or you narrate in video. Click 'Generate Content' to auto-create."
-              rows={16}
-              className="font-mono text-sm"
+          <div className="space-y-4">
+            <LessonVideoUpload
+              videoUrl={currentLesson?.videoUrl || ""}
+              onVideoChange={(url) => updateLesson("videoUrl", url)}
+              bookId={bookId}
+              lessonId={currentLesson?.id || "unknown"}
             />
-          </Card>
+            <Card className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-semibold text-muted-foreground">Lesson Script</p>
+                {currentLesson?.script && (
+                  <Badge variant="outline" className="text-[10px] border-violet-300 text-violet-600">
+                    <Wand2 className="h-2.5 w-2.5 mr-1" /> Abby Generated
+                  </Badge>
+                )}
+              </div>
+              <Textarea
+                value={currentLesson?.script || ""}
+                onChange={(e) => updateLesson("script", e.target.value)}
+                placeholder="The lesson script — what the student reads or you narrate in video. Click 'Generate Content' to auto-create."
+                rows={16}
+                className="font-mono text-sm"
+              />
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="summary">
