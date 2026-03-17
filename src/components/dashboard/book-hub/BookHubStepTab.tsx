@@ -15,6 +15,7 @@ import { ABBY_CATEGORIES, getEffectiveCategory, getStudioPath as getStudioPathFr
 import { isSuperAdmin } from "@/lib/superadmin";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { useNodeGating } from "@/hooks/useNodeGating";
 
 interface ProductNode {
   id: string;
@@ -27,8 +28,8 @@ interface ProductNode {
 }
 
 /** Derive local ProductNode[] from shared config */
-function deriveNodes(catId: AbbyCategory, isAdmin: boolean, superAdmin = false): ProductNode[] {
-  const cat = getEffectiveCategory(catId, isAdmin, superAdmin);
+function deriveNodes(catId: AbbyCategory, isAdmin: boolean, superAdmin = false, openNodeIds?: Set<string>): ProductNode[] {
+  const cat = getEffectiveCategory(catId, isAdmin, superAdmin, openNodeIds);
   if (!cat) return [];
   return cat.nodes.map(n => ({
     id: n.id,
@@ -53,8 +54,8 @@ interface DerivedCategory {
   nodes: ProductNode[];
 }
 
-function deriveCategoryConfig(catId: AbbyCategory, isAdmin: boolean, superAdmin = false): DerivedCategory | null {
-  const cat = getEffectiveCategory(catId, isAdmin, superAdmin);
+function deriveCategoryConfig(catId: AbbyCategory, isAdmin: boolean, superAdmin = false, openNodeIds?: Set<string>): DerivedCategory | null {
+  const cat = getEffectiveCategory(catId, isAdmin, superAdmin, openNodeIds);
   if (!cat) return null;
   return {
     id: cat.id,
@@ -65,7 +66,7 @@ function deriveCategoryConfig(catId: AbbyCategory, isAdmin: boolean, superAdmin 
     gradientFrom: cat.gradientFrom,
     gradientTo: cat.gradientTo,
     headerIcon: cat.headerIcon,
-    nodes: deriveNodes(catId, isAdmin, superAdmin),
+    nodes: deriveNodes(catId, isAdmin, superAdmin, openNodeIds),
   };
 }
 
@@ -136,9 +137,11 @@ export default function BookHubStepTab({ categoryId, bookId, bookTitle, bookGenr
   const { user, isAdmin } = useAuth();
   const userIsSuperAdmin = isSuperAdmin(user?.email);
   const { plan, completedAssets } = useAbbyPlan(bookId);
+  const { gating } = useNodeGating();
+  const openNodeIds = new Set(gating.filter(r => r.is_open).map(r => r.node_id));
   const [executingNode, setExecutingNode] = useState<ProductNode | null>(null);
   const [notifiedNodes, setNotifiedNodes] = useState<Set<string>>(new Set());
-  const catData = deriveCategoryConfig(categoryId as AbbyCategory, isAdmin, userIsSuperAdmin);
+  const catData = deriveCategoryConfig(categoryId as AbbyCategory, isAdmin, userIsSuperAdmin, openNodeIds);
   if (!catData) return null;
 
   const HeaderIcon = catData.headerIcon;

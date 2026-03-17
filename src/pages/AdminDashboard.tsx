@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { adminApi } from "@/lib/admin-api";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { LogOut, BookOpen, BarChart3, ShieldCheck, Globe, UserCheck, Users, BookMarked, Headphones, MessageSquare, Wallet } from "lucide-react";
+import { LogOut, BookOpen, BarChart3, ShieldCheck, Globe, UserCheck, Users, BookMarked, Headphones, MessageSquare, Wallet, ToggleRight } from "lucide-react";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import logoIcon from "@/assets/logo-icon.png";
 
@@ -18,10 +18,11 @@ import ReadingClubTab from "@/components/admin/ReadingClubTab";
 import SupportTab from "@/components/admin/SupportTab";
 import AdminMessagesTab from "@/components/admin/AdminMessagesTab";
 import AdminPayoutsDashboard from "@/components/admin/AdminPayoutsDashboard";
+import NodeGatingTab from "@/components/admin/NodeGatingTab";
 
 import type { AdminStats, AdminBook, AdminInfo } from "@/types/admin";
 
-type Tab = "overview" | "books" | "authors" | "admins" | "platforms" | "crm" | "messages" | "reading-club" | "support" | "payouts";
+type Tab = "overview" | "books" | "authors" | "admins" | "platforms" | "crm" | "messages" | "reading-club" | "support" | "payouts" | "node-gating";
 
 async function adminFetch(action: string, body: Record<string, unknown> = {}) {
   const token = await getActiveToken();
@@ -257,6 +258,7 @@ export default function AdminDashboard() {
     { key: "reading-club", label: "Reading Club", icon: BookMarked },
     { key: "support", label: "Support", icon: Headphones },
     { key: "payouts", label: "Payouts", icon: Wallet },
+    { key: "node-gating", label: "Node Gating", icon: ToggleRight, superOnly: true },
     { key: "admins", label: "Admins", icon: ShieldCheck, superOnly: true },
     { key: "platforms", label: "Platforms", icon: Globe, pnAdminOnly: true },
   ];
@@ -340,6 +342,7 @@ export default function AdminDashboard() {
           {tab === "reading-club" && <ReadingClubTab />}
           {tab === "support" && <SupportTab />}
           {tab === "payouts" && <AdminPayoutsDashboard />}
+          {tab === "node-gating" && <NodeGatingTab />}
           {tab === "platforms" && <PlatformAccessTab />}
           {tab === "admins" && (
             <AdminsTab

@@ -1851,6 +1851,33 @@ export type Database = {
           },
         ]
       }
+      node_gating: {
+        Row: {
+          category: string
+          id: string
+          is_open: boolean
+          node_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          category: string
+          id?: string
+          is_open?: boolean
+          node_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          category?: string
+          id?: string
+          is_open?: boolean
+          node_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string

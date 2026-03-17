@@ -28,6 +28,8 @@ interface Props {
   yieldUnlocked?: number;
   stripeConnected?: boolean;
   pendingReviewCount?: number;
+  bridgeCategoryOpen?: boolean;
+  yieldCategoryOpen?: boolean;
 }
 
 interface NavItem {
@@ -53,6 +55,7 @@ export default function DashboardSidebar({
   isPremium, isAdmin = false, isSuperAdmin: isSuperAdminProp = false, tier = "free", hasBooks = true, hasAnalysis = true, hasMicrosite = true,
   buildUnlocked = 0, bridgeUnlocked = 0, yieldUnlocked = 0,
   stripeConnected = false, pendingReviewCount = 0,
+  bridgeCategoryOpen = false, yieldCategoryOpen = false,
 }: Props) {
 
   const bypassLocks = isPremium || isAdmin;
@@ -91,19 +94,19 @@ export default function DashboardSidebar({
     },
     {
       id: "marketing-channels", label: "B·Bridge Channels", icon: Radio,
-      subtitle: isSuperAdminProp ? "Dev Access" : "Coming Soon",
-      tooltip: isSuperAdminProp ? "Superadmin: full access to Bridge Channels" : "Bridge Channels are coming soon. Stay tuned!",
+      subtitle: (isSuperAdminProp || bridgeCategoryOpen) ? (isSuperAdminProp ? "Dev Access" : "Marketing & Audience Growth") : "Coming Soon",
+      tooltip: (isSuperAdminProp || bridgeCategoryOpen) ? "Bridge Channels — Marketing & audience connections" : "Bridge Channels are coming soon. Stay tuned!",
       color: "text-violet-500",
-      badge: isSuperAdminProp ? `${bridgeUnlocked} built` : "Coming Soon",
-      lockMessage: isSuperAdminProp ? undefined : "Bridge Channels are coming soon",
+      badge: (isSuperAdminProp || bridgeCategoryOpen) ? `${bridgeUnlocked} built` : "Coming Soon",
+      lockMessage: (isSuperAdminProp || bridgeCategoryOpen) ? undefined : "Bridge Channels are coming soon",
     },
     {
       id: "authority-builders", label: "Y·Yield Revenue", icon: Award,
-      subtitle: isSuperAdminProp ? "Dev Access" : "Coming Soon",
-      tooltip: isSuperAdminProp ? "Superadmin: full access to Yield Revenue" : "Yield Revenue builders are coming soon. Stay tuned!",
+      subtitle: (isSuperAdminProp || yieldCategoryOpen) ? (isSuperAdminProp ? "Dev Access" : "Premium Revenue Streams") : "Coming Soon",
+      tooltip: (isSuperAdminProp || yieldCategoryOpen) ? "Yield Revenue — Premium monetization" : "Yield Revenue builders are coming soon. Stay tuned!",
       color: "text-amber-500",
-      badge: isSuperAdminProp ? `${yieldUnlocked} built` : "Coming Soon",
-      lockMessage: isSuperAdminProp ? undefined : "Yield Revenue builders are coming soon",
+      badge: (isSuperAdminProp || yieldCategoryOpen) ? `${yieldUnlocked} built` : "Coming Soon",
+      lockMessage: (isSuperAdminProp || yieldCategoryOpen) ? undefined : "Yield Revenue builders are coming soon",
     },
     {
       id: "review-products" as DashboardSection, label: "Review & Publish",

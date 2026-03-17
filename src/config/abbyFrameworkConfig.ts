@@ -229,21 +229,33 @@ export function getStudioPath(nodeId: string, bookId: string, titleParam: string
   return map[nodeId] || null;
 }
 
-/** IDs of categories gated as Coming Soon for ALL users */
-const GATED_CATEGORIES: AbbyCategory[] = ["marketing-channels", "authority-builders"];
+/** IDs of categories that are gated by default (fallback when DB hasn't loaded) */
+const DEFAULT_GATED_CATEGORIES: AbbyCategory[] = ["marketing-channels", "authority-builders"];
 
-/** Check if a category is gated (Coming Soon) */
+/** Check if a category is gated by default (Coming Soon) — fallback only */
 export function isCategoryGated(catId: AbbyCategory): boolean {
-  return GATED_CATEGORIES.includes(catId);
+  return DEFAULT_GATED_CATEGORIES.includes(catId);
 }
 
 /**
- * Returns effective node status — Bridge & Yield are always "coming-soon" for everyone
- * UNLESS the caller is a superadmin (developer override).
+ * Returns effective node status using DB gating state.
+ * Falls back to hardcoded gating when no DB state is provided.
+ * Superadmins always see the true status.
  */
-export function getEffectiveNodeStatus(node: AbbyNode, categoryId: AbbyCategory, _isAdmin: boolean, isSuperAdmin = false): AbbyNode["status"] {
+export function getEffectiveNodeStatus(
+  node: AbbyNode,
+  categoryId: AbbyCategory,
+  _isAdmin: boolean,
+  isSuperAdmin = false,
+  openNodeIds?: Set<string>,
+): AbbyNode["status"] {
   if (isSuperAdmin) return node.status;
-  if (GATED_CATEGORIES.includes(categoryId) && (node.status === "coming-soon" || node.status === "available")) {
+  // If we have DB gating data, use it
+  if (openNodeIds) {
+    return openNodeIds.has(node.id) ? node.status : "coming-soon";
+  }
+  // Fallback: hardcoded gating
+  if (DEFAULT_GATED_CATEGORIES.includes(categoryId) && (node.status === "coming-soon" || node.status === "available")) {
     return "coming-soon";
   }
   return node.status;
@@ -251,21 +263,23 @@ export function getEffectiveNodeStatus(node: AbbyNode, categoryId: AbbyCategory,
 
 /**
  * Returns a copy of the category with effective statuses applied.
- * Bridge & Yield nodes are always forced to "coming-soon" for ALL users
- * UNLESS the caller is a superadmin (developer override).
+ * Uses DB gating when available, otherwise falls back to hardcoded.
+ * Superadmins always see true status.
  */
-export function getEffectiveCategory(catId: AbbyCategory, _isAdmin: boolean, isSuperAdmin = false): AbbyCategoryConfig {
+export function getEffectiveCategory(
+  catId: AbbyCategory,
+  _isAdmin: boolean,
+  isSuperAdmin = false,
+  openNodeIds?: Set<string>,
+): AbbyCategoryConfig {
   const cat = ABBY_CATEGORIES[catId];
   if (!cat) return cat;
   if (isSuperAdmin) return cat;
-  if (GATED_CATEGORIES.includes(catId)) {
-    return {
-      ...cat,
-      nodes: cat.nodes.map(n => ({
-        ...n,
-        status: (n.status === "available" || n.status === "coming-soon") ? "coming-soon" as const : n.status,
-      })),
-    };
-  }
-  return cat;
+  return {
+    ...cat,
+    nodes: cat.nodes.map(n => ({
+      ...n,
+      status: getEffectiveNodeStatus(n, catId, _isAdmin, false, openNodeIds),
+    })),
+  };
 }

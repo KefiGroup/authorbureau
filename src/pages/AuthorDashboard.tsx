@@ -42,6 +42,7 @@ import { useAuthorStats } from "@/hooks/useAuthorStats";
 
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import { isSuperAdmin } from "@/lib/superadmin";
+import { useNodeGating } from "@/hooks/useNodeGating";
 
 // All builder node IDs for the type union
 const BUILDER_NODE_IDS = Object.keys(BUILDER_NODE_MAP) as Array<keyof typeof BUILDER_NODE_MAP>;
@@ -118,6 +119,10 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
 
   // Centralized stats from author-stats edge function
   const { stats, refetch: refetchStats } = useAuthorStats(user?.id);
+
+  // DB-driven node gating
+  const { gating, isNodeOpen, isCategoryFullyClosed } = useNodeGating();
+  const openNodeIds = new Set(gating.filter(r => r.is_open).map(r => r.node_id));
 
   // Journey state
   const [booksAnalyzed, setBooksAnalyzed] = useState(0);
@@ -247,18 +252,34 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
 
   const handleNavigate = (s: string) => setActiveSection(s as DashboardSection);
 
-  // Sections that belong to Bridge / Yield — gated for non-admins
-  const BRIDGE_YIELD_SECTIONS = new Set([
-    "webinars", "audiobook-studio", "podcast", "lead-magnet",
-    "coaching", "group-coaching", "memberships", "speaking", "big-ticket",
-    "marketing-channels", "authority-builders",
-  ]);
+  // Map sections to their node IDs for DB gating lookup
+  const SECTION_TO_NODE: Record<string, string> = {
+    "webinars": "webinars",
+    "audiobook-studio": "audiobook",
+    "podcast": "podcast-guest",
+    "lead-magnet": "lead-magnet",
+    "coaching": "coaching-1on1",
+    "group-coaching": "group-coaching",
+    "memberships": "memberships",
+    "speaking": "keynotes",
+    "big-ticket": "big-ticket",
+  };
 
   const userIsSuperAdmin = isSuperAdmin(user?.email);
 
+  /** Check if a section is gated (closed) via DB */
+  const isSectionGated = (section: string): boolean => {
+    if (userIsSuperAdmin) return false;
+    const nodeId = SECTION_TO_NODE[section];
+    if (!nodeId) return false;
+    // If DB data loaded, use it; otherwise fall back to closed
+    if (gating.length > 0) return !isNodeOpen(nodeId);
+    return true; // default closed for Bridge/Yield sections
+  };
+
   const renderSection = () => {
-    // Gate Bridge & Yield individual builders — superadmins bypass
-    if (!isAdmin && !userIsSuperAdmin && BRIDGE_YIELD_SECTIONS.has(activeSection)) {
+    // Gate individual builders via DB gating — superadmins bypass
+    if (!isAdmin && isSectionGated(activeSection)) {
       return (
         <div className="max-w-2xl mx-auto text-center space-y-6 py-20">
           <div className="w-16 h-16 rounded-2xl bg-secondary/10 flex items-center justify-center mx-auto">
@@ -362,7 +383,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         }
         return <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />;
       case "marketing-channels":
-        if (userIsSuperAdmin) {
+        if (userIsSuperAdmin || !isCategoryFullyClosed("marketing-channels")) {
           return <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />;
         }
         return <SectionGatePage
@@ -373,7 +394,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           onAnalyze={() => setActiveSection("revenue-streams")}
         />;
       case "authority-builders":
-        if (userIsSuperAdmin) {
+        if (userIsSuperAdmin || !isCategoryFullyClosed("authority-builders")) {
           return <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />;
         }
         return <SectionGatePage
@@ -492,6 +513,8 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           yieldUnlocked={
             (stats.products.perTable["coaching_packages"]?.total || 0)
           }
+          bridgeCategoryOpen={!isCategoryFullyClosed("marketing-channels")}
+          yieldCategoryOpen={!isCategoryFullyClosed("authority-builders")}
         />
       </div>
       <div className="flex flex-1 flex-col min-w-0 min-h-0">
