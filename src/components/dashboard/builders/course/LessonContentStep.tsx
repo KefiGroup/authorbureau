@@ -440,7 +440,7 @@ Use well-known sites (HBR, TED, Coursera, Google Docs, Notion, Canva, Wikipedia,
           <TabsTrigger value="summary" className="text-xs">Summary</TabsTrigger>
           <TabsTrigger value="exercise" className="text-xs">Exercise</TabsTrigger>
           <TabsTrigger value="quiz" className="text-xs">Quiz ({currentLesson?.quiz?.length || 0})</TabsTrigger>
-          <TabsTrigger value="resources" className="text-xs">Resources</TabsTrigger>
+          {isLastModule && <TabsTrigger value="resources" className="text-xs">Resources</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="script">
