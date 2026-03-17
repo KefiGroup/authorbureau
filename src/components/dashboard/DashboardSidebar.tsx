@@ -55,6 +55,7 @@ export default function DashboardSidebar({
   isPremium, isAdmin = false, isSuperAdmin: isSuperAdminProp = false, tier = "free", hasBooks = true, hasAnalysis = true, hasMicrosite = true,
   buildUnlocked = 0, bridgeUnlocked = 0, yieldUnlocked = 0,
   stripeConnected = false, pendingReviewCount = 0,
+  bridgeCategoryOpen = false, yieldCategoryOpen = false,
 }: Props) {
 
   const bypassLocks = isPremium || isAdmin;
