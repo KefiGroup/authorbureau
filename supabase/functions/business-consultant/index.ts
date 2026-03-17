@@ -3343,6 +3343,7 @@ CURRENT TURN: 1. Follow Turn 1 instructions EXACTLY. Maximum 150 words.
       const normalizedBuilderStep = (builderStep || "").toLowerCase();
       const isHomeStudyDailySchedule = builderId === "home-study-course" && normalizedBuilderStep.includes("daily schedule");
       const isHomeStudyDailyContent = builderId === "home-study-course" && normalizedBuilderStep.includes("daily content");
+      const isOnlineCourseEmailSequence = builderId === "online-course" && normalizedBuilderStep.includes("email sequence");
 
       const structuredStepOverride = isHomeStudyDailySchedule
         ? `
@@ -3360,6 +3361,17 @@ STEP OVERRIDE — STRUCTURED JSON MODE (HIGH PRIORITY):
 STEP OVERRIDE — STRUCTURED JSON MODE (HIGH PRIORITY):
 - Ignore the normal 3-phase conversational workflow for this request.
 - Return ONLY valid JSON matching the requested schema.
+- Do NOT include markdown, prose, headings, or explanations.`
+        : isOnlineCourseEmailSequence
+        ? `
+
+STEP OVERRIDE — STRUCTURED JSON MODE (HIGH PRIORITY):
+- Ignore the normal 3-phase conversational workflow for this request.
+- Return ONLY valid JSON.
+- Output must be a JSON array with exactly 7 objects.
+- Each object must include: dayNumber, purpose, subject, previewText, body.
+- dayNumber should start at 0 and increment logically.
+- body must be complete email copy with [First Name], [Author Name], and [CTA Button → ...].
 - Do NOT include markdown, prose, headings, or explanations.`
         : "";
 
@@ -3385,6 +3397,9 @@ CRITICAL BUILDER RULES:
         temperature = 0.2;
       } else if (isHomeStudyDailyContent) {
         maxTokens = 3200;
+        temperature = 0.25;
+      } else if (isOnlineCourseEmailSequence) {
+        maxTokens = 4800;
         temperature = 0.25;
       } else if (builderId === "special-editions") {
         maxTokens = 6000;
