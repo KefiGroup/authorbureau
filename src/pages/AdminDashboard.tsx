@@ -18,10 +18,11 @@ import ReadingClubTab from "@/components/admin/ReadingClubTab";
 import SupportTab from "@/components/admin/SupportTab";
 import AdminMessagesTab from "@/components/admin/AdminMessagesTab";
 import AdminPayoutsDashboard from "@/components/admin/AdminPayoutsDashboard";
+import NodeGatingTab from "@/components/admin/NodeGatingTab";
 
 import type { AdminStats, AdminBook, AdminInfo } from "@/types/admin";
 
-type Tab = "overview" | "books" | "authors" | "admins" | "platforms" | "crm" | "messages" | "reading-club" | "support" | "payouts";
+type Tab = "overview" | "books" | "authors" | "admins" | "platforms" | "crm" | "messages" | "reading-club" | "support" | "payouts" | "node-gating";
 
 async function adminFetch(action: string, body: Record<string, unknown> = {}) {
   const token = await getActiveToken();
