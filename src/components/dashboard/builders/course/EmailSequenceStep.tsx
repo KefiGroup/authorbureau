@@ -262,7 +262,7 @@ Make each email specific to the course topic. Return ONLY valid JSON.`;
                 <p className="text-[10px] font-semibold text-muted-foreground">Dynamic Placeholders</p>
                 <div className="flex flex-wrap gap-x-4 gap-y-0.5">
                   <span className="text-[10px] text-muted-foreground"><code className="bg-muted px-1 py-0.5 rounded text-[9px] font-mono">[First Name]</code> → Reader's first name (replaced at send time)</span>
-                  <span className="text-[10px] text-muted-foreground"><code className="bg-muted px-1 py-0.5 rounded text-[9px] font-mono">[CTA Button → ...]</code> → Rendered as a clickable button linking to your course sales page</span>
+                   <span className="text-[10px] text-muted-foreground"><code className="bg-muted px-1 py-0.5 rounded text-[9px] font-mono">[CTA Button → ...](SIGNUP_URL)</code> → Rendered as a clickable button linking to your course sign-up page</span>
                 </div>
                 {authorName && (
                   <p className="text-[10px] text-muted-foreground mt-1">✓ Author name <strong>{authorName}</strong> is automatically used from your profile.</p>
