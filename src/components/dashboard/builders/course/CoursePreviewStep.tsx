@@ -97,8 +97,8 @@ export default function CoursePreviewStep({ stepData }: CourseStepProps) {
             <SharedSalesCopyPreview
               data={stepData.salesCopyData || DEFAULT_SALES_COPY}
               productMeta={{
-                modules: modules.length,
-                hours: Math.round(totalMinutes / 60),
+                badge: `${modules.length} Modules`,
+                duration: `${Math.round(totalMinutes / 60)}h+ of content`,
               }}
             />
           </div>
