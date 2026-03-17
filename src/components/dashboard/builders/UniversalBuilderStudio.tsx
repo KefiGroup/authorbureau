@@ -704,6 +704,61 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
             }
           }
 
+          // ── Recover foundation + curriculum for course/training builders ──
+          if (
+            (nodeConfig.id === "online-course" || nodeConfig.id === "training-programs") &&
+            (!hydratedStepData.foundation || !hydratedStepData.curriculum?.modules?.length)
+          ) {
+            try {
+              const { data: proposalAsset } = await supabase
+                .from("generated_assets")
+                .select("content")
+                .eq("book_id", bookId)
+                .eq("asset_type", `builder_proposal_${nodeConfig.id}`)
+                .maybeSingle();
+
+              if (proposalAsset?.content) {
+                const proposal = JSON.parse(proposalAsset.content);
+
+                // Recover foundation if missing
+                if (!hydratedStepData.foundation && proposal.recommended_title) {
+                  const recommendedPrice = Number(proposal.recommended_price || 0);
+                  const recommendedTransformation = Array.isArray(proposal.transformation_promises)
+                    ? proposal.transformation_promises.find((item: any) => typeof item === "string" && item.trim().length > 0)
+                    : "";
+
+                  hydratedStepData = {
+                    ...hydratedStepData,
+                    foundation: {
+                      title: proposal.recommended_title || "",
+                      subtitle: proposal.subtitle || "",
+                      targetAudience: proposal.target_audience || "",
+                      transformation: String(recommendedTransformation || ""),
+                      priceTier: mapCoursePriceTier(recommendedPrice),
+                      exactPrice: recommendedPrice > 0 ? String(Math.round(recommendedPrice)) : "",
+                    },
+                  };
+                }
+
+                // Recover curriculum modules if missing
+                if (!hydratedStepData.curriculum?.modules?.length && Array.isArray(proposal.structure)) {
+                  const recoveredModules = buildCourseModulesFromStructure(proposal.structure);
+                  if (recoveredModules.length > 0) {
+                    hydratedStepData = {
+                      ...hydratedStepData,
+                      curriculum: {
+                        ...(hydratedStepData.curriculum || {}),
+                        modules: recoveredModules,
+                      },
+                    };
+                  }
+                }
+              }
+            } catch (recoveryError) {
+              console.warn("Failed to recover course foundation/curriculum from proposal:", recoveryError);
+            }
+          }
+
           setStepData(hydratedStepData);
           const inferredStep = inferStepFromDraftData(hydratedStepData);
           const savedStep = typeof parsed.currentStep === "number" ? parsed.currentStep : 0;
