@@ -284,17 +284,17 @@ Keep responses under 150 words. Always reference the business plan. Tie to manus
 
 ### STARTER ($49/month)
 - Full Abby consultation with unlimited sessions
-- B·Build: Workbook, Social Media, Email Marketing, Author Microsite, Book Sales, Home Study Courses, Lead Magnets
+- B·Brand Products: Workbook, Social Media, Email Marketing, Author Microsite, Book Sales, Home Study Courses, Special Editions, Lead Magnets, Webinars
 - Best for: Authors starting out
 
 ### PRO ($199/month)
 - Everything in Starter, PLUS:
-- B·Bridge: Online Course, Audiobook Studio, Podcast Scripts, Webinar, Monthly Memberships, 1-on-1 Coaching, Group Coaching, Affiliate Program, Revenue Sharing/JV, Upsells/Downsells, Content Licensing
+- B·Build Channels: Online Course, Audiobook Studio, Podcast Tour, Memberships, Group Coaching, Media Outreach, Affiliates, Upsells/Downsells, Revenue Sharing/JV
 - CRM + Subscriber Management
 
 ### ENTERPRISE ($499/month)
 - Everything in Pro, PLUS:
-- Y·Yield: ALL premium revenue builders (Keynotes, In-House Speaker, Training Programs, Retreats, Certification, Masterminds, Conventions, Fundraising, Exhibitors)
+- Y·Yield Revenue: ALL premium revenue builders (Coaching, Consulting, Keynotes, Training Programs, Masterminds, Retreats, Certification, Conventions, Fundraising, Exhibitors)
 - 1-on-1 strategic session with Pauline Teo
 
 # SECTION 10: BEHAVIORAL RULES
