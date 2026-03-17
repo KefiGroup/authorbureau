@@ -296,7 +296,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
           Review & Publish Your Products
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Every product follows the <span className="font-semibold text-amber-600">Analyse</span> → <span className="font-semibold text-blue-600">Build</span> → <span className="font-semibold text-green-600">Bridge</span> pipeline. Review each one, then publish to your microsite.
+          Every product follows the <span className="font-semibold text-amber-600">Analyse</span> → <span className="font-semibold text-blue-600">Build</span> → <span className="font-semibold text-green-600">Deploy</span> pipeline. Review each one, then publish to your microsite.
         </p>
       </div>
 
