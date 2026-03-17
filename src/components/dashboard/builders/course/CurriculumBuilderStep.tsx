@@ -260,82 +260,72 @@ export default function CurriculumBuilderStep({ stepData, setStepData, onMarkEdi
                     )}
                   </div>
 
-                  {(mod.contentSummary || mod.description) && (
-                    <div className="space-y-1">
-                      <Label className="text-xs font-semibold">Content Summary</Label>
-                      <Textarea
-                        value={mod.contentSummary || mod.description || ""}
-                        onChange={(e) => updateModuleField(mod.id, "contentSummary", e.target.value)}
-                        placeholder="What does this module cover?"
-                        rows={3}
-                        className="text-sm"
-                      />
-                    </div>
-                  )}
+                  <div className="space-y-1">
+                    <Label className="text-xs font-semibold">Content Summary</Label>
+                    <Textarea
+                      value={mod.contentSummary || mod.description || ""}
+                      onChange={(e) => updateModuleField(mod.id, "contentSummary", e.target.value)}
+                      placeholder="What does this module cover?"
+                      rows={3}
+                      className="text-sm"
+                    />
+                  </div>
 
-                  {mod.facilitatorActivity && (
-                    <div className="space-y-1 bg-secondary/5 rounded-lg p-3 border border-secondary/20">
-                      <Label className="text-xs font-semibold flex items-center gap-1 text-secondary">
-                        🎯 Facilitator Activity
-                      </Label>
-                      <Textarea
-                        value={mod.facilitatorActivity || ""}
-                        onChange={(e) => updateModuleField(mod.id, "facilitatorActivity", e.target.value)}
-                        placeholder="Describe the hands-on activity..."
-                        rows={3}
-                        className="text-sm"
-                      />
-                    </div>
-                  )}
+                  <div className="space-y-1 bg-secondary/5 rounded-lg p-3 border border-secondary/20">
+                    <Label className="text-xs font-semibold flex items-center gap-1 text-secondary">
+                      🎯 Facilitator Activity
+                    </Label>
+                    <Textarea
+                      value={mod.facilitatorActivity || ""}
+                      onChange={(e) => updateModuleField(mod.id, "facilitatorActivity", e.target.value)}
+                      placeholder="Describe the hands-on activity: icebreaker, breakout exercise, case clinic, workshop sprint..."
+                      rows={3}
+                      className="text-sm"
+                    />
+                  </div>
 
-                  {debriefPoints.some(p => p.trim()) && (
-                    <div className="space-y-2 bg-accent/5 rounded-lg p-3 border border-accent/20">
-                      <Label className="text-xs font-semibold flex items-center gap-1">
-                        <MessageSquare className="h-3 w-3" /> Debrief Questions
-                      </Label>
-                      {debriefPoints.map((point, i) => (
-                        <div key={i} className="flex items-center gap-2">
-                          <span className="text-[10px] text-muted-foreground font-mono w-4">Q{i + 1}</span>
-                          <Input
-                            value={point}
-                            onChange={(e) => updateDebrief(mod.id, i, e.target.value)}
-                            placeholder="Guided debrief question..."
-                            className="text-sm"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {mod.workbookPageDescription && (
-                    <div className="space-y-1 bg-primary/5 rounded-lg p-3 border border-primary/20">
-                      <Label className="text-xs font-semibold flex items-center gap-1">
-                        <FileText className="h-3 w-3" /> Workbook Page
-                      </Label>
-                      <Textarea
-                        value={mod.workbookPageDescription || ""}
-                        onChange={(e) => updateModuleField(mod.id, "workbookPageDescription", e.target.value)}
-                        placeholder='e.g. "My Starting Point" — self-assessment worksheet...'
-                        rows={2}
-                        className="text-sm"
-                      />
-                    </div>
-                  )}
-
-                  {(mod.durationMinutes ?? 0) > 0 && (
-                    <div className="flex items-center gap-3">
-                      <Label className="text-xs font-semibold">Duration</Label>
-                      <div className="flex items-center gap-1.5">
+                  <div className="space-y-2 bg-accent/5 rounded-lg p-3 border border-accent/20">
+                    <Label className="text-xs font-semibold flex items-center gap-1">
+                      <MessageSquare className="h-3 w-3" /> Debrief Questions
+                    </Label>
+                    {debriefPoints.map((point, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <span className="text-[10px] text-muted-foreground font-mono w-4">Q{i + 1}</span>
                         <Input
-                          type="number"
-                          value={mod.durationMinutes ?? 0}
-                          onChange={(e) => updateModuleField(mod.id, "durationMinutes", parseInt(e.target.value) || 0)}
-                          className="w-20"
+                          value={point}
+                          onChange={(e) => updateDebrief(mod.id, i, e.target.value)}
+                          placeholder="Guided debrief question..."
+                          className="text-sm"
                         />
-                        <span className="text-xs text-muted-foreground">minutes</span>
                       </div>
+                    ))}
+                  </div>
+
+                  <div className="space-y-1 bg-primary/5 rounded-lg p-3 border border-primary/20">
+                    <Label className="text-xs font-semibold flex items-center gap-1">
+                      <FileText className="h-3 w-3" /> Workbook Page
+                    </Label>
+                    <Textarea
+                      value={mod.workbookPageDescription || ""}
+                      onChange={(e) => updateModuleField(mod.id, "workbookPageDescription", e.target.value)}
+                      placeholder='e.g. "My Starting Point" — self-assessment worksheet with rating scales and reflection prompts'
+                      rows={2}
+                      className="text-sm"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <Label className="text-xs font-semibold">Duration</Label>
+                    <div className="flex items-center gap-1.5">
+                      <Input
+                        type="number"
+                        value={mod.durationMinutes ?? 0}
+                        onChange={(e) => updateModuleField(mod.id, "durationMinutes", parseInt(e.target.value) || 0)}
+                        className="w-20"
+                      />
+                      <span className="text-xs text-muted-foreground">minutes</span>
                     </div>
-                  )}
+                  </div>
 
                   <div className="pt-2 border-t border-border">
                     <Button variant="ghost" size="sm" onClick={() => removeModule(mod.id)} className="text-xs text-destructive">
