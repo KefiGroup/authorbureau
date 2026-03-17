@@ -235,18 +235,24 @@ Deliver the COMPLETE plan following this structure:
 **SECTION 1 — YOUR TRANSFORMATION PROMISE**
 2-3 sentence statement of the core outcome.
 
-**SECTION 2 — STARTER PACKAGE (Month 1-2: Quick Wins)**
-2-4 products from B·Build with branded names, prices, and reasoning.
+**SECTION 2 — B·BRAND PRODUCTS (Create Your Products)**
+2-4 products from B·Brand Products with branded names, prices, and reasoning.
+Header: "Brand Products — Create Your Products"
 
-**SECTION 3 — PRO PACKAGE (Month 3-6: Growth Engine)**
-2-4 products from B·Build and B·Bridge.
+**SECTION 3 — B·BUILD CHANNELS (Scale Your Audience)**
+2-4 products from B·Build Channels with branded names, prices, and reasoning.
+Header: "Build Channels — Scale Your Audience"
 
-**SECTION 4 — ENTERPRISE PACKAGE (Month 6-12: Authority & Scale)**
-2-4 products from B·Bridge and Y·Yield.
+**SECTION 4 — Y·YIELD REVENUE (Premium Services)**
+2-4 products from Y·Yield Revenue with branded names, prices, and reasoning.
 Include: "1-on-1 strategic session with Pauline Teo, founder of Authors Bureau" as premium bonus.
+Header: "Yield Revenue — Premium Services"
 
 **SECTION 5 — YOUR MONETISATION MAP**
-A visual table showing ALL 28 nodes grouped by phase (B·Build, B·Bridge, Y·Yield), with columns for: Node Name, Recommended Price Point, Projected Monthly Revenue, and Status (Recommended / Future / Not Applicable). This gives the author a complete at-a-glance view of their revenue potential.
+A visual table showing ALL 28 nodes grouped by phase (B·Brand Products, B·Build Channels, Y·Yield Revenue), with columns for: Node Name, Recommended Price Point, Projected Monthly Revenue, and Status (Recommended / Future / Not Applicable). This gives the author a complete at-a-glance view of their revenue potential.
+
+**IMPORTANT — INTRODUCTION TEXT:**
+When presenting the plan, introduce it with: "I've mapped out your revenue streams across three stages: Brand Products to create your product suite, Build Channels to scale your audience and recurring revenue, and Yield Revenue for premium high-ticket services."
 
 **SECTION 6 — 🔓 UNLOCK YOUR PLAN**
 Subscription recommendation with ROI calculation. Include ===SUBSCRIBE_CTA=== once.
