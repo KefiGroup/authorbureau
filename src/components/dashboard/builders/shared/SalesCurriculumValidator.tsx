@@ -54,6 +54,30 @@ function textContainsKeywords(text: string, keywords: string[]): string[] {
   return keywords.filter(kw => lower.includes(kw));
 }
 
+/** Returns which named sales copy sections contain any of the given keywords */
+function findKeywordSections(data: SalesCopyData, keywords: string[]): string[] {
+  const sections: [string, string[]][] = [
+    ["Hero (title/tagline)", [data.hero.title, data.hero.tagline]],
+    ["Problem", [data.problem.headline, ...data.problem.painPoints]],
+    ["Transformation", [...data.transformation.before, ...data.transformation.after]],
+    ["Introduction", [data.introduction.paragraph]],
+    ["What's Inside", data.whatsInside.items],
+    ["How It Works", data.howItWorks.steps.map(s => `${s.title} ${s.description}`)],
+    ["About the Author", [data.author.bio, data.author.credentials]],
+    ["Pricing", data.pricing.included],
+    ["FAQ", data.faq.items.map(f => `${f.q} ${f.a}`)],
+    ["Final CTA", [data.finalCta.headline, data.finalCta.subheadline]],
+  ];
+  const found: string[] = [];
+  for (const [name, texts] of sections) {
+    const combined = texts.filter(Boolean).join(" ").toLowerCase();
+    if (keywords.some(kw => combined.includes(kw))) {
+      found.push(name);
+    }
+  }
+  return found;
+}
+
 function collectAllSalesCopyText(data: SalesCopyData): string {
   const parts: string[] = [
     data.hero.title, data.hero.tagline,
