@@ -85,10 +85,10 @@ export const BUILDER_FIRST_VISIT: Record<string, BuilderFirstVisitConfig> = {
     connectLabels: ["Email Marketing — feeds your subscriber list", "Website — opt-in form integration", "Online Course — free-to-paid funnel"],
     pitch: "I'll create an irresistible free download from your book that builds your email list on autopilot.",
   },
-  // BRIDGE (8)
+  // BUILD (9)
   audiobook: {
     emoji: "🎧",
-    category: "BRIDGE",
+    category: "BUILD",
     revenue: "$1,000–$8,000/yr",
     connectsTo: ["book-sales", "website", "email-flows"],
     connectLabels: ["Book Sales — cross-promote formats", "Website — audio player embed", "Email Marketing — launch announcement"],
@@ -96,7 +96,7 @@ export const BUILDER_FIRST_VISIT: Record<string, BuilderFirstVisitConfig> = {
   },
   podcast: {
     emoji: "🎙️",
-    category: "BRIDGE",
+    category: "BUILD",
     revenue: "Indirect (authority)",
     connectsTo: ["website", "email-flows", "book-sales"],
     connectLabels: ["Website — episode player and show notes", "Email Marketing — subscriber growth", "Book Sales — listener conversions"],
@@ -104,7 +104,7 @@ export const BUILDER_FIRST_VISIT: Record<string, BuilderFirstVisitConfig> = {
   },
   webinar: {
     emoji: "📹",
-    category: "BRIDGE",
+    category: "BUILD",
     revenue: "$3,000–$25,000/yr",
     connectsTo: ["online-course", "email-flows", "upsell"],
     connectLabels: ["Online Courses — webinar sells your course", "Email Marketing — registration + follow-up", "Upsells — one-time offers during webinar"],
@@ -112,7 +112,7 @@ export const BUILDER_FIRST_VISIT: Record<string, BuilderFirstVisitConfig> = {
   },
   membership: {
     emoji: "🔄",
-    category: "BRIDGE",
+    category: "BUILD",
     revenue: "$3,000–$36,000/yr",
     connectsTo: ["email-flows", "online-course", "group-coaching"],
     connectLabels: ["Email Marketing — onboarding sequences", "Online Course — premium tier content", "Group Coaching — upgrade path"],
@@ -216,7 +216,7 @@ export const BUILDER_FIRST_VISIT: Record<string, BuilderFirstVisitConfig> = {
   },
   affiliate: {
     emoji: "🤝",
-    category: "BRIDGE",
+    category: "BUILD",
     revenue: "$1,000–$10,000/yr",
     connectsTo: ["online-course", "membership", "website"],
     connectLabels: ["Online Courses — affiliate promotion", "Memberships — referral commissions", "Website — tracking integration"],
@@ -224,7 +224,7 @@ export const BUILDER_FIRST_VISIT: Record<string, BuilderFirstVisitConfig> = {
   },
   partnership: {
     emoji: "💰",
-    category: "BRIDGE",
+    category: "BUILD",
     revenue: "$1,000–$15,000/yr",
     connectsTo: ["affiliate", "webinar", "online-course"],
     connectLabels: ["Affiliates — mutual promotion", "Webinars — co-hosted events", "Online Courses — bundled offerings"],
@@ -232,7 +232,7 @@ export const BUILDER_FIRST_VISIT: Record<string, BuilderFirstVisitConfig> = {
   },
   upsell: {
     emoji: "⬆️",
-    category: "BRIDGE",
+    category: "BUILD",
     revenue: "$2,000–$20,000/yr",
     connectsTo: ["online-course", "coaching-1on1", "membership"],
     connectLabels: ["Online Courses — premium tier upgrade", "Coaching — checkout upsell to sessions", "Memberships — annual plan upgrade"],
@@ -248,7 +248,7 @@ export const BUILDER_FIRST_VISIT: Record<string, BuilderFirstVisitConfig> = {
   },
   community: {
     emoji: "🫂",
-    category: "BRIDGE",
+    category: "BUILD",
     revenue: "$1,000–$20,000/yr",
     connectsTo: ["membership", "group-coaching", "email-flows"],
     connectLabels: ["Memberships — community hub", "Group Coaching — support community", "Email Marketing — engagement driver"],
