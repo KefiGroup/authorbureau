@@ -96,6 +96,7 @@ const AppRoutes = () => (
       <Route path="/readers-bureau" element={<ReadersBureau />} />
       <Route path="/readers-bureau/auth" element={<ReaderAuth />} />
       <Route path="/readers-bureau/learn/:purchaseId" element={<ReaderContentViewer />} />
+      <Route path="/readers-bureau/course/:purchaseId" element={<OnlineCourseViewer />} />
 
       {/* Legacy redirects */}
       <Route path="/reading-club" element={<Navigate to="/readers-bureau" replace />} />
