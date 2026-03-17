@@ -77,8 +77,8 @@ const CATEGORY_CONFIG = {
 /* ── Act Badge Colors ───────────────────────────────────────────── */
 const ACT_COLORS = {
   1: { bg: "bg-amber-100", text: "text-amber-700", border: "border-amber-300", label: "ACT 1 — ANALYSE" },
-  2: { bg: "bg-blue-100", text: "text-blue-700", border: "border-blue-300", label: "ACT 2 — BUILD" },
-  3: { bg: "bg-green-100", text: "text-green-700", border: "border-green-300", label: "ACT 3 — BRIDGE" },
+  2: { bg: "bg-blue-100", text: "text-blue-700", border: "border-blue-300", label: "ACT 2 — BRAND" },
+  3: { bg: "bg-green-100", text: "text-green-700", border: "border-green-300", label: "ACT 3 — BUILD" },
 };
 
 /* ── Status Config ──────────────────────────────────────────────── */
