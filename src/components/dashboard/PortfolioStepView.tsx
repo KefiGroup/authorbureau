@@ -39,13 +39,13 @@ interface AbbyRecommendation {
 
 export default function PortfolioStepView({ categoryId, tier = "free", onNavigate, analyzedBooks }: Props) {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [books, setBooks] = useState<BookSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [recommendations, setRecommendations] = useState<AbbyRecommendation[]>([]);
   const [builtProducts, setBuiltProducts] = useState<Set<string>>(new Set());
   const [publishedProducts, setPublishedProducts] = useState<Set<string>>(new Set());
-  const category = ABBY_CATEGORIES[categoryId as AbbyCategory];
+  const category = getEffectiveCategory(categoryId as AbbyCategory, isAdmin);
 
   useEffect(() => {
     async function fetchData() {
