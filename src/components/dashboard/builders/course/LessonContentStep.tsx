@@ -610,7 +610,7 @@ Use well-known sites (HBR, TED, Coursera, Google Docs, Notion, Canva, Wikipedia,
               <Plus className="h-3 w-3 mr-1" /> Add Resource
             </Button>
           </Card>
-        </TabsContent>
+        </TabsContent>}
       </Tabs>
     </div>
   );
