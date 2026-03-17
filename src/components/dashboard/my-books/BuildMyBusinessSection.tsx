@@ -7,14 +7,14 @@ interface BuildMyBusinessSectionProps {
   bookTitle: string;
   recommendedCount: number;
   tier: SubscriptionTier;
-  buildBuilt: number;
-  bridgeBuilt: number;
+  brandBuilt: number;
+  buildAuthorityBuilt: number;
   yieldBuilt: number;
   onBuild: () => void;
 }
 
 export default function BuildMyBusinessSection({
-  bookTitle, recommendedCount, tier, buildBuilt, bridgeBuilt, yieldBuilt, onBuild,
+  bookTitle, recommendedCount, tier, brandBuilt, buildAuthorityBuilt, yieldBuilt, onBuild,
 }: BuildMyBusinessSectionProps) {
   const categories = [
     { label: "B·Brand Products", total: 9, built: buildBuilt, requiredTier: "starter" as const },
