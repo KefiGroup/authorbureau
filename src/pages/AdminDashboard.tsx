@@ -342,6 +342,7 @@ export default function AdminDashboard() {
           {tab === "reading-club" && <ReadingClubTab />}
           {tab === "support" && <SupportTab />}
           {tab === "payouts" && <AdminPayoutsDashboard />}
+          {tab === "node-gating" && <NodeGatingTab />}
           {tab === "platforms" && <PlatformAccessTab />}
           {tab === "admins" && (
             <AdminsTab
