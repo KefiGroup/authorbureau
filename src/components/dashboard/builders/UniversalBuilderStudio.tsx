@@ -1142,7 +1142,41 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                           });
                         }
 
-                        builderGen.startAct3(bookId, approved);
+                        if (nodeConfig.customRenderer === "training-program") {
+                          const generatedModules = buildCourseModulesFromStructure(approved.structure);
+                          const recommendedPrice = Number(approved.recommended_price || 0);
+
+                          setStepData(prev => {
+                            const existingFoundation = prev.foundation || {};
+                            const existingCurriculumModules = Array.isArray(prev.curriculum?.modules)
+                              ? prev.curriculum.modules
+                              : [];
+
+                            return {
+                              ...prev,
+                              foundation: {
+                                ...existingFoundation,
+                                titleOptions: approved.title_options?.length
+                                  ? (existingFoundation.titleOptions?.length ? existingFoundation.titleOptions : approved.title_options)
+                                  : existingFoundation.titleOptions || [],
+                                selectedTitleIdx: existingFoundation.selectedTitleIdx ?? 0,
+                                title: existingFoundation.title || approved.recommended_title || "",
+                                subtitle: existingFoundation.subtitle || approved.subtitle || "",
+                                targetStudent: existingFoundation.targetStudent || approved.target_audience || "",
+                                description: existingFoundation.description || approved.description || "",
+                                transformationPromises: existingFoundation.transformationPromises?.length
+                                  ? existingFoundation.transformationPromises
+                                  : (approved.transformation_promises || []),
+                                price: existingFoundation.price || (recommendedPrice > 0 ? Math.round(recommendedPrice) : 0),
+                                format: existingFoundation.format || "3_day",
+                              },
+                              curriculum: {
+                                ...(prev.curriculum || {}),
+                                modules: existingCurriculumModules.length > 0 ? existingCurriculumModules : generatedModules,
+                              },
+                            };
+                          });
+                        }
                       }}
                       onEdit={(updates) => builderGen.updateProposal(updates)}
                     />
