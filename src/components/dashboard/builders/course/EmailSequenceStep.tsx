@@ -13,9 +13,22 @@ import type { CourseStepProps, EmailStep } from "./types";
 
 export default function EmailSequenceStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, generationState, setGenerationState }: CourseStepProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const emails: EmailStep[] = stepData.emailSequence?.emails || [];
   const [selectedIdx, setSelectedIdx] = useState(0);
+  const [authorName, setAuthorName] = useState("");
 
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("author_profiles")
+      .select("pen_name")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.pen_name) setAuthorName(data.pen_name);
+      });
+  }, [user]);
   const updateEmails = (newEmails: EmailStep[]) => {
     setStepData(prev => ({
       ...prev,
