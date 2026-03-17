@@ -260,7 +260,7 @@ export default function Index() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
             src="/images/journey-flow-diagram.png"
-            alt="How your 28 revenue streams connect — BUILD, BRIDGE, YIELD ecosystem"
+            alt="How your 28 revenue streams connect — BRAND, BUILD, YIELD ecosystem"
             className="w-full max-w-4xl mx-auto rounded-2xl shadow-xl mb-10"
             loading="lazy"
           />
