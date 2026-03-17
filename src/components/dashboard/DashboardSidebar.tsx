@@ -50,7 +50,7 @@ const sisterLinks = [
 
 export default function DashboardSidebar({
   activeSection, onSectionChange, collapsed, onToggleCollapse,
-  isPremium, isAdmin = false, tier = "free", hasBooks = true, hasAnalysis = true, hasMicrosite = true,
+  isPremium, isAdmin = false, isSuperAdmin: isSuperAdminProp = false, tier = "free", hasBooks = true, hasAnalysis = true, hasMicrosite = true,
   buildUnlocked = 0, bridgeUnlocked = 0, yieldUnlocked = 0,
   stripeConnected = false, pendingReviewCount = 0,
 }: Props) {
