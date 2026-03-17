@@ -199,14 +199,24 @@ Make each email specific to the course topic. Return ONLY valid JSON.`;
               />
             </div>
 
-            <div className="flex items-center gap-2">
-              <label className="text-xs font-semibold text-muted-foreground">Send Timing: Day</label>
-              <Input
-                type="number"
-                value={selectedEmail.dayNumber}
-                onChange={(e) => updateEmail(selectedIdx, "dayNumber", parseInt(e.target.value) || 0)}
-                className="w-16"
-              />
+            <div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-semibold text-muted-foreground">Send Timing: Day</label>
+                <Input
+                  type="number"
+                  value={selectedEmail.dayNumber}
+                  onChange={(e) => {
+                    const newDay = parseInt(e.target.value) || 0;
+                    updateEmail(selectedIdx, "dayNumber", newDay);
+                  }}
+                  className="w-16"
+                  min={0}
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">
+                <strong>Day 0</strong> = the day a reader signs up or purchases. <strong>Day 1</strong> = one day later, and so on.
+                This sets the delay between signup and when this email is sent. Adjust to control the pace of your nurture sequence.
+              </p>
             </div>
 
             <div>
@@ -217,6 +227,14 @@ Make each email specific to the course topic. Return ONLY valid JSON.`;
                 rows={16}
                 className="font-mono text-sm"
               />
+              <div className="mt-2 rounded-md border border-border bg-muted/30 px-3 py-2 space-y-1">
+                <p className="text-[10px] font-semibold text-muted-foreground">Dynamic Placeholders</p>
+                <div className="flex flex-wrap gap-x-4 gap-y-0.5">
+                  <span className="text-[10px] text-muted-foreground"><code className="bg-muted px-1 py-0.5 rounded text-[9px] font-mono">[First Name]</code> → Reader's first name</span>
+                  <span className="text-[10px] text-muted-foreground"><code className="bg-muted px-1 py-0.5 rounded text-[9px] font-mono">[Author Name]</code> → Your author name from your profile</span>
+                  <span className="text-[10px] text-muted-foreground"><code className="bg-muted px-1 py-0.5 rounded text-[9px] font-mono">[CTA Button → ...]</code> → Rendered as a clickable button linking to your course sales page</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
