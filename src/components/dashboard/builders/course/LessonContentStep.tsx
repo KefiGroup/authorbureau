@@ -162,8 +162,9 @@ Return a JSON object with:
 - "summary": string[] (4 key takeaway bullet points)
 - "exercise": string (a practical exercise, 100-150 words with numbered steps)
 - "quiz": array of 3 objects each with {"question": string, "options": string[] (4 options), "correctAnswer": number (0-3), "explanation": string}
+- "resources": string[] (3-5 suggested downloadable resources or reference materials that support the lesson's learning objectives and relate to the book's content — e.g. worksheets, checklists, templates, reading lists, or supplemental guides)
 
-Make the content specific to the lesson topic, not generic.
+Make the content specific to the lesson topic, not generic. Resources should be actionable and directly tied to the learning objectives.
 Return ONLY valid JSON.`;
 
       const aiOptions = {
