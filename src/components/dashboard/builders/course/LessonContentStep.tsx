@@ -28,6 +28,7 @@ export default function LessonContentStep({ stepData, setStepData, onMarkEdited,
   const modules: CourseModule[] = stepData.curriculum?.modules || [];
   const [selectedModIdx, setSelectedModIdx] = useState(0);
   const [selectedLessonIdx, setSelectedLessonIdx] = useState(0);
+  const [lastGenerated, setLastGenerated] = useState<Record<string, any>>({});
 
   const getModuleLessonsForDisplay = (mod: CourseModule): CourseLesson[] => {
     if (Array.isArray(mod.lessons) && mod.lessons.length > 0) return mod.lessons;
