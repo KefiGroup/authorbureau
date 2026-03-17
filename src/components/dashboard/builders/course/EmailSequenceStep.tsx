@@ -58,14 +58,27 @@ The author's name is "${displayName}". Use their real name throughout the emails
 
 Use [First Name] as a placeholder for the reader/participant's first name — this will be dynamically replaced at send time.
 
-The sequence should cover: Welcome, Quick Win, Social Proof, Overcome Objection, Urgency, Last Chance, Post-Purchase Onboarding.
+The sequence should cover these 7 emails in order:
+1. Welcome + what to expect (build excitement for the journey ahead)
+2. Quick Win (give them one actionable takeaway they can use today)
+3. Social Proof (share a transformation story or testimonial)
+4. Overcome Objection (address the #1 doubt or fear)
+5. Urgency (create a reason to act now)
+6. Last Chance (final nudge before the offer closes)
+7. Post-Purchase Onboarding (congratulate and guide them to start Module 1)
+
+The goal is to build trust and sell — warm up the reader and convert them into a course student.
+
+For call-to-action links, use the format [CTA Button → Label Text](SIGNUP_URL) — this will be rendered as a clickable button linking to the course sign-up page.
+
+IMPORTANT: The "dayNumber" field represents the suggested email ORDER (1-7), NOT actual send timing. Actual send timing and triggers will be configured separately in the Email Marketing node. Set dayNumber sequentially as 1 through 7.
 
 Return a JSON array of 7 objects, each with:
-- "dayNumber": number (day the email sends, starting at 0)
+- "dayNumber": number (sequential order: 1 through 7)
 - "purpose": string (e.g. "Welcome + what to expect")
 - "subject": string (compelling subject line)
 - "previewText": string (email preview text)
-- "body": string (full email body with [First Name] for the reader. For call-to-action links, use the format [CTA Button → Label Text](SIGNUP_URL) — this will be rendered as a clickable button linking to the course sign-up page. Use "${displayName}" directly instead of any author placeholder.)
+- "body": string (full email body with [First Name] for the reader. Use "${displayName}" directly instead of any author placeholder.)
 
 Make each email specific to the course topic. Return ONLY valid JSON.`;
 
