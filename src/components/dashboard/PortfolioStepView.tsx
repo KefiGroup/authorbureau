@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import SmartProductCard, { type ProductCardState, BASELINE_REVENUE } from "@/components/dashboard/SmartProductCard";
 import { toast } from "@/hooks/use-toast";
-import { ABBY_CATEGORIES, type AbbyCategory, type AbbyNode } from "@/config/abbyFrameworkConfig";
+import { ABBY_CATEGORIES, getEffectiveCategory, type AbbyCategory, type AbbyNode } from "@/config/abbyFrameworkConfig";
 
 // Re-use Node type from config
 type Node = AbbyNode;
