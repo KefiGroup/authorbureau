@@ -60,7 +60,7 @@ const plans = [
     priceNum: 199,
     period: "/mo",
     tagline: "Build a real business.",
-    description: "Full Build + Bridge — everything to monetize",
+    description: "Full Brand + Build Authority — everything to monetize",
     popular: true,
     features: [
       "Everything in Starter",
