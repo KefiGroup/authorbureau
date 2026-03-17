@@ -9,7 +9,7 @@ const THREE_PATHS_IMAGE = "/images/journey-three-paths.png";
 
 const sections = [
   {
-    title: "The Journey: FREE → BUILD → BRIDGE → YIELD",
+    title: "The Journey: FREE → BRAND → BUILD → YIELD",
     description: "Your book is the foundation. Each tier unlocks more revenue streams, building on the last.",
     image: STAIRCASE_IMAGE,
   },

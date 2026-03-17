@@ -280,7 +280,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
       <section className="space-y-3">
         <h2 className="font-heading text-xl font-bold text-foreground">Your Journey Ahead</h2>
         <img
-          src="/images/journey-staircase.png?v=6"
+          src="/images/journey-staircase.png"
           alt="The ABBY Journey — AI Consultation to BRAND PRODUCTS to BUILD AUTHORITY to YIELD REVENUE"
           className="w-full rounded-2xl shadow-lg"
           loading="lazy"
