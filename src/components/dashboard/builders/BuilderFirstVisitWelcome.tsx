@@ -12,7 +12,7 @@ export interface BuilderFirstVisitConfig {
 }
 
 export const BUILDER_FIRST_VISIT: Record<string, BuilderFirstVisitConfig> = {
-  // BUILD (8)
+  // BRAND (9)
   workbook: {
     emoji: "📝",
     category: "BUILD",
