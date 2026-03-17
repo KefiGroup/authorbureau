@@ -769,7 +769,7 @@ EXISTING PRODUCTS: ${existingProducts || "None built yet."}`;
 - recommended_price: number (USD)
 - price_justification: string
 - value_ladder_position: one of "bait", "tripwire", "core", "premium", "high_ticket"
-- structure: array of objects with { title, description, source_chapters, blooms_level (e.g. "Remember + Understand"), kolbs_stage (e.g. "Concrete Experience"), learning_objectives (array of 2-3 strings using Bloom's verbs), content_summary (1-2 sentences), facilitator_activity (hands-on activity description), debrief_points (array of 3 open-ended questions), workbook_page (description of the workbook page for this module), duration_minutes (number), items: [{ title, description }] }. KEEP THIS CONCISE — max 8 modules with 3-4 items each. Use short descriptions (1 sentence).
+- structure: array of objects with { title, description, source_chapters, blooms_level (e.g. "Remember + Understand"), kolbs_stage (e.g. "Concrete Experience"), learning_objectives (array of 2-3 strings using Bloom's verbs), content_summary (1-2 sentences), facilitator_activity (hands-on activity description), debrief_points (array of 3 open-ended questions), workbook_page (description of the workbook page for this module), duration_minutes (number), items: [{ title, description }] }. You MUST include ALL modules (typically 7). Each module MUST have 1-3 items. Use very short descriptions (1 sentence max) to stay within limits.
 - cross_builder_outputs: USE EXACTLY this array (do not invent or modify): ${JSON.stringify(CROSS_BUILDER_OUTPUTS[builderId] || [])}
 - abby_commentary: string (your personal note about why this will work — 2-3 sentences max)
 - revenue_projection: string (1 sentence)
@@ -778,7 +778,7 @@ CRITICAL: Return ONLY valid JSON. No markdown, no code fences, no text before or
             { role: "user", content: `Analyze my book "${book?.title}" and design the complete ${builderLabel || builderId} product. Return ONLY a JSON object.` },
           ],
           temperature: 0.7,
-          max_completion_tokens: 8192,
+          max_completion_tokens: 16384,
         }),
       });
 
@@ -861,7 +861,16 @@ CRITICAL: Return ONLY valid JSON. No markdown, no code fences, no text before or
         }
       }
 
-      // Save proposal as draft (non-blocking)
+      // Validate structure completeness
+      if (Array.isArray(proposal.structure)) {
+        console.log(`Act 1 proposal structure: ${proposal.structure.length} modules`);
+        if (proposal.structure.length < 3 && (builderId === "online-course" || builderId === "training-program")) {
+          console.warn(`Warning: Only ${proposal.structure.length} modules generated — expected 7. JSON may have been truncated.`);
+        }
+      } else {
+        console.warn("No structure array in proposal");
+      }
+
       try {
         const { error: upsertErr } = await adminClient.from("generated_assets").upsert({
           book_id: bookId,
