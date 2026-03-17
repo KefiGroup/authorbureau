@@ -72,12 +72,12 @@ export const ABBY_CATEGORIES: Record<AbbyCategory, AbbyCategoryConfig> = {
   },
 
   /**
-   * BRIDGE CHANNELS (8 nodes)
+   * BUILD CHANNELS (8 nodes)
    * Marketing channels that connect the book to a wider audience.
    */
   "marketing-channels": {
     id: "marketing-channels",
-    label: "B · Bridge Channels",
+    label: "B · Build Channels",
     subtitle: "Marketing & Audience Growth (8 nodes)",
     color: "text-violet-600",
     bgColor: "bg-violet-500/10",
