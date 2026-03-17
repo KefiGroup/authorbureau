@@ -98,13 +98,13 @@ export const ABBY_CATEGORIES: Record<AbbyCategory, AbbyCategoryConfig> = {
   },
 
   /**
-   * YIELD REVENUE (12 nodes)
+   * YIELD REVENUE (10 nodes)
    * Premium monetization: coaching, speaking, events.
    */
   "authority-builders": {
     id: "authority-builders",
     label: "Y · Yield Revenue",
-    subtitle: "Premium Revenue & High-Ticket Offers (12 nodes)",
+    subtitle: "Premium Services (10 nodes)",
     color: "text-sky-600",
     bgColor: "bg-sky-500/10",
     ringColor: "ring-sky-500/30",
