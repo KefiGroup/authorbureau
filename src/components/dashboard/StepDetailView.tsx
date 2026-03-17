@@ -17,7 +17,8 @@ interface Props {
 }
 
 export default function StepDetailView({ categoryId, onNavigate, isPremium }: Props) {
-  const catData = ABBY_CATEGORIES[categoryId as AbbyCategory];
+  const { isAdmin } = useAuth();
+  const catData = getEffectiveCategory(categoryId as AbbyCategory, isAdmin);
   if (!catData) return null;
 
   const HeaderIcon = catData.headerIcon;
