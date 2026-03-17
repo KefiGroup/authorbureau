@@ -310,6 +310,11 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
             onNavigate={handleNavigate} 
           />, "pro");
       case "email-marketing":
+        return gate("Email Marketing", 
+          <UniversalBuilderStudio 
+            nodeConfig={BUILDER_NODE_MAP["email-flows"]} 
+            onNavigate={handleNavigate} 
+          />, "starter");
       case "subscribers":
       case "email-templates":
         return gate("Email Marketing", <EmailMarketing activeTab={activeSection} onTabChange={(s) => setActiveSection(s as DashboardSection)} />);
