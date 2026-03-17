@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Sparkles, Loader2, BookOpen, Wand2, Plus, Trash2 } from "lucide-react";
+import { Sparkles, Loader2, BookOpen, Wand2, Plus, Trash2, RotateCcw, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateJSONWithAI } from "@/lib/ai-generate";
 import type { CourseStepProps, CourseModule, CourseQuiz, CourseLesson, CourseResource } from "./types";
@@ -28,6 +28,7 @@ export default function LessonContentStep({ stepData, setStepData, onMarkEdited,
   const modules: CourseModule[] = stepData.curriculum?.modules || [];
   const [selectedModIdx, setSelectedModIdx] = useState(0);
   const [selectedLessonIdx, setSelectedLessonIdx] = useState(0);
+  const [lastGenerated, setLastGenerated] = useState<Record<string, any>>({});
 
   const getModuleLessonsForDisplay = (mod: CourseModule): CourseLesson[] => {
     if (Array.isArray(mod.lessons) && mod.lessons.length > 0) return mod.lessons;
@@ -318,11 +319,22 @@ Use well-known sites (HBR, TED, Coursera, Google Docs, Notion, Canva, Wikipedia,
         normalizedResources = buildFallbackResources(lessonTitle, learningObjectives);
       }
 
-      upsertLessonField(selectedModIdx, ensured.lessonIndex, "script", String(result.script || ""));
-      upsertLessonField(selectedModIdx, ensured.lessonIndex, "summary", normalizedSummary);
-      upsertLessonField(selectedModIdx, ensured.lessonIndex, "exercise", String(result.exercise || ""));
-      upsertLessonField(selectedModIdx, ensured.lessonIndex, "quiz", normalizedQuiz);
-      upsertLessonField(selectedModIdx, ensured.lessonIndex, "resources", normalizedResources);
+      const snapshot = {
+        script: String(result.script || ""),
+        summary: normalizedSummary,
+        exercise: String(result.exercise || ""),
+        quiz: normalizedQuiz,
+        resources: normalizedResources,
+      };
+
+      const snapshotKey = `${selectedModIdx}-${ensured.lessonIndex}`;
+      setLastGenerated((prev) => ({ ...prev, [snapshotKey]: snapshot }));
+
+      upsertLessonField(selectedModIdx, ensured.lessonIndex, "script", snapshot.script);
+      upsertLessonField(selectedModIdx, ensured.lessonIndex, "summary", snapshot.summary);
+      upsertLessonField(selectedModIdx, ensured.lessonIndex, "exercise", snapshot.exercise);
+      upsertLessonField(selectedModIdx, ensured.lessonIndex, "quiz", snapshot.quiz);
+      upsertLessonField(selectedModIdx, ensured.lessonIndex, "resources", snapshot.resources);
 
       setGenerationState("complete");
       toast({ title: "Lesson content generated!", description: "Review the script, exercises, and quiz below." });
@@ -378,15 +390,38 @@ Use well-known sites (HBR, TED, Coursera, Google Docs, Notion, Canva, Wikipedia,
           <p className="text-xs text-muted-foreground">{currentModule?.title}</p>
           <h3 className="font-heading text-lg font-bold">{currentLesson?.title}</h3>
         </div>
-        {!currentLesson?.script && (
+        <div className="flex items-center gap-2">
+          {lastGenerated[`${selectedModIdx}-${activeLessonIdx}`] && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full text-xs"
+              onClick={() => {
+                const snapshot = lastGenerated[`${selectedModIdx}-${activeLessonIdx}`];
+                if (!snapshot) return;
+                upsertLessonField(selectedModIdx, activeLessonIdx, "script", snapshot.script);
+                upsertLessonField(selectedModIdx, activeLessonIdx, "summary", snapshot.summary);
+                upsertLessonField(selectedModIdx, activeLessonIdx, "exercise", snapshot.exercise);
+                upsertLessonField(selectedModIdx, activeLessonIdx, "quiz", snapshot.quiz);
+                upsertLessonField(selectedModIdx, activeLessonIdx, "resources", snapshot.resources);
+                toast({ title: "Restored last AI-generated content" });
+              }}
+            >
+              <RotateCcw className="h-3.5 w-3.5 mr-1" /> Undo Edits
+            </Button>
+          )}
           <Button
             onClick={handleGenerateContent}
             size="sm"
             className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90"
           >
-            <Sparkles className="h-3.5 w-3.5 mr-1" /> Generate Content
+            {currentLesson?.script ? (
+              <><RefreshCw className="h-3.5 w-3.5 mr-1" /> Regenerate</>
+            ) : (
+              <><Sparkles className="h-3.5 w-3.5 mr-1" /> Generate Content</>
+            )}
           </Button>
-        )}
+        </div>
       </div>
 
       {/* Tabbed editor */}
