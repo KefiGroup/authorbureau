@@ -359,27 +359,21 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         }
         return <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />;
       case "marketing-channels":
-        if (!hasAnalysis && !isPremium && !isAdmin) {
-          return <SectionGatePage
-            sectionTitle="B · Bridge Channels"
-            sectionSubtitle="Marketing channels & audience connections."
-            gateMessage="Abby needs to understand your audience before she can recommend which marketing channels to activate."
-            productNames={["Social Media", "Webinars", "Podcasts", "Website / Microsite", "Affiliates", "Email Marketing", "PR / Media", "Strategic Partnerships"]}
-            onAnalyze={() => setActiveSection("build-business")}
-          />;
-        }
-        return <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />;
+        return <SectionGatePage
+          sectionTitle="B · Bridge Channels"
+          sectionSubtitle="Coming Soon — Marketing channels & audience connections."
+          gateMessage="Bridge Channels are currently under development. We're building powerful tools for podcasts, webinars, audiobooks, and more. Check back soon!"
+          productNames={["Audiobook", "Podcast Tour", "Webinars", "Lead Magnet Funnel", "Media Outreach", "Affiliates", "Upsells / Downsells", "Revenue Sharing"]}
+          onAnalyze={() => setActiveSection("revenue-streams")}
+        />;
       case "authority-builders":
-        if (!hasAnalysis && !isPremium && !isAdmin) {
-          return <SectionGatePage
-            sectionTitle="Y · Yield Revenue"
-            sectionSubtitle="Premium revenue streams & monetization."
-            gateMessage="Abby needs to understand your business model before she can recommend which revenue streams to pursue."
-            productNames={["Book Sales", "Course Sales", "Coaching Fees", "Speaking Fees", "Licensing", "Sponsorships", "Events", "Affiliate Income"]}
-            onAnalyze={() => setActiveSection("build-business")}
-          />;
-        }
-        return <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />;
+        return <SectionGatePage
+          sectionTitle="Y · Yield Revenue"
+          sectionSubtitle="Coming Soon — Premium revenue streams & monetization."
+          gateMessage="Yield Revenue builders are currently under development. We're crafting premium tools for coaching, speaking, masterminds, and more. Check back soon!"
+          productNames={["1-on-1 Coaching", "Group Coaching", "Memberships", "Big Ticket Consulting", "Keynotes", "Training Programs", "Masterminds", "Retreats"]}
+          onAnalyze={() => setActiveSection("revenue-streams")}
+        />;
       case "review-products":
         return <ReviewProductsPage onNavigate={handleNavigate} />;
       case "author-crm":
