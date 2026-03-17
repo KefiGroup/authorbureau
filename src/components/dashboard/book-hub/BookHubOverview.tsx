@@ -311,7 +311,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
                     if (studioPath) {
                       navigate(studioPath);
                     } else {
-                      onNavigateTab("revenue-streams");
+                      onNavigateTab("brand-products");
                     }
                   }}>
                     Build Now <ArrowRight className="h-3 w-3" />
