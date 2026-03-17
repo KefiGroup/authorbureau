@@ -43,7 +43,14 @@ Return a JSON object with these fields:
 - "faqs": array of {"q": string, "a": string} (4 FAQs with answers)
 
 Return ONLY valid JSON, no markdown fences.`,
-        { bookId, isPremium: true }
+        {
+          bookId,
+          isPremium: true,
+          builderMode: true,
+          builderId: "online-course",
+          builderLabel: "Online Course",
+          builderStep: "Sales Page",
+        }
       );
 
       update("headline", result.headline);
