@@ -445,8 +445,10 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
             isPremium={isPremium || isAdmin}
           />
         );
-    }
+     }
   };
+  const BUILDER_SECTIONS = new Set(["home-study", "group-coaching", "memberships", "email-marketing", "book-sales", "special-editions", "lead-magnet", "big-ticket"]);
+  const isBuilderActive = !!searchParams.get("builder") || BUILDER_SECTIONS.has(activeSection);
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -499,7 +501,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
           onNavigate={handleNavigate}
         />
-        <main className="flex-1 min-h-0 overflow-y-auto p-6 lg:p-8 space-y-4">
+        <main className={`flex-1 min-h-0 ${isBuilderActive ? "" : "overflow-y-auto p-6 lg:p-8 space-y-4"}`}>
           {/* Onboarding banners for redirected pages */}
           {activeSection === "profile" && (
             <OnboardingBanner
