@@ -36,6 +36,7 @@ import ScrollToTop from "./components/ScrollToTop";
 import AbbyHelpChatbot from "./components/AbbyHelpChatbot";
 import PurchaseSuccess from "./pages/PurchaseSuccess";
 import ReaderContentViewer from "./pages/ReaderContentViewer";
+import OnlineCourseViewer from "./pages/OnlineCourseViewer";
 import Methodology from "./pages/Methodology";
 
 const queryClient = new QueryClient();
@@ -95,6 +96,7 @@ const AppRoutes = () => (
       <Route path="/readers-bureau" element={<ReadersBureau />} />
       <Route path="/readers-bureau/auth" element={<ReaderAuth />} />
       <Route path="/readers-bureau/learn/:purchaseId" element={<ReaderContentViewer />} />
+      <Route path="/readers-bureau/course/:purchaseId" element={<OnlineCourseViewer />} />
 
       {/* Legacy redirects */}
       <Route path="/reading-club" element={<Navigate to="/readers-bureau" replace />} />
