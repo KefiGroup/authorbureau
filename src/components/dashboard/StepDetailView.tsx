@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 const statusStyles = {
   available: { badge: "Available", className: "bg-accent/15 text-accent border-accent/30" },
-  "coming-soon": { badge: "Building", className: "bg-amber-500/15 text-amber-700 dark:text-amber-400" },
+  "coming-soon": { badge: "Coming Soon", className: "bg-amber-500/15 text-amber-700 dark:text-amber-400" },
   planned: { badge: "Planned", className: "bg-muted text-muted-foreground" },
 };
 
