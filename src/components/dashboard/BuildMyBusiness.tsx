@@ -362,9 +362,9 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
   };
 
   const NAV_CONFIG: Record<string, { label: string; icon: string; tab: string }> = {
-    build: { label: "B · Brand Products", icon: "🏷️", tab: "brand-products" },
-    bridge: { label: "B · Build Authority", icon: "🏗️", tab: "build-authority" },
-    yield: { label: "Y · Yield Revenue", icon: "💰", tab: "yield-revenue" },
+    build: { label: "B · Build Authority", icon: "🏗️", tab: "revenue-streams" },
+    bridge: { label: "B · Bridge Channels", icon: "🌉", tab: "marketing-channels" },
+    yield: { label: "Y · Yield Revenue", icon: "💰", tab: "authority-builders" },
     profile: { label: "Author Profile", icon: "👤", tab: "profile" },
     // Studio-specific nav targets from business plan "Next Steps"
     "lead-magnet-studio": { label: "Lead Magnet Studio", icon: "🧲", tab: "lead-magnet" },

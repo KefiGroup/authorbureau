@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useNodeGating } from "@/hooks/useNodeGating";
 import { ABBY_CATEGORIES, type AbbyCategory } from "@/config/abbyFrameworkConfig";
 
-const CATEGORY_ORDER: AbbyCategory[] = ["brand-products", "build-authority", "yield-revenue"];
+const CATEGORY_ORDER: AbbyCategory[] = ["revenue-streams", "marketing-channels", "authority-builders"];
 
 export default function NodeGatingTab() {
   const { gating, loading, refetch, isNodeOpen, toggleNode, toggleCategory } = useNodeGating();

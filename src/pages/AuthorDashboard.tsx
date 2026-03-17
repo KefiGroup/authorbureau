@@ -56,7 +56,6 @@ export type DashboardSection =
   | "speaking" | "podcast" | "corporate-training"
   | "retreats" | "certification" | "masterminds"
   | "email-marketing" | "subscribers" | "email-templates"
-  | "brand-products" | "build-authority" | "yield-revenue"
   | "revenue-streams" | "marketing-channels" | "authority-builders"
   | "marketing" | "crm" | "author-crm" | "messages" | "reading-club" | "how-it-works"
   | "analytics" | "microsite-manager"
