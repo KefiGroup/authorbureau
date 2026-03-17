@@ -122,7 +122,7 @@ tr:hover td { background: #fafaf8; }
 ${html}
 <div class="footer">
   <p class="brand">Authors Bureau</p>
-  <p>The ABBY Framework: Analyze · Build · Bridge · Yield</p>
+  <p>The ABBY Framework: Analyze · Brand · Build · Yield</p>
   <p>This plan is confidential and proprietary.</p>
 </div>
 </div></body></html>`;
