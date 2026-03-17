@@ -169,45 +169,46 @@ export default function LessonContentStep({ stepData, setStepData, onMarkEdited,
     updateLesson("quiz", (currentLesson?.quiz || []).filter((_: any, i: number) => i !== idx));
   };
 
-  const normalizeResourcesInput = (value: unknown): string[] => {
-    const toCleanString = (item: unknown) =>
-      String(item ?? "")
-        .replace(/^[-*\d.)\s]+/, "")
-        .trim();
+  const normalizeResourcesInput = (value: unknown): CourseResource[] => {
+    if (!value) return [];
 
-    const fromArray = Array.isArray(value)
-      ? value
-          .map((item) => {
-            if (typeof item === "string") return toCleanString(item);
-            if (item && typeof item === "object") {
-              const record = item as Record<string, unknown>;
-              return toCleanString(record.title || record.name || record.resource || record.url || record.label || "");
-            }
-            return "";
-          })
-          .filter(Boolean)
+    const items = Array.isArray(value) ? value : typeof value === "string"
+      ? value.split(/\n|;/).map(s => s.trim()).filter(Boolean)
       : [];
 
-    const fromText = typeof value === "string"
-      ? value
-          .split(/\n|;/)
-          .map(toCleanString)
-          .filter(Boolean)
-      : [];
-
-    return Array.from(new Set([...fromArray, ...fromText])).slice(0, 5);
+    return items
+      .map((item): CourseResource | null => {
+        if (typeof item === "string") {
+          const urlMatch = item.match(/https?:\/\/[^\s)]+/);
+          if (urlMatch) {
+            const title = item.replace(urlMatch[0], "").replace(/[-–—:|]+/g, " ").trim() || urlMatch[0];
+            return { title, url: urlMatch[0] };
+          }
+          return { title: item.trim(), url: "" };
+        }
+        if (item && typeof item === "object") {
+          const record = item as Record<string, unknown>;
+          return {
+            title: String(record.title || record.name || record.label || "").trim(),
+            url: String(record.url || record.link || record.href || "").trim(),
+          };
+        }
+        return null;
+      })
+      .filter((r): r is CourseResource => r !== null && r.title.length > 0)
+      .slice(0, 5);
   };
 
-  const buildFallbackResources = (lessonTitle: string, objectives: string[]): string[] => {
+  const buildFallbackResources = (lessonTitle: string, objectives: string[]): CourseResource[] => {
     const seeds = objectives.filter(Boolean).slice(0, 3);
     const generated = seeds.map((objective, idx) => {
-      if (idx === 0) return `Worksheet: ${objective}`;
-      if (idx === 1) return `Checklist: ${objective}`;
-      return `Template: ${objective}`;
+      if (idx === 0) return { title: `Worksheet: ${objective}`, url: "" };
+      if (idx === 1) return { title: `Checklist: ${objective}`, url: "" };
+      return { title: `Template: ${objective}`, url: "" };
     });
 
     while (generated.length < 3) {
-      generated.push(`Action guide for ${lessonTitle}`);
+      generated.push({ title: `Action guide for ${lessonTitle}`, url: "" });
     }
 
     return generated.slice(0, 5);
