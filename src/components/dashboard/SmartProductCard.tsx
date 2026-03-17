@@ -126,7 +126,7 @@ export default function SmartProductCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
     >
-      <Card className={`p-4 space-y-3 transition-all hover:shadow-md ${config.borderClass}`}>
+      <Card className={`p-4 space-y-3 transition-all hover:shadow-md h-full flex flex-col ${config.borderClass}`}>
         {/* Header */}
         <div className="flex items-start gap-3">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
