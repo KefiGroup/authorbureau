@@ -15,6 +15,7 @@ import { ABBY_CATEGORIES, getEffectiveCategory, getStudioPath as getStudioPathFr
 import { isSuperAdmin } from "@/lib/superadmin";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { useNodeGating } from "@/hooks/useNodeGating";
 
 interface ProductNode {
   id: string;

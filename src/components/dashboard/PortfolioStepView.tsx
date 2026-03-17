@@ -47,7 +47,9 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
   const [recommendations, setRecommendations] = useState<AbbyRecommendation[]>([]);
   const [builtProducts, setBuiltProducts] = useState<Set<string>>(new Set());
   const [publishedProducts, setPublishedProducts] = useState<Set<string>>(new Set());
-  const category = getEffectiveCategory(categoryId as AbbyCategory, isAdmin, isSuperAdmin(user?.email));
+  const { gating } = useNodeGating();
+  const openNodeIds = new Set(gating.filter(r => r.is_open).map(r => r.node_id));
+  const category = getEffectiveCategory(categoryId as AbbyCategory, isAdmin, isSuperAdmin(user?.email), openNodeIds);
 
   useEffect(() => {
     async function fetchData() {

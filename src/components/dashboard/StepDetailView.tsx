@@ -20,7 +20,9 @@ interface Props {
 
 export default function StepDetailView({ categoryId, onNavigate, isPremium }: Props) {
   const { isAdmin, user } = useAuth();
-  const catData = getEffectiveCategory(categoryId as AbbyCategory, isAdmin, isSuperAdmin(user?.email));
+  const { gating } = useNodeGating();
+  const openNodeIds = new Set(gating.filter(r => r.is_open).map(r => r.node_id));
+  const catData = getEffectiveCategory(categoryId as AbbyCategory, isAdmin, isSuperAdmin(user?.email), openNodeIds);
   if (!catData) return null;
 
   const HeaderIcon = catData.headerIcon;
