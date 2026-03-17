@@ -409,7 +409,7 @@ Use well-known sites (HBR, TED, Coursera, Google Docs, Notion, Canva, Wikipedia,
                 upsertLessonField(selectedModIdx, activeLessonIdx, "exercise", snapshot.exercise);
                 upsertLessonField(selectedModIdx, activeLessonIdx, "quiz", snapshot.quiz);
                 upsertLessonField(selectedModIdx, activeLessonIdx, "resources", snapshot.resources);
-                toast({ title: "Restored last AI-generated content" });
+                toast({ title: "Restored last Abby-generated content" });
               }}
             >
               <RotateCcw className="h-3.5 w-3.5 mr-1" /> Undo Edits
