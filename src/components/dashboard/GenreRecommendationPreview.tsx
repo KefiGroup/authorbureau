@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 
 interface Recommendation {
   product: string;
-  category: "Build" | "Bridge" | "Yield";
+  category: "Brand" | "Build" | "Yield";
   revenue: string;
   fit: "High" | "Medium";
 }
