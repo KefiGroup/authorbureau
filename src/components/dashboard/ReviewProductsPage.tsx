@@ -658,7 +658,7 @@ function EmptyState({ tab, onNavigate }: { tab: string; onNavigate?: (s: string)
       <Package className="h-10 w-10 text-muted-foreground/30 mx-auto mb-4" />
       <h3 className="font-heading text-lg font-semibold mb-2">No Products Yet</h3>
       <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-4">{messages[tab] || messages.all}</p>
-      <Button variant="outline" onClick={() => onNavigate?.("revenue-streams")}>
+      <Button variant="outline" onClick={() => onNavigate?.("brand-products")}>
         Start Building Products →
       </Button>
     </Card>
