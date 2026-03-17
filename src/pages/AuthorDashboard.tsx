@@ -513,6 +513,8 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           yieldUnlocked={
             (stats.products.perTable["coaching_packages"]?.total || 0)
           }
+          bridgeCategoryOpen={!isCategoryFullyClosed("marketing-channels")}
+          yieldCategoryOpen={!isCategoryFullyClosed("authority-builders")}
         />
       </div>
       <div className="flex flex-1 flex-col min-w-0 min-h-0">
