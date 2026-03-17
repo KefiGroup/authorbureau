@@ -12,7 +12,7 @@ import BookHubAnalytics from "@/components/dashboard/book-hub/BookHubAnalytics";
 import BookHubSkeleton from "@/components/dashboard/book-hub/BookHubSkeleton";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
 
-type BookHubTab = "overview" | "revenue-streams" | "marketing-channels" | "authority-builders" | "analytics";
+type BookHubTab = "overview" | "brand-products" | "build-authority" | "yield-revenue" | "analytics";
 
 interface BookData {
   id: string;
@@ -29,16 +29,16 @@ import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
 const tabs: { id: BookHubTab; label: string }[] = [
   { id: "overview", label: "Analysis" },
-  { id: "revenue-streams", label: "🏗️ Build" },
-  { id: "marketing-channels", label: "🌉 Bridge" },
-  { id: "authority-builders", label: "💰 Yield" },
+  { id: "brand-products", label: "🏷️ Brand" },
+  { id: "build-authority", label: "🏗️ Authority" },
+  { id: "yield-revenue", label: "💰 Yield" },
   { id: "analytics", label: "Analytics" },
 ];
 
 const tabColors: Record<string, string> = {
-  "revenue-streams": "text-emerald-600 border-emerald-500",
-  "marketing-channels": "text-violet-600 border-violet-500",
-  "authority-builders": "text-sky-600 border-sky-500",
+  "brand-products": "text-amber-700 border-amber-500",
+  "build-authority": "text-emerald-600 border-emerald-500",
+  "yield-revenue": "text-red-600 border-red-500",
 };
 
 // Simple in-memory cache so returning to the page doesn't flash skeleton
@@ -122,9 +122,9 @@ export default function BookHub() {
             onNavigateTab={(tab) => setActiveTab(tab as BookHubTab)}
           />
         );
-      case "revenue-streams":
-      case "marketing-channels":
-      case "authority-builders":
+      case "brand-products":
+      case "build-authority":
+      case "yield-revenue":
         return (
           <BookHubStepTab
             categoryId={activeTab}

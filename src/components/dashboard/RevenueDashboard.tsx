@@ -83,7 +83,7 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
     if (!onboarding_complete) {
       return { label: "Connect Stripe to Track Revenue", action: () => onNavigate?.("connect-stripe"), icon: CreditCard };
     }
-    return { label: "Publish Your First Product", action: () => onNavigate?.("revenue-streams"), icon: ShoppingBag };
+    return { label: "Publish Your First Product", action: () => onNavigate?.("brand-products"), icon: ShoppingBag };
   };
 
   const nextStep = getNextStep();

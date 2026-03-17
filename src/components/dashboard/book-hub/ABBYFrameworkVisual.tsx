@@ -28,54 +28,55 @@ interface BBYPhase {
   title: string;
   subtitle: string;
   color: string;
-  categoryKey: "build" | "bridge" | "yield";
+  categoryKey: "brand" | "authority" | "yield";
   nodes: NodeDef[];
 }
 
 const BBY_PHASES: BBYPhase[] = [
   {
-    id: "revenue-streams", letter: "B", title: "B · Build", subtitle: "Build authority & digital assets",
-    color: "#10b981", categoryKey: "build",
+    id: "brand-products", letter: "B", title: "B · Brand", subtitle: "Create your products",
+    color: "#d97706", categoryKey: "brand",
+    nodes: [
+      { label: "Book Sales", id: "book-sales-events", requiredTier: "starter" },
+      { label: "Workbooks", id: "workbooks", requiredTier: "starter" },
+      { label: "Home Study", id: "home-study", requiredTier: "starter" },
+      { label: "Special Editions", id: "special-editions", requiredTier: "starter" },
+      { label: "Lead Magnets", id: "lead-magnet", requiredTier: "starter" },
+      { label: "Webinars", id: "webinars", requiredTier: "starter" },
+      { label: "Social Media", id: "social-media", requiredTier: "starter" },
+      { label: "Email Marketing", id: "email-marketing", requiredTier: "starter" },
+      { label: "Website", id: "microsite", requiredTier: "starter" },
+    ],
+  },
+  {
+    id: "build-authority", letter: "B", title: "B · Authority", subtitle: "Scale your audience",
+    color: "#10b981", categoryKey: "authority",
     nodes: [
       { label: "Online Courses", id: "courses", requiredTier: "pro" },
-      { label: "Home Study Courses", id: "home-study", requiredTier: "pro" },
-      { label: "Workbook", id: "workbooks", requiredTier: "starter" },
       { label: "Audiobook", id: "audiobook", requiredTier: "pro" },
-      { label: "Monthly Memberships", id: "memberships", requiredTier: "pro" },
-      { label: "Upsells / Downsells", id: "upsells", requiredTier: "pro" },
-      { label: "Social Media", id: "social-media", requiredTier: "starter" },
-      { label: "Webinars", id: "webinars", requiredTier: "pro" },
-      { label: "Podcasts (Guest)", id: "podcast-guest", requiredTier: "pro" },
-      { label: "Website / Microsite", id: "microsite", requiredTier: "starter" },
-      { label: "Email Marketing", id: "email-marketing", requiredTier: "starter" },
-    ],
-  },
-  {
-    id: "marketing-channels", letter: "B", title: "B · Bridge", subtitle: "Bridge marketing channels & connections",
-    color: "#8b5cf6", categoryKey: "bridge",
-    nodes: [
-      { label: "1-on-1 Coaching", id: "coaching-1on1", requiredTier: "pro" },
+      { label: "Memberships", id: "memberships", requiredTier: "pro" },
       { label: "Group Coaching", id: "group-coaching", requiredTier: "pro" },
-      { label: "Big Ticket Consulting", id: "big-ticket", requiredTier: "pro" },
-      { label: "Revenue Sharing / JV", id: "revenue-sharing", requiredTier: "pro" },
-      { label: "Keynotes", id: "keynotes", requiredTier: "pro" },
-      { label: "In-House Speaker", id: "in-house-speaker", requiredTier: "pro" },
-      { label: "Training Programs", id: "training", requiredTier: "pro" },
+      { label: "Podcast Tour", id: "podcast-guest", requiredTier: "pro" },
+      { label: "Media Outreach", id: "in-house-speaker", requiredTier: "pro" },
       { label: "Affiliates", id: "affiliates", requiredTier: "pro" },
+      { label: "Upsells", id: "upsells", requiredTier: "pro" },
+      { label: "Revenue Sharing", id: "revenue-sharing", requiredTier: "pro" },
     ],
   },
   {
-    id: "authority-builders", letter: "Y", title: "Y · Yield", subtitle: "Yield revenue streams & monetize",
-    color: "#0ea5e9", categoryKey: "yield",
+    id: "yield-revenue", letter: "Y", title: "Y · Yield", subtitle: "Premium services",
+    color: "#ef4444", categoryKey: "yield",
     nodes: [
-      { label: "Retreats & Bootcamps", id: "retreats", requiredTier: "enterprise" },
-      { label: "Certification", id: "certification", requiredTier: "enterprise" },
+      { label: "Coaching", id: "coaching-1on1", requiredTier: "enterprise" },
+      { label: "Consulting", id: "big-ticket", requiredTier: "enterprise" },
+      { label: "Keynotes", id: "keynotes", requiredTier: "enterprise" },
+      { label: "Training", id: "training", requiredTier: "enterprise" },
       { label: "Masterminds", id: "masterminds", requiredTier: "enterprise" },
-      { label: "Special Editions", id: "special-editions", requiredTier: "enterprise" },
-      { label: "Book Sales (Events)", id: "book-sales-events", requiredTier: "enterprise" },
-      { label: "Conventions / Conferences", id: "conventions", requiredTier: "enterprise" },
+      { label: "Retreats", id: "retreats", requiredTier: "enterprise" },
+      { label: "Certification", id: "certification", requiredTier: "enterprise" },
+      { label: "Conventions", id: "conventions", requiredTier: "enterprise" },
       { label: "Fund Raising", id: "fundraising", requiredTier: "enterprise" },
-      { label: "Exhibitors / JV", id: "exhibitors", requiredTier: "enterprise" },
+      { label: "Exhibitors", id: "exhibitors", requiredTier: "enterprise" },
     ],
   },
 ];
@@ -84,15 +85,15 @@ const totalNodes = BBY_PHASES.reduce((s, p) => s + p.nodes.length, 0);
 
 // Category-specific styles for each state
 const builtStyles: Record<string, string> = {
-  build: "bg-green-600 text-white border-green-600",
-  bridge: "bg-purple-600 text-white border-purple-600",
-  yield: "bg-amber-600 text-white border-amber-600",
+  brand: "bg-amber-600 text-white border-amber-600",
+  authority: "bg-green-600 text-white border-green-600",
+  yield: "bg-red-600 text-white border-red-600",
 };
 
 const recommendedStyles: Record<string, string> = {
-  build: "border-green-600 text-green-700 bg-green-50",
-  bridge: "border-purple-600 text-purple-700 bg-purple-50",
-  yield: "border-amber-600 text-amber-700 bg-amber-50",
+  brand: "border-amber-600 text-amber-700 bg-amber-50",
+  authority: "border-green-600 text-green-700 bg-green-50",
+  yield: "border-red-600 text-red-700 bg-red-50",
 };
 
 export default function ABBYFrameworkVisual({ hasConsultation, tier, completedAssets, recommendedNodes, onConsultAbby, onNavigateTab }: Props) {
@@ -114,10 +115,9 @@ export default function ABBYFrameworkVisual({ hasConsultation, tier, completedAs
 
   const handleTagClick = (node: NodeDef, completed: boolean, recommended: boolean) => {
     if (completed) {
-      // Navigate to product review
-      onNavigateTab("revenue-streams");
+      onNavigateTab("brand-products");
     } else if (recommended && isAnalyzed) {
-      onNavigateTab("revenue-streams");
+      onNavigateTab("brand-products");
     }
     // Not recommended → no action
   };
@@ -263,15 +263,15 @@ export default function ABBYFrameworkVisual({ hasConsultation, tier, completedAs
           <span className="text-muted-foreground/30">|</span>
           {/* Category colors */}
           <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-full" style={{ background: "#d97706" }} />
+            <span>B · Brand</span>
+          </div>
+          <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-full" style={{ background: "#10b981" }} />
-            <span>B · Build</span>
+            <span>B · Authority</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full" style={{ background: "#8b5cf6" }} />
-            <span>B · Bridge</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full" style={{ background: "#f59e0b" }} />
+            <div className="w-3 h-3 rounded-full" style={{ background: "#ef4444" }} />
             <span>Y · Yield</span>
           </div>
         </div>

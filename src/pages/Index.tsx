@@ -443,8 +443,8 @@ export default function Index() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            src="/images/journey-staircase.png?v=6"
-            alt="The ABBY Journey Framework — FREE to BUILD to BRIDGE to YIELD"
+            src="/images/journey-staircase.png"
+            alt="The ABBY Journey Framework — Brand Products to Build Authority to Yield Revenue"
             className="w-full max-w-5xl mx-auto rounded-2xl shadow-xl mb-12"
             loading="lazy"
           />
@@ -459,21 +459,21 @@ export default function Index() {
               },
               {
                 step: "2",
-                title: "BUILD Your Products",
-                tag: "BUILD AUTHORITY",
-                desc: "Abby uses AI to create your first digital products: workbooks, online courses, email sequences, social media calendars, and your author website. All generated from your book content. You just review and approve.",
+                title: "BRAND Your Products",
+                tag: "BRAND PRODUCTS",
+                desc: "Abby uses AI to create your first digital products: workbooks, home study courses, special editions, lead magnets, webinars, social media calendars, email marketing sequences, and your author website. All generated from your book content.",
               },
               {
                 step: "3",
-                title: "BRIDGE Your Audience",
-                tag: "BRIDGE CHANNELS",
-                desc: "Expand into audience-building channels: audiobooks, podcast tours, webinars, lead magnet funnels, affiliate programs, and media outreach. Abby creates everything including scripts, pitch kits, registration pages, and follow-up sequences.",
+                title: "BUILD Your Authority",
+                tag: "BUILD AUTHORITY",
+                desc: "Scale into audience-building channels: online courses, audiobooks, memberships, group coaching, podcast tours, media outreach, affiliates, upsells, and revenue sharing partnerships.",
               },
               {
                 step: "4",
-                title: "YIELD Your Empire",
+                title: "YIELD Your Revenue",
                 tag: "YIELD REVENUE",
-                desc: "Scale into premium offerings: 1-on-1 coaching, group coaching, masterminds, keynote speaking, training programs, retreats, certification programs, and more.",
+                desc: "Scale into premium offerings: coaching, consulting, keynotes, training programs, masterminds, retreats, certification programs, conventions, fund raising, and exhibitor partnerships.",
               },
             ].map((item, i) => (
               <motion.div

@@ -20,52 +20,53 @@ const FRAMEWORK: Category[] = [
     letter: "A", subtitle: "ANALYZE", title: "ANALYZE & STRATEGIZE",
     hubColor: "#3b82f6", nodeColor: "#60a5fa",
     products: [
-      { label: "Online Courses", active: false, category: "revenue" },
-      { label: "Workbook", active: false, category: "revenue" },
-      { label: "Audio Book", active: false, category: "revenue" },
-      { label: "Home Study Courses", active: false, category: "revenue" },
+      { label: "AI Consultation", active: false, category: "revenue" },
+    ],
+  },
+  {
+    letter: "B", subtitle: "BRAND", title: "BRAND PRODUCTS",
+    hubColor: "#d97706", nodeColor: "#f59e0b",
+    products: [
+      { label: "Book Sales", active: false, category: "revenue" },
+      { label: "Workbooks", active: false, category: "revenue" },
+      { label: "Home Study", active: false, category: "revenue" },
+      { label: "Special Editions", active: false, category: "revenue" },
+      { label: "Lead Magnets", active: false, category: "revenue" },
       { label: "Webinars", active: false, category: "revenue" },
-      { label: "Monthly Memberships", active: false, category: "revenue" },
-      { label: "Upsells / Downsells", active: false, category: "revenue" },
-      { label: "Affiliates", active: false, category: "revenue" },
       { label: "Social Media", active: false, category: "marketing" },
-      { label: "Podcast", active: false, category: "marketing" },
+      { label: "Email Marketing", active: false, category: "marketing" },
+      { label: "Website", active: false, category: "revenue" },
     ],
   },
   {
     letter: "B", subtitle: "BUILD", title: "BUILD AUTHORITY",
-    hubColor: "#d97706", nodeColor: "#f59e0b",
+    hubColor: "#10b981", nodeColor: "#34d399",
     products: [
-      { label: "1-on-1 Coaching", active: false, category: "revenue" },
+      { label: "Online Courses", active: false, category: "revenue" },
+      { label: "Audiobook", active: false, category: "revenue" },
+      { label: "Memberships", active: false, category: "revenue" },
       { label: "Group Coaching", active: false, category: "revenue" },
-      { label: "Big Ticket", active: false, category: "revenue" },
+      { label: "Podcast Tour", active: false, category: "marketing" },
+      { label: "Media Outreach", active: false, category: "authority" },
+      { label: "Affiliates", active: false, category: "revenue" },
+      { label: "Upsells", active: false, category: "revenue" },
       { label: "Revenue Sharing", active: false, category: "revenue" },
-      { label: "Coaching Membership", active: false, category: "revenue" },
-    ],
-  },
-  {
-    letter: "B", subtitle: "BRIDGE", title: "BRIDGE CHANNELS",
-    hubColor: "#f43f5e", nodeColor: "#fb7185",
-    products: [
-      { label: "Keynotes", active: false, category: "authority" },
-      { label: "Podcasts (Guest)", active: false, category: "marketing" },
-      { label: "Corporate Training", active: false, category: "authority" },
-      { label: "Joint Ventures", active: false, category: "revenue" },
-      { label: "Book Sales", active: false, category: "revenue" },
-      { label: "Special Editions", active: false, category: "revenue" },
-      { label: "In-House Speaker", active: false, category: "authority" },
-      { label: "Fund Raising", active: false, category: "authority" },
-      { label: "Conventions", active: false, category: "authority" },
     ],
   },
   {
     letter: "Y", subtitle: "YIELD", title: "YIELD REVENUE",
-    hubColor: "#10b981", nodeColor: "#34d399",
+    hubColor: "#ef4444", nodeColor: "#f87171",
     products: [
-      { label: "Retreats & Bootcamps", active: false, category: "revenue" },
-      { label: "Certification", active: false, category: "revenue" },
+      { label: "Coaching", active: false, category: "revenue" },
+      { label: "Consulting", active: false, category: "revenue" },
+      { label: "Keynotes", active: false, category: "authority" },
+      { label: "Training", active: false, category: "authority" },
       { label: "Masterminds", active: false, category: "revenue" },
-      { label: "Exhibitors / JV", active: false, category: "revenue" },
+      { label: "Retreats", active: false, category: "revenue" },
+      { label: "Certification", active: false, category: "revenue" },
+      { label: "Conventions", active: false, category: "authority" },
+      { label: "Fund Raising", active: false, category: "authority" },
+      { label: "Exhibitors", active: false, category: "revenue" },
     ],
   },
 ];
@@ -114,7 +115,7 @@ export default function ABBYFrameworkGrid({ isPremium, onNavigate, onUpgrade }: 
     <div className="space-y-3">
       <div className="text-center">
         <p className="text-xs text-muted-foreground">
-          <strong>A</strong>nalyze · <strong>B</strong>uild · <strong>B</strong>ridge · <strong>Y</strong>ield — {activeProducts} of {totalProducts} streams activated
+          <strong>A</strong>nalyze · <strong>B</strong>rand · <strong>B</strong>uild · <strong>Y</strong>ield — {activeProducts} of {totalProducts} streams activated
         </p>
       </div>
 
