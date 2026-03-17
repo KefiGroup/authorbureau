@@ -23,7 +23,7 @@ export async function generateWithAI(
   if (!token) throw new Error("Not authenticated");
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 90_000);
+  const timeout = setTimeout(() => controller.abort(), 180_000);
 
   const resp = await fetch(AI_GATEWAY_URL, {
     method: "POST",
