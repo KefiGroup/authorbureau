@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -8,15 +7,36 @@ import {
   CheckCircle2, AlertTriangle,
 } from "lucide-react";
 import SharedSalesCopyPreview from "../shared/SharedSalesCopyPreview";
+import SalesCurriculumValidator from "../shared/SalesCurriculumValidator";
 import { DEFAULT_SALES_COPY } from "../shared/salesCopyTypes";
 import type { CourseStepProps, CourseModule } from "./types";
 
-export default function CoursePreviewStep({ stepData }: CourseStepProps) {
+export default function CoursePreviewStep({ stepData, goToStep }: CourseStepProps) {
   const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
   const foundation = stepData.foundation || {};
   const modules: CourseModule[] = stepData.curriculum?.modules || [];
   const totalMinutes = modules.reduce((a, m) => a + (m.durationMinutes || 0), 0);
   const hasModules = modules.length > 0;
+  const salesCopy = stepData.salesCopyData || DEFAULT_SALES_COPY;
+  const hasSalesCopy = salesCopy.hero?.title && salesCopy.hero.title !== "";
+
+  // Build curriculum facts for the validator
+  const curriculumFacts = {
+    moduleCount: modules.length,
+    moduleTitles: modules.map((m) => m.title),
+    totalHours: Math.round(totalMinutes / 60),
+    hasLessons: modules.some((m) => (m.lessons?.length || 0) > 0),
+    hasExercises: modules.some((m) =>
+      m.lessons?.some((l) => l.exercise && l.exercise.trim().length > 0)
+    ),
+    hasQuizzes: modules.some((m) =>
+      m.lessons?.some((l) => (l.quiz?.length || 0) > 0)
+    ),
+    hasResources: modules.some((m) =>
+      m.lessons?.some((l) => (l.resources?.length || 0) > 0)
+    ),
+    lessonCount: modules.reduce((a, m) => a + (m.lessons?.length || 0), 0),
+  };
 
   return (
     <div className="space-y-6">
@@ -88,7 +108,7 @@ export default function CoursePreviewStep({ stepData }: CourseStepProps) {
                 </div>
               )) : (
                 <div className="text-center py-8">
-                  <AlertTriangle className="h-8 w-8 text-amber-500 mx-auto mb-2" />
+                  <AlertTriangle className="h-8 w-8 text-destructive/50 mx-auto mb-2" />
                   <p className="text-sm font-medium mb-1">No modules found</p>
                   <p className="text-xs text-muted-foreground">Go back to the Modules & Lessons step to generate your curriculum first.</p>
                 </div>
@@ -102,7 +122,7 @@ export default function CoursePreviewStep({ stepData }: CourseStepProps) {
             viewMode === "mobile" ? "max-w-sm" : "max-w-3xl"
           }`}>
             <SharedSalesCopyPreview
-              data={stepData.salesCopyData || DEFAULT_SALES_COPY}
+              data={salesCopy}
               productMeta={{
                 badge: hasModules ? `${modules.length} Modules` : "Course",
                 duration: hasModules ? `${Math.round(totalMinutes / 60)}h+ of content` : "",
@@ -112,25 +132,34 @@ export default function CoursePreviewStep({ stepData }: CourseStepProps) {
         </TabsContent>
       </Tabs>
 
+      {/* Sales ↔ Curriculum mismatch validator */}
+      {hasModules && hasSalesCopy && (
+        <SalesCurriculumValidator
+          salesCopy={salesCopy}
+          curriculum={curriculumFacts}
+          onGoToStep={goToStep}
+        />
+      )}
+
       {/* Abby's final review */}
-      <Card className={`p-4 ${hasModules ? "border-secondary/20 bg-secondary/5" : "border-amber-300/30 bg-amber-50/50 dark:bg-amber-900/10"}`}>
+      <Card className={`p-4 ${hasModules ? "border-secondary/20 bg-secondary/5" : "border-destructive/20 bg-destructive/5"}`}>
         <div className="flex items-start gap-3">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${hasModules ? "bg-secondary/20" : "bg-amber-100 dark:bg-amber-900/30"}`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${hasModules ? "bg-secondary/20" : "bg-destructive/10"}`}>
             {hasModules ? (
               <CheckCircle2 className="h-4 w-4 text-secondary" />
             ) : (
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertTriangle className="h-4 w-4 text-destructive" />
             )}
           </div>
           <div>
-            <p className={`text-xs font-bold mb-1 ${hasModules ? "text-secondary" : "text-amber-700 dark:text-amber-400"}`}>
+            <p className={`text-xs font-bold mb-1 ${hasModules ? "text-secondary" : "text-destructive"}`}>
               {hasModules ? "Abby's Final Review" : "Abby's Review — Action Needed"}
             </p>
             {hasModules ? (
               <p className="text-xs text-muted-foreground leading-relaxed">
                 Your course covers <strong>{modules.length} modules</strong> with{" "}
-                <strong>{modules.reduce((a, m) => a + (m.lessons?.length || 0), 0)} lessons</strong>.
-                Estimated completion time: <strong>{Math.round(totalMinutes / 60)} hours {totalMinutes % 60 > 0 ? `${totalMinutes % 60} minutes` : ""}</strong>.
+                <strong>{curriculumFacts.lessonCount} lessons</strong>.
+                Estimated completion time: <strong>{Math.round(totalMinutes / 60)} hours{totalMinutes % 60 > 0 ? ` ${totalMinutes % 60} minutes` : ""}</strong>.
                 {foundation.exactPrice && ` At $${foundation.exactPrice}, with even 10 students per month, that's $${parseInt(foundation.exactPrice) * 10}/month in revenue.`}
                 {" "}Everything looks solid — ready to publish!
               </p>

@@ -14,6 +14,7 @@ export interface CourseStepProps {
   builderAct?: GenerationAct;
   manuscriptSummary?: string;
   frameworks?: string;
+  goToStep?: (stepIndex: number) => void;
 }
 
 /** A pedagogical module for the facilitated workshop */

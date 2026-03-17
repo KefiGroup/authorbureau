@@ -1413,6 +1413,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                         onStartGeneration={() => builderGen.startAct1(bookId)}
                         builderAct={builderGen.act}
                         onNavigate={onNavigate}
+                        goToStep={goToStep}
                       />
                     );
                   }
