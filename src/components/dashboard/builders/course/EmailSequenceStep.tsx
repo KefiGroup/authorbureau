@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Wand2, Loader2, Mail, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { generateJSONWithAI } from "@/lib/ai-generate";
+import { supabase } from "@/integrations/supabase/client";
 import type { CourseStepProps, EmailStep } from "./types";
 
 export default function EmailSequenceStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, generationState, setGenerationState }: CourseStepProps) {
