@@ -78,7 +78,7 @@ Make each email specific to the course topic. Return ONLY valid JSON.`,
         <Mail className="h-12 w-12 text-muted-foreground/20 mx-auto mb-4" />
         <h3 className="font-heading text-lg font-semibold mb-2">Generate Email Nurture Sequence</h3>
         <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
-          AI will create a 7-email sequence: from welcome to post-purchase onboarding.
+          Abby will create a 7-email sequence: from welcome to post-purchase onboarding.
         </p>
         <Button onClick={handleGenerate} className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90">
           <Wand2 className="h-4 w-4 mr-2" /> Generate 7-Email Sequence

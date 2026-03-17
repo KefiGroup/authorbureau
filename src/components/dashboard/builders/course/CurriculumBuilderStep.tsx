@@ -330,9 +330,9 @@ export default function CurriculumBuilderStep({ stepData, setStepData, onMarkEdi
                   <div className="rounded-lg border border-secondary/30 bg-secondary/5 p-3 flex items-start gap-2.5">
                     <Sparkles className="h-4 w-4 text-secondary mt-0.5 shrink-0" />
                     <div>
-                      <p className="text-xs font-semibold text-foreground">Generate Lesson Content</p>
+                      <p className="text-xs font-semibold text-foreground">Generate Module Content</p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        Once you're happy with this module's structure, head to the <span className="font-medium text-foreground">Lesson Content</span> step to have Abby generate scripts, exercises, quizzes, and resources for each lesson.
+                        Once you're happy with this module's structure, head to the <span className="font-medium text-foreground">Lesson Content</span> step to have Abby generate scripts, exercises, quizzes, and resources for each module.
                       </p>
                     </div>
                   </div>

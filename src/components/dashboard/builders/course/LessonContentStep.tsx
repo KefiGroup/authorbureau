@@ -409,7 +409,7 @@ Use well-known sites (HBR, TED, Coursera, Google Docs, Notion, Canva, Wikipedia,
                 upsertLessonField(selectedModIdx, activeLessonIdx, "exercise", snapshot.exercise);
                 upsertLessonField(selectedModIdx, activeLessonIdx, "quiz", snapshot.quiz);
                 upsertLessonField(selectedModIdx, activeLessonIdx, "resources", snapshot.resources);
-                toast({ title: "Restored last AI-generated content" });
+                toast({ title: "Restored last Abby-generated content" });
               }}
             >
               <RotateCcw className="h-3.5 w-3.5 mr-1" /> Undo Edits
@@ -445,7 +445,7 @@ Use well-known sites (HBR, TED, Coursera, Google Docs, Notion, Canva, Wikipedia,
               <p className="text-xs font-semibold text-muted-foreground">Lesson Script</p>
               {currentLesson?.script && (
                 <Badge variant="outline" className="text-[10px] border-violet-300 text-violet-600">
-                  <Wand2 className="h-2.5 w-2.5 mr-1" /> AI Generated
+                  <Wand2 className="h-2.5 w-2.5 mr-1" /> Abby Generated
                 </Badge>
               )}
             </div>
@@ -552,7 +552,7 @@ Use well-known sites (HBR, TED, Coursera, Google Docs, Notion, Canva, Wikipedia,
             ))}
             {(!currentLesson?.quiz || currentLesson.quiz.length === 0) && (
               <p className="text-center text-xs text-muted-foreground py-4">
-                No quiz questions yet. Click "Add Question" or generate content with AI.
+                No quiz questions yet. Click "Add Question" or let Abby generate content.
               </p>
             )}
           </Card>
