@@ -193,9 +193,6 @@ Make each email specific to the course topic. Return ONLY valid JSON.`;
                 <Mail className="h-3 w-3 shrink-0" />
                 <span className="text-[11px] font-medium truncate">Email {i + 1}</span>
               </div>
-              <div className="flex items-center gap-1 mt-0.5">
-                <span className="text-[9px] text-muted-foreground">#{email.dayNumber} in sequence</span>
-              </div>
               <p className="text-[9px] text-muted-foreground/70 truncate mt-0.5">{email.purpose}</p>
             </button>
           ))}
