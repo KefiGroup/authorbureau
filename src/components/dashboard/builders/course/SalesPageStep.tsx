@@ -7,7 +7,10 @@ import { Sparkles, Wand2, Loader2, ChevronDown, ChevronRight, User } from "lucid
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { generateJSONWithAI } from "@/lib/ai-generate";
-import type { CourseStepProps } from "./types";
+import type { CourseStepProps, CourseModule } from "./types";
+
+const getLearningObjectives = (mod: CourseModule): string[] =>
+  Array.isArray(mod.learningObjectives) ? mod.learningObjectives : [];
 
 export default function SalesPageStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, generationState, setGenerationState }: CourseStepProps) {
   const { toast } = useToast();

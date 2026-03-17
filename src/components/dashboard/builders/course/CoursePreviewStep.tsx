@@ -156,9 +156,9 @@ export default function CoursePreviewStep({ stepData }: CourseStepProps) {
           </div>
           <div>
             <p className="text-xs font-bold text-secondary mb-1">Abby's Final Review</p>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Your course covers <strong>{modules.length} modules</strong> with <strong>{totalLessons} lessons</strong>.
-              Estimated completion time: <strong>{Math.round(totalMinutes / 60)} hours</strong>.
+             <p className="text-xs text-muted-foreground leading-relaxed">
+               Your course covers <strong>{modules.length} modules</strong>.
+               Estimated completion time: <strong>{Math.round(totalMinutes / 60)} hours</strong>.
               {foundation.exactPrice && ` At $${foundation.exactPrice}, with even 10 students per month, that's $${parseInt(foundation.exactPrice) * 10}/month in revenue.`}
               {" "}Everything looks solid — ready to publish!
             </p>
