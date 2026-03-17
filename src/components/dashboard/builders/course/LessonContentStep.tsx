@@ -445,7 +445,7 @@ Use well-known sites (HBR, TED, Coursera, Google Docs, Notion, Canva, Wikipedia,
               <p className="text-xs font-semibold text-muted-foreground">Lesson Script</p>
               {currentLesson?.script && (
                 <Badge variant="outline" className="text-[10px] border-violet-300 text-violet-600">
-                  <Wand2 className="h-2.5 w-2.5 mr-1" /> AI Generated
+                  <Wand2 className="h-2.5 w-2.5 mr-1" /> Abby Generated
                 </Badge>
               )}
             </div>
