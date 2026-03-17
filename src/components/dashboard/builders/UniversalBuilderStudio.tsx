@@ -1177,6 +1177,8 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                             };
                           });
                         }
+
+                        void builderGen.startAct3(bookId, approved);
                       }}
                       onEdit={(updates) => builderGen.updateProposal(updates)}
                     />
