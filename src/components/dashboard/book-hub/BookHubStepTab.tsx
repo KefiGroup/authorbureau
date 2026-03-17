@@ -132,11 +132,11 @@ interface Props {
 
 export default function BookHubStepTab({ categoryId, bookId, bookTitle, bookGenre, isPremium, tier }: Props) {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { plan, completedAssets } = useAbbyPlan(bookId);
   const [executingNode, setExecutingNode] = useState<ProductNode | null>(null);
   const [notifiedNodes, setNotifiedNodes] = useState<Set<string>>(new Set());
-  const catData = deriveCategoryConfig(categoryId as AbbyCategory);
+  const catData = deriveCategoryConfig(categoryId as AbbyCategory, isAdmin);
   if (!catData) return null;
 
   const HeaderIcon = catData.headerIcon;
