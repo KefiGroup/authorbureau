@@ -28,8 +28,8 @@ interface ProductNode {
 }
 
 /** Derive local ProductNode[] from shared config */
-function deriveNodes(catId: AbbyCategory, isAdmin: boolean, superAdmin = false): ProductNode[] {
-  const cat = getEffectiveCategory(catId, isAdmin, superAdmin);
+function deriveNodes(catId: AbbyCategory, isAdmin: boolean, superAdmin = false, openNodeIds?: Set<string>): ProductNode[] {
+  const cat = getEffectiveCategory(catId, isAdmin, superAdmin, openNodeIds);
   if (!cat) return [];
   return cat.nodes.map(n => ({
     id: n.id,
