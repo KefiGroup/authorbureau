@@ -273,7 +273,7 @@ export default function ABBYJourneyOnboarding({ userId, onComplete }: Props) {
                       <p>✅ Abby reads your manuscript & extracts your frameworks</p>
                       <p>✅ Builds your free author microsite & directory listing</p>
                       <p>✅ Creates a tailored business plan with revenue projections</p>
-                      <p>✅ Recommends your ideal Build → Bridge → Yield path</p>
+                      <p>✅ Recommends your ideal Build → Build Channels → Yield path</p>
                     </div>
                     <Button
                       onClick={() => {

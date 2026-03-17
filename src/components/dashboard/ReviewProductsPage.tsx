@@ -70,7 +70,7 @@ interface DraftProduct {
 /* ── Category Labels ────────────────────────────────────────────── */
 const CATEGORY_CONFIG = {
   build: { label: "B · Build Authority", badge: "Build", color: "bg-emerald-500/15 text-emerald-700 border-emerald-300", icon: Zap, count: 0 },
-  bridge: { label: "B · Bridge Channels", badge: "Bridge", color: "bg-blue-500/15 text-blue-700 border-blue-300", icon: Network, count: 0 },
+  bridge: { label: "B · Build Channels", badge: "Build", color: "bg-blue-500/15 text-blue-700 border-blue-300", icon: Network, count: 0 },
   yield: { label: "Y · Yield Revenue", badge: "Yield", color: "bg-amber-500/15 text-amber-700 border-amber-300", icon: Crown, count: 0 },
 };
 
@@ -646,10 +646,10 @@ function ProductCard({
 
 function EmptyState({ tab, onNavigate }: { tab: string; onNavigate?: (s: string) => void }) {
   const messages: Record<string, string> = {
-    all: "Build products from the Build Authority, Bridge Channels, or Yield Revenue sections, then they'll appear here for review.",
+    all: "Build products from the Build Authority, Build Channels, or Yield Revenue sections, then they'll appear here for review.",
     review: "No products are ready for review yet. Complete a product in the builder studio to move it here.",
     build: "No Build Authority products in progress. Start with a Workbook or Home Study Course.",
-    bridge: "No Bridge Channel products yet. Try building an Online Course or Podcast.",
+    bridge: "No Build Channel products yet. Try building an Online Course or Podcast.",
     yield: "No Yield Revenue products yet. These are your high-ticket offerings like Coaching and Masterminds.",
   };
 

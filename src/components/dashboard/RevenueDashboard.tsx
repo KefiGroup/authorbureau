@@ -195,7 +195,7 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {[
               { label: "B·Build", color: "text-accent", accent: "bg-accent/15", revenue: 0, products: 0 },
-              { label: "B·Bridge", color: "text-violet-500", accent: "bg-violet-500/15", revenue: 0, products: 0 },
+              { label: "B·Build", color: "text-violet-500", accent: "bg-violet-500/15", revenue: 0, products: 0 },
               { label: "Y·Yield", color: "text-secondary", accent: "bg-secondary/15", revenue: 0, products: 0 },
             ].map((cat) => (
               <Card key={cat.label} className="p-4">

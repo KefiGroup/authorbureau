@@ -72,12 +72,12 @@ export const ABBY_CATEGORIES: Record<AbbyCategory, AbbyCategoryConfig> = {
   },
 
   /**
-   * BRIDGE CHANNELS (8 nodes)
+   * BUILD CHANNELS (8 nodes)
    * Marketing channels that connect the book to a wider audience.
    */
   "marketing-channels": {
     id: "marketing-channels",
-    label: "B · Bridge Channels",
+    label: "B · Build Channels",
     subtitle: "Marketing & Audience Growth (8 nodes)",
     color: "text-violet-600",
     bgColor: "bg-violet-500/10",
@@ -176,7 +176,7 @@ export const ADVISOR_CONTENT: Record<AbbyCategory, AdvisorContent> = {
   },
   "marketing-channels": {
     heading: "Which channels should you activate first?",
-    intro: "Bridge products connect your book to a wider audience. Here's the priority order:",
+    intro: "Build Channel products connect your book to a wider audience. Here's the priority order:",
     recommendations: [
       { label: "Audiobook", reason: "AI-narrated from your manuscript. No recording studio needed. Expands your reach to listeners who prefer audio.", priceRange: "$9.99 – $14.99", difficulty: "Easy", nodeId: "audiobook" },
       { label: "Podcast Tour", reason: "AI generates guest pitches, talking points, and media one-sheets. The fastest way to reach new audiences.", difficulty: "Easy", nodeId: "podcast-guest" },
