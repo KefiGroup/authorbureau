@@ -83,11 +83,6 @@ export default function CourseFoundationStep({ stepData, setStepData, onMarkEdit
       {/* Show editable fields only after Abby has generated content */}
       {(data.title || data.subtitle || data.description || titleOptions.length > 0 || promises.length > 0 || data.targetStudent || data.price) && (
         <>
-          {/* Review & Edit Header */}
-          <div className="flex items-center gap-2 pt-2">
-            <Sparkles className="h-4 w-4 text-secondary" />
-            <p className="text-sm font-semibold text-secondary">Review & Edit Abby's Output</p>
-          </div>
 
           {/* Title Options */}
           <Card className="p-5 space-y-4">
