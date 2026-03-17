@@ -75,18 +75,13 @@ export default function CoursePreviewStep({ stepData }: CourseStepProps) {
                       <span className="w-6 h-6 rounded-full bg-secondary/10 text-secondary text-[10px] font-bold flex items-center justify-center">{i + 1}</span>
                       <span className="text-sm font-medium">{mod.title}</span>
                     </div>
-                    <span className="text-[10px] text-muted-foreground">{(mod.lessons || []).length} lessons</span>
+                    <span className="text-[10px] text-muted-foreground">{mod.durationMinutes || 0}m</span>
                   </div>
-                  <div className="divide-y divide-border">
-                    {(mod.lessons || []).map((lesson, li) => (
-                      <div key={lesson.id} className="flex items-center gap-3 px-3 py-2 hover:bg-muted/10 transition-colors">
-                        <PlayCircle className="h-4 w-4 text-muted-foreground/30 shrink-0" />
-                        <span className="text-xs flex-1">{lesson.title}</span>
-                        <span className="text-[10px] text-muted-foreground">{lesson.estimatedMinutes}m</span>
-                        <ChevronRight className="h-3 w-3 text-muted-foreground/30" />
-                      </div>
-                    ))}
-                  </div>
+                  {mod.contentSummary && (
+                    <div className="px-3 py-2 border-t border-border">
+                      <p className="text-xs text-muted-foreground">{mod.contentSummary}</p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
