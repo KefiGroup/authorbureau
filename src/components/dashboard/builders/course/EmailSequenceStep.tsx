@@ -65,7 +65,7 @@ Return a JSON array of 7 objects, each with:
 - "purpose": string (e.g. "Welcome + what to expect")
 - "subject": string (compelling subject line)
 - "previewText": string (email preview text)
-- "body": string (full email body with [First Name] for the reader and [CTA Button →] links. Use "${displayName}" directly instead of any author placeholder.)
+- "body": string (full email body with [First Name] for the reader. For call-to-action links, use the format [CTA Button → Label Text](SIGNUP_URL) — this will be rendered as a clickable button linking to the course sign-up page. Use "${displayName}" directly instead of any author placeholder.)
 
 Make each email specific to the course topic. Return ONLY valid JSON.`;
 
@@ -262,7 +262,7 @@ Make each email specific to the course topic. Return ONLY valid JSON.`;
                 <p className="text-[10px] font-semibold text-muted-foreground">Dynamic Placeholders</p>
                 <div className="flex flex-wrap gap-x-4 gap-y-0.5">
                   <span className="text-[10px] text-muted-foreground"><code className="bg-muted px-1 py-0.5 rounded text-[9px] font-mono">[First Name]</code> → Reader's first name (replaced at send time)</span>
-                  <span className="text-[10px] text-muted-foreground"><code className="bg-muted px-1 py-0.5 rounded text-[9px] font-mono">[CTA Button → ...]</code> → Rendered as a clickable button linking to your course sales page</span>
+                   <span className="text-[10px] text-muted-foreground"><code className="bg-muted px-1 py-0.5 rounded text-[9px] font-mono">[CTA Button → ...](SIGNUP_URL)</code> → Rendered as a clickable button linking to your course sign-up page</span>
                 </div>
                 {authorName && (
                   <p className="text-[10px] text-muted-foreground mt-1">✓ Author name <strong>{authorName}</strong> is automatically used from your profile.</p>
