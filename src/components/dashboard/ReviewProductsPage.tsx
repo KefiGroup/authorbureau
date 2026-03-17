@@ -338,8 +338,8 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
           <TabsTrigger value="review" className="text-xs">
             Ready for Review {categoryCounts.review > 0 && <Badge variant="destructive" className="ml-1 h-4 px-1 text-[9px]">{categoryCounts.review}</Badge>}
           </TabsTrigger>
-          <TabsTrigger value="build" className="text-xs">Build ({categoryCounts.build})</TabsTrigger>
-          <TabsTrigger value="bridge" className="text-xs">Bridge ({categoryCounts.bridge})</TabsTrigger>
+          <TabsTrigger value="build" className="text-xs">Brand ({categoryCounts.build})</TabsTrigger>
+          <TabsTrigger value="bridge" className="text-xs">Build ({categoryCounts.bridge})</TabsTrigger>
           <TabsTrigger value="yield" className="text-xs">Yield ({categoryCounts.yield})</TabsTrigger>
         </TabsList>
 

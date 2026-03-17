@@ -15,7 +15,7 @@ export const BUILDER_FIRST_VISIT: Record<string, BuilderFirstVisitConfig> = {
   // BRAND (9)
   workbook: {
     emoji: "📝",
-    category: "BUILD",
+    category: "BRAND",
     revenue: "$1,000–$8,000/yr",
     connectsTo: ["email-flows", "website", "upsell"],
     connectLabels: ["Email Marketing — I'll create a sales sequence", "Website — I'll add a product page", "Upsells — I'll design a premium upgrade offer"],

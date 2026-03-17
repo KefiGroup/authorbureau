@@ -98,7 +98,7 @@ function getUpgradeBanner(tier: SubscriptionTier, categoryId: string): { message
     }
     if (categoryId === "marketing-channels") {
       return {
-        message: "Ready to reach your audience? The Bridge builders help you create coaching programs, speaking kits, webinar frameworks, and podcast pitches. Upgrade to Pro ($199/mo) to unlock all Bridge builders.",
+        message: "Ready to scale your audience? The Build Authority builders help you create courses, audiobooks, memberships, and podcast pitches. Upgrade to Pro ($199/mo) to unlock all Build Authority builders.",
         cta: "Upgrade to Pro →",
         link: "/dashboard?section=build-business",
       };

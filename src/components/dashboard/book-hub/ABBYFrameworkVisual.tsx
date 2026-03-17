@@ -265,11 +265,11 @@ export default function ABBYFrameworkVisual({ hasConsultation, tier, completedAs
           {/* Category colors */}
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-full" style={{ background: "#10b981" }} />
-            <span>B · Build</span>
+            <span>B · Brand</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-full" style={{ background: "#8b5cf6" }} />
-            <span>B · Bridge</span>
+            <span>B · Build</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-full" style={{ background: "#f59e0b" }} />

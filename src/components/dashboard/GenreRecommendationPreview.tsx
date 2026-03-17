@@ -105,8 +105,8 @@ function matchGenre(genre: string): Recommendation[] {
 }
 
 const categoryColors: Record<string, string> = {
-  Build: "text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-950/40",
-  Bridge: "text-violet-700 bg-violet-50 dark:text-violet-400 dark:bg-violet-950/40",
+  Brand: "text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-950/40",
+  Build: "text-violet-700 bg-violet-50 dark:text-violet-400 dark:bg-violet-950/40",
   Yield: "text-amber-700 bg-amber-50 dark:text-amber-400 dark:bg-amber-950/40",
 };
 
