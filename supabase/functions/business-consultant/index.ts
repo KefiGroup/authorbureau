@@ -3389,7 +3389,9 @@ CRITICAL BUILDER RULES:
 - Follow the 3-phase workflow: ANALYSE → BUILD → BRIDGE. Never skip a phase.
 - Use the author's REAL name, bio, book title, and frameworks. No placeholders.
 - When suggesting titles, suggest exactly 3 options.
-- Keep responses brief (under 150 words), actionable, and encouraging.
+- ${hasStructuredOutputOverride
+        ? "For this step, output complete structured JSON only and ignore conversational brevity limits."
+        : "Keep responses brief (under 150 words), actionable, and encouraging."}
 - Reference progress_log to acknowledge what's already built and connect this product to existing ones.
 - Address the author by name from author_profile.name. NEVER use email.${structuredStepOverride}`;
 

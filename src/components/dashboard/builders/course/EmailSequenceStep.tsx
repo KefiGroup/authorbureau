@@ -57,25 +57,32 @@ Make each email specific to the course topic. Return ONLY valid JSON.`;
         builderStep: "Email Sequence",
       } as const;
 
-      let parsed: any;
-      try {
-        parsed = await generateJSONWithAI<any>(basePrompt, aiOptions);
-      } catch {
+      const normalizeSequence = (parsed: any) => {
+        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed?.emails)) return parsed.emails;
+        if (Array.isArray(parsed?.sequence)) return parsed.sequence;
+        if (Array.isArray(parsed?.emailSequence)) return parsed.emailSequence;
+        if (Array.isArray(parsed?.items)) return parsed.items;
+        return [];
+      };
+
+      const isValidSequence = (sequence: any[]) =>
+        Array.isArray(sequence) &&
+        sequence.length >= 7 &&
+        sequence.slice(0, 7).every((e) => typeof e === "object" && e !== null);
+
+      let parsed = await generateJSONWithAI<any>(basePrompt, aiOptions);
+      let result = normalizeSequence(parsed);
+
+      if (!isValidSequence(result)) {
         parsed = await generateJSONWithAI<any>(
           `${basePrompt}\n\nSTRICT FORMAT: Return ONLY a valid JSON array with exactly 7 objects. Start with [ and end with ]. No prose, no markdown, no headings.`,
           aiOptions,
         );
+        result = normalizeSequence(parsed);
       }
 
-      const result = Array.isArray(parsed)
-        ? parsed
-        : Array.isArray(parsed?.emails)
-          ? parsed.emails
-          : Array.isArray(parsed?.sequence)
-            ? parsed.sequence
-            : [];
-
-      if (!Array.isArray(result) || result.length < 7) {
+      if (!isValidSequence(result)) {
         throw new Error("No email sequence returned");
       }
 
