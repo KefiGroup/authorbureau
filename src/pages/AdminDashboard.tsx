@@ -258,6 +258,7 @@ export default function AdminDashboard() {
     { key: "reading-club", label: "Reading Club", icon: BookMarked },
     { key: "support", label: "Support", icon: Headphones },
     { key: "payouts", label: "Payouts", icon: Wallet },
+    { key: "node-gating", label: "Node Gating", icon: ToggleRight, superOnly: true },
     { key: "admins", label: "Admins", icon: ShieldCheck, superOnly: true },
     { key: "platforms", label: "Platforms", icon: Globe, pnAdminOnly: true },
   ];
