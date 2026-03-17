@@ -301,11 +301,11 @@ Return ONLY valid JSON.`;
 
       if (normalizedResources.length === 0) {
         try {
-          const resourceResult = await generateJSONWithAI<{ resources?: string[] | string }>(
-            `Return ONLY JSON with this exact shape: {"resources": string[]}.
-Generate 3-5 concrete resource titles for lesson "${lessonTitle}" in module "${moduleTitle}" from book "${bookTitle}".
+          const resourceResult = await generateJSONWithAI<{ resources?: Array<{ title?: string; url?: string } | string> }>(
+            `Return ONLY JSON: {"resources": [{"title": string, "url": string}, ...]}.
+Generate 3-5 resources with REAL external URLs for lesson "${lessonTitle}" in module "${moduleTitle}" from book "${bookTitle}".
 ${objectivesContext}
-Rules: no placeholders, no markdown, no explanations, each item must be specific and actionable.`,
+Use well-known sites (HBR, TED, Coursera, Google Docs, Notion, Canva, Wikipedia, etc). Each must have title + valid https URL.`,
             aiOptions,
           );
           normalizedResources = normalizeResourcesInput(resourceResult.resources);
