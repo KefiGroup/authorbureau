@@ -7,6 +7,8 @@ import {
   Monitor, Smartphone, BookOpen, Clock, Award,
   CheckCircle2,
 } from "lucide-react";
+import SharedSalesCopyPreview from "../shared/SharedSalesCopyPreview";
+import { DEFAULT_SALES_COPY } from "../shared/salesCopyTypes";
 import type { CourseStepProps, CourseModule } from "./types";
 
 export default function CoursePreviewStep({ stepData }: CourseStepProps) {
