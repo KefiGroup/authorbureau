@@ -247,9 +247,9 @@ Return a JSON object with:
 - "summary": string[] (4 key takeaway bullet points)
 - "exercise": string (a practical exercise, 100-150 words with numbered steps)
 - "quiz": array of 3 objects each with {"question": string, "options": string[] (4 options), "correctAnswer": number (0-3), "explanation": string}
-- "resources": string[] (REQUIRED, 3-5 non-empty items; each must be a concrete resource title tied to the lesson objective and book content)
+- "resources": array of 3-5 objects each with {"title": string, "url": string} — suggest REAL external URLs to free tools, articles, templates, or reference materials that support this lesson. Use well-known sites like Harvard Business Review, TED, Coursera, Google Docs templates, Notion templates, Canva, Medium articles, Wikipedia, etc. Each resource must have a descriptive title and a valid https URL.
 
-Make the content specific to the lesson topic, not generic. Resources should be actionable and directly tied to the learning objectives.
+Make the content specific to the lesson topic, not generic.
 Return ONLY valid JSON.`;
 
       const aiOptions = {
