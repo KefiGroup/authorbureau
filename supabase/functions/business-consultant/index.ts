@@ -3344,6 +3344,7 @@ CURRENT TURN: 1. Follow Turn 1 instructions EXACTLY. Maximum 150 words.
       const isHomeStudyDailySchedule = builderId === "home-study-course" && normalizedBuilderStep.includes("daily schedule");
       const isHomeStudyDailyContent = builderId === "home-study-course" && normalizedBuilderStep.includes("daily content");
       const isOnlineCourseEmailSequence = builderId === "online-course" && normalizedBuilderStep.includes("email sequence");
+      const hasStructuredOutputOverride = isHomeStudyDailySchedule || isHomeStudyDailyContent || isOnlineCourseEmailSequence;
 
       const structuredStepOverride = isHomeStudyDailySchedule
         ? `
