@@ -322,7 +322,7 @@ Keep responses under 150 words. Always reference the business plan. Tie to manus
 
 
 // ═══════════════════════════════════════════════════════════════════
-// BUILDER-SPECIFIC PROMPTS — V2: Each enforces Analyse → Build → Bridge
+// BUILDER-SPECIFIC PROMPTS — V2: Each enforces Analyse → Brand → Build → Yield
 // ═══════════════════════════════════════════════════════════════════
 
 const BUILDER_PROMPTS: Record<string, string> = {

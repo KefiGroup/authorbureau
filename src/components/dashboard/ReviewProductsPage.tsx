@@ -319,13 +319,13 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
           <ArrowRight className="h-3 w-3 text-muted-foreground" />
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-blue-400" />
-            <span className="font-semibold text-blue-700 dark:text-blue-400">ACT 2 · BUILD</span>
+            <span className="font-semibold text-blue-700 dark:text-blue-400">ACT 2 · BRAND</span>
             <span className="text-muted-foreground">Content Creation</span>
           </div>
           <ArrowRight className="h-3 w-3 text-muted-foreground" />
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-green-400" />
-            <span className="font-semibold text-green-700 dark:text-green-400">ACT 3 · BRIDGE</span>
+            <span className="font-semibold text-green-700 dark:text-green-400">ACT 3 · BUILD</span>
             <span className="text-muted-foreground">Preview & Publish</span>
           </div>
         </div>
