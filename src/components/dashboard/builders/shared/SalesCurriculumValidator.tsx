@@ -22,6 +22,7 @@ interface Mismatch {
   severity: "error" | "warning";
   fix: string;
   fixAction: "edit-sales" | "go-curriculum" | "regenerate";
+  locations?: string[]; // Which sales copy sections contain the flagged text
 }
 
 interface Props {
@@ -51,6 +52,30 @@ function extractModuleCountFromText(text: string): number | null {
 function textContainsKeywords(text: string, keywords: string[]): string[] {
   const lower = text.toLowerCase();
   return keywords.filter(kw => lower.includes(kw));
+}
+
+/** Returns which named sales copy sections contain any of the given keywords */
+function findKeywordSections(data: SalesCopyData, keywords: string[]): string[] {
+  const sections: [string, string[]][] = [
+    ["Hero (title/tagline)", [data.hero.title, data.hero.tagline]],
+    ["Problem", [data.problem.headline, ...data.problem.painPoints]],
+    ["Transformation", [...data.transformation.before, ...data.transformation.after]],
+    ["Introduction", [data.introduction.paragraph]],
+    ["What's Inside", data.whatsInside.items],
+    ["How It Works", data.howItWorks.steps.map(s => `${s.title} ${s.description}`)],
+    ["About the Author", [data.author.bio, data.author.credentials]],
+    ["Pricing", data.pricing.included],
+    ["FAQ", data.faq.items.map(f => `${f.q} ${f.a}`)],
+    ["Final CTA", [data.finalCta.headline, data.finalCta.subheadline]],
+  ];
+  const found: string[] = [];
+  for (const [name, texts] of sections) {
+    const combined = texts.filter(Boolean).join(" ").toLowerCase();
+    if (keywords.some(kw => combined.includes(kw))) {
+      found.push(name);
+    }
+  }
+  return found;
 }
 
 function collectAllSalesCopyText(data: SalesCopyData): string {
@@ -106,6 +131,7 @@ export function detectMismatches(salesCopy: SalesCopyData, curriculum: Curriculu
       severity: "error",
       fix: "Either remove these promises from the sales copy, or go back to Lesson Content and add resources to your modules.",
       fixAction: "edit-sales",
+      locations: findKeywordSections(salesCopy, downloadableHits),
     });
   }
 
@@ -119,6 +145,7 @@ export function detectMismatches(salesCopy: SalesCopyData, curriculum: Curriculu
       severity: "error",
       fix: "Remove live/community promises from the sales copy. Regenerate to get accurate self-paced copy.",
       fixAction: "regenerate",
+      locations: findKeywordSections(salesCopy, liveHits),
     });
   }
 
@@ -219,10 +246,18 @@ export default function SalesCurriculumValidator({ salesCopy, curriculum, onGoTo
               <strong className="text-destructive">Claim:</strong>{" "}
               <span className="text-muted-foreground">{m.claim}</span>
             </p>
-            <p className="text-xs mb-2">
+            <p className="text-xs mb-1">
               <strong className="text-accent">Reality:</strong>{" "}
               <span className="text-muted-foreground">{m.reality}</span>
             </p>
+            {m.locations && m.locations.length > 0 && (
+              <div className="text-xs mb-2 flex items-start gap-1.5">
+                <strong className="text-primary shrink-0">Found in:</strong>
+                <span className="text-muted-foreground">
+                  {m.locations.join(", ")} — open the <strong>Sales Page</strong> step and search for the flagged keyword in {m.locations.length === 1 ? "this section" : "these sections"}.
+                </span>
+              </div>
+            )}
             <div className="flex items-center gap-2 pt-1 border-t border-border">
               <p className="text-[10px] text-muted-foreground flex-1">
                 <strong>Fix:</strong> {m.fix}
