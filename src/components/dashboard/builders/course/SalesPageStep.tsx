@@ -90,7 +90,7 @@ RULES: Generate 3 testimonials with real-sounding names. 5 FAQ items addressing 
         onChange={updateSalesCopy}
         productLabel="Online Course"
         onGenerateWithAbby={handleGenerate}
-        generating={generationState === "generating" || generationState === "queued"}
+        generating={["generating", "queued"].includes(generationState)}
       />
     </div>
   );
