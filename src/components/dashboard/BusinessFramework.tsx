@@ -8,6 +8,7 @@ import ABBYFrameworkVisual from "@/components/dashboard/book-hub/ABBYFrameworkVi
 import { ABBY_CATEGORIES, ABBY_CATEGORY_LIST, getEffectiveCategory, type AbbyCategoryConfig, type AbbyNode, type AbbyCategory } from "@/config/abbyFrameworkConfig";
 import { useAuth } from "@/hooks/useAuth";
 import { isSuperAdmin } from "@/lib/superadmin";
+import { useNodeGating } from "@/hooks/useNodeGating";
 
 // Alias for backward compat in this file
 type Node = AbbyNode;
