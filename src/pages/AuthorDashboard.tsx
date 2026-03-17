@@ -252,18 +252,34 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
 
   const handleNavigate = (s: string) => setActiveSection(s as DashboardSection);
 
-  // Sections that belong to Bridge / Yield — gated for non-admins
-  const BRIDGE_YIELD_SECTIONS = new Set([
-    "webinars", "audiobook-studio", "podcast", "lead-magnet",
-    "coaching", "group-coaching", "memberships", "speaking", "big-ticket",
-    "marketing-channels", "authority-builders",
-  ]);
+  // Map sections to their node IDs for DB gating lookup
+  const SECTION_TO_NODE: Record<string, string> = {
+    "webinars": "webinars",
+    "audiobook-studio": "audiobook",
+    "podcast": "podcast-guest",
+    "lead-magnet": "lead-magnet",
+    "coaching": "coaching-1on1",
+    "group-coaching": "group-coaching",
+    "memberships": "memberships",
+    "speaking": "keynotes",
+    "big-ticket": "big-ticket",
+  };
 
   const userIsSuperAdmin = isSuperAdmin(user?.email);
 
+  /** Check if a section is gated (closed) via DB */
+  const isSectionGated = (section: string): boolean => {
+    if (userIsSuperAdmin) return false;
+    const nodeId = SECTION_TO_NODE[section];
+    if (!nodeId) return false;
+    // If DB data loaded, use it; otherwise fall back to closed
+    if (gating.length > 0) return !isNodeOpen(nodeId);
+    return true; // default closed for Bridge/Yield sections
+  };
+
   const renderSection = () => {
-    // Gate Bridge & Yield individual builders — superadmins bypass
-    if (!isAdmin && !userIsSuperAdmin && BRIDGE_YIELD_SECTIONS.has(activeSection)) {
+    // Gate individual builders via DB gating — superadmins bypass
+    if (!isAdmin && isSectionGated(activeSection)) {
       return (
         <div className="max-w-2xl mx-auto text-center space-y-6 py-20">
           <div className="w-16 h-16 rounded-2xl bg-secondary/10 flex items-center justify-center mx-auto">
