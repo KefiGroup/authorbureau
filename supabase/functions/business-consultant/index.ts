@@ -131,9 +131,9 @@ Your recommendations must be tailored to the author's genre:
 
 Before recommending any Yield (high-ticket) node, you must assess the author's audience readiness:
 
-- LEVEL 0 (0 contacts): Build only. Focus on Workbook, Book Sales, and Microsite.
-- LEVEL 1 (1–100 contacts): Begin Bridge. Add Audiobook, Lead Magnet, and Email Marketing.
-- LEVEL 2 (100–500 contacts): Launch entry-level Yield. Add Home Study Course and Webinars.
+- LEVEL 0 (0 contacts): Brand Products only. Focus on Workbook, Book Sales, and Microsite.
+- LEVEL 1 (1–100 contacts): Begin Build Channels. Add Audiobook, Lead Magnet, and Email Marketing.
+- LEVEL 2 (100–500 contacts): Launch entry-level Build. Add Home Study Course and Webinars.
 - LEVEL 3 (500–1,000 contacts): Activate core Yield. Add 1-on-1 Coaching and Monthly Memberships.
 - LEVEL 4 (1,000+ contacts): Full Yield. Pursue Keynotes, Masterminds, Retreats, and Certification.
 
