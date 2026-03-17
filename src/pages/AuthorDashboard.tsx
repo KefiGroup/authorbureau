@@ -246,7 +246,27 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
 
   const handleNavigate = (s: string) => setActiveSection(s as DashboardSection);
 
+  // Sections that belong to Bridge / Yield — gated for non-admins
+  const BRIDGE_YIELD_SECTIONS = new Set([
+    "webinars", "audiobook-studio", "podcast", "lead-magnet",
+    "coaching", "group-coaching", "memberships", "speaking", "big-ticket",
+    "marketing-channels", "authority-builders",
+  ]);
+
   const renderSection = () => {
+    // Gate Bridge & Yield individual builders for non-admins
+    if (!isAdmin && BRIDGE_YIELD_SECTIONS.has(activeSection)) {
+      return (
+        <SectionGatePage
+          sectionTitle="Coming Soon"
+          sectionSubtitle="This section is currently under development."
+          gateMessage="We're building something amazing. You'll be the first to know when it's ready!"
+          productNames={[]}
+          onAnalyze={() => setActiveSection("overview")}
+        />
+      );
+    }
+
     // Check if this is a universal builder node
     const builderNodeId = searchParams.get("builder");
     if (builderNodeId && BUILDER_NODE_MAP[builderNodeId]) {
