@@ -337,7 +337,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
           </Button>
           <Button
             className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
-            onClick={() => onNavigate?.("brand-products")}
+            onClick={() => onNavigate?.("revenue-streams")}
           >
             Build Your First Product <ArrowRight className="h-4 w-4 ml-1.5" />
           </Button>

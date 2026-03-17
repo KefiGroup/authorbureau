@@ -311,7 +311,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
                     if (studioPath) {
                       navigate(studioPath);
                     } else {
-                      onNavigateTab("brand-products");
+                      onNavigateTab("revenue-streams");
                     }
                   }}>
                     Build Now <ArrowRight className="h-3 w-3" />
@@ -458,7 +458,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
           bookId={book.id}
           authorId={authorId}
           tier={tier}
-          onNavigateBuilder={(builderId) => onNavigateTab("brand-products")}
+          onNavigateBuilder={(builderId) => onNavigateTab("revenue-streams")}
         />
       )}
 

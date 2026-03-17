@@ -2,14 +2,14 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronDown, ChevronUp } from "lucide-react";
 
-const STAIRCASE_IMAGE = "/images/journey-staircase.png";
+const STAIRCASE_IMAGE = "/images/journey-staircase.png?v=6";
 const FLOW_DIAGRAM_IMAGE = "/images/journey-flow-diagram.png";
 const COMPARISON_IMAGE = "/images/journey-comparison.png";
 const THREE_PATHS_IMAGE = "/images/journey-three-paths.png";
 
 const sections = [
   {
-    title: "The Journey: FREE → BRAND → BUILD → YIELD",
+    title: "The Journey: FREE → BUILD → BRIDGE → YIELD",
     description: "Your book is the foundation. Each tier unlocks more revenue streams, building on the last.",
     image: STAIRCASE_IMAGE,
   },

@@ -89,32 +89,32 @@ function getUpgradeBanner(tier: SubscriptionTier, categoryId: string): { message
   }
 
   if (tier === "starter") {
-    if (categoryId === "brand-products") {
+    if (categoryId === "revenue-streams") {
       return {
-        message: "You're building great momentum! Upgrade to Pro ($199/mo) to unlock Build Authority products: Online Courses, Audiobooks, Memberships, Group Coaching, and more.",
+        message: "You're building great momentum! Upgrade to Pro ($199/mo) to unlock 8 more Build products: Online Courses, Audiobooks, Memberships, Coaching, and more.",
         cta: "Upgrade to Pro →",
         link: "/dashboard?section=build-business",
       };
     }
-    if (categoryId === "build-authority") {
+    if (categoryId === "marketing-channels") {
       return {
-        message: "Ready to scale your audience? Build Authority products help you create courses, coaching programs, podcasts, and more. Upgrade to Pro ($199/mo) to unlock all Build Authority builders.",
+        message: "Ready to reach your audience? The Bridge builders help you create coaching programs, speaking kits, webinar frameworks, and podcast pitches. Upgrade to Pro ($199/mo) to unlock all Bridge builders.",
         cta: "Upgrade to Pro →",
         link: "/dashboard?section=build-business",
       };
     }
-    if (categoryId === "yield-revenue") {
+    if (categoryId === "authority-builders") {
       return {
-        message: "Yield builders create coaching, consulting, keynotes, retreats, certification programs, and more. Upgrade to Enterprise ($499/mo) to unlock all Yield builders.",
+        message: "Yield builders create retreats, certification programs, masterminds, and more. Upgrade to Enterprise ($499/mo) to unlock all Yield builders.",
         cta: "Upgrade to Enterprise →",
         link: "/dashboard?section=build-business",
       };
     }
   }
 
-  if (tier === "pro" && categoryId === "yield-revenue") {
+  if (tier === "pro" && categoryId === "authority-builders") {
     return {
-      message: "Scale to the next level. Upgrade to Enterprise ($499/mo) to unlock coaching, consulting, keynotes, training, retreats, certification, and a 1-on-1 strategy session with Pauline Teo.",
+      message: "Scale to the next level. Upgrade to Enterprise ($499/mo) to unlock retreats, certification, masterminds, corporate training, and a 1-on-1 strategy session with Pauline Teo.",
       cta: "Upgrade to Enterprise →",
       link: "/dashboard?section=build-business",
     };
