@@ -443,8 +443,8 @@ export default function Index() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            src="/images/journey-staircase.png?v=6"
-            alt="The ABBY Journey Framework — FREE to BUILD to BRIDGE to YIELD"
+            src="/images/journey-staircase.png"
+            alt="The ABBY Journey Framework — Brand Products to Build Authority to Yield Revenue"
             className="w-full max-w-5xl mx-auto rounded-2xl shadow-xl mb-12"
             loading="lazy"
           />
