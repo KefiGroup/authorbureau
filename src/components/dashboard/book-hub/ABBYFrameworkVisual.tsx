@@ -85,15 +85,15 @@ const totalNodes = BBY_PHASES.reduce((s, p) => s + p.nodes.length, 0);
 
 // Category-specific styles for each state
 const builtStyles: Record<string, string> = {
-  build: "bg-green-600 text-white border-green-600",
-  bridge: "bg-purple-600 text-white border-purple-600",
-  yield: "bg-amber-600 text-white border-amber-600",
+  brand: "bg-amber-600 text-white border-amber-600",
+  authority: "bg-green-600 text-white border-green-600",
+  yield: "bg-red-600 text-white border-red-600",
 };
 
 const recommendedStyles: Record<string, string> = {
-  build: "border-green-600 text-green-700 bg-green-50",
-  bridge: "border-purple-600 text-purple-700 bg-purple-50",
-  yield: "border-amber-600 text-amber-700 bg-amber-50",
+  brand: "border-amber-600 text-amber-700 bg-amber-50",
+  authority: "border-green-600 text-green-700 bg-green-50",
+  yield: "border-red-600 text-red-700 bg-red-50",
 };
 
 export default function ABBYFrameworkVisual({ hasConsultation, tier, completedAssets, recommendedNodes, onConsultAbby, onNavigateTab }: Props) {
