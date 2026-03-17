@@ -54,6 +54,7 @@ export interface CourseLesson {
   exercise?: string;
   quiz?: CourseQuiz[];
   resources?: CourseResource[];
+  videoUrl?: string;
 }
 
 export interface CourseQuiz {

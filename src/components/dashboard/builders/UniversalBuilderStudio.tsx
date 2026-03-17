@@ -946,20 +946,94 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
           };
           if (nodeConfig.dbTable === "courses") {
             productRecord.price = stepData.foundation?.exactPrice ? parseFloat(stepData.foundation.exactPrice) : null;
+            productRecord.title = stepData.foundation?.title || productRecord.title;
+            productRecord.description = stepData.foundation?.subtitle || productRecord.description;
+            productRecord.target_student = stepData.foundation?.targetAudience || null;
+            productRecord.course_format = stepData.foundation?.format || "self_paced";
           }
           let saveError;
+          let courseId: string | null = null;
           if (existing) {
+            courseId = existing.id;
             const { error } = await supabase.from(nodeConfig.dbTable as any).update(productRecord).eq("id", existing.id);
             saveError = error;
           } else {
-            const { error } = await supabase.from(nodeConfig.dbTable as any).insert(productRecord);
+            const { data: inserted, error } = await (supabase as any).from(nodeConfig.dbTable).insert(productRecord).select("id").single();
             saveError = error;
+            courseId = inserted?.id || null;
           }
           if (saveError) {
             console.error("Failed to save product record:", saveError);
             toast({ title: "Publish failed", description: saveError.message, variant: "destructive" });
           } else {
             publishSuccess = true;
+
+            // Sync modules & lessons to DB for course builders
+            if (nodeConfig.dbTable === "courses" && courseId && stepData.curriculum?.modules?.length) {
+              try {
+                // Clear existing modules (cascade deletes lessons/quizzes)
+                await supabase.from("course_modules").delete().eq("course_id", courseId);
+
+                const modules = stepData.curriculum.modules as any[];
+                for (let mi = 0; mi < modules.length; mi++) {
+                  const mod = modules[mi];
+                  const { data: modRow } = await supabase.from("course_modules").insert({
+                    course_id: courseId,
+                    title: mod.title || `Module ${mi + 1}`,
+                    description: mod.description || mod.contentSummary || "",
+                    position: mi,
+                    blooms_level: mod.bloomsLevel || null,
+                    kolbs_stage: mod.kolbsStage || null,
+                    learning_objectives: mod.learningObjectives || [],
+                    duration_minutes: mod.durationMinutes || 60,
+                    source_chapters: mod.sourceChapters || [],
+                    debrief_points: mod.debriefPoints || [],
+                    workbook_page_description: mod.workbookPageDescription || null,
+                    facilitator_activity: mod.facilitatorActivity || null,
+                    module_number: mi + 1,
+                  }).select("id").single();
+
+                  if (!modRow) continue;
+
+                  const lessons = Array.isArray(mod.lessons) ? mod.lessons : [];
+                  for (let li = 0; li < lessons.length; li++) {
+                    const lesson = lessons[li];
+                    // Store rich content as JSON
+                    const contentJson = JSON.stringify({
+                      script: lesson.script || "",
+                      summary: lesson.summary || [],
+                      exercise: lesson.exercise || "",
+                    });
+
+                    const { data: lessonRow } = await supabase.from("course_lessons").insert({
+                      module_id: modRow.id,
+                      title: lesson.title || `Lesson ${li + 1}`,
+                      content: contentJson,
+                      position: li,
+                      video_url: lesson.videoUrl || null,
+                    }).select("id").single();
+
+                    // Insert quizzes
+                    if (lessonRow && Array.isArray(lesson.quiz)) {
+                      for (let qi = 0; qi < lesson.quiz.length; qi++) {
+                        const q = lesson.quiz[qi];
+                        if (!q.question) continue;
+                        await supabase.from("course_quizzes").insert({
+                          lesson_id: lessonRow.id,
+                          question: q.question,
+                          options: q.options || [],
+                          correct_answer: q.correctAnswer ?? 0,
+                          explanation: q.explanation || "",
+                          position: qi,
+                        });
+                      }
+                    }
+                  }
+                }
+              } catch (syncErr) {
+                console.error("Failed to sync curriculum to DB:", syncErr);
+              }
+            }
           }
         }
       }

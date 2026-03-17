@@ -515,16 +515,30 @@ export default function OnlineCourseViewer() {
                 </div>
 
                 {/* Video embed */}
-                {currentLesson.video_url && (
-                  <div className="aspect-video rounded-xl overflow-hidden border border-border bg-black">
-                    <iframe
-                      src={currentLesson.video_url}
-                      className="w-full h-full"
-                      allow="autoplay; fullscreen"
-                      allowFullScreen
-                    />
-                  </div>
-                )}
+                {currentLesson.video_url && (() => {
+                  const url = currentLesson.video_url!;
+                  const isEmbed = url.includes("youtube.com") || url.includes("youtu.be") ||
+                    url.includes("vimeo.com") || url.includes("loom.com");
+                  return (
+                    <div className="aspect-video rounded-xl overflow-hidden border border-border bg-black">
+                      {isEmbed ? (
+                        <iframe
+                          src={url}
+                          className="w-full h-full"
+                          allow="autoplay; fullscreen"
+                          allowFullScreen
+                        />
+                      ) : (
+                        <video
+                          src={url}
+                          controls
+                          className="w-full h-full object-contain"
+                          preload="metadata"
+                        />
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Content tabs */}
                 <Tabs defaultValue="lesson" className="w-full">
