@@ -377,7 +377,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         if (!hasAnalysis && !isPremium && !isAdmin) {
           return <SectionGatePage
             sectionTitle="B · Brand Products"
-            sectionSubtitle="Create your products from your book."
+            sectionSubtitle="Create digital products from your book."
             gateMessage="Abby needs to understand your book before she can recommend which products to build."
             productNames={["Book Sales", "Workbooks", "Home Study", "Special Editions", "Lead Magnets", "Webinars", "Social Media", "Email Marketing", "Website"]}
             onAnalyze={() => setActiveSection("build-business")}

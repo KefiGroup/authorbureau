@@ -192,9 +192,9 @@ export default function BusinessFramework({ onNavigate, isPremium, focusStep }: 
         transition={{ delay: 0.5 }}
       >
         <p className="text-xs text-muted-foreground leading-relaxed max-w-lg mx-auto">
-          <strong>Your monetization journey:</strong> <strong>Brand</strong> your expertise into products →
-          <strong>Build</strong> authority & scale your audience →
-          <strong>Yield</strong> premium revenue & maximize your ROI.
+          <strong>Your monetization journey:</strong> <strong>Build</strong> authority & digital assets from your book →
+          <strong>Bridge</strong> marketing channels & connections →
+          <strong>Yield</strong> revenue streams & maximize your ROI.
           <br />
           <span className="text-secondary font-medium">Turn your book into revenue streams with ABBY.</span>
         </p>
