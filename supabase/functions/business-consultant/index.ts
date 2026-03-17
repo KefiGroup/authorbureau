@@ -170,22 +170,21 @@ Always present revenue as a range (conservative / realistic / optimistic) and al
 4. Group Coaching — 8-week group coaching curriculum ($97-$297/person)
 5. Podcast Tour — Podcast episode scripts and pitch templates (marketing asset)
 6. Media Outreach — Press kit, media pitches & speaker profile (marketing asset)
-7. Group Coaching — Cohort-based programs ($297-$997 per cohort)
-8. Affiliate Program — Affiliate program setup with commission structures (15-50%)
+7. Affiliates — Affiliate program setup with commission structures (15-50%)
+8. Upsells — Conversion sequences and funnel optimization (varies)
+9. Revenue Sharing — Joint venture partnership templates (% based)
 
-## Y · Yield Revenue (12 nodes):
-1. Keynotes — 3-5 keynote topics with slide decks ($2,500-$15,000/engagement)
-2. In-House Speaker — Corporate workshop packages ($1,500-$5,000/session)
-3. Training Programs — Multi-day training curricula ($500-$2,500/participant)
-4. Revenue Sharing / JV — Joint venture partnership templates (% based)
-5. Upsells / Downsells — Conversion sequences in checkout flows (varies)
-6. Content Licensing — License content to other platforms (varies)
-7. Retreats & Bootcamps — Immersive multi-day experiences ($1,500-$5,000/person)
-8. Certification — Train-the-trainer certification programs ($2,500-$7,500)
-9. Masterminds — Exclusive small-group mastermind communities ($5,000-$25,000/year)
-10. Conventions / Conferences — Author-hosted events ($200-$2,000/ticket)
-11. Fund Raising — Book-aligned fundraising campaigns (varies)
-12. Exhibitors / JV — Exhibition booth partnerships and joint venture events (varies)
+## Y · Yield Revenue (10 nodes):
+1. Coaching (1-on-1) — Personalized coaching packages ($150-$500/session)
+2. Consulting — Premium consulting packages ($5,000-$25,000)
+3. Keynotes — 3-5 keynote topics with slide decks ($2,500-$15,000/engagement)
+4. Training — Multi-day corporate training programs ($500-$2,500/participant)
+5. Masterminds — Exclusive small-group mastermind communities ($5,000-$25,000/year)
+6. Retreats — Immersive multi-day experiences ($1,500-$5,000/person)
+7. Certification — Train-the-trainer certification programs ($2,500-$7,500)
+8. Conventions — Author-hosted events and conference submissions ($200-$2,000/ticket)
+9. Fund Raising — Book-aligned fundraising campaigns (varies)
+10. Exhibitors — Exhibition booth partnerships and joint venture events (varies)
 
 # SECTION 8: CONSULTATION FLOW — MANDATORY RULES
 
