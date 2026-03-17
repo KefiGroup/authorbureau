@@ -304,8 +304,8 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <SummaryCard label="Total Products" value={products.length} icon={Package} />
         <SummaryCard label="Ready for Review" value={categoryCounts.review} icon={Eye} accent />
-        <SummaryCard label="Build Authority" value={categoryCounts.build} icon={Zap} />
-        <SummaryCard label="Bridge + Yield" value={categoryCounts.bridge + categoryCounts.yield} icon={Crown} />
+        <SummaryCard label="Brand Products" value={categoryCounts.build} icon={Zap} />
+        <SummaryCard label="Build + Yield" value={categoryCounts.bridge + categoryCounts.yield} icon={Crown} />
       </div>
 
       {/* ── 3-Act Pipeline Visual ────────────────────────────── */}
