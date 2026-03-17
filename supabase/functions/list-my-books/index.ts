@@ -242,13 +242,14 @@ Deno.serve(async (req) => {
 
     // Count products per book — use generated_assets with builder_content_* prefix
     // This is the canonical source since useBuilderGeneration saves here on completion
-    const buildBuilders = new Set([
+    const brandBuilders = new Set([
       "workbook", "social-media", "email-flows", "home-study-course", "book-sales",
-      "online-course", "audiobook", "podcast", "webinar", "membership", "website", "lead-magnet",
+      "special-editions", "lead-magnet", "webinar", "website",
     ]);
-    const bridgeBuilders = new Set([
-      "coaching-1on1", "group-coaching", "speaking", "corporate-training",
-      "affiliate", "partnerships", "upsell-downsell", "licensing", "community",
+    const buildAuthorityBuilders = new Set([
+      "online-course", "audiobook", "podcast", "membership",
+      "group-coaching", "affiliate", "upsell-downsell", "revenue-sharing",
+      "media-outreach",
     ]);
     // Everything else is yield
 
