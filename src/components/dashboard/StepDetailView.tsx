@@ -3,6 +3,7 @@ import { ArrowRight, Lock } from "lucide-react";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
 import { ABBY_CATEGORIES, ABBY_CATEGORY_LIST, getEffectiveCategory, type AbbyCategoryConfig, type AbbyNode, type AbbyCategory } from "@/config/abbyFrameworkConfig";
 import { useAuth } from "@/hooks/useAuth";
+import { isSuperAdmin } from "@/lib/superadmin";
 
 const statusStyles = {
   available: { badge: "Available", className: "bg-accent/15 text-accent border-accent/30" },
@@ -17,8 +18,8 @@ interface Props {
 }
 
 export default function StepDetailView({ categoryId, onNavigate, isPremium }: Props) {
-  const { isAdmin } = useAuth();
-  const catData = getEffectiveCategory(categoryId as AbbyCategory, isAdmin);
+  const { isAdmin, user } = useAuth();
+  const catData = getEffectiveCategory(categoryId as AbbyCategory, isAdmin, isSuperAdmin(user?.email));
   if (!catData) return null;
 
   const HeaderIcon = catData.headerIcon;

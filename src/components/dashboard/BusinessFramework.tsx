@@ -26,8 +26,8 @@ const statusStyles = {
 };
 
 export default function BusinessFramework({ onNavigate, isPremium, focusStep }: Props) {
-  const { isAdmin } = useAuth();
-  const categories = (Object.keys(ABBY_CATEGORIES) as AbbyCategory[]).map(k => getEffectiveCategory(k, isAdmin));
+  const { isAdmin, user } = useAuth();
+  const categories = (Object.keys(ABBY_CATEGORIES) as AbbyCategory[]).map(k => getEffectiveCategory(k, isAdmin, isSuperAdmin(user?.email)));
   const [activeCategory, setActiveCategory] = useState<string | null>(focusStep || null);
   useEffect(() => { if (focusStep) setActiveCategory(focusStep); }, [focusStep]);
   const activeCatData = categories.find((c) => c.id === activeCategory);
