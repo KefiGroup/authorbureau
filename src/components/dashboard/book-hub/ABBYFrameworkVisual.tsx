@@ -115,10 +115,9 @@ export default function ABBYFrameworkVisual({ hasConsultation, tier, completedAs
 
   const handleTagClick = (node: NodeDef, completed: boolean, recommended: boolean) => {
     if (completed) {
-      // Navigate to product review
-      onNavigateTab("revenue-streams");
+      onNavigateTab("brand-products");
     } else if (recommended && isAnalyzed) {
-      onNavigateTab("revenue-streams");
+      onNavigateTab("brand-products");
     }
     // Not recommended → no action
   };
