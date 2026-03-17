@@ -4,8 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
-  Monitor, Smartphone, BookOpen, Clock, Award, Users,
-  CheckCircle2, PlayCircle, ChevronRight,
+  Monitor, Smartphone, BookOpen, Clock, Award,
+  CheckCircle2,
 } from "lucide-react";
 import type { CourseStepProps, CourseModule } from "./types";
 
@@ -13,8 +13,7 @@ export default function CoursePreviewStep({ stepData }: CourseStepProps) {
   const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
   const foundation = stepData.foundation || {};
   const modules: CourseModule[] = stepData.curriculum?.modules || [];
-  const totalLessons = modules.reduce((a, m) => a + (m.lessons?.length || 0), 0);
-  const totalMinutes = modules.reduce((a, m) => a + (m.lessons || []).reduce((b, l) => b + (l.estimatedMinutes || 0), 0), 0);
+  const totalMinutes = modules.reduce((a, m) => a + (m.durationMinutes || 0), 0);
 
   return (
     <div className="space-y-6">
@@ -51,7 +50,6 @@ export default function CoursePreviewStep({ stepData }: CourseStepProps) {
               <p className="text-sm text-muted-foreground">{foundation.subtitle || "Course subtitle"}</p>
               <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1"><BookOpen className="h-3 w-3" /> {modules.length} modules</span>
-                <span className="flex items-center gap-1"><PlayCircle className="h-3 w-3" /> {totalLessons} lessons</span>
                 <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {Math.round(totalMinutes / 60)}h {totalMinutes % 60}m</span>
                 <span className="flex items-center gap-1"><Award className="h-3 w-3" /> Certificate</span>
               </div>
@@ -77,18 +75,13 @@ export default function CoursePreviewStep({ stepData }: CourseStepProps) {
                       <span className="w-6 h-6 rounded-full bg-secondary/10 text-secondary text-[10px] font-bold flex items-center justify-center">{i + 1}</span>
                       <span className="text-sm font-medium">{mod.title}</span>
                     </div>
-                    <span className="text-[10px] text-muted-foreground">{(mod.lessons || []).length} lessons</span>
+                    <span className="text-[10px] text-muted-foreground">{mod.durationMinutes || 0}m</span>
                   </div>
-                  <div className="divide-y divide-border">
-                    {(mod.lessons || []).map((lesson, li) => (
-                      <div key={lesson.id} className="flex items-center gap-3 px-3 py-2 hover:bg-muted/10 transition-colors">
-                        <PlayCircle className="h-4 w-4 text-muted-foreground/30 shrink-0" />
-                        <span className="text-xs flex-1">{lesson.title}</span>
-                        <span className="text-[10px] text-muted-foreground">{lesson.estimatedMinutes}m</span>
-                        <ChevronRight className="h-3 w-3 text-muted-foreground/30" />
-                      </div>
-                    ))}
-                  </div>
+                  {mod.contentSummary && (
+                    <div className="px-3 py-2 border-t border-border">
+                      <p className="text-xs text-muted-foreground">{mod.contentSummary}</p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -132,14 +125,10 @@ export default function CoursePreviewStep({ stepData }: CourseStepProps) {
 
             {/* Stats */}
             <div className="p-6 border-t border-border">
-              <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="grid grid-cols-2 gap-4 text-center">
                 <div>
                   <p className="text-lg font-bold text-secondary">{modules.length}</p>
                   <p className="text-[10px] text-muted-foreground">Modules</p>
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-secondary">{totalLessons}</p>
-                  <p className="text-[10px] text-muted-foreground">Lessons</p>
                 </div>
                 <div>
                   <p className="text-lg font-bold text-secondary">{Math.round(totalMinutes / 60)}h+</p>
@@ -167,9 +156,9 @@ export default function CoursePreviewStep({ stepData }: CourseStepProps) {
           </div>
           <div>
             <p className="text-xs font-bold text-secondary mb-1">Abby's Final Review</p>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Your course covers <strong>{modules.length} modules</strong> with <strong>{totalLessons} lessons</strong>.
-              Estimated completion time: <strong>{Math.round(totalMinutes / 60)} hours</strong>.
+             <p className="text-xs text-muted-foreground leading-relaxed">
+               Your course covers <strong>{modules.length} modules</strong>.
+               Estimated completion time: <strong>{Math.round(totalMinutes / 60)} hours</strong>.
               {foundation.exactPrice && ` At $${foundation.exactPrice}, with even 10 students per month, that's $${parseInt(foundation.exactPrice) * 10}/month in revenue.`}
               {" "}Everything looks solid — ready to publish!
             </p>
