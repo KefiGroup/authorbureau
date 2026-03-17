@@ -23,7 +23,7 @@ export default function SalesPageStep({ stepData, setStepData, onMarkEdited, boo
 
       const title = stepData.foundation?.title || "Your Course";
       const transformation = stepData.foundation?.transformation || "transform your life";
-      const moduleCount = stepData.curriculum?.modules?.length || 8;
+      const moduleCount = stepData.curriculum?.modules?.length || 0;
       const price = stepData.foundation?.exactPrice || stepData.foundation?.priceTier || "97";
       const authorName = stepData.foundation?.authorName || "Author";
 
