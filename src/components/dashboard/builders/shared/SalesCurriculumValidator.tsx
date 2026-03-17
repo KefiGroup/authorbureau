@@ -246,10 +246,18 @@ export default function SalesCurriculumValidator({ salesCopy, curriculum, onGoTo
               <strong className="text-destructive">Claim:</strong>{" "}
               <span className="text-muted-foreground">{m.claim}</span>
             </p>
-            <p className="text-xs mb-2">
+            <p className="text-xs mb-1">
               <strong className="text-accent">Reality:</strong>{" "}
               <span className="text-muted-foreground">{m.reality}</span>
             </p>
+            {m.locations && m.locations.length > 0 && (
+              <div className="text-xs mb-2 flex items-start gap-1.5">
+                <strong className="text-primary shrink-0">Found in:</strong>
+                <span className="text-muted-foreground">
+                  {m.locations.join(", ")} — open the <strong>Sales Page</strong> step and search for the flagged keyword in {m.locations.length === 1 ? "this section" : "these sections"}.
+                </span>
+              </div>
+            )}
             <div className="flex items-center gap-2 pt-1 border-t border-border">
               <p className="text-[10px] text-muted-foreground flex-1">
                 <strong>Fix:</strong> {m.fix}
