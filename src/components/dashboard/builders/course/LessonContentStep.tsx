@@ -10,6 +10,18 @@ import { useToast } from "@/hooks/use-toast";
 import { generateJSONWithAI } from "@/lib/ai-generate";
 import type { CourseStepProps, CourseModule, CourseQuiz } from "./types";
 
+interface GeneratedLessonContent {
+  script?: string;
+  summary?: string[];
+  exercise?: string;
+  quiz?: Array<{
+    question?: string;
+    options?: string[];
+    correctAnswer?: number;
+    explanation?: string;
+  }>;
+}
+
 export default function LessonContentStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, generationState, setGenerationState }: CourseStepProps) {
   const { toast } = useToast();
   const modules: CourseModule[] = stepData.curriculum?.modules || [];
@@ -29,18 +41,83 @@ export default function LessonContentStep({ stepData, setStepData, onMarkEdited,
   const currentModule = modules[selectedModIdx];
   const currentLesson = currentModule?.lessons?.[selectedLessonIdx];
 
-  const updateLesson = (field: string, value: any) => {
-    if (!currentModule || !currentLesson) return;
-    const newModules = modules.map((m, mi) =>
-      mi === selectedModIdx
-        ? { ...m, lessons: (m.lessons || []).map((l, li) => li === selectedLessonIdx ? { ...l, [field]: value } : l) }
-        : m
-    );
-    setStepData(prev => ({
-      ...prev,
-      curriculum: { ...prev.curriculum, modules: newModules },
-    }));
+  const buildFallbackLesson = (moduleTitle: string, lessonIndex: number) => ({
+    id: crypto.randomUUID(),
+    title: `${moduleTitle || "Module"} — Lesson ${lessonIndex + 1}`,
+    description: "",
+    keyTakeaway: "",
+    estimatedMinutes: 15,
+    position: lessonIndex,
+    summary: [] as string[],
+    quiz: [] as CourseQuiz[],
+    resources: [] as string[],
+  });
+
+  const upsertLessonField = (moduleIndex: number, lessonIndex: number, field: string, value: any) => {
+    setStepData((prev) => {
+      const prevModules: CourseModule[] = Array.isArray(prev.curriculum?.modules) ? prev.curriculum.modules : [];
+      const nextModules = prevModules.map((mod, mi) => {
+        if (mi !== moduleIndex) return mod;
+
+        const lessons = Array.isArray(mod.lessons) ? [...mod.lessons] : [];
+        while (lessons.length <= lessonIndex) {
+          lessons.push(buildFallbackLesson(mod.title || `Module ${mi + 1}`, lessons.length) as any);
+        }
+
+        const existingLesson = lessons[lessonIndex] as any;
+        lessons[lessonIndex] = {
+          ...existingLesson,
+          [field]: value,
+          position: Number(existingLesson?.position ?? lessonIndex),
+        };
+
+        return { ...mod, lessons };
+      });
+
+      return {
+        ...prev,
+        curriculum: { ...prev.curriculum, modules: nextModules },
+      };
+    });
     onMarkEdited("content");
+  };
+
+  const ensureSelectedLesson = () => {
+    if (!currentModule) return null;
+
+    const lessons = Array.isArray(currentModule.lessons) ? currentModule.lessons : [];
+    const existingLesson = lessons[selectedLessonIdx];
+    if (existingLesson) {
+      return { lesson: existingLesson, lessonIndex: selectedLessonIdx };
+    }
+
+    const lessonIndex = lessons.length;
+    const fallbackLesson = buildFallbackLesson(currentModule.title || `Module ${selectedModIdx + 1}`, lessonIndex);
+
+    setStepData((prev) => {
+      const prevModules: CourseModule[] = Array.isArray(prev.curriculum?.modules) ? prev.curriculum.modules : [];
+      const nextModules = prevModules.map((mod, mi) => {
+        if (mi !== selectedModIdx) return mod;
+        const existing = Array.isArray(mod.lessons) ? mod.lessons : [];
+        return { ...mod, lessons: [...existing, fallbackLesson as any] };
+      });
+
+      return {
+        ...prev,
+        curriculum: { ...prev.curriculum, modules: nextModules },
+      };
+    });
+
+    setSelectedLessonIdx(lessonIndex);
+    onMarkEdited("content");
+
+    return { lesson: fallbackLesson, lessonIndex };
+  };
+
+  const updateLesson = (field: string, value: any) => {
+    const ensured = ensureSelectedLesson();
+    if (!ensured) return;
+    upsertLessonField(selectedModIdx, ensured.lessonIndex, field, value);
   };
 
   const addQuiz = () => {
@@ -59,37 +136,95 @@ export default function LessonContentStep({ stepData, setStepData, onMarkEdited,
   };
 
   const handleGenerateContent = async () => {
+    if (!currentModule) {
+      toast({ title: "Select a module first", variant: "destructive" });
+      return;
+    }
+
+    const ensured = ensureSelectedLesson();
+    if (!ensured) {
+      toast({ title: "No lesson selected", variant: "destructive" });
+      return;
+    }
+
+    const lessonTitle = ensured.lesson?.title || `Lesson ${ensured.lessonIndex + 1}`;
+    const moduleTitle = currentModule.title || `Module ${selectedModIdx + 1}`;
+
     setGenerationState("queued");
     try {
       setGenerationState("analyzing");
 
-      const result = await generateJSONWithAI(
-        `Generate lesson content for a course lesson titled "${currentLesson?.title}" in module "${currentModule?.title}" from the book "${bookTitle}".
+      const basePrompt = `Generate lesson content for a course lesson titled "${lessonTitle}" in module "${moduleTitle}" from the book "${bookTitle}".
 
 Return a JSON object with:
-- "script": string (markdown lesson script, 400-600 words, with sections for Key Concepts, Practical Application, and Summary)
+- "script": string (plain text, 400-600 words, with sections for Key Concepts, Practical Application, and Summary)
 - "summary": string[] (4 key takeaway bullet points)
 - "exercise": string (a practical exercise, 100-150 words with numbered steps)
 - "quiz": array of 3 objects each with {"question": string, "options": string[] (4 options), "correctAnswer": number (0-3), "explanation": string}
 
 Make the content specific to the lesson topic, not generic.
-Return ONLY valid JSON, no markdown fences.`,
-        { bookId, isPremium: true }
-      );
+Return ONLY valid JSON.`;
+
+      const aiOptions = {
+        bookId,
+        isPremium: true,
+        builderMode: true,
+        builderId: "online-course",
+        builderLabel: "Online Course",
+        builderStep: "Lesson Content",
+      };
+
+      let result: GeneratedLessonContent;
+      try {
+        result = await generateJSONWithAI<GeneratedLessonContent>(basePrompt, aiOptions);
+      } catch {
+        result = await generateJSONWithAI<GeneratedLessonContent>(
+          `${basePrompt}\n\nSTRICT FORMAT: Start with { and end with }. No markdown, no prose, no code fences, no comments.`,
+          aiOptions,
+        );
+      }
 
       setGenerationState("generating");
 
-      updateLesson("script", result.script);
-      updateLesson("summary", result.summary);
-      updateLesson("exercise", result.exercise);
-      updateLesson("quiz", result.quiz);
+      const normalizedSummary = Array.isArray(result.summary)
+        ? result.summary.map((point) => String(point || "").trim()).filter(Boolean)
+        : [];
+
+      const normalizedQuiz: CourseQuiz[] = Array.isArray(result.quiz)
+        ? result.quiz.map((q) => {
+            const options = Array.isArray(q?.options)
+              ? q.options.map((opt) => String(opt || "").trim()).slice(0, 4)
+              : [];
+
+            while (options.length < 4) options.push("");
+
+            const rawAnswer = Number(q?.correctAnswer);
+            const safeCorrectAnswer = Number.isFinite(rawAnswer) ? Math.min(3, Math.max(0, rawAnswer)) : 0;
+
+            return {
+              question: String(q?.question || "").trim(),
+              options,
+              correctAnswer: safeCorrectAnswer,
+              explanation: String(q?.explanation || "").trim(),
+            };
+          })
+        : [];
+
+      upsertLessonField(selectedModIdx, ensured.lessonIndex, "script", String(result.script || ""));
+      upsertLessonField(selectedModIdx, ensured.lessonIndex, "summary", normalizedSummary);
+      upsertLessonField(selectedModIdx, ensured.lessonIndex, "exercise", String(result.exercise || ""));
+      upsertLessonField(selectedModIdx, ensured.lessonIndex, "quiz", normalizedQuiz);
 
       setGenerationState("complete");
       toast({ title: "Lesson content generated!", description: "Review the script, exercises, and quiz below." });
     } catch (err) {
-      console.error(err);
+      console.error("Lesson content generation failed:", err);
       setGenerationState("error");
-      toast({ title: "Generation failed", variant: "destructive" });
+      toast({
+        title: "Generation failed",
+        description: err instanceof Error ? err.message : "Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
