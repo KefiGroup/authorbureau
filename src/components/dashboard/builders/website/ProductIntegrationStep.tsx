@@ -69,7 +69,7 @@ export default function ProductIntegrationStep({ stepData, setStepData, onMarkEd
         <div className="flex items-start gap-3">
           <Sparkles className="h-4 w-4 text-secondary mt-0.5 shrink-0" />
           <p className="text-xs text-muted-foreground">
-            <span className="font-semibold text-foreground">Abby's tip:</span> Products are auto-populated from all your built products. Organize them by ABBY category (Build, Bridge, Yield) so visitors can see your full ecosystem.
+            <span className="font-semibold text-foreground">Abby's tip:</span> Products are auto-populated from all your built products. Organize them by ABBY category (Brand, Build, Yield) so visitors can see your full ecosystem.
           </p>
         </div>
       </Card>
