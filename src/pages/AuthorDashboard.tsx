@@ -362,6 +362,9 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         }
         return <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />;
       case "marketing-channels":
+        if (userIsSuperAdmin) {
+          return <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />;
+        }
         return <SectionGatePage
           sectionTitle="B · Bridge Channels"
           sectionSubtitle="Coming Soon — Marketing channels & audience connections."
@@ -370,6 +373,9 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           onAnalyze={() => setActiveSection("revenue-streams")}
         />;
       case "authority-builders":
+        if (userIsSuperAdmin) {
+          return <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />;
+        }
         return <SectionGatePage
           sectionTitle="Y · Yield Revenue"
           sectionSubtitle="Coming Soon — Premium revenue streams & monetization."
