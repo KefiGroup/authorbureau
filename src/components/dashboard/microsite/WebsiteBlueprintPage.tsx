@@ -57,9 +57,10 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
   const siteUrl = `https://authorsbureau.com/${authorSlug}`;
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) return;
     loadData();
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   async function loadData() {
     setLoading(true);
