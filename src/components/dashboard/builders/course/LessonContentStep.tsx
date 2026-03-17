@@ -373,31 +373,27 @@ Use well-known sites (HBR, TED, Coursera, Google Docs, Notion, Canva, Wikipedia,
 
   return (
     <div className="space-y-4">
-      {/* Lesson selector */}
+      {/* Module selector */}
       <div className="flex gap-2 overflow-x-auto pb-2">
         {modules.map((mod, mi) => (
-          <div key={mod.id} className="flex gap-1">
-            {getModuleLessonsForDisplay(mod).map((lesson, li) => (
-              <button
-                key={lesson.id}
-                onClick={() => { setSelectedModIdx(mi); setSelectedLessonIdx(li); }}
-                className={`px-2.5 py-1 rounded-full text-[10px] font-medium whitespace-nowrap transition-colors ${
-                  mi === selectedModIdx && li === activeLessonIdx
-                    ? "bg-secondary text-secondary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
-                }`}
-              >
-                M{mi + 1}.L{li + 1}
-              </button>
-            ))}
-          </div>
+          <button
+            key={mod.id}
+            onClick={() => { setSelectedModIdx(mi); setSelectedLessonIdx(0); }}
+            className={`px-2.5 py-1 rounded-full text-[10px] font-medium whitespace-nowrap transition-colors ${
+              mi === selectedModIdx
+                ? "bg-secondary text-secondary-foreground"
+                : "bg-muted text-muted-foreground hover:bg-muted/80"
+            }`}
+          >
+            M{mi + 1}
+          </button>
         ))}
       </div>
 
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs text-muted-foreground">{currentModule?.title}</p>
-          <h3 className="font-heading text-lg font-bold">{currentLesson?.title}</h3>
+          <p className="text-xs text-muted-foreground">MODULE {selectedModIdx + 1}</p>
+          <h3 className="font-heading text-lg font-bold">{currentModule?.title}</h3>
         </div>
         <div className="flex items-center gap-2">
           {lastGenerated[`${selectedModIdx}-${activeLessonIdx}`] && (
