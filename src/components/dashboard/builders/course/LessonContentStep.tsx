@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,7 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Sparkles, Loader2, BookOpen, Wand2, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateJSONWithAI } from "@/lib/ai-generate";
-import type { CourseStepProps, CourseModule, CourseQuiz } from "./types";
+import type { CourseStepProps, CourseModule, CourseQuiz, CourseLesson } from "./types";
 
 interface GeneratedLessonContent {
   script?: string;
@@ -29,6 +29,37 @@ export default function LessonContentStep({ stepData, setStepData, onMarkEdited,
   const [selectedModIdx, setSelectedModIdx] = useState(0);
   const [selectedLessonIdx, setSelectedLessonIdx] = useState(0);
 
+  const getModuleLessonsForDisplay = (mod: CourseModule): CourseLesson[] => {
+    if (Array.isArray(mod.lessons) && mod.lessons.length > 0) return mod.lessons;
+    return [{
+      id: `${mod.id}-lesson-1`,
+      title: `${mod.title || "Module"} — Lesson 1`,
+      description: "",
+      keyTakeaway: "",
+      estimatedMinutes: 15,
+      position: 0,
+      summary: [],
+      quiz: [],
+      resources: [],
+    }];
+  };
+
+  useEffect(() => {
+    if (selectedModIdx > modules.length - 1) {
+      setSelectedModIdx(Math.max(0, modules.length - 1));
+      setSelectedLessonIdx(0);
+    }
+  }, [modules.length, selectedModIdx]);
+
+  useEffect(() => {
+    const current = modules[selectedModIdx];
+    if (!current) return;
+    const lessonCount = getModuleLessonsForDisplay(current).length;
+    if (selectedLessonIdx > lessonCount - 1) {
+      setSelectedLessonIdx(0);
+    }
+  }, [modules, selectedModIdx, selectedLessonIdx]);
+
   if (modules.length === 0) {
     return (
       <div className="text-center py-12">
@@ -40,7 +71,9 @@ export default function LessonContentStep({ stepData, setStepData, onMarkEdited,
   }
 
   const currentModule = modules[selectedModIdx];
-  const currentLesson = currentModule?.lessons?.[selectedLessonIdx];
+  const currentModuleLessons = currentModule ? getModuleLessonsForDisplay(currentModule) : [];
+  const activeLessonIdx = Math.min(selectedLessonIdx, Math.max(0, currentModuleLessons.length - 1));
+  const currentLesson = currentModuleLessons[activeLessonIdx];
 
   const buildFallbackLesson = (moduleTitle: string, lessonIndex: number) => ({
     id: crypto.randomUUID(),
