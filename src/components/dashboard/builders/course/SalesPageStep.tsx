@@ -23,15 +23,27 @@ export default function SalesPageStep({ stepData, setStepData, onMarkEdited, boo
 
       const title = stepData.foundation?.title || "Your Course";
       const transformation = stepData.foundation?.transformation || "transform your life";
-      const moduleCount = stepData.curriculum?.modules?.length || 0;
+      const modules = stepData.curriculum?.modules || [];
+      const moduleCount = modules.length;
       const price = stepData.foundation?.exactPrice || stepData.foundation?.priceTier || "97";
       const authorName = stepData.foundation?.authorName || "Author";
+
+      const moduleList = modules.map((m: any, i: number) => `Module ${i + 1}: ${m.title}`).join(", ");
+      const totalMinutes = modules.reduce((a: number, m: any) => a + (m.durationMinutes || 0), 0);
+      const totalHours = Math.round(totalMinutes / 60);
+
+      if (moduleCount === 0) {
+        toast({ title: "No modules yet", description: "Generate your curriculum in Step 2 first so the sales page reflects your actual course content.", variant: "destructive" });
+        setGenerationState("idle");
+        return;
+      }
 
       const result = await generateJSONWithAI<SalesCopyData>(
         `You are a sales copywriter. Generate a JSON object (NOT wrapped in another object) for an 11-section sales page.
 
 Product: "${title}" (online course based on the book "${bookTitle}")
-The course has ${moduleCount} modules and promises to help students ${transformation}.
+The course has exactly ${moduleCount} modules (${totalHours}+ hours of content): ${moduleList}.
+The course promises to help students ${transformation}.
 
 Return ONLY this JSON structure with ALL fields populated with compelling copy:
 {"hero":{"title":"${title}","tagline":"one-line tagline","ctaText":"Enroll Now"},"problem":{"headline":"Are you struggling with...","painPoints":["point1","point2","point3","point4"]},"transformation":{"before":["struggle1","struggle2","struggle3"],"after":["result1","result2","result3"]},"introduction":{"paragraph":"2-3 sentences about what this is and who it's for"},"whatsInside":{"items":["item1","item2","item3","item4","item5"]},"howItWorks":{"steps":[{"title":"Enroll","description":"desc"},{"title":"Learn","description":"desc"},{"title":"Transform","description":"desc"}]},"author":{"name":"${authorName}","bio":"2-3 sentences bio","credentials":"key credential"},"socialProof":{"testimonials":[{"name":"Name1","quote":"quote1"},{"name":"Name2","quote":"quote2"},{"name":"Name3","quote":"quote3"}]},"pricing":{"price":"${price}","comparePrice":"${Math.round(parseInt(price) * 2)}","currency":"USD","ctaText":"Enroll Now","included":["benefit1","benefit2","benefit3","benefit4"]},"faq":{"items":[{"q":"q1","a":"a1"},{"q":"q2","a":"a2"},{"q":"q3","a":"a3"},{"q":"q4","a":"a4"},{"q":"q5","a":"a5"}]},"finalCta":{"headline":"urgency headline","subheadline":"motivating line","ctaText":"Enroll Now","urgency":"limited time"}}
