@@ -390,15 +390,38 @@ Use well-known sites (HBR, TED, Coursera, Google Docs, Notion, Canva, Wikipedia,
           <p className="text-xs text-muted-foreground">{currentModule?.title}</p>
           <h3 className="font-heading text-lg font-bold">{currentLesson?.title}</h3>
         </div>
-        {!currentLesson?.script && (
+        <div className="flex items-center gap-2">
+          {lastGenerated[`${selectedModIdx}-${activeLessonIdx}`] && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full text-xs"
+              onClick={() => {
+                const snapshot = lastGenerated[`${selectedModIdx}-${activeLessonIdx}`];
+                if (!snapshot) return;
+                upsertLessonField(selectedModIdx, activeLessonIdx, "script", snapshot.script);
+                upsertLessonField(selectedModIdx, activeLessonIdx, "summary", snapshot.summary);
+                upsertLessonField(selectedModIdx, activeLessonIdx, "exercise", snapshot.exercise);
+                upsertLessonField(selectedModIdx, activeLessonIdx, "quiz", snapshot.quiz);
+                upsertLessonField(selectedModIdx, activeLessonIdx, "resources", snapshot.resources);
+                toast({ title: "Restored last AI-generated content" });
+              }}
+            >
+              <RotateCcw className="h-3.5 w-3.5 mr-1" /> Undo Edits
+            </Button>
+          )}
           <Button
             onClick={handleGenerateContent}
             size="sm"
             className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90"
           >
-            <Sparkles className="h-3.5 w-3.5 mr-1" /> Generate Content
+            {currentLesson?.script ? (
+              <><RefreshCw className="h-3.5 w-3.5 mr-1" /> Regenerate</>
+            ) : (
+              <><Sparkles className="h-3.5 w-3.5 mr-1" /> Generate Content</>
+            )}
           </Button>
-        )}
+        </div>
       </div>
 
       {/* Tabbed editor */}
