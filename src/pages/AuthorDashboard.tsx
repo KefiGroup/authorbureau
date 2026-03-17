@@ -371,39 +371,42 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "subscribers":
       case "email-templates":
         return gate("Email Marketing", <EmailMarketing activeTab={activeSection} onTabChange={(s) => setActiveSection(s as DashboardSection)} />);
+      case "brand-products":
       case "revenue-streams":
         // Subscribers can always access product sections; only gate for free users without analysis
         if (!hasAnalysis && !isPremium && !isAdmin) {
           return <SectionGatePage
-            sectionTitle="B · Build Authority"
-            sectionSubtitle="Create digital products that establish you as the expert in your field."
-            gateMessage="Abby needs to understand your book before she can recommend which authority products to build."
-            productNames={["Online Courses", "Home Study", "Workbook", "Audiobook", "Memberships", "Upsells", "1-on-1 Coaching", "Group Coaching", "Big Ticket Consulting", "Revenue Sharing", "Keynotes"]}
+            sectionTitle="B · Brand Products"
+            sectionSubtitle="Create digital products from your book."
+            gateMessage="Abby needs to understand your book before she can recommend which products to build."
+            productNames={["Book Sales", "Workbooks", "Home Study", "Special Editions", "Lead Magnets", "Webinars", "Social Media", "Email Marketing", "Website"]}
             onAnalyze={() => setActiveSection("build-business")}
           />;
         }
-        return <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />;
+        return <PortfolioStepView categoryId="brand-products" tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />;
+      case "build-authority":
       case "marketing-channels":
-        if (userIsSuperAdmin || !isCategoryFullyClosed("marketing-channels")) {
-          return <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />;
+        if (userIsSuperAdmin || !isCategoryFullyClosed("build-authority")) {
+          return <PortfolioStepView categoryId="build-authority" tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />;
         }
         return <SectionGatePage
-          sectionTitle="B · Bridge Channels"
-          sectionSubtitle="Coming Soon — Marketing channels & audience connections."
-          gateMessage="Bridge Channels are currently under development. We're building powerful tools for podcasts, webinars, audiobooks, and more. Check back soon!"
-          productNames={["Audiobook", "Podcast Tour", "Webinars", "Lead Magnet Funnel", "Media Outreach", "Affiliates", "Upsells / Downsells", "Revenue Sharing"]}
-          onAnalyze={() => setActiveSection("revenue-streams")}
+          sectionTitle="B · Build Authority"
+          sectionSubtitle="Coming Soon — Scale your audience & distribution."
+          gateMessage="Build Authority builders are currently under development. We're building powerful tools for courses, audiobooks, coaching, and more. Check back soon!"
+          productNames={["Online Courses", "Audiobook", "Memberships", "Group Coaching", "Podcast Tour", "Media Outreach", "Affiliates", "Upsells", "Revenue Sharing"]}
+          onAnalyze={() => setActiveSection("brand-products")}
         />;
+      case "yield-revenue":
       case "authority-builders":
-        if (userIsSuperAdmin || !isCategoryFullyClosed("authority-builders")) {
-          return <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />;
+        if (userIsSuperAdmin || !isCategoryFullyClosed("yield-revenue")) {
+          return <PortfolioStepView categoryId="yield-revenue" tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />;
         }
         return <SectionGatePage
           sectionTitle="Y · Yield Revenue"
-          sectionSubtitle="Coming Soon — Premium revenue streams & monetization."
-          gateMessage="Yield Revenue builders are currently under development. We're crafting premium tools for coaching, speaking, masterminds, and more. Check back soon!"
-          productNames={["1-on-1 Coaching", "Group Coaching", "Memberships", "Big Ticket Consulting", "Keynotes", "Training Programs", "Masterminds", "Retreats"]}
-          onAnalyze={() => setActiveSection("revenue-streams")}
+          sectionSubtitle="Coming Soon — Premium services & monetization."
+          gateMessage="Yield Revenue builders are currently under development. We're crafting premium tools for coaching, consulting, keynotes, and more. Check back soon!"
+          productNames={["Coaching", "Consulting", "Keynotes", "Training", "Masterminds", "Retreats", "Certification", "Conventions"]}
+          onAnalyze={() => setActiveSection("brand-products")}
         />;
       case "review-products":
         return <ReviewProductsPage onNavigate={handleNavigate} />;
