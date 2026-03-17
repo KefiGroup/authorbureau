@@ -238,9 +238,11 @@ export function isCategoryGated(catId: AbbyCategory): boolean {
 }
 
 /**
- * Returns effective node status — Bridge & Yield are always "coming-soon" for everyone.
+ * Returns effective node status — Bridge & Yield are always "coming-soon" for everyone
+ * UNLESS the caller is a superadmin (developer override).
  */
-export function getEffectiveNodeStatus(node: AbbyNode, categoryId: AbbyCategory, _isAdmin: boolean): AbbyNode["status"] {
+export function getEffectiveNodeStatus(node: AbbyNode, categoryId: AbbyCategory, _isAdmin: boolean, isSuperAdmin = false): AbbyNode["status"] {
+  if (isSuperAdmin) return node.status;
   if (GATED_CATEGORIES.includes(categoryId) && (node.status === "coming-soon" || node.status === "available")) {
     return "coming-soon";
   }
@@ -249,11 +251,13 @@ export function getEffectiveNodeStatus(node: AbbyNode, categoryId: AbbyCategory,
 
 /**
  * Returns a copy of the category with effective statuses applied.
- * Bridge & Yield nodes are always forced to "coming-soon" for ALL users.
+ * Bridge & Yield nodes are always forced to "coming-soon" for ALL users
+ * UNLESS the caller is a superadmin (developer override).
  */
-export function getEffectiveCategory(catId: AbbyCategory, _isAdmin: boolean): AbbyCategoryConfig {
+export function getEffectiveCategory(catId: AbbyCategory, _isAdmin: boolean, isSuperAdmin = false): AbbyCategoryConfig {
   const cat = ABBY_CATEGORIES[catId];
   if (!cat) return cat;
+  if (isSuperAdmin) return cat;
   if (GATED_CATEGORIES.includes(catId)) {
     return {
       ...cat,
