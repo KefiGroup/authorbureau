@@ -11,6 +11,7 @@ import SmartProductCard, { type ProductCardState, BASELINE_REVENUE } from "@/com
 import { toast } from "@/hooks/use-toast";
 import { ABBY_CATEGORIES, getEffectiveCategory, type AbbyCategory, type AbbyNode } from "@/config/abbyFrameworkConfig";
 import { isSuperAdmin } from "@/lib/superadmin";
+import { useNodeGating } from "@/hooks/useNodeGating";
 
 // Re-use Node type from config
 type Node = AbbyNode;
