@@ -458,7 +458,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
           bookId={book.id}
           authorId={authorId}
           tier={tier}
-          onNavigateBuilder={(builderId) => onNavigateTab("revenue-streams")}
+          onNavigateBuilder={(builderId) => onNavigateTab("brand-products")}
         />
       )}
 

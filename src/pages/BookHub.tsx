@@ -122,9 +122,9 @@ export default function BookHub() {
             onNavigateTab={(tab) => setActiveTab(tab as BookHubTab)}
           />
         );
-      case "revenue-streams":
-      case "marketing-channels":
-      case "authority-builders":
+      case "brand-products":
+      case "build-authority":
+      case "yield-revenue":
         return (
           <BookHubStepTab
             categoryId={activeTab}
