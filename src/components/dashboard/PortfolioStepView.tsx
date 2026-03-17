@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import SmartProductCard, { type ProductCardState, BASELINE_REVENUE } from "@/components/dashboard/SmartProductCard";
 import { toast } from "@/hooks/use-toast";
 import { ABBY_CATEGORIES, getEffectiveCategory, type AbbyCategory, type AbbyNode } from "@/config/abbyFrameworkConfig";
+import { isSuperAdmin } from "@/lib/superadmin";
 
 // Re-use Node type from config
 type Node = AbbyNode;
@@ -45,7 +46,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
   const [recommendations, setRecommendations] = useState<AbbyRecommendation[]>([]);
   const [builtProducts, setBuiltProducts] = useState<Set<string>>(new Set());
   const [publishedProducts, setPublishedProducts] = useState<Set<string>>(new Set());
-  const category = getEffectiveCategory(categoryId as AbbyCategory, isAdmin);
+  const category = getEffectiveCategory(categoryId as AbbyCategory, isAdmin, isSuperAdmin(user?.email));
 
   useEffect(() => {
     async function fetchData() {

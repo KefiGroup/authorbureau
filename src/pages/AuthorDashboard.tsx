@@ -41,6 +41,7 @@ import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { useAuthorStats } from "@/hooks/useAuthorStats";
 
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
+import { isSuperAdmin } from "@/lib/superadmin";
 
 // All builder node IDs for the type union
 const BUILDER_NODE_IDS = Object.keys(BUILDER_NODE_MAP) as Array<keyof typeof BUILDER_NODE_MAP>;
@@ -253,9 +254,11 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
     "marketing-channels", "authority-builders",
   ]);
 
+  const userIsSuperAdmin = isSuperAdmin(user?.email);
+
   const renderSection = () => {
-    // Gate Bridge & Yield individual builders for non-admins
-    if (!isAdmin && BRIDGE_YIELD_SECTIONS.has(activeSection)) {
+    // Gate Bridge & Yield individual builders — superadmins bypass
+    if (!isAdmin && !userIsSuperAdmin && BRIDGE_YIELD_SECTIONS.has(activeSection)) {
       return (
         <div className="max-w-2xl mx-auto text-center space-y-6 py-20">
           <div className="w-16 h-16 rounded-2xl bg-secondary/10 flex items-center justify-center mx-auto">
@@ -359,6 +362,9 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         }
         return <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />;
       case "marketing-channels":
+        if (userIsSuperAdmin) {
+          return <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />;
+        }
         return <SectionGatePage
           sectionTitle="B · Bridge Channels"
           sectionSubtitle="Coming Soon — Marketing channels & audience connections."
@@ -367,6 +373,9 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           onAnalyze={() => setActiveSection("revenue-streams")}
         />;
       case "authority-builders":
+        if (userIsSuperAdmin) {
+          return <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />;
+        }
         return <SectionGatePage
           sectionTitle="Y · Yield Revenue"
           sectionSubtitle="Coming Soon — Premium revenue streams & monetization."
@@ -462,6 +471,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
           isPremium={isPremium || isAdmin}
           isAdmin={isAdmin}
+          isSuperAdmin={userIsSuperAdmin}
           tier={tier}
           hasBooks={hasBooks}
           hasAnalysis={hasAnalysis}

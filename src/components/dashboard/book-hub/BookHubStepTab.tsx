@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ABBY_CATEGORIES, getEffectiveCategory, getStudioPath as getStudioPathFromConfig, type AbbyCategory, type AbbyNode } from "@/config/abbyFrameworkConfig";
+import { isSuperAdmin } from "@/lib/superadmin";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -26,8 +27,8 @@ interface ProductNode {
 }
 
 /** Derive local ProductNode[] from shared config */
-function deriveNodes(catId: AbbyCategory, isAdmin: boolean): ProductNode[] {
-  const cat = getEffectiveCategory(catId, isAdmin);
+function deriveNodes(catId: AbbyCategory, isAdmin: boolean, superAdmin = false): ProductNode[] {
+  const cat = getEffectiveCategory(catId, isAdmin, superAdmin);
   if (!cat) return [];
   return cat.nodes.map(n => ({
     id: n.id,
@@ -52,8 +53,8 @@ interface DerivedCategory {
   nodes: ProductNode[];
 }
 
-function deriveCategoryConfig(catId: AbbyCategory, isAdmin: boolean): DerivedCategory | null {
-  const cat = getEffectiveCategory(catId, isAdmin);
+function deriveCategoryConfig(catId: AbbyCategory, isAdmin: boolean, superAdmin = false): DerivedCategory | null {
+  const cat = getEffectiveCategory(catId, isAdmin, superAdmin);
   if (!cat) return null;
   return {
     id: cat.id,
@@ -64,7 +65,7 @@ function deriveCategoryConfig(catId: AbbyCategory, isAdmin: boolean): DerivedCat
     gradientFrom: cat.gradientFrom,
     gradientTo: cat.gradientTo,
     headerIcon: cat.headerIcon,
-    nodes: deriveNodes(catId, isAdmin),
+    nodes: deriveNodes(catId, isAdmin, superAdmin),
   };
 }
 
@@ -133,10 +134,11 @@ interface Props {
 export default function BookHubStepTab({ categoryId, bookId, bookTitle, bookGenre, isPremium, tier }: Props) {
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
+  const userIsSuperAdmin = isSuperAdmin(user?.email);
   const { plan, completedAssets } = useAbbyPlan(bookId);
   const [executingNode, setExecutingNode] = useState<ProductNode | null>(null);
   const [notifiedNodes, setNotifiedNodes] = useState<Set<string>>(new Set());
-  const catData = deriveCategoryConfig(categoryId as AbbyCategory, isAdmin);
+  const catData = deriveCategoryConfig(categoryId as AbbyCategory, isAdmin, userIsSuperAdmin);
   if (!catData) return null;
 
   const HeaderIcon = catData.headerIcon;

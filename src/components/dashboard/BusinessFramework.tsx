@@ -7,6 +7,7 @@ import type { DashboardSection } from "@/pages/AuthorDashboard";
 import ABBYFrameworkVisual from "@/components/dashboard/book-hub/ABBYFrameworkVisual";
 import { ABBY_CATEGORIES, ABBY_CATEGORY_LIST, getEffectiveCategory, type AbbyCategoryConfig, type AbbyNode, type AbbyCategory } from "@/config/abbyFrameworkConfig";
 import { useAuth } from "@/hooks/useAuth";
+import { isSuperAdmin } from "@/lib/superadmin";
 
 // Alias for backward compat in this file
 type Node = AbbyNode;
@@ -25,8 +26,8 @@ const statusStyles = {
 };
 
 export default function BusinessFramework({ onNavigate, isPremium, focusStep }: Props) {
-  const { isAdmin } = useAuth();
-  const categories = (Object.keys(ABBY_CATEGORIES) as AbbyCategory[]).map(k => getEffectiveCategory(k, isAdmin));
+  const { isAdmin, user } = useAuth();
+  const categories = (Object.keys(ABBY_CATEGORIES) as AbbyCategory[]).map(k => getEffectiveCategory(k, isAdmin, isSuperAdmin(user?.email)));
   const [activeCategory, setActiveCategory] = useState<string | null>(focusStep || null);
   useEffect(() => { if (focusStep) setActiveCategory(focusStep); }, [focusStep]);
   const activeCatData = categories.find((c) => c.id === activeCategory);

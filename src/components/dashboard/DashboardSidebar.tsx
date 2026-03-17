@@ -18,6 +18,7 @@ interface Props {
   onToggleCollapse: () => void;
   isPremium: boolean;
   isAdmin?: boolean;
+  isSuperAdmin?: boolean;
   tier?: "free" | "starter" | "pro" | "enterprise";
   hasBooks?: boolean;
   hasAnalysis?: boolean;
@@ -49,7 +50,7 @@ const sisterLinks = [
 
 export default function DashboardSidebar({
   activeSection, onSectionChange, collapsed, onToggleCollapse,
-  isPremium, isAdmin = false, tier = "free", hasBooks = true, hasAnalysis = true, hasMicrosite = true,
+  isPremium, isAdmin = false, isSuperAdmin: isSuperAdminProp = false, tier = "free", hasBooks = true, hasAnalysis = true, hasMicrosite = true,
   buildUnlocked = 0, bridgeUnlocked = 0, yieldUnlocked = 0,
   stripeConnected = false, pendingReviewCount = 0,
 }: Props) {
@@ -90,19 +91,19 @@ export default function DashboardSidebar({
     },
     {
       id: "marketing-channels", label: "B·Bridge Channels", icon: Radio,
-      subtitle: "Coming Soon",
-      tooltip: "Bridge Channels are coming soon. Stay tuned!",
+      subtitle: isSuperAdminProp ? "Dev Access" : "Coming Soon",
+      tooltip: isSuperAdminProp ? "Superadmin: full access to Bridge Channels" : "Bridge Channels are coming soon. Stay tuned!",
       color: "text-violet-500",
-      badge: "Coming Soon",
-      lockMessage: "Bridge Channels are coming soon",
+      badge: isSuperAdminProp ? `${bridgeUnlocked} built` : "Coming Soon",
+      lockMessage: isSuperAdminProp ? undefined : "Bridge Channels are coming soon",
     },
     {
       id: "authority-builders", label: "Y·Yield Revenue", icon: Award,
-      subtitle: "Coming Soon",
-      tooltip: "Yield Revenue builders are coming soon. Stay tuned!",
+      subtitle: isSuperAdminProp ? "Dev Access" : "Coming Soon",
+      tooltip: isSuperAdminProp ? "Superadmin: full access to Yield Revenue" : "Yield Revenue builders are coming soon. Stay tuned!",
       color: "text-amber-500",
-      badge: "Coming Soon",
-      lockMessage: "Yield Revenue builders are coming soon",
+      badge: isSuperAdminProp ? `${yieldUnlocked} built` : "Coming Soon",
+      lockMessage: isSuperAdminProp ? undefined : "Yield Revenue builders are coming soon",
     },
     {
       id: "review-products" as DashboardSection, label: "Review & Publish",
