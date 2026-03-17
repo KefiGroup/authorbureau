@@ -355,7 +355,7 @@ const leadMagnetBuilder: BuilderNodeConfig = {
   ],
 };
 
-// ─── B·BRIDGE (9 nodes) ──────────────────────────────────────────────
+// ─── B·BUILD CHANNELS (9 nodes) ──────────────────────────────────────────────
 
 const coachingBuilder: BuilderNodeConfig = {
   id: "coaching-1on1",
