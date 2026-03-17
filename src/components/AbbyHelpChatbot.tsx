@@ -20,8 +20,8 @@ const STORAGE_KEY = "abby_help_chat";
 const OPENED_KEY = "abby_help_opened";
 
 const PAGE_OPTIONS = [
-  "Dashboard", "My Books Hub", "Analyze with Abby", "Build Authority",
-  "Bridge Channels", "Yield Revenue", "Author Profile", "My Microsite",
+  "Dashboard", "My Books Hub", "Analyze with Abby", "Brand Products",
+  "Build Authority", "Yield Revenue", "Author Profile", "My Microsite",
   "Reading Club", "Admin Panel", "Homepage", "Directory", "Other"
 ];
 
