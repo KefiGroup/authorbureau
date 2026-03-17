@@ -169,6 +169,50 @@ export default function LessonContentStep({ stepData, setStepData, onMarkEdited,
     updateLesson("quiz", (currentLesson?.quiz || []).filter((_: any, i: number) => i !== idx));
   };
 
+  const normalizeResourcesInput = (value: unknown): string[] => {
+    const toCleanString = (item: unknown) =>
+      String(item ?? "")
+        .replace(/^[-*\d.)\s]+/, "")
+        .trim();
+
+    const fromArray = Array.isArray(value)
+      ? value
+          .map((item) => {
+            if (typeof item === "string") return toCleanString(item);
+            if (item && typeof item === "object") {
+              const record = item as Record<string, unknown>;
+              return toCleanString(record.title || record.name || record.resource || record.url || record.label || "");
+            }
+            return "";
+          })
+          .filter(Boolean)
+      : [];
+
+    const fromText = typeof value === "string"
+      ? value
+          .split(/\n|;/)
+          .map(toCleanString)
+          .filter(Boolean)
+      : [];
+
+    return Array.from(new Set([...fromArray, ...fromText])).slice(0, 5);
+  };
+
+  const buildFallbackResources = (lessonTitle: string, objectives: string[]): string[] => {
+    const seeds = objectives.filter(Boolean).slice(0, 3);
+    const generated = seeds.map((objective, idx) => {
+      if (idx === 0) return `Worksheet: ${objective}`;
+      if (idx === 1) return `Checklist: ${objective}`;
+      return `Template: ${objective}`;
+    });
+
+    while (generated.length < 3) {
+      generated.push(`Action guide for ${lessonTitle}`);
+    }
+
+    return generated.slice(0, 5);
+  };
+
   const handleGenerateContent = async () => {
     if (!currentModule) {
       toast({ title: "Select a module first", variant: "destructive" });
@@ -183,19 +227,26 @@ export default function LessonContentStep({ stepData, setStepData, onMarkEdited,
 
     const lessonTitle = ensured.lesson?.title || `Lesson ${ensured.lessonIndex + 1}`;
     const moduleTitle = currentModule.title || `Module ${selectedModIdx + 1}`;
+    const learningObjectives = Array.isArray(currentModule.learningObjectives)
+      ? currentModule.learningObjectives.map((obj) => String(obj || "").trim()).filter(Boolean)
+      : [];
+    const objectivesContext = learningObjectives.length > 0
+      ? `Learning objectives for this module: ${learningObjectives.join("; ")}.`
+      : "";
 
     setGenerationState("queued");
     try {
       setGenerationState("analyzing");
 
       const basePrompt = `Generate lesson content for a course lesson titled "${lessonTitle}" in module "${moduleTitle}" from the book "${bookTitle}".
+${objectivesContext}
 
 Return a JSON object with:
 - "script": string (plain text, 400-600 words, with sections for Key Concepts, Practical Application, and Summary)
 - "summary": string[] (4 key takeaway bullet points)
 - "exercise": string (a practical exercise, 100-150 words with numbered steps)
 - "quiz": array of 3 objects each with {"question": string, "options": string[] (4 options), "correctAnswer": number (0-3), "explanation": string}
-- "resources": string[] (3-5 suggested downloadable resources or reference materials that support the lesson's learning objectives and relate to the book's content — e.g. worksheets, checklists, templates, reading lists, or supplemental guides)
+- "resources": string[] (REQUIRED, 3-5 non-empty items; each must be a concrete resource title tied to the lesson objective and book content)
 
 Make the content specific to the lesson topic, not generic. Resources should be actionable and directly tied to the learning objectives.
 Return ONLY valid JSON.`;
@@ -245,9 +296,26 @@ Return ONLY valid JSON.`;
           })
         : [];
 
-      const normalizedResources = Array.isArray(result.resources)
-        ? result.resources.map((r) => String(r || "").trim()).filter(Boolean)
-        : [];
+      let normalizedResources = normalizeResourcesInput(result.resources);
+
+      if (normalizedResources.length === 0) {
+        try {
+          const resourceResult = await generateJSONWithAI<{ resources?: string[] | string }>(
+            `Return ONLY JSON with this exact shape: {"resources": string[]}.
+Generate 3-5 concrete resource titles for lesson "${lessonTitle}" in module "${moduleTitle}" from book "${bookTitle}".
+${objectivesContext}
+Rules: no placeholders, no markdown, no explanations, each item must be specific and actionable.`,
+            aiOptions,
+          );
+          normalizedResources = normalizeResourcesInput(resourceResult.resources);
+        } catch {
+          // Fallback below
+        }
+      }
+
+      if (normalizedResources.length === 0) {
+        normalizedResources = buildFallbackResources(lessonTitle, learningObjectives);
+      }
 
       upsertLessonField(selectedModIdx, ensured.lessonIndex, "script", String(result.script || ""));
       upsertLessonField(selectedModIdx, ensured.lessonIndex, "summary", normalizedSummary);
