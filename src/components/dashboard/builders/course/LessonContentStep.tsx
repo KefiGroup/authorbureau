@@ -212,10 +212,15 @@ Return ONLY valid JSON.`;
           })
         : [];
 
+      const normalizedResources = Array.isArray(result.resources)
+        ? result.resources.map((r) => String(r || "").trim()).filter(Boolean)
+        : [];
+
       upsertLessonField(selectedModIdx, ensured.lessonIndex, "script", String(result.script || ""));
       upsertLessonField(selectedModIdx, ensured.lessonIndex, "summary", normalizedSummary);
       upsertLessonField(selectedModIdx, ensured.lessonIndex, "exercise", String(result.exercise || ""));
       upsertLessonField(selectedModIdx, ensured.lessonIndex, "quiz", normalizedQuiz);
+      upsertLessonField(selectedModIdx, ensured.lessonIndex, "resources", normalizedResources);
 
       setGenerationState("complete");
       toast({ title: "Lesson content generated!", description: "Review the script, exercises, and quiz below." });
