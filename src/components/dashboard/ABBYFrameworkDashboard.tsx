@@ -219,7 +219,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
         else onNavigate("profile");
         break;
       case "connect-stripe": onNavigate("connect-stripe"); break;
-      case "build": onNavigate("revenue-streams"); break;
+      case "build": onNavigate("brand-products"); break;
       case "analytics": onNavigate("analytics"); break;
     }
   };
