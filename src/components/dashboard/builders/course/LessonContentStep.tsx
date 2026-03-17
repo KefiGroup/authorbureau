@@ -75,6 +75,7 @@ export default function LessonContentStep({ stepData, setStepData, onMarkEdited,
   const currentModuleLessons = currentModule ? getModuleLessonsForDisplay(currentModule) : [];
   const activeLessonIdx = Math.min(selectedLessonIdx, Math.max(0, currentModuleLessons.length - 1));
   const currentLesson = currentModuleLessons[activeLessonIdx];
+  const isLastModule = selectedModIdx === modules.length - 1;
 
   const buildFallbackLesson = (moduleTitle: string, lessonIndex: number) => ({
     id: crypto.randomUUID(),
