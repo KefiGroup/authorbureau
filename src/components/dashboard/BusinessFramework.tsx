@@ -7,6 +7,7 @@ import type { DashboardSection } from "@/pages/AuthorDashboard";
 import ABBYFrameworkVisual from "@/components/dashboard/book-hub/ABBYFrameworkVisual";
 import { ABBY_CATEGORIES, ABBY_CATEGORY_LIST, getEffectiveCategory, type AbbyCategoryConfig, type AbbyNode, type AbbyCategory } from "@/config/abbyFrameworkConfig";
 import { useAuth } from "@/hooks/useAuth";
+import { isSuperAdmin } from "@/lib/superadmin";
 
 // Alias for backward compat in this file
 type Node = AbbyNode;
