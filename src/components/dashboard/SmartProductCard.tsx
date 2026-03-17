@@ -151,7 +151,7 @@ export default function SmartProductCard({
         </div>
 
         {/* Description */}
-        <p className="text-xs text-muted-foreground leading-relaxed">
+        <p className="text-xs text-muted-foreground leading-relaxed flex-1">
           {state === "recommended" && personalizedDescription
             ? personalizedDescription
             : state === "in-progress" && progressPercent !== undefined
