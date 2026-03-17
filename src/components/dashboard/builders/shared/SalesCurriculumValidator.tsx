@@ -131,6 +131,7 @@ export function detectMismatches(salesCopy: SalesCopyData, curriculum: Curriculu
       severity: "error",
       fix: "Either remove these promises from the sales copy, or go back to Lesson Content and add resources to your modules.",
       fixAction: "edit-sales",
+      locations: findKeywordSections(salesCopy, downloadableHits),
     });
   }
 
@@ -144,6 +145,7 @@ export function detectMismatches(salesCopy: SalesCopyData, curriculum: Curriculu
       severity: "error",
       fix: "Remove live/community promises from the sales copy. Regenerate to get accurate self-paced copy.",
       fixAction: "regenerate",
+      locations: findKeywordSections(salesCopy, liveHits),
     });
   }
 
