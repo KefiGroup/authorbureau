@@ -214,59 +214,51 @@ export default function CurriculumBuilderStep({ stepData, setStepData, onMarkEdi
                     />
                   </div>
 
-                  {(mod.bloomsLevel || mod.kolbsStage) && (
-                    <div className="grid grid-cols-2 gap-3">
-                      {mod.bloomsLevel && (
-                        <div className="space-y-1">
-                          <Label className="text-xs font-semibold flex items-center gap-1">
-                            <Brain className="h-3 w-3" /> Bloom's Level
-                          </Label>
-                          <div className={`px-3 py-1.5 rounded-lg text-xs font-medium ${getBloomColor(mod.bloomsLevel)}`}>
-                            {mod.bloomsLevel}
-                          </div>
-                        </div>
-                      )}
-                      {mod.kolbsStage && (
-                        <div className="space-y-1">
-                          <Label className="text-xs font-semibold flex items-center gap-1">
-                            <Lightbulb className="h-3 w-3" /> Kolb's Stage
-                          </Label>
-                          <div className={`px-3 py-1.5 rounded-lg text-xs font-medium ${getKolbColor(mod.kolbsStage)}`}>
-                            {mod.kolbsStage}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {objectives.some(o => o.trim()) && (
-                    <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
                       <Label className="text-xs font-semibold flex items-center gap-1">
-                        📋 Learning Objectives
+                        <Brain className="h-3 w-3" /> Bloom's Level
                       </Label>
-                      {objectives.map((obj, i) => (
-                        <div key={i} className="flex items-center gap-2">
-                          <span className="text-[10px] text-muted-foreground font-mono w-4">{i + 1}.</span>
-                          <Input
-                            value={obj}
-                            onChange={(e) => updateObjective(mod.id, i, e.target.value)}
-                            placeholder="e.g. Identify key frameworks from the book..."
-                            className="text-sm"
-                          />
-                          {objectives.length > 1 && (
-                            <button onClick={() => removeObjective(mod.id, i)} className="text-destructive/50 hover:text-destructive">
-                              <Trash2 className="h-3 w-3" />
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                      {objectives.length < 5 && (
-                        <Button variant="ghost" size="sm" onClick={() => addObjective(mod.id)} className="text-[10px]">
-                          <Plus className="h-2.5 w-2.5 mr-1" /> Add Objective
-                        </Button>
-                      )}
+                      <div className={`px-3 py-1.5 rounded-lg text-xs font-medium ${getBloomColor(mod.bloomsLevel)}`}>
+                        {mod.bloomsLevel || "Not set"}
+                      </div>
                     </div>
-                  )}
+                    <div className="space-y-1">
+                      <Label className="text-xs font-semibold flex items-center gap-1">
+                        <Lightbulb className="h-3 w-3" /> Kolb's Stage
+                      </Label>
+                      <div className={`px-3 py-1.5 rounded-lg text-xs font-medium ${getKolbColor(mod.kolbsStage)}`}>
+                        {mod.kolbsStage || "Not set"}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold flex items-center gap-1">
+                      📋 Learning Objectives
+                    </Label>
+                    {objectives.map((obj, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <span className="text-[10px] text-muted-foreground font-mono w-4">{i + 1}.</span>
+                        <Input
+                          value={obj}
+                          onChange={(e) => updateObjective(mod.id, i, e.target.value)}
+                          placeholder="e.g. Identify key frameworks from the book..."
+                          className="text-sm"
+                        />
+                        {objectives.length > 1 && (
+                          <button onClick={() => removeObjective(mod.id, i)} className="text-destructive/50 hover:text-destructive">
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    {objectives.length < 5 && (
+                      <Button variant="ghost" size="sm" onClick={() => addObjective(mod.id)} className="text-[10px]">
+                        <Plus className="h-2.5 w-2.5 mr-1" /> Add Objective
+                      </Button>
+                    )}
+                  </div>
 
                   {(mod.contentSummary || mod.description) && (
                     <div className="space-y-1">
