@@ -23,7 +23,7 @@ const DEFAULT_PRODUCTS: ProductCard[] = [
 
 const CATEGORY_LABELS: Record<string, { label: string; color: string }> = {
   build: { label: "B·Build", color: "bg-emerald-500/10 text-emerald-600" },
-  bridge: { label: "B·Bridge", color: "bg-violet-500/10 text-violet-600" },
+  bridge: { label: "B·Build", color: "bg-violet-500/10 text-violet-600" },
   yield: { label: "Y·Yield", color: "bg-amber-500/10 text-amber-600" },
 };
 
