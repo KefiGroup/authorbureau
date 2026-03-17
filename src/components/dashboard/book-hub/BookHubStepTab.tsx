@@ -54,8 +54,8 @@ interface DerivedCategory {
   nodes: ProductNode[];
 }
 
-function deriveCategoryConfig(catId: AbbyCategory, isAdmin: boolean, superAdmin = false): DerivedCategory | null {
-  const cat = getEffectiveCategory(catId, isAdmin, superAdmin);
+function deriveCategoryConfig(catId: AbbyCategory, isAdmin: boolean, superAdmin = false, openNodeIds?: Set<string>): DerivedCategory | null {
+  const cat = getEffectiveCategory(catId, isAdmin, superAdmin, openNodeIds);
   if (!cat) return null;
   return {
     id: cat.id,
@@ -66,7 +66,7 @@ function deriveCategoryConfig(catId: AbbyCategory, isAdmin: boolean, superAdmin 
     gradientFrom: cat.gradientFrom,
     gradientTo: cat.gradientTo,
     headerIcon: cat.headerIcon,
-    nodes: deriveNodes(catId, isAdmin, superAdmin),
+    nodes: deriveNodes(catId, isAdmin, superAdmin, openNodeIds),
   };
 }
 
