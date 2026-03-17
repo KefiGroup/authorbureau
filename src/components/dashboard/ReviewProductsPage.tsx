@@ -69,9 +69,9 @@ interface DraftProduct {
 
 /* ── Category Labels ────────────────────────────────────────────── */
 const CATEGORY_CONFIG = {
-  build: { label: "B · Build Authority", badge: "Build", color: "bg-emerald-500/15 text-emerald-700 border-emerald-300", icon: Zap, count: 0 },
-  bridge: { label: "B · Bridge Channels", badge: "Bridge", color: "bg-blue-500/15 text-blue-700 border-blue-300", icon: Network, count: 0 },
-  yield: { label: "Y · Yield Revenue", badge: "Yield", color: "bg-amber-500/15 text-amber-700 border-amber-300", icon: Crown, count: 0 },
+  build: { label: "B · Brand Products", badge: "Brand", color: "bg-amber-500/15 text-amber-700 border-amber-300", icon: Zap, count: 0 },
+  bridge: { label: "B · Build Authority", badge: "Authority", color: "bg-emerald-500/15 text-emerald-700 border-emerald-300", icon: Network, count: 0 },
+  yield: { label: "Y · Yield Revenue", badge: "Yield", color: "bg-red-500/15 text-red-700 border-red-300", icon: Crown, count: 0 },
 };
 
 /* ── Act Badge Colors ───────────────────────────────────────────── */
