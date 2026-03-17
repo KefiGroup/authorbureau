@@ -269,7 +269,7 @@ After generating the plan, the system will automatically:
 **MANDATORY CLOSING BLOCK:**
 🎯 **This is your complete ABBY Business Plan for [BOOK TITLE].**
 Your plan has been saved and is always accessible from your **My Books Hub → [Book Title] → Business Plan**. You can also download it as a .docx file using the button below.
-Every product builder in B·Build, B·Bridge, and Y·Yield will reference this plan — your recommended products, pricing, audience, and chapter references are pre-loaded so you never start from scratch.
+Every product builder in B·Brand Products, B·Build Channels, and Y·Yield Revenue will reference this plan — your recommended products, pricing, audience, and chapter references are pre-loaded so you never start from scratch.
 **Your plan. Your book. Your business. Let's build it together.**
 [STOP]
 
