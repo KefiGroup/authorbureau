@@ -383,7 +383,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         }
         return <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />;
       case "marketing-channels":
-        if (userIsSuperAdmin) {
+        if (userIsSuperAdmin || !isCategoryFullyClosed("marketing-channels")) {
           return <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />;
         }
         return <SectionGatePage
@@ -394,7 +394,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           onAnalyze={() => setActiveSection("revenue-streams")}
         />;
       case "authority-builders":
-        if (userIsSuperAdmin) {
+        if (userIsSuperAdmin || !isCategoryFullyClosed("authority-builders")) {
           return <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />;
         }
         return <SectionGatePage
