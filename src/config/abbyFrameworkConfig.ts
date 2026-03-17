@@ -72,13 +72,13 @@ export const ABBY_CATEGORIES: Record<AbbyCategory, AbbyCategoryConfig> = {
   },
 
   /**
-   * BUILD CHANNELS (8 nodes)
-   * Marketing channels that connect the book to a wider audience.
+   * BUILD AUTHORITY (9 nodes)
+   * Scale audience and recurring revenue.
    */
   "marketing-channels": {
     id: "marketing-channels",
-    label: "B · Build Channels",
-    subtitle: "Marketing & Audience Growth (8 nodes)",
+    label: "B · Build Authority",
+    subtitle: "Scale Your Audience (9 nodes)",
     color: "text-violet-600",
     bgColor: "bg-violet-500/10",
     ringColor: "ring-violet-500/30",
