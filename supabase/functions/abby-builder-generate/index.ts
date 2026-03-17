@@ -861,7 +861,16 @@ CRITICAL: Return ONLY valid JSON. No markdown, no code fences, no text before or
         }
       }
 
-      // Save proposal as draft (non-blocking)
+      // Validate structure completeness
+      if (Array.isArray(proposal.structure)) {
+        console.log(`Act 1 proposal structure: ${proposal.structure.length} modules`);
+        if (proposal.structure.length < 3 && (builderId === "online-course" || builderId === "training-program")) {
+          console.warn(`Warning: Only ${proposal.structure.length} modules generated — expected 7. JSON may have been truncated.`);
+        }
+      } else {
+        console.warn("No structure array in proposal");
+      }
+
       try {
         const { error: upsertErr } = await adminClient.from("generated_assets").upsert({
           book_id: bookId,
