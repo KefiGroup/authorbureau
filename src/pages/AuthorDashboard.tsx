@@ -120,6 +120,10 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
   // Centralized stats from author-stats edge function
   const { stats, refetch: refetchStats } = useAuthorStats(user?.id);
 
+  // DB-driven node gating
+  const { gating, isNodeOpen, isCategoryFullyClosed } = useNodeGating();
+  const openNodeIds = new Set(gating.filter(r => r.is_open).map(r => r.node_id));
+
   // Journey state
   const [booksAnalyzed, setBooksAnalyzed] = useState(0);
   const [hasBooks, setHasBooks] = useState(false);
