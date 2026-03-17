@@ -65,7 +65,7 @@ Return a JSON array of 7 objects, each with:
 - "purpose": string (e.g. "Welcome + what to expect")
 - "subject": string (compelling subject line)
 - "previewText": string (email preview text)
-- "body": string (full email body with [First Name] for the reader and [CTA Button →] links. Use "${displayName}" directly instead of any author placeholder.)
+- "body": string (full email body with [First Name] for the reader. For call-to-action links, use the format [CTA Button → Label Text](SIGNUP_URL) — this will be rendered as a clickable button linking to the course sign-up page. Use "${displayName}" directly instead of any author placeholder.)
 
 Make each email specific to the course topic. Return ONLY valid JSON.`;
 
