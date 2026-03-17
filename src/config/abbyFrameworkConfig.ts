@@ -14,7 +14,7 @@ import {
 import type { DashboardSection } from "@/pages/AuthorDashboard";
 
 /* ─── Types ─── */
-export type AbbyCategory = "revenue-streams" | "marketing-channels" | "authority-builders";
+export type AbbyCategory = "brand-products" | "build-authority" | "yield-revenue";
 
 export interface AbbyNode {
   id: string;
