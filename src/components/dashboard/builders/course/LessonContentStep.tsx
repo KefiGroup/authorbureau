@@ -304,25 +304,28 @@ Return ONLY valid JSON.`;
           })
         : [];
 
-      let normalizedResources = normalizeResourcesInput(result.resources);
+      let normalizedResources: CourseResource[] = [];
 
-      if (normalizedResources.length === 0) {
-        try {
-          const resourceResult = await generateJSONWithAI<{ resources?: Array<{ title?: string; url?: string } | string> }>(
-            `Return ONLY JSON: {"resources": [{"title": string, "url": string}, ...]}.
-Generate 3-5 resources with REAL external URLs for lesson "${lessonTitle}" in module "${moduleTitle}" from book "${bookTitle}".
-${objectivesContext}
+      if (isLastMod) {
+        normalizedResources = normalizeResourcesInput(result.resources);
+
+        if (normalizedResources.length === 0) {
+          try {
+            const resourceResult = await generateJSONWithAI<{ resources?: Array<{ title?: string; url?: string } | string> }>(
+              `Return ONLY JSON: {"resources": [{"title": string, "url": string}, ...]}.
+Generate 5-8 recommended resources for the ENTIRE course based on book "${bookTitle}". These resources should cover all modules, not just this lesson.
 Use well-known sites (HBR, TED, Coursera, Google Docs, Notion, Canva, Wikipedia, etc). Each must have title + valid https URL.`,
-            aiOptions,
-          );
-          normalizedResources = normalizeResourcesInput(resourceResult.resources);
-        } catch {
-          // Fallback below
+              aiOptions,
+            );
+            normalizedResources = normalizeResourcesInput(resourceResult.resources);
+          } catch {
+            // Fallback below
+          }
         }
-      }
 
-      if (normalizedResources.length === 0) {
-        normalizedResources = buildFallbackResources(lessonTitle, learningObjectives);
+        if (normalizedResources.length === 0) {
+          normalizedResources = buildFallbackResources(lessonTitle, learningObjectives);
+        }
       }
 
       const snapshot = {
