@@ -24,11 +24,11 @@ interface Props {
   hasAnalysis?: boolean;
   hasMicrosite?: boolean;
   buildUnlocked?: number;
-  bridgeUnlocked?: number;
+  buildAuthorityUnlocked?: number;
   yieldUnlocked?: number;
   stripeConnected?: boolean;
   pendingReviewCount?: number;
-  bridgeCategoryOpen?: boolean;
+  buildAuthorityCategoryOpen?: boolean;
   yieldCategoryOpen?: boolean;
 }
 
