@@ -363,7 +363,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
 
   const NAV_CONFIG: Record<string, { label: string; icon: string; tab: string }> = {
     build: { label: "B · Build Authority", icon: "🏗️", tab: "revenue-streams" },
-    bridge: { label: "B · Bridge Channels", icon: "🌉", tab: "marketing-channels" },
+    bridge: { label: "B · Build Channels", icon: "🌉", tab: "marketing-channels" },
     yield: { label: "Y · Yield Revenue", icon: "💰", tab: "authority-builders" },
     profile: { label: "Author Profile", icon: "👤", tab: "profile" },
     // Studio-specific nav targets from business plan "Next Steps"

@@ -176,7 +176,7 @@ export const ADVISOR_CONTENT: Record<AbbyCategory, AdvisorContent> = {
   },
   "marketing-channels": {
     heading: "Which channels should you activate first?",
-    intro: "Bridge products connect your book to a wider audience. Here's the priority order:",
+    intro: "Build Channel products connect your book to a wider audience. Here's the priority order:",
     recommendations: [
       { label: "Audiobook", reason: "AI-narrated from your manuscript. No recording studio needed. Expands your reach to listeners who prefer audio.", priceRange: "$9.99 – $14.99", difficulty: "Easy", nodeId: "audiobook" },
       { label: "Podcast Tour", reason: "AI generates guest pitches, talking points, and media one-sheets. The fastest way to reach new audiences.", difficulty: "Easy", nodeId: "podcast-guest" },

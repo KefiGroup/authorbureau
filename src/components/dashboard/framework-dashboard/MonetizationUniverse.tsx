@@ -41,8 +41,8 @@ const STREAMS: StreamGroup[] = [
   {
     id: "bridge",
     letter: "B",
-    title: "BRIDGE",
-    subtitle: "Bridge Channels & Connections",
+    title: "BUILD",
+    subtitle: "Build Channels & Connections",
     tierLabel: "Pro $199/mo",
     color: "#8B5CF6",
     nodes: [

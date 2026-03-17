@@ -387,9 +387,9 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           return <PortfolioStepView categoryId={activeSection} tier={tier} onNavigate={handleNavigate} analyzedBooks={analyzedBookList} />;
         }
         return <SectionGatePage
-          sectionTitle="B · Bridge Channels"
+          sectionTitle="B · Build Channels"
           sectionSubtitle="Coming Soon — Marketing channels & audience connections."
-          gateMessage="Bridge Channels are currently under development. We're building powerful tools for podcasts, webinars, audiobooks, and more. Check back soon!"
+          gateMessage="Build Channels are currently under development. We're building powerful tools for podcasts, webinars, audiobooks, and more. Check back soon!"
           productNames={["Audiobook", "Podcast Tour", "Webinars", "Lead Magnet Funnel", "Media Outreach", "Affiliates", "Upsells / Downsells", "Revenue Sharing"]}
           onAnalyze={() => setActiveSection("revenue-streams")}
         />;

@@ -93,12 +93,12 @@ export default function DashboardSidebar({
       lockMessage: (!hasAnalysis && !bypassLocks) ? "Analyze a book first" : (!tierAccess("starter") ? "Requires Starter" : undefined),
     },
     {
-      id: "marketing-channels", label: "B·Bridge Channels", icon: Radio,
+      id: "marketing-channels", label: "B·Build Channels", icon: Radio,
       subtitle: (isSuperAdminProp || bridgeCategoryOpen) ? (isSuperAdminProp ? "Dev Access" : "Marketing & Audience Growth") : "Coming Soon",
-      tooltip: (isSuperAdminProp || bridgeCategoryOpen) ? "Bridge Channels — Marketing & audience connections" : "Bridge Channels are coming soon. Stay tuned!",
+      tooltip: (isSuperAdminProp || bridgeCategoryOpen) ? "Build Channels — Marketing & audience connections" : "Build Channels are coming soon. Stay tuned!",
       color: "text-violet-500",
       badge: (isSuperAdminProp || bridgeCategoryOpen) ? `${bridgeUnlocked} built` : "Coming Soon",
-      lockMessage: (isSuperAdminProp || bridgeCategoryOpen) ? undefined : "Bridge Channels are coming soon",
+      lockMessage: (isSuperAdminProp || bridgeCategoryOpen) ? undefined : "Build Channels are coming soon",
     },
     {
       id: "authority-builders", label: "Y·Yield Revenue", icon: Award,
