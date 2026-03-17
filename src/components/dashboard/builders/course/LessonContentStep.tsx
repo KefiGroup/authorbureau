@@ -519,26 +519,50 @@ Use well-known sites (HBR, TED, Coursera, Google Docs, Notion, Canva, Wikipedia,
         </TabsContent>
 
         <TabsContent value="resources">
-          <Card className="p-4 space-y-2">
-            <p className="text-xs font-semibold text-muted-foreground mb-2">Downloadable Resources</p>
-            {(currentLesson?.resources || [""]).map((res: string, i: number) => (
-              <div key={i} className="flex items-center gap-2">
-                <Input
-                  value={res}
-                  onChange={(e) => {
-                    const newRes = [...(currentLesson?.resources || [])];
-                    newRes[i] = e.target.value;
+          <Card className="p-4 space-y-3">
+            <p className="text-xs font-semibold text-muted-foreground mb-2">Suggested Resources (with URLs)</p>
+            {(currentLesson?.resources || [{ title: "", url: "" }]).map((res: any, i: number) => {
+              const resource: CourseResource = typeof res === "string"
+                ? { title: res, url: "" }
+                : { title: res?.title || "", url: res?.url || "" };
+              return (
+                <div key={i} className="flex items-center gap-2">
+                  <Input
+                    value={resource.title}
+                    onChange={(e) => {
+                      const newRes = [...(currentLesson?.resources || [])].map((r: any) =>
+                        typeof r === "string" ? { title: r, url: "" } : { title: r?.title || "", url: r?.url || "" }
+                      );
+                      while (newRes.length <= i) newRes.push({ title: "", url: "" });
+                      newRes[i] = { ...newRes[i], title: e.target.value };
+                      updateLesson("resources", newRes);
+                    }}
+                    placeholder="Resource title..."
+                    className="text-sm flex-1"
+                  />
+                  <Input
+                    value={resource.url}
+                    onChange={(e) => {
+                      const newRes = [...(currentLesson?.resources || [])].map((r: any) =>
+                        typeof r === "string" ? { title: r, url: "" } : { title: r?.title || "", url: r?.url || "" }
+                      );
+                      while (newRes.length <= i) newRes.push({ title: "", url: "" });
+                      newRes[i] = { ...newRes[i], url: e.target.value };
+                      updateLesson("resources", newRes);
+                    }}
+                    placeholder="https://..."
+                    className="text-sm flex-1"
+                  />
+                  <button onClick={() => {
+                    const newRes = (currentLesson?.resources || []).filter((_: any, j: number) => j !== i);
                     updateLesson("resources", newRes);
-                  }}
-                  placeholder="Resource name or URL..."
-                  className="text-sm"
-                />
-                <button onClick={() => updateLesson("resources", (currentLesson?.resources || []).filter((_: any, j: number) => j !== i))}>
-                  <Trash2 className="h-3 w-3 text-destructive/50" />
-                </button>
-              </div>
-            ))}
-            <Button variant="ghost" size="sm" onClick={() => updateLesson("resources", [...(currentLesson?.resources || []), ""])} className="text-xs">
+                  }}>
+                    <Trash2 className="h-3 w-3 text-destructive/50" />
+                  </button>
+                </div>
+              );
+            })}
+            <Button variant="ghost" size="sm" onClick={() => updateLesson("resources", [...(currentLesson?.resources || []), { title: "", url: "" }])} className="text-xs">
               <Plus className="h-3 w-3 mr-1" /> Add Resource
             </Button>
           </Card>
