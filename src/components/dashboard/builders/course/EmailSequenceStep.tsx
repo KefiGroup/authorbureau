@@ -193,9 +193,6 @@ Make each email specific to the course topic. Return ONLY valid JSON.`;
                 <Mail className="h-3 w-3 shrink-0" />
                 <span className="text-[11px] font-medium truncate">Email {i + 1}</span>
               </div>
-              <div className="flex items-center gap-1 mt-0.5">
-                <span className="text-[9px] text-muted-foreground">#{email.dayNumber} in sequence</span>
-              </div>
               <p className="text-[9px] text-muted-foreground/70 truncate mt-0.5">{email.purpose}</p>
             </button>
           ))}
@@ -208,9 +205,6 @@ Make each email specific to the course topic. Return ONLY valid JSON.`;
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Badge variant="secondary" className="text-[10px]">Email {selectedIdx + 1} of {emails.length}</Badge>
-              <Badge variant="outline" className="text-[10px]">
-                #{selectedEmail.dayNumber} in sequence
-              </Badge>
               <span className="text-[10px] text-muted-foreground">— {selectedEmail.purpose}</span>
             </div>
             <Button
@@ -242,23 +236,10 @@ Make each email specific to the course topic. Return ONLY valid JSON.`;
               />
             </div>
 
-            <div>
-              <div className="flex items-center gap-2">
-                <label className="text-xs font-semibold text-muted-foreground">Email Order: #</label>
-                <Input
-                  type="number"
-                  value={selectedEmail.dayNumber}
-                  onChange={(e) => {
-                    const newDay = parseInt(e.target.value) || 1;
-                    updateEmail(selectedIdx, "dayNumber", newDay);
-                  }}
-                  className="w-16"
-                  min={1}
-                  max={7}
-                />
-              </div>
-              <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">
-                This is the <strong>sequence order</strong> of this email (1–7). Actual send timing, triggers, and delays will be configured in the <strong>Email Marketing</strong> node.
+            <div className="rounded-lg border border-secondary/20 bg-secondary/5 px-3 py-2.5">
+              <p className="text-[11px] font-medium text-secondary mb-0.5">📬 Email Scheduling</p>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                These emails are crafted here as <strong>content only</strong>. To plan send timing, triggers, delays, and connect emails from all your revenue nodes — head to the <strong>Email Marketing</strong> module.
               </p>
             </div>
 
