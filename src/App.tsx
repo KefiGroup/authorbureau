@@ -36,6 +36,7 @@ import ScrollToTop from "./components/ScrollToTop";
 import AbbyHelpChatbot from "./components/AbbyHelpChatbot";
 import PurchaseSuccess from "./pages/PurchaseSuccess";
 import ReaderContentViewer from "./pages/ReaderContentViewer";
+import OnlineCourseViewer from "./pages/OnlineCourseViewer";
 import Methodology from "./pages/Methodology";
 
 const queryClient = new QueryClient();
