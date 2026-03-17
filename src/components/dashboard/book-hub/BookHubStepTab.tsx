@@ -65,7 +65,7 @@ function deriveCategoryConfig(catId: AbbyCategory, isAdmin: boolean, superAdmin 
     gradientFrom: cat.gradientFrom,
     gradientTo: cat.gradientTo,
     headerIcon: cat.headerIcon,
-    nodes: deriveNodes(catId, isAdmin),
+    nodes: deriveNodes(catId, isAdmin, superAdmin),
   };
 }
 
