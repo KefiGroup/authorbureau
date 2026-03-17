@@ -194,9 +194,9 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
           {/* Category breakdown */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {[
-              { label: "B·Build", color: "text-accent", accent: "bg-accent/15", revenue: 0, products: 0 },
-              { label: "B·Build", color: "text-violet-500", accent: "bg-violet-500/15", revenue: 0, products: 0 },
-              { label: "Y·Yield", color: "text-secondary", accent: "bg-secondary/15", revenue: 0, products: 0 },
+              { label: "B·Brand Products", color: "text-accent", accent: "bg-accent/15", revenue: 0, products: 0 },
+              { label: "B·Build Authority", color: "text-violet-500", accent: "bg-violet-500/15", revenue: 0, products: 0 },
+              { label: "Y·Yield Revenue", color: "text-secondary", accent: "bg-secondary/15", revenue: 0, products: 0 },
             ].map((cat) => (
               <Card key={cat.label} className="p-4">
                 <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${cat.color} ${cat.accent} mb-2`}>
