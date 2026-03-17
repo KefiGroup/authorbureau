@@ -471,6 +471,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
           isPremium={isPremium || isAdmin}
           isAdmin={isAdmin}
+          isSuperAdmin={userIsSuperAdmin}
           tier={tier}
           hasBooks={hasBooks}
           hasAnalysis={hasAnalysis}
