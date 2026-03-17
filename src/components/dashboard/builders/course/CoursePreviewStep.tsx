@@ -50,7 +50,6 @@ export default function CoursePreviewStep({ stepData }: CourseStepProps) {
               <p className="text-sm text-muted-foreground">{foundation.subtitle || "Course subtitle"}</p>
               <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1"><BookOpen className="h-3 w-3" /> {modules.length} modules</span>
-                <span className="flex items-center gap-1"><PlayCircle className="h-3 w-3" /> {totalLessons} lessons</span>
                 <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {Math.round(totalMinutes / 60)}h {totalMinutes % 60}m</span>
                 <span className="flex items-center gap-1"><Award className="h-3 w-3" /> Certificate</span>
               </div>
