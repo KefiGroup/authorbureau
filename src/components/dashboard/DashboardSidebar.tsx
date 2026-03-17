@@ -18,6 +18,7 @@ interface Props {
   onToggleCollapse: () => void;
   isPremium: boolean;
   isAdmin?: boolean;
+  isSuperAdmin?: boolean;
   tier?: "free" | "starter" | "pro" | "enterprise";
   hasBooks?: boolean;
   hasAnalysis?: boolean;
