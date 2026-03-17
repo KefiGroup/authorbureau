@@ -209,7 +209,7 @@ Make each email specific to the course topic. Return ONLY valid JSON.`;
             <div className="flex items-center gap-2">
               <Badge variant="secondary" className="text-[10px]">Email {selectedIdx + 1} of {emails.length}</Badge>
               <Badge variant="outline" className="text-[10px]">
-                <Clock className="h-2.5 w-2.5 mr-1" /> Day {selectedEmail.dayNumber}
+                #{selectedEmail.dayNumber} in sequence
               </Badge>
               <span className="text-[10px] text-muted-foreground">— {selectedEmail.purpose}</span>
             </div>
