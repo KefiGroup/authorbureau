@@ -257,13 +257,21 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
     // Gate Bridge & Yield individual builders for non-admins
     if (!isAdmin && BRIDGE_YIELD_SECTIONS.has(activeSection)) {
       return (
-        <SectionGatePage
-          sectionTitle="Coming Soon"
-          sectionSubtitle="This section is currently under development."
-          gateMessage="We're building something amazing. You'll be the first to know when it's ready!"
-          productNames={[]}
-          onAnalyze={() => setActiveSection("overview")}
-        />
+        <div className="max-w-2xl mx-auto text-center space-y-6 py-20">
+          <div className="w-16 h-16 rounded-2xl bg-secondary/10 flex items-center justify-center mx-auto">
+            <span className="text-3xl">🚧</span>
+          </div>
+          <h1 className="font-heading text-2xl md:text-3xl font-bold">Coming Soon</h1>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+            We're building something amazing for this section. You'll be the first to know when it's ready!
+          </p>
+          <button
+            onClick={() => setActiveSection("overview")}
+            className="text-sm font-medium text-primary hover:underline"
+          >
+            ← Back to Dashboard
+          </button>
+        </div>
       );
     }
 
