@@ -978,9 +978,9 @@ function assignActPhases(node: BuilderNodeConfig): BuilderNodeConfig {
     if (i === 0) {
       act = 1; // First step is always Act 1 (Analyse)
     } else if (i === total - 1) {
-      act = 3; // Last step is always Act 3 (Bridge/Yield)
+      act = 3; // Last step is always Act 3 (Build/Yield)
     } else {
-      act = 2; // Middle steps are Act 2 (Build)
+      act = 2; // Middle steps are Act 2 (Brand)
     }
     return { ...step, act };
   });

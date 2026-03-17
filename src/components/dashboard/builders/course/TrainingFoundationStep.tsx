@@ -18,7 +18,7 @@ const THREE_ACT_STEPS = [
     ],
   },
   {
-    act: "ACT 2 — BUILD",
+    act: "ACT 2 — BRAND",
     color: "border-secondary/20 bg-secondary/5",
     iconColor: "text-secondary",
     badgeColor: "bg-secondary/10 text-secondary",
@@ -30,7 +30,7 @@ const THREE_ACT_STEPS = [
     ],
   },
   {
-    act: "ACT 3 — BRIDGE",
+    act: "ACT 3 — BUILD",
     color: "border-emerald-200 bg-emerald-50/50 dark:border-emerald-800 dark:bg-emerald-950/30",
     iconColor: "text-emerald-600 dark:text-emerald-400",
     badgeColor: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300",

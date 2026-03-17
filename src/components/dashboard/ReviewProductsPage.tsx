@@ -77,8 +77,8 @@ const CATEGORY_CONFIG = {
 /* ── Act Badge Colors ───────────────────────────────────────────── */
 const ACT_COLORS = {
   1: { bg: "bg-amber-100", text: "text-amber-700", border: "border-amber-300", label: "ACT 1 — ANALYSE" },
-  2: { bg: "bg-blue-100", text: "text-blue-700", border: "border-blue-300", label: "ACT 2 — BUILD" },
-  3: { bg: "bg-green-100", text: "text-green-700", border: "border-green-300", label: "ACT 3 — BRIDGE" },
+  2: { bg: "bg-blue-100", text: "text-blue-700", border: "border-blue-300", label: "ACT 2 — BRAND" },
+  3: { bg: "bg-green-100", text: "text-green-700", border: "border-green-300", label: "ACT 3 — BUILD" },
 };
 
 /* ── Status Config ──────────────────────────────────────────────── */
@@ -319,13 +319,13 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
           <ArrowRight className="h-3 w-3 text-muted-foreground" />
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-blue-400" />
-            <span className="font-semibold text-blue-700 dark:text-blue-400">ACT 2 · BUILD</span>
+            <span className="font-semibold text-blue-700 dark:text-blue-400">ACT 2 · BRAND</span>
             <span className="text-muted-foreground">Content Creation</span>
           </div>
           <ArrowRight className="h-3 w-3 text-muted-foreground" />
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-green-400" />
-            <span className="font-semibold text-green-700 dark:text-green-400">ACT 3 · BRIDGE</span>
+            <span className="font-semibold text-green-700 dark:text-green-400">ACT 3 · BUILD</span>
             <span className="text-muted-foreground">Preview & Publish</span>
           </div>
         </div>

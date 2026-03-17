@@ -7,8 +7,8 @@ interface Props {
 
 const ACT_CONFIG = {
   1: { label: "ACT 1 — ANALYSE", subtitle: "Strategic setup & positioning", border: "border-amber-400", text: "text-amber-600", bg: "bg-amber-50" },
-  2: { label: "ACT 2 — BUILD", subtitle: "Content creation & production", border: "border-blue-400", text: "text-blue-600", bg: "bg-blue-50" },
-  3: { label: "ACT 3 — BRIDGE", subtitle: "Preview, export & distribute", border: "border-green-400", text: "text-green-600", bg: "bg-green-50" },
+  2: { label: "ACT 2 — BRAND", subtitle: "Content creation & production", border: "border-blue-400", text: "text-blue-600", bg: "bg-blue-50" },
+  3: { label: "ACT 3 — BUILD", subtitle: "Preview, export & distribute", border: "border-green-400", text: "text-green-600", bg: "bg-green-50" },
 };
 
 export default function ActPhaseBadge({ act, subtitle }: Props) {
