@@ -778,7 +778,7 @@ CRITICAL: Return ONLY valid JSON. No markdown, no code fences, no text before or
             { role: "user", content: `Analyze my book "${book?.title}" and design the complete ${builderLabel || builderId} product. Return ONLY a JSON object.` },
           ],
           temperature: 0.7,
-          max_completion_tokens: 8192,
+          max_completion_tokens: 16384,
         }),
       });
 
