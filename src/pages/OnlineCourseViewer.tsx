@@ -39,7 +39,7 @@ interface CourseLesson {
   // Parsed from content JSON
   summary?: string[];
   exercise?: string;
-  resources?: string[];
+  resources?: Array<{ title: string; url: string } | string>;
   script?: string;
 }
 
