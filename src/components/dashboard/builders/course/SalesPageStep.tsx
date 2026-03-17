@@ -78,7 +78,7 @@ Return ONLY valid JSON, no markdown fences.`,
         <Sparkles className="h-12 w-12 text-muted-foreground/20 mx-auto mb-4" />
         <h3 className="font-heading text-lg font-semibold mb-2">Generate Sales Page Copy</h3>
         <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
-          AI will create a complete, high-converting sales page based on your course content and target audience.
+          Abby will create a complete, high-converting sales page based on your course content and target audience.
         </p>
         <Button onClick={handleGenerate} className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90">
           <Wand2 className="h-4 w-4 mr-2" /> Generate Sales Page

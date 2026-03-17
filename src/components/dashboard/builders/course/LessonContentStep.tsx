@@ -552,7 +552,7 @@ Use well-known sites (HBR, TED, Coursera, Google Docs, Notion, Canva, Wikipedia,
             ))}
             {(!currentLesson?.quiz || currentLesson.quiz.length === 0) && (
               <p className="text-center text-xs text-muted-foreground py-4">
-                No quiz questions yet. Click "Add Question" or generate content with AI.
+                No quiz questions yet. Click "Add Question" or let Abby generate content.
               </p>
             )}
           </Card>

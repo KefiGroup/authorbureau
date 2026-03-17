@@ -181,9 +181,9 @@ const onlineCourseBuilder: BuilderNodeConfig = {
   steps: [
     { id: "foundation", label: "Course Setup", description: "Title, description, target student, pricing, and module structure", abbyTip: "Self-paced courses work best at $97-$297. I'll analyze your book and recommend the ideal structure and price point." },
     { id: "curriculum", label: "Modules & Lessons", description: "Organize chapters into modules with video lessons and exercises", abbyTip: "Group 2-3 related chapters per module. Each lesson should deliver one clear skill or concept." },
-    { id: "content", label: "Lesson Content", description: "Generate scripts, exercises, and quizzes for each lesson", abbyTip: "Strong lessons follow the Teach → Show → Do → Review pattern. Include a quiz after each module." },
-    { id: "sales-page", label: "Sales Page", description: "AI generates a complete sales page for your course", abbyTip: "Lead with the transformation. 'You will...' beats 'This course includes...'" },
-    { id: "email-sequence", label: "Email Sequence", description: "Generate a launch and nurture email sequence", abbyTip: "A well-crafted launch sequence can double your enrollment rate." },
+    { id: "content", label: "Lesson Content", description: "Abby generates scripts, exercises, and quizzes for each module", abbyTip: "Strong lessons follow the Teach → Show → Do → Review pattern. Include a quiz after each module." },
+    { id: "sales-page", label: "Sales Page", description: "Abby generates a complete sales page for your course", abbyTip: "Lead with the transformation. 'You will...' beats 'This course includes...'" },
+    { id: "email-sequence", label: "Email Sequence", description: "Abby generates a launch and nurture email sequence", abbyTip: "A well-crafted launch sequence can double your enrollment rate." },
     { id: "preview", label: "Preview & Publish", description: "Preview the student experience and publish", abbyTip: "Consider offering an early-bird discount to your email list for the first 48 hours." },
   ],
 };
