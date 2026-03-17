@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Sparkles, Loader2, BookOpen, Wand2, Plus, Trash2 } from "lucide-react";
+import { Sparkles, Loader2, BookOpen, Wand2, Plus, Trash2, RotateCcw, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateJSONWithAI } from "@/lib/ai-generate";
 import type { CourseStepProps, CourseModule, CourseQuiz, CourseLesson, CourseResource } from "./types";
