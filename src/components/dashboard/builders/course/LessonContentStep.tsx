@@ -75,6 +75,7 @@ export default function LessonContentStep({ stepData, setStepData, onMarkEdited,
   const currentModuleLessons = currentModule ? getModuleLessonsForDisplay(currentModule) : [];
   const activeLessonIdx = Math.min(selectedLessonIdx, Math.max(0, currentModuleLessons.length - 1));
   const currentLesson = currentModuleLessons[activeLessonIdx];
+  const isLastModule = selectedModIdx === modules.length - 1;
 
   const buildFallbackLesson = (moduleTitle: string, lessonIndex: number) => ({
     id: crypto.randomUUID(),
@@ -240,6 +241,11 @@ export default function LessonContentStep({ stepData, setStepData, onMarkEdited,
     try {
       setGenerationState("analyzing");
 
+      const isLastMod = selectedModIdx === modules.length - 1;
+      const resourceInstruction = isLastMod
+        ? `- "resources": array of 5-8 objects each with {"title": string, "url": string} — these are the recommended resources for the ENTIRE course (not just this lesson). Suggest REAL external URLs to free tools, articles, templates, or reference materials that support the overall course themes. Use well-known sites like Harvard Business Review, TED, Coursera, Google Docs templates, Notion templates, Canva, Medium articles, Wikipedia, etc. Each resource must have a descriptive title and a valid https URL.`
+        : "";
+
       const basePrompt = `Generate lesson content for a course lesson titled "${lessonTitle}" in module "${moduleTitle}" from the book "${bookTitle}".
 ${objectivesContext}
 
@@ -248,7 +254,7 @@ Return a JSON object with:
 - "summary": string[] (4 key takeaway bullet points)
 - "exercise": string (a practical exercise, 100-150 words with numbered steps)
 - "quiz": array of 3 objects each with {"question": string, "options": string[] (4 options), "correctAnswer": number (0-3), "explanation": string}
-- "resources": array of 3-5 objects each with {"title": string, "url": string} — suggest REAL external URLs to free tools, articles, templates, or reference materials that support this lesson. Use well-known sites like Harvard Business Review, TED, Coursera, Google Docs templates, Notion templates, Canva, Medium articles, Wikipedia, etc. Each resource must have a descriptive title and a valid https URL.
+${resourceInstruction}
 
 Make the content specific to the lesson topic, not generic.
 Return ONLY valid JSON.`;
@@ -298,25 +304,28 @@ Return ONLY valid JSON.`;
           })
         : [];
 
-      let normalizedResources = normalizeResourcesInput(result.resources);
+      let normalizedResources: CourseResource[] = [];
 
-      if (normalizedResources.length === 0) {
-        try {
-          const resourceResult = await generateJSONWithAI<{ resources?: Array<{ title?: string; url?: string } | string> }>(
-            `Return ONLY JSON: {"resources": [{"title": string, "url": string}, ...]}.
-Generate 3-5 resources with REAL external URLs for lesson "${lessonTitle}" in module "${moduleTitle}" from book "${bookTitle}".
-${objectivesContext}
+      if (isLastMod) {
+        normalizedResources = normalizeResourcesInput(result.resources);
+
+        if (normalizedResources.length === 0) {
+          try {
+            const resourceResult = await generateJSONWithAI<{ resources?: Array<{ title?: string; url?: string } | string> }>(
+              `Return ONLY JSON: {"resources": [{"title": string, "url": string}, ...]}.
+Generate 5-8 recommended resources for the ENTIRE course based on book "${bookTitle}". These resources should cover all modules, not just this lesson.
 Use well-known sites (HBR, TED, Coursera, Google Docs, Notion, Canva, Wikipedia, etc). Each must have title + valid https URL.`,
-            aiOptions,
-          );
-          normalizedResources = normalizeResourcesInput(resourceResult.resources);
-        } catch {
-          // Fallback below
+              aiOptions,
+            );
+            normalizedResources = normalizeResourcesInput(resourceResult.resources);
+          } catch {
+            // Fallback below
+          }
         }
-      }
 
-      if (normalizedResources.length === 0) {
-        normalizedResources = buildFallbackResources(lessonTitle, learningObjectives);
+        if (normalizedResources.length === 0) {
+          normalizedResources = buildFallbackResources(lessonTitle, learningObjectives);
+        }
       }
 
       const snapshot = {
@@ -431,7 +440,7 @@ Use well-known sites (HBR, TED, Coursera, Google Docs, Notion, Canva, Wikipedia,
           <TabsTrigger value="summary" className="text-xs">Summary</TabsTrigger>
           <TabsTrigger value="exercise" className="text-xs">Exercise</TabsTrigger>
           <TabsTrigger value="quiz" className="text-xs">Quiz ({currentLesson?.quiz?.length || 0})</TabsTrigger>
-          <TabsTrigger value="resources" className="text-xs">Resources</TabsTrigger>
+          {isLastModule && <TabsTrigger value="resources" className="text-xs">Resources</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="script">
@@ -553,9 +562,9 @@ Use well-known sites (HBR, TED, Coursera, Google Docs, Notion, Canva, Wikipedia,
           </Card>
         </TabsContent>
 
-        <TabsContent value="resources">
+        {isLastModule && <TabsContent value="resources">
           <Card className="p-4 space-y-3">
-            <p className="text-xs font-semibold text-muted-foreground mb-2">Suggested Resources (with URLs)</p>
+            <p className="text-xs font-semibold text-muted-foreground mb-2">Suggested Resources for the Entire Course (with URLs)</p>
             {(currentLesson?.resources || [{ title: "", url: "" }]).map((res: any, i: number) => {
               const resource: CourseResource = typeof res === "string"
                 ? { title: res, url: "" }
@@ -601,7 +610,7 @@ Use well-known sites (HBR, TED, Coursera, Google Docs, Notion, Canva, Wikipedia,
               <Plus className="h-3 w-3 mr-1" /> Add Resource
             </Button>
           </Card>
-        </TabsContent>
+        </TabsContent>}
       </Tabs>
     </div>
   );
