@@ -254,7 +254,7 @@ Deno.serve(async (req) => {
     // Everything else is yield
 
     const productCounts: Record<string, number> = {};
-    const categoryCounts: Record<string, { build: number; bridge: number; yield: number }> = {};
+    const categoryCounts: Record<string, { brand: number; build: number; yield: number }> = {};
 
     if (bookIds.length > 0) {
       const { data: builderAssets } = await cloudAdmin
@@ -268,14 +268,15 @@ Deno.serve(async (req) => {
         productCounts[a.book_id] = (productCounts[a.book_id] || 0) + 1;
 
         if (!categoryCounts[a.book_id]) {
-          categoryCounts[a.book_id] = { build: 0, bridge: 0, yield: 0 };
+          categoryCounts[a.book_id] = { brand: 0, build: 0, yield: 0 };
         }
-        if (buildBuilders.has(builderId)) {
+        if (brandBuilders.has(builderId)) {
+          categoryCounts[a.book_id].brand++;
+        } else if (buildAuthorityBuilders.has(builderId)) {
           categoryCounts[a.book_id].build++;
-        } else if (bridgeBuilders.has(builderId)) {
-          categoryCounts[a.book_id].bridge++;
         } else {
           categoryCounts[a.book_id].yield++;
+        }
         }
       }
 
