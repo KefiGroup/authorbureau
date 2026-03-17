@@ -149,111 +149,117 @@ export default function TrainingFoundationStep({ stepData, setStepData, onMarkEd
         </Card>
       )}
 
-      {/* Title Options */}
-      <Card className="p-5 space-y-4">
-        <h3 className="text-sm font-bold flex items-center gap-2">
-          Training Program Title
-          {titleOptions.length > 0 && <Badge variant="outline" className="text-[10px]">{titleOptions.length} options</Badge>}
-        </h3>
-        {titleOptions.length > 0 ? (
-          <div className="space-y-2">
-            {titleOptions.map((opt: string, i: number) => (
-              <div key={i} className="flex items-center gap-2">
-                <button
-                  onClick={() => update("selectedTitleIdx", i)}
-                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
-                    selectedTitleIdx === i ? "border-secondary bg-secondary text-secondary-foreground" : "border-muted-foreground/30"
-                  }`}
-                >
-                  {selectedTitleIdx === i && <span className="text-[8px]">✓</span>}
-                </button>
-                <Input value={opt} onChange={(e) => updateTitleOption(i, e.target.value)} placeholder={`Title option ${i + 1}`} className={`text-base ${selectedTitleIdx === i ? "font-semibold" : ""}`} />
-                <button onClick={() => removeTitleOption(i)} className="text-destructive/50 hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+      {/* Show editable fields only after Abby has generated content */}
+      {(data.title || data.subtitle || data.description || titleOptions.length > 0 || promises.length > 0 || data.targetStudent || data.price || data.format) && (
+        <>
+          {/* Review & Edit Header */}
+          <div className="flex items-center gap-2 pt-2">
+            <Sparkles className="h-4 w-4 text-secondary" />
+            <p className="text-sm font-semibold text-secondary">Review & Edit Abby's Output</p>
+          </div>
+
+          {/* Title Options */}
+          <Card className="p-5 space-y-4">
+            <h3 className="text-sm font-bold flex items-center gap-2">
+              Training Program Title
+              {titleOptions.length > 0 && <Badge variant="outline" className="text-[10px]">{titleOptions.length} options</Badge>}
+            </h3>
+            {titleOptions.length > 0 ? (
+              <div className="space-y-2">
+                {titleOptions.map((opt: string, i: number) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <button
+                      onClick={() => update("selectedTitleIdx", i)}
+                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
+                        selectedTitleIdx === i ? "border-secondary bg-secondary text-secondary-foreground" : "border-muted-foreground/30"
+                      }`}
+                    >
+                      {selectedTitleIdx === i && <span className="text-[8px]">✓</span>}
+                    </button>
+                    <Input value={opt} onChange={(e) => updateTitleOption(i, e.target.value)} placeholder={`Title option ${i + 1}`} className={`text-base ${selectedTitleIdx === i ? "font-semibold" : ""}`} />
+                    <button onClick={() => removeTitleOption(i)} className="text-destructive/50 hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+                  </div>
+                ))}
+                <Button variant="ghost" size="sm" onClick={addTitleOption} className="text-xs"><Plus className="h-3 w-3 mr-1" /> Add Title Option</Button>
               </div>
-            ))}
-            <Button variant="ghost" size="sm" onClick={addTitleOption} className="text-xs"><Plus className="h-3 w-3 mr-1" /> Add Title Option</Button>
+            ) : (
+              <Input value={data.title || ""} onChange={(e) => update("title", e.target.value)} placeholder="e.g. Leadership Mastery: A 2-Day Intensive Workshop" className="text-base font-medium" />
+            )}
+          </Card>
+
+          {/* Subtitle */}
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold">Subtitle (Transformation-focused)</Label>
+            <Input value={data.subtitle || ""} onChange={(e) => update("subtitle", e.target.value)} placeholder='e.g. "Transform your leadership approach in just 2 intensive days"' />
           </div>
-        ) : (
-          <>
-            <Input value={data.title || ""} onChange={(e) => update("title", e.target.value)} placeholder="e.g. Leadership Mastery: A 2-Day Intensive Workshop" className="text-base font-medium" />
-            <p className="text-[10px] text-muted-foreground">Abby will generate 3 title options when you run the analysis.</p>
-          </>
-        )}
-      </Card>
 
-      {/* Subtitle */}
-      <div className="space-y-2">
-        <Label className="text-sm font-semibold">Subtitle (Transformation-focused)</Label>
-        <Input value={data.subtitle || ""} onChange={(e) => update("subtitle", e.target.value)} placeholder='e.g. "Transform your leadership approach in just 2 intensive days"' />
-      </div>
-
-      {/* Workshop Format */}
-      <div className="space-y-3">
-        <Label className="text-sm font-semibold">Workshop Format</Label>
-        <div className="grid grid-cols-3 gap-2">
-          {FORMAT_OPTIONS.map((fmt) => (
-            <button key={fmt.value} onClick={() => update("format", fmt.value)} className={`p-3 rounded-xl border-2 text-left transition-all ${data.format === fmt.value ? "border-secondary bg-secondary/5 shadow-sm" : "border-border hover:border-secondary/30"}`}>
-              <p className="text-sm font-bold">{fmt.label}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">{fmt.desc}</p>
-              {fmt.badge && <Badge variant="outline" className="mt-1.5 text-[10px]">{fmt.badge}</Badge>}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Target Participant */}
-      <div className="space-y-2">
-        <Label className="text-sm font-semibold">Target Participant</Label>
-        <Textarea value={data.targetStudent || ""} onChange={(e) => update("targetStudent", e.target.value)} placeholder="Define your ideal participant: demographics, current pain points, goals, what they've tried before, and what's holding them back." rows={4} />
-        <p className="text-[10px] text-muted-foreground">💡 Abby will research your niche and recommend a target audience based on your book's content and market demand.</p>
-      </div>
-
-      {/* Description */}
-      <Card className="p-5 space-y-3">
-        <div className="flex items-center justify-between">
-          <Label className="text-sm font-semibold">Program Description</Label>
-          {data.description && <span className="text-[10px] text-muted-foreground">{data.description.length} chars</span>}
-        </div>
-        <Textarea value={data.description || ""} onChange={(e) => update("description", e.target.value)} placeholder='Write 2-3 paragraphs selling the transformation. Focus on outcomes and the premium facilitated experience.' rows={6} />
-      </Card>
-
-      {/* Transformation Promises */}
-      <Card className="p-5 space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-bold">Transformation Promises</h3>
-            <p className="text-[10px] text-muted-foreground">5 specific, measurable outcomes starting with Bloom's action verbs (design, evaluate, create, analyze, implement)</p>
-          </div>
-          <Badge variant="outline" className="text-[10px]">{promises.length}/5</Badge>
-        </div>
-        <div className="space-y-2">
-          {promises.map((p: string, i: number) => (
-            <div key={i} className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground font-mono w-5 shrink-0">{i + 1}.</span>
-              <Input value={p} onChange={(e) => updatePromise(i, e.target.value)} placeholder={`e.g. "Design a personalized 90-day implementation roadmap"`} className="text-sm" />
-              <button onClick={() => removePromise(i)} className="text-destructive/50 hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+          {/* Workshop Format */}
+          <div className="space-y-3">
+            <Label className="text-sm font-semibold">Workshop Format</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {FORMAT_OPTIONS.map((fmt) => (
+                <button key={fmt.value} onClick={() => update("format", fmt.value)} className={`p-3 rounded-xl border-2 text-left transition-all ${data.format === fmt.value ? "border-secondary bg-secondary/5 shadow-sm" : "border-border hover:border-secondary/30"}`}>
+                  <p className="text-sm font-bold">{fmt.label}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">{fmt.desc}</p>
+                  {fmt.badge && <Badge variant="outline" className="mt-1.5 text-[10px]">{fmt.badge}</Badge>}
+                </button>
+              ))}
             </div>
-          ))}
-          {promises.length < 7 && (
-            <Button variant="ghost" size="sm" onClick={addPromise} className="text-xs"><Plus className="h-3 w-3 mr-1" /> Add Promise</Button>
-          )}
-        </div>
-      </Card>
+          </div>
 
-      {/* Pricing */}
-      <Card className="p-5 space-y-3">
-        <Label className="text-sm font-semibold">Pricing</Label>
-        <div className="flex items-center gap-3">
-          <span className="text-lg font-bold text-muted-foreground">$</span>
-          <Input type="number" value={data.price || ""} onChange={(e) => update("price", parseInt(e.target.value) || 0)} className="max-w-[200px]" placeholder="997" />
-        </div>
-        <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
-          <span className="flex items-center gap-1">📕 Workbook ($27-47)</span>
-          <span className="flex items-center gap-1">📘 Online Course ($97-$297)</span>
-          <span className="flex items-center gap-1 text-secondary font-semibold">🎓 Training = Premium ($497-$2,997)</span>
-        </div>
-        <p className="text-[10px] text-muted-foreground">💡 Abby will benchmark comparable training programs in your niche to recommend the optimal price point.</p>
-      </Card>
+          {/* Target Participant */}
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold">Target Participant</Label>
+            <Textarea value={data.targetStudent || ""} onChange={(e) => update("targetStudent", e.target.value)} placeholder="Define your ideal participant: demographics, current pain points, goals, what they've tried before, and what's holding them back." rows={4} />
+          </div>
+
+          {/* Description */}
+          <Card className="p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-semibold">Program Description</Label>
+              {data.description && <span className="text-[10px] text-muted-foreground">{data.description.length} chars</span>}
+            </div>
+            <Textarea value={data.description || ""} onChange={(e) => update("description", e.target.value)} placeholder='Write 2-3 paragraphs selling the transformation. Focus on outcomes and the premium facilitated experience.' rows={6} />
+          </Card>
+
+          {/* Transformation Promises */}
+          <Card className="p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold">Transformation Promises</h3>
+                <p className="text-[10px] text-muted-foreground">5 specific, measurable outcomes starting with Bloom's action verbs (design, evaluate, create, analyze, implement)</p>
+              </div>
+              <Badge variant="outline" className="text-[10px]">{promises.length}/5</Badge>
+            </div>
+            <div className="space-y-2">
+              {promises.map((p: string, i: number) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground font-mono w-5 shrink-0">{i + 1}.</span>
+                  <Input value={p} onChange={(e) => updatePromise(i, e.target.value)} placeholder={`e.g. "Design a personalized 90-day implementation roadmap"`} className="text-sm" />
+                  <button onClick={() => removePromise(i)} className="text-destructive/50 hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+                </div>
+              ))}
+              {promises.length < 7 && (
+                <Button variant="ghost" size="sm" onClick={addPromise} className="text-xs"><Plus className="h-3 w-3 mr-1" /> Add Promise</Button>
+              )}
+            </div>
+          </Card>
+
+          {/* Pricing */}
+          <Card className="p-5 space-y-3">
+            <Label className="text-sm font-semibold">Pricing</Label>
+            <div className="flex items-center gap-3">
+              <span className="text-lg font-bold text-muted-foreground">$</span>
+              <Input type="number" value={data.price || ""} onChange={(e) => update("price", parseInt(e.target.value) || 0)} className="max-w-[200px]" placeholder="997" />
+            </div>
+            <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
+              <span className="flex items-center gap-1">📕 Workbook ($27-47)</span>
+              <span className="flex items-center gap-1">📘 Online Course ($97-$297)</span>
+              <span className="flex items-center gap-1 text-secondary font-semibold">🎓 Training = Premium ($497-$2,997)</span>
+            </div>
+          </Card>
+        </>
+      )}
     </div>
   );
 }
