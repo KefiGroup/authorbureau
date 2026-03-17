@@ -80,8 +80,8 @@ function getRecommendationsFromPlan(planContent: string | null): Recommendation[
 }
 
 const categoryBadge: Record<string, { label: string; className: string }> = {
-  build: { label: "B·Build", className: "bg-emerald-100 text-emerald-700" },
-  bridge: { label: "B·Bridge", className: "bg-violet-100 text-violet-700" },
+  build: { label: "B·Brand", className: "bg-emerald-100 text-emerald-700" },
+  bridge: { label: "B·Build", className: "bg-violet-100 text-violet-700" },
   yield: { label: "Y·Yield", className: "bg-sky-100 text-sky-700" },
 };
 
