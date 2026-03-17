@@ -137,9 +137,11 @@ export default function BookHubStepTab({ categoryId, bookId, bookTitle, bookGenr
   const { user, isAdmin } = useAuth();
   const userIsSuperAdmin = isSuperAdmin(user?.email);
   const { plan, completedAssets } = useAbbyPlan(bookId);
+  const { gating } = useNodeGating();
+  const openNodeIds = new Set(gating.filter(r => r.is_open).map(r => r.node_id));
   const [executingNode, setExecutingNode] = useState<ProductNode | null>(null);
   const [notifiedNodes, setNotifiedNodes] = useState<Set<string>>(new Set());
-  const catData = deriveCategoryConfig(categoryId as AbbyCategory, isAdmin, userIsSuperAdmin);
+  const catData = deriveCategoryConfig(categoryId as AbbyCategory, isAdmin, userIsSuperAdmin, openNodeIds);
   if (!catData) return null;
 
   const HeaderIcon = catData.headerIcon;
