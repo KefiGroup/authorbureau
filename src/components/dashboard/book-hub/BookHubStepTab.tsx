@@ -53,8 +53,8 @@ interface DerivedCategory {
   nodes: ProductNode[];
 }
 
-function deriveCategoryConfig(catId: AbbyCategory, isAdmin: boolean): DerivedCategory | null {
-  const cat = getEffectiveCategory(catId, isAdmin);
+function deriveCategoryConfig(catId: AbbyCategory, isAdmin: boolean, superAdmin = false): DerivedCategory | null {
+  const cat = getEffectiveCategory(catId, isAdmin, superAdmin);
   if (!cat) return null;
   return {
     id: cat.id,
