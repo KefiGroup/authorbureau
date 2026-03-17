@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,13 +7,28 @@ import { Badge } from "@/components/ui/badge";
 import { Wand2, Loader2, Mail, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateJSONWithAI } from "@/lib/ai-generate";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import type { CourseStepProps, EmailStep } from "./types";
 
 export default function EmailSequenceStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, generationState, setGenerationState }: CourseStepProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const emails: EmailStep[] = stepData.emailSequence?.emails || [];
   const [selectedIdx, setSelectedIdx] = useState(0);
+  const [authorName, setAuthorName] = useState("");
 
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("author_profiles")
+      .select("pen_name")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.pen_name) setAuthorName(data.pen_name);
+      });
+  }, [user]);
   const updateEmails = (newEmails: EmailStep[]) => {
     setStepData(prev => ({
       ...prev,
@@ -35,7 +50,13 @@ export default function EmailSequenceStep({ stepData, setStepData, onMarkEdited,
       const title = stepData.foundation?.title || "the course";
       const moduleCount = stepData.curriculum?.modules?.length || 8;
 
+      const displayName = authorName || "the author";
+
       const basePrompt = `Generate a 7-email nurture sequence for an online course called "${title}" based on the book "${bookTitle}" with ${moduleCount} modules.
+
+The author's name is "${displayName}". Use their real name throughout the emails — do NOT use a placeholder like [Author Name]. Write as if ${displayName} is personally emailing the reader.
+
+Use [First Name] as a placeholder for the reader/participant's first name — this will be dynamically replaced at send time.
 
 The sequence should cover: Welcome, Quick Win, Social Proof, Overcome Objection, Urgency, Last Chance, Post-Purchase Onboarding.
 
@@ -44,7 +65,7 @@ Return a JSON array of 7 objects, each with:
 - "purpose": string (e.g. "Welcome + what to expect")
 - "subject": string (compelling subject line)
 - "previewText": string (email preview text)
-- "body": string (full email body with [First Name], [Author Name] placeholders, and [CTA Button →] links)
+- "body": string (full email body with [First Name] for the reader and [CTA Button →] links. Use "${displayName}" directly instead of any author placeholder.)
 
 Make each email specific to the course topic. Return ONLY valid JSON.`;
 
@@ -240,10 +261,12 @@ Make each email specific to the course topic. Return ONLY valid JSON.`;
               <div className="mt-2 rounded-md border border-border bg-muted/30 px-3 py-2 space-y-1">
                 <p className="text-[10px] font-semibold text-muted-foreground">Dynamic Placeholders</p>
                 <div className="flex flex-wrap gap-x-4 gap-y-0.5">
-                  <span className="text-[10px] text-muted-foreground"><code className="bg-muted px-1 py-0.5 rounded text-[9px] font-mono">[First Name]</code> → Reader's first name</span>
-                  <span className="text-[10px] text-muted-foreground"><code className="bg-muted px-1 py-0.5 rounded text-[9px] font-mono">[Author Name]</code> → Your author name from your profile</span>
+                  <span className="text-[10px] text-muted-foreground"><code className="bg-muted px-1 py-0.5 rounded text-[9px] font-mono">[First Name]</code> → Reader's first name (replaced at send time)</span>
                   <span className="text-[10px] text-muted-foreground"><code className="bg-muted px-1 py-0.5 rounded text-[9px] font-mono">[CTA Button → ...]</code> → Rendered as a clickable button linking to your course sales page</span>
                 </div>
+                {authorName && (
+                  <p className="text-[10px] text-muted-foreground mt-1">✓ Author name <strong>{authorName}</strong> is automatically used from your profile.</p>
+                )}
               </div>
             </div>
           </div>
