@@ -58,14 +58,27 @@ The author's name is "${displayName}". Use their real name throughout the emails
 
 Use [First Name] as a placeholder for the reader/participant's first name — this will be dynamically replaced at send time.
 
-The sequence should cover: Welcome, Quick Win, Social Proof, Overcome Objection, Urgency, Last Chance, Post-Purchase Onboarding.
+The sequence should cover these 7 emails in order:
+1. Welcome + what to expect (build excitement for the journey ahead)
+2. Quick Win (give them one actionable takeaway they can use today)
+3. Social Proof (share a transformation story or testimonial)
+4. Overcome Objection (address the #1 doubt or fear)
+5. Urgency (create a reason to act now)
+6. Last Chance (final nudge before the offer closes)
+7. Post-Purchase Onboarding (congratulate and guide them to start Module 1)
+
+The goal is to build trust and sell — warm up the reader and convert them into a course student.
+
+For call-to-action links, use the format [CTA Button → Label Text](SIGNUP_URL) — this will be rendered as a clickable button linking to the course sign-up page.
+
+IMPORTANT: The "dayNumber" field represents the suggested email ORDER (1-7), NOT actual send timing. Actual send timing and triggers will be configured separately in the Email Marketing node. Set dayNumber sequentially as 1 through 7.
 
 Return a JSON array of 7 objects, each with:
-- "dayNumber": number (day the email sends, starting at 0)
+- "dayNumber": number (sequential order: 1 through 7)
 - "purpose": string (e.g. "Welcome + what to expect")
 - "subject": string (compelling subject line)
 - "previewText": string (email preview text)
-- "body": string (full email body with [First Name] for the reader. For call-to-action links, use the format [CTA Button → Label Text](SIGNUP_URL) — this will be rendered as a clickable button linking to the course sign-up page. Use "${displayName}" directly instead of any author placeholder.)
+- "body": string (full email body with [First Name] for the reader. Use "${displayName}" directly instead of any author placeholder.)
 
 Make each email specific to the course topic. Return ONLY valid JSON.`;
 
@@ -181,8 +194,7 @@ Make each email specific to the course topic. Return ONLY valid JSON.`;
                 <span className="text-[11px] font-medium truncate">Email {i + 1}</span>
               </div>
               <div className="flex items-center gap-1 mt-0.5">
-                <Clock className="h-2.5 w-2.5 text-muted-foreground/50" />
-                <span className="text-[9px] text-muted-foreground">Day {email.dayNumber}</span>
+                <span className="text-[9px] text-muted-foreground">#{email.dayNumber} in sequence</span>
               </div>
               <p className="text-[9px] text-muted-foreground/70 truncate mt-0.5">{email.purpose}</p>
             </button>
@@ -197,7 +209,7 @@ Make each email specific to the course topic. Return ONLY valid JSON.`;
             <div className="flex items-center gap-2">
               <Badge variant="secondary" className="text-[10px]">Email {selectedIdx + 1} of {emails.length}</Badge>
               <Badge variant="outline" className="text-[10px]">
-                <Clock className="h-2.5 w-2.5 mr-1" /> Day {selectedEmail.dayNumber}
+                #{selectedEmail.dayNumber} in sequence
               </Badge>
               <span className="text-[10px] text-muted-foreground">— {selectedEmail.purpose}</span>
             </div>
@@ -232,21 +244,21 @@ Make each email specific to the course topic. Return ONLY valid JSON.`;
 
             <div>
               <div className="flex items-center gap-2">
-                <label className="text-xs font-semibold text-muted-foreground">Send Timing: Day</label>
+                <label className="text-xs font-semibold text-muted-foreground">Email Order: #</label>
                 <Input
                   type="number"
                   value={selectedEmail.dayNumber}
                   onChange={(e) => {
-                    const newDay = parseInt(e.target.value) || 0;
+                    const newDay = parseInt(e.target.value) || 1;
                     updateEmail(selectedIdx, "dayNumber", newDay);
                   }}
                   className="w-16"
-                  min={0}
+                  min={1}
+                  max={7}
                 />
               </div>
               <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">
-                <strong>Day 0</strong> = the day a reader signs up or purchases. <strong>Day 1</strong> = one day later, and so on.
-                This sets the delay between signup and when this email is sent. Adjust to control the pace of your nurture sequence.
+                This is the <strong>sequence order</strong> of this email (1–7). Actual send timing, triggers, and delays will be configured in the <strong>Email Marketing</strong> node.
               </p>
             </div>
 
