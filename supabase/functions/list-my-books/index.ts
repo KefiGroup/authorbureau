@@ -282,26 +282,24 @@ Deno.serve(async (req) => {
 
       // Also count from dedicated product tables for products that may not have builder_content_ assets
       for (const table of ["courses", "audiobooks", "home_study_courses", "coaching_packages", "podcasts"]) {
-        const category = ["coaching_packages"].includes(table) ? "bridge" : "build";
+        const category = ["coaching_packages"].includes(table) ? "yield" : "brand";
         const { data: rows } = await cloudAdmin
           .from(table)
           .select("book_id")
           .in("book_id", bookIds);
         for (const row of rows || []) {
           if (!row.book_id) continue;
-          // Only count if not already counted via generated_assets
           if (!categoryCounts[row.book_id]) {
-            categoryCounts[row.book_id] = { build: 0, bridge: 0, yield: 0 };
+            categoryCounts[row.book_id] = { brand: 0, build: 0, yield: 0 };
           }
-          // We add to total but track to avoid double-counting later
-          // For simplicity, just ensure the count is at least 1
           const currentTotal = productCounts[row.book_id] || 0;
-          const catTotal = categoryCounts[row.book_id].build + categoryCounts[row.book_id].bridge + categoryCounts[row.book_id].yield;
+          const catTotal = categoryCounts[row.book_id].brand + categoryCounts[row.book_id].build + categoryCounts[row.book_id].yield;
           if (currentTotal <= catTotal) {
             // Already counted via generated_assets — skip
           } else {
-            categoryCounts[row.book_id][category as "build" | "bridge"]++;
+            categoryCounts[row.book_id][category as "brand" | "yield"]++;
             productCounts[row.book_id] = (productCounts[row.book_id] || 0) + 1;
+          }
           }
         }
       }

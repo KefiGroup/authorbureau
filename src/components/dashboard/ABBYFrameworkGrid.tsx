@@ -107,7 +107,7 @@ export default function ABBYFrameworkGrid({ isPremium, onNavigate, onUpgrade }: 
     <div className="space-y-3">
       <div className="text-center">
         <p className="text-xs text-muted-foreground">
-          <strong>A</strong>nalyze · <strong>B</strong>uild · <strong>B</strong>ridge · <strong>Y</strong>ield — {activeProducts} of {totalProducts} streams activated
+          <strong>B</strong>rand · <strong>B</strong>uild · <strong>Y</strong>ield — {activeProducts} of {totalProducts} streams activated
         </p>
       </div>
 
