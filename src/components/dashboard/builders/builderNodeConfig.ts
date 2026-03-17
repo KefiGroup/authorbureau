@@ -998,7 +998,7 @@ export const ALL_BUILDER_NODES: BuilderNodeConfig[] = [
   bookSalesBuilder,
   leadMagnetBuilder,
   websiteBuilder,
-  // B·Bridge (14)
+  // B·Build Channels (14)
   onlineCourseBuilder,
   audiobookBuilder,
   podcastBuilder,
