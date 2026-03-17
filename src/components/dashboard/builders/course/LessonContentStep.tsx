@@ -20,6 +20,7 @@ interface GeneratedLessonContent {
     correctAnswer?: number;
     explanation?: string;
   }>;
+  resources?: string[];
 }
 
 export default function LessonContentStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, generationState, setGenerationState }: CourseStepProps) {
@@ -161,8 +162,9 @@ Return a JSON object with:
 - "summary": string[] (4 key takeaway bullet points)
 - "exercise": string (a practical exercise, 100-150 words with numbered steps)
 - "quiz": array of 3 objects each with {"question": string, "options": string[] (4 options), "correctAnswer": number (0-3), "explanation": string}
+- "resources": string[] (3-5 suggested downloadable resources or reference materials that support the lesson's learning objectives and relate to the book's content — e.g. worksheets, checklists, templates, reading lists, or supplemental guides)
 
-Make the content specific to the lesson topic, not generic.
+Make the content specific to the lesson topic, not generic. Resources should be actionable and directly tied to the learning objectives.
 Return ONLY valid JSON.`;
 
       const aiOptions = {
@@ -210,10 +212,15 @@ Return ONLY valid JSON.`;
           })
         : [];
 
+      const normalizedResources = Array.isArray(result.resources)
+        ? result.resources.map((r) => String(r || "").trim()).filter(Boolean)
+        : [];
+
       upsertLessonField(selectedModIdx, ensured.lessonIndex, "script", String(result.script || ""));
       upsertLessonField(selectedModIdx, ensured.lessonIndex, "summary", normalizedSummary);
       upsertLessonField(selectedModIdx, ensured.lessonIndex, "exercise", String(result.exercise || ""));
       upsertLessonField(selectedModIdx, ensured.lessonIndex, "quiz", normalizedQuiz);
+      upsertLessonField(selectedModIdx, ensured.lessonIndex, "resources", normalizedResources);
 
       setGenerationState("complete");
       toast({ title: "Lesson content generated!", description: "Review the script, exercises, and quiz below." });
