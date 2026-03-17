@@ -446,7 +446,8 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           />
         );
     }
-  };
+  const BUILDER_SECTIONS = new Set(["home-study", "group-coaching", "memberships", "email-marketing", "book-sales", "special-editions", "lead-magnet", "big-ticket"]);
+  const isBuilderActive = !!searchParams.get("builder") || BUILDER_SECTIONS.has(activeSection);
 
   return (
     <div className="flex min-h-screen bg-background">
