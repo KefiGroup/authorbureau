@@ -562,9 +562,9 @@ Use well-known sites (HBR, TED, Coursera, Google Docs, Notion, Canva, Wikipedia,
           </Card>
         </TabsContent>
 
-        <TabsContent value="resources">
+        {isLastModule && <TabsContent value="resources">
           <Card className="p-4 space-y-3">
-            <p className="text-xs font-semibold text-muted-foreground mb-2">Suggested Resources (with URLs)</p>
+            <p className="text-xs font-semibold text-muted-foreground mb-2">Suggested Resources for the Entire Course (with URLs)</p>
             {(currentLesson?.resources || [{ title: "", url: "" }]).map((res: any, i: number) => {
               const resource: CourseResource = typeof res === "string"
                 ? { title: res, url: "" }
