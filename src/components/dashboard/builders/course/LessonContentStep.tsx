@@ -8,7 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Sparkles, Loader2, BookOpen, Wand2, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateJSONWithAI } from "@/lib/ai-generate";
-import type { CourseStepProps, CourseModule, CourseQuiz, CourseLesson } from "./types";
+import type { CourseStepProps, CourseModule, CourseQuiz, CourseLesson, CourseResource } from "./types";
 
 interface GeneratedLessonContent {
   script?: string;
@@ -20,7 +20,7 @@ interface GeneratedLessonContent {
     correctAnswer?: number;
     explanation?: string;
   }>;
-  resources?: string[];
+  resources?: Array<{ title?: string; url?: string } | string>;
 }
 
 export default function LessonContentStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, generationState, setGenerationState }: CourseStepProps) {
@@ -169,45 +169,46 @@ export default function LessonContentStep({ stepData, setStepData, onMarkEdited,
     updateLesson("quiz", (currentLesson?.quiz || []).filter((_: any, i: number) => i !== idx));
   };
 
-  const normalizeResourcesInput = (value: unknown): string[] => {
-    const toCleanString = (item: unknown) =>
-      String(item ?? "")
-        .replace(/^[-*\d.)\s]+/, "")
-        .trim();
+  const normalizeResourcesInput = (value: unknown): CourseResource[] => {
+    if (!value) return [];
 
-    const fromArray = Array.isArray(value)
-      ? value
-          .map((item) => {
-            if (typeof item === "string") return toCleanString(item);
-            if (item && typeof item === "object") {
-              const record = item as Record<string, unknown>;
-              return toCleanString(record.title || record.name || record.resource || record.url || record.label || "");
-            }
-            return "";
-          })
-          .filter(Boolean)
+    const items = Array.isArray(value) ? value : typeof value === "string"
+      ? value.split(/\n|;/).map(s => s.trim()).filter(Boolean)
       : [];
 
-    const fromText = typeof value === "string"
-      ? value
-          .split(/\n|;/)
-          .map(toCleanString)
-          .filter(Boolean)
-      : [];
-
-    return Array.from(new Set([...fromArray, ...fromText])).slice(0, 5);
+    return items
+      .map((item): CourseResource | null => {
+        if (typeof item === "string") {
+          const urlMatch = item.match(/https?:\/\/[^\s)]+/);
+          if (urlMatch) {
+            const title = item.replace(urlMatch[0], "").replace(/[-–—:|]+/g, " ").trim() || urlMatch[0];
+            return { title, url: urlMatch[0] };
+          }
+          return { title: item.trim(), url: "" };
+        }
+        if (item && typeof item === "object") {
+          const record = item as Record<string, unknown>;
+          return {
+            title: String(record.title || record.name || record.label || "").trim(),
+            url: String(record.url || record.link || record.href || "").trim(),
+          };
+        }
+        return null;
+      })
+      .filter((r): r is CourseResource => r !== null && r.title.length > 0)
+      .slice(0, 5);
   };
 
-  const buildFallbackResources = (lessonTitle: string, objectives: string[]): string[] => {
+  const buildFallbackResources = (lessonTitle: string, objectives: string[]): CourseResource[] => {
     const seeds = objectives.filter(Boolean).slice(0, 3);
     const generated = seeds.map((objective, idx) => {
-      if (idx === 0) return `Worksheet: ${objective}`;
-      if (idx === 1) return `Checklist: ${objective}`;
-      return `Template: ${objective}`;
+      if (idx === 0) return { title: `Worksheet: ${objective}`, url: "" };
+      if (idx === 1) return { title: `Checklist: ${objective}`, url: "" };
+      return { title: `Template: ${objective}`, url: "" };
     });
 
     while (generated.length < 3) {
-      generated.push(`Action guide for ${lessonTitle}`);
+      generated.push({ title: `Action guide for ${lessonTitle}`, url: "" });
     }
 
     return generated.slice(0, 5);
@@ -246,9 +247,9 @@ Return a JSON object with:
 - "summary": string[] (4 key takeaway bullet points)
 - "exercise": string (a practical exercise, 100-150 words with numbered steps)
 - "quiz": array of 3 objects each with {"question": string, "options": string[] (4 options), "correctAnswer": number (0-3), "explanation": string}
-- "resources": string[] (REQUIRED, 3-5 non-empty items; each must be a concrete resource title tied to the lesson objective and book content)
+- "resources": array of 3-5 objects each with {"title": string, "url": string} — suggest REAL external URLs to free tools, articles, templates, or reference materials that support this lesson. Use well-known sites like Harvard Business Review, TED, Coursera, Google Docs templates, Notion templates, Canva, Medium articles, Wikipedia, etc. Each resource must have a descriptive title and a valid https URL.
 
-Make the content specific to the lesson topic, not generic. Resources should be actionable and directly tied to the learning objectives.
+Make the content specific to the lesson topic, not generic.
 Return ONLY valid JSON.`;
 
       const aiOptions = {
@@ -300,11 +301,11 @@ Return ONLY valid JSON.`;
 
       if (normalizedResources.length === 0) {
         try {
-          const resourceResult = await generateJSONWithAI<{ resources?: string[] | string }>(
-            `Return ONLY JSON with this exact shape: {"resources": string[]}.
-Generate 3-5 concrete resource titles for lesson "${lessonTitle}" in module "${moduleTitle}" from book "${bookTitle}".
+          const resourceResult = await generateJSONWithAI<{ resources?: Array<{ title?: string; url?: string } | string> }>(
+            `Return ONLY JSON: {"resources": [{"title": string, "url": string}, ...]}.
+Generate 3-5 resources with REAL external URLs for lesson "${lessonTitle}" in module "${moduleTitle}" from book "${bookTitle}".
 ${objectivesContext}
-Rules: no placeholders, no markdown, no explanations, each item must be specific and actionable.`,
+Use well-known sites (HBR, TED, Coursera, Google Docs, Notion, Canva, Wikipedia, etc). Each must have title + valid https URL.`,
             aiOptions,
           );
           normalizedResources = normalizeResourcesInput(resourceResult.resources);
@@ -518,26 +519,50 @@ Rules: no placeholders, no markdown, no explanations, each item must be specific
         </TabsContent>
 
         <TabsContent value="resources">
-          <Card className="p-4 space-y-2">
-            <p className="text-xs font-semibold text-muted-foreground mb-2">Downloadable Resources</p>
-            {(currentLesson?.resources || [""]).map((res: string, i: number) => (
-              <div key={i} className="flex items-center gap-2">
-                <Input
-                  value={res}
-                  onChange={(e) => {
-                    const newRes = [...(currentLesson?.resources || [])];
-                    newRes[i] = e.target.value;
+          <Card className="p-4 space-y-3">
+            <p className="text-xs font-semibold text-muted-foreground mb-2">Suggested Resources (with URLs)</p>
+            {(currentLesson?.resources || [{ title: "", url: "" }]).map((res: any, i: number) => {
+              const resource: CourseResource = typeof res === "string"
+                ? { title: res, url: "" }
+                : { title: res?.title || "", url: res?.url || "" };
+              return (
+                <div key={i} className="flex items-center gap-2">
+                  <Input
+                    value={resource.title}
+                    onChange={(e) => {
+                      const newRes = [...(currentLesson?.resources || [])].map((r: any) =>
+                        typeof r === "string" ? { title: r, url: "" } : { title: r?.title || "", url: r?.url || "" }
+                      );
+                      while (newRes.length <= i) newRes.push({ title: "", url: "" });
+                      newRes[i] = { ...newRes[i], title: e.target.value };
+                      updateLesson("resources", newRes);
+                    }}
+                    placeholder="Resource title..."
+                    className="text-sm flex-1"
+                  />
+                  <Input
+                    value={resource.url}
+                    onChange={(e) => {
+                      const newRes = [...(currentLesson?.resources || [])].map((r: any) =>
+                        typeof r === "string" ? { title: r, url: "" } : { title: r?.title || "", url: r?.url || "" }
+                      );
+                      while (newRes.length <= i) newRes.push({ title: "", url: "" });
+                      newRes[i] = { ...newRes[i], url: e.target.value };
+                      updateLesson("resources", newRes);
+                    }}
+                    placeholder="https://..."
+                    className="text-sm flex-1"
+                  />
+                  <button onClick={() => {
+                    const newRes = (currentLesson?.resources || []).filter((_: any, j: number) => j !== i);
                     updateLesson("resources", newRes);
-                  }}
-                  placeholder="Resource name or URL..."
-                  className="text-sm"
-                />
-                <button onClick={() => updateLesson("resources", (currentLesson?.resources || []).filter((_: any, j: number) => j !== i))}>
-                  <Trash2 className="h-3 w-3 text-destructive/50" />
-                </button>
-              </div>
-            ))}
-            <Button variant="ghost" size="sm" onClick={() => updateLesson("resources", [...(currentLesson?.resources || []), ""])} className="text-xs">
+                  }}>
+                    <Trash2 className="h-3 w-3 text-destructive/50" />
+                  </button>
+                </div>
+              );
+            })}
+            <Button variant="ghost" size="sm" onClick={() => updateLesson("resources", [...(currentLesson?.resources || []), { title: "", url: "" }])} className="text-xs">
               <Plus className="h-3 w-3 mr-1" /> Add Resource
             </Button>
           </Card>
