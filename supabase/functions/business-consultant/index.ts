@@ -152,22 +152,24 @@ Always present revenue as a range (conservative / realistic / optimistic) and al
 
 # SECTION 7: THE ABBY FRAMEWORK — ALL 28 NODES
 
-## B · Build Authority (7 nodes):
-1. Home Study Courses — Self-paced study guides with daily schedules ($27-$97)
+## B · Brand Products (9 nodes):
+1. Book Sales — QR code order pages & direct sales ($10-$25/book)
 2. Workbooks — Companion workbook PDFs with exercises and templates (Free-$27)
-3. Book Sales (Events) — Bulk book sales at events and conferences ($10-$25/book)
-4. Lead Magnets — High-converting free resources to build email lists (Free)
-5. Social Media — 90-day AI content calendar from book chapters (marketing asset)
-6. Website / Microsite — Author authority site with lead capture (marketing asset)
-7. Email Marketing — Welcome sequences, nurture flows, launch sequences (marketing asset)
+3. Home Study Courses — Self-paced study guides with daily schedules ($27-$97)
+4. Special Editions — Premium editions with themed gift packaging ($25-$75)
+5. Lead Magnets — High-converting free resources to build email lists (Free)
+6. Webinars — Complete webinar scripts + slide decks + registration pages (Free-$197)
+7. Social Media — 90-day AI content calendar from book chapters (marketing asset)
+8. Email Marketing — Welcome sequences, nurture flows, launch sequences (marketing asset)
+9. Website / Microsite — Author authority site with lead capture (marketing asset)
 
-## B · Bridge Channels (8 nodes):
+## B · Build Authority (9 nodes):
 1. Online Courses — 8-12 module structured courses ($97-$497)
 2. Audiobook — AI-generated audiobook scripts for recording ($14.99-$29.99)
-3. Podcasts (Guest) — Podcast episode scripts and pitch templates (marketing asset)
-4. Webinars — Complete webinar scripts + slide decks + registration pages (Free-$197)
-5. Monthly Memberships — 3-tier membership system ($9-$97/month)
-6. 1-on-1 Coaching — Personalized coaching packages ($150-$500/session)
+3. Memberships — 3-tier membership system ($27-$97/month)
+4. Group Coaching — 8-week group coaching curriculum ($97-$297/person)
+5. Podcast Tour — Podcast episode scripts and pitch templates (marketing asset)
+6. Media Outreach — Press kit, media pitches & speaker profile (marketing asset)
 7. Group Coaching — Cohort-based programs ($297-$997 per cohort)
 8. Affiliate Program — Affiliate program setup with commission structures (15-50%)
 

@@ -102,9 +102,9 @@ Authors Bureau helps published authors monetize their books through the ABBY Fra
 
 ### Subscription Tiers
 - **Free**: Book page, Abby analysis, business plan
-- **Starter ($49/mo)**: Build Authority products (workbooks, home study, book sales, special editions, social media, email marketing, website)
-- **Pro ($199/mo)**: Starter + Online Courses + all 8 Bridge Channels (audiobooks, podcasts, webinars, lead magnets, media outreach, affiliates, upsells/downsells, revenue sharing)
-- **Enterprise ($499/mo)**: All 28 builders + priority support + advanced analytics
+- **Starter ($47/mo)**: All 9 Brand Products builders (book sales, workbooks, home study, special editions, lead magnets, webinars, social media, email marketing, website)
+- **Pro ($197/mo)**: Starter + all 9 Build Authority builders (online courses, audiobook, memberships, group coaching, podcast tour, media outreach, affiliates, upsells, revenue sharing)
+- **Enterprise ($497/mo)**: All 28 builders + all 10 Yield Revenue builders + priority support + advanced analytics
 
 ### Key Features
 - **My Books Hub**: Manage all your books, see analysis status, track your monetization journey
