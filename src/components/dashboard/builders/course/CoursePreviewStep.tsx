@@ -7,6 +7,8 @@ import {
   Monitor, Smartphone, BookOpen, Clock, Award,
   CheckCircle2,
 } from "lucide-react";
+import SharedSalesCopyPreview from "../shared/SharedSalesCopyPreview";
+import { DEFAULT_SALES_COPY } from "../shared/salesCopyTypes";
 import type { CourseStepProps, CourseModule } from "./types";
 
 export default function CoursePreviewStep({ stepData }: CourseStepProps) {
@@ -92,58 +94,13 @@ export default function CoursePreviewStep({ stepData }: CourseStepProps) {
           <div className={`mx-auto border border-border rounded-xl overflow-hidden bg-card shadow-lg ${
             viewMode === "mobile" ? "max-w-sm" : "max-w-3xl"
           }`}>
-            {/* Hero */}
-            <div className="bg-gradient-to-b from-secondary/10 to-transparent p-8 text-center">
-              <h1 className="font-heading text-2xl font-bold mb-2">{stepData.salesPage?.headline || "Course Headline"}</h1>
-              <p className="text-sm text-muted-foreground mb-4">{stepData.salesPage?.subheadline || "Compelling subheadline"}</p>
-              <Button className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90">
-                Enroll Now — ${foundation.exactPrice || foundation.priceTier || "97"}
-              </Button>
-            </div>
-
-            {/* Pain points */}
-            {stepData.salesPage?.painPoints && (
-              <div className="p-6 border-t border-border">
-                <h3 className="text-sm font-bold mb-3">Sound familiar?</h3>
-                <div className="space-y-2">
-                  {stepData.salesPage.painPoints.map((p: string, i: number) => (
-                    <p key={i} className="text-xs text-muted-foreground flex items-center gap-2">
-                      <span className="text-destructive">✗</span> {p}
-                    </p>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Transformation */}
-            {stepData.salesPage?.transformationText && (
-              <div className="p-6 border-t border-border bg-secondary/5">
-                <h3 className="text-sm font-bold text-secondary mb-2">The Transformation</h3>
-                <p className="text-xs text-muted-foreground">{stepData.salesPage.transformationText}</p>
-              </div>
-            )}
-
-            {/* Stats */}
-            <div className="p-6 border-t border-border">
-              <div className="grid grid-cols-2 gap-4 text-center">
-                <div>
-                  <p className="text-lg font-bold text-secondary">{modules.length}</p>
-                  <p className="text-[10px] text-muted-foreground">Modules</p>
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-secondary">{Math.round(totalMinutes / 60)}h+</p>
-                  <p className="text-[10px] text-muted-foreground">Content</p>
-                </div>
-              </div>
-            </div>
-
-            {/* CTA */}
-            <div className="p-6 border-t border-border text-center">
-              <Button className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 px-8">
-                Enroll Now — ${foundation.exactPrice || foundation.priceTier || "97"}
-              </Button>
-              <p className="text-[10px] text-muted-foreground mt-2">30-day money-back guarantee</p>
-            </div>
+            <SharedSalesCopyPreview
+              data={stepData.salesCopyData || DEFAULT_SALES_COPY}
+              productMeta={{
+                badge: `${modules.length} Modules`,
+                duration: `${Math.round(totalMinutes / 60)}h+ of content`,
+              }}
+            />
           </div>
         </TabsContent>
       </Tabs>
