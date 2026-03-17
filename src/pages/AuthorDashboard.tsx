@@ -41,6 +41,7 @@ import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { useAuthorStats } from "@/hooks/useAuthorStats";
 
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
+import { isSuperAdmin } from "@/lib/superadmin";
 
 // All builder node IDs for the type union
 const BUILDER_NODE_IDS = Object.keys(BUILDER_NODE_MAP) as Array<keyof typeof BUILDER_NODE_MAP>;
