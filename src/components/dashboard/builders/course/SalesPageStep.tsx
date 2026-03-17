@@ -84,7 +84,7 @@ RULES: Generate 3 testimonials with real-sounding names. 5 FAQ items addressing 
   }
 
   return (
-    <div className="max-w-2xl">
+    <div className="w-full">
       <SharedSalesCopyEditor
         data={salesCopyData}
         onChange={updateSalesCopy}
