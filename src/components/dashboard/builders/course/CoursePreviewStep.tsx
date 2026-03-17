@@ -13,8 +13,7 @@ export default function CoursePreviewStep({ stepData }: CourseStepProps) {
   const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
   const foundation = stepData.foundation || {};
   const modules: CourseModule[] = stepData.curriculum?.modules || [];
-  const totalLessons = modules.reduce((a, m) => a + (m.lessons?.length || 0), 0);
-  const totalMinutes = modules.reduce((a, m) => a + (m.lessons || []).reduce((b, l) => b + (l.estimatedMinutes || 0), 0), 0);
+  const totalMinutes = modules.reduce((a, m) => a + (m.durationMinutes || 0), 0);
 
   return (
     <div className="space-y-6">

@@ -164,10 +164,17 @@ Return ONLY valid JSON, no markdown fences.`,
                 {expandedModule === i ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
               </button>
               {expandedModule === i && (
-                <div className="px-3 pb-3 space-y-1">
-                  {(mod.lessons || []).map((l: any, li: number) => (
-                    <p key={li} className="text-xs text-muted-foreground pl-4">• {l.title}</p>
-                  ))}
+                <div className="px-3 pb-3 space-y-2">
+                  {mod.contentSummary && (
+                    <p className="text-xs text-muted-foreground pl-4">{mod.contentSummary}</p>
+                  )}
+                  {getLearningObjectives(mod).filter(Boolean).length > 0 && (
+                    <div className="pl-4 space-y-1">
+                      {getLearningObjectives(mod).filter(Boolean).map((obj: string, oi: number) => (
+                        <p key={oi} className="text-xs text-muted-foreground">• {obj}</p>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
