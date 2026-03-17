@@ -161,7 +161,7 @@ export default function ProductIntegrationStep({ stepData, setStepData, onMarkEd
           <span className="text-xs font-semibold">Product Summary</span>
         </div>
         <p className="text-xs text-muted-foreground">
-          {products.length} products • {products.filter(p => p.category === "build").length} Build • {products.filter(p => p.category === "bridge").length} Bridge • {products.filter(p => p.category === "yield").length} Yield
+          {products.length} products • {products.filter(p => p.category === "build").length} Brand • {products.filter(p => p.category === "bridge").length} Build • {products.filter(p => p.category === "yield").length} Yield
         </p>
       </Card>
     </div>
