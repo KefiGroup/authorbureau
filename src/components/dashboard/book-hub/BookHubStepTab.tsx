@@ -11,7 +11,7 @@ import {
   BookOpen, ArrowRight, Lock, Zap, CheckCircle2, Bell,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ABBY_CATEGORIES, getStudioPath as getStudioPathFromConfig, type AbbyCategory, type AbbyNode } from "@/config/abbyFrameworkConfig";
+import { ABBY_CATEGORIES, getEffectiveCategory, getStudioPath as getStudioPathFromConfig, type AbbyCategory, type AbbyNode } from "@/config/abbyFrameworkConfig";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
