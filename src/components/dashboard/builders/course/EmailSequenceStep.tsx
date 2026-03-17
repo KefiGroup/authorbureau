@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Wand2, Loader2, Mail, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { generateJSONWithAI } from "@/lib/ai-generate";
+import { supabase } from "@/integrations/supabase/client";
 import type { CourseStepProps, EmailStep } from "./types";
 
 export default function EmailSequenceStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, generationState, setGenerationState }: CourseStepProps) {
@@ -35,14 +35,11 @@ export default function EmailSequenceStep({ stepData, setStepData, onMarkEdited,
       const title = stepData.foundation?.title || "the course";
       const moduleCount = stepData.curriculum?.modules?.length || 8;
 
-      const result = await generateJSONWithAI<Array<{
-        dayNumber: number;
-        purpose: string;
-        subject: string;
-        previewText: string;
-        body: string;
-      }>>(
-        `Generate a 7-email nurture sequence for an online course called "${title}" based on the book "${bookTitle}" with ${moduleCount} modules.
+      const { data, error } = await supabase.functions.invoke("business-consultant", {
+        body: {
+          messages: [{
+            role: "user",
+            content: `Generate a 7-email nurture sequence for an online course called "${title}" based on the book "${bookTitle}" with ${moduleCount} modules.
 
 The sequence should cover: Welcome, Quick Win, Social Proof, Overcome Objection, Urgency, Last Chance, Post-Purchase Onboarding.
 
@@ -54,21 +51,53 @@ Return a JSON array of 7 objects, each with:
 - "body": string (full email body with [First Name], [Author Name] placeholders, and [CTA Button →] links)
 
 Make each email specific to the course topic. Return ONLY valid JSON.`,
-        { bookId, isPremium: true }
-      );
+          }],
+          bookId,
+          isPremium: true,
+        },
+      });
 
-      const generated: EmailStep[] = result.map((e, i) => ({
+      if (error) throw error;
+
+      const text = typeof data === "string" ? data : JSON.stringify(data);
+      const cleaned = text
+        .replace(/^```(?:json)?\s*\n?/i, "")
+        .replace(/\n?```\s*$/i, "")
+        .trim();
+
+      const arrayMatch = cleaned.match(/\[[\s\S]*\]/);
+      const objectMatch = cleaned.match(/\{[\s\S]*\}/);
+      const parsed = JSON.parse(arrayMatch?.[0] || objectMatch?.[0] || cleaned);
+      const result = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.emails) ? parsed.emails : []);
+
+      if (!Array.isArray(result) || result.length === 0) {
+        throw new Error("No email sequence returned");
+      }
+
+      const generated: EmailStep[] = result.map((e: any, i: number) => ({
         id: String(i + 1),
-        ...e,
+        dayNumber: Number(e?.dayNumber ?? i),
+        purpose: String(e?.purpose || "Email purpose"),
+        subject: String(e?.subject || `Email ${i + 1}`),
+        previewText: String(e?.previewText || ""),
+        body: String(e?.body || ""),
       }));
 
       updateEmails(generated);
       setGenerationState("complete");
       toast({ title: "Email sequence generated!", description: "7 emails ready to review and customize." });
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       setGenerationState("error");
-      toast({ title: "Generation failed", variant: "destructive" });
+      toast({
+        title: "Generation failed",
+        description: err?.message?.includes("429")
+          ? "Too many requests right now. Please try again in a moment."
+          : err?.message?.includes("402")
+            ? "AI credits are exhausted. Please top up workspace usage."
+            : "Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
