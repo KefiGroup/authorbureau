@@ -8,7 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Sparkles, Loader2, BookOpen, Wand2, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateJSONWithAI } from "@/lib/ai-generate";
-import type { CourseStepProps, CourseModule, CourseQuiz, CourseLesson } from "./types";
+import type { CourseStepProps, CourseModule, CourseQuiz, CourseLesson, CourseResource } from "./types";
 
 interface GeneratedLessonContent {
   script?: string;
