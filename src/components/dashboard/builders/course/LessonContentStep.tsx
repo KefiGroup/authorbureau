@@ -392,8 +392,8 @@ Use well-known sites (HBR, TED, Coursera, Google Docs, Notion, Canva, Wikipedia,
 
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs text-muted-foreground">{currentModule?.title}</p>
-          <h3 className="font-heading text-lg font-bold">{currentLesson?.title}</h3>
+          <p className="text-xs text-muted-foreground">MODULE {selectedModIdx + 1}</p>
+          <h3 className="font-heading text-lg font-bold">{currentModule?.title}</h3>
         </div>
         <div className="flex items-center gap-2">
           {lastGenerated[`${selectedModIdx}-${activeLessonIdx}`] && (
