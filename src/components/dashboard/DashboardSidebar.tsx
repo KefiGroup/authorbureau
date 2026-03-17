@@ -53,9 +53,9 @@ const sisterLinks = [
 export default function DashboardSidebar({
   activeSection, onSectionChange, collapsed, onToggleCollapse,
   isPremium, isAdmin = false, isSuperAdmin: isSuperAdminProp = false, tier = "free", hasBooks = true, hasAnalysis = true, hasMicrosite = true,
-  buildUnlocked = 0, bridgeUnlocked = 0, yieldUnlocked = 0,
+  buildUnlocked = 0, buildAuthorityUnlocked = 0, yieldUnlocked = 0,
   stripeConnected = false, pendingReviewCount = 0,
-  bridgeCategoryOpen = false, yieldCategoryOpen = false,
+  buildAuthorityCategoryOpen = false, yieldCategoryOpen = false,
 }: Props) {
 
   const bypassLocks = isPremium || isAdmin;
