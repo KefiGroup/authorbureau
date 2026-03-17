@@ -341,7 +341,7 @@ export default function ReadersBureau() {
                     return (
                       <Link
                         key={purchase.id}
-                        to={`/readers-bureau/learn/${purchase.id}`}
+                        to={["courses", "onlinecourse"].includes(purchase.product_type) ? `/readers-bureau/course/${purchase.id}` : `/readers-bureau/learn/${purchase.id}`}
                         className="group bg-card border border-border rounded-xl overflow-hidden hover:shadow-lg hover:border-primary/50 transition-all"
                       >
                         <div className="bg-primary/5 p-6 flex items-center justify-center">
