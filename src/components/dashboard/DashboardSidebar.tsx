@@ -28,6 +28,8 @@ interface Props {
   yieldUnlocked?: number;
   stripeConnected?: boolean;
   pendingReviewCount?: number;
+  bridgeCategoryOpen?: boolean;
+  yieldCategoryOpen?: boolean;
 }
 
 interface NavItem {
