@@ -319,11 +319,22 @@ Use well-known sites (HBR, TED, Coursera, Google Docs, Notion, Canva, Wikipedia,
         normalizedResources = buildFallbackResources(lessonTitle, learningObjectives);
       }
 
-      upsertLessonField(selectedModIdx, ensured.lessonIndex, "script", String(result.script || ""));
-      upsertLessonField(selectedModIdx, ensured.lessonIndex, "summary", normalizedSummary);
-      upsertLessonField(selectedModIdx, ensured.lessonIndex, "exercise", String(result.exercise || ""));
-      upsertLessonField(selectedModIdx, ensured.lessonIndex, "quiz", normalizedQuiz);
-      upsertLessonField(selectedModIdx, ensured.lessonIndex, "resources", normalizedResources);
+      const snapshot = {
+        script: String(result.script || ""),
+        summary: normalizedSummary,
+        exercise: String(result.exercise || ""),
+        quiz: normalizedQuiz,
+        resources: normalizedResources,
+      };
+
+      const snapshotKey = `${selectedModIdx}-${ensured.lessonIndex}`;
+      setLastGenerated((prev) => ({ ...prev, [snapshotKey]: snapshot }));
+
+      upsertLessonField(selectedModIdx, ensured.lessonIndex, "script", snapshot.script);
+      upsertLessonField(selectedModIdx, ensured.lessonIndex, "summary", snapshot.summary);
+      upsertLessonField(selectedModIdx, ensured.lessonIndex, "exercise", snapshot.exercise);
+      upsertLessonField(selectedModIdx, ensured.lessonIndex, "quiz", snapshot.quiz);
+      upsertLessonField(selectedModIdx, ensured.lessonIndex, "resources", snapshot.resources);
 
       setGenerationState("complete");
       toast({ title: "Lesson content generated!", description: "Review the script, exercises, and quiz below." });
