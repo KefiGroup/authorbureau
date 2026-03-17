@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 
 export interface BuilderFirstVisitConfig {
   emoji: string;
-  category: "BUILD" | "BRIDGE" | "YIELD";
+  category: "BRAND" | "BUILD" | "YIELD";
   revenue: string;
   connectsTo: string[];
   connectLabels: string[];
