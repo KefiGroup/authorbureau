@@ -693,14 +693,32 @@ export default function OnlineCourseViewer() {
                           <FolderOpen className="h-4 w-4 text-primary" /> Resources & Materials
                         </h3>
                         <ul className="space-y-2">
-                          {currentLesson.resources.map((res, i) => (
-                            <li key={i} className="flex items-start gap-3">
-                              <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                                <FileText className="h-4 w-4 text-muted-foreground" />
-                              </div>
-                              <p className="text-sm text-foreground pt-1.5">{res}</p>
-                            </li>
-                          ))}
+                          {currentLesson.resources.map((res, i) => {
+                            const resource = typeof res === "string"
+                              ? { title: res, url: "" }
+                              : { title: res?.title || "", url: res?.url || "" };
+                            return (
+                              <li key={i} className="flex items-start gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                                  <FileText className="h-4 w-4 text-muted-foreground" />
+                                </div>
+                                <div className="pt-1">
+                                  {resource.url ? (
+                                    <a
+                                      href={resource.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-sm text-primary hover:underline font-medium"
+                                    >
+                                      {resource.title || resource.url}
+                                    </a>
+                                  ) : (
+                                    <p className="text-sm text-foreground">{resource.title}</p>
+                                  )}
+                                </div>
+                              </li>
+                            );
+                          })}
                         </ul>
                       </div>
                     </TabsContent>
