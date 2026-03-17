@@ -119,18 +119,20 @@ export default function CourseBuilder() {
             Create and manage online courses derived from your book content.
           </p>
         </div>
-        <div className="flex flex-col items-end gap-1">
-          <Button onClick={launchAIWizard} className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
-            <Sparkles className="mr-2 h-4 w-4" /> AI Generate Course
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-          <button
-            onClick={() => setShowManualForm(true)}
-            className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
-          >
-            or create manually
-          </button>
-        </div>
+        {courses.length > 0 && (
+          <div className="flex flex-col items-end gap-1">
+            <Button onClick={launchAIWizard} className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
+              <Sparkles className="mr-2 h-4 w-4" /> AI Generate Course
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+            <button
+              onClick={() => setShowManualForm(true)}
+              className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
+            >
+              or create manually
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Manual Create Form */}
