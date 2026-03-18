@@ -253,7 +253,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
       {isBrandProducts && (
         <div className="rounded-xl border border-border bg-muted/30 p-5">
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Everything in Brand Products is designed to do one thing: <strong className="text-foreground">turn your book into a recognizable brand that sells while you sleep.</strong> These 9 products fall into two groups — and the order matters.
+            Everything in Brand Products is designed to do one thing: <strong className="text-foreground">turn your book into a recognizable brand that sells while you sleep.</strong> These 9 products fall into two groups, and the order matters.
           </p>
         </div>
       )}
