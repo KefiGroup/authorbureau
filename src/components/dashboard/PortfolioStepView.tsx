@@ -350,8 +350,8 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
         )
       }
 
-      {/* Brand Products: Revenue Estimate + Tip */}
-      {isBrandProducts && (
+      {/* Revenue Estimate + Tip */}
+      {(isBrandProducts || isBuildAuthority) && (
         <>
           <div className="rounded-xl border border-secondary/20 bg-secondary/5 p-4">
             <div className="flex items-center gap-2 mb-1">
@@ -359,12 +359,16 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
               <span className="text-xs font-bold text-secondary uppercase tracking-wider">Estimated Revenue</span>
             </div>
             <p className="text-lg font-bold text-foreground">
-              $5,520 – $15,480<span className="text-xs font-normal text-muted-foreground">/yr</span>
+              {isBrandProducts ? "$5,520 – $15,480" : "$13,500 – $39,480"}<span className="text-xs font-normal text-muted-foreground">/yr</span>
             </p>
           </div>
           <div className="rounded-xl border border-accent/20 bg-accent/5 p-4">
             <p className="text-sm text-muted-foreground leading-relaxed">
-              <strong className="text-foreground">💡 Tip:</strong> You don't have to build all 9 at once. Abby recommends starting with products 1–3 (Website, Book Sales, Lead Magnets) and adding the rest as your audience grows.
+              <strong className="text-foreground">💡 Tip:</strong>{" "}
+              {isBrandProducts
+                ? "You don't have to build all 9 at once. Abby recommends starting with products 1–3 (Website, Book Sales, Lead Magnets) and adding the rest as your audience grows."
+                : "You don't need to launch all 9 at once. Abby recommends starting with products 1–3 (Online Courses, Audiobook, Memberships) and adding Groups 2–3 as your audience grows and your authority solidifies."
+              }
             </p>
           </div>
         </>
