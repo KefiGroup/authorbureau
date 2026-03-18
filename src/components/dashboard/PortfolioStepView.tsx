@@ -331,8 +331,8 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
                         difficulty: BASELINE_REVENUE[node.id]?.difficulty || 2,
                       } : undefined}
                       genre={genre || undefined}
-                      onBuild={() => { node.navigateTo ? onNavigate?.(node.navigateTo) : (primaryBookId && navigate(`/dashboard/book/${primaryBookId}?tab=${categoryId}`)); }}
-                      onContinue={() => { node.navigateTo ? onNavigate?.(node.navigateTo) : (primaryBookId && navigate(`/dashboard/book/${primaryBookId}?tab=${categoryId}`)); }}
+                      onBuild={() => { node.navigateTo ? onNavigate?.(node.navigateTo) : (primaryBookId ? navigate(`/dashboard/book/${primaryBookId}?tab=${categoryId}`) : onNavigate?.("book-hub")); }}
+                      onContinue={() => { node.navigateTo ? onNavigate?.(node.navigateTo) : (primaryBookId ? navigate(`/dashboard/book/${primaryBookId}?tab=${categoryId}`) : onNavigate?.("book-hub")); }}
                       onView={() => { const profile = books[0]?.slug; if (profile) window.open(`/books/${profile}`, "_blank"); }}
                       onUpgrade={() => onNavigate?.("overview")}
                     />
@@ -362,8 +362,8 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
                     difficulty: BASELINE_REVENUE[node.id]?.difficulty || 2,
                   } : undefined}
                   genre={genre || undefined}
-                  onBuild={() => { node.navigateTo ? onNavigate?.(node.navigateTo) : (primaryBookId && navigate(`/dashboard/book/${primaryBookId}?tab=${categoryId}`)); }}
-                  onContinue={() => { node.navigateTo ? onNavigate?.(node.navigateTo) : (primaryBookId && navigate(`/dashboard/book/${primaryBookId}?tab=${categoryId}`)); }}
+                  onBuild={() => { node.navigateTo ? onNavigate?.(node.navigateTo) : (primaryBookId ? navigate(`/dashboard/book/${primaryBookId}?tab=${categoryId}`) : onNavigate?.("book-hub")); }}
+                  onContinue={() => { node.navigateTo ? onNavigate?.(node.navigateTo) : (primaryBookId ? navigate(`/dashboard/book/${primaryBookId}?tab=${categoryId}`) : onNavigate?.("book-hub")); }}
                   onView={() => { const profile = books[0]?.slug; if (profile) window.open(`/books/${profile}`, "_blank"); }}
                   onUpgrade={() => onNavigate?.("overview")}
                 />
