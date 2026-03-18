@@ -185,53 +185,6 @@ export default function HowItWorks() {
         </div>
       </section>
 
-      {/* Choose Your Path */}
-      <section className="py-20 md:py-28 bg-background">
-        <div className="container max-w-5xl mx-auto">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-12">
-            <motion.h2 variants={fadeUp} custom={0} className="font-heading text-3xl md:text-4xl font-bold text-foreground">
-              Choose Your Path
-            </motion.h2>
-            <motion.p variants={fadeUp} custom={1} className="mt-4 text-muted-foreground max-w-xl mx-auto">
-              Whether you want a side income or a full empire, there's a path for you.
-            </motion.p>
-          </motion.div>
-
-
-          <div className="grid gap-6 md:grid-cols-3">
-            {pricingCards.map((card, i) => (
-              <motion.div
-                key={card.title}
-                initial="hidden" whileInView="visible" viewport={{ once: true }}
-                variants={fadeUp} custom={i}
-                className={`relative rounded-2xl border-2 ${card.border} bg-card p-6 shadow-md flex flex-col`}
-              >
-                {card.badge && (
-                  <span className={`absolute -top-3 left-1/2 -translate-x-1/2 ${card.bg} ${card.border} border rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-foreground`}>
-                    {card.badge}
-                  </span>
-                )}
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{card.tier}</span>
-                <h3 className="font-heading text-xl font-bold text-foreground mt-1">{card.title}</h3>
-                <p className="text-2xl font-bold text-foreground mt-2">{card.price}</p>
-                <p className="text-sm text-muted-foreground mt-2">{card.streams}</p>
-                <p className="text-xs text-muted-foreground mt-1">{card.desc}</p>
-                <p className="text-sm font-medium text-foreground mt-2">{card.revenue}</p>
-                <div className="mt-auto pt-6">
-                  <Button asChild className="w-full bg-[hsl(45,50%,54%)] hover:bg-[hsl(45,50%,46%)] text-[hsl(228,34%,16%)] font-bold rounded-xl">
-                    <Link to="/join">Start Building <ArrowRight className="ml-2 h-4 w-4" /></Link>
-                  </Button>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          <p className="text-center text-xs text-muted-foreground mt-6 max-w-xl mx-auto">
-            Projected revenue based on Authors Guild, Teachable, ICF &amp; NSA industry surveys. Individual results vary based on niche, audience size, and effort.
-          </p>
-        </div>
-      </section>
-
       {/* The Frameworks Behind Abby */}
       <section className="py-20 md:py-28 bg-[hsl(38,60%,96%)]">
         <div className="container max-w-5xl mx-auto">
