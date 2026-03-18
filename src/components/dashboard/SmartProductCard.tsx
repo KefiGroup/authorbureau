@@ -36,8 +36,8 @@ interface SmartProductCardProps {
 
 const BASELINE_REVENUE: Record<string, RevenueEstimate> = {
   "courses": { annual: 3940, timeToBuild: "~3 hours", difficulty: 3 },
-  "home-study": { annual: 2400, timeToBuild: "~2 hours", difficulty: 2 },
-  "workbooks": { annual: 1450, timeToBuild: "~1 hour", difficulty: 1 },
+  "home-study": { annual: 2400, timeToBuild: "~2 hours", difficulty: 3 },
+  "workbooks": { annual: 1450, timeToBuild: "~1 hour", difficulty: 5 },
   "audiobook": { annual: 2000, timeToBuild: "~2 hours", difficulty: 2 },
   "memberships": { annual: 5880, timeToBuild: "~4 hours", difficulty: 4 },
   "upsells": { annual: 3600, timeToBuild: "~2 hours", difficulty: 3 },
