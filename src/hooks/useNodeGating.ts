@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { ABBY_CATEGORIES, getCategoryForNode, type AbbyCategory } from "@/config/abbyFrameworkConfig";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
@@ -36,12 +37,18 @@ export function useNodeGating() {
   const [gating, setGating] = useState<NodeGatingRow[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Public read path for all users and all dashboard surfaces
   const fetch = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await adminDataFetch("list-node-gating");
-      const rows = Array.isArray(data?.rows) ? (data.rows as NodeGatingRow[]) : [];
-      setGating(sortRows(rows));
+      const { data, error } = await supabase
+        .from("node_gating")
+        .select("node_id, category, is_open, updated_at")
+        .order("category")
+        .order("node_id");
+
+      if (error) throw error;
+      setGating(sortRows((data || []) as NodeGatingRow[]));
     } catch {
       setGating([]);
     } finally {
@@ -72,7 +79,7 @@ export function useNodeGating() {
     [gating]
   );
 
-  /** Toggle a node's open/closed state (creates missing row if needed) */
+  /** Toggle a node's open/closed state (admin-only, via backend function) */
   const toggleNode = useCallback(async (nodeId: string, open: boolean) => {
     const category = getCategoryForNode(nodeId);
     if (!category) return false;
@@ -97,7 +104,7 @@ export function useNodeGating() {
     }
   }, []);
 
-  /** Bulk toggle all nodes in a category (also backfills missing rows) */
+  /** Bulk toggle all nodes in a category (admin-only, via backend function) */
   const toggleCategory = useCallback(async (categoryId: string, open: boolean) => {
     const nodeIds = getNodeIdsForCategory(categoryId);
     if (nodeIds.length === 0) return false;
