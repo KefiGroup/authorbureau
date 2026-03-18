@@ -277,7 +277,6 @@ Deno.serve(async (req) => {
         } else {
           categoryCounts[a.book_id].yield++;
         }
-        }
       }
 
       // Also count from dedicated product tables for products that may not have builder_content_ assets
