@@ -267,9 +267,6 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
             <p className="text-sm text-muted-foreground leading-relaxed mt-1">
               <strong className="text-foreground">Build Authority</strong> scales that foundation — courses, coaching, media visibility, and partnership income.
             </p>
-            <p className="text-sm text-muted-foreground leading-relaxed mt-1">
-              Once you've mastered Build Authority, you're ready for <strong className="text-foreground">Y · Yield Revenue</strong> — where you command premium prices for high-ticket services like consulting, keynotes, and masterminds.
-            </p>
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed">
             Everything in Build Authority is designed to do one thing: <strong className="text-foreground">turn your book and brand into recognized expertise that attracts high-value opportunities.</strong> These 9 products fall into three groups — and the order matters.
