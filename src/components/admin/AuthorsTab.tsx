@@ -161,6 +161,20 @@ export default function AuthorsTab() {
     setEditSaving(false);
   };
 
+  const deleteAuthor = async () => {
+    if (!deletingAuthor) return;
+    setDeleting(true);
+    try {
+      await adminDataFetch("delete-author", { userId: deletingAuthor.user_id });
+      setAuthors((prev) => prev.filter((a) => a.user_id !== deletingAuthor.user_id));
+      toast({ title: `Author "${deletingAuthor.pen_name || 'Unnamed'}" deleted` });
+      setDeletingAuthor(null);
+    } catch (err: any) {
+      toast({ title: err.message || "Delete failed", variant: "destructive" });
+    }
+    setDeleting(false);
+  };
+
   const filtered = useMemo(() => {
     let list = filterStatus === "all" ? authors : authors.filter((a) => a.directory_status === filterStatus);
     if (search) {
