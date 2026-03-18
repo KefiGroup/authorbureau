@@ -1077,8 +1077,11 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
   }
 
   // ─── NO BOOK SELECTED → redirect straight to My Books Hub ─────────
+  useEffect(() => {
+    if (!bookId) onNavigate?.("my-books");
+  }, [bookId, onNavigate]);
+
   if (!bookId) {
-    onNavigate?.("my-books");
     return null;
   }
 
