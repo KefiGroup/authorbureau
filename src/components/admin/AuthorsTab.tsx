@@ -396,6 +396,9 @@ export default function AuthorsTab() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="font-semibold truncate">{author.pen_name || "Unnamed Author"}</h3>
+                    {author.author_slug && (
+                      <span className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">/{author.author_slug}</span>
+                    )}
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[author.directory_status] || statusColors.unlisted}`}>
                       {author.directory_status}
                     </span>
