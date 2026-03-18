@@ -219,6 +219,9 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
     "Monetize Your Network": {
       intro: "Use your established audience and authority to create passive income and partnership revenue. You've built the platform; now leverage it.\n\nWhy this order? Affiliates are the easiest — you recommend existing products. Upsells require understanding your audience's buying psychology and funnel optimization. Revenue Sharing requires established authority and audience size to attract partners.",
     },
+    "High-Ticket Services": {
+      intro: "These are premium offerings that leverage your expertise, audience, and authority. The order you pursue them depends on your strengths, your audience's needs, and market demand — not a prerequisite chain.",
+    },
   };
 
   return (
