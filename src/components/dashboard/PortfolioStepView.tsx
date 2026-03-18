@@ -237,25 +237,27 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
   return (
     <div className="max-w-6xl space-y-8">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${category.gradientFrom} ${category.gradientTo} flex items-center justify-center text-white shadow-lg`}>
-          <HeaderIcon className="h-7 w-7" />
-        </div>
-        <div>
-          <h1 className="font-heading text-2xl md:text-3xl font-bold tracking-tight">
-            {isBrandProducts ? "Your Products. Your Brand. Built From Your Book." : isBuildAuthority ? "Your Audience. Your Authority. Built From Your Brand." : isYieldRevenue ? "Premium Services. Premium Revenue. Built From Your Authority." : category.label}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {category.subtitle}
-            {recommendedCount > 0 && (
-              <span className="ml-2 text-secondary font-medium">· {recommendedCount} recommended by Abby</span>
-            )}
-          </p>
-        </div>
-        <div className="ml-auto">
-          <span className={`text-xs font-semibold rounded-full px-3 py-1.5 ${category.bgColor} ${category.color}`}>
-            {category.nodes.length} products
-          </span>
+      <div className={`rounded-2xl p-6 border-2 ${isBrandProducts ? "border-builder-brand/30 bg-gradient-to-r from-builder-brand/10 via-builder-brand/5 to-transparent" : isBuildAuthority ? "border-builder-bridge/30 bg-gradient-to-r from-builder-bridge/10 via-builder-bridge/5 to-transparent" : "border-builder-yield/30 bg-gradient-to-r from-builder-yield/10 via-builder-yield/5 to-transparent"}`}>
+        <div className="flex items-center gap-4">
+          <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${category.gradientFrom} ${category.gradientTo} flex items-center justify-center text-white shadow-lg`}>
+            <HeaderIcon className="h-7 w-7" />
+          </div>
+          <div className="flex-1">
+            <h1 className={`font-heading text-2xl md:text-3xl font-black tracking-tight ${catAccentText}`}>
+              {isBrandProducts ? "Your Products. Your Brand. Built From Your Book." : isBuildAuthority ? "Your Audience. Your Authority. Built From Your Brand." : isYieldRevenue ? "Premium Services. Premium Revenue. Built From Your Authority." : category.label}
+            </h1>
+            <p className="text-sm text-foreground/70 mt-1 font-medium">
+              {category.subtitle}
+              {recommendedCount > 0 && (
+                <span className="ml-2 text-secondary font-semibold">· {recommendedCount} recommended by Abby</span>
+              )}
+            </p>
+          </div>
+          <div className="ml-auto">
+            <span className={`text-xs font-bold rounded-full px-3 py-1.5 ${isBrandProducts ? "bg-builder-brand/15 text-builder-brand" : isBuildAuthority ? "bg-builder-bridge/15 text-builder-bridge" : "bg-builder-yield/15 text-builder-yield"}`}>
+              {category.nodes.length} products
+            </span>
+          </div>
         </div>
       </div>
 
