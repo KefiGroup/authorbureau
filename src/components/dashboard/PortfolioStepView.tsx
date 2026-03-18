@@ -199,6 +199,18 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
   // Determine the best book to navigate to for building
   const primaryBookId = analyzedBooks?.[0]?.id || books[0]?.id || "";
 
+  const isBrandProducts = categoryId === "revenue-streams";
+
+  // Sub-category intro text for Brand Products
+  const SUB_INTRO: Record<string, { intro: string }> = {
+    "Branding & Marketing": {
+      intro: "Start here. Before you sell anything, people need to find you, trust you, and hear from you consistently. These six products build your author platform — the foundation that makes everything else work.",
+    },
+    "Digital Products": {
+      intro: "Once your branding and marketing engine is running, these three products give your audience more ways to buy from you at higher price points.\n\nWhy this order? Workbooks are the lowest lift — you're repurposing what you already wrote. Home Study Courses require more structure but command higher prices. Special Editions only make sense once you've proven demand and a loyal readership.",
+    },
+  };
+
   return (
     <div className="max-w-6xl space-y-6">
       {/* Header */}
@@ -207,7 +219,9 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
           <HeaderIcon className="h-7 w-7" />
         </div>
         <div>
-          <h1 className="font-heading text-2xl md:text-3xl font-bold">{category.label}</h1>
+          <h1 className="font-heading text-2xl md:text-3xl font-bold">
+            {isBrandProducts ? "Your Products. Your Brand. Built From Your Book." : category.label}
+          </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {category.subtitle}
             {recommendedCount > 0 && (
@@ -222,13 +236,29 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
         </div>
       </div>
 
+      {/* Brand Products intro paragraph */}
+      {isBrandProducts && (
+        <div className="rounded-xl border border-border bg-muted/30 p-5">
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Everything in Brand Products is designed to do one thing: <strong className="text-foreground">turn your book into a recognizable brand that sells while you sleep.</strong> These 9 products fall into two groups — and the order matters.
+          </p>
+        </div>
+      )}
+
       {/* Product Cards Grid – grouped by sub-category */}
       {(categoryId === "revenue-streams" || categoryId === "authority-builders") && subCategories.length > 1
         ? subCategories.map((group) => (
-            <div key={group.name} className="space-y-3">
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-1">
-                {group.name}
-              </h3>
+            <div key={group.name} className="space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-1">
+                  {group.name}
+                </h3>
+                {isBrandProducts && SUB_INTRO[group.name] && (
+                  <p className="text-sm text-muted-foreground leading-relaxed mt-3 max-w-3xl whitespace-pre-line">
+                    {SUB_INTRO[group.name].intro}
+                  </p>
+                )}
+              </div>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {group.nodes.map((node) => {
                   const state = getNodeState(node);
@@ -290,6 +320,26 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
           </div>
         )
       }
+
+      {/* Brand Products: Revenue Estimate + Tip */}
+      {isBrandProducts && (
+        <>
+          <div className="rounded-xl border border-secondary/20 bg-secondary/5 p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <TrendingUp className="h-4 w-4 text-secondary" />
+              <span className="text-xs font-bold text-secondary uppercase tracking-wider">Estimated Revenue</span>
+            </div>
+            <p className="text-lg font-bold text-foreground">
+              $5,520 – $15,480<span className="text-xs font-normal text-muted-foreground">/yr</span>
+            </p>
+          </div>
+          <div className="rounded-xl border border-accent/20 bg-accent/5 p-4">
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              <strong className="text-foreground">💡 Tip:</strong> You don't have to build all 9 at once. Abby recommends starting with products 1–3 (Website, Book Sales, Lead Magnets) and adding the rest as your audience grows.
+            </p>
+          </div>
+        </>
+      )}
 
       {/* Info */}
       <div className="rounded-xl bg-muted/50 border border-border p-4 text-center">
