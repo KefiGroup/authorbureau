@@ -80,36 +80,42 @@ function getDifficultyStars(level: number) {
 
 const difficultyLabels = ["", "Expert", "Hard", "Medium", "Easy", "Easy"];
 
-const stateConfig: Record<ProductCardState, { badge: string; badgeClass: string; borderClass: string }> = {
+const stateConfig: Record<ProductCardState, { badge: string; badgeClass: string; borderClass: string; cardBg: string }> = {
   recommended: {
     badge: "⭐ Recommended for You",
     badgeClass: "bg-secondary/15 text-secondary border-secondary/30",
-    borderClass: "border-secondary/30 shadow-[0_0_15px_-3px_hsl(var(--secondary)/0.15)]",
+    borderClass: "border-secondary/30 shadow-[0_0_20px_-4px_hsl(var(--secondary)/0.2)]",
+    cardBg: "bg-gradient-to-br from-secondary/[0.04] via-card to-card",
   },
   available: {
     badge: "Available",
     badgeClass: "bg-accent/15 text-accent border-accent/30",
-    borderClass: "border-border",
+    borderClass: "border-accent/20 hover:border-accent/40",
+    cardBg: "bg-card",
   },
   locked: {
     badge: "",
     badgeClass: "bg-muted text-muted-foreground border-border",
     borderClass: "border-border opacity-60",
+    cardBg: "bg-muted/30",
   },
   "in-progress": {
     badge: "🔨 In Progress",
     badgeClass: "bg-blue-500/15 text-blue-700 border-blue-500/30",
     borderClass: "border-blue-500/30",
+    cardBg: "bg-gradient-to-br from-blue-500/[0.04] via-card to-card",
   },
   published: {
     badge: "✅ Published",
     badgeClass: "bg-accent/15 text-accent border-accent/30",
     borderClass: "border-accent/30",
+    cardBg: "bg-gradient-to-br from-accent/[0.04] via-card to-card",
   },
   "coming-soon": {
     badge: "🚧 Coming Soon",
     badgeClass: "bg-muted text-muted-foreground border-border",
-    borderClass: "border-border opacity-70",
+    borderClass: "border-border",
+    cardBg: "bg-muted/20",
   },
 };
 
