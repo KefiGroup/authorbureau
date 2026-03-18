@@ -50,7 +50,7 @@ const GENRE_CONFIG: Record<string, {
   "memoir": {
     title: "For Memoir Authors",
     description: "Your life story is your brand. Turn it into speaking engagements, retreats, and a thriving community.",
-    heroSubtitle: "Your story isn't just a book — it's a movement waiting to happen.",
+    heroSubtitle: "Your story isn't just a book. It's a movement waiting to happen.",
     painPoints: ["Your powerful story deserves a bigger platform", "Readers connect deeply but you can't sustain the conversation", "Speaking opportunities exist but you don't have materials"],
     topProducts: ["Keynote Speaking ($2,500-$15,000)", "Retreats & Workshops ($1,500-$5,000/person)", "Podcast Series (Brand Building)", "Social Media Content Calendar"],
     cta: "Turn your story into a speaking career",
