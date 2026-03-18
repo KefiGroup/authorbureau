@@ -455,25 +455,25 @@ export default function Index() {
                 step: "1",
                 title: "Upload Your Book",
                 tag: "ABBY AI ANALYSIS",
-                desc: "Upload your manuscript and get a professional author showcase page, completely free. Abby analyzes your book and creates a personalized business plan showing which of the 28 revenue streams are the best fit for your topic and audience.",
+                desc: "Upload your manuscript and Abby analyzes your book, identifies your frameworks, and creates a personalized business plan showing which of the 28 revenue streams are the best fit for your topic and audience.",
               },
               {
                 step: "2",
                 title: "BUILD Your Products",
-                tag: "BUILD AUTHORITY",
+                tag: "BRAND PRODUCTS",
                 desc: "Abby uses AI to create your first digital products: workbooks, online courses, email sequences, social media calendars, and your author website. All generated from your book content. You just review and approve.",
               },
               {
                 step: "3",
-                title: "BRIDGE Your Audience",
-                tag: "BRIDGE CHANNELS",
-                desc: "Expand into audience-building channels: audiobooks, podcast tours, webinars, lead magnet funnels, affiliate programs, and media outreach. Abby creates everything including scripts, pitch kits, registration pages, and follow-up sequences.",
+                title: "SCALE Your Authority",
+                tag: "BUILD AUTHORITY",
+                desc: "Expand into audience-building channels: audiobooks, podcast tours, group coaching, affiliate programs, and media outreach. Abby creates everything including scripts, pitch kits, and follow-up sequences.",
               },
               {
                 step: "4",
                 title: "YIELD Your Empire",
                 tag: "YIELD REVENUE",
-                desc: "Scale into premium offerings: 1-on-1 coaching, group coaching, masterminds, keynote speaking, training programs, retreats, certification programs, and more.",
+                desc: "Scale into premium offerings: 1-on-1 coaching, consulting, masterminds, keynote speaking, training programs, retreats, certification programs, and more.",
               },
             ].map((item, i) => (
               <motion.div
