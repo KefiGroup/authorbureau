@@ -258,7 +258,11 @@ export function getEffectiveNodeStatus(
   if (isSuperAdmin) return node.status;
   // If we have DB gating data, use it
   if (openNodeIds) {
-    return openNodeIds.has(node.id) ? node.status : "coming-soon";
+    if (openNodeIds.has(node.id)) {
+      // DB says open → override any hardcoded "coming-soon" / "planned" to "available"
+      return node.status === "coming-soon" || node.status === "planned" ? "available" : node.status;
+    }
+    return "coming-soon";
   }
   // Fallback: hardcoded gating
   if (DEFAULT_GATED_CATEGORIES.includes(categoryId) && (node.status === "coming-soon" || node.status === "available")) {
