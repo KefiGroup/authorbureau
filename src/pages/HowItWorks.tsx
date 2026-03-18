@@ -122,7 +122,7 @@ export default function HowItWorks() {
               From Published Author to Business Owner
             </motion.h2>
             <motion.p variants={fadeUp} custom={1} className="mt-4 text-muted-foreground max-w-2xl mx-auto text-lg leading-relaxed">
-              Most authors earn less than $23,000/year from their books alone (Authors Guild, 2024). Authors Bureau changes that by unlocking 28 revenue streams from a single manuscript — and Abby, your AI advisor, builds everything for you.
+              Most authors earn less than $23,000/year from their books alone (Authors Guild, 2024). Authors Bureau changes that by unlocking 28 revenue streams from a single manuscript, and Abby, your AI advisor, builds everything for you.
             </motion.p>
           </motion.div>
           <motion.img

@@ -556,10 +556,68 @@ export default function Index() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
             src="/images/abby-three-paths.png"
-            alt="Choose Your Path — Side Hustler, Serious Author, Empire Builder"
+            alt="Choose Your Path: Side Hustler, Serious Author, Empire Builder"
             className="w-full max-w-5xl mx-auto rounded-2xl shadow-xl mb-12"
             loading="lazy"
           />
+
+          {/* Persona Cards */}
+          <div className="grid gap-6 md:grid-cols-3 mb-12">
+            {[
+              {
+                title: "The Side Hustler",
+                price: "$49/mo",
+                streams: "8 revenue streams · 4–8 hrs/week",
+                revenue: "$5,500–$15,500 in Year 1",
+                border: "border-emerald-500",
+                bg: "bg-emerald-500/10",
+                badge: null as string | null,
+              },
+              {
+                title: "The Serious Business",
+                price: "$199/mo",
+                streams: "16 revenue streams · 15–25 hrs/week",
+                revenue: "$13,500–$39,500 in Year 1",
+                border: "border-orange-500",
+                bg: "bg-orange-500/10",
+                badge: "MOST POPULAR",
+              },
+              {
+                title: "The Enterprise Builder",
+                price: "$499/mo",
+                streams: "All 28 revenue streams · Full-time",
+                revenue: "$68,500–$215,500 in Year 1",
+                border: "border-secondary",
+                bg: "bg-secondary/10",
+                badge: "BEST VALUE",
+              },
+            ].map((card, i) => (
+              <motion.div
+                key={card.title}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                custom={i}
+                variants={fadeUp}
+                className={`relative rounded-2xl border-2 ${card.border} bg-card p-6 shadow-md flex flex-col`}
+              >
+                {card.badge && (
+                  <span className={`absolute -top-3 left-1/2 -translate-x-1/2 ${card.bg} ${card.border} border rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-foreground`}>
+                    {card.badge}
+                  </span>
+                )}
+                <h3 className="font-heading text-xl font-bold text-foreground mt-2">{card.title}</h3>
+                <p className="text-2xl font-bold text-foreground mt-2">{card.price}</p>
+                <p className="text-sm text-muted-foreground mt-2">{card.streams}</p>
+                <p className="text-sm font-medium text-foreground mt-1">Projected: {card.revenue}</p>
+                <div className="mt-auto pt-6">
+                  <Button asChild className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-bold rounded-xl">
+                    <Link to="/auth">Start Building <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                  </Button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
 
           <motion.div
             initial="hidden"
