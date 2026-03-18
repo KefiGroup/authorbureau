@@ -1099,6 +1099,22 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
     <div className="flex gap-0 h-full min-h-0">
       {/* Main builder area */}
       <div className={`flex-1 flex flex-col min-w-0 min-h-0 transition-all ${abbyOpen ? "mr-80" : ""}`}>
+        {/* Breadcrumb */}
+        <div className="px-6 pt-3 pb-1 text-sm text-muted-foreground flex items-center gap-1.5 flex-wrap">
+          <button onClick={() => onNavigate?.("overview")} className="hover:text-foreground transition-colors">Build Your Business</button>
+          <span className="text-muted-foreground/40">→</span>
+          <button
+            onClick={() => {
+              const categorySection = nodeConfig.category === "build" ? "build" : nodeConfig.category === "bridge" ? "bridge" : "yield";
+              onNavigate?.(categorySection);
+            }}
+            className="hover:text-foreground transition-colors"
+          >
+            {nodeConfig.category === "build" ? "B · Brand Products" : nodeConfig.category === "bridge" ? "B · Build Authority" : "Y · Yield Revenue"}
+          </button>
+          <span className="text-muted-foreground/40">→</span>
+          <span className="text-foreground font-medium">{nodeConfig.label}</span>
+        </div>
         {/* Header bar */}
         <div className="flex items-center gap-3 px-6 py-3 border-b border-border bg-card">
           <Button
@@ -1112,7 +1128,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
             className="text-muted-foreground hover:text-foreground shrink-0 -ml-2"
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
-            Back to {nodeConfig.category === "build" ? "B\u00B7Build" : nodeConfig.category === "bridge" ? "B\u00B7Bridge" : "Y\u00B7Yield"}
+            Back
           </Button>
           <div className="w-px h-6 bg-border" />
           <h1 className="font-heading font-bold text-lg truncate">{nodeConfig.label}</h1>
