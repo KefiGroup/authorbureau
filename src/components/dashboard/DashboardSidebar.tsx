@@ -115,6 +115,7 @@ export default function DashboardSidebar({
     },
     {
       id: "reading-club" as DashboardSection, label: "Reading Club", icon: BookHeart,
+      hidden: true,
     },
   ];
 
