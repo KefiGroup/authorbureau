@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, RefreshCw, Lock, Unlock, ToggleLeft, ToggleRight } from "lucide-react";
+import { Loader2, RefreshCw, Lock, Unlock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -56,8 +56,20 @@ export default function NodeGatingTab() {
         {CATEGORY_ORDER.map((catId) => {
           const cat = ABBY_CATEGORIES[catId];
           const catNodes = gating.filter((r) => r.category === catId);
-          const allOpen = catNodes.every((r) => r.is_open);
-          const allClosed = catNodes.every((r) => !r.is_open);
+          const allOpen = catNodes.length > 0 && catNodes.every((r) => r.is_open);
+          const allClosed = catNodes.length > 0 && catNodes.every((r) => !r.is_open);
+
+          // Group nodes by subCategory, preserving sequence order
+          const subGroups: { subCategory: string; nodes: typeof cat.nodes }[] = [];
+          for (const node of cat.nodes) {
+            const sub = node.subCategory || "Other";
+            const existing = subGroups.find(g => g.subCategory === sub);
+            if (existing) {
+              existing.nodes.push(node);
+            } else {
+              subGroups.push({ subCategory: sub, nodes: [node] });
+            }
+          }
 
           return (
             <div key={catId} className="rounded-lg border border-border bg-card">
@@ -67,7 +79,7 @@ export default function NodeGatingTab() {
                   <cat.headerIcon className={`h-5 w-5 ${cat.color}`} />
                   <div>
                     <h3 className="font-semibold">{cat.label}</h3>
-                    <span className="text-xs text-muted-foreground">{catNodes.length} nodes</span>
+                    <span className="text-xs text-muted-foreground">{cat.nodes.length} nodes</span>
                   </div>
                   {allOpen && <Badge variant="default" className="bg-emerald-500/20 text-emerald-700 border-emerald-500/30">All Open</Badge>}
                   {allClosed && <Badge variant="secondary" className="bg-orange-500/15 text-orange-700 border-orange-500/30">All Coming Soon</Badge>}
@@ -92,37 +104,50 @@ export default function NodeGatingTab() {
                 </div>
               </div>
 
-              {/* Node rows */}
-              <div className="divide-y divide-border">
-                {cat.nodes.map((node) => {
-                  const open = isNodeOpen(node.id);
-                  const isToggling = toggling === node.id;
-
-                  return (
-                    <div key={node.id} className="flex items-center justify-between px-5 py-3">
-                      <div className="flex items-center gap-3">
-                        <node.icon className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <span className="font-medium text-sm">{node.label}</span>
-                          <span className="ml-2 text-xs text-muted-foreground">({node.id})</span>
-                        </div>
-                        {node.tierRequired && (
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">{node.tierRequired}</Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className={`text-xs font-medium ${open ? "text-emerald-600" : "text-orange-600"}`}>
-                          {open ? "Open" : "Coming Soon"}
-                        </span>
-                        <Switch
-                          checked={open}
-                          disabled={isToggling}
-                          onCheckedChange={(checked) => handleToggleNode(node.id, checked)}
-                        />
-                      </div>
+              {/* Node rows grouped by subCategory */}
+              <div>
+                {subGroups.map((group) => (
+                  <div key={group.subCategory}>
+                    {/* Sub-group header */}
+                    <div className="px-5 py-2 bg-muted/15 border-b border-border">
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        {group.subCategory}
+                      </span>
                     </div>
-                  );
-                })}
+                    {/* Nodes in this sub-group */}
+                    <div className="divide-y divide-border">
+                      {group.nodes.map((node) => {
+                        const open = isNodeOpen(node.id);
+                        const isToggling = toggling === node.id;
+
+                        return (
+                          <div key={node.id} className="flex items-center justify-between px-5 py-3">
+                            <div className="flex items-center gap-3">
+                              <node.icon className="h-4 w-4 text-muted-foreground" />
+                              <div>
+                                <span className="font-medium text-sm">{node.label}</span>
+                                <span className="ml-2 text-xs text-muted-foreground">({node.id})</span>
+                              </div>
+                              {node.tierRequired && (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0">{node.tierRequired}</Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className={`text-xs font-medium ${open ? "text-emerald-600" : "text-orange-600"}`}>
+                                {open ? "Open" : "Coming Soon"}
+                              </span>
+                              <Switch
+                                checked={open}
+                                disabled={isToggling}
+                                onCheckedChange={(checked) => handleToggleNode(node.id, checked)}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           );
