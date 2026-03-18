@@ -22,15 +22,15 @@ const fadeUp = {
 
 const accordionData = [
   {
-    title: "Workbook vs. Home Study vs. Online Course — What's the Difference?",
+    title: "Workbook vs. Home Study vs. Online Course: What's the Difference?",
     items: [
       { term: "Workbook", desc: "A downloadable PDF exercise book ($19–$47). Think of it like a homework packet." },
-      { term: "Home Study", desc: "A self-paced multimedia kit — videos + worksheets + templates ($97–$497). Think of it like a box set." },
+      { term: "Home Study", desc: "A self-paced multimedia kit with videos, worksheets, and templates ($97–$497). Think of it like a box set." },
       { term: "Online Course", desc: "A structured learning experience with modules, quizzes, and community ($97–$997). Think of it like a semester of school." },
     ],
   },
   {
-    title: "1-on-1 Coaching vs. Group Coaching vs. Mastermind — What's the Difference?",
+    title: "1-on-1 Coaching vs. Group Coaching vs. Mastermind: What's the Difference?",
     items: [
       { term: "1-on-1 Coaching", desc: "Private sessions with one client ($150–$500/hr). Like a personal trainer." },
       { term: "Group Coaching", desc: "One coach, 10–30 students in live group calls ($97–$497/mo). Like a group fitness class." },
@@ -38,7 +38,7 @@ const accordionData = [
     ],
   },
   {
-    title: "Keynote vs. In-House Speaker vs. Training Program — What's the Difference?",
+    title: "Keynote vs. In-House Speaker vs. Training Program: What's the Difference?",
     items: [
       { term: "In-House Speaker", desc: "A customized presentation for a company's team ($2K–$10K). Like a corporate workshop." },
       { term: "Training Program", desc: "A multi-session skills program for organizations ($5K–$50K). Like a corporate university course." },
@@ -100,7 +100,7 @@ export default function HowItWorks() {
             variants={fadeUp} custom={1}
             className="mt-6 text-lg md:text-xl text-white/70 max-w-2xl mx-auto"
           >
-            Authors Bureau turns your published book into a complete business — powered by Abby, your AI business advisor.
+            Authors Bureau turns your published book into a complete business, powered by Abby, your AI business advisor.
           </motion.p>
           <motion.div
             initial="hidden" whileInView="visible" viewport={{ once: true }}
@@ -122,7 +122,7 @@ export default function HowItWorks() {
               From Published Author to Business Owner
             </motion.h2>
             <motion.p variants={fadeUp} custom={1} className="mt-4 text-muted-foreground max-w-2xl mx-auto text-lg leading-relaxed">
-              Most authors earn less than $23,000/year from their books alone (Authors Guild, 2024). Authors Bureau changes that by unlocking 28 revenue streams from a single manuscript — and Abby, your AI advisor, builds everything for you.
+              Most authors earn less than $23,000/year from their books alone (Authors Guild, 2024). Authors Bureau changes that by unlocking 28 revenue streams from a single manuscript, and Abby, your AI advisor, builds everything for you.
             </motion.p>
           </motion.div>
           <motion.img

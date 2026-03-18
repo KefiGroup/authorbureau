@@ -149,7 +149,7 @@ export default function Index() {
 
             <motion.div variants={fadeUp} custom={3.5} className="flex flex-wrap justify-center gap-4">
               <Button asChild size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 text-base font-semibold shadow-[var(--shadow-gold)] rounded-full px-8">
-                <Link to={SIGNUP_URL}>Get Featured Free <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                <Link to={SIGNUP_URL}>Get Your Free Business Plan <ArrowRight className="ml-2 h-4 w-4" /></Link>
               </Button>
               <Button asChild size="lg" className="border-2 border-secondary/60 bg-transparent text-secondary hover:bg-secondary hover:text-secondary-foreground text-base font-semibold rounded-full px-8">
                 <a href="#how-it-works">See How It Works ↓</a>
@@ -166,7 +166,38 @@ export default function Index() {
         </div>
       </section>
 
-      {/* ===== SECTION 2: THE PROBLEM ===== */}
+      {/* ===== 3-STEP JOURNEY FLOW ===== */}
+      <section className="py-16 bg-background border-b border-border">
+        <div className="container max-w-4xl">
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              { step: "1", title: "Upload Your Book", desc: "Add your manuscript or Amazon link. Takes under 2 minutes.", icon: BookOpen },
+              { step: "2", title: "Abby Builds Your Plan", desc: "AI analyzes your book and creates a personalized business plan with revenue projections.", icon: Sparkles },
+              { step: "3", title: "Choose & Build Products", desc: "Pick the revenue streams that fit you. Abby generates everything: courses, coaching kits, email sequences, and more.", icon: TrendingUp },
+            ].map((item, i) => (
+              <motion.div
+                key={item.step}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                custom={i}
+                variants={fadeUp}
+                className="relative text-center p-6 rounded-2xl bg-card border border-border shadow-sm hover:shadow-md transition-shadow"
+              >
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-secondary/20 to-secondary/5 ring-1 ring-secondary/20 flex items-center justify-center mx-auto mb-3 text-secondary font-heading font-bold">
+                  {item.step}
+                </div>
+                <h3 className="font-heading font-bold text-base mb-1.5">{item.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                {i < 2 && (
+                  <ArrowRight className="hidden md:block absolute -right-5 top-1/2 -translate-y-1/2 h-5 w-5 text-secondary/40" />
+                )}
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="py-24 bg-background">
         <div className="container">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} className="mx-auto max-w-3xl text-center">
@@ -368,7 +399,7 @@ export default function Index() {
 
               <motion.div variants={fadeUp} custom={10}>
                 <Button asChild size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold shadow-[var(--shadow-gold)] rounded-full px-8">
-                  <Link to={SIGNUP_URL}>Get Featured <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                  <Link to={SIGNUP_URL}>Start with Abby <ArrowRight className="ml-2 h-4 w-4" /></Link>
                 </Button>
               </motion.div>
             </motion.div>
@@ -455,25 +486,25 @@ export default function Index() {
                 step: "1",
                 title: "Upload Your Book",
                 tag: "ABBY AI ANALYSIS",
-                desc: "Upload your manuscript and get a professional author showcase page, completely free. Abby analyzes your book and creates a personalized business plan showing which of the 28 revenue streams are the best fit for your topic and audience.",
+                desc: "Upload your manuscript and Abby analyzes your book, identifies your frameworks, and creates a personalized business plan showing which of the 28 revenue streams are the best fit for your topic and audience.",
               },
               {
                 step: "2",
                 title: "BUILD Your Products",
-                tag: "BUILD AUTHORITY",
+                tag: "BRAND PRODUCTS",
                 desc: "Abby uses AI to create your first digital products: workbooks, online courses, email sequences, social media calendars, and your author website. All generated from your book content. You just review and approve.",
               },
               {
                 step: "3",
-                title: "BRIDGE Your Audience",
-                tag: "BRIDGE CHANNELS",
-                desc: "Expand into audience-building channels: audiobooks, podcast tours, webinars, lead magnet funnels, affiliate programs, and media outreach. Abby creates everything including scripts, pitch kits, registration pages, and follow-up sequences.",
+                title: "SCALE Your Authority",
+                tag: "BUILD AUTHORITY",
+                desc: "Expand into audience-building channels: audiobooks, podcast tours, group coaching, affiliate programs, and media outreach. Abby creates everything including scripts, pitch kits, and follow-up sequences.",
               },
               {
                 step: "4",
                 title: "YIELD Your Empire",
                 tag: "YIELD REVENUE",
-                desc: "Scale into premium offerings: 1-on-1 coaching, group coaching, masterminds, keynote speaking, training programs, retreats, certification programs, and more.",
+                desc: "Scale into premium offerings: 1-on-1 coaching, consulting, masterminds, keynote speaking, training programs, retreats, certification programs, and more.",
               },
             ].map((item, i) => (
               <motion.div
@@ -525,10 +556,68 @@ export default function Index() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
             src="/images/abby-three-paths.png"
-            alt="Choose Your Path — Side Hustler, Serious Author, Empire Builder"
+            alt="Choose Your Path: Side Hustler, Serious Author, Empire Builder"
             className="w-full max-w-5xl mx-auto rounded-2xl shadow-xl mb-12"
             loading="lazy"
           />
+
+          {/* Persona Cards */}
+          <div className="grid gap-6 md:grid-cols-3 mb-12">
+            {[
+              {
+                title: "The Side Hustler",
+                price: "$49/mo",
+                streams: "8 revenue streams · 4–8 hrs/week",
+                revenue: "$5,500–$15,500 in Year 1",
+                border: "border-emerald-500",
+                bg: "bg-emerald-500/10",
+                badge: null as string | null,
+              },
+              {
+                title: "The Serious Business",
+                price: "$199/mo",
+                streams: "16 revenue streams · 15–25 hrs/week",
+                revenue: "$13,500–$39,500 in Year 1",
+                border: "border-orange-500",
+                bg: "bg-orange-500/10",
+                badge: "MOST POPULAR",
+              },
+              {
+                title: "The Enterprise Builder",
+                price: "$499/mo",
+                streams: "All 28 revenue streams · Full-time",
+                revenue: "$68,500–$215,500 in Year 1",
+                border: "border-secondary",
+                bg: "bg-secondary/10",
+                badge: "BEST VALUE",
+              },
+            ].map((card, i) => (
+              <motion.div
+                key={card.title}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                custom={i}
+                variants={fadeUp}
+                className={`relative rounded-2xl border-2 ${card.border} bg-card p-6 shadow-md flex flex-col`}
+              >
+                {card.badge && (
+                  <span className={`absolute -top-3 left-1/2 -translate-x-1/2 ${card.bg} ${card.border} border rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-foreground`}>
+                    {card.badge}
+                  </span>
+                )}
+                <h3 className="font-heading text-xl font-bold text-foreground mt-2">{card.title}</h3>
+                <p className="text-2xl font-bold text-foreground mt-2">{card.price}</p>
+                <p className="text-sm text-muted-foreground mt-2">{card.streams}</p>
+                <p className="text-sm font-medium text-foreground mt-1">Projected: {card.revenue}</p>
+                <div className="mt-auto pt-6">
+                  <Button asChild className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-bold rounded-xl">
+                    <Link to="/auth">Start Building <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                  </Button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
 
           <motion.div
             initial="hidden"
@@ -543,7 +632,7 @@ export default function Index() {
               size="lg"
               className="rounded-full font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-[var(--shadow-gold)] px-10 text-lg"
             >
-              <Link to="/auth">Sign Up for Abby's AI Consultation</Link>
+              <Link to="/auth">Get Your Free Business Plan <ArrowRight className="ml-2 h-4 w-4" /></Link>
             </Button>
           </motion.div>
 
@@ -612,11 +701,11 @@ export default function Index() {
             </motion.h2>
             <motion.p variants={fadeUp} custom={1} className="text-lg text-primary-foreground/70 max-w-2xl mx-auto mb-10">
               Every day you wait is revenue you're leaving on the table. Upload your book, let Abby build your business,
-              and start earning from all 28 revenue streams — not just one.
+              and start earning from all 28 revenue streams, not just one.
             </motion.p>
             <motion.div variants={fadeUp} custom={2} className="flex flex-wrap justify-center gap-4">
               <Button asChild size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 text-base font-semibold shadow-[var(--shadow-gold)] rounded-full px-8">
-                <Link to={SIGNUP_URL}>Get Featured Free <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                <Link to={SIGNUP_URL}>Get Your Free Business Plan <ArrowRight className="ml-2 h-4 w-4" /></Link>
               </Button>
               <Button asChild size="lg" className="border-2 border-secondary/60 bg-transparent text-secondary hover:bg-secondary hover:text-secondary-foreground text-base font-semibold rounded-full px-8">
                 <a href="#pricing">See Pricing Plans →</a>

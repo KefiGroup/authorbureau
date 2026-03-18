@@ -95,15 +95,15 @@ export default function DashboardSidebar({
     {
       id: "marketing-channels", label: "B·Build Authority", icon: Radio,
       subtitle: (isSuperAdminProp || buildAuthorityCategoryOpen) ? (isSuperAdminProp ? "Dev Access" : "Scale Your Audience") : "Coming Soon",
-      tooltip: (isSuperAdminProp || buildAuthorityCategoryOpen) ? "Build Authority — Scale audience & recurring revenue" : "Build Authority is coming soon. Stay tuned!",
+      tooltip: (isSuperAdminProp || buildAuthorityCategoryOpen) ? "Scale audience and recurring revenue" : "Build Authority is coming soon. Stay tuned!",
       color: "text-violet-500",
       badge: (isSuperAdminProp || buildAuthorityCategoryOpen) ? `${buildAuthorityUnlocked} built` : "Coming Soon",
       lockMessage: (isSuperAdminProp || buildAuthorityCategoryOpen) ? undefined : "Build Authority is coming soon",
     },
     {
       id: "authority-builders", label: "Y·Yield Revenue", icon: Award,
-      subtitle: (isSuperAdminProp || yieldCategoryOpen) ? (isSuperAdminProp ? "Dev Access" : "Premium Revenue Streams") : "Coming Soon",
-      tooltip: (isSuperAdminProp || yieldCategoryOpen) ? "Yield Revenue — Premium monetization" : "Yield Revenue builders are coming soon. Stay tuned!",
+      subtitle: (isSuperAdminProp || yieldCategoryOpen) ? (isSuperAdminProp ? "Dev Access" : "Premium Services") : "Coming Soon",
+      tooltip: (isSuperAdminProp || yieldCategoryOpen) ? "Premium monetization services" : "Yield Revenue builders are coming soon. Stay tuned!",
       color: "text-amber-500",
       badge: (isSuperAdminProp || yieldCategoryOpen) ? `${yieldUnlocked} built` : "Coming Soon",
       lockMessage: (isSuperAdminProp || yieldCategoryOpen) ? undefined : "Yield Revenue builders are coming soon",
