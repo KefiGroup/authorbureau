@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronDown, ChevronUp } from "lucide-react";
 
-const STAIRCASE_IMAGE = "/images/journey-staircase.png?v=6";
+const STAIRCASE_IMAGE = "/images/journey-staircase.png?v=7";
 const FLOW_DIAGRAM_IMAGE = "/images/journey-flow-diagram.png";
 const COMPARISON_IMAGE = "/images/journey-comparison.png";
 const THREE_PATHS_IMAGE = "/images/journey-three-paths.png";
