@@ -400,20 +400,20 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
       {/* Revenue Estimate + Tip */}
       {(isBrandProducts || isBuildAuthority || isYieldRevenue) && (
         <>
-          <div className={`rounded-2xl border-2 border-secondary/25 bg-gradient-to-r from-secondary/[0.06] to-transparent p-5`}>
-            <div className="flex items-center gap-2.5 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-secondary/15 flex items-center justify-center">
-                <TrendingUp className="h-4 w-4 text-secondary" />
+          <div className={`rounded-2xl border-2 p-6 ${isBrandProducts ? "border-builder-brand/30 bg-gradient-to-r from-builder-brand/10 to-transparent" : isBuildAuthority ? "border-builder-bridge/30 bg-gradient-to-r from-builder-bridge/10 to-transparent" : "border-builder-yield/30 bg-gradient-to-r from-builder-yield/10 to-transparent"}`}>
+            <div className="flex items-center gap-2.5 mb-3">
+              <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${isBrandProducts ? "bg-builder-brand/15" : isBuildAuthority ? "bg-builder-bridge/15" : "bg-builder-yield/15"}`}>
+                <TrendingUp className={`h-4.5 w-4.5 ${catAccentText}`} />
               </div>
-              <span className="text-xs font-black text-secondary uppercase tracking-[0.15em]">Estimated Revenue</span>
+              <span className={`text-xs font-black uppercase tracking-[0.15em] ${catAccentText}`}>Estimated Revenue</span>
             </div>
-            <p className="text-2xl font-heading font-bold text-foreground tracking-tight">
-              {isBrandProducts ? "$5,520 – $15,480" : isBuildAuthority ? "$13,500 – $39,480" : "$68,400 – $215,520"}<span className="text-sm font-normal text-muted-foreground ml-1">/yr</span>
+            <p className={`text-3xl font-heading font-black tracking-tight ${catAccentText}`}>
+              {isBrandProducts ? "$5,520 – $15,480" : isBuildAuthority ? "$13,500 – $39,480" : "$68,400 – $215,520"}<span className="text-sm font-normal text-foreground/50 ml-1.5">/yr</span>
             </p>
           </div>
-          <div className="rounded-2xl border border-accent/20 bg-accent/[0.04] p-5">
+          <div className={`rounded-2xl border-2 p-5 ${isBrandProducts ? "border-builder-brand/15 bg-builder-brand/[0.04]" : isBuildAuthority ? "border-builder-bridge/15 bg-builder-bridge/[0.04]" : "border-builder-yield/15 bg-builder-yield/[0.04]"}`}>
             <p className="text-sm text-foreground/80 leading-relaxed">
-              <strong className="text-foreground">💡 Tip:</strong>{" "}
+              <strong className={`${catAccentText}`}>💡 Tip:</strong>{" "}
               {isBrandProducts
                 ? "You don't have to build all 9 at once. Abby recommends starting with products 1–3 (Website, Book Sales, Lead Magnets) and adding the rest as your audience grows."
                 : isBuildAuthority
