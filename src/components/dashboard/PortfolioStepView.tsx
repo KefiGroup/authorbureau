@@ -308,7 +308,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
                 <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-1">
                   {group.name}
                 </h3>
-                {(isBrandProducts || isBuildAuthority) && SUB_INTRO[group.name] && (
+                {(isBrandProducts || isBuildAuthority || isYieldRevenue) && SUB_INTRO[group.name] && (
                   <p className="text-sm text-muted-foreground leading-relaxed mt-3 max-w-3xl whitespace-pre-line">
                     {SUB_INTRO[group.name].intro}
                   </p>
