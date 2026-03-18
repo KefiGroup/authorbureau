@@ -68,7 +68,7 @@ const GENRE_CONFIG: Record<string, {
   "cooking": {
     title: "For Cookbook Authors",
     description: "Turn your cookbook into meal planning courses, video tutorials, and a cooking community.",
-    heroSubtitle: "Your recipes are just the beginning — build a food empire.",
+    heroSubtitle: "Your recipes are just the beginning. Build a food empire.",
     painPoints: ["Cookbook royalties barely cover the cost of ingredients", "Readers want video demonstrations and meal plans", "Competitors charge $99+ for what your book teaches"],
     topProducts: ["Video Cooking Courses ($49-$197)", "Meal Plan Subscriptions ($9-$27/mo)", "Cooking Retreats ($500-$2,000)", "Companion Workbooks ($9.99-$14.99)"],
     cta: "Cook up a profitable business",
