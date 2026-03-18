@@ -38,7 +38,7 @@ const accordionData = [
     ],
   },
   {
-    title: "Keynote vs. In-House Speaker vs. Training Program — What's the Difference?",
+    title: "Keynote vs. In-House Speaker vs. Training Program: What's the Difference?",
     items: [
       { term: "In-House Speaker", desc: "A customized presentation for a company's team ($2K–$10K). Like a corporate workshop." },
       { term: "Training Program", desc: "A multi-session skills program for organizations ($5K–$50K). Like a corporate university course." },
