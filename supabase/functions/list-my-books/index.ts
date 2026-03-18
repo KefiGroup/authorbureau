@@ -300,7 +300,6 @@ Deno.serve(async (req) => {
             categoryCounts[row.book_id][category as "brand" | "yield"]++;
             productCounts[row.book_id] = (productCounts[row.book_id] || 0) + 1;
           }
-          }
         }
       }
     }
