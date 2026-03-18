@@ -612,7 +612,7 @@ export default function Index() {
             </motion.h2>
             <motion.p variants={fadeUp} custom={1} className="text-lg text-primary-foreground/70 max-w-2xl mx-auto mb-10">
               Every day you wait is revenue you're leaving on the table. Upload your book, let Abby build your business,
-              and start earning from all 28 revenue streams — not just one.
+              and start earning from all 28 revenue streams, not just one.
             </motion.p>
             <motion.div variants={fadeUp} custom={2} className="flex flex-wrap justify-center gap-4">
               <Button asChild size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 text-base font-semibold shadow-[var(--shadow-gold)] rounded-full px-8">
