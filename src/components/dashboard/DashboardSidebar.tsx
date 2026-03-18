@@ -95,7 +95,7 @@ export default function DashboardSidebar({
     {
       id: "marketing-channels", label: "B·Build Authority", icon: Radio,
       subtitle: (isSuperAdminProp || buildAuthorityCategoryOpen) ? (isSuperAdminProp ? "Dev Access" : "Scale Your Audience") : "Coming Soon",
-      tooltip: (isSuperAdminProp || buildAuthorityCategoryOpen) ? "Build Authority — Scale audience & recurring revenue" : "Build Authority is coming soon. Stay tuned!",
+      tooltip: (isSuperAdminProp || buildAuthorityCategoryOpen) ? "Scale audience and recurring revenue" : "Build Authority is coming soon. Stay tuned!",
       color: "text-violet-500",
       badge: (isSuperAdminProp || buildAuthorityCategoryOpen) ? `${buildAuthorityUnlocked} built` : "Coming Soon",
       lockMessage: (isSuperAdminProp || buildAuthorityCategoryOpen) ? undefined : "Build Authority is coming soon",
