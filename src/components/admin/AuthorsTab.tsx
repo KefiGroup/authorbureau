@@ -216,6 +216,25 @@ export default function AuthorsTab() {
     <div>
       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
 
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deletingAuthor} onOpenChange={() => { if (!deleting) setDeletingAuthor(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Author</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete <strong>{deletingAuthor?.pen_name || "this author"}</strong> ({deletingAuthor?.author_slug || "no slug"}) and all their books, products, and data. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={deleteAuthor} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Delete Permanently
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Photo upload dialog */}
       <Dialog open={!!uploadingPhotoFor && !uploading} onOpenChange={() => setUploadingPhotoFor(null)}>
         <DialogContent className="max-w-sm">
