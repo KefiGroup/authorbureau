@@ -100,7 +100,7 @@ export default function HowItWorks() {
             variants={fadeUp} custom={1}
             className="mt-6 text-lg md:text-xl text-white/70 max-w-2xl mx-auto"
           >
-            Authors Bureau turns your published book into a complete business — powered by Abby, your AI business advisor.
+            Authors Bureau turns your published book into a complete business, powered by Abby, your AI business advisor.
           </motion.p>
           <motion.div
             initial="hidden" whileInView="visible" viewport={{ once: true }}
