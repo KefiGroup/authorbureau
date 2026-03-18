@@ -87,6 +87,9 @@ const categoryBadge: Record<string, { label: string; className: string }> = {
 
 export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateTab }: Props) {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const showStartBanner = searchParams.get("from") === "start-building";
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const [hasConsultation, setHasConsultation] = useState(false);
   const [hasManuscript, setHasManuscript] = useState(false);
   const [manuscriptChars, setManuscriptChars] = useState(0);
