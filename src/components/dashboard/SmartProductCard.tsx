@@ -133,17 +133,17 @@ export default function SmartProductCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
     >
-      <Card className={`p-4 space-y-3 transition-all hover:shadow-md h-full flex flex-col ${config.borderClass}`}>
+      <Card className={`p-5 space-y-3.5 transition-all hover:shadow-lg h-full flex flex-col ${config.borderClass} ${config.cardBg}`}>
         {/* Header */}
         <div className="flex items-start gap-3">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-            state === "locked" ? "bg-muted" : "bg-secondary/10"
+          <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
+            state === "locked" ? "bg-muted" : state === "coming-soon" ? "bg-muted/60" : "bg-gradient-to-br from-secondary/20 to-secondary/5"
           }`}>
-            <Icon className={`h-5 w-5 ${state === "locked" ? "text-muted-foreground/40" : "text-secondary"}`} />
+            <Icon className={`h-5 w-5 ${state === "locked" || state === "coming-soon" ? "text-muted-foreground/40" : "text-secondary"}`} />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h4 className="font-heading font-semibold text-sm">{label}</h4>
+              <h4 className="font-heading font-bold text-base">{label}</h4>
               {state === "locked" ? (
                 <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium bg-muted text-muted-foreground">
                   <Lock className="h-2.5 w-2.5" /> {tierRequired} Plan
