@@ -543,7 +543,7 @@ export default function Index() {
               size="lg"
               className="rounded-full font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-[var(--shadow-gold)] px-10 text-lg"
             >
-              <Link to="/auth">Sign Up for Abby's AI Consultation</Link>
+              <Link to="/auth">Get Your Free Business Plan <ArrowRight className="ml-2 h-4 w-4" /></Link>
             </Button>
           </motion.div>
 
