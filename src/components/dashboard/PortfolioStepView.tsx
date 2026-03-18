@@ -276,7 +276,30 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
           </p>
         </div>
       )}
-
+      {isYieldRevenue && (
+        <div className="rounded-xl border border-border bg-muted/30 p-5 space-y-3">
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Everything in Yield Revenue is designed to do one thing: <strong className="text-foreground">convert your established authority into high-ticket income.</strong> Unlike Brand Products and Build Authority, these 10 services don't require a strict sequence. You can pursue multiple streams simultaneously once you have the credibility to back them up.
+          </p>
+          <div>
+            <p className="text-xs font-bold text-sky-600 uppercase tracking-wider mb-2">Why These Work Together (Not in Sequence)</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Unlike Brand Products (which build on each other) or Build Authority (which amplify your reach), Yield Revenue services all draw from the same well: your established authority and audience. You don't need to do coaching before consulting, or keynotes before masterminds. Instead, you pursue the services that align with:
+            </p>
+            <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+              <li><strong className="text-foreground">Your strengths</strong> — What do you enjoy most? What are you best at?</li>
+              <li><strong className="text-foreground">Your audience's needs</strong> — What will they pay for?</li>
+              <li><strong className="text-foreground">Market demand</strong> — What opportunities are knocking on your door?</li>
+            </ul>
+          </div>
+          <div>
+            <p className="text-xs font-bold text-sky-600 uppercase tracking-wider mb-2">The Full Journey</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              <strong className="text-foreground">Brand Products</strong> built your foundation and audience. <strong className="text-foreground">Build Authority</strong> scaled your reach and credibility. <strong className="text-foreground">Yield Revenue</strong> is where you monetize your expertise at the highest level — with premium pricing, selective clients, and maximum impact.
+            </p>
+          </div>
+        </div>
+      )}
       {/* Product Cards Grid – grouped by sub-category */}
       {(categoryId === "revenue-streams" || categoryId === "marketing-channels" || categoryId === "authority-builders") && subCategories.length > 1
         ? subCategories.map((group) => (
