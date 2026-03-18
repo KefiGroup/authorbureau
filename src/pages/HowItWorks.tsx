@@ -22,10 +22,10 @@ const fadeUp = {
 
 const accordionData = [
   {
-    title: "Workbook vs. Home Study vs. Online Course — What's the Difference?",
+    title: "Workbook vs. Home Study vs. Online Course: What's the Difference?",
     items: [
       { term: "Workbook", desc: "A downloadable PDF exercise book ($19–$47). Think of it like a homework packet." },
-      { term: "Home Study", desc: "A self-paced multimedia kit — videos + worksheets + templates ($97–$497). Think of it like a box set." },
+      { term: "Home Study", desc: "A self-paced multimedia kit with videos, worksheets, and templates ($97–$497). Think of it like a box set." },
       { term: "Online Course", desc: "A structured learning experience with modules, quizzes, and community ($97–$997). Think of it like a semester of school." },
     ],
   },
