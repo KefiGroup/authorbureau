@@ -323,14 +323,14 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
         ? subCategories.map((group) => (
             <div key={group.name} className="space-y-5">
               <div>
-                <div className="flex items-center gap-3 mb-1">
-                  <div className={`w-1 h-5 rounded-full ${catAccentBg}`} />
-                  <h3 className={`text-base font-heading font-bold uppercase tracking-wider ${catAccentText}`}>
+                <div className={`flex items-center gap-3 mb-2 pb-3 border-b-2 ${isBrandProducts ? "border-builder-brand/25" : isBuildAuthority ? "border-builder-bridge/25" : "border-builder-yield/25"}`}>
+                  <div className={`w-1.5 h-7 rounded-full ${catAccentBg}`} />
+                  <h3 className={`text-lg font-heading font-black uppercase tracking-[0.12em] ${catAccentText}`}>
                     {group.name}
                   </h3>
                 </div>
                 {(isBrandProducts || isBuildAuthority || isYieldRevenue) && SUB_INTRO[group.name] && (
-                  <p className="text-sm text-muted-foreground leading-relaxed mt-2 ml-4 whitespace-pre-line">
+                  <p className="text-sm text-foreground/75 leading-relaxed mt-3 whitespace-pre-line">
                     {SUB_INTRO[group.name].intro}
                   </p>
                 )}
