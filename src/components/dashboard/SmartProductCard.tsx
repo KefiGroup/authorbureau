@@ -61,6 +61,7 @@ const BASELINE_REVENUE: Record<string, RevenueEstimate> = {
   "email-marketing": { annual: 1940, timeToBuild: "~2 hours", difficulty: 3 },
   "pr-media": { annual: 0, timeToBuild: "~3 hours", difficulty: 3 },
   "lead-magnet": { annual: 0, timeToBuild: "~1 hour", difficulty: 4 },
+  "strategic-partnerships": { annual: 6000, timeToBuild: "~3 hours", difficulty: 3 },
   "book-sales": { annual: 3600, timeToBuild: "~1 hour", difficulty: 1 },
   "course-sales": { annual: 4800, timeToBuild: "~2 hours", difficulty: 2 },
   "coaching-fees": { annual: 9600, timeToBuild: "~2 hours", difficulty: 2 },
