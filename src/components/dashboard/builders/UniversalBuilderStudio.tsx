@@ -1060,6 +1060,11 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
     }
   }, [currentStep, currentStepIndex]);
 
+  // ─── NO BOOK SELECTED → redirect straight to My Books Hub ─────────
+  useEffect(() => {
+    if (!bookId) onNavigate?.("my-books");
+  }, [bookId, onNavigate]);
+
   // ─── SUBSCRIPTION GATE ─────────────────────────────────────────────
   if (!hasAccess) {
     return (
@@ -1076,22 +1081,8 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
     );
   }
 
-  // ─── NO BOOK SELECTED ──────────────────────────────────────────────
   if (!bookId) {
-    return (
-      <div className="max-w-2xl mx-auto py-16 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-6">
-          <BookOpen className="h-8 w-8 text-muted-foreground" />
-        </div>
-        <h2 className="font-heading text-2xl font-bold mb-3">Select a Book First</h2>
-        <p className="text-muted-foreground text-sm mb-6">
-          Go to My Books Hub and select a book to start building your {nodeConfig.label.toLowerCase()}.
-        </p>
-        <Button onClick={() => onNavigate?.("my-books")} variant="outline" className="rounded-full">
-          <BookOpen className="h-4 w-4 mr-2" /> Go to My Books
-        </Button>
-      </div>
-    );
+    return null;
   }
 
   // ─── MAIN BUILDER UI ──────────────────────────────────────────────
