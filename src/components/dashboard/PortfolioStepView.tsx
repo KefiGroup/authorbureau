@@ -201,7 +201,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
 
   const isBrandProducts = categoryId === "revenue-streams";
   const isBuildAuthority = categoryId === "marketing-channels";
-
+  const isYieldRevenue = categoryId === "authority-builders";
   // Sub-category intro text for Brand Products & Build Authority
   const SUB_INTRO: Record<string, { intro: string }> = {
     "Branding & Marketing": {
@@ -219,6 +219,9 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
     "Monetize Your Network": {
       intro: "Use your established audience and authority to create passive income and partnership revenue. You've built the platform; now leverage it.\n\nWhy this order? Affiliates are the easiest — you recommend existing products. Upsells require understanding your audience's buying psychology and funnel optimization. Revenue Sharing requires established authority and audience size to attract partners.",
     },
+    "High-Ticket Services": {
+      intro: "These are premium offerings that leverage your expertise, audience, and authority. The order you pursue them depends on your strengths, your audience's needs, and market demand — not a prerequisite chain.",
+    },
   };
 
   return (
@@ -230,7 +233,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
         </div>
         <div>
           <h1 className="font-heading text-2xl md:text-3xl font-bold">
-            {isBrandProducts ? "Your Products. Your Brand. Built From Your Book." : isBuildAuthority ? "Your Audience. Your Authority. Built From Your Brand." : category.label}
+            {isBrandProducts ? "Your Products. Your Brand. Built From Your Book." : isBuildAuthority ? "Your Audience. Your Authority. Built From Your Brand." : isYieldRevenue ? "Premium Services. Premium Revenue. Built From Your Authority." : category.label}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {category.subtitle}
@@ -273,7 +276,30 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
           </p>
         </div>
       )}
-
+      {isYieldRevenue && (
+        <div className="rounded-xl border border-border bg-muted/30 p-5 space-y-3">
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Everything in Yield Revenue is designed to do one thing: <strong className="text-foreground">convert your established authority into high-ticket income.</strong> Unlike Brand Products and Build Authority, these 10 services don't require a strict sequence. You can pursue multiple streams simultaneously once you have the credibility to back them up.
+          </p>
+          <div>
+            <p className="text-xs font-bold text-sky-600 uppercase tracking-wider mb-2">Why These Work Together (Not in Sequence)</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Unlike Brand Products (which build on each other) or Build Authority (which amplify your reach), Yield Revenue services all draw from the same well: your established authority and audience. You don't need to do coaching before consulting, or keynotes before masterminds. Instead, you pursue the services that align with:
+            </p>
+            <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+              <li><strong className="text-foreground">Your strengths</strong> — What do you enjoy most? What are you best at?</li>
+              <li><strong className="text-foreground">Your audience's needs</strong> — What will they pay for?</li>
+              <li><strong className="text-foreground">Market demand</strong> — What opportunities are knocking on your door?</li>
+            </ul>
+          </div>
+          <div>
+            <p className="text-xs font-bold text-sky-600 uppercase tracking-wider mb-2">The Full Journey</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              <strong className="text-foreground">Brand Products</strong> built your foundation and audience. <strong className="text-foreground">Build Authority</strong> scaled your reach and credibility. <strong className="text-foreground">Yield Revenue</strong> is where you monetize your expertise at the highest level — with premium pricing, selective clients, and maximum impact.
+            </p>
+          </div>
+        </div>
+      )}
       {/* Product Cards Grid – grouped by sub-category */}
       {(categoryId === "revenue-streams" || categoryId === "marketing-channels" || categoryId === "authority-builders") && subCategories.length > 1
         ? subCategories.map((group) => (
@@ -282,7 +308,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
                 <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-1">
                   {group.name}
                 </h3>
-                {(isBrandProducts || isBuildAuthority) && SUB_INTRO[group.name] && (
+                {(isBrandProducts || isBuildAuthority || isYieldRevenue) && SUB_INTRO[group.name] && (
                   <p className="text-sm text-muted-foreground leading-relaxed mt-3 max-w-3xl whitespace-pre-line">
                     {SUB_INTRO[group.name].intro}
                   </p>
@@ -351,7 +377,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
       }
 
       {/* Revenue Estimate + Tip */}
-      {(isBrandProducts || isBuildAuthority) && (
+      {(isBrandProducts || isBuildAuthority || isYieldRevenue) && (
         <>
           <div className="rounded-xl border border-secondary/20 bg-secondary/5 p-4">
             <div className="flex items-center gap-2 mb-1">
@@ -359,7 +385,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
               <span className="text-xs font-bold text-secondary uppercase tracking-wider">Estimated Revenue</span>
             </div>
             <p className="text-lg font-bold text-foreground">
-              {isBrandProducts ? "$5,520 – $15,480" : "$13,500 – $39,480"}<span className="text-xs font-normal text-muted-foreground">/yr</span>
+              {isBrandProducts ? "$5,520 – $15,480" : isBuildAuthority ? "$13,500 – $39,480" : "$68,400 – $215,520"}<span className="text-xs font-normal text-muted-foreground">/yr</span>
             </p>
           </div>
           <div className="rounded-xl border border-accent/20 bg-accent/5 p-4">
@@ -367,7 +393,9 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
               <strong className="text-foreground">💡 Tip:</strong>{" "}
               {isBrandProducts
                 ? "You don't have to build all 9 at once. Abby recommends starting with products 1–3 (Website, Book Sales, Lead Magnets) and adding the rest as your audience grows."
-                : "You don't need to launch all 9 at once. Abby recommends starting with products 1–3 (Online Courses, Audiobook, Memberships) and adding Groups 2–3 as your audience grows and your authority solidifies."
+                : isBuildAuthority
+                ? "You don't need to launch all 9 at once. Abby recommends starting with products 1–3 (Online Courses, Audiobook, Memberships) and adding Groups 2–3 as your audience grows and your authority solidifies."
+                : "You don't need to pursue all 10. Abby recommends choosing 2–3 services that align with your strengths and audience needs, then mastering those before expanding. Quality over quantity."
               }
             </p>
           </div>
