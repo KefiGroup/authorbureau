@@ -292,7 +292,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
           <div>
             <p className="text-xs font-bold text-sky-600 uppercase tracking-wider mb-2">The Full Journey</p>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              <strong className="text-foreground">Brand Products</strong> built your foundation and audience. <strong className="text-foreground">Build Authority</strong> scaled your reach and credibility. <strong className="text-foreground">Yield Revenue</strong> is where you monetize your expertise at the highest level — with premium pricing, selective clients, and maximum impact.
+              <strong className="text-foreground">Brand Products</strong> built your foundation and audience. <strong className="text-foreground">Build Authority</strong> scaled your reach and credibility. <strong className="text-foreground">Yield Revenue</strong> is where you monetize your expertise at the highest level, with premium pricing, selective clients, and maximum impact.
             </p>
           </div>
         </div>

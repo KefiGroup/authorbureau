@@ -208,7 +208,7 @@ export default function Solutions() {
               <h2 className="font-heading text-2xl font-bold">Live Market Intelligence</h2>
             </div>
             <p className="text-muted-foreground text-center mb-8 text-sm">
-              Real-time data from Amazon, Gumroad, and market research — updated for {normalizedGenre.replace(/-/g, " ")} authors.
+              Real-time data from Amazon, Gumroad, and market research, updated for {normalizedGenre.replace(/-/g, " ")} authors.
             </p>
 
             {loadingMarket ? (
