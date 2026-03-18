@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Sparkles, MessageCircleHeart, TrendingUp, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import NewUserOnboarding from "./NewUserOnboarding";
 
 interface PlanSummary {
   bookTitle: string;
