@@ -193,7 +193,7 @@ export const ADVISOR_CONTENT: Record<AbbyCategory, AdvisorContent> = {
   },
   "authority-builders": {
     heading: "When should you pursue premium revenue?",
-    intro: "These are your highest-value plays — coaching, speaking, and premium offers that monetize your authority:",
+    intro: "These are your highest-value plays: coaching, speaking, and premium offers that monetize your authority.",
     recommendations: [
       { label: "1-on-1 Coaching", reason: "Premium service with the highest margins. Use your book's frameworks as session outlines.", priceRange: "$150 – $500/session", difficulty: "Easy", nodeId: "coaching-1on1" },
       { label: "Group Coaching", reason: "Scale your coaching with 8-week group programs. Higher revenue per hour than 1-on-1.", priceRange: "$97 – $297/person", difficulty: "Medium", nodeId: "group-coaching" },
