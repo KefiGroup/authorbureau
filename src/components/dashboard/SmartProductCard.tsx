@@ -174,7 +174,18 @@ export default function SmartProductCard({
             : description}
         </p>
 
-        {/* Stats Row */}
+        {/* Progress bar for in-progress */}
+        {state === "in-progress" && progressPercent !== undefined && (
+          <div className="space-y-1">
+            <div className="h-1.5 w-full rounded-full bg-blue-100">
+              <div
+                className="h-full rounded-full bg-blue-500 transition-all"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+            <p className="text-[9px] text-blue-600 font-medium text-right">{progressPercent}%</p>
+          </div>
+        )}
         <div className="grid grid-cols-3 gap-2">
           <TooltipProvider>
             <Tooltip>
