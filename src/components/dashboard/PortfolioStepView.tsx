@@ -398,17 +398,19 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
       {/* Revenue Estimate + Tip */}
       {(isBrandProducts || isBuildAuthority || isYieldRevenue) && (
         <>
-          <div className="rounded-xl border border-secondary/20 bg-secondary/5 p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="h-4 w-4 text-secondary" />
-              <span className="text-xs font-bold text-secondary uppercase tracking-wider">Estimated Revenue</span>
+          <div className={`rounded-2xl border-2 border-secondary/25 bg-gradient-to-r from-secondary/[0.06] to-transparent p-5`}>
+            <div className="flex items-center gap-2.5 mb-2">
+              <div className="w-8 h-8 rounded-lg bg-secondary/15 flex items-center justify-center">
+                <TrendingUp className="h-4 w-4 text-secondary" />
+              </div>
+              <span className="text-xs font-black text-secondary uppercase tracking-[0.15em]">Estimated Revenue</span>
             </div>
-            <p className="text-lg font-bold text-foreground">
-              {isBrandProducts ? "$5,520 – $15,480" : isBuildAuthority ? "$13,500 – $39,480" : "$68,400 – $215,520"}<span className="text-xs font-normal text-muted-foreground">/yr</span>
+            <p className="text-2xl font-heading font-bold text-foreground tracking-tight">
+              {isBrandProducts ? "$5,520 – $15,480" : isBuildAuthority ? "$13,500 – $39,480" : "$68,400 – $215,520"}<span className="text-sm font-normal text-muted-foreground ml-1">/yr</span>
             </p>
           </div>
-          <div className="rounded-xl border border-accent/20 bg-accent/5 p-4">
-            <p className="text-sm text-muted-foreground leading-relaxed">
+          <div className="rounded-2xl border border-accent/20 bg-accent/[0.04] p-5">
+            <p className="text-sm text-foreground/80 leading-relaxed">
               <strong className="text-foreground">💡 Tip:</strong>{" "}
               {isBrandProducts
                 ? "You don't have to build all 9 at once. Abby recommends starting with products 1–3 (Website, Book Sales, Lead Magnets) and adding the rest as your audience grows."
@@ -422,7 +424,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
       )}
 
       {/* Info */}
-      <div className="rounded-xl bg-muted/50 border border-border p-4 text-center">
+      <div className="rounded-2xl bg-muted/40 border border-border p-5 text-center">
         <p className="text-xs text-muted-foreground leading-relaxed max-w-lg mx-auto">
           {recommendations.length > 0
             ? "Products are ranked by Abby's recommendations and estimated revenue. Click into any product to start building."
