@@ -265,7 +265,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
               <strong className="text-foreground">Brand Products</strong> built your foundation: website, book sales, email list, audience.
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed mt-1">
-              <strong className="text-foreground">Build Authority</strong> scales that foundation — courses, coaching, media visibility, and partnership income.
+              <strong className="text-foreground">Build Authority</strong> scales that foundation: courses, coaching, media visibility, and partnership income.
             </p>
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed">
