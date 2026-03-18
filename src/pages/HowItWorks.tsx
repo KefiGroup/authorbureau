@@ -7,7 +7,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
 import staircaseImg from "@/assets/abby_journey_staircase_v6.png";
-import frameworkImg from "@/assets/abby_journey_framework_v14_bby.png";
+import frameworkImg from "@/assets/abby_journey_framework_v13_bby.png";
 
 const FLOW_DIAGRAM_IMAGE = "/images/journey-flow-diagram.png";
 const COMPARISON_IMAGE = "/images/journey-comparison.png";
