@@ -19,7 +19,7 @@ export default function CompactMicrositeCard({ profileState, authorSlug, authorN
         {profileState === "live" && authorSlug ? (
           <div className="w-full h-full overflow-hidden pointer-events-none">
             <iframe
-              src={`https://authorsbureau.com/authors/${authorSlug}`}
+              src={`${window.location.origin}/authors/${authorSlug}`}
               title="Your Website Preview"
               className="border-0 origin-top-left"
               style={{
