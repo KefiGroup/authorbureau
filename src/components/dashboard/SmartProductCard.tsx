@@ -166,10 +166,24 @@ export default function SmartProductCard({
               <TooltipTrigger asChild>
                 <div className="rounded-lg bg-muted/50 p-2 text-center">
                   <TrendingUp className="h-3 w-3 mx-auto mb-0.5 text-muted-foreground" />
-                  <p className="text-xs font-semibold">
-                    {rev.annual > 0 ? `$${(rev.annual).toLocaleString()}/yr` : "Indirect"}
-                  </p>
-                  <p className="text-[9px] text-muted-foreground">estimated</p>
+                  {id === "microsite" ? (
+                    <>
+                      <p className="text-[10px] font-semibold leading-tight">Revenue Enabler</p>
+                      <p className="text-[8px] text-muted-foreground leading-tight">unlocks all other streams</p>
+                    </>
+                  ) : id === "lead-magnet" ? (
+                    <>
+                      <p className="text-[10px] font-semibold leading-tight">Revenue Enabler</p>
+                      <p className="text-[8px] text-muted-foreground leading-tight">feeds your email list</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xs font-semibold">
+                        {rev.annual > 0 ? `$${(rev.annual).toLocaleString()}/yr` : "Indirect"}
+                      </p>
+                      <p className="text-[9px] text-muted-foreground">estimated</p>
+                    </>
+                  )}
                 </div>
               </TooltipTrigger>
               <TooltipContent>
