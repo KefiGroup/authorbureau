@@ -1060,6 +1060,11 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
     }
   }, [currentStep, currentStepIndex]);
 
+  // ─── NO BOOK SELECTED → redirect straight to My Books Hub ─────────
+  useEffect(() => {
+    if (!bookId) onNavigate?.("my-books");
+  }, [bookId, onNavigate]);
+
   // ─── SUBSCRIPTION GATE ─────────────────────────────────────────────
   if (!hasAccess) {
     return (
@@ -1075,11 +1080,6 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
       />
     );
   }
-
-  // ─── NO BOOK SELECTED → redirect straight to My Books Hub ─────────
-  useEffect(() => {
-    if (!bookId) onNavigate?.("my-books");
-  }, [bookId, onNavigate]);
 
   if (!bookId) {
     return null;
