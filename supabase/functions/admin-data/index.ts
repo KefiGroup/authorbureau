@@ -295,6 +295,52 @@ Deno.serve(async (req) => {
       return json({ success: true });
     }
 
+    // ─── Delete Author ───
+    if (action === "delete-author") {
+      const { userId: targetUserId } = params;
+      if (!targetUserId) return json({ error: "userId required" }, 400);
+
+      // Delete related data in order (products, then profile)
+      const tables = [
+        "home_study_courses", "courses", "coaching_packages", "audiobooks", "podcasts",
+        "generated_assets", "cross_builder_pushes", "feature_requests",
+        "ai_usage_logs", "email_campaigns", "email_templates", "email_flows",
+        "author_subscribers", "contact_messages", "crm_contacts",
+        "author_email_settings", "author_payout_settings", "consultation_sessions",
+        "newsletter_signups",
+      ];
+
+      // Delete books separately (need book_ids first for cascade)
+      const { data: authorBooks } = await client.from("books").select("id").eq("author_id", targetUserId);
+      const bookIds = (authorBooks || []).map((b: any) => b.id);
+
+      if (bookIds.length > 0) {
+        // Delete book-related items
+        await Promise.all([
+          client.from("newsletter_signups").delete().in("book_id", bookIds),
+          client.from("consultation_sessions").delete().in("book_id", bookIds),
+        ]);
+      }
+
+      // Delete author-owned rows from all tables
+      for (const table of tables) {
+        await client.from(table).delete().eq("author_id", targetUserId);
+      }
+
+      // Delete books
+      if (bookIds.length > 0) {
+        await client.from("books").delete().in("id", bookIds);
+      }
+
+      // Delete profile
+      await client.from("author_profiles").delete().eq("user_id", targetUserId);
+
+      // Delete notifications
+      await client.from("notifications").delete().eq("user_id", targetUserId);
+
+      return json({ success: true });
+    }
+
     return json({ error: "Unknown action" }, 400);
   } catch (err) {
     return json({ error: (err as Error).message }, 500);

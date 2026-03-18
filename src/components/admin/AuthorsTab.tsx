@@ -9,7 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, RefreshCw, BookOpen, Globe, ImageIcon, Search, Upload, Pencil } from "lucide-react";
+import { Loader2, RefreshCw, BookOpen, Globe, ImageIcon, Search, Upload, Pencil, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
 interface DirectoryAuthor {
