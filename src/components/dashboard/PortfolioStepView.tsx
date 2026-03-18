@@ -237,25 +237,27 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
   return (
     <div className="max-w-6xl space-y-8">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${category.gradientFrom} ${category.gradientTo} flex items-center justify-center text-white shadow-lg`}>
-          <HeaderIcon className="h-7 w-7" />
-        </div>
-        <div>
-          <h1 className="font-heading text-2xl md:text-3xl font-bold tracking-tight">
-            {isBrandProducts ? "Your Products. Your Brand. Built From Your Book." : isBuildAuthority ? "Your Audience. Your Authority. Built From Your Brand." : isYieldRevenue ? "Premium Services. Premium Revenue. Built From Your Authority." : category.label}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {category.subtitle}
-            {recommendedCount > 0 && (
-              <span className="ml-2 text-secondary font-medium">· {recommendedCount} recommended by Abby</span>
-            )}
-          </p>
-        </div>
-        <div className="ml-auto">
-          <span className={`text-xs font-semibold rounded-full px-3 py-1.5 ${category.bgColor} ${category.color}`}>
-            {category.nodes.length} products
-          </span>
+      <div className={`rounded-2xl p-6 border-2 ${isBrandProducts ? "border-builder-brand/30 bg-gradient-to-r from-builder-brand/10 via-builder-brand/5 to-transparent" : isBuildAuthority ? "border-builder-bridge/30 bg-gradient-to-r from-builder-bridge/10 via-builder-bridge/5 to-transparent" : "border-builder-yield/30 bg-gradient-to-r from-builder-yield/10 via-builder-yield/5 to-transparent"}`}>
+        <div className="flex items-center gap-4">
+          <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${category.gradientFrom} ${category.gradientTo} flex items-center justify-center text-white shadow-lg`}>
+            <HeaderIcon className="h-7 w-7" />
+          </div>
+          <div className="flex-1">
+            <h1 className={`font-heading text-2xl md:text-3xl font-black tracking-tight ${catAccentText}`}>
+              {isBrandProducts ? "Your Products. Your Brand. Built From Your Book." : isBuildAuthority ? "Your Audience. Your Authority. Built From Your Brand." : isYieldRevenue ? "Premium Services. Premium Revenue. Built From Your Authority." : category.label}
+            </h1>
+            <p className="text-sm text-foreground/70 mt-1 font-medium">
+              {category.subtitle}
+              {recommendedCount > 0 && (
+                <span className="ml-2 text-secondary font-semibold">· {recommendedCount} recommended by Abby</span>
+              )}
+            </p>
+          </div>
+          <div className="ml-auto">
+            <span className={`text-xs font-bold rounded-full px-3 py-1.5 ${isBrandProducts ? "bg-builder-brand/15 text-builder-brand" : isBuildAuthority ? "bg-builder-bridge/15 text-builder-bridge" : "bg-builder-yield/15 text-builder-yield"}`}>
+              {category.nodes.length} products
+            </span>
+          </div>
         </div>
       </div>
 
@@ -321,14 +323,14 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
         ? subCategories.map((group) => (
             <div key={group.name} className="space-y-5">
               <div>
-                <div className="flex items-center gap-3 mb-1">
-                  <div className={`w-1 h-5 rounded-full ${catAccentBg}`} />
-                  <h3 className={`text-base font-heading font-bold uppercase tracking-wider ${catAccentText}`}>
+                <div className={`flex items-center gap-3 mb-2 pb-3 border-b-2 ${isBrandProducts ? "border-builder-brand/25" : isBuildAuthority ? "border-builder-bridge/25" : "border-builder-yield/25"}`}>
+                  <div className={`w-1.5 h-7 rounded-full ${catAccentBg}`} />
+                  <h3 className={`text-lg font-heading font-black uppercase tracking-[0.12em] ${catAccentText}`}>
                     {group.name}
                   </h3>
                 </div>
                 {(isBrandProducts || isBuildAuthority || isYieldRevenue) && SUB_INTRO[group.name] && (
-                  <p className="text-sm text-muted-foreground leading-relaxed mt-2 ml-4 whitespace-pre-line">
+                  <p className="text-sm text-foreground/75 leading-relaxed mt-3 whitespace-pre-line">
                     {SUB_INTRO[group.name].intro}
                   </p>
                 )}
@@ -398,20 +400,20 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
       {/* Revenue Estimate + Tip */}
       {(isBrandProducts || isBuildAuthority || isYieldRevenue) && (
         <>
-          <div className={`rounded-2xl border-2 border-secondary/25 bg-gradient-to-r from-secondary/[0.06] to-transparent p-5`}>
-            <div className="flex items-center gap-2.5 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-secondary/15 flex items-center justify-center">
-                <TrendingUp className="h-4 w-4 text-secondary" />
+          <div className={`rounded-2xl border-2 p-6 ${isBrandProducts ? "border-builder-brand/30 bg-gradient-to-r from-builder-brand/10 to-transparent" : isBuildAuthority ? "border-builder-bridge/30 bg-gradient-to-r from-builder-bridge/10 to-transparent" : "border-builder-yield/30 bg-gradient-to-r from-builder-yield/10 to-transparent"}`}>
+            <div className="flex items-center gap-2.5 mb-3">
+              <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${isBrandProducts ? "bg-builder-brand/15" : isBuildAuthority ? "bg-builder-bridge/15" : "bg-builder-yield/15"}`}>
+                <TrendingUp className={`h-4.5 w-4.5 ${catAccentText}`} />
               </div>
-              <span className="text-xs font-black text-secondary uppercase tracking-[0.15em]">Estimated Revenue</span>
+              <span className={`text-xs font-black uppercase tracking-[0.15em] ${catAccentText}`}>Estimated Revenue</span>
             </div>
-            <p className="text-2xl font-heading font-bold text-foreground tracking-tight">
-              {isBrandProducts ? "$5,520 – $15,480" : isBuildAuthority ? "$13,500 – $39,480" : "$68,400 – $215,520"}<span className="text-sm font-normal text-muted-foreground ml-1">/yr</span>
+            <p className={`text-3xl font-heading font-black tracking-tight ${catAccentText}`}>
+              {isBrandProducts ? "$5,520 – $15,480" : isBuildAuthority ? "$13,500 – $39,480" : "$68,400 – $215,520"}<span className="text-sm font-normal text-foreground/50 ml-1.5">/yr</span>
             </p>
           </div>
-          <div className="rounded-2xl border border-accent/20 bg-accent/[0.04] p-5">
+          <div className={`rounded-2xl border-2 p-5 ${isBrandProducts ? "border-builder-brand/15 bg-builder-brand/[0.04]" : isBuildAuthority ? "border-builder-bridge/15 bg-builder-bridge/[0.04]" : "border-builder-yield/15 bg-builder-yield/[0.04]"}`}>
             <p className="text-sm text-foreground/80 leading-relaxed">
-              <strong className="text-foreground">💡 Tip:</strong>{" "}
+              <strong className={`${catAccentText}`}>💡 Tip:</strong>{" "}
               {isBrandProducts
                 ? "You don't have to build all 9 at once. Abby recommends starting with products 1–3 (Website, Book Sales, Lead Magnets) and adding the rest as your audience grows."
                 : isBuildAuthority
