@@ -269,7 +269,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
             </p>
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Everything in Build Authority is designed to do one thing: <strong className="text-foreground">turn your book and brand into recognized expertise that attracts high-value opportunities.</strong> These 9 products fall into three groups — and the order matters.
+            Everything in Build Authority is designed to do one thing: <strong className="text-foreground">turn your book and brand into recognized expertise that attracts high-value opportunities.</strong> These 9 products fall into three groups, and the order matters.
           </p>
         </div>
       )}
