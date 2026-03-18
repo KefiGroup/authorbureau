@@ -170,7 +170,7 @@ export interface AdvisorContent {
 export const ADVISOR_CONTENT: Record<AbbyCategory, AdvisorContent> = {
   "revenue-streams": {
     heading: "Where should you start building?",
-    intro: "Based on the ABBY Framework, here's my recommended build order — start with the lowest-effort, highest-impact products first:",
+    intro: "Based on the ABBY Framework, here's my recommended build order. Start with the lowest-effort, highest-impact products first:",
     recommendations: [
       { label: "Workbook", reason: "Your fastest win. AI generates it directly from your manuscript — exercises, reflection prompts, and action plans. Most authors finish in under 30 minutes.", priceRange: "$4.99 – $9.99", difficulty: "Easy", nodeId: "workbooks" },
       { label: "Home Study Course", reason: "A structured self-paced program with daily schedules. Great lead magnet or entry-level product.", priceRange: "$27 – $47", difficulty: "Medium", nodeId: "home-study" },
