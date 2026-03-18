@@ -9,7 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, RefreshCw, BookOpen, Globe, ImageIcon, Search, Upload, Pencil } from "lucide-react";
+import { Loader2, RefreshCw, BookOpen, Globe, ImageIcon, Search, Upload, Pencil, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
 interface DirectoryAuthor {
@@ -72,6 +73,8 @@ export default function AuthorsTab() {
   const [editingAuthor, setEditingAuthor] = useState<DirectoryAuthor | null>(null);
   const [editForm, setEditForm] = useState<Record<string, any>>({});
   const [editSaving, setEditSaving] = useState(false);
+  const [deletingAuthor, setDeletingAuthor] = useState<DirectoryAuthor | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -158,6 +161,20 @@ export default function AuthorsTab() {
     setEditSaving(false);
   };
 
+  const deleteAuthor = async () => {
+    if (!deletingAuthor) return;
+    setDeleting(true);
+    try {
+      await adminDataFetch("delete-author", { userId: deletingAuthor.user_id });
+      setAuthors((prev) => prev.filter((a) => a.user_id !== deletingAuthor.user_id));
+      toast({ title: `Author "${deletingAuthor.pen_name || 'Unnamed'}" deleted` });
+      setDeletingAuthor(null);
+    } catch (err: any) {
+      toast({ title: err.message || "Delete failed", variant: "destructive" });
+    }
+    setDeleting(false);
+  };
+
   const filtered = useMemo(() => {
     let list = filterStatus === "all" ? authors : authors.filter((a) => a.directory_status === filterStatus);
     if (search) {
@@ -198,6 +215,25 @@ export default function AuthorsTab() {
   return (
     <div>
       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deletingAuthor} onOpenChange={() => { if (!deleting) setDeletingAuthor(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Author</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete <strong>{deletingAuthor?.pen_name || "this author"}</strong> ({deletingAuthor?.author_slug || "no slug"}) and all their books, products, and data. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={deleteAuthor} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Delete Permanently
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Photo upload dialog */}
       <Dialog open={!!uploadingPhotoFor && !uploading} onOpenChange={() => setUploadingPhotoFor(null)}>
@@ -394,6 +430,9 @@ export default function AuthorsTab() {
                         <Upload className="h-3 w-3" /> Replace Photo
                       </button>
                     )}
+                    <button onClick={() => setDeletingAuthor(author)} className="flex items-center gap-1 text-destructive hover:underline">
+                      <Trash2 className="h-3 w-3" /> Delete
+                    </button>
                   </div>
                 </div>
 
