@@ -13,9 +13,12 @@ interface Props {
   hasPlan: boolean;
   planSummary?: PlanSummary;
   hasBook: boolean;
+  profileComplete?: boolean;
   onStartConsultation: () => void;
   onViewPlan?: () => void;
   onChatAbby?: () => void;
+  onSetupProfile?: () => void;
+  onAddBook?: () => void;
 }
 
 export default function MeetAbbySection({ hasPlan, planSummary, hasBook, onStartConsultation, onViewPlan, onChatAbby }: Props) {
