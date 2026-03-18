@@ -37,15 +37,15 @@ export default function MeetAbbySection({ hasPlan, planSummary, hasBook, onStart
             </h2>
             <div className="grid grid-cols-3 gap-3">
               <div className="rounded-xl bg-muted/50 border border-border p-3 text-center">
-                <p className="text-2xl font-bold text-foreground">{planSummary.streamsMapped}</p>
-                <p className="text-[10px] text-muted-foreground font-medium">of 28 Streams Mapped</p>
+                <p className="text-2xl font-bold text-foreground">28</p>
+                <p className="text-[10px] text-muted-foreground font-medium">Revenue Streams Available</p>
               </div>
               <div className="rounded-xl bg-muted/50 border border-border p-3 text-center">
                 <p className="text-2xl font-bold text-green-600">{planSummary.projectedRevenue}</p>
                 <p className="text-[10px] text-muted-foreground font-medium">Projected/yr</p>
               </div>
               <div className="rounded-xl bg-muted/50 border border-border p-3 text-center">
-                <p className="text-2xl font-bold text-foreground">{planSummary.productsBuilt}</p>
+                <p className="text-2xl font-bold text-foreground">{planSummary.productsBuilt} of 28</p>
                 <p className="text-[10px] text-muted-foreground font-medium">Products Built</p>
               </div>
             </div>
@@ -97,7 +97,7 @@ export default function MeetAbbySection({ hasPlan, planSummary, hasBook, onStart
               <BarChart3 className="h-6 w-6 text-blue-600 shrink-0" />
               <div>
                 <p className="font-bold text-lg text-foreground">28</p>
-                <p className="text-[10px] text-muted-foreground">Revenue Streams Mapped</p>
+                <p className="text-[10px] text-muted-foreground">Revenue Streams Available</p>
               </div>
             </div>
             <div className="rounded-xl bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-4 flex items-center gap-3 flex-1">
