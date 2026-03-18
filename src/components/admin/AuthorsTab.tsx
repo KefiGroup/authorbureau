@@ -73,6 +73,8 @@ export default function AuthorsTab() {
   const [editingAuthor, setEditingAuthor] = useState<DirectoryAuthor | null>(null);
   const [editForm, setEditForm] = useState<Record<string, any>>({});
   const [editSaving, setEditSaving] = useState(false);
+  const [deletingAuthor, setDeletingAuthor] = useState<DirectoryAuthor | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
