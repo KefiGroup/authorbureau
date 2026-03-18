@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
-const STAIRCASE_IMAGE = "/images/journey-staircase.png?v=6";
+import staircaseImg from "@/assets/abby_journey_staircase_v6.png";
+import frameworkImg from "@/assets/abby_journey_framework_v14_bby.png";
+
 const FLOW_DIAGRAM_IMAGE = "/images/journey-flow-diagram.png";
 const COMPARISON_IMAGE = "/images/journey-comparison.png";
 const THREE_PATHS_IMAGE = "/images/journey-three-paths.png";
@@ -50,26 +52,32 @@ const pricingCards = [
   {
     title: "The Side Hustler",
     price: "$49/mo",
-    streams: "8 revenue streams · 4–8 hrs/week",
+    tier: "BRAND",
+    streams: "9 Brand Products · 4–8 hrs/week",
     revenue: "Projected: $5,500–$15,500 in Year 1",
+    desc: "Create digital products from your book that sell on autopilot while you keep your day job.",
     border: "border-emerald-500",
     bg: "bg-emerald-500/10",
     badge: null,
   },
   {
-    title: "The Serious Business",
+    title: "The Serious Author",
     price: "$199/mo",
-    streams: "16 revenue streams · 15–25 hrs/week",
-    revenue: "Projected: $13,500–$39,500 in Year 1",
+    tier: "BRAND + BUILD",
+    streams: "18 revenue streams · 15–25 hrs/week",
+    revenue: "Projected: $19,000–$55,000 in Year 1",
+    desc: "Passive income from Brand Products plus active audience building with Build Authority tools.",
     border: "border-orange-500",
     bg: "bg-orange-500/10",
     badge: "MOST POPULAR",
   },
   {
-    title: "The Enterprise Builder",
+    title: "The Empire Builder",
     price: "$499/mo",
+    tier: "BRAND + BUILD + YIELD",
     streams: "All 28 revenue streams · Full-time (leveraged)",
     revenue: "Projected: $68,500–$215,500 in Year 1",
+    desc: "Your book is the entry point to a multi-million dollar business with premium Yield Revenue services.",
     border: "border-[hsl(45,50%,54%)]",
     bg: "bg-[hsl(45,50%,54%)]/10",
     badge: "BEST VALUE",
@@ -83,7 +91,7 @@ export default function HowItWorks() {
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
 
-      {/* Hero — dark navy */}
+      {/* Hero */}
       <section className="relative bg-[hsl(228,34%,16%)] text-white py-24 md:py-32 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-[hsl(228,34%,16%)] via-[hsl(228,34%,12%)] to-[hsl(228,34%,8%)]" />
         <div className="container relative z-10 text-center max-w-3xl mx-auto">
@@ -108,13 +116,13 @@ export default function HowItWorks() {
             className="mt-8"
           >
             <Button asChild size="lg" className="bg-[hsl(45,50%,54%)] hover:bg-[hsl(45,50%,46%)] text-[hsl(228,34%,16%)] font-bold text-base px-8 rounded-xl">
-              <Link to="/join">Get Started Free <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              <Link to="/join">Get Your Free Business Plan <ArrowRight className="ml-2 h-4 w-4" /></Link>
             </Button>
           </motion.div>
         </div>
       </section>
 
-      {/* The Journey */}
+      {/* The Journey — Staircase */}
       <section className="py-20 md:py-28 bg-[hsl(38,60%,96%)]">
         <div className="container max-w-5xl mx-auto">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-12">
@@ -128,7 +136,28 @@ export default function HowItWorks() {
           <motion.img
             initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }} transition={{ duration: 0.6 }}
-            src={STAIRCASE_IMAGE} alt="The Author Journey from FREE to YIELD"
+            src={staircaseImg} alt="The ABBY Journey: Analyse, Brand, Build, Yield"
+            className="w-full rounded-2xl shadow-xl"
+            loading="lazy"
+          />
+        </div>
+      </section>
+
+      {/* The B-B-Y Framework */}
+      <section className="py-20 md:py-28 bg-background">
+        <div className="container max-w-5xl mx-auto">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-12">
+            <motion.h2 variants={fadeUp} custom={0} className="font-heading text-3xl md:text-4xl font-bold text-foreground">
+              The Brand-Build-Yield Framework
+            </motion.h2>
+            <motion.p variants={fadeUp} custom={1} className="mt-4 text-muted-foreground max-w-2xl mx-auto text-lg leading-relaxed">
+              Your 28 revenue streams are organized into three strategic tiers. Each tier builds on the last: Brand your products, Build your authority, then Yield premium revenue.
+            </motion.p>
+          </motion.div>
+          <motion.img
+            initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }} transition={{ duration: 0.6 }}
+            src={frameworkImg} alt="The ABBY Framework: 28 Revenue Streams across Brand, Build, and Yield"
             className="w-full rounded-2xl shadow-xl"
             loading="lazy"
           />
@@ -136,7 +165,7 @@ export default function HowItWorks() {
       </section>
 
       {/* The Ecosystem */}
-      <section className="py-20 md:py-28 bg-background">
+      <section className="py-20 md:py-28 bg-[hsl(38,60%,96%)]">
         <div className="container max-w-5xl mx-auto">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-12">
             <motion.h2 variants={fadeUp} custom={0} className="font-heading text-3xl md:text-4xl font-bold text-foreground">
@@ -157,18 +186,21 @@ export default function HowItWorks() {
       </section>
 
       {/* Choose Your Path */}
-      <section className="py-20 md:py-28 bg-[hsl(38,60%,96%)]">
+      <section className="py-20 md:py-28 bg-background">
         <div className="container max-w-5xl mx-auto">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-12">
             <motion.h2 variants={fadeUp} custom={0} className="font-heading text-3xl md:text-4xl font-bold text-foreground">
               Choose Your Path
             </motion.h2>
+            <motion.p variants={fadeUp} custom={1} className="mt-4 text-muted-foreground max-w-xl mx-auto">
+              Whether you want a side income or a full empire, there's a path for you.
+            </motion.p>
           </motion.div>
 
           <motion.img
             initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }} transition={{ duration: 0.6 }}
-            src={THREE_PATHS_IMAGE} alt="Three paths for authors"
+            src={THREE_PATHS_IMAGE} alt="Three paths: Side Hustler, Serious Author, Empire Builder"
             className="w-full rounded-2xl shadow-xl mb-12"
             loading="lazy"
           />
@@ -186,10 +218,12 @@ export default function HowItWorks() {
                     {card.badge}
                   </span>
                 )}
-                <h3 className="font-heading text-xl font-bold text-foreground mt-2">{card.title}</h3>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{card.tier}</span>
+                <h3 className="font-heading text-xl font-bold text-foreground mt-1">{card.title}</h3>
                 <p className="text-2xl font-bold text-foreground mt-2">{card.price}</p>
                 <p className="text-sm text-muted-foreground mt-2">{card.streams}</p>
-                <p className="text-sm font-medium text-foreground mt-1">{card.revenue}</p>
+                <p className="text-xs text-muted-foreground mt-1">{card.desc}</p>
+                <p className="text-sm font-medium text-foreground mt-2">{card.revenue}</p>
                 <div className="mt-auto pt-6">
                   <Button asChild className="w-full bg-[hsl(45,50%,54%)] hover:bg-[hsl(45,50%,46%)] text-[hsl(228,34%,16%)] font-bold rounded-xl">
                     <Link to="/join">Start Building <ArrowRight className="ml-2 h-4 w-4" /></Link>
@@ -213,10 +247,10 @@ export default function HowItWorks() {
               The Frameworks Behind Abby
             </motion.h2>
             <motion.p variants={fadeUp} custom={1} className="text-muted-foreground mt-3 max-w-2xl mx-auto">
-              Every recommendation is built on proven methodology
+              Every recommendation is built on proven methodology.
             </motion.p>
             <motion.p variants={fadeUp} custom={2} className="text-sm text-muted-foreground mt-2 max-w-xl mx-auto">
-              Abby's recommendations are not AI guesswork — they are grounded in frameworks from McKinsey, Harvard, the International Coaching Federation, and the world's leading pricing and marketing strategists.
+              Abby's recommendations are not AI guesswork. They are grounded in frameworks from McKinsey, Harvard, the International Coaching Federation, and the world's leading pricing and marketing strategists.
             </motion.p>
           </motion.div>
 
@@ -312,7 +346,7 @@ export default function HowItWorks() {
             className="mt-8"
           >
             <Button asChild size="lg" className="bg-[hsl(45,50%,54%)] hover:bg-[hsl(45,50%,46%)] text-[hsl(228,34%,16%)] font-bold text-lg px-10 py-6 rounded-xl">
-              <Link to="/join">Get Started Free <ArrowRight className="ml-2 h-5 w-5" /></Link>
+              <Link to="/join">Get Your Free Business Plan <ArrowRight className="ml-2 h-5 w-5" /></Link>
             </Button>
           </motion.div>
           <motion.p
