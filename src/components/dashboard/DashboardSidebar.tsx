@@ -67,9 +67,7 @@ export default function DashboardSidebar({
   };
 
   // Collapse BUILD YOUR BUSINESS if no analysis and no products
-  const [businessExpanded, setBusinessExpanded] = useState(
-    hasAnalysis || bypassLocks || buildUnlocked > 0 || buildAuthorityUnlocked > 0 || yieldUnlocked > 0
-  );
+  const [businessExpanded, setBusinessExpanded] = useState(true);
 
   // HOME
   const homeItems: NavItem[] = [
