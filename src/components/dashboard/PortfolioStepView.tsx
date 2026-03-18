@@ -200,14 +200,24 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
   const primaryBookId = analyzedBooks?.[0]?.id || books[0]?.id || "";
 
   const isBrandProducts = categoryId === "revenue-streams";
+  const isBuildAuthority = categoryId === "marketing-channels";
 
-  // Sub-category intro text for Brand Products
+  // Sub-category intro text for Brand Products & Build Authority
   const SUB_INTRO: Record<string, { intro: string }> = {
     "Branding & Marketing": {
       intro: "Start here. Before you sell anything, people need to find you, trust you, and hear from you consistently. These six products build your author platform — the foundation that makes everything else work.",
     },
     "Digital Products": {
       intro: "Once your branding and marketing engine is running, these three products give your audience more ways to buy from you at higher price points.\n\nWhy this order? Workbooks are the lowest lift — you're repurposing what you already wrote. Home Study Courses require more structure but command higher prices. Special Editions only make sense once you've proven demand and a loyal readership.",
+    },
+    "Scale Your Content": {
+      intro: "Repackage what you've already created. Your book and brand products contain valuable knowledge. Now put that knowledge into formats that reach new audiences and command higher prices.\n\nWhy this order? Online Courses are the foundation — they prove your teaching ability and establish you as an authority. Audiobooks extend reach without additional content creation. Memberships monetize your audience's desire for ongoing access and community.",
+    },
+    "Grow Your Reach": {
+      intro: "Get in front of new audiences through live interaction and media channels. Your content and authority are established. Now amplify your visibility.\n\nWhy this order? Group Coaching proves you can deliver transformation to real people — it's the credibility builder. Podcast Tours amplify that credibility to new audiences. Media Outreach takes it to the mainstream level where you become a recognized authority in your field.",
+    },
+    "Monetize Your Network": {
+      intro: "Use your established audience and authority to create passive income and partnership revenue. You've built the platform; now leverage it.\n\nWhy this order? Affiliates are the easiest — you recommend existing products. Upsells require understanding your audience's buying psychology and funnel optimization. Revenue Sharing requires established authority and audience size to attract partners.",
     },
   };
 
@@ -220,7 +230,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
         </div>
         <div>
           <h1 className="font-heading text-2xl md:text-3xl font-bold">
-            {isBrandProducts ? "Your Products. Your Brand. Built From Your Book." : category.label}
+            {isBrandProducts ? "Your Products. Your Brand. Built From Your Book." : isBuildAuthority ? "Your Audience. Your Authority. Built From Your Brand." : category.label}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {category.subtitle}
@@ -236,7 +246,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
         </div>
       </div>
 
-      {/* Brand Products intro paragraph */}
+      {/* Category intro paragraph */}
       {isBrandProducts && (
         <div className="rounded-xl border border-border bg-muted/30 p-5">
           <p className="text-sm text-muted-foreground leading-relaxed">
@@ -244,16 +254,35 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
           </p>
         </div>
       )}
+      {isBuildAuthority && (
+        <div className="rounded-xl border border-border bg-muted/30 p-5 space-y-3">
+          <div>
+            <p className="text-xs font-bold text-violet-600 uppercase tracking-wider mb-1">The Build Authority Progression</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              <strong className="text-foreground">Brand Products</strong> built your foundation — website, book sales, email list, audience.
+            </p>
+            <p className="text-sm text-muted-foreground leading-relaxed mt-1">
+              <strong className="text-foreground">Build Authority</strong> scales that foundation — courses, coaching, media visibility, and partnership income.
+            </p>
+            <p className="text-sm text-muted-foreground leading-relaxed mt-1">
+              Once you've mastered Build Authority, you're ready for <strong className="text-foreground">Y · Yield Revenue</strong> — where you command premium prices for high-ticket services like consulting, keynotes, and masterminds.
+            </p>
+          </div>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Everything in Build Authority is designed to do one thing: <strong className="text-foreground">turn your book and brand into recognized expertise that attracts high-value opportunities.</strong> These 9 products fall into three groups — and the order matters.
+          </p>
+        </div>
+      )}
 
       {/* Product Cards Grid – grouped by sub-category */}
-      {(categoryId === "revenue-streams" || categoryId === "authority-builders") && subCategories.length > 1
+      {(categoryId === "revenue-streams" || categoryId === "marketing-channels" || categoryId === "authority-builders") && subCategories.length > 1
         ? subCategories.map((group) => (
             <div key={group.name} className="space-y-4">
               <div>
                 <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-1">
                   {group.name}
                 </h3>
-                {isBrandProducts && SUB_INTRO[group.name] && (
+                {(isBrandProducts || isBuildAuthority) && SUB_INTRO[group.name] && (
                   <p className="text-sm text-muted-foreground leading-relaxed mt-3 max-w-3xl whitespace-pre-line">
                     {SUB_INTRO[group.name].intro}
                   </p>
@@ -321,8 +350,8 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
         )
       }
 
-      {/* Brand Products: Revenue Estimate + Tip */}
-      {isBrandProducts && (
+      {/* Revenue Estimate + Tip */}
+      {(isBrandProducts || isBuildAuthority) && (
         <>
           <div className="rounded-xl border border-secondary/20 bg-secondary/5 p-4">
             <div className="flex items-center gap-2 mb-1">
@@ -330,12 +359,16 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
               <span className="text-xs font-bold text-secondary uppercase tracking-wider">Estimated Revenue</span>
             </div>
             <p className="text-lg font-bold text-foreground">
-              $5,520 – $15,480<span className="text-xs font-normal text-muted-foreground">/yr</span>
+              {isBrandProducts ? "$5,520 – $15,480" : "$13,500 – $39,480"}<span className="text-xs font-normal text-muted-foreground">/yr</span>
             </p>
           </div>
           <div className="rounded-xl border border-accent/20 bg-accent/5 p-4">
             <p className="text-sm text-muted-foreground leading-relaxed">
-              <strong className="text-foreground">💡 Tip:</strong> You don't have to build all 9 at once. Abby recommends starting with products 1–3 (Website, Book Sales, Lead Magnets) and adding the rest as your audience grows.
+              <strong className="text-foreground">💡 Tip:</strong>{" "}
+              {isBrandProducts
+                ? "You don't have to build all 9 at once. Abby recommends starting with products 1–3 (Website, Book Sales, Lead Magnets) and adding the rest as your audience grows."
+                : "You don't need to launch all 9 at once. Abby recommends starting with products 1–3 (Online Courses, Audiobook, Memberships) and adding Groups 2–3 as your audience grows and your authority solidifies."
+              }
             </p>
           </div>
         </>
