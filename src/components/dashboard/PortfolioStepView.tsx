@@ -200,14 +200,24 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
   const primaryBookId = analyzedBooks?.[0]?.id || books[0]?.id || "";
 
   const isBrandProducts = categoryId === "revenue-streams";
+  const isBuildAuthority = categoryId === "marketing-channels";
 
-  // Sub-category intro text for Brand Products
+  // Sub-category intro text for Brand Products & Build Authority
   const SUB_INTRO: Record<string, { intro: string }> = {
     "Branding & Marketing": {
       intro: "Start here. Before you sell anything, people need to find you, trust you, and hear from you consistently. These six products build your author platform — the foundation that makes everything else work.",
     },
     "Digital Products": {
       intro: "Once your branding and marketing engine is running, these three products give your audience more ways to buy from you at higher price points.\n\nWhy this order? Workbooks are the lowest lift — you're repurposing what you already wrote. Home Study Courses require more structure but command higher prices. Special Editions only make sense once you've proven demand and a loyal readership.",
+    },
+    "Scale Your Content": {
+      intro: "Repackage what you've already created. Your book and brand products contain valuable knowledge. Now put that knowledge into formats that reach new audiences and command higher prices.\n\nWhy this order? Online Courses are the foundation — they prove your teaching ability and establish you as an authority. Audiobooks extend reach without additional content creation. Memberships monetize your audience's desire for ongoing access and community.",
+    },
+    "Grow Your Reach": {
+      intro: "Get in front of new audiences through live interaction and media channels. Your content and authority are established. Now amplify your visibility.\n\nWhy this order? Group Coaching proves you can deliver transformation to real people — it's the credibility builder. Podcast Tours amplify that credibility to new audiences. Media Outreach takes it to the mainstream level where you become a recognized authority in your field.",
+    },
+    "Monetize Your Network": {
+      intro: "Use your established audience and authority to create passive income and partnership revenue. You've built the platform; now leverage it.\n\nWhy this order? Affiliates are the easiest — you recommend existing products. Upsells require understanding your audience's buying psychology and funnel optimization. Revenue Sharing requires established authority and audience size to attract partners.",
     },
   };
 
