@@ -416,6 +416,30 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
 
   return (
     <div className="space-y-6">
+      {/* Contextual "Start Here" banner — only when arriving via Start Building button */}
+      {showStartBanner && !bannerDismissed && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative rounded-xl border-2 border-secondary/40 bg-secondary/10 p-4 pr-10"
+        >
+          <button
+            onClick={() => {
+              setBannerDismissed(true);
+              searchParams.delete("from");
+              setSearchParams(searchParams, { replace: true });
+            }}
+            className="absolute top-3 right-3 text-secondary/60 hover:text-secondary transition-colors"
+            aria-label="Dismiss"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          <p className="text-sm font-medium text-foreground leading-relaxed">
+            <Sparkles className="h-4 w-4 inline mr-1.5 text-secondary" />
+            <strong>Abby recommends starting here: Website</strong> — your digital home base. It takes ~1 hour and unlocks everything else. Build it first.
+          </p>
+        </motion.div>
+      )}
       {/* Abby's Business Snapshot */}
       <motion.div
         className="rounded-2xl border-2 border-secondary/30 bg-gradient-to-r from-secondary/5 via-secondary/10 to-secondary/5 p-6"
