@@ -63,15 +63,17 @@ export default function JourneyMapCTA({ currentJourneyStep, onAction }: Props) {
           <p className="font-heading text-xl md:text-2xl font-bold text-gray-900 italic">
             "Your book is not the business. Your book is the <span className="text-amber-600">HOOK</span>."
           </p>
-          <div className="flex flex-wrap justify-center gap-3">
+          <div className="flex flex-col items-center gap-2">
             <Button onClick={() => onAction(cta.primary.action)} size="lg" className="bg-amber-600 hover:bg-amber-700 text-white shadow-lg">
               <Sparkles className="h-4 w-4 mr-2" />
               {cta.primary.label}
             </Button>
-            <Button onClick={() => onAction(cta.secondary.action)} size="lg" variant="outline" className="border-amber-300 text-amber-800 hover:bg-amber-50">
-              <Globe className="h-4 w-4 mr-2" />
-              {cta.secondary.label}
-            </Button>
+            <button
+              onClick={() => onAction(cta.secondary.action)}
+              className="text-sm text-amber-700 hover:text-amber-900 hover:underline transition-colors"
+            >
+              or {cta.secondary.label}
+            </button>
           </div>
         </div>
       </div>

@@ -113,13 +113,13 @@ export default function MeetAbbySection({ hasPlan, planSummary, hasBook, onStart
             <div className="space-y-2">
               <Button onClick={onStartConsultation} size="lg" className="w-fit bg-amber-600 hover:bg-amber-700 text-white shadow-lg">
                 <Sparkles className="h-4 w-4 mr-2" />
-                Start Your Free Consultation with Abby →
+                Analyze Your Book with Abby →
               </Button>
               <p className="text-[10px] text-muted-foreground">Takes 5 minutes. Your business plan is saved forever.</p>
             </div>
           ) : (
             <p className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-3 border border-border">
-              📘 Set up your microsite and add a book first — then Abby can analyze it and build your business plan.
+              📘 Set up your microsite and add a book first, then Abby can analyze it and build your business plan.
             </p>
           )}
         </div>
