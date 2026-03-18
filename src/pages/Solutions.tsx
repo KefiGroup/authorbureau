@@ -23,7 +23,7 @@ const GENRE_CONFIG: Record<string, {
   "self-help": {
     title: "For Self-Help Authors",
     description: "Transform your self-help book into online courses, coaching programs, and digital products that generate passive income.",
-    heroSubtitle: "Your self-help book has the power to change lives — and build a thriving business.",
+    heroSubtitle: "Your self-help book has the power to change lives and build a thriving business.",
     painPoints: ["Low book royalties despite strong readership", "Readers want more but you have nothing to sell them", "No system to monetize your expertise beyond the book"],
     topProducts: ["Online Courses ($97-$497)", "1-on-1 Coaching ($150-$500/session)", "Companion Workbooks ($9.99-$24.99)", "Group Coaching Programs ($297-$997)"],
     cta: "Start building your self-help empire",
@@ -32,7 +32,7 @@ const GENRE_CONFIG: Record<string, {
   "business": {
     title: "For Business Authors",
     description: "Turn your business book into corporate training, consulting packages, and premium speaking engagements.",
-    heroSubtitle: "Your business book is the ultimate authority builder — let's turn it into revenue.",
+    heroSubtitle: "Your business book is the ultimate authority builder. Let's turn it into revenue.",
     painPoints: ["Companies want training but you don't have a program", "Your book proves expertise but you're not monetizing it", "Competitors are charging $10K+ for what your book teaches for $20"],
     topProducts: ["Corporate Training ($5,000-$25,000/day)", "Big Ticket Consulting ($2,500-$10,000)", "Keynote Speaking ($5,000-$15,000)", "Certification Programs ($2,500-$7,500)"],
     cta: "Build your business consulting empire",
@@ -50,7 +50,7 @@ const GENRE_CONFIG: Record<string, {
   "memoir": {
     title: "For Memoir Authors",
     description: "Your life story is your brand. Turn it into speaking engagements, retreats, and a thriving community.",
-    heroSubtitle: "Your story isn't just a book — it's a movement waiting to happen.",
+    heroSubtitle: "Your story isn't just a book. It's a movement waiting to happen.",
     painPoints: ["Your powerful story deserves a bigger platform", "Readers connect deeply but you can't sustain the conversation", "Speaking opportunities exist but you don't have materials"],
     topProducts: ["Keynote Speaking ($2,500-$15,000)", "Retreats & Workshops ($1,500-$5,000/person)", "Podcast Series (Brand Building)", "Social Media Content Calendar"],
     cta: "Turn your story into a speaking career",
@@ -68,7 +68,7 @@ const GENRE_CONFIG: Record<string, {
   "cooking": {
     title: "For Cookbook Authors",
     description: "Turn your cookbook into meal planning courses, video tutorials, and a cooking community.",
-    heroSubtitle: "Your recipes are just the beginning — build a food empire.",
+    heroSubtitle: "Your recipes are just the beginning. Build a food empire.",
     painPoints: ["Cookbook royalties barely cover the cost of ingredients", "Readers want video demonstrations and meal plans", "Competitors charge $99+ for what your book teaches"],
     topProducts: ["Video Cooking Courses ($49-$197)", "Meal Plan Subscriptions ($9-$27/mo)", "Cooking Retreats ($500-$2,000)", "Companion Workbooks ($9.99-$14.99)"],
     cta: "Cook up a profitable business",
@@ -77,10 +77,10 @@ const GENRE_CONFIG: Record<string, {
   "parenting": {
     title: "For Parenting Authors",
     description: "Transform your parenting book into courses, coaching sessions, and a supportive community for parents.",
-    heroSubtitle: "Parents need ongoing support — give them more than a book.",
+    heroSubtitle: "Parents need ongoing support. Give them more than a book.",
     painPoints: ["Parents want community and ongoing guidance", "Your expertise could help thousands more through courses", "Coaching in this niche commands premium rates"],
     topProducts: ["Online Parenting Courses ($47-$197)", "Group Coaching Cohorts ($297-$697)", "Monthly Community ($9-$47/mo)", "Home Study Programs ($27-$97)"],
-    cta: "Help more families — and build a business",
+    cta: "Help more families and build a business",
     color: "sky",
   },
   "spirituality": {
@@ -114,7 +114,7 @@ export default function Solutions() {
   const [loadingMarket, setLoadingMarket] = useState(false);
 
   useDocumentMeta({
-    title: `${config.title} | Authors Bureau — Turn Your Book Into a Business`,
+    title: `${config.title} | Authors Bureau: Turn Your Book Into a Business`,
     description: config.description,
   });
 
@@ -208,7 +208,7 @@ export default function Solutions() {
               <h2 className="font-heading text-2xl font-bold">Live Market Intelligence</h2>
             </div>
             <p className="text-muted-foreground text-center mb-8 text-sm">
-              Real-time data from Amazon, Gumroad, and market research — updated for {normalizedGenre.replace(/-/g, " ")} authors.
+              Real-time data from Amazon, Gumroad, and market research, updated for {normalizedGenre.replace(/-/g, " ")} authors.
             </p>
 
             {loadingMarket ? (

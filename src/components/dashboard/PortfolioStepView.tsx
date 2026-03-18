@@ -205,22 +205,22 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
   // Sub-category intro text for Brand Products & Build Authority
   const SUB_INTRO: Record<string, { intro: string }> = {
     "Branding & Marketing": {
-      intro: "Start here. Before you sell anything, people need to find you, trust you, and hear from you consistently. These six products build your author platform — the foundation that makes everything else work.",
+      intro: "Start here. Before you sell anything, people need to find you, trust you, and hear from you consistently. These six products build your author platform, the foundation that makes everything else work.",
     },
     "Digital Products": {
-      intro: "Once your branding and marketing engine is running, these three products give your audience more ways to buy from you at higher price points.\n\nWhy this order? Workbooks are the lowest lift — you're repurposing what you already wrote. Home Study Courses require more structure but command higher prices. Special Editions only make sense once you've proven demand and a loyal readership.",
+      intro: "Once your branding and marketing engine is running, these three products give your audience more ways to buy from you at higher price points.\n\nWhy this order? Workbooks are the lowest lift because you're repurposing what you already wrote. Home Study Courses require more structure but command higher prices. Special Editions only make sense once you've proven demand and a loyal readership.",
     },
     "Scale Your Content": {
-      intro: "Repackage what you've already created. Your book and brand products contain valuable knowledge. Now put that knowledge into formats that reach new audiences and command higher prices.\n\nWhy this order? Online Courses are the foundation — they prove your teaching ability and establish you as an authority. Audiobooks extend reach without additional content creation. Memberships monetize your audience's desire for ongoing access and community.",
+      intro: "Repackage what you've already created. Your book and brand products contain valuable knowledge. Now put that knowledge into formats that reach new audiences and command higher prices.\n\nWhy this order? Online Courses are the foundation. They prove your teaching ability and establish you as an authority. Audiobooks extend reach without additional content creation. Memberships monetize your audience's desire for ongoing access and community.",
     },
     "Grow Your Reach": {
-      intro: "Get in front of new audiences through live interaction and media channels. Your content and authority are established. Now amplify your visibility.\n\nWhy this order? Group Coaching proves you can deliver transformation to real people — it's the credibility builder. Podcast Tours amplify that credibility to new audiences. Media Outreach takes it to the mainstream level where you become a recognized authority in your field.",
+      intro: "Get in front of new audiences through live interaction and media channels. Your content and authority are established. Now amplify your visibility.\n\nWhy this order? Group Coaching proves you can deliver transformation to real people. It's the credibility builder. Podcast Tours amplify that credibility to new audiences. Media Outreach takes it to the mainstream level where you become a recognized authority in your field.",
     },
     "Monetize Your Network": {
-      intro: "Use your established audience and authority to create passive income and partnership revenue. You've built the platform; now leverage it.\n\nWhy this order? Affiliates are the easiest — you recommend existing products. Upsells require understanding your audience's buying psychology and funnel optimization. Revenue Sharing requires established authority and audience size to attract partners.",
+      intro: "Use your established audience and authority to create passive income and partnership revenue. You've built the platform; now leverage it.\n\nWhy this order? Affiliates are the easiest: you recommend existing products. Upsells require understanding your audience's buying psychology and funnel optimization. Revenue Sharing requires established authority and audience size to attract partners.",
     },
     "High-Ticket Services": {
-      intro: "These are premium offerings that leverage your expertise, audience, and authority. The order you pursue them depends on your strengths, your audience's needs, and market demand — not a prerequisite chain.",
+      intro: "These are premium offerings that leverage your expertise, audience, and authority. The order you pursue them depends on your strengths, your audience's needs, and market demand, not a prerequisite chain.",
     },
   };
 
@@ -253,7 +253,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
       {isBrandProducts && (
         <div className="rounded-xl border border-border bg-muted/30 p-5">
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Everything in Brand Products is designed to do one thing: <strong className="text-foreground">turn your book into a recognizable brand that sells while you sleep.</strong> These 9 products fall into two groups — and the order matters.
+            Everything in Brand Products is designed to do one thing: <strong className="text-foreground">turn your book into a recognizable brand that sells while you sleep.</strong> These 9 products fall into two groups, and the order matters.
           </p>
         </div>
       )}
@@ -262,14 +262,14 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
           <div>
             <p className="text-xs font-bold text-violet-600 uppercase tracking-wider mb-1">The Build Authority Progression</p>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              <strong className="text-foreground">Brand Products</strong> built your foundation — website, book sales, email list, audience.
+              <strong className="text-foreground">Brand Products</strong> built your foundation: website, book sales, email list, audience.
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed mt-1">
-              <strong className="text-foreground">Build Authority</strong> scales that foundation — courses, coaching, media visibility, and partnership income.
+              <strong className="text-foreground">Build Authority</strong> scales that foundation: courses, coaching, media visibility, and partnership income.
             </p>
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Everything in Build Authority is designed to do one thing: <strong className="text-foreground">turn your book and brand into recognized expertise that attracts high-value opportunities.</strong> These 9 products fall into three groups — and the order matters.
+            Everything in Build Authority is designed to do one thing: <strong className="text-foreground">turn your book and brand into recognized expertise that attracts high-value opportunities.</strong> These 9 products fall into three groups, and the order matters.
           </p>
         </div>
       )}
@@ -284,15 +284,15 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
               Unlike Brand Products (which build on each other) or Build Authority (which amplify your reach), Yield Revenue services all draw from the same well: your established authority and audience. You don't need to do coaching before consulting, or keynotes before masterminds. Instead, you pursue the services that align with:
             </p>
             <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
-              <li><strong className="text-foreground">Your strengths</strong> — What do you enjoy most? What are you best at?</li>
-              <li><strong className="text-foreground">Your audience's needs</strong> — What will they pay for?</li>
-              <li><strong className="text-foreground">Market demand</strong> — What opportunities are knocking on your door?</li>
+               <li><strong className="text-foreground">Your strengths:</strong> What do you enjoy most? What are you best at?</li>
+               <li><strong className="text-foreground">Your audience's needs:</strong> What will they pay for?</li>
+               <li><strong className="text-foreground">Market demand:</strong> What opportunities are knocking on your door?</li>
             </ul>
           </div>
           <div>
             <p className="text-xs font-bold text-sky-600 uppercase tracking-wider mb-2">The Full Journey</p>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              <strong className="text-foreground">Brand Products</strong> built your foundation and audience. <strong className="text-foreground">Build Authority</strong> scaled your reach and credibility. <strong className="text-foreground">Yield Revenue</strong> is where you monetize your expertise at the highest level — with premium pricing, selective clients, and maximum impact.
+              <strong className="text-foreground">Brand Products</strong> built your foundation and audience. <strong className="text-foreground">Build Authority</strong> scaled your reach and credibility. <strong className="text-foreground">Yield Revenue</strong> is where you monetize your expertise at the highest level, with premium pricing, selective clients, and maximum impact.
             </p>
           </div>
         </div>

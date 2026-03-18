@@ -66,7 +66,7 @@ export type DashboardSection =
 
 const comingSoonSections: Record<string, { title: string; description: string; icon: typeof Rocket }> = {
   crm: { title: "CRM & Contacts", description: "Your unified customer relationship management hub.", icon: Users },
-  marketing: { title: "Marketing Package", description: "AI-driven marketing suite — email flows, social media, affiliate dashboard.", icon: Rocket },
+  marketing: { title: "Marketing Package", description: "AI-driven marketing suite: email flows, social media, affiliate dashboard.", icon: Rocket },
 };
 
 function ComingSoonPlaceholder({ sectionId }: { sectionId: string }) {
@@ -388,7 +388,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         }
         return <SectionGatePage
           sectionTitle="B · Build Channels"
-          sectionSubtitle="Coming Soon — Marketing channels & audience connections."
+          sectionSubtitle="Coming Soon: Marketing channels & audience connections."
           gateMessage="Build Channels are currently under development. We're building powerful tools for podcasts, webinars, audiobooks, and more. Check back soon!"
           productNames={["Audiobook", "Podcast Tour", "Webinars", "Lead Magnet Funnel", "Media Outreach", "Affiliates", "Upsells / Downsells", "Revenue Sharing"]}
           onAnalyze={() => setActiveSection("revenue-streams")}
@@ -399,7 +399,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         }
         return <SectionGatePage
           sectionTitle="Y · Yield Revenue"
-          sectionSubtitle="Coming Soon — Premium revenue streams & monetization."
+          sectionSubtitle="Coming Soon: Premium revenue streams & monetization."
           gateMessage="Yield Revenue builders are currently under development. We're crafting premium tools for coaching, speaking, masterminds, and more. Check back soon!"
           productNames={["1-on-1 Coaching", "Group Coaching", "Memberships", "Big Ticket Consulting", "Keynotes", "Training Programs", "Masterminds", "Retreats"]}
           onAnalyze={() => setActiveSection("revenue-streams")}

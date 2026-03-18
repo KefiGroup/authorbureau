@@ -62,7 +62,7 @@ export const ABBY_CATEGORIES: Record<AbbyCategory, AbbyCategoryConfig> = {
     nodes: [
       // Branding & Marketing (6)
       { id: "microsite", label: "Website", icon: BookOpen, section: "microsite-manager", navigateTo: "microsite-manager", description: "Your digital home base. Every other product points back here. Without a website, your book sales, lead magnets, and email list have nowhere to live. Build this first.", status: "available", subCategory: "Branding & Marketing", sequence: 1 },
-      { id: "book-sales-events", label: "Book Sales", icon: BookOpen, section: "book-sales", navigateTo: "book-sales", description: "Your book is already written. Now optimize how it sells — pricing strategy, Amazon listing, distribution channels, and sales page copy. This is your primary revenue engine at the Brand level.", status: "available", subCategory: "Branding & Marketing", sequence: 2 },
+      { id: "book-sales-events", label: "Book Sales", icon: BookOpen, section: "book-sales", navigateTo: "book-sales", description: "Your book is already written. Now optimize how it sells: pricing strategy, Amazon listing, distribution channels, and sales page copy. This is your primary revenue engine at the Brand level.", status: "available", subCategory: "Branding & Marketing", sequence: 2 },
       { id: "lead-magnet", label: "Lead Magnets", icon: FileText, navigateTo: "lead-magnet", description: "Free resources (checklists, guides, sample chapters) that turn casual readers into subscribers. You need these before you can build an email list or run webinars.", status: "coming-soon", subCategory: "Branding & Marketing", sequence: 3 },
       { id: "social-media", label: "Social Media", icon: Share2, section: "social-media", navigateTo: "social-media", description: "Consistent content that drives traffic to your website and lead magnets. Now that you have something to offer visitors, it's time to attract them.", status: "available", subCategory: "Branding & Marketing", sequence: 4 },
       { id: "email-marketing", label: "Email Marketing", icon: Megaphone, section: "email-marketing", navigateTo: "email-marketing", description: "Your most valuable asset. Social media gets attention; email keeps it. Once people opt in through your lead magnets, nurture them with automated sequences that build trust and drive sales.", status: "available", subCategory: "Branding & Marketing", sequence: 5 },
@@ -95,12 +95,12 @@ export const ABBY_CATEGORIES: Record<AbbyCategory, AbbyCategoryConfig> = {
       { id: "memberships", label: "Memberships", icon: CreditCard, section: "memberships", navigateTo: "memberships", description: "Recurring monthly or annual access to your content library (courses, audiobooks, exclusive resources, community). Once you have courses and audiobooks, bundle them into a membership that generates predictable recurring revenue.", status: "coming-soon", subCategory: "Scale Your Content", sequence: 3, tierRequired: "Pro" },
       // Group 2: Grow Your Reach (3)
       { id: "group-coaching", label: "Group Coaching", icon: Users, section: "group-coaching", navigateTo: "group-coaching", description: "Small group coaching programs (8–20 people) teaching your methodology live. This builds on your course material but adds personal interaction, accountability, and higher price points ($1,500–$5,000 per person).", status: "coming-soon", subCategory: "Grow Your Reach", sequence: 4, tierRequired: "Pro" },
-      { id: "podcast-guest", label: "Podcast Tour", icon: Podcast, section: "podcast", navigateTo: "podcast", description: "Get interviewed on podcasts in your niche. You provide the expertise; podcast hosts provide the audience. This is the \"guest expert\" version of authority-building — low effort, high visibility.", status: "coming-soon", subCategory: "Grow Your Reach", sequence: 5, tierRequired: "Pro" },
-      { id: "in-house-speaker", label: "Media Outreach", icon: Presentation, description: "Press kit, media pitches, speaker profile, and outreach to TV, magazines, podcasts, and major publications. The \"go bigger\" version of podcast tours. You're positioning yourself as the go-to expert for journalists and producers.", status: "planned", subCategory: "Grow Your Reach", sequence: 6, tierRequired: "Pro" },
+      { id: "podcast-guest", label: "Podcast Tour", icon: Podcast, section: "podcast", navigateTo: "podcast", description: "Get interviewed on podcasts in your niche. You provide the expertise; podcast hosts provide the audience. Low effort, high visibility.", status: "coming-soon", subCategory: "Grow Your Reach", sequence: 5, tierRequired: "Pro" },
+      { id: "in-house-speaker", label: "Media Outreach", icon: Presentation, description: "Press kit, media pitches, speaker profile, and outreach to TV, magazines, podcasts, and major publications. You're positioning yourself as the go-to expert for journalists and producers.", status: "planned", subCategory: "Grow Your Reach", sequence: 6, tierRequired: "Pro" },
       // Group 3: Monetize Your Network (3)
       { id: "affiliates", label: "Affiliates", icon: Link2, description: "Recommend products and services aligned with your audience's needs and earn commissions. Once you have an established audience from Groups 1–2, you can monetize through partnerships without creating new products.", status: "planned", subCategory: "Monetize Your Network", sequence: 7, tierRequired: "Pro" },
       { id: "upsells", label: "Upsells / Downsells", icon: TrendingUp, description: "Conversion sequences and funnel optimization. Maximize revenue from your existing audience by offering the right product at the right price point at the right time.", status: "planned", subCategory: "Monetize Your Network", sequence: 8, tierRequired: "Pro" },
-      { id: "revenue-sharing", label: "Revenue Sharing", icon: Handshake, description: "Partnership matching and revenue-sharing contracts with complementary businesses. The most advanced monetization — requires proven audience reach and authority to attract partners willing to share revenue.", status: "planned", subCategory: "Monetize Your Network", sequence: 9, tierRequired: "Pro" },
+      { id: "revenue-sharing", label: "Revenue Sharing", icon: Handshake, description: "Partnership matching and revenue-sharing contracts with complementary businesses. The most advanced monetization, requiring proven audience reach and authority to attract partners willing to share revenue.", status: "planned", subCategory: "Monetize Your Network", sequence: 9, tierRequired: "Pro" },
     ],
   },
 
@@ -170,9 +170,9 @@ export interface AdvisorContent {
 export const ADVISOR_CONTENT: Record<AbbyCategory, AdvisorContent> = {
   "revenue-streams": {
     heading: "Where should you start building?",
-    intro: "Based on the ABBY Framework, here's my recommended build order — start with the lowest-effort, highest-impact products first:",
+    intro: "Based on the ABBY Framework, here's my recommended build order. Start with the lowest-effort, highest-impact products first:",
     recommendations: [
-      { label: "Workbook", reason: "Your fastest win. AI generates it directly from your manuscript — exercises, reflection prompts, and action plans. Most authors finish in under 30 minutes.", priceRange: "$4.99 – $9.99", difficulty: "Easy", nodeId: "workbooks" },
+      { label: "Workbook", reason: "Your fastest win. AI generates it directly from your manuscript: exercises, reflection prompts, and action plans. Most authors finish in under 30 minutes.", priceRange: "$4.99 – $9.99", difficulty: "Easy", nodeId: "workbooks" },
       { label: "Home Study Course", reason: "A structured self-paced program with daily schedules. Great lead magnet or entry-level product.", priceRange: "$27 – $47", difficulty: "Medium", nodeId: "home-study" },
       { label: "Book Sales", reason: "QR code order pages and direct sales funnels. Quick to set up, immediate revenue from your existing book.", priceRange: "$15 – $30/book", difficulty: "Easy", nodeId: "book-sales-events" },
       { label: "Social Media (90-day Calendar)", reason: "AI generates a full content calendar from your book. Start building your audience while creating digital products.", difficulty: "Easy", nodeId: "social-media" },
@@ -193,7 +193,7 @@ export const ADVISOR_CONTENT: Record<AbbyCategory, AdvisorContent> = {
   },
   "authority-builders": {
     heading: "When should you pursue premium revenue?",
-    intro: "These are your highest-value plays — coaching, speaking, and premium offers that monetize your authority:",
+    intro: "These are your highest-value plays: coaching, speaking, and premium offers that monetize your authority.",
     recommendations: [
       { label: "1-on-1 Coaching", reason: "Premium service with the highest margins. Use your book's frameworks as session outlines.", priceRange: "$150 – $500/session", difficulty: "Easy", nodeId: "coaching-1on1" },
       { label: "Group Coaching", reason: "Scale your coaching with 8-week group programs. Higher revenue per hour than 1-on-1.", priceRange: "$97 – $297/person", difficulty: "Medium", nodeId: "group-coaching" },
@@ -203,7 +203,7 @@ export const ADVISOR_CONTENT: Record<AbbyCategory, AdvisorContent> = {
       { label: "Training Programs", reason: "Half-day and full-day corporate training programs built from your frameworks. High-ticket B2B revenue.", priceRange: "$3,000 – $15,000/day", difficulty: "Advanced", nodeId: "training" },
       { label: "Masterminds", reason: "Quarterly mastermind groups for your most committed audience. High retention and recurring revenue.", priceRange: "$500 – $2,000/quarter", difficulty: "Advanced", nodeId: "masterminds" },
       { label: "Retreats & Bootcamps", reason: "2-3 day immersive experiences. Premium pricing with high transformation value.", priceRange: "$1,500 – $5,000", difficulty: "Advanced", nodeId: "retreats" },
-      { label: "Certification", reason: "License your methodology. Others pay to teach your frameworks — the ultimate scalable revenue.", priceRange: "$2,000 – $10,000", difficulty: "Advanced", nodeId: "certification" },
+      { label: "Certification", reason: "License your methodology. Others pay to teach your frameworks, the ultimate scalable revenue.", priceRange: "$2,000 – $10,000", difficulty: "Advanced", nodeId: "certification" },
       { label: "Conventions & Conferences", reason: "Apply to speak at industry events. AI generates submission materials and speaker profile.", difficulty: "Medium", nodeId: "conventions" },
       { label: "Fund Raising Events", reason: "Leverage your book for cause-driven events. Works especially well for non-fiction authors with a mission.", difficulty: "Advanced", nodeId: "fundraising" },
       { label: "Exhibitors / JV", reason: "Partner with complementary brands. AI creates exhibitor prospectus and partnership proposals.", difficulty: "Advanced", nodeId: "exhibitors" },
