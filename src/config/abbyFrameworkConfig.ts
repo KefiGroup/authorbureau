@@ -255,7 +255,11 @@ export function getEffectiveNodeStatus(
   isSuperAdmin = false,
   openNodeIds?: Set<string>,
 ): AbbyNode["status"] {
-  if (isSuperAdmin) return node.status;
+  // Superadmin fallback when DB gating rows are not loaded yet.
+  if (isSuperAdmin && !openNodeIds) {
+    return node.status === "planned" ? "planned" : "available";
+  }
+
   // If we have DB gating data, use it
   if (openNodeIds) {
     if (openNodeIds.has(node.id)) {
@@ -264,17 +268,18 @@ export function getEffectiveNodeStatus(
     }
     return "coming-soon";
   }
+
   // Fallback: hardcoded gating
   if (DEFAULT_GATED_CATEGORIES.includes(categoryId) && (node.status === "coming-soon" || node.status === "available")) {
     return "coming-soon";
   }
+
   return node.status;
 }
 
 /**
  * Returns a copy of the category with effective statuses applied.
  * Uses DB gating when available, otherwise falls back to hardcoded.
- * Superadmins always see true status.
  */
 export function getEffectiveCategory(
   catId: AbbyCategory,
@@ -284,12 +289,12 @@ export function getEffectiveCategory(
 ): AbbyCategoryConfig {
   const cat = ABBY_CATEGORIES[catId];
   if (!cat) return cat;
-  if (isSuperAdmin) return cat;
+
   return {
     ...cat,
-    nodes: cat.nodes.map(n => ({
+    nodes: cat.nodes.map((n) => ({
       ...n,
-      status: getEffectiveNodeStatus(n, catId, _isAdmin, false, openNodeIds),
+      status: getEffectiveNodeStatus(n, catId, _isAdmin, isSuperAdmin, openNodeIds),
     })),
   };
 }
