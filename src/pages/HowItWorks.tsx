@@ -197,13 +197,6 @@ export default function HowItWorks() {
             </motion.p>
           </motion.div>
 
-          <motion.img
-            initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }} transition={{ duration: 0.6 }}
-            src={THREE_PATHS_IMAGE} alt="Three paths: Side Hustler, Serious Author, Empire Builder"
-            className="w-full rounded-2xl shadow-xl mb-12"
-            loading="lazy"
-          />
 
           <div className="grid gap-6 md:grid-cols-3">
             {pricingCards.map((card, i) => (
