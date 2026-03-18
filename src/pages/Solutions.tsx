@@ -114,7 +114,7 @@ export default function Solutions() {
   const [loadingMarket, setLoadingMarket] = useState(false);
 
   useDocumentMeta({
-    title: `${config.title} | Authors Bureau — Turn Your Book Into a Business`,
+    title: `${config.title} | Authors Bureau: Turn Your Book Into a Business`,
     description: config.description,
   });
 
