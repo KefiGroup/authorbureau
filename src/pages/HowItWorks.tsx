@@ -30,7 +30,7 @@ const accordionData = [
     ],
   },
   {
-    title: "1-on-1 Coaching vs. Group Coaching vs. Mastermind — What's the Difference?",
+    title: "1-on-1 Coaching vs. Group Coaching vs. Mastermind: What's the Difference?",
     items: [
       { term: "1-on-1 Coaching", desc: "Private sessions with one client ($150–$500/hr). Like a personal trainer." },
       { term: "Group Coaching", desc: "One coach, 10–30 students in live group calls ($97–$497/mo). Like a group fitness class." },
