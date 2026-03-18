@@ -36,8 +36,8 @@ interface SmartProductCardProps {
 
 const BASELINE_REVENUE: Record<string, RevenueEstimate> = {
   "courses": { annual: 3940, timeToBuild: "~3 hours", difficulty: 3 },
-  "home-study": { annual: 2400, timeToBuild: "~2 hours", difficulty: 2 },
-  "workbooks": { annual: 1450, timeToBuild: "~1 hour", difficulty: 1 },
+  "home-study": { annual: 2400, timeToBuild: "~2 hours", difficulty: 3 },
+  "workbooks": { annual: 1450, timeToBuild: "~1 hour", difficulty: 5 },
   "audiobook": { annual: 2000, timeToBuild: "~2 hours", difficulty: 2 },
   "memberships": { annual: 5880, timeToBuild: "~4 hours", difficulty: 4 },
   "upsells": { annual: 3600, timeToBuild: "~2 hours", difficulty: 3 },
@@ -51,15 +51,16 @@ const BASELINE_REVENUE: Record<string, RevenueEstimate> = {
   "retreats": { annual: 24000, timeToBuild: "~6 hours", difficulty: 5 },
   "certification": { annual: 15000, timeToBuild: "~8 hours", difficulty: 5 },
   "masterminds": { annual: 12000, timeToBuild: "~4 hours", difficulty: 4 },
-  "special-editions": { annual: 3000, timeToBuild: "~2 hours", difficulty: 2 },
-  "book-sales-events": { annual: 2400, timeToBuild: "~1 hour", difficulty: 1 },
-  "social-media": { annual: 1940, timeToBuild: "~1 hour", difficulty: 1 },
+  "special-editions": { annual: 3000, timeToBuild: "~2 hours", difficulty: 4 },
+  "book-sales-events": { annual: 2400, timeToBuild: "~1 hour", difficulty: 5 },
+  "social-media": { annual: 1940, timeToBuild: "~1 hour", difficulty: 4 },
   "webinars": { annual: 9400, timeToBuild: "~3 hours", difficulty: 3 },
   "podcast-guest": { annual: 0, timeToBuild: "~2 hours", difficulty: 2 },
-  "microsite": { annual: 0, timeToBuild: "~1 hour", difficulty: 1 },
+  "microsite": { annual: 0, timeToBuild: "~1 hour", difficulty: 5 },
   "affiliates": { annual: 2400, timeToBuild: "~2 hours", difficulty: 2 },
-  "email-marketing": { annual: 1940, timeToBuild: "~2 hours", difficulty: 2 },
+  "email-marketing": { annual: 1940, timeToBuild: "~2 hours", difficulty: 3 },
   "pr-media": { annual: 0, timeToBuild: "~3 hours", difficulty: 3 },
+  "lead-magnet": { annual: 0, timeToBuild: "~1 hour", difficulty: 4 },
   "strategic-partnerships": { annual: 6000, timeToBuild: "~3 hours", difficulty: 3 },
   "book-sales": { annual: 3600, timeToBuild: "~1 hour", difficulty: 1 },
   "course-sales": { annual: 4800, timeToBuild: "~2 hours", difficulty: 2 },
@@ -77,7 +78,7 @@ function getDifficultyStars(level: number) {
   ));
 }
 
-const difficultyLabels = ["", "Easy", "Easy", "Medium", "Hard", "Expert"];
+const difficultyLabels = ["", "Expert", "Hard", "Medium", "Easy", "Easy"];
 
 const stateConfig: Record<ProductCardState, { badge: string; badgeClass: string; borderClass: string }> = {
   recommended: {
