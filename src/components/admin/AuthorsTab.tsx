@@ -411,6 +411,9 @@ export default function AuthorsTab() {
                         <Upload className="h-3 w-3" /> Replace Photo
                       </button>
                     )}
+                    <button onClick={() => setDeletingAuthor(author)} className="flex items-center gap-1 text-destructive hover:underline">
+                      <Trash2 className="h-3 w-3" /> Delete
+                    </button>
                   </div>
                 </div>
 
