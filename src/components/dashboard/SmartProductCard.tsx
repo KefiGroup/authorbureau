@@ -78,7 +78,7 @@ function getDifficultyStars(level: number) {
   ));
 }
 
-const difficultyLabels = ["", "Easy", "Easy", "Medium", "Hard", "Expert"];
+const difficultyLabels = ["", "Expert", "Hard", "Medium", "Easy", "Easy"];
 
 const stateConfig: Record<ProductCardState, { badge: string; badgeClass: string; borderClass: string }> = {
   recommended: {
