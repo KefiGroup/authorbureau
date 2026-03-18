@@ -66,7 +66,7 @@ export type DashboardSection =
 
 const comingSoonSections: Record<string, { title: string; description: string; icon: typeof Rocket }> = {
   crm: { title: "CRM & Contacts", description: "Your unified customer relationship management hub.", icon: Users },
-  marketing: { title: "Marketing Package", description: "AI-driven marketing suite — email flows, social media, affiliate dashboard.", icon: Rocket },
+  marketing: { title: "Marketing Package", description: "AI-driven marketing suite: email flows, social media, affiliate dashboard.", icon: Rocket },
 };
 
 function ComingSoonPlaceholder({ sectionId }: { sectionId: string }) {
