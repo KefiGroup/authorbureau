@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Sparkles, Loader2, Plus } from "lucide-react";
+import { ArrowRight, Sparkles, Loader2, Plus, TrendingUp } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import { getActiveToken } from "@/lib/get-active-token";
