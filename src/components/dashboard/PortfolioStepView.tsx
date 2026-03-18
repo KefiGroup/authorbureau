@@ -246,11 +246,30 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
         </div>
       </div>
 
-      {/* Brand Products intro paragraph */}
+      {/* Category intro paragraph */}
       {isBrandProducts && (
         <div className="rounded-xl border border-border bg-muted/30 p-5">
           <p className="text-sm text-muted-foreground leading-relaxed">
             Everything in Brand Products is designed to do one thing: <strong className="text-foreground">turn your book into a recognizable brand that sells while you sleep.</strong> These 9 products fall into two groups — and the order matters.
+          </p>
+        </div>
+      )}
+      {isBuildAuthority && (
+        <div className="rounded-xl border border-border bg-muted/30 p-5 space-y-3">
+          <div>
+            <p className="text-xs font-bold text-violet-600 uppercase tracking-wider mb-1">The Build Authority Progression</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              <strong className="text-foreground">Brand Products</strong> built your foundation — website, book sales, email list, audience.
+            </p>
+            <p className="text-sm text-muted-foreground leading-relaxed mt-1">
+              <strong className="text-foreground">Build Authority</strong> scales that foundation — courses, coaching, media visibility, and partnership income.
+            </p>
+            <p className="text-sm text-muted-foreground leading-relaxed mt-1">
+              Once you've mastered Build Authority, you're ready for <strong className="text-foreground">Y · Yield Revenue</strong> — where you command premium prices for high-ticket services like consulting, keynotes, and masterminds.
+            </p>
+          </div>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Everything in Build Authority is designed to do one thing: <strong className="text-foreground">turn your book and brand into recognized expertise that attracts high-value opportunities.</strong> These 9 products fall into three groups — and the order matters.
           </p>
         </div>
       )}
