@@ -201,7 +201,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
 
   const isBrandProducts = categoryId === "revenue-streams";
   const isBuildAuthority = categoryId === "marketing-channels";
-
+  const isYieldRevenue = categoryId === "authority-builders";
   // Sub-category intro text for Brand Products & Build Authority
   const SUB_INTRO: Record<string, { intro: string }> = {
     "Branding & Marketing": {
