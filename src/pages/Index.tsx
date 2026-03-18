@@ -166,7 +166,38 @@ export default function Index() {
         </div>
       </section>
 
-      {/* ===== SECTION 2: THE PROBLEM ===== */}
+      {/* ===== 3-STEP JOURNEY FLOW ===== */}
+      <section className="py-16 bg-background border-b border-border">
+        <div className="container max-w-4xl">
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              { step: "1", title: "Upload Your Book", desc: "Add your manuscript or Amazon link. Takes under 2 minutes.", icon: BookOpen },
+              { step: "2", title: "Abby Builds Your Plan", desc: "AI analyzes your book and creates a personalized business plan with revenue projections.", icon: Sparkles },
+              { step: "3", title: "Choose & Build Products", desc: "Pick the revenue streams that fit you. Abby generates everything: courses, coaching kits, email sequences, and more.", icon: TrendingUp },
+            ].map((item, i) => (
+              <motion.div
+                key={item.step}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                custom={i}
+                variants={fadeUp}
+                className="relative text-center p-6 rounded-2xl bg-card border border-border shadow-sm hover:shadow-md transition-shadow"
+              >
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-secondary/20 to-secondary/5 ring-1 ring-secondary/20 flex items-center justify-center mx-auto mb-3 text-secondary font-heading font-bold">
+                  {item.step}
+                </div>
+                <h3 className="font-heading font-bold text-base mb-1.5">{item.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                {i < 2 && (
+                  <ArrowRight className="hidden md:block absolute -right-5 top-1/2 -translate-y-1/2 h-5 w-5 text-secondary/40" />
+                )}
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="py-24 bg-background">
         <div className="container">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} className="mx-auto max-w-3xl text-center">
