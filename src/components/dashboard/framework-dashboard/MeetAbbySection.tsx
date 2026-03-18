@@ -122,9 +122,13 @@ export default function MeetAbbySection({ hasPlan, planSummary, hasBook, profile
               <p className="text-[10px] text-muted-foreground">Takes 5 minutes. Your business plan is saved forever.</p>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-3 border border-border">
-              📘 Set up your microsite and add a book first, then Abby can analyze it and build your business plan.
-            </p>
+            <NewUserOnboarding
+              profileComplete={profileComplete ?? false}
+              hasBook={false}
+              onSetupProfile={onSetupProfile ?? (() => {})}
+              onAddBook={onAddBook ?? (() => {})}
+              onAnalyze={onStartConsultation}
+            />
           )}
         </div>
 
