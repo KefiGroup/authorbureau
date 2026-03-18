@@ -77,7 +77,7 @@ const GENRE_CONFIG: Record<string, {
   "parenting": {
     title: "For Parenting Authors",
     description: "Transform your parenting book into courses, coaching sessions, and a supportive community for parents.",
-    heroSubtitle: "Parents need ongoing support — give them more than a book.",
+    heroSubtitle: "Parents need ongoing support. Give them more than a book.",
     painPoints: ["Parents want community and ongoing guidance", "Your expertise could help thousands more through courses", "Coaching in this niche commands premium rates"],
     topProducts: ["Online Parenting Courses ($47-$197)", "Group Coaching Cohorts ($297-$697)", "Monthly Community ($9-$47/mo)", "Home Study Programs ($27-$97)"],
     cta: "Help more families — and build a business",
