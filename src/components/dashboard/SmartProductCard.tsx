@@ -139,7 +139,9 @@ export default function SmartProductCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
     >
-      <Card className={`p-5 space-y-3.5 transition-all hover:shadow-lg h-full flex flex-col ${config.borderClass} ${config.cardBg}`}>
+      <Card className={`relative overflow-hidden p-5 space-y-3.5 transition-all hover:shadow-lg h-full flex flex-col ${config.borderClass} ${config.cardBg}`}>
+        {/* Left color strip */}
+        <div className={`absolute left-0 top-0 bottom-0 w-1 ${config.stripColor}`} />
         {/* Header */}
         <div className="flex items-start gap-3">
           <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
