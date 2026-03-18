@@ -22,7 +22,7 @@ interface Props {
   onAddBook?: () => void;
 }
 
-export default function MeetAbbySection({ hasPlan, planSummary, hasBook, onStartConsultation, onViewPlan, onChatAbby }: Props) {
+export default function MeetAbbySection({ hasPlan, planSummary, hasBook, profileComplete, onStartConsultation, onViewPlan, onChatAbby, onSetupProfile, onAddBook }: Props) {
   if (hasPlan && planSummary) {
     return (
       <motion.section
