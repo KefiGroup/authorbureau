@@ -284,9 +284,9 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
               Unlike Brand Products (which build on each other) or Build Authority (which amplify your reach), Yield Revenue services all draw from the same well: your established authority and audience. You don't need to do coaching before consulting, or keynotes before masterminds. Instead, you pursue the services that align with:
             </p>
             <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
-              <li><strong className="text-foreground">Your strengths</strong> — What do you enjoy most? What are you best at?</li>
-              <li><strong className="text-foreground">Your audience's needs</strong> — What will they pay for?</li>
-              <li><strong className="text-foreground">Market demand</strong> — What opportunities are knocking on your door?</li>
+               <li><strong className="text-foreground">Your strengths:</strong> What do you enjoy most? What are you best at?</li>
+               <li><strong className="text-foreground">Your audience's needs:</strong> What will they pay for?</li>
+               <li><strong className="text-foreground">Market demand:</strong> What opportunities are knocking on your door?</li>
             </ul>
           </div>
           <div>
