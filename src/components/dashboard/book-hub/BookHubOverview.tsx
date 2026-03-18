@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { getStudioPath } from "@/config/abbyFrameworkConfig";
 import { motion } from "framer-motion";
-import { Sparkles, Zap, FileText, Upload, Download, Loader2, Lock, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Sparkles, Zap, FileText, Upload, Download, Loader2, Lock, ArrowRight, CheckCircle2, X } from "lucide-react";
 import BookHubSkeleton from "./BookHubSkeleton";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -87,6 +87,9 @@ const categoryBadge: Record<string, { label: string; className: string }> = {
 
 export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateTab }: Props) {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const showStartBanner = searchParams.get("from") === "start-building";
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const [hasConsultation, setHasConsultation] = useState(false);
   const [hasManuscript, setHasManuscript] = useState(false);
   const [manuscriptChars, setManuscriptChars] = useState(0);
@@ -413,6 +416,30 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
 
   return (
     <div className="space-y-6">
+      {/* Contextual "Start Here" banner — only when arriving via Start Building button */}
+      {showStartBanner && !bannerDismissed && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative rounded-xl border-2 border-secondary/40 bg-secondary/10 p-4 pr-10"
+        >
+          <button
+            onClick={() => {
+              setBannerDismissed(true);
+              searchParams.delete("from");
+              setSearchParams(searchParams, { replace: true });
+            }}
+            className="absolute top-3 right-3 text-secondary/60 hover:text-secondary transition-colors"
+            aria-label="Dismiss"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          <p className="text-sm font-medium text-foreground leading-relaxed">
+            <Sparkles className="h-4 w-4 inline mr-1.5 text-secondary" />
+            <strong>Abby recommends starting here: Website</strong> — your digital home base. It takes ~1 hour and unlocks everything else. Build it first.
+          </p>
+        </motion.div>
+      )}
       {/* Abby's Business Snapshot */}
       <motion.div
         className="rounded-2xl border-2 border-secondary/30 bg-gradient-to-r from-secondary/5 via-secondary/10 to-secondary/5 p-6"
