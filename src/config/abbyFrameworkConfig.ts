@@ -203,7 +203,7 @@ export const ADVISOR_CONTENT: Record<AbbyCategory, AdvisorContent> = {
       { label: "Training Programs", reason: "Half-day and full-day corporate training programs built from your frameworks. High-ticket B2B revenue.", priceRange: "$3,000 – $15,000/day", difficulty: "Advanced", nodeId: "training" },
       { label: "Masterminds", reason: "Quarterly mastermind groups for your most committed audience. High retention and recurring revenue.", priceRange: "$500 – $2,000/quarter", difficulty: "Advanced", nodeId: "masterminds" },
       { label: "Retreats & Bootcamps", reason: "2-3 day immersive experiences. Premium pricing with high transformation value.", priceRange: "$1,500 – $5,000", difficulty: "Advanced", nodeId: "retreats" },
-      { label: "Certification", reason: "License your methodology. Others pay to teach your frameworks — the ultimate scalable revenue.", priceRange: "$2,000 – $10,000", difficulty: "Advanced", nodeId: "certification" },
+      { label: "Certification", reason: "License your methodology. Others pay to teach your frameworks, the ultimate scalable revenue.", priceRange: "$2,000 – $10,000", difficulty: "Advanced", nodeId: "certification" },
       { label: "Conventions & Conferences", reason: "Apply to speak at industry events. AI generates submission materials and speaker profile.", difficulty: "Medium", nodeId: "conventions" },
       { label: "Fund Raising Events", reason: "Leverage your book for cause-driven events. Works especially well for non-fiction authors with a mission.", difficulty: "Advanced", nodeId: "fundraising" },
       { label: "Exhibitors / JV", reason: "Partner with complementary brands. AI creates exhibitor prospectus and partnership proposals.", difficulty: "Advanced", nodeId: "exhibitors" },
