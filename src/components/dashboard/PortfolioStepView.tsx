@@ -275,7 +275,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
       )}
 
       {/* Product Cards Grid – grouped by sub-category */}
-      {(categoryId === "revenue-streams" || categoryId === "authority-builders") && subCategories.length > 1
+      {(categoryId === "revenue-streams" || categoryId === "marketing-channels" || categoryId === "authority-builders") && subCategories.length > 1
         ? subCategories.map((group) => (
             <div key={group.name} className="space-y-4">
               <div>
