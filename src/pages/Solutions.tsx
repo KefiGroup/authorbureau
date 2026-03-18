@@ -23,7 +23,7 @@ const GENRE_CONFIG: Record<string, {
   "self-help": {
     title: "For Self-Help Authors",
     description: "Transform your self-help book into online courses, coaching programs, and digital products that generate passive income.",
-    heroSubtitle: "Your self-help book has the power to change lives — and build a thriving business.",
+    heroSubtitle: "Your self-help book has the power to change lives and build a thriving business.",
     painPoints: ["Low book royalties despite strong readership", "Readers want more but you have nothing to sell them", "No system to monetize your expertise beyond the book"],
     topProducts: ["Online Courses ($97-$497)", "1-on-1 Coaching ($150-$500/session)", "Companion Workbooks ($9.99-$24.99)", "Group Coaching Programs ($297-$997)"],
     cta: "Start building your self-help empire",
