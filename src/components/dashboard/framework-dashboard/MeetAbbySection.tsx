@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Sparkles, MessageCircleHeart, TrendingUp, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import NewUserOnboarding from "./NewUserOnboarding";
 
 interface PlanSummary {
   bookTitle: string;
@@ -13,12 +14,15 @@ interface Props {
   hasPlan: boolean;
   planSummary?: PlanSummary;
   hasBook: boolean;
+  profileComplete?: boolean;
   onStartConsultation: () => void;
   onViewPlan?: () => void;
   onChatAbby?: () => void;
+  onSetupProfile?: () => void;
+  onAddBook?: () => void;
 }
 
-export default function MeetAbbySection({ hasPlan, planSummary, hasBook, onStartConsultation, onViewPlan, onChatAbby }: Props) {
+export default function MeetAbbySection({ hasPlan, planSummary, hasBook, profileComplete, onStartConsultation, onViewPlan, onChatAbby, onSetupProfile, onAddBook }: Props) {
   if (hasPlan && planSummary) {
     return (
       <motion.section
@@ -118,9 +122,13 @@ export default function MeetAbbySection({ hasPlan, planSummary, hasBook, onStart
               <p className="text-[10px] text-muted-foreground">Takes 5 minutes. Your business plan is saved forever.</p>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-3 border border-border">
-              📘 Set up your microsite and add a book first, then Abby can analyze it and build your business plan.
-            </p>
+            <NewUserOnboarding
+              profileComplete={profileComplete ?? false}
+              hasBook={false}
+              onSetupProfile={onSetupProfile ?? (() => {})}
+              onAddBook={onAddBook ?? (() => {})}
+              onAnalyze={onStartConsultation}
+            />
           )}
         </div>
 

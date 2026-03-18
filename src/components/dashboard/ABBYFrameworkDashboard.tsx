@@ -233,9 +233,12 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
           hasPlan={false}
           planSummary={undefined}
           hasBook={bookCount > 0}
+          profileComplete={profileState === "live" || profileState === "incomplete"}
           onStartConsultation={() => onNavigate("build-business")}
           onViewPlan={() => onNavigate("build-business")}
           onChatAbby={() => onNavigate("build-business")}
+          onSetupProfile={() => onNavigate("profile")}
+          onAddBook={() => onNavigate("my-books")}
         />
 
         {/* Section 2: 4-Step Journey (middle) */}
