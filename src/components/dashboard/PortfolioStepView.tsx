@@ -224,15 +224,25 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
     },
   };
 
+  // Category accent class helpers
+  const catAccent = isBrandProducts ? "builder-brand" : isBuildAuthority ? "builder-bridge" : "builder-yield";
+  const catAccentText = isBrandProducts ? "text-builder-brand" : isBuildAuthority ? "text-builder-bridge" : "text-builder-yield";
+  const catAccentBg = isBrandProducts ? "bg-builder-brand" : isBuildAuthority ? "bg-builder-bridge" : "bg-builder-yield";
+  const catGradientIntro = isBrandProducts
+    ? "bg-[image:var(--gradient-brand-intro)] border-builder-brand/20"
+    : isBuildAuthority
+    ? "bg-[image:var(--gradient-bridge-intro)] border-builder-bridge/25"
+    : "bg-[image:var(--gradient-yield-intro)] border-builder-yield/20";
+
   return (
-    <div className="max-w-6xl space-y-6">
+    <div className="max-w-6xl space-y-8">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${category.gradientFrom} ${category.gradientTo} flex items-center justify-center text-white shadow-md`}>
+        <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${category.gradientFrom} ${category.gradientTo} flex items-center justify-center text-white shadow-lg`}>
           <HeaderIcon className="h-7 w-7" />
         </div>
         <div>
-          <h1 className="font-heading text-2xl md:text-3xl font-bold">
+          <h1 className="font-heading text-2xl md:text-3xl font-bold tracking-tight">
             {isBrandProducts ? "Your Products. Your Brand. Built From Your Book." : isBuildAuthority ? "Your Audience. Your Authority. Built From Your Brand." : isYieldRevenue ? "Premium Services. Premium Revenue. Built From Your Authority." : category.label}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
@@ -243,55 +253,64 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
           </p>
         </div>
         <div className="ml-auto">
-          <span className={`text-xs font-medium rounded-full px-3 py-1.5 ${category.bgColor} ${category.color}`}>
+          <span className={`text-xs font-semibold rounded-full px-3 py-1.5 ${category.bgColor} ${category.color}`}>
             {category.nodes.length} products
           </span>
         </div>
       </div>
 
-      {/* Category intro paragraph */}
+      {/* Category intro – visually striking callout box */}
       {isBrandProducts && (
-        <div className="rounded-xl border border-border bg-muted/30 p-5">
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Everything in Brand Products is designed to do one thing: <strong className="text-foreground">turn your book into a recognizable brand that sells while you sleep.</strong> These 9 products fall into two groups, and the order matters.
+        <div className={`rounded-2xl border-2 ${catGradientIntro} p-6`}>
+          <p className="text-sm text-foreground leading-relaxed">
+            Everything in Brand Products is designed to do one thing: <strong className={catAccentText}>turn your book into a recognizable brand that sells while you sleep.</strong> These 9 products fall into two groups, and the order matters.
           </p>
         </div>
       )}
       {isBuildAuthority && (
-        <div className="rounded-xl border border-border bg-muted/30 p-5 space-y-3">
-          <div>
-            <p className="text-xs font-bold text-violet-600 uppercase tracking-wider mb-1">The Build Authority Progression</p>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              <strong className="text-foreground">Brand Products</strong> built your foundation: website, book sales, email list, audience.
+        <div className={`rounded-2xl border-2 ${catGradientIntro} p-6 space-y-4`}>
+          <div className="flex items-center gap-2 mb-1">
+            <div className={`w-1.5 h-8 rounded-full ${catAccentBg}`} />
+            <p className={`text-xs font-black uppercase tracking-[0.2em] ${catAccentText}`}>The Build Authority Progression</p>
+          </div>
+          <div className="space-y-1.5">
+            <p className="text-sm text-foreground leading-relaxed">
+              <strong>Brand Products</strong> built your foundation: website, book sales, email list, audience.
             </p>
-            <p className="text-sm text-muted-foreground leading-relaxed mt-1">
-              <strong className="text-foreground">Build Authority</strong> scales that foundation: courses, coaching, media visibility, and partnership income.
+            <p className="text-sm text-foreground leading-relaxed">
+              <strong>Build Authority</strong> scales that foundation: courses, coaching, media visibility, and partnership income.
             </p>
           </div>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Everything in Build Authority is designed to do one thing: <strong className="text-foreground">turn your book and brand into recognized expertise that attracts high-value opportunities.</strong> These 9 products fall into three groups, and the order matters.
+          <p className="text-sm text-foreground/80 leading-relaxed">
+            Everything in Build Authority is designed to do one thing: <strong className={catAccentText}>turn your book and brand into recognized expertise that attracts high-value opportunities.</strong> These 9 products fall into three groups, and the order matters.
           </p>
         </div>
       )}
       {isYieldRevenue && (
-        <div className="rounded-xl border border-border bg-muted/30 p-5 space-y-3">
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Everything in Yield Revenue is designed to do one thing: <strong className="text-foreground">convert your established authority into high-ticket income.</strong> Unlike Brand Products and Build Authority, these 10 services don't require a strict sequence. You can pursue multiple streams simultaneously once you have the credibility to back them up.
+        <div className={`rounded-2xl border-2 ${catGradientIntro} p-6 space-y-4`}>
+          <p className="text-sm text-foreground leading-relaxed">
+            Everything in Yield Revenue is designed to do one thing: <strong className={catAccentText}>convert your established authority into high-ticket income.</strong> Unlike Brand Products and Build Authority, these 10 services don't require a strict sequence. You can pursue multiple streams simultaneously once you have the credibility to back them up.
           </p>
           <div>
-            <p className="text-xs font-bold text-sky-600 uppercase tracking-wider mb-2">Why These Work Together (Not in Sequence)</p>
-            <p className="text-sm text-muted-foreground leading-relaxed">
+            <div className="flex items-center gap-2 mb-2">
+              <div className={`w-1.5 h-6 rounded-full ${catAccentBg}`} />
+              <p className={`text-xs font-black uppercase tracking-[0.2em] ${catAccentText}`}>Why These Work Together (Not in Sequence)</p>
+            </div>
+            <p className="text-sm text-foreground/80 leading-relaxed">
               Unlike Brand Products (which build on each other) or Build Authority (which amplify your reach), Yield Revenue services all draw from the same well: your established authority and audience. You don't need to do coaching before consulting, or keynotes before masterminds. Instead, you pursue the services that align with:
             </p>
-            <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+            <ul className="mt-2.5 space-y-1.5 text-sm text-foreground/80">
                <li><strong className="text-foreground">Your strengths:</strong> What do you enjoy most? What are you best at?</li>
                <li><strong className="text-foreground">Your audience's needs:</strong> What will they pay for?</li>
                <li><strong className="text-foreground">Market demand:</strong> What opportunities are knocking on your door?</li>
             </ul>
           </div>
           <div>
-            <p className="text-xs font-bold text-sky-600 uppercase tracking-wider mb-2">The Full Journey</p>
-            <p className="text-sm text-muted-foreground leading-relaxed">
+            <div className="flex items-center gap-2 mb-2">
+              <div className={`w-1.5 h-6 rounded-full ${catAccentBg}`} />
+              <p className={`text-xs font-black uppercase tracking-[0.2em] ${catAccentText}`}>The Full Journey</p>
+            </div>
+            <p className="text-sm text-foreground/80 leading-relaxed">
               <strong className="text-foreground">Brand Products</strong> built your foundation and audience. <strong className="text-foreground">Build Authority</strong> scaled your reach and credibility. <strong className="text-foreground">Yield Revenue</strong> is where you monetize your expertise at the highest level, with premium pricing, selective clients, and maximum impact.
             </p>
           </div>
@@ -300,13 +319,16 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
       {/* Product Cards Grid – grouped by sub-category */}
       {(categoryId === "revenue-streams" || categoryId === "marketing-channels" || categoryId === "authority-builders") && subCategories.length > 1
         ? subCategories.map((group) => (
-            <div key={group.name} className="space-y-4">
+            <div key={group.name} className="space-y-5">
               <div>
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-1">
-                  {group.name}
-                </h3>
+                <div className="flex items-center gap-3 mb-1">
+                  <div className={`w-1 h-5 rounded-full ${catAccentBg}`} />
+                  <h3 className={`text-base font-heading font-bold uppercase tracking-wider ${catAccentText}`}>
+                    {group.name}
+                  </h3>
+                </div>
                 {(isBrandProducts || isBuildAuthority || isYieldRevenue) && SUB_INTRO[group.name] && (
-                  <p className="text-sm text-muted-foreground leading-relaxed mt-3 whitespace-pre-line">
+                  <p className="text-sm text-muted-foreground leading-relaxed mt-2 ml-4 whitespace-pre-line">
                     {SUB_INTRO[group.name].intro}
                   </p>
                 )}
@@ -376,17 +398,19 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
       {/* Revenue Estimate + Tip */}
       {(isBrandProducts || isBuildAuthority || isYieldRevenue) && (
         <>
-          <div className="rounded-xl border border-secondary/20 bg-secondary/5 p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="h-4 w-4 text-secondary" />
-              <span className="text-xs font-bold text-secondary uppercase tracking-wider">Estimated Revenue</span>
+          <div className={`rounded-2xl border-2 border-secondary/25 bg-gradient-to-r from-secondary/[0.06] to-transparent p-5`}>
+            <div className="flex items-center gap-2.5 mb-2">
+              <div className="w-8 h-8 rounded-lg bg-secondary/15 flex items-center justify-center">
+                <TrendingUp className="h-4 w-4 text-secondary" />
+              </div>
+              <span className="text-xs font-black text-secondary uppercase tracking-[0.15em]">Estimated Revenue</span>
             </div>
-            <p className="text-lg font-bold text-foreground">
-              {isBrandProducts ? "$5,520 – $15,480" : isBuildAuthority ? "$13,500 – $39,480" : "$68,400 – $215,520"}<span className="text-xs font-normal text-muted-foreground">/yr</span>
+            <p className="text-2xl font-heading font-bold text-foreground tracking-tight">
+              {isBrandProducts ? "$5,520 – $15,480" : isBuildAuthority ? "$13,500 – $39,480" : "$68,400 – $215,520"}<span className="text-sm font-normal text-muted-foreground ml-1">/yr</span>
             </p>
           </div>
-          <div className="rounded-xl border border-accent/20 bg-accent/5 p-4">
-            <p className="text-sm text-muted-foreground leading-relaxed">
+          <div className="rounded-2xl border border-accent/20 bg-accent/[0.04] p-5">
+            <p className="text-sm text-foreground/80 leading-relaxed">
               <strong className="text-foreground">💡 Tip:</strong>{" "}
               {isBrandProducts
                 ? "You don't have to build all 9 at once. Abby recommends starting with products 1–3 (Website, Book Sales, Lead Magnets) and adding the rest as your audience grows."
@@ -400,7 +424,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
       )}
 
       {/* Info */}
-      <div className="rounded-xl bg-muted/50 border border-border p-4 text-center">
+      <div className="rounded-2xl bg-muted/40 border border-border p-5 text-center">
         <p className="text-xs text-muted-foreground leading-relaxed max-w-lg mx-auto">
           {recommendations.length > 0
             ? "Products are ranked by Abby's recommendations and estimated revenue. Click into any product to start building."

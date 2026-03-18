@@ -61,9 +61,13 @@
     --shadow-abby-glow: 0 0 20px -4px hsl(38 55% 50% / 0.25), 0 0 40px -8px hsl(38 55% 50% / 0.15);
 
     /* Builder category accent tokens */
-    --builder-build: 152 69% 31%;
-    --builder-bridge: 258 55% 55%;
+    --builder-brand: 152 69% 31%;
+    --builder-bridge: 263 70% 50%;
     --builder-yield: 199 89% 48%;
+
+    --gradient-brand-intro: linear-gradient(135deg, hsl(152 69% 31% / 0.06), hsl(152 69% 31% / 0.02));
+    --gradient-bridge-intro: linear-gradient(135deg, hsl(263 70% 50% / 0.08), hsl(263 70% 50% / 0.02));
+    --gradient-yield-intro: linear-gradient(135deg, hsl(199 89% 48% / 0.06), hsl(199 89% 48% / 0.02));
   }
 
   .dark {
