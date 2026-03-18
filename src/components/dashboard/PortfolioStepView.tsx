@@ -233,7 +233,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
         </div>
         <div>
           <h1 className="font-heading text-2xl md:text-3xl font-bold">
-            {isBrandProducts ? "Your Products. Your Brand. Built From Your Book." : isBuildAuthority ? "Your Audience. Your Authority. Built From Your Brand." : category.label}
+            {isBrandProducts ? "Your Products. Your Brand. Built From Your Book." : isBuildAuthority ? "Your Audience. Your Authority. Built From Your Brand." : isYieldRevenue ? "Premium Services. Premium Revenue. Built From Your Authority." : category.label}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {category.subtitle}
