@@ -399,7 +399,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         }
         return <SectionGatePage
           sectionTitle="Y · Yield Revenue"
-          sectionSubtitle="Coming Soon — Premium revenue streams & monetization."
+          sectionSubtitle="Coming Soon: Premium revenue streams & monetization."
           gateMessage="Yield Revenue builders are currently under development. We're crafting premium tools for coaching, speaking, masterminds, and more. Check back soon!"
           productNames={["1-on-1 Coaching", "Group Coaching", "Memberships", "Big Ticket Consulting", "Keynotes", "Training Programs", "Masterminds", "Retreats"]}
           onAnalyze={() => setActiveSection("revenue-streams")}
