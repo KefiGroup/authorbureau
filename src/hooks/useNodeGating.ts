@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { ABBY_CATEGORIES, getCategoryForNode, type AbbyCategory } from "@/config/abbyFrameworkConfig";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
 export interface NodeGatingRow {
   node_id: string;
@@ -17,19 +17,36 @@ const getNodeIdsForCategory = (categoryId: string): string[] => {
   return category ? category.nodes.map((node) => node.id) : [];
 };
 
+async function adminDataFetch(action: string, body: Record<string, unknown> = {}) {
+  const token = await getActiveToken();
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await fetchWithTimeout(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-data`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ action, ...body }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
+  return data;
+}
+
 export function useNodeGating() {
   const [gating, setGating] = useState<NodeGatingRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetch = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("node_gating")
-      .select("node_id, category, is_open, updated_at")
-      .order("category")
-      .order("node_id");
-    if (!error && data) setGating(data as NodeGatingRow[]);
-    setLoading(false);
+    try {
+      const data = await adminDataFetch("list-node-gating");
+      const rows = Array.isArray(data?.rows) ? (data.rows as NodeGatingRow[]) : [];
+      setGating(sortRows(rows));
+    } catch {
+      setGating([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -60,37 +77,24 @@ export function useNodeGating() {
     const category = getCategoryForNode(nodeId);
     if (!category) return false;
 
-    const updatedAt = new Date().toISOString();
-    const { data: existing, error: existingError } = await supabase
-      .from("node_gating")
-      .select("node_id")
-      .eq("node_id", nodeId)
-      .maybeSingle();
+    try {
+      const data = await adminDataFetch("update-node-gating-node", {
+        nodeId,
+        category,
+        isOpen: open,
+      });
 
-    if (existingError) return false;
+      const updatedAt = data?.row?.updated_at || new Date().toISOString();
+      setGating((prev) => {
+        const next = prev.filter((r) => r.node_id !== nodeId);
+        next.push({ node_id: nodeId, category, is_open: open, updated_at: updatedAt });
+        return sortRows(next);
+      });
 
-    const mutation = existing
-      ? supabase
-          .from("node_gating")
-          .update({ category, is_open: open, updated_at: updatedAt })
-          .eq("node_id", nodeId)
-      : supabase.from("node_gating").insert({
-          node_id: nodeId,
-          category,
-          is_open: open,
-          updated_at: updatedAt,
-        });
-
-    const { error } = await mutation;
-    if (error) return false;
-
-    setGating((prev) => {
-      const next = prev.filter((r) => r.node_id !== nodeId);
-      next.push({ node_id: nodeId, category, is_open: open, updated_at: updatedAt });
-      return sortRows(next);
-    });
-
-    return true;
+      return true;
+    } catch {
+      return false;
+    }
   }, []);
 
   /** Bulk toggle all nodes in a category (also backfills missing rows) */
@@ -98,53 +102,32 @@ export function useNodeGating() {
     const nodeIds = getNodeIdsForCategory(categoryId);
     if (nodeIds.length === 0) return false;
 
-    const updatedAt = new Date().toISOString();
-
-    const { error: updateError } = await supabase
-      .from("node_gating")
-      .update({ category: categoryId, is_open: open, updated_at: updatedAt })
-      .in("node_id", nodeIds);
-
-    if (updateError) return false;
-
-    const { data: existingRows, error: existingError } = await supabase
-      .from("node_gating")
-      .select("node_id")
-      .in("node_id", nodeIds);
-
-    if (existingError) return false;
-
-    const existingIds = new Set((existingRows || []).map((r) => r.node_id));
-    const missingIds = nodeIds.filter((id) => !existingIds.has(id));
-
-    if (missingIds.length > 0) {
-      const { error: insertError } = await supabase.from("node_gating").insert(
-        missingIds.map((node_id) => ({
-          node_id,
-          category: categoryId,
-          is_open: open,
-          updated_at: updatedAt,
-        }))
-      );
-      if (insertError) return false;
-    }
-
-    setGating((prev) => {
-      const byNodeId = new Map(prev.map((row) => [row.node_id, row]));
-      nodeIds.forEach((node_id) => {
-        byNodeId.set(node_id, {
-          node_id,
-          category: categoryId,
-          is_open: open,
-          updated_at: updatedAt,
-        });
+    try {
+      const data = await adminDataFetch("update-node-gating-category", {
+        categoryId,
+        nodeIds,
+        isOpen: open,
       });
-      return sortRows(Array.from(byNodeId.values()));
-    });
 
-    return true;
+      const updatedAt = data?.updated_at || new Date().toISOString();
+      setGating((prev) => {
+        const byNodeId = new Map(prev.map((row) => [row.node_id, row]));
+        nodeIds.forEach((node_id) => {
+          byNodeId.set(node_id, {
+            node_id,
+            category: categoryId,
+            is_open: open,
+            updated_at: updatedAt,
+          });
+        });
+        return sortRows(Array.from(byNodeId.values()));
+      });
+
+      return true;
+    } catch {
+      return false;
+    }
   }, []);
 
   return { gating, loading, refetch: fetch, isNodeOpen, isCategoryFullyClosed, toggleNode, toggleCategory };
 }
-

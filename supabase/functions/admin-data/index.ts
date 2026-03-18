@@ -134,6 +134,81 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── Node Gating ───
+    if (action === "list-node-gating") {
+      const { data, error } = await client
+        .from("node_gating")
+        .select("node_id, category, is_open, updated_at")
+        .order("category", { ascending: true })
+        .order("node_id", { ascending: true });
+
+      if (error) throw error;
+      return json({ rows: data || [] });
+    }
+
+    if (action === "update-node-gating-node") {
+      const { nodeId, category, isOpen } = params as {
+        nodeId?: string;
+        category?: string;
+        isOpen?: boolean;
+      };
+
+      if (!nodeId || !category || typeof isOpen !== "boolean") {
+        return json({ error: "nodeId, category, and isOpen are required" }, 400);
+      }
+
+      const updatedAt = new Date().toISOString();
+      const { data, error } = await client
+        .from("node_gating")
+        .upsert(
+          {
+            node_id: nodeId,
+            category,
+            is_open: isOpen,
+            updated_at: updatedAt,
+            updated_by: userId,
+          },
+          { onConflict: "node_id" }
+        )
+        .select("node_id, category, is_open, updated_at")
+        .single();
+
+      if (error) throw error;
+      return json({ success: true, row: data });
+    }
+
+    if (action === "update-node-gating-category") {
+      const { categoryId, nodeIds, isOpen } = params as {
+        categoryId?: string;
+        nodeIds?: string[];
+        isOpen?: boolean;
+      };
+
+      if (!categoryId || !Array.isArray(nodeIds) || nodeIds.length === 0 || typeof isOpen !== "boolean") {
+        return json({ error: "categoryId, nodeIds, and isOpen are required" }, 400);
+      }
+
+      const validNodeIds = nodeIds.filter((id) => typeof id === "string" && id.length > 0);
+      if (validNodeIds.length === 0) return json({ error: "nodeIds must contain valid values" }, 400);
+
+      const updatedAt = new Date().toISOString();
+      const { error } = await client
+        .from("node_gating")
+        .upsert(
+          validNodeIds.map((nodeId) => ({
+            node_id: nodeId,
+            category: categoryId,
+            is_open: isOpen,
+            updated_at: updatedAt,
+            updated_by: userId,
+          })),
+          { onConflict: "node_id" }
+        );
+
+      if (error) throw error;
+      return json({ success: true, updated_at: updatedAt });
+    }
+
     // ─── Authors ───
     if (action === "list-authors") {
       const { data: profiles } = await client
