@@ -32,7 +32,7 @@ const GENRE_CONFIG: Record<string, {
   "business": {
     title: "For Business Authors",
     description: "Turn your business book into corporate training, consulting packages, and premium speaking engagements.",
-    heroSubtitle: "Your business book is the ultimate authority builder — let's turn it into revenue.",
+    heroSubtitle: "Your business book is the ultimate authority builder. Let's turn it into revenue.",
     painPoints: ["Companies want training but you don't have a program", "Your book proves expertise but you're not monetizing it", "Competitors are charging $10K+ for what your book teaches for $20"],
     topProducts: ["Corporate Training ($5,000-$25,000/day)", "Big Ticket Consulting ($2,500-$10,000)", "Keynote Speaking ($5,000-$15,000)", "Certification Programs ($2,500-$7,500)"],
     cta: "Build your business consulting empire",
