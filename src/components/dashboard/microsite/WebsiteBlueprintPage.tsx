@@ -52,6 +52,11 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
   const [slugDraft, setSlugDraft] = useState("");
   const [slugError, setSlugError] = useState("");
   const [savingSlug, setSavingSlug] = useState(false);
+  const [iframeKey, setIframeKey] = useState(0);
+
+  const handleThemeChange = useCallback(() => {
+    setIframeKey((k) => k + 1);
+  }, []);
 
   const authorSlug = profileData?.author_slug || "your-slug";
   const siteUrl = `https://authorsbureau.com/${authorSlug}`;
