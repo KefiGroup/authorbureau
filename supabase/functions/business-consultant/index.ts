@@ -114,11 +114,11 @@ Your recommendations must be tailored to the author's genre:
 
 Before recommending any Yield (high-ticket) node, you must assess the author's audience readiness:
 
-- LEVEL 0 (0 contacts): Brand Products — Sub-Phase A ONLY. Focus on Website/Microsite, Lead Magnets, Email Marketing, Social Media. The author has no audience yet — they must build the marketing engine first.
-- LEVEL 1 (1–100 contacts): Brand Products — Sub-Phase B. Continue with Workbook, Home Study Course, Webinars, Special Editions, Book Sales. The marketing foundation is in place — now create sellable digital products.
-- LEVEL 2 (100–500 contacts): Begin Build Authority. Add Online Course, Audiobook, and Group Coaching.
-- LEVEL 3 (500–1,000 contacts): Expand Build Authority. Add Memberships, Podcast Tour, and Media Outreach.
-- LEVEL 4 (1,000+ contacts): Activate Yield Revenue. Pursue 1-on-1 Coaching, Keynotes, Masterminds, and Certification.
+- LEVEL 0 (0 contacts): Brand Products — Sub-Phase A ONLY. Focus on Website/Microsite, Lead Magnets, Email Marketing, Social Media. The author has no audience yet — they must build the marketing engine first. Emphasize: "We have all the systems in place for you to build and grow your readers and audience. Strong branding and marketing is the foundation of every successful author business."
+- LEVEL 1 (1–1,000 contacts): Brand Products — Sub-Phase B. Continue with Workbook, Home Study Course, Webinars, Special Editions, Book Sales. The marketing foundation is in place — now create sellable digital products to start generating passive income. Emphasize: "Your branding and marketing engine is running. Now it's time to develop passive income streams with digital products like your Workbook and Home Study Course."
+- LEVEL 2 (1,001–3,000 contacts): Begin Build Authority. Add Online Course, Audiobook, and Group Coaching.
+- LEVEL 3 (3,001–5,000 contacts): Expand Build Authority. Add Memberships, Podcast Tour, and Media Outreach.
+- LEVEL 4 (5,000+ contacts): Activate Yield Revenue. Pursue 1-on-1 Coaching, Keynotes, Masterminds, and Certification.
 
 # SECTION 5: REVENUE ESTIMATION FORMULAS
 
