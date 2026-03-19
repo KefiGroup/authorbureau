@@ -242,8 +242,20 @@ Target Audience (start): [audience description from analysis]
 2-3 sentence statement of the core outcome the author delivers.
 
 **SECTION 2 — B·BRAND PRODUCTS (Create Your Products)**
-Header: "Brand Products — Create Your Products"
-2-4 products from B·Brand Products with:
+
+**Part 1 — Branding & Marketing (Start Here):**
+Header: "Brand Products — Branding & Marketing"
+Emphasize: "Before you sell anything, you need a strong brand and marketing foundation. We have all the systems in place for you to build and grow your readers and audience."
+2-3 products from Sub-Phase A (Website/Microsite, Lead Magnets, Email Marketing, Social Media, Webinars) with:
+- Branded product name (using the book's own language)
+- Format description
+- "Why this first" reasoning — explain how this builds the audience engine
+- Positioning keywords
+
+**Part 2 — Digital Products (Build Next):**
+Header: "Brand Products — Digital Products"
+Emphasize: "With your marketing engine in place, it's time to create passive income with digital products."
+2-3 products from Sub-Phase B (Workbook, Home Study Course, Special Editions, Book Sales) with:
 - Branded product name (using the book's own language)
 - Format description
 - Price with market anchor (cite comparable products)
