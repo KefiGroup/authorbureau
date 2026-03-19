@@ -163,7 +163,7 @@ Always present revenue as a range (conservative / realistic / optimistic) and al
 8. Email Marketing — Welcome sequences, nurture flows, launch sequences (marketing asset)
 9. Website / Microsite — Author authority site with lead capture (marketing asset)
 
-## B · Build Channels (9 nodes):
+## B · Build Authority (9 nodes):
 1. Online Courses — 8-12 module structured courses ($97-$497)
 2. Audiobook — AI-generated audiobook scripts for recording ($14.99-$29.99)
 3. Monthly Memberships — 3-tier membership system ($9-$97/month)
