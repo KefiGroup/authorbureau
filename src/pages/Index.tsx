@@ -258,7 +258,7 @@ export default function Index() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            src="/images/journey-flow-diagram.png"
+            src="/images/journey-flow-diagram.webp"
             alt="How your 28 revenue streams connect — BRAND, BUILD, YIELD ecosystem"
             className="w-full max-w-4xl mx-auto rounded-2xl shadow-xl mb-10"
             loading="lazy"
