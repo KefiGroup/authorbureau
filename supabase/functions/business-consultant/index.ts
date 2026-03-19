@@ -750,7 +750,7 @@ THE 3-PHASE WORKFLOW FOR THIS NODE:
 
 PHASE 1 — ANALYSE (Strategic Brief):
 Deliver a tailored strategic brief:
-"[author_profile.name], your book has [count] core concepts that map perfectly to a [X]-module online course. I recommend structuring this as a [4/6/8]-week course priced at [pricing_strategy.online_course_price or $97-$497]. This will be your flagship digital product — the cornerstone of your Bridge Channels phase. Here is the proposed module structure and timeline."
+"[author_profile.name], your book has [count] core concepts that map perfectly to a [X]-module online course. I recommend structuring this as a [4/6/8]-week course priced at [pricing_strategy.online_course_price or $97-$497]. This will be your flagship digital product — the cornerstone of your Build Authority phase. Here is the proposed module structure and timeline."
 
 Present:
 - Course structure recommendation: 6-8 modules (one per core concept), each with 3 lessons
