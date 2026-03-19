@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,6 +52,11 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
   const [slugDraft, setSlugDraft] = useState("");
   const [slugError, setSlugError] = useState("");
   const [savingSlug, setSavingSlug] = useState(false);
+  const [iframeKey, setIframeKey] = useState(0);
+
+  const handleThemeChange = useCallback(() => {
+    setIframeKey((k) => k + 1);
+  }, []);
 
   const authorSlug = profileData?.author_slug || "your-slug";
   const siteUrl = `https://authorsbureau.com/${authorSlug}`;
@@ -382,6 +387,7 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
             {profileData?.author_slug ? (
               <div className="relative w-full" style={{ height: "320px", overflow: "hidden" }}>
                 <iframe
+                  key={iframeKey}
                   src={`/${profileData.author_slug}`}
                   className="absolute top-0 left-0 border-0 pointer-events-none"
                   style={{
@@ -404,7 +410,7 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
           </Card>
 
           {/* Theme Picker — shared component */}
-          <SiteThemePicker />
+          <SiteThemePicker onThemeChange={handleThemeChange} />
         </div>
       </div>
     </div>
