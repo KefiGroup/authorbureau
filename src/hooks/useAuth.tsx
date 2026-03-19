@@ -9,22 +9,22 @@ const ADMIN_AUTH_KEY = "ab_admin_auth";
 // Stripe tier config — 3-tier ABBY subscription model
 export const TIERS = {
   starter: {
-    price_id: "price_1T7zieL6NAuEbKmpgIPawb4z",
-    product_id: "prod_U6C6uH8lxNdHGT",
+    price_id: "price_1TCjzFCk4r0emyO8LdzhvM9V",
+    product_id: "prod_UB6BxxNnqv6UpV",
     label: "Brand Package",
     monthlyPrice: 49,
     usualPrice: 69,
   },
   pro: {
-    price_id: "price_1T7zmSL6NAuEbKmph7f5bCoH",
-    product_id: "prod_U6CAjp8iwbIoFj",
+    price_id: "price_1TCjzGCk4r0emyO8jkYgPpmL",
+    product_id: "prod_UB6BfcKCAYrgp0",
     label: "Build Package",
     monthlyPrice: 99,
     usualPrice: 199,
   },
   enterprise: {
-    price_id: "price_1T7zpUL6NAuEbKmp5onvSShB",
-    product_id: "prod_U6CDXjFWRuHmsb",
+    price_id: "price_1TCjzHCk4r0emyO82PblWqRl",
+    product_id: "prod_UB6BVLnks6JWoJ",
     label: "Yield Package",
     monthlyPrice: 249,
     usualPrice: 499,

@@ -149,7 +149,7 @@ export default function DashboardSidebar({
     {
       id: "author-crm" as DashboardSection, label: "My Contacts",
       icon: Contact,
-      lockMessage: !tierAccess("pro") ? "Upgrade to Pro to access your CRM" : undefined,
+      lockMessage: !tierAccess("pro") ? "Upgrade to Build Package ($99/mo) to access CRM" : undefined,
     },
     {
       id: "messages" as DashboardSection, label: "Messages",
