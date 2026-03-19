@@ -249,7 +249,7 @@ Include: "1-on-1 strategic session with Pauline Teo, founder of Authors Bureau" 
 Header: "Yield Revenue — Premium Services"
 
 **SECTION 5 — YOUR MONETISATION MAP**
-A visual table showing ALL 28 nodes grouped by phase (B·Brand Products, B·Build Channels, Y·Yield Revenue), with columns for: Node Name, Recommended Price Point, Projected Monthly Revenue, and Status (Recommended / Future / Not Applicable). This gives the author a complete at-a-glance view of their revenue potential.
+A visual table showing ALL 28 nodes grouped by phase (B·Brand Products, B·Build Authority, Y·Yield Revenue), with columns for: Node Name, Recommended Price Point, Projected Monthly Revenue, and Status (Recommended / Future / Not Applicable). This gives the author a complete at-a-glance view of their revenue potential.
 
 **IMPORTANT — INTRODUCTION TEXT:**
 When presenting the plan, introduce it with: "I've mapped out your revenue streams across three stages: Brand Products to create your product suite, Build Channels to scale your audience and recurring revenue, and Yield Revenue for premium high-ticket services."
