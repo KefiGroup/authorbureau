@@ -120,9 +120,9 @@ Rules for Market Data:
 
 Your recommendations must be tailored to the author's genre:
 
-- NON-FICTION (Self-Help, Business, Personal Development): Prioritise Workbook, Online Course, and Coaching. The author's expertise is the product.
-- NON-FICTION (How-To, Technical, Professional): Prioritise Home Study Courses, Training Programs, Certification. Lead with workbook + home study course, then corporate training.
-- FICTION: Prioritise Audiobook, Special Editions, and Reading Club. Community and immersion are the products.
+- NON-FICTION (Self-Help, Business, Personal Development): Prioritise Workbook, Home Study Course, and Lead Magnets first (Brand Products), then Online Course and Email Marketing (Build Authority), then Coaching (Yield Revenue). The author's expertise is the product.
+- NON-FICTION (How-To, Technical, Professional): Prioritise Workbook and Home Study Course first (Brand Products), then Online Course and Training Programs. Lead with workbook + home study course, then corporate training.
+- FICTION: Prioritise Special Editions, Audiobook, and Reading Club. Community and immersion are the products.
 - MEMOIR: Prioritise Speaking, Podcast Tour, and Masterminds. The author's story is the product.
 - ACADEMIC: Prioritise Certification, Training Programmes, and Licensing. The author's methodology is the product.
 - CHILDREN'S: Prioritise Book Sales, Lead Magnet Funnel, and Conventions. The author's brand is the product.
