@@ -9,9 +9,9 @@ import Footer from "@/components/Footer";
 import staircaseImg from "@/assets/abby_journey_staircase_v6.png";
 import frameworkImg from "@/assets/abby_journey_framework_v13_bby.png";
 
-const FLOW_DIAGRAM_IMAGE = "/images/journey-flow-diagram.png";
-const COMPARISON_IMAGE = "/images/journey-comparison.png";
-const THREE_PATHS_IMAGE = "/images/journey-three-paths.png";
+const FLOW_DIAGRAM_IMAGE = "/images/journey-flow-diagram.webp";
+const COMPARISON_IMAGE = "/images/journey-comparison.webp";
+const THREE_PATHS_IMAGE = "/images/journey-three-paths.webp";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
