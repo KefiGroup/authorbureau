@@ -289,7 +289,7 @@ Keep responses under 150 words. Always reference the business plan. Tie to manus
 
 ### PRO ($199/month)
 - Everything in Starter, PLUS:
-- B·Build Channels: Online Course, Audiobook Studio, Podcast Tour, Memberships, Group Coaching, Media Outreach, Affiliates, Upsells/Downsells, Revenue Sharing/JV
+- B·Build Authority: Online Course, Audiobook Studio, Podcast Tour, Memberships, Group Coaching, Media Outreach, Affiliates, Upsells/Downsells, Revenue Sharing/JV
 - CRM + Subscriber Management
 
 ### ENTERPRISE ($499/month)
