@@ -239,9 +239,9 @@ Deliver the COMPLETE plan following this structure:
 2-4 products from B·Brand Products with branded names, prices, and reasoning.
 Header: "Brand Products — Create Your Products"
 
-**SECTION 3 — B·BUILD CHANNELS (Scale Your Audience)**
-2-4 products from B·Build Channels with branded names, prices, and reasoning.
-Header: "Build Channels — Scale Your Audience"
+**SECTION 3 — B·BUILD AUTHORITY (Scale Your Audience)**
+2-4 products from B·Build Authority with branded names, prices, and reasoning.
+Header: "Build Authority — Scale Your Audience"
 
 **SECTION 4 — Y·YIELD REVENUE (Premium Services)**
 2-4 products from Y·Yield Revenue with branded names, prices, and reasoning.
