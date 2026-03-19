@@ -1106,15 +1106,15 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
         <div ref={chatEndRef} />
       </div>
 
-      <div className="flex-shrink-0 border-t border-border pt-4">
+      <div className="flex-shrink-0 border-t border-border pt-2 pb-1">
         <div className="flex gap-2 items-end">
           <Textarea ref={textareaRef} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown}
-            placeholder="Ask about your business strategy…" className="resize-none min-h-[44px] max-h-[120px]" rows={1} disabled={isStreaming} />
-          <Button size="icon" onClick={() => sendMessage(input)} disabled={!input.trim() || isStreaming} className="h-[44px] w-[44px] flex-shrink-0">
+            placeholder="Ask about your business strategy…" className="resize-none min-h-[36px] max-h-[80px] text-sm py-2" rows={1} disabled={isStreaming} />
+          <Button size="icon" onClick={() => sendMessage(input)} disabled={!input.trim() || isStreaming} className="h-[36px] w-[36px] flex-shrink-0">
             {isStreaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </Button>
         </div>
-        <p className="text-[10px] text-muted-foreground mt-2 text-center">Abby • AI Business Consultant by Authors Bureau</p>
+        <p className="text-[10px] text-muted-foreground mt-1 text-center">Abby • AI Business Consultant by Authors Bureau</p>
       </div>
 
       <FrameworkInterviewModal open={showFrameworkModal} onClose={() => { setShowFrameworkModal(false); setPendingBuildReq(null); }}
