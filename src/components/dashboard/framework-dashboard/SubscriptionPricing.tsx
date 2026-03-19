@@ -1,5 +1,6 @@
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Check, Crown, Loader2, ExternalLink, ArrowUpRight, Shield } from "lucide-react";
+import { Check, Crown, Loader2, ExternalLink, ArrowUpRight, Shield, Clock, Zap, Sparkles, Gift, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface Props {
@@ -10,18 +11,46 @@ interface Props {
   abbyRecommendedTier?: string;
 }
 
+const PROMO_CODES: Record<string, string> = {
+  starter: "BRAND-FIRSTTIMER",
+  pro: "BUILD-FIRSTTIMER",
+  enterprise: "YIELD-FIRSTTIMER",
+};
+
+const TIMER_KEY = "ab_promo_start";
+const PROMO_DURATION_MS = 60 * 60 * 1000; // 60 minutes
+
+function getTimeRemaining(): number {
+  const stored = localStorage.getItem(TIMER_KEY);
+  if (!stored) {
+    localStorage.setItem(TIMER_KEY, Date.now().toString());
+    return PROMO_DURATION_MS;
+  }
+  const elapsed = Date.now() - parseInt(stored, 10);
+  return Math.max(0, PROMO_DURATION_MS - elapsed);
+}
+
+function formatTime(ms: number): string {
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+}
+
 const plans = [
   {
     id: "starter" as const,
     name: "Brand Package",
-    price: "$49",
+    promoPrice: "$49",
     usualPrice: "$69",
+    savings: "$20",
     period: "/mo",
-    tagline: "Test the waters.",
+    icon: Sparkles,
+    tagline: "Create your product suite.",
     description: "Start building with Brand Products",
     popular: false,
     features: [
-      "Abby AI Unlimited",
+      "Abby AI Unlimited Consultation",
       "All 9 B·Brand Products builders",
       "Basic author profile page",
       "1 product sales page",
@@ -32,15 +61,17 @@ const plans = [
   {
     id: "pro" as const,
     name: "Build Package",
-    price: "$99",
+    promoPrice: "$99",
     usualPrice: "$199",
+    savings: "$100",
     period: "/mo",
-    tagline: "Build a real business.",
+    icon: Zap,
+    tagline: "Scale your audience & revenue.",
     description: "Full Brand + Build Authority — everything to monetize",
     popular: true,
     features: [
       "Everything in Brand Package",
-      "All 9 B·Build Authority builders (Courses, Coaching, Audiobooks, Podcasts)",
+      "All 9 B·Build Authority builders",
       "Full website with unlimited sales pages",
       "Stripe Connect payment processing",
       "CRM & email automation",
@@ -53,17 +84,19 @@ const plans = [
   {
     id: "enterprise" as const,
     name: "Yield Package",
-    price: "$249",
+    promoPrice: "$249",
     usualPrice: "$499",
+    savings: "$250",
     period: "/mo",
-    tagline: "Build an empire.",
+    icon: Crown,
+    tagline: "Premium high-ticket empire.",
     description: "Complete monetization empire — all 28 streams",
     popular: false,
     features: [
       "Everything in Build Package",
-      "All 10 Y·Yield builders (Coaching, Retreats, Certification, Masterminds)",
+      "All 10 Y·Yield builders",
       "Full site with custom domain support",
-      "White-label option (Authors Bureau branding removed)",
+      "White-label option",
       "Events management system",
       "1-on-1 strategic session with Pauline Teo",
       "+ 5% platform fee on sales",
@@ -74,6 +107,23 @@ const plans = [
 
 export default function SubscriptionPricing({ currentTier, onSubscribe, onManage, loading, abbyRecommendedTier }: Props) {
   const isSubscribed = currentTier !== "free";
+  const [timeLeft, setTimeLeft] = useState(getTimeRemaining);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimeLeft(getTimeRemaining());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const promoExpired = timeLeft <= 0;
+
+  const handleCopyCode = useCallback((code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCode(code);
+    setTimeout(() => setCopiedCode(null), 2000);
+  }, []);
 
   if (isSubscribed) {
     const currentPlan = plans.find(p => p.id === currentTier) || plans[0];
@@ -87,7 +137,7 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
         <div className="text-center space-y-4">
           <div className="inline-flex items-center gap-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full px-4 py-2 text-sm font-bold">
             <Shield className="h-4 w-4" />
-            ✅ You're on the {currentPlan.name.toUpperCase()} ({currentPlan.price}/month)
+            ✅ You're on the {currentPlan.name.toUpperCase()} ({currentPlan.promoPrice}/month)
           </div>
           <div className="flex flex-wrap justify-center gap-2 max-w-md mx-auto">
             {currentPlan.unlockedCategories.map(cat => (
@@ -125,7 +175,8 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 }}
     >
-      <div className="text-center space-y-2 mb-8">
+      {/* Header */}
+      <div className="text-center space-y-3 mb-6">
         <h2 className="font-heading text-2xl md:text-3xl font-bold">
           Ready to Build Your Author Business?
         </h2>
@@ -134,22 +185,65 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
         </p>
       </div>
 
+      {/* Urgency Banner */}
+      {!promoExpired && (
+        <motion.div
+          className="mx-auto max-w-2xl mb-8 rounded-xl border-2 border-amber-400/60 bg-gradient-to-r from-amber-500/10 via-amber-400/5 to-amber-500/10 p-4"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.4 }}
+        >
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 text-center sm:text-left">
+            <div className="flex items-center gap-2">
+              <Gift className="h-5 w-5 text-amber-500 shrink-0" />
+              <span className="text-sm font-bold text-foreground">
+                🎉 First-Timer Promo — Exclusive pricing just for you!
+              </span>
+            </div>
+            <div className="flex items-center gap-2 rounded-lg bg-foreground/5 px-3 py-1.5">
+              <Clock className="h-4 w-4 text-destructive animate-pulse" />
+              <span className="font-mono text-lg font-bold text-destructive tracking-wider">
+                {formatTime(timeLeft)}
+              </span>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground text-center mt-2">
+            This offer expires when the timer runs out. Lock in your promotional rate today.
+          </p>
+        </motion.div>
+      )}
+
+      {promoExpired && (
+        <div className="mx-auto max-w-2xl mb-8 rounded-xl border border-muted bg-muted/30 p-4 text-center">
+          <p className="text-sm text-muted-foreground">
+            ⏰ The first-timer promo has expired. Standard pricing now applies.
+          </p>
+        </div>
+      )}
+
+      {/* Plan Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
-        {plans.map((plan) => {
+        {plans.map((plan, index) => {
           const isRecommended = abbyRecommendedTier === plan.id;
+          const Icon = plan.icon;
+          const promoCode = PROMO_CODES[plan.id];
+          const showPromo = !promoExpired;
 
           return (
-            <div
+            <motion.div
               key={plan.id}
-              className={`relative rounded-2xl border p-6 transition-all flex flex-col ${
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 + index * 0.1 }}
+              className={`relative rounded-2xl border p-6 transition-all flex flex-col bg-card ${
                 plan.popular
-                  ? "border-amber-400 shadow-lg shadow-amber-500/10 ring-1 ring-amber-400/30 scale-[1.02]"
-                  : "border-border"
+                  ? "border-amber-400 shadow-lg shadow-amber-500/10 ring-1 ring-amber-400/30 md:scale-[1.03]"
+                  : "border-border hover:border-amber-400/40 hover:shadow-md"
               } ${isRecommended ? "ring-2 ring-amber-400" : ""}`}
             >
               {plan.popular && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-amber-500 px-3 py-1 text-[10px] font-bold text-white uppercase tracking-wider">
-                  Most Popular
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-amber-500 px-4 py-1 text-[10px] font-bold text-white uppercase tracking-wider whitespace-nowrap">
+                  🔥 Most Popular
                 </span>
               )}
               {isRecommended && !plan.popular && (
@@ -159,21 +253,68 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
               )}
 
               <div className="space-y-4 flex-1 flex flex-col">
-                <div>
-                  <h3 className="font-heading text-lg font-bold">{plan.name}</h3>
-                  <p className="text-xs text-muted-foreground">{plan.description}</p>
+                {/* Plan Header */}
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                    plan.popular
+                      ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                      : "bg-muted text-muted-foreground"
+                  }`}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading text-lg font-bold">{plan.name}</h3>
+                    <p className="text-[11px] text-muted-foreground">{plan.description}</p>
+                  </div>
                 </div>
 
-                <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold">{plan.price}</span>
-                  <span className="text-muted-foreground text-sm">{plan.period}</span>
-                  <span className="text-xs text-muted-foreground line-through">{plan.usualPrice}/mo</span>
+                {/* Pricing */}
+                <div className="space-y-1">
+                  {showPromo ? (
+                    <>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-4xl font-bold text-foreground">{plan.promoPrice}</span>
+                        <span className="text-muted-foreground text-sm">{plan.period}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground line-through">{plan.usualPrice}/mo</span>
+                        <span className="rounded-full bg-green-500/15 text-green-600 dark:text-green-400 text-[10px] font-bold px-2 py-0.5">
+                          SAVE {plan.savings}/mo
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-4xl font-bold text-foreground">{plan.usualPrice}</span>
+                      <span className="text-muted-foreground text-sm">{plan.period}</span>
+                    </div>
+                  )}
                 </div>
 
+                {/* Promo Code */}
+                {showPromo && promoCode && (
+                  <div
+                    className="rounded-lg border border-dashed border-amber-400/50 bg-amber-500/5 px-3 py-2 cursor-pointer group"
+                    onClick={() => handleCopyCode(promoCode)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Your promo code</p>
+                        <p className="font-mono text-sm font-bold text-amber-600 dark:text-amber-400">{promoCode}</p>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground group-hover:text-foreground transition-colors">
+                        {copiedCode === promoCode ? "✓ Copied!" : "Click to copy"}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tagline */}
                 <p className="text-xs font-semibold italic text-amber-600 dark:text-amber-400">
                   "{plan.tagline}"
                 </p>
 
+                {/* Features */}
                 <ul className="space-y-2 flex-1">
                   {plan.features.map((f) => (
                     <li key={f} className="flex items-start gap-2 text-xs text-muted-foreground">
@@ -183,28 +324,52 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
                   ))}
                 </ul>
 
-              <Button
-                  className={`w-full mt-auto text-xs sm:text-sm ${plan.popular ? "bg-amber-500 hover:bg-amber-600 text-white" : ""}`}
+                {/* CTA Button */}
+                <Button
+                  className={`w-full mt-auto text-xs sm:text-sm font-semibold ${
+                    plan.popular
+                      ? "bg-amber-500 hover:bg-amber-600 text-white shadow-md shadow-amber-500/20"
+                      : ""
+                  }`}
                   onClick={() => onSubscribe(plan.id)}
                   disabled={loading}
+                  size="lg"
                 >
-                  {loading ? <Loader2 className="h-4 w-4 mr-2 shrink-0 animate-spin" /> : <Crown className="h-4 w-4 mr-2 shrink-0" />}
-                  Get {plan.name}
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 mr-2 shrink-0 animate-spin" />
+                  ) : (
+                    <Icon className="h-4 w-4 mr-2 shrink-0" />
+                  )}
+                  {showPromo ? `Get ${plan.name} — ${plan.promoPrice}/mo` : `Get ${plan.name}`}
                 </Button>
               </div>
-            </div>
+            </motion.div>
           );
         })}
       </div>
 
-      <div className="text-center space-y-3 max-w-2xl mx-auto">
-        <p className="text-xs text-muted-foreground">
-          Most authors spend <strong className="text-foreground">$300–$500/month</strong> on Kajabi + Mailchimp + Calendly + Canva + ChatGPT separately. 
-          Authors Bureau includes everything — plus AI that builds your products for you.
-        </p>
-        <p className="text-[10px] text-muted-foreground">
-          All plans include a 5% platform fee on sales. Standard Stripe fees (2.9% + $0.30) apply separately. You keep ~92%.
-        </p>
+      {/* Refund Guarantee & Trust */}
+      <div className="max-w-2xl mx-auto space-y-4">
+        <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-4 flex items-start gap-3">
+          <ShieldCheck className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-foreground">14-Day Money-Back Guarantee</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Not happy? No problem. Cancel within 14 days for a full refund — no questions asked. 
+              We're confident you'll love what Abby builds for you, but the safety net is there.
+            </p>
+          </div>
+        </div>
+
+        <div className="text-center space-y-2">
+          <p className="text-xs text-muted-foreground">
+            Most authors spend <strong className="text-foreground">$300–$500/month</strong> on Kajabi + Mailchimp + Calendly + Canva + ChatGPT separately.
+            Authors Bureau includes everything — plus AI that builds your products for you.
+          </p>
+          <p className="text-[10px] text-muted-foreground">
+            All plans include a 5% platform fee on sales. Standard Stripe fees (2.9% + $0.30) apply separately. You keep ~92%.
+          </p>
+        </div>
       </div>
     </motion.section>
   );
