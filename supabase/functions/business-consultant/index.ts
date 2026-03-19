@@ -252,7 +252,7 @@ Header: "Yield Revenue — Premium Services"
 A visual table showing ALL 28 nodes grouped by phase (B·Brand Products, B·Build Authority, Y·Yield Revenue), with columns for: Node Name, Recommended Price Point, Projected Monthly Revenue, and Status (Recommended / Future / Not Applicable). This gives the author a complete at-a-glance view of their revenue potential.
 
 **IMPORTANT — INTRODUCTION TEXT:**
-When presenting the plan, introduce it with: "I've mapped out your revenue streams across three stages: Brand Products to create your product suite, Build Channels to scale your audience and recurring revenue, and Yield Revenue for premium high-ticket services."
+When presenting the plan, introduce it with: "I've mapped out your revenue streams across three stages: Brand Products to create your product suite, Build Authority to scale your audience and recurring revenue, and Yield Revenue for premium high-ticket services."
 
 **SECTION 6 — 🔓 UNLOCK YOUR PLAN**
 Subscription recommendation with ROI calculation. Include ===SUBSCRIBE_CTA=== once.
