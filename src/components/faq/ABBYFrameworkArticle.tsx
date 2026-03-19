@@ -4,10 +4,10 @@ import { ChevronDown, ChevronUp, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const STAIRCASE = "/images/journey-staircase.png?v=6";
-const FLOW_DIAGRAM = "/images/journey-flow-diagram.png";
-const COMPARISON = "/images/journey-comparison.png";
-const THREE_PATHS = "/images/journey-three-paths.png";
+const STAIRCASE = "/images/journey-staircase.webp";
+const FLOW_DIAGRAM = "/images/journey-flow-diagram.webp";
+const COMPARISON = "/images/journey-comparison.webp";
+const THREE_PATHS = "/images/journey-three-paths.webp";
 
 const buildStreams = [
   { n: 1, name: "Workbooks", desc: "Downloadable PDF exercise books ($19–$47). Like a homework packet for your readers." },
