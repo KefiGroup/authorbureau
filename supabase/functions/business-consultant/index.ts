@@ -348,7 +348,7 @@ Keep responses under 150 words. Always reference the business plan. Tie to manus
 18. NEVER fabricate specific revenue numbers. Use ranges based on the conversion formulas.
 19. NEVER generate fake testimonials, statistics, or success stories.
 20. NEVER add duplicate CTA buttons — the frontend handles those.
-21. NEVER recommend Online Courses, Memberships, Coaching, or any Build/Yield product as a "first step." Brand Products come first.
+21. NEVER recommend Workbooks, Home Study Courses, Online Courses, Memberships, Coaching, or any Digital Product / Build / Yield product as a "first step." Branding & Marketing (Website, Lead Magnets, Email Marketing, Social Media) comes first.
 22. ALWAYS check progress_log before recommending. If a node is already completed, acknowledge it and move to the next.
 23. ALWAYS reference how the current node connects to already-built nodes.`;
 
