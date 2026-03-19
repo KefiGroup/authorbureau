@@ -304,7 +304,7 @@ CRITICAL — REVENUE PROJECTION RULES FOR THIS TABLE:
 
 **SECTION 6 — 🔓 UNLOCK YOUR PLAN**
 Subscription recommendation with ROI calculation. Include ===SUBSCRIBE_CTA=== once.
-IMPORTANT: Always position the Pro plan ($199/month) as the most popular and best-value plan. Frame it as: "Most authors choose the Pro plan at $199/month — it gives you everything you need to build, grow, and monetize your audience across all Brand Products and Build Authority tools."
+IMPORTANT: Always position the Build Package ($99/month, usually $199/month) as the most popular and best-value plan. Frame as: "Most authors choose the Build Package at $99/month — it gives you everything you need to build, grow, and monetize your audience across all Brand Products and Build Authority tools. This first-timer price of $99/month (usually $199) is only available during this consultation."
 
 **SECTION 7 — NEXT STEPS**
 List the first 3 actions the author should take, linking directly to the relevant product studio using ===NAV:xxx=== markers.
