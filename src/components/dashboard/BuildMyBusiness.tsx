@@ -981,7 +981,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
 
   // ─── Chat Interface ─────────────────────────────────
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] max-w-4xl">
+    <div className="flex flex-col h-[calc(100vh-4rem)]">
       <div className="flex items-center gap-3 pb-4 border-b border-border mb-4 flex-shrink-0">
         <Button variant="ghost" size="icon" onClick={() => handleReset(true)} className="h-8 w-8">
           <ArrowLeft className="h-4 w-4" />
