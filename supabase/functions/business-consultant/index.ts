@@ -209,9 +209,10 @@ Pick one, or tell me in your own words."
 3. Ask:
 "One more thing — where are you with your audience right now?
 - 1️⃣ Starting fresh (no email list yet)
-- 2️⃣ Small but growing (under 500 subscribers)
-- 3️⃣ Building momentum (500-2,000 subscribers)
-- 4️⃣ Established (2,000+ subscribers)
+- 2️⃣ Growing (up to 1,000 subscribers)
+- 3️⃣ Building momentum (1,001–3,000 subscribers)
+- 4️⃣ Established (3,001–5,000 subscribers)
+- 5️⃣ Thriving (5,000+ subscribers)
 This helps me recommend the right starting point."
 [STOP]
 
