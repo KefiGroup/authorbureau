@@ -23,7 +23,7 @@ const tierFeatures = {
     "Home Study Courses",
   ],
   pro: [
-    "Everything in Starter, plus:",
+    "Everything in Brand Package, plus:",
     "Online Course Builder",
     "Audiobook Studio",
     "Podcast Scripts",
@@ -33,7 +33,7 @@ const tierFeatures = {
     "CRM + Subscriber Management",
   ],
   enterprise: [
-    "Everything in Pro, plus:",
+    "Everything in Build Package, plus:",
     "Keynote Speech Builder",
     "Corporate Training Programs",
     "Retreats & Bootcamps",

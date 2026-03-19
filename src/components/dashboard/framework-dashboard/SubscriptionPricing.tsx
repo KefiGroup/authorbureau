@@ -13,8 +13,9 @@ interface Props {
 const plans = [
   {
     id: "starter" as const,
-    name: "Starter",
+    name: "Brand Package",
     price: "$49",
+    usualPrice: "$69",
     period: "/mo",
     tagline: "Test the waters.",
     description: "Start building with Brand Products",
@@ -30,14 +31,15 @@ const plans = [
   },
   {
     id: "pro" as const,
-    name: "Pro",
-    price: "$199",
+    name: "Build Package",
+    price: "$99",
+    usualPrice: "$199",
     period: "/mo",
     tagline: "Build a real business.",
     description: "Full Brand + Build Authority — everything to monetize",
     popular: true,
     features: [
-      "Everything in Starter",
+      "Everything in Brand Package",
       "All 9 B·Build Authority builders (Courses, Coaching, Audiobooks, Podcasts)",
       "Full website with unlimited sales pages",
       "Stripe Connect payment processing",
@@ -50,14 +52,15 @@ const plans = [
   },
   {
     id: "enterprise" as const,
-    name: "Enterprise",
-    price: "$499",
+    name: "Yield Package",
+    price: "$249",
+    usualPrice: "$499",
     period: "/mo",
     tagline: "Build an empire.",
     description: "Complete monetization empire — all 28 streams",
     popular: false,
     features: [
-      "Everything in Pro",
+      "Everything in Build Package",
       "All 10 Y·Yield builders (Coaching, Retreats, Certification, Masterminds)",
       "Full site with custom domain support",
       "White-label option (Authors Bureau branding removed)",
@@ -72,7 +75,6 @@ const plans = [
 export default function SubscriptionPricing({ currentTier, onSubscribe, onManage, loading, abbyRecommendedTier }: Props) {
   const isSubscribed = currentTier !== "free";
 
-  // Subscribed compact summary
   if (isSubscribed) {
     const currentPlan = plans.find(p => p.id === currentTier) || plans[0];
     return (
@@ -85,7 +87,7 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
         <div className="text-center space-y-4">
           <div className="inline-flex items-center gap-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full px-4 py-2 text-sm font-bold">
             <Shield className="h-4 w-4" />
-            ✅ You're on the {currentPlan.name.toUpperCase()} PLAN ({currentPlan.price}/month)
+            ✅ You're on the {currentPlan.name.toUpperCase()} ({currentPlan.price}/month)
           </div>
           <div className="flex flex-wrap justify-center gap-2 max-w-md mx-auto">
             {currentPlan.unlockedCategories.map(cat => (
@@ -103,7 +105,7 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
             {currentTier !== "enterprise" && (
               <Button onClick={() => onSubscribe(currentTier === "starter" ? "pro" : "enterprise")} disabled={loading}>
                 <ArrowUpRight className="h-4 w-4 mr-2" />
-                Upgrade to {currentTier === "starter" ? "Pro" : "Enterprise"}
+                Upgrade to {currentTier === "starter" ? "Build Package" : "Yield Package"}
               </Button>
             )}
             <Button variant="outline" onClick={onManage} disabled={loading}>
@@ -162,9 +164,10 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
                   <p className="text-xs text-muted-foreground">{plan.description}</p>
                 </div>
 
-                <div className="flex items-baseline gap-1">
+                <div className="flex items-baseline gap-2">
                   <span className="text-4xl font-bold">{plan.price}</span>
                   <span className="text-muted-foreground text-sm">{plan.period}</span>
+                  <span className="text-xs text-muted-foreground line-through">{plan.usualPrice}/mo</span>
                 </div>
 
                 <p className="text-xs font-semibold italic text-amber-600 dark:text-amber-400">

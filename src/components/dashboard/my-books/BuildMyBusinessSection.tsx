@@ -55,7 +55,7 @@ export default function BuildMyBusinessSection({
                 </p>
               ) : (
                 <p className="text-[11px] text-white/40 flex items-center justify-center gap-1">
-                  <Lock className="h-3 w-3" /> {cat.requiredTier.charAt(0).toUpperCase() + cat.requiredTier.slice(1)}
+                  <Lock className="h-3 w-3" /> {cat.requiredTier === "starter" ? "Brand" : cat.requiredTier === "pro" ? "Build" : "Yield"}
                 </p>
               )}
             </div>
