@@ -332,10 +332,11 @@ Keep responses under 150 words. Always reference the business plan. Tie to manus
 - B·Brand Products: Workbook, Social Media, Email Marketing, Author Microsite, Book Sales, Home Study Courses, Special Editions, Lead Magnets, Webinars
 - Best for: Authors starting out
 
-### PRO ($199/month)
+### PRO ($199/month) ⭐ MOST POPULAR
 - Everything in Starter, PLUS:
 - B·Build Authority: Online Course, Audiobook Studio, Podcast Tour, Memberships, Group Coaching, Media Outreach, Affiliates, Upsells/Downsells, Revenue Sharing/JV
 - CRM + Subscriber Management
+- ALWAYS position this as the recommended plan. Frame as: "Most authors choose the Pro plan — it's the best value for building a complete author business."
 
 ### ENTERPRISE ($499/month)
 - Everything in Pro, PLUS:
