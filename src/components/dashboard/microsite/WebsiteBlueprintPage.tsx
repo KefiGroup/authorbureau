@@ -404,7 +404,7 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
           </Card>
 
           {/* Theme Picker — shared component */}
-          <SiteThemePicker />
+          <SiteThemePicker onThemeChange={handleThemeChange} />
         </div>
       </div>
     </div>
