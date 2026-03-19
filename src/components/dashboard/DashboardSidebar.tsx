@@ -81,30 +81,53 @@ export default function DashboardSidebar({
   ];
 
   // BUILD YOUR BUSINESS
+  // Determine lock state for each B-B-Y category
+  const brandAccessible = hasAnalysis || bypassLocks;
+  const buildAccessible = (isSuperAdminProp || buildAuthorityCategoryOpen) && tierAccess("pro");
+  const yieldAccessible = (isSuperAdminProp || yieldCategoryOpen) && tierAccess("enterprise");
+
   const businessItems: NavItem[] = [
     {
       id: "revenue-streams", label: "B·Brand Products", icon: DollarSign,
       subtitle: "Create Your Products",
       tooltip: "Turn your book into 9 digital products your audience can buy.",
       color: "text-emerald-500",
-      badge: hasAnalysis || bypassLocks ? `${buildUnlocked} built` : undefined,
-      lockMessage: (!hasAnalysis && !bypassLocks) ? "Analyze a book first" : (!tierAccess("starter") ? "Requires Starter" : undefined),
+      badge: brandAccessible ? `${buildUnlocked} built` : undefined,
+      lockMessage: !brandAccessible
+        ? "Analyze a book first"
+        : !tierAccess("starter")
+        ? "Upgrade to Brand Package ($49/mo)"
+        : undefined,
     },
     {
       id: "marketing-channels", label: "B·Build Authority", icon: Radio,
-      subtitle: (isSuperAdminProp || buildAuthorityCategoryOpen) ? (isSuperAdminProp ? "Dev Access" : "Scale Your Audience") : "Coming Soon",
-      tooltip: (isSuperAdminProp || buildAuthorityCategoryOpen) ? "Scale audience and recurring revenue" : "Build Authority is coming soon. Stay tuned!",
+      subtitle: buildAccessible ? (isSuperAdminProp ? "Dev Access" : "Scale Your Audience")
+        : (isSuperAdminProp || buildAuthorityCategoryOpen) ? "Requires Build Package" : "Coming Soon",
+      tooltip: buildAccessible ? "Scale audience and recurring revenue"
+        : !tierAccess("pro") ? "Upgrade to Build Package ($99/mo) to unlock"
+        : "Build Authority is coming soon. Stay tuned!",
       color: "text-violet-500",
-      badge: (isSuperAdminProp || buildAuthorityCategoryOpen) ? `${buildAuthorityUnlocked} built` : "Coming Soon",
-      lockMessage: (isSuperAdminProp || buildAuthorityCategoryOpen) ? undefined : "Build Authority is coming soon",
+      badge: buildAccessible ? `${buildAuthorityUnlocked} built` : undefined,
+      lockMessage: !buildAccessible
+        ? (!tierAccess("pro") && (isSuperAdminProp || buildAuthorityCategoryOpen)
+          ? "Upgrade to Build Package ($99/mo)"
+          : (isSuperAdminProp || buildAuthorityCategoryOpen) ? undefined : "Build Authority is coming soon")
+        : undefined,
     },
     {
       id: "authority-builders", label: "Y·Yield Revenue", icon: Award,
-      subtitle: (isSuperAdminProp || yieldCategoryOpen) ? (isSuperAdminProp ? "Dev Access" : "Premium Services") : "Coming Soon",
-      tooltip: (isSuperAdminProp || yieldCategoryOpen) ? "Premium monetization services" : "Yield Revenue builders are coming soon. Stay tuned!",
+      subtitle: yieldAccessible ? (isSuperAdminProp ? "Dev Access" : "Premium Services")
+        : (isSuperAdminProp || yieldCategoryOpen) ? "Requires Yield Package" : "Coming Soon",
+      tooltip: yieldAccessible ? "Premium monetization services"
+        : !tierAccess("enterprise") ? "Upgrade to Yield Package ($249/mo) to unlock"
+        : "Yield Revenue builders are coming soon. Stay tuned!",
       color: "text-amber-500",
-      badge: (isSuperAdminProp || yieldCategoryOpen) ? `${yieldUnlocked} built` : "Coming Soon",
-      lockMessage: (isSuperAdminProp || yieldCategoryOpen) ? undefined : "Yield Revenue builders are coming soon",
+      badge: yieldAccessible ? `${yieldUnlocked} built` : undefined,
+      lockMessage: !yieldAccessible
+        ? (!tierAccess("enterprise") && (isSuperAdminProp || yieldCategoryOpen)
+          ? "Upgrade to Yield Package ($249/mo)"
+          : (isSuperAdminProp || yieldCategoryOpen) ? undefined : "Yield Revenue builders are coming soon")
+        : undefined,
     },
     {
       id: "review-products" as DashboardSection, label: "Review & Publish",
@@ -126,7 +149,7 @@ export default function DashboardSidebar({
     {
       id: "author-crm" as DashboardSection, label: "My Contacts",
       icon: Contact,
-      lockMessage: !tierAccess("pro") ? "Upgrade to Pro to access your CRM" : undefined,
+      lockMessage: !tierAccess("pro") ? "Upgrade to Build Package ($99/mo) to access CRM" : undefined,
     },
     {
       id: "messages" as DashboardSection, label: "Messages",
