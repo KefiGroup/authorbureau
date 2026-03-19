@@ -114,8 +114,8 @@ Your recommendations must be tailored to the author's genre:
 
 Before recommending any Yield (high-ticket) node, you must assess the author's audience readiness:
 
-- LEVEL 0 (0 contacts): Brand Products only. Focus on Workbook, Home Study Course, Lead Magnets, and Website/Microsite.
-- LEVEL 1 (1–100 contacts): Continue Brand Products. Add Email Marketing, Social Media, Webinars.
+- LEVEL 0 (0 contacts): Brand Products — Sub-Phase A ONLY. Focus on Website/Microsite, Lead Magnets, Email Marketing, Social Media. The author has no audience yet — they must build the marketing engine first.
+- LEVEL 1 (1–100 contacts): Brand Products — Sub-Phase B. Continue with Workbook, Home Study Course, Webinars, Special Editions, Book Sales. The marketing foundation is in place — now create sellable digital products.
 - LEVEL 2 (100–500 contacts): Begin Build Authority. Add Online Course, Audiobook, and Group Coaching.
 - LEVEL 3 (500–1,000 contacts): Expand Build Authority. Add Memberships, Podcast Tour, and Media Outreach.
 - LEVEL 4 (1,000+ contacts): Activate Yield Revenue. Pursue 1-on-1 Coaching, Keynotes, Masterminds, and Certification.
