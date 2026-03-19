@@ -326,11 +326,47 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
     const productLines = content.match(/\d+\.\s+\*\*[^*]+\*\*/g);
     if (productLines) data.revenueStreamsCount = productLines.length;
 
-    // Extract revenue range from common patterns like "$8,000–$30,000/month"
-    const revenueMatch = content.match(/\$([0-9,]+)\s*[-–—]\s*\$([0-9,]+)\s*\/?\s*(?:mo|month)/i);
-    if (revenueMatch) {
-      data.revenueLow = `$${revenueMatch[1]}`;
-      data.revenueHigh = `$${revenueMatch[2]}`;
+    // Sum projected monthly revenues from the monetisation map table
+    // Look for all "$X,XXX" patterns in "Projected Monthly Revenue" column cells like "$0–$4,000"
+    const revenueRanges = content.match(/\$([0-9,]+)\s*[-–—]\s*\$([0-9,]+)(?=\s*(?:Future|Recommended|Not Applicable|$))/gm);
+    if (revenueRanges && revenueRanges.length >= 3) {
+      let totalLow = 0;
+      let totalHigh = 0;
+      for (const range of revenueRanges) {
+        const m = range.match(/\$([0-9,]+)\s*[-–—]\s*\$([0-9,]+)/);
+        if (m) {
+          totalLow += parseInt(m[1].replace(/,/g, ""), 10) || 0;
+          totalHigh += parseInt(m[2].replace(/,/g, ""), 10) || 0;
+        }
+      }
+      if (totalHigh > 0) {
+        data.revenueLow = `$${totalLow.toLocaleString()}`;
+        data.revenueHigh = `$${totalHigh.toLocaleString()}`;
+      }
+    }
+
+    // Fallback: look for explicit revenue summary patterns like "conservative $500–$1,500/mo → realistic $2,000–$6,000"
+    if (!data.revenueLow) {
+      const summaryMatches = [...content.matchAll(/(?:conservative|realistic|optimistic)\s+\$([0-9,]+)\s*[-–—]\s*\$([0-9,]+)/gi)];
+      if (summaryMatches.length > 0) {
+        // Use the realistic range if available (2nd match), otherwise conservative (1st)
+        const pick = summaryMatches.length >= 2 ? summaryMatches[1] : summaryMatches[0];
+        data.revenueLow = `$${pick[1]}`;
+        data.revenueHigh = `$${pick[2]}`;
+      }
+    }
+
+    // Final fallback: any $X–$Y/month pattern but skip small amounts under $100 (likely product prices)
+    if (!data.revenueLow) {
+      const allRanges = [...content.matchAll(/\$([0-9,]+)\s*[-–—]\s*\$([0-9,]+)\s*\/?\s*(?:mo|month)/gi)];
+      for (const m of allRanges) {
+        const high = parseInt(m[2].replace(/,/g, ""), 10);
+        if (high >= 100) {
+          data.revenueLow = `$${m[1]}`;
+          data.revenueHigh = `$${m[2]}`;
+          break;
+        }
+      }
     }
 
     // Detect recommended tier
@@ -945,7 +981,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
 
   // ─── Chat Interface ─────────────────────────────────
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] max-w-4xl">
+    <div className="flex flex-col h-[calc(100vh-4rem)]">
       <div className="flex items-center gap-3 pb-4 border-b border-border mb-4 flex-shrink-0">
         <Button variant="ghost" size="icon" onClick={() => handleReset(true)} className="h-8 w-8">
           <ArrowLeft className="h-4 w-4" />
