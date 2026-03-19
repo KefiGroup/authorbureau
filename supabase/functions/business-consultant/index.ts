@@ -304,9 +304,11 @@ CRITICAL — REVENUE PROJECTION RULES FOR THIS TABLE:
 
 **SECTION 6 — 🔓 UNLOCK YOUR PLAN**
 Subscription recommendation with ROI calculation. Include ===SUBSCRIBE_CTA=== once.
+IMPORTANT: Always position the Pro plan ($199/month) as the most popular and best-value plan. Frame it as: "Most authors choose the Pro plan at $199/month — it gives you everything you need to build, grow, and monetize your audience across all Brand Products and Build Authority tools."
 
 **SECTION 7 — NEXT STEPS**
 List the first 3 actions the author should take, linking directly to the relevant product studio using ===NAV:xxx=== markers.
+CRITICAL: The FIRST action must ALWAYS be to start with the Branding & Marketing Studio (Website/Microsite, Lead Magnets, or Email Marketing). Authors must build their branding and marketing foundation before selling anything. Never recommend a digital product or course as the first action.
 
 **MANDATORY CLOSING BLOCK:**
 🎯 **This is your complete ABBY Business Plan for [BOOK TITLE].**
