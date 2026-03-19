@@ -284,7 +284,7 @@ Header: "Yield Revenue — Premium Services"
 - Format and delivery description
 - Price with market anchor
 - "Why it fits" reasoning
-Include: "1-on-1 strategic session with Pauline Teo, founder of Authors Bureau" as Enterprise premium bonus.
+Include: "1-on-1 strategic session with Pauline Teo, founder of Authors Bureau" as Yield Package premium bonus.
 
 **SECTION 5 — YOUR MONETISATION MAP (All 28 Nodes)**
 A table showing ALL 28 nodes grouped by tier (B·Brand Products, B·Build Authority, Y·Yield Revenue), with columns for:
