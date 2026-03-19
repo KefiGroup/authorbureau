@@ -44,7 +44,7 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
 
     const email = await resolveUserEmail(token);
-    const { priceId } = await req.json();
+    const { priceId, promoCode } = await req.json();
     if (!priceId) throw new Error("priceId is required");
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { apiVersion: "2025-08-27.basil" });
@@ -56,15 +56,36 @@ serve(async (req) => {
 
     const origin = req.headers.get("origin") || "http://localhost:3000";
 
-    const session = await stripe.checkout.sessions.create({
+    // Build checkout session options
+    const sessionOptions: any = {
       customer: customerId,
       customer_email: customerId ? undefined : email,
       line_items: [{ price: priceId, quantity: 1 }],
       mode: "subscription",
-      allow_promotion_codes: true,
       success_url: `${origin}/dashboard?checkout=success`,
       cancel_url: `${origin}/dashboard?checkout=cancelled`,
-    });
+    };
+
+    // If a promo code is provided, look up the coupon and apply it as a discount
+    if (promoCode) {
+      try {
+        // List promotion codes matching the code string
+        const promoCodes = await stripe.promotionCodes.list({ code: promoCode, active: true, limit: 1 });
+        if (promoCodes.data.length > 0) {
+          sessionOptions.discounts = [{ promotion_code: promoCodes.data[0].id }];
+        } else {
+          // Try applying the coupon directly by name/id
+          sessionOptions.discounts = [{ coupon: promoCode }];
+        }
+      } catch (e) {
+        console.log("[create-checkout] Promo code lookup failed, allowing manual entry:", e);
+        sessionOptions.allow_promotion_codes = true;
+      }
+    } else {
+      sessionOptions.allow_promotion_codes = true;
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionOptions);
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
