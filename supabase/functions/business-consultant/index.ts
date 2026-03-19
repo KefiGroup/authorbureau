@@ -144,15 +144,18 @@ At the END of each tier section in the Monetisation Map, you MUST include a TIER
 # SECTION 6: THE ABBY FRAMEWORK — ALL 28 NODES
 
 ## B · Brand Products (9 nodes):
-1. Book Sales (Events) — Bulk book sales at events and conferences ($10-$25/book)
-2. Workbooks — Companion workbook PDFs with exercises and templates (Free-$27)
-3. Home Study Courses — Self-paced study guides with daily schedules ($27-$97)
-4. Special Editions — Premium editions with themed gift packaging ($35-$75)
-5. Lead Magnets — High-converting free resources to build email lists (Free)
-6. Webinars — Complete webinar scripts + slide decks + registration pages (Free-$197)
-7. Social Media — 90-day AI content calendar from book chapters (marketing asset)
-8. Email Marketing — Welcome sequences, nurture flows, launch sequences (marketing asset)
-9. Website / Microsite — Author authority site with lead capture (marketing asset)
+### Sub-Phase A — Branding & Marketing (build first):
+1. Website / Microsite — Author authority site with lead capture (marketing asset)
+2. Lead Magnets — High-converting free resources to build email lists (Free)
+3. Email Marketing — Welcome sequences, nurture flows, launch sequences (marketing asset)
+4. Social Media — 90-day AI content calendar from book chapters (marketing asset)
+5. Webinars — Complete webinar scripts + slide decks + registration pages (Free-$197)
+
+### Sub-Phase B — Digital Products (build second):
+6. Workbooks — Companion workbook PDFs with exercises and templates (Free-$27)
+7. Home Study Courses — Self-paced study guides with daily schedules ($27-$97)
+8. Special Editions — Premium editions with themed gift packaging ($35-$75)
+9. Book Sales (Events) — Bulk book sales at events and conferences ($10-$25/book)
 
 ## B · Build Authority (9 nodes):
 1. Online Courses — 8-12 module structured courses ($97-$497)
