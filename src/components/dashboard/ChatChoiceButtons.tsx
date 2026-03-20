@@ -23,22 +23,62 @@ interface Props {
  *   • * A) text
  * Returns null if no choices found.
  */
-export function parseChoices(content: string): Choice[] | null {
-  // Match lines starting with optional bullet + letter + ) or .
-  const regex = /(?:^|\n)\s*(?:[-•*]\s*)?([A-Z])\s*[).]\s*(.+)/g;
+export function parseChoices(content: string): { choices: Choice[]; multiSelect: boolean } | null {
+  // Try lettered patterns first: A) text, A. text, - A) text, • A) text
+  const letterRegex = /(?:^|\n)\s*(?:[-•*]\s*)?([A-Z])\s*[).]\s*(.+)/g;
   const choices: Choice[] = [];
   let match;
-  while ((match = regex.exec(content)) !== null) {
+  while ((match = letterRegex.exec(content)) !== null) {
     const letter = match[1];
-    // Clean up any trailing markdown/formatting
     const text = match[2].replace(/\*\*/g, "").replace(/\[STOP\]/g, "").trim();
     if (text && !choices.find(c => c.letter === letter)) {
       choices.push({ letter, text });
     }
   }
-  // Only return if we found at least 2 sequential choices
-  if (choices.length >= 2) return choices;
+  if (choices.length >= 2) {
+    return { choices, multiSelect: detectMultiSelect(content) };
+  }
+
+  // Try numbered emoji patterns: 1️⃣ text, 2️⃣ text, or • 1️⃣ text
+  const emojiNumRegex = /(?:^|\n)\s*(?:[-•*]\s*)?([1-9])\uFE0F?\u20E3\s*(.+)/g;
+  while ((match = emojiNumRegex.exec(content)) !== null) {
+    const letter = match[1];
+    const text = match[2].replace(/\*\*/g, "").replace(/\[STOP\]/g, "").trim();
+    if (text && !choices.find(c => c.letter === letter)) {
+      choices.push({ letter, text });
+    }
+  }
+  if (choices.length >= 2) {
+    return { choices, multiSelect: detectMultiSelect(content) };
+  }
+
+  // Try plain numbered patterns: 1) text, 1. text, - 1) text
+  const numRegex = /(?:^|\n)\s*(?:[-•*]\s*)?(\d+)\s*[).]\s*(.+)/g;
+  while ((match = numRegex.exec(content)) !== null) {
+    const letter = match[1];
+    const text = match[2].replace(/\*\*/g, "").replace(/\[STOP\]/g, "").trim();
+    if (text && !choices.find(c => c.letter === letter)) {
+      choices.push({ letter, text });
+    }
+  }
+  if (choices.length >= 2) {
+    return { choices, multiSelect: detectMultiSelect(content) };
+  }
+
   return null;
+}
+
+/** Detect if the question asks for single or multiple selection */
+function detectMultiSelect(content: string): boolean {
+  const lower = content.toLowerCase();
+  // Single-select signals
+  if (/pick one[^a-z]|choose one[^a-z]|select one[^a-z]|pick one\b/i.test(lower)) return false;
+  if (/which one\b/i.test(lower)) return false;
+  // Multi-select signals
+  if (/pick .*(all|multiple|any)|select .*(all|multiple|any)|choose .*(all|multiple|any)/i.test(lower)) return true;
+  if (/one or more/i.test(lower)) return true;
+  // Default to single select
+  return false;
 }
 
 export default function ChatChoiceButtons({ choices, multiSelect = true, onSubmit, disabled }: Props) {
