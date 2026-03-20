@@ -499,38 +499,3 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
   );
 }
 
-function BuildMyBusinessButton({ tier, recommendedCount }: { tier: SubscriptionTier; recommendedCount: number }) {
-  const { toast } = useToast();
-  const canUse = hasTierAccess(tier, "pro");
-
-  if (!canUse) {
-    return (
-      <div className="rounded-xl border border-border bg-muted/50 p-4 flex items-center gap-3 opacity-70">
-        <Lock className="h-6 w-6 text-muted-foreground" />
-        <div>
-          <p className="text-sm font-semibold text-muted-foreground">Build My Author Business — One-Click</p>
-          <p className="text-xs text-muted-foreground">Upgrade to Pro to unlock one-click building of all recommended products.</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <button
-      onClick={() => toast({ title: "Build queue coming soon", description: "Use individual builders in the tabs below for now." })}
-      className="w-full rounded-xl p-4 text-left text-white transition-transform hover:scale-[1.02]"
-      style={{
-        background: "linear-gradient(135deg, #0D9488, #0F766E)",
-        boxShadow: "0 4px 12px rgba(13, 148, 136, 0.3)",
-      }}
-    >
-      <div className="flex items-center gap-3">
-        <Sparkles className="h-6 w-6 text-white shrink-0" />
-        <div>
-          <p className="text-base font-semibold">Build My Author Business — Create All Recommended Products</p>
-          <p className="text-[13px] text-white/70">Abby will generate {recommendedCount} products in ~15-30 minutes. Review and publish at your pace.</p>
-        </div>
-      </div>
-    </button>
-  );
-}
