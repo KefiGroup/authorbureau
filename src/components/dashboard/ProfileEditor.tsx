@@ -603,7 +603,7 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
   ].filter(l => l.url);
 
   return (
-    <div className="max-w-3xl space-y-8">
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
