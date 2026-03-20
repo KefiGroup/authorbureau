@@ -632,18 +632,18 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
 
         <div className="grid gap-4 sm:grid-cols-2">
           {/* Route 1 */}
-          <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-2">
-            <p className="text-sm font-semibold text-primary">Route 1 — Already on PublishNow</p>
-            <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+          <div className="rounded-lg border-2 border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30 dark:border-emerald-700 p-5 space-y-2">
+            <p className="text-sm font-bold text-emerald-800 dark:text-emerald-300">Route 1 — Already on PublishNow</p>
+            <ol className="text-sm text-emerald-900/80 dark:text-emerald-200/80 space-y-1.5 list-decimal list-inside">
               <li>Click <strong>"Sync"</strong> above to pull your existing profile.</li>
               <li>To edit, click <strong>"Edit on PublishNow"</strong>, make changes, then come back and <strong>Sync</strong> again.</li>
             </ol>
           </div>
 
           {/* Route 2 */}
-          <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2">
-            <p className="text-sm font-semibold">Route 2 — New to PublishNow</p>
-            <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+          <div className="rounded-lg border-2 border-sky-300 bg-sky-50 dark:bg-sky-950/30 dark:border-sky-700 p-5 space-y-2">
+            <p className="text-sm font-bold text-sky-800 dark:text-sky-300">Route 2 — New to PublishNow</p>
+            <ol className="text-sm text-sky-900/80 dark:text-sky-200/80 space-y-1.5 list-decimal list-inside">
               <li>Click <strong>"Edit on PublishNow"</strong> — you'll be signed in automatically.</li>
               <li>Complete your profile (name, photo, bio, links).</li>
               <li>Go to <strong>Settings → Set Password</strong> on PublishNow to secure your account.</li>
