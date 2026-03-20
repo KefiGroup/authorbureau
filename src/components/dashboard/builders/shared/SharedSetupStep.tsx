@@ -315,29 +315,6 @@ Return ONLY valid JSON. No markdown, no explanation outside the JSON.`;
       {/* Editable fields — only when no Abby analysis or manual mode */}
       {(!abbyHasAnalyzed || manualMode) && (
         <>
-          {/* If accepted, show a compact confirmation + re-analyze */}
-          {stepData[`${configKey}_accepted`] && !manualMode && (
-            <Card className="border-emerald-200 dark:border-emerald-800/40 bg-emerald-50/50 dark:bg-emerald-950/20 p-4 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center">
-                  <Check className="h-4 w-4 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Abby's configuration accepted</p>
-                  <p className="text-xs text-muted-foreground">Click Save & Continue below, or tweak individual fields.</p>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="ghost" size="sm" className="text-xs" onClick={chooseDIY}>Edit fields</Button>
-                {bookId && (
-                  <Button variant="ghost" size="sm" className="text-xs" onClick={analyzeWithAbby} disabled={analyzing}>
-                    {analyzing ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}
-                    Re-analyze
-                  </Button>
-                )}
-              </div>
-            </Card>
-          )}
 
           <StepInstructions
             category={category}
