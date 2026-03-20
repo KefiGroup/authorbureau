@@ -137,7 +137,10 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
 
   useEffect(() => {
     async function checkData() {
-      const { data: { session } } = await sharedSupabase.auth.getSession();
+      // Try shared backend session first, fall back to cloud session
+      const { data: { session: sharedSession } } = await sharedSupabase.auth.getSession();
+      const { data: { session: cloudSession } } = await supabase.auth.getSession();
+      const session = sharedSession || cloudSession;
       const token = session?.access_token;
       const userId = session?.user?.id;
       if (!userId) { setDataReady(true); return; }
