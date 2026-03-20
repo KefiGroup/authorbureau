@@ -86,12 +86,27 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
   const [viewPlanBook, setViewPlanBook] = useState<Book | null>(null);
 
   useEffect(() => {
-    if (lastAssistantRef.current) {
-      lastAssistantRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-    } else {
-      chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages]);
+    let raf1 = 0;
+    let raf2 = 0;
+
+    const scrollToLatestAssistant = () => {
+      if (lastAssistantRef.current) {
+        lastAssistantRef.current.scrollIntoView({ behavior: isStreaming ? "auto" : "smooth", block: "start" });
+      } else {
+        chatEndRef.current?.scrollIntoView({ behavior: isStreaming ? "auto" : "smooth" });
+      }
+    };
+
+    raf1 = requestAnimationFrame(() => {
+      scrollToLatestAssistant();
+      raf2 = requestAnimationFrame(scrollToLatestAssistant);
+    });
+
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
+  }, [messages, isStreaming]);
 
   // Fetch user's books + analysis status
   useEffect(() => {
