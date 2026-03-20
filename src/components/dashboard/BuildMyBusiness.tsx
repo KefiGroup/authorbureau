@@ -1066,6 +1066,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
             .replace(/===NEXT:\s*.*?===/g, "")
             .replace(/===NAV:[\w-]+===/g, "")
             .replace(/\[STOP\]/g, "")
+            .replace(/#{1,4}\s*TURN\s+\d+[A-F]?\s*[—–-]\s*.+/gi, "")
             .trim();
 
           return (
