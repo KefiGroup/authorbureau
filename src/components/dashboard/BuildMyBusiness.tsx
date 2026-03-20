@@ -14,6 +14,7 @@ import FullPlanDialog from "@/components/dashboard/FullPlanDialog";
 import FrameworkInterviewModal, { type BuildMode } from "@/components/dashboard/FrameworkInterviewModal";
 import SubscriptionSalesPitch from "@/components/dashboard/framework-dashboard/SubscriptionSalesPitch";
 import ManuscriptUpload from "@/components/dashboard/ManuscriptUpload";
+import ChatChoiceButtons, { parseChoices } from "@/components/dashboard/ChatChoiceButtons";
 import type { AuthorFramework } from "@/components/dashboard/FrameworksEditor";
 import {
   Rocket, BookOpen, Loader2, Send, ArrowLeft, Sparkles, User, RotateCcw,
@@ -1123,6 +1124,19 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
                     })}
                   </div>
                 )}
+
+                {/* Clickable choice buttons for the last assistant message */}
+                {msg.role === "assistant" && !isStreaming && idx === messages.length - 1 && (() => {
+                  const choices = parseChoices(displayContent);
+                  return choices ? (
+                    <ChatChoiceButtons
+                      choices={choices}
+                      multiSelect={true}
+                      onSubmit={(text) => sendMessage(text)}
+                      disabled={isStreaming}
+                    />
+                  ) : null;
+                })()}
               </div>
               {msg.role === "user" && (
                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1"><User className="h-4 w-4 text-primary" /></div>
