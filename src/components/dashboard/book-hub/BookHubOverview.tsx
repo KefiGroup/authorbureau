@@ -376,8 +376,8 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
         {tier === "starter" && builtCount >= 2 && (
           <div className="mt-4 rounded-lg bg-violet-50 border border-violet-200 p-3">
             <p className="text-sm text-violet-800">
-              <strong>Outgrowing Starter?</strong> You've built {builtCount} of 3 Starter products. Upgrade to Pro ($199/mo) to unlock more builders including courses, coaching, webinars, and memberships.{" "}
-              <a href="/dashboard?section=build-business" className="font-semibold underline">Upgrade to Pro →</a>
+              <strong>Ready to scale?</strong> You've built {builtCount} Brand products. Upgrade to Build Package ($99/mo) to unlock courses, coaching, webinars, and more.{" "}
+              <a href="/dashboard?section=build-business" className="font-semibold underline">Upgrade to Build →</a>
             </p>
           </div>
         )}
@@ -385,8 +385,8 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
         {tier === "pro" && (
           <div className="mt-4 rounded-lg border border-secondary/30 bg-secondary/5 p-3">
             <p className="text-sm text-foreground">
-              <strong>Ready for the full empire?</strong> Enterprise ($499/mo) unlocks retreats, certification, masterminds, corporate training, and a 1-on-1 strategy session with Pauline Teo.{" "}
-              <a href="/dashboard?section=build-business" className="font-semibold text-secondary underline">Upgrade to Enterprise →</a>
+              <strong>Ready for premium services?</strong> Yield Package ($249/mo) unlocks retreats, certification, masterminds, corporate training, and a 1-on-1 strategy session with Pauline Teo.{" "}
+              <a href="/dashboard?section=build-business" className="font-semibold text-secondary underline">Upgrade to Yield →</a>
             </p>
           </div>
         )}
