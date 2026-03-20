@@ -247,7 +247,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
   if (!user) return <Navigate to="/auth" replace />;
 
   const gate = (featureName: string, children: React.ReactNode, requiredTier: "starter" | "pro" | "enterprise" = "starter") => (
-    <PremiumGate isPremium={isPremium || isAdmin} featureName={featureName} requiredTier={requiredTier} currentTier={tier}>{children}</PremiumGate>
+    <PremiumGate isPremium={isPremium || isAdmin || userIsSuperAdmin} featureName={featureName} requiredTier={requiredTier} currentTier={userIsSuperAdmin ? "enterprise" : tier}>{children}</PremiumGate>
   );
 
   const handleNavigate = (s: string) => setActiveSection(s as DashboardSection);
