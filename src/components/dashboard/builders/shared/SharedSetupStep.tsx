@@ -106,10 +106,6 @@ export default function SharedSetupStep({
         ]}
       />
 
-      <AbbyRecommendationCard>
-        <p className="text-sm text-foreground leading-relaxed">{abbyTip}</p>
-      </AbbyRecommendationCard>
-
       {fields.map(field => {
         const marketFieldType = getMarketFieldType(field.key, field.type);
         const showMarketAdvice = marketFieldType && (marketData || marketLoading);
