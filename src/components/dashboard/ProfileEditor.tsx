@@ -576,7 +576,7 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
         <div>
           <h2 className="font-heading text-2xl font-bold">Author Profile</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage your public author profile and microsite details.
+            Managed on PublishNow.io — sync to keep your Authors Bureau profile up to date.
           </p>
         </div>
         <div className="flex gap-2">
