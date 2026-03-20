@@ -61,21 +61,33 @@ interface Props {
   onNavigateTab: (tab: string) => void;
 }
 
-// Top 3 recommendations mock — in real implementation these come from the business plan
+// Top recommendations — sequenced by the ABBY Framework build order
+// Phase A (Branding & Marketing) → Phase B (Digital Products) → Build Authority → Yield Revenue
 interface Recommendation {
   name: string;
   nodeId: string;
   category: "build" | "bridge" | "yield";
   revenue: string;
   requiredTier: SubscriptionTier;
+  sequence: number; // lower = do first
 }
 
 function getRecommendationsFromPlan(planContent: string | null): Recommendation[] {
-  // Default recommendations when plan parsing isn't available
+  // Sequenced defaults following the ABBY Framework build order:
+  // 1. Branding & Marketing foundations (Sub-Phase A)
+  // 2. Digital Products (Sub-Phase B)
+  // 3. Build Authority (Act 3)
+  // 4. Yield Revenue (Act 4)
   return [
-    { name: "Quick-Start Workbook", nodeId: "workbooks", category: "build", revenue: "Potential Revenue: $270 - $1,500 per month", requiredTier: "starter" },
-    { name: "Online Course", nodeId: "courses", category: "build", revenue: "Potential Revenue: $500 - $3,000 per month", requiredTier: "pro" },
-    { name: "1-on-1 Coaching Program", nodeId: "coaching-1on1", category: "bridge", revenue: "Potential Revenue: $1,000 - $5,000 per month", requiredTier: "pro" },
+    { name: "Author Website & Microsite", nodeId: "website", category: "build", revenue: "Your branding foundation — start here", requiredTier: "starter", sequence: 1 },
+    { name: "Lead Magnet & Email Opt-in", nodeId: "lead-magnets", category: "build", revenue: "Start building your audience list", requiredTier: "starter", sequence: 2 },
+    { name: "Email Marketing Flows", nodeId: "email-marketing", category: "build", revenue: "Nurture readers into buyers", requiredTier: "starter", sequence: 3 },
+    { name: "Social Media Calendar", nodeId: "social-media", category: "build", revenue: "90-day content plan for visibility", requiredTier: "starter", sequence: 4 },
+    { name: "Quick-Start Workbook", nodeId: "workbooks", category: "build", revenue: "Potentially Generating: $270 - $1,500/mo", requiredTier: "starter", sequence: 5 },
+    { name: "Home Study Course", nodeId: "home-study", category: "build", revenue: "Potentially Generating: $400 - $2,000/mo", requiredTier: "starter", sequence: 6 },
+    { name: "Online Course", nodeId: "courses", category: "bridge", revenue: "Potentially Generating: $500 - $3,000/mo", requiredTier: "pro", sequence: 7 },
+    { name: "Audiobook", nodeId: "audiobooks", category: "bridge", revenue: "Potentially Generating: $300 - $1,500/mo", requiredTier: "pro", sequence: 8 },
+    { name: "1-on-1 Coaching Program", nodeId: "coaching-1on1", category: "yield", revenue: "Potentially Generating: $1,000 - $5,000/mo", requiredTier: "enterprise", sequence: 9 },
   ];
 }
 
@@ -293,41 +305,49 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
           </Tabs>
         )}
 
-        {/* Recommendations cards */}
-        <div className="mt-4 space-y-2">
-          {recommendations.map((rec, i) => {
-            const badge = categoryBadge[rec.category];
-            const canAccess = canBuildProduct(rec.requiredTier);
-            return (
-              <div key={i} className="flex items-center gap-3 rounded-lg border border-border p-3 bg-card">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium truncate">{rec.name}</span>
-                    <span className={`text-[10px] font-medium rounded-full px-2 py-0.5 ${badge.className}`}>{badge.label}</span>
-                  </div>
-                  <span className="text-xs text-muted-foreground">{rec.revenue}</span>
-                </div>
-                {canAccess ? (
-                  <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-teal-700 border-teal-300 hover:bg-teal-50" onClick={() => {
-                    const titleParam = book.title ? `&bookTitle=${encodeURIComponent(book.title)}` : "";
-                    const studioPath = getStudioPath(rec.nodeId, book.id, titleParam);
-                    if (studioPath) {
-                      navigate(studioPath);
-                    } else {
-                      onNavigateTab("revenue-streams");
-                    }
-                  }}>
-                    Build Now <ArrowRight className="h-3 w-3" />
-                  </Button>
-                ) : (
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Lock className="h-3 w-3" />
-                    {rec.requiredTier === "pro" ? "Upgrade to Pro" : rec.requiredTier === "enterprise" ? "Upgrade to Enterprise" : "Subscribe to build"}
+        {/* Recommendations cards — sequenced by build order */}
+        <div className="mt-4">
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+            <ArrowRight className="h-3 w-3" /> Your recommended build sequence
+          </h4>
+          <div className="space-y-2">
+            {recommendations.map((rec, i) => {
+              const badge = categoryBadge[rec.category];
+              const canAccess = canBuildProduct(rec.requiredTier);
+              return (
+                <div key={i} className="flex items-center gap-3 rounded-lg border border-border p-3 bg-card">
+                  <span className="shrink-0 w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground">
+                    {rec.sequence}
                   </span>
-                )}
-              </div>
-            );
-          })}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium truncate">{rec.name}</span>
+                      <span className={`text-[10px] font-medium rounded-full px-2 py-0.5 ${badge.className}`}>{badge.label}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{rec.revenue}</span>
+                  </div>
+                  {canAccess ? (
+                    <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-teal-700 border-teal-300 hover:bg-teal-50" onClick={() => {
+                      const titleParam = book.title ? `&bookTitle=${encodeURIComponent(book.title)}` : "";
+                      const studioPath = getStudioPath(rec.nodeId, book.id, titleParam);
+                      if (studioPath) {
+                        navigate(studioPath);
+                      } else {
+                        onNavigateTab("revenue-streams");
+                      }
+                    }}>
+                      Build Now <ArrowRight className="h-3 w-3" />
+                    </Button>
+                  ) : (
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Lock className="h-3 w-3" />
+                      {rec.requiredTier === "pro" ? "Build Package" : rec.requiredTier === "enterprise" ? "Yield Package" : "Brand Package"}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* Tier-specific CTA below recommendations */}
@@ -336,28 +356,28 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
             <p className="text-sm font-medium mb-3">Ready to start building? Your plan is ready — unlock the AI builders to create these products automatically.</p>
             <div className="flex flex-wrap gap-2">
               <a href="/dashboard?section=build-business" className="flex-1 min-w-[120px] rounded-lg border-2 border-border bg-card p-3 text-center hover:border-muted-foreground/30 transition-colors">
-                <div className="text-xs font-bold">Starter</div>
-                <div className="text-[10px] text-muted-foreground">$49/mo · 3 builders</div>
+                <div className="text-xs font-bold">Brand Package</div>
+                <div className="text-[10px] text-muted-foreground">$49/mo · 9 builders</div>
               </a>
               <a href="/dashboard?section=build-business" className="flex-1 min-w-[120px] rounded-lg bg-secondary p-3 text-center text-secondary-foreground relative">
                 <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[8px] font-bold uppercase bg-secondary text-secondary-foreground rounded-full px-2 py-0.5">Most Popular</span>
-                <div className="text-xs font-bold">Pro</div>
-                <div className="text-[10px] text-secondary-foreground/80">$199/mo · 19 builders</div>
+                <div className="text-xs font-bold">Build Package</div>
+                <div className="text-[10px] text-secondary-foreground/80">$99/mo · 18 builders</div>
               </a>
               <a href="/dashboard?section=build-business" className="flex-1 min-w-[120px] rounded-lg p-3 text-center text-white" style={{ background: "#1B2A4A" }}>
-                <div className="text-xs font-bold">Enterprise</div>
-                <div className="text-[10px] text-white/70">$499/mo · all 27</div>
+                <div className="text-xs font-bold">Yield Package</div>
+                <div className="text-[10px] text-white/70">$249/mo · all 28</div>
               </a>
             </div>
-            <p className="text-[11px] text-muted-foreground mt-2">ROI: Starter pays for itself when you sell 2 copies of your $29 course ($58 &gt; $49)</p>
+            <p className="text-[11px] text-muted-foreground mt-2">14-day money-back guarantee · No questions asked</p>
           </div>
         )}
 
         {tier === "starter" && builtCount >= 2 && (
           <div className="mt-4 rounded-lg bg-violet-50 border border-violet-200 p-3">
             <p className="text-sm text-violet-800">
-              <strong>Outgrowing Starter?</strong> You've built {builtCount} of 3 Starter products. Upgrade to Pro ($199/mo) to unlock more builders including courses, coaching, webinars, and memberships.{" "}
-              <a href="/dashboard?section=build-business" className="font-semibold underline">Upgrade to Pro →</a>
+              <strong>Ready to scale?</strong> You've built {builtCount} Brand products. Upgrade to Build Package ($99/mo) to unlock courses, coaching, webinars, and more.{" "}
+              <a href="/dashboard?section=build-business" className="font-semibold underline">Upgrade to Build →</a>
             </p>
           </div>
         )}
@@ -365,8 +385,8 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
         {tier === "pro" && (
           <div className="mt-4 rounded-lg border border-secondary/30 bg-secondary/5 p-3">
             <p className="text-sm text-foreground">
-              <strong>Ready for the full empire?</strong> Enterprise ($499/mo) unlocks retreats, certification, masterminds, corporate training, and a 1-on-1 strategy session with Pauline Teo.{" "}
-              <a href="/dashboard?section=build-business" className="font-semibold text-secondary underline">Upgrade to Enterprise →</a>
+              <strong>Ready for premium services?</strong> Yield Package ($249/mo) unlocks retreats, certification, masterminds, corporate training, and a 1-on-1 strategy session with Pauline Teo.{" "}
+              <a href="/dashboard?section=build-business" className="font-semibold text-secondary underline">Upgrade to Yield →</a>
             </p>
           </div>
         )}
