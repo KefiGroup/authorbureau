@@ -1037,7 +1037,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
       )}
 
       <div className="flex-1 overflow-y-auto space-y-4 pr-2 pb-4">
-        {messages.filter(m => !(m.role === "user" && messages.indexOf(m) === 0 && messages.length > 1)).length === 0 && !isStreaming && (
+        {messages.filter(m => !(m.role === "user" && messages.indexOf(m) === 0 && messages.length > 1)).length === 0 && !isStreaming && !messages.length && (
           <div className="flex items-center justify-center py-16 text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin mr-2" /> Starting analysis…
           </div>
