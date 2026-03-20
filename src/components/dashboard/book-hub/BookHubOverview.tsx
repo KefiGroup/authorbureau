@@ -188,6 +188,34 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
       } catch {
         console.error("Failed to fetch business plan");
       }
+
+      // Fetch product draft statuses
+      try {
+        const draftResp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/builder-draft-state`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+          body: JSON.stringify({ action: "list-drafts" }),
+        });
+        if (draftResp.ok) {
+          const draftResult = await draftResp.json();
+          const drafts: any[] = draftResult.drafts || [];
+          const statuses: Record<string, ProductStatus> = {};
+          for (const [nodeId, keys] of Object.entries(NODE_TO_DRAFT_KEY)) {
+            const matching = drafts.filter((d: any) =>
+              keys.some(k => d.nodeId === k || d.table === k || d.asset_type === k)
+            );
+            if (matching.some((d: any) => d.status === "published")) {
+              statuses[nodeId] = "completed";
+            } else if (matching.length > 0) {
+              statuses[nodeId] = "in-progress";
+            }
+          }
+          setProductStatuses(statuses);
+        }
+      } catch {
+        console.error("Failed to fetch draft statuses");
+      }
+
       setDataReady(true);
     }
     checkData();
