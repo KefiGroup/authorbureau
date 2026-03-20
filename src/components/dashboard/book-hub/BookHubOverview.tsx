@@ -76,12 +76,22 @@ interface Recommendation {
   sequence: number; // lower = do first
 }
 
+// Maps nodeId to the table/nodeId used in builder-draft-state
+const NODE_TO_DRAFT_KEY: Record<string, string[]> = {
+  "website": ["website", "microsite"],
+  "lead-magnets": ["lead-magnets", "lead_magnet"],
+  "email-marketing": ["email-marketing", "email_flows"],
+  "social-media": ["social-media", "social_media_content"],
+  "workbooks": ["workbooks", "workbook"],
+  "home-study": ["home-study", "home_study_courses"],
+  "courses": ["courses", "online-course"],
+  "audiobooks": ["audiobooks", "audiobook"],
+  "coaching-1on1": ["coaching-1on1", "coaching_packages"],
+};
+
+type ProductStatus = "not-started" | "in-progress" | "completed";
+
 function getRecommendationsFromPlan(planContent: string | null): Recommendation[] {
-  // Sequenced defaults following the ABBY Framework build order:
-  // 1. Branding & Marketing foundations (Sub-Phase A)
-  // 2. Digital Products (Sub-Phase B)
-  // 3. Build Authority (Act 3)
-  // 4. Yield Revenue (Act 4)
   return [
     { name: "Author Website & Microsite", nodeId: "website", category: "build", revenue: "Your branding foundation — start here", requiredTier: "starter", sequence: 1 },
     { name: "Lead Magnet & Email Opt-in", nodeId: "lead-magnets", category: "build", revenue: "Start building your audience list", requiredTier: "starter", sequence: 2 },
