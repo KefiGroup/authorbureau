@@ -48,6 +48,20 @@ function extractQuickOptions(text: string): { number: string; label: string }[] 
   return options;
 }
 
+function isLeadMagnetTypeMismatch(text: string, type: string): boolean {
+  const normalized = text.toLowerCase();
+
+  if (type === "checklist") {
+    return /\bquiz\b|\bassessment\b|\bscoring\b|\bscore\b|\bself-assessment\b/.test(normalized);
+  }
+
+  if (type === "quiz") {
+    return !/\bquiz\b|\bassessment\b/.test(normalized);
+  }
+
+  return false;
+}
+
 interface ConversationMessage {
   role: "user" | "assistant";
   content: string;
@@ -89,6 +103,7 @@ export default function SharedContentStep({
   const contentHasStop = hasStopMarker(rawContent);
   const content: string = rawContent && !contentHasStop ? stripMarkdown(rawContent) : "";
   const config = configKey ? stepData[configKey] || {} : {};
+  const leadMagnetType = contentKey === "leadMagnetContent" ? String(config?.type || "").toLowerCase() : "";
 
   // If saved content has [STOP], bootstrap conversation from it
   useEffect(() => {
@@ -100,6 +115,18 @@ export default function SharedContentStep({
       setStepData(prev => ({ ...prev, [contentKey]: "" }));
     }
   }, [contentHasStop]);
+
+  // Guard against stale/mismatched lead magnet content from previous type selections
+  useEffect(() => {
+    if (!leadMagnetType || !rawContent || contentHasStop) return;
+    if (isLeadMagnetTypeMismatch(rawContent, leadMagnetType)) {
+      setStepData(prev => ({ ...prev, [contentKey]: "" }));
+      toast({
+        title: "Content reset to match your selected type",
+        description: `Your ${leadMagnetType} setting changed, so Abby will generate a fresh version.`,
+      });
+    }
+  }, [leadMagnetType, rawContent, contentHasStop, contentKey, setStepData, toast]);
 
   // Check if the latest assistant message has [STOP]
   const lastAssistantMsg = [...conversation].reverse().find(m => m.role === "assistant");
@@ -159,7 +186,22 @@ export default function SharedContentStep({
         .replace(/\{config\}/g, JSON.stringify(config, null, 2));
 
       const messages = [{ role: "user", content: prompt }];
-      const fullText = await callAI(messages);
+      let fullText = await callAI(messages);
+
+      if (leadMagnetType && isLeadMagnetTypeMismatch(fullText, leadMagnetType)) {
+        const correctionPrompt = `Rewrite the draft below so it EXACTLY matches lead magnet type "${leadMagnetType}".
+
+Rules:
+- If type is checklist: do NOT include quiz, assessment, score, or scoring.
+- If type is quiz: structure as quiz/assessment.
+- Keep these sections: HEADLINE & SUBHEADLINE, MAIN CONTENT, INTRODUCTION, CALL-TO-ACTION, AUTHOR BIO BLURB.
+- Return markdown only.
+
+Draft to fix:
+${fullText}`;
+
+        fullText = await callAI([{ role: "user", content: correctionPrompt }]);
+      }
 
       // Check if Abby is asking a question
       if (hasStopMarker(fullText)) {
