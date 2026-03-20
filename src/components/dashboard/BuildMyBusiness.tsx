@@ -69,6 +69,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [isBuildingPlan, setIsBuildingPlan] = useState(false);
   const [isBuilding, setIsBuilding] = useState<string | null>(null);
   const [pendingBuildReq, setPendingBuildReq] = useState<Record<string, string> | null>(null);
   const [showFrameworkModal, setShowFrameworkModal] = useState(false);
