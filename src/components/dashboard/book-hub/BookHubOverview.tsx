@@ -342,20 +342,37 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
             {recommendations.map((rec, i) => {
               const badge = categoryBadge[rec.category];
               const canAccess = canBuildProduct(rec.requiredTier);
+              const status = productStatuses[rec.nodeId] || "not-started";
+              const isCompleted = status === "completed";
+              const isInProgress = status === "in-progress";
               return (
-                <div key={i} className="flex items-center gap-3 rounded-lg border border-border p-3 bg-card">
-                  <span className="shrink-0 w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground">
-                    {rec.sequence}
+                <div key={i} className={`flex items-center gap-3 rounded-lg border p-3 ${
+                  isCompleted ? "border-emerald-300 bg-emerald-50/50" : isInProgress ? "border-amber-300 bg-amber-50/30" : "border-border bg-card"
+                }`}>
+                  <span className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                    isCompleted ? "bg-emerald-500 text-white" : isInProgress ? "bg-amber-500 text-white" : "bg-muted text-muted-foreground"
+                  }`}>
+                    {isCompleted ? <CheckCircle2 className="h-3.5 w-3.5" /> : rec.sequence}
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium truncate">{rec.name}</span>
                       <span className={`text-[10px] font-medium rounded-full px-2 py-0.5 ${badge.className}`}>{badge.label}</span>
+                      {isCompleted && (
+                        <span className="text-[10px] font-semibold rounded-full px-2 py-0.5 bg-emerald-100 text-emerald-700">Completed</span>
+                      )}
+                      {isInProgress && (
+                        <span className="text-[10px] font-semibold rounded-full px-2 py-0.5 bg-amber-100 text-amber-700">In Progress</span>
+                      )}
                     </div>
                     <span className="text-xs text-muted-foreground">{rec.revenue}</span>
                   </div>
                   {canAccess ? (
-                    <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-teal-700 border-teal-300 hover:bg-teal-50" onClick={() => {
+                    <Button size="sm" variant="outline" className={`text-xs h-7 gap-1 ${
+                      isCompleted ? "text-emerald-700 border-emerald-300 hover:bg-emerald-50" :
+                      isInProgress ? "text-amber-700 border-amber-300 hover:bg-amber-50" :
+                      "text-teal-700 border-teal-300 hover:bg-teal-50"
+                    }`} onClick={() => {
                       const titleParam = book.title ? `&bookTitle=${encodeURIComponent(book.title)}` : "";
                       const studioPath = getStudioPath(rec.nodeId, book.id, titleParam);
                       if (studioPath) {
@@ -364,7 +381,9 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
                         onNavigateTab("revenue-streams");
                       }
                     }}>
-                      Build Now <ArrowRight className="h-3 w-3" />
+                      {isCompleted ? <>View <ArrowRight className="h-3 w-3" /></> :
+                       isInProgress ? <>Continue <ArrowRight className="h-3 w-3" /></> :
+                       <>Build Now <ArrowRight className="h-3 w-3" /></>}
                     </Button>
                   ) : (
                     <span className="flex items-center gap-1 text-xs text-muted-foreground">
