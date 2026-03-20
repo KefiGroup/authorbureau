@@ -609,7 +609,7 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
         <div>
           <h2 className="font-heading text-2xl font-bold">Author Profile</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Managed on PublishNow.io — sync to keep your Authors Bureau profile up to date.
+            Managed on PublishNow.io — edit your profile there, then click <strong>Sync</strong> to pull updates here.
           </p>
         </div>
         <div className="flex gap-2">
