@@ -125,6 +125,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
   const [downloading, setDownloading] = useState(false);
   const [dataReady, setDataReady] = useState(false);
   const [authorId, setAuthorId] = useState<string>("");
+  const [productStatuses, setProductStatuses] = useState<Record<string, ProductStatus>>({});
   const { toast } = useToast();
   const { plan, completedAssets } = useAbbyPlan(book.id);
   const { data: marketData, loading: marketLoading } = useMarketResearch(book.id, book.title, book.genre || undefined);
