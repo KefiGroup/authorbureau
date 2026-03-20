@@ -1,14 +1,17 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Check, Sparkles, Loader2 } from "lucide-react";
 import AbbyRecommendationCard from "./AbbyRecommendationCard";
 import AbbyExplainsTooltip from "./AbbyExplainsTooltip";
 import StepInstructions, { type BuilderCategory } from "./StepInstructions";
 import AbbyMarketAdvice from "@/components/dashboard/book-hub/AbbyMarketAdvice";
 import type { MarketResearchData } from "@/hooks/useMarketResearch";
+import { generateJSONWithAI } from "@/lib/ai-generate";
 
 export interface SetupField {
   key: string;
@@ -29,6 +32,9 @@ interface Props {
   stepId: string;
   plan?: any;
   bookTitle?: string;
+  bookId?: string;
+  builderId?: string;
+  builderLabel?: string;
   defaults?: Record<string, any>;
   marketData?: MarketResearchData | null;
   marketLoading?: boolean;
@@ -54,14 +60,61 @@ const categoryHoverStyles: Record<BuilderCategory, string> = {
 };
 
 export default function SharedSetupStep({
-  configKey, fields, abbyTip, stepData, setStepData, onMarkEdited, stepId, plan, bookTitle, defaults,
+  configKey, fields, abbyTip, stepData, setStepData, onMarkEdited, stepId, plan, bookTitle, bookId, builderId, builderLabel, defaults,
   marketData, marketLoading, category = "build",
 }: Props) {
   const config: Record<string, any> = stepData[configKey] || defaults || {};
+  const [analyzing, setAnalyzing] = useState(false);
+  const hasConfig = Object.keys(stepData[configKey] || {}).length > 0;
 
   const update = (key: string, value: any) => {
     onMarkEdited(stepId);
     setStepData(prev => ({ ...prev, [configKey]: { ...config, [key]: value } }));
+  };
+
+  const analyzeWithAbby = async () => {
+    if (!bookId) return;
+    setAnalyzing(true);
+    try {
+      const fieldDescriptions = fields.map(f => {
+        let desc = `"${f.key}" (${f.label})`;
+        if (f.options) desc += ` — options: ${f.options.map(o => o.value).join(", ")}`;
+        if (f.type === "price" || f.type === "number") desc += ` — numeric value`;
+        return desc;
+      }).join("\n");
+
+      const prompt = `You are Abby, an expert book-business strategist. Analyze the book "${bookTitle || "this book"}" and recommend the best configuration for this product.
+
+Return a JSON object with these fields:
+${fieldDescriptions}
+
+Also include "_reasoning" as a string explaining your recommendations in 2-3 sentences.
+
+Return ONLY valid JSON. No markdown, no explanation outside the JSON.`;
+
+      const result = await generateJSONWithAI<Record<string, any>>(prompt, {
+        bookId,
+        isPremium: true,
+        builderMode: true,
+        builderId: builderId || configKey,
+        builderLabel: builderLabel || "Setup",
+        builderStep: "Configure",
+      });
+
+      // Apply all suggested values
+      const newConfig = { ...config };
+      for (const field of fields) {
+        if (result[field.key] !== undefined) {
+          newConfig[field.key] = result[field.key];
+        }
+      }
+      onMarkEdited(stepId);
+      setStepData(prev => ({ ...prev, [configKey]: newConfig, [`${configKey}_reasoning`]: result._reasoning || "" }));
+    } catch (err) {
+      console.error("Abby analysis failed:", err);
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
   const getMarketFieldType = (fieldKey: string, fieldType: string): "title" | "price" | "description" | null => {
@@ -90,16 +143,37 @@ export default function SharedSetupStep({
   const checkStyle = categoryCheckStyles[category];
   const hoverStyle = categoryHoverStyles[category];
 
+  const reasoning = stepData[`${configKey}_reasoning`];
+
   return (
     <div className="space-y-6">
       <AbbyRecommendationCard>
-        <p className="text-sm text-foreground leading-relaxed">{abbyTip}</p>
+        <p className="text-sm text-foreground leading-relaxed mb-3">{abbyTip}</p>
+        {bookId && (
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={analyzeWithAbby}
+              disabled={analyzing}
+              size="sm"
+              className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold"
+            >
+              {analyzing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+              {analyzing ? "Analyzing your book..." : hasConfig ? "Re-analyze with Abby" : "Let Abby Configure This"}
+            </Button>
+            {hasConfig && !analyzing && (
+              <span className="text-xs text-muted-foreground">Abby has filled in the fields below</span>
+            )}
+          </div>
+        )}
+        {reasoning && (
+          <p className="text-xs text-muted-foreground mt-2 italic border-t border-secondary/20 pt-2">{reasoning}</p>
+        )}
       </AbbyRecommendationCard>
 
       <StepInstructions
         category={category}
         items={[
-          { label: "Abby's Tip", description: "Review Abby's personalized advice above first." },
+          { label: "Abby's Analysis", description: "Click the button above to let Abby analyze your book and pre-fill settings." },
           { label: "Text fields", description: "Type to set titles, descriptions, and other details." },
           { label: "Option cards", description: "Click to select a preset format, tier, or duration." },
           { label: "Price field", description: "Set your selling price in USD. Change anytime." },

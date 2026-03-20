@@ -30,7 +30,7 @@ interface Props {
 export default function WhiteLabelStepRenderer({ stepId, stepData, setStepData, onMarkEdited, bookId, bookTitle, plan, userId }: Props) {
   switch (stepId) {
     case "inventory":
-      return <SharedSetupStep configKey="whiteLabelConfig" fields={SETUP_FIELDS} abbyTip="Workbooks, courses, and assessments are the easiest to white-label." stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} plan={plan} bookTitle={bookTitle} defaults={{ pricing: "per-seat" }} />;
+      return <SharedSetupStep bookId={bookId} configKey="whiteLabelConfig" fields={SETUP_FIELDS} abbyTip="Workbooks, courses, and assessments are the easiest to white-label." stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} plan={plan} bookTitle={bookTitle} defaults={{ pricing: "per-seat" }} />;
     case "customize":
       return <SharedContentStep contentKey="whiteLabelCustomization" title="Customization Options" description="Define what licensees can and cannot customize." abbyTip="Allow branding changes but not content changes. Protect your methodology's integrity." aiPrompt={`Generate white-label customization guide for "{bookTitle}". Config: {config}. Include: 1) CUSTOMIZABLE ELEMENTS (logo, colors, company name, footer, headers), 2) PROTECTED ELEMENTS (core content, methodology, frameworks, citations), 3) BRAND GUIDELINES for white-label partners, 4) CANVA TEMPLATE descriptions for each product, 5) CUSTOMIZATION WALKTHROUGH (step-by-step). Format as markdown.`} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="whiteLabelConfig" />;
     case "pricing":
