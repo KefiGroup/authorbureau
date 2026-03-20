@@ -35,15 +35,22 @@ function extractSections(fullContent: string): PlanSection[] {
   const sections: PlanSection[] = [];
 
   const patterns: Array<{ key: string; label: string; icon: React.ReactNode; accent: string; regex: RegExp }> = [
-    { key: "transformation", label: "Transformation Promise", icon: <Sparkles className="h-4 w-4" />, accent: "from-amber-500 to-yellow-400", regex: /(?:#{1,3}.*?TRANSFORMATION PROMISE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?STARTER PACKAGE|$)/i },
+    { key: "transformation", label: "Transformation Promise", icon: <Sparkles className="h-4 w-4" />, accent: "from-amber-500 to-yellow-400", regex: /(?:#{1,3}.*?(?:TRANSFORMATION PROMISE|SECTION 1).*?\n)([\s\S]*?)(?=\n#{1,3}\s*(?:SECTION|---)|$)/i },
+    { key: "brand", label: "B·Brand Products", icon: <Package className="h-4 w-4" />, accent: "from-emerald-500 to-green-400", regex: /(?:#{1,3}.*?(?:B[·.]?BRAND PRODUCTS|SECTION 2).*?\n)([\s\S]*?)(?=\n#{1,3}\s*(?:SECTION|---)\s|$)/i },
+    { key: "build", label: "B·Build Authority", icon: <TrendingUp className="h-4 w-4" />, accent: "from-blue-500 to-cyan-400", regex: /(?:#{1,3}.*?(?:B[·.]?BUILD AUTHORITY|SECTION 3).*?\n)([\s\S]*?)(?=\n#{1,3}\s*(?:SECTION|---)\s|$)/i },
+    { key: "yield", label: "Y·Yield Revenue", icon: <Target className="h-4 w-4" />, accent: "from-purple-500 to-violet-400", regex: /(?:#{1,3}.*?(?:Y[·.]?YIELD REVENUE|SECTION 4).*?\n)([\s\S]*?)(?=\n#{1,3}\s*(?:SECTION|---)\s|$)/i },
+    { key: "monetization", label: "Monetisation Map", icon: <BarChart3 className="h-4 w-4" />, accent: "from-orange-500 to-red-400", regex: /(?:#{1,3}.*?(?:MONETIS?ATION MAP|SECTION 5).*?\n)([\s\S]*?)(?=\n#{1,3}\s*(?:SECTION|---)\s|$)/i },
+    { key: "unlock", label: "Unlock Your Plan", icon: <Rocket className="h-4 w-4" />, accent: "from-pink-500 to-rose-400", regex: /(?:#{1,3}.*?(?:UNLOCK YOUR PLAN|SECTION 6).*?\n)([\s\S]*?)(?=\n#{1,3}\s*(?:SECTION|---)\s|$)/i },
+    { key: "nextsteps", label: "Next Steps", icon: <Rocket className="h-4 w-4" />, accent: "from-secondary to-amber-500", regex: /(?:#{1,3}.*?(?:NEXT STEPS|SECTION 7).*?\n)([\s\S]*?)$/i },
+    // Legacy format fallbacks
     { key: "starter", label: "Starter Package", icon: <Package className="h-4 w-4" />, accent: "from-emerald-500 to-green-400", regex: /(?:#{1,3}.*?STARTER PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?PRO PACKAGE|$)/i },
     { key: "pro", label: "Pro Package", icon: <TrendingUp className="h-4 w-4" />, accent: "from-blue-500 to-cyan-400", regex: /(?:#{1,3}.*?PRO PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?ENTERPRISE PACKAGE|$)/i },
     { key: "enterprise", label: "Enterprise Package", icon: <Target className="h-4 w-4" />, accent: "from-purple-500 to-violet-400", regex: /(?:#{1,3}.*?ENTERPRISE PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?MONETIZATION MAP|$)/i },
-    { key: "monetization", label: "Monetization Map", icon: <BarChart3 className="h-4 w-4" />, accent: "from-orange-500 to-red-400", regex: /(?:#{1,3}.*?MONETIZATION MAP.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?NEXT STEPS|$)/i },
-    { key: "nextsteps", label: "Next Steps", icon: <Rocket className="h-4 w-4" />, accent: "from-secondary to-amber-500", regex: /(?:#{1,3}.*?NEXT STEPS.*?\n)([\s\S]*?)$/i },
   ];
 
   for (const p of patterns) {
+    // Skip legacy patterns if we already found new-format sections
+    if (["starter", "pro", "enterprise"].includes(p.key) && sections.some(s => ["brand", "build", "yield"].includes(s.key))) continue;
     const match = fullContent.match(p.regex);
     if (match?.[1]?.trim()) {
       sections.push({ key: p.key, label: p.label, icon: p.icon, accent: p.accent, content: stripMarkers(match[1].trim()) });
