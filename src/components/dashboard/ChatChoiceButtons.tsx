@@ -86,6 +86,13 @@ export default function ChatChoiceButtons({ choices, multiSelect = true, onSubmi
 
   const toggle = (letter: string) => {
     if (disabled) return;
+    if (!multiSelect) {
+      // Single select: immediately submit
+      const choice = choices.find(c => c.letter === letter);
+      onSubmit(`${letter}${choice ? ` — ${choice.text}` : ""}`);
+      setSelected(new Set([letter]));
+      return;
+    }
     setSelected(prev => {
       const next = new Set(prev);
       if (next.has(letter)) next.delete(letter);
