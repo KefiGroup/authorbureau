@@ -388,9 +388,7 @@ export default function SubscriptionSalesPitch({
                       )}
                       {isSubscribed
                         ? `Upgrade to ${plan.name}`
-                        : countdown.expired
-                        ? `Get ${plan.name} — ${plan.usualPrice}/mo`
-                        : `Get ${plan.name} — ${plan.price}/mo`}
+                        : `Get ${plan.name}`}
                     </Button>
                   )}
                 </div>
