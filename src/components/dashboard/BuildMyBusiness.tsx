@@ -1195,11 +1195,12 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
           />
         )}
 
-        {/* Standard loading for regular messages */}
-        {isStreaming && !isBuildingPlan && messages[messages.length - 1]?.role === "assistant" && !messages[messages.length - 1]?.content && (
+        {/* Standard loading for regular messages — show until content starts appearing */}
+        {isStreaming && !isBuildingPlan && messages[messages.length - 1]?.role === "assistant" && (messages[messages.length - 1]?.content || "").length < 20 && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
             className="rounded-xl border border-secondary/20 bg-secondary/5 p-4"
           >
             <div className="flex items-center gap-3 mb-3">
