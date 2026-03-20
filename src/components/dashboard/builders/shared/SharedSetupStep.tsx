@@ -136,7 +136,22 @@ Return ONLY valid JSON. No markdown, no explanation outside the JSON.`;
         }
       }
       onMarkEdited(stepId);
-      setStepData(prev => ({ ...prev, [configKey]: newConfig, [`${configKey}_reasoning`]: result._reasoning || "", [`${configKey}_accepted`]: false }));
+
+      // Invalidate dependent content when fields change via Abby
+      setStepData(prev => {
+        const next: Record<string, any> = { ...prev, [configKey]: newConfig, [`${configKey}_reasoning`]: result._reasoning || "", [`${configKey}_accepted`]: false };
+        const oldConfig = prev[configKey] || {};
+        if (invalidateOnFieldChange) {
+          for (const [fieldKey, dependentKeys] of Object.entries(invalidateOnFieldChange)) {
+            if (newConfig[fieldKey] !== oldConfig[fieldKey]) {
+              for (const dk of dependentKeys) {
+                next[dk] = "";
+              }
+            }
+          }
+        }
+        return next;
+      });
     } catch (err) {
       console.error("Abby analysis failed:", err);
     } finally {
@@ -145,7 +160,21 @@ Return ONLY valid JSON. No markdown, no explanation outside the JSON.`;
   };
 
   const acceptAbby = () => {
-    setStepData(prev => ({ ...prev, [`${configKey}_accepted`]: true }));
+    // Also invalidate dependent content if type changed from what was previously generated
+    setStepData(prev => {
+      const next: Record<string, any> = { ...prev, [`${configKey}_accepted`]: true };
+      if (invalidateOnFieldChange) {
+        for (const dependentKeys of Object.values(invalidateOnFieldChange)) {
+          for (const dk of dependentKeys) {
+            if (prev[dk]) {
+              // Content exists from a previous config — clear it so it regenerates with new type
+              next[dk] = "";
+            }
+          }
+        }
+      }
+      return next;
+    });
     onMarkEdited(stepId);
   };
 
