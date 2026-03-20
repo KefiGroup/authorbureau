@@ -356,20 +356,20 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
             <p className="text-sm font-medium mb-3">Ready to start building? Your plan is ready — unlock the AI builders to create these products automatically.</p>
             <div className="flex flex-wrap gap-2">
               <a href="/dashboard?section=build-business" className="flex-1 min-w-[120px] rounded-lg border-2 border-border bg-card p-3 text-center hover:border-muted-foreground/30 transition-colors">
-                <div className="text-xs font-bold">Starter</div>
-                <div className="text-[10px] text-muted-foreground">$49/mo · 3 builders</div>
+                <div className="text-xs font-bold">Brand Package</div>
+                <div className="text-[10px] text-muted-foreground">$49/mo · 9 builders</div>
               </a>
               <a href="/dashboard?section=build-business" className="flex-1 min-w-[120px] rounded-lg bg-secondary p-3 text-center text-secondary-foreground relative">
                 <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[8px] font-bold uppercase bg-secondary text-secondary-foreground rounded-full px-2 py-0.5">Most Popular</span>
-                <div className="text-xs font-bold">Pro</div>
-                <div className="text-[10px] text-secondary-foreground/80">$199/mo · 19 builders</div>
+                <div className="text-xs font-bold">Build Package</div>
+                <div className="text-[10px] text-secondary-foreground/80">$99/mo · 18 builders</div>
               </a>
               <a href="/dashboard?section=build-business" className="flex-1 min-w-[120px] rounded-lg p-3 text-center text-white" style={{ background: "#1B2A4A" }}>
-                <div className="text-xs font-bold">Enterprise</div>
-                <div className="text-[10px] text-white/70">$499/mo · all 27</div>
+                <div className="text-xs font-bold">Yield Package</div>
+                <div className="text-[10px] text-white/70">$249/mo · all 28</div>
               </a>
             </div>
-            <p className="text-[11px] text-muted-foreground mt-2">ROI: Starter pays for itself when you sell 2 copies of your $29 course ($58 &gt; $49)</p>
+            <p className="text-[11px] text-muted-foreground mt-2">14-day money-back guarantee · No questions asked</p>
           </div>
         )}
 
