@@ -1178,7 +1178,24 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
           );
         })}
 
-        {isStreaming && messages[messages.length - 1]?.role === "assistant" && !messages[messages.length - 1]?.content && (
+        {/* Narrative loading for business plan generation */}
+        {isBuildingPlan && isStreaming && (
+          <AbbyNarrativeLoading
+            messages={[
+              "Reading your book's core frameworks…",
+              "Mapping your transformation promise…",
+              "Designing your Brand Products suite…",
+              "Building your Authority growth strategy…",
+              "Calculating revenue projections…",
+              "Assembling your complete ABBY Business Plan…",
+            ]}
+            builderLabel="Business Plan"
+            bookTitle={selectedBook?.title || "your book"}
+          />
+        )}
+
+        {/* Standard loading for regular messages */}
+        {isStreaming && !isBuildingPlan && messages[messages.length - 1]?.role === "assistant" && !messages[messages.length - 1]?.content && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
