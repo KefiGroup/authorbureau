@@ -212,7 +212,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
           }
 
           // Check website status via author_profiles (website is a native feature, not a draft)
-          const { data: profileData } = await supabase
+          const { data: profileData } = await sharedSupabase
             .from("author_profiles")
             .select("author_slug, site_theme")
             .eq("user_id", userId)
