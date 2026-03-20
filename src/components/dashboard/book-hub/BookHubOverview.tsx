@@ -192,17 +192,19 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
         console.error("Failed to fetch business plan");
       }
 
-      // Fetch product draft statuses
+      // Fetch product statuses (drafts + website profile + generated assets fallback)
+      const statuses: Record<string, ProductStatus> = {};
+
       try {
         const draftResp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/builder-draft-state`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
           body: JSON.stringify({ action: "list-drafts" }),
         });
+
         if (draftResp.ok) {
           const draftResult = await draftResp.json();
           const drafts: any[] = draftResult.drafts || [];
-          const statuses: Record<string, ProductStatus> = {};
           for (const [nodeId, keys] of Object.entries(NODE_TO_DRAFT_KEY)) {
             const matching = drafts.filter((d: any) =>
               keys.some(k => d.nodeId === k || d.table === k || d.asset_type === k)
@@ -213,46 +215,66 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
               statuses[nodeId] = "in-progress";
             }
           }
-
-          // Check website status via author_profiles (website is a native feature, not a draft)
-          const { data: profileData } = await sharedSupabase
-            .from("author_profiles")
-            .select("author_slug, site_theme")
-            .eq("user_id", userId)
-            .maybeSingle();
-          if (profileData?.author_slug) {
-            statuses["website"] = "completed";
-          }
-
-          // Also check completedAssets from generated_assets as fallback
-          const { data: genAssets } = await supabase
-            .from("generated_assets")
-            .select("asset_type")
-            .eq("book_id", book.id)
-            .eq("author_id", userId);
-          if (genAssets) {
-            const assetTypes = genAssets.map(a => a.asset_type);
-            const assetToNode: Record<string, string> = {
-              "lead_magnet": "lead-magnets",
-              "email_sequence": "email-marketing",
-              "social_media": "social-media",
-              "workbook": "workbooks",
-              "home_study": "home-study",
-              "course": "courses",
-              "audiobook_script": "audiobooks",
-            };
-            for (const [assetType, nodeId] of Object.entries(assetToNode)) {
-              if (assetTypes.includes(assetType) && !statuses[nodeId]) {
-                statuses[nodeId] = "in-progress";
-              }
-            }
-          }
-
-          setProductStatuses(statuses);
         }
       } catch {
         console.error("Failed to fetch draft statuses");
       }
+
+      // Website is managed profile-first; resolve status from synced profile data
+      try {
+        const profileResp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/save-author-profile`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ action: "fetch" }),
+        });
+
+        if (profileResp.ok) {
+          const profileResult = await profileResp.json();
+          const profileData = profileResult?.profile;
+          const hasCompletedWebsite = Boolean(profileData?.author_slug);
+          const hasWebsiteProgress = Boolean(
+            profileData?.pen_name || profileData?.bio_short || profileData?.bio_long || profileData?.tagline || profileData?.photo_url || profileData?.site_theme
+          );
+
+          if (hasCompletedWebsite) {
+            statuses["website"] = "completed";
+          } else if (hasWebsiteProgress && !statuses["website"]) {
+            statuses["website"] = "in-progress";
+          }
+        }
+      } catch {
+        console.error("Failed to fetch profile website status");
+      }
+
+      // Also check generated assets as fallback for progress
+      const { data: genAssets } = await supabase
+        .from("generated_assets")
+        .select("asset_type")
+        .eq("book_id", book.id)
+        .eq("author_id", userId);
+
+      if (genAssets) {
+        const assetTypes = genAssets.map(a => a.asset_type);
+        const assetToNode: Record<string, string> = {
+          "lead_magnet": "lead-magnets",
+          "email_sequence": "email-marketing",
+          "social_media": "social-media",
+          "workbook": "workbooks",
+          "home_study": "home-study",
+          "course": "courses",
+          "audiobook_script": "audiobooks",
+        };
+        for (const [assetType, nodeId] of Object.entries(assetToNode)) {
+          if (assetTypes.includes(assetType) && !statuses[nodeId]) {
+            statuses[nodeId] = "in-progress";
+          }
+        }
+      }
+
+      setProductStatuses(statuses);
 
       setDataReady(true);
     }
