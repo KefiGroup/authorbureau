@@ -53,16 +53,20 @@ export function parseChoices(content: string): { choices: Choice[]; multiSelect:
   }
 
   // Try plain numbered patterns: 1) text, 1. text, - 1) text
-  const numRegex = /(?:^|\n)\s*(?:[-•*]\s*)?(\d+)\s*[).]\s*(.+)/g;
-  while ((match = numRegex.exec(content)) !== null) {
-    const letter = match[1];
-    const text = match[2].replace(/\*\*/g, "").replace(/\[STOP\]/g, "").trim();
-    if (text && !choices.find(c => c.letter === letter)) {
-      choices.push({ letter, text });
+  // BUT skip if the message ends with a confirmation question — the numbers are just a list, not choices
+  const hasConfirmationAtEnd = /ready\s*(for|to)\b/i.test(content.toLowerCase()) && content.includes("[STOP]");
+  if (!hasConfirmationAtEnd) {
+    const numRegex = /(?:^|\n)\s*(?:[-•*]\s*)?(\d+)\s*[).]\s*(.+)/g;
+    while ((match = numRegex.exec(content)) !== null) {
+      const letter = match[1];
+      const text = match[2].replace(/\*\*/g, "").replace(/\[STOP\]/g, "").trim();
+      if (text && !choices.find(c => c.letter === letter)) {
+        choices.push({ letter, text });
+      }
     }
-  }
-  if (choices.length >= 2) {
-    return { choices, multiSelect: detectMultiSelect(content, choices) };
+    if (choices.length >= 2) {
+      return { choices, multiSelect: detectMultiSelect(content, choices) };
+    }
   }
 
   return null;
