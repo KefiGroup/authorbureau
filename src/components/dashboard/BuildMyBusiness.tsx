@@ -14,7 +14,7 @@ import FullPlanDialog from "@/components/dashboard/FullPlanDialog";
 import FrameworkInterviewModal, { type BuildMode } from "@/components/dashboard/FrameworkInterviewModal";
 import SubscriptionSalesPitch from "@/components/dashboard/framework-dashboard/SubscriptionSalesPitch";
 import ManuscriptUpload from "@/components/dashboard/ManuscriptUpload";
-import ChatChoiceButtons, { parseChoices } from "@/components/dashboard/ChatChoiceButtons";
+import ChatChoiceButtons, { parseChoices, parseConfirmation } from "@/components/dashboard/ChatChoiceButtons";
 import type { AuthorFramework } from "@/components/dashboard/FrameworksEditor";
 import {
   Rocket, BookOpen, Loader2, Send, ArrowLeft, Sparkles, User, RotateCcw,
@@ -1129,14 +1129,37 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
                 {msg.role === "assistant" && !isStreaming && (() => {
                   const parsed = parseChoices(displayContent);
                   const isLastAssistant = idx === messages.length - 1;
-                  return parsed ? (
-                    <ChatChoiceButtons
-                      choices={parsed.choices}
-                      multiSelect={parsed.multiSelect}
-                      onSubmit={(text) => sendMessage(text)}
-                      disabled={isStreaming || !isLastAssistant}
-                    />
-                  ) : null;
+                  if (parsed) {
+                    return (
+                      <ChatChoiceButtons
+                        choices={parsed.choices}
+                        multiSelect={parsed.multiSelect}
+                        onSubmit={(text) => sendMessage(text)}
+                        disabled={isStreaming || !isLastAssistant}
+                      />
+                    );
+                  }
+                  // Check for yes/no confirmation questions
+                  const confirmOpts = parseConfirmation(displayContent);
+                  if (confirmOpts) {
+                    return (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {confirmOpts.map((opt) => (
+                          <Button
+                            key={opt}
+                            variant={opt.toLowerCase().startsWith("yes") ? "default" : "outline"}
+                            size="sm"
+                            className="rounded-full px-5"
+                            disabled={isStreaming || !isLastAssistant}
+                            onClick={() => sendMessage(opt)}
+                          >
+                            {opt}
+                          </Button>
+                        ))}
+                      </div>
+                    );
+                  }
+                  return null;
                 })()}
               </div>
               {msg.role === "user" && (
