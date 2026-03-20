@@ -301,6 +301,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
       }
     } finally {
       setIsStreaming(false);
+      setIsBuildingPlan(false);
     }
   }, [selectedBook, messages, isStreaming, toast]);
 
