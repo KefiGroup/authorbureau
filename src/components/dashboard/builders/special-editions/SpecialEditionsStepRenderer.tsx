@@ -55,19 +55,19 @@ function SpecialEditionSetup({ stepData, setStepData, onMarkEdited, stepId, plan
 
   return (
     <div className="space-y-6">
-      <StepInstructions
-        category="build"
-        items={[
-          { label: "Edition Type", description: "Choose the physical format of your special edition." },
-          { label: "Occasion Theme", description: "Add a seasonal theme for gift-buyer marketing." },
-          { label: "Print Run", description: "Set scarcity level to drive urgency." },
-          { label: "Extras & Price", description: "Specify physical extras and set your price." },
-        ]}
-      />
-
       <AbbyRecommendationCard>
         <p className="text-sm text-foreground leading-relaxed">{getDateAwareAbbyTip()}</p>
       </AbbyRecommendationCard>
+
+      <StepInstructions
+        category="build"
+        items={[
+          { label: "Abby's Tip", description: "Review Abby's personalized advice above first." },
+          { label: "Edition Type", description: "Choose the physical format of your special edition." },
+          { label: "Occasion Theme", description: "Add a seasonal theme for gift-buyer marketing." },
+          { label: "Print Run & Price", description: "Set scarcity level, extras, and pricing." },
+        ]}
+      />
 
       {/* ── Edition Type ── */}
       <div className="space-y-2.5">
