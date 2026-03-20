@@ -7,7 +7,7 @@ import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import BookHubContextBar from "@/components/dashboard/book-hub/BookHubContextBar";
 import BookHubOverview from "@/components/dashboard/book-hub/BookHubOverview";
-import BookHubStepTab from "@/components/dashboard/book-hub/BookHubStepTab";
+import PortfolioStepView from "@/components/dashboard/PortfolioStepView";
 import BookHubAnalytics from "@/components/dashboard/book-hub/BookHubAnalytics";
 import BookHubSkeleton from "@/components/dashboard/book-hub/BookHubSkeleton";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
