@@ -43,8 +43,6 @@ interface Props {
   invalidateOnFieldChange?: Record<string, string[]>;
 }
 
-...
-
 export default function SharedSetupStep({
   configKey, fields, abbyTip, stepData, setStepData, onMarkEdited, stepId, plan, bookTitle, bookId, builderId, builderLabel, defaults,
   marketData, marketLoading, category = "build", invalidateOnFieldChange,
