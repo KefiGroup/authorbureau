@@ -76,12 +76,22 @@ interface Recommendation {
   sequence: number; // lower = do first
 }
 
+// Maps nodeId to the table/nodeId used in builder-draft-state
+const NODE_TO_DRAFT_KEY: Record<string, string[]> = {
+  "website": ["website", "microsite"],
+  "lead-magnets": ["lead-magnets", "lead_magnet"],
+  "email-marketing": ["email-marketing", "email_flows"],
+  "social-media": ["social-media", "social_media_content"],
+  "workbooks": ["workbooks", "workbook"],
+  "home-study": ["home-study", "home_study_courses"],
+  "courses": ["courses", "online-course"],
+  "audiobooks": ["audiobooks", "audiobook"],
+  "coaching-1on1": ["coaching-1on1", "coaching_packages"],
+};
+
+type ProductStatus = "not-started" | "in-progress" | "completed";
+
 function getRecommendationsFromPlan(planContent: string | null): Recommendation[] {
-  // Sequenced defaults following the ABBY Framework build order:
-  // 1. Branding & Marketing foundations (Sub-Phase A)
-  // 2. Digital Products (Sub-Phase B)
-  // 3. Build Authority (Act 3)
-  // 4. Yield Revenue (Act 4)
   return [
     { name: "Author Website & Microsite", nodeId: "website", category: "build", revenue: "Your branding foundation — start here", requiredTier: "starter", sequence: 1 },
     { name: "Lead Magnet & Email Opt-in", nodeId: "lead-magnets", category: "build", revenue: "Start building your audience list", requiredTier: "starter", sequence: 2 },
@@ -115,6 +125,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
   const [downloading, setDownloading] = useState(false);
   const [dataReady, setDataReady] = useState(false);
   const [authorId, setAuthorId] = useState<string>("");
+  const [productStatuses, setProductStatuses] = useState<Record<string, ProductStatus>>({});
   const { toast } = useToast();
   const { plan, completedAssets } = useAbbyPlan(book.id);
   const { data: marketData, loading: marketLoading } = useMarketResearch(book.id, book.title, book.genre || undefined);
@@ -177,6 +188,69 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
       } catch {
         console.error("Failed to fetch business plan");
       }
+
+      // Fetch product draft statuses
+      try {
+        const draftResp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/builder-draft-state`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+          body: JSON.stringify({ action: "list-drafts" }),
+        });
+        if (draftResp.ok) {
+          const draftResult = await draftResp.json();
+          const drafts: any[] = draftResult.drafts || [];
+          const statuses: Record<string, ProductStatus> = {};
+          for (const [nodeId, keys] of Object.entries(NODE_TO_DRAFT_KEY)) {
+            const matching = drafts.filter((d: any) =>
+              keys.some(k => d.nodeId === k || d.table === k || d.asset_type === k)
+            );
+            if (matching.some((d: any) => d.status === "published")) {
+              statuses[nodeId] = "completed";
+            } else if (matching.length > 0) {
+              statuses[nodeId] = "in-progress";
+            }
+          }
+
+          // Check website status via author_profiles (website is a native feature, not a draft)
+          const { data: profileData } = await supabase
+            .from("author_profiles")
+            .select("author_slug, site_theme")
+            .eq("user_id", userId)
+            .maybeSingle();
+          if (profileData?.author_slug) {
+            statuses["website"] = "completed";
+          }
+
+          // Also check completedAssets from generated_assets as fallback
+          const { data: genAssets } = await supabase
+            .from("generated_assets")
+            .select("asset_type")
+            .eq("book_id", book.id)
+            .eq("author_id", userId);
+          if (genAssets) {
+            const assetTypes = genAssets.map(a => a.asset_type);
+            const assetToNode: Record<string, string> = {
+              "lead_magnet": "lead-magnets",
+              "email_sequence": "email-marketing",
+              "social_media": "social-media",
+              "workbook": "workbooks",
+              "home_study": "home-study",
+              "course": "courses",
+              "audiobook_script": "audiobooks",
+            };
+            for (const [assetType, nodeId] of Object.entries(assetToNode)) {
+              if (assetTypes.includes(assetType) && !statuses[nodeId]) {
+                statuses[nodeId] = "in-progress";
+              }
+            }
+          }
+
+          setProductStatuses(statuses);
+        }
+      } catch {
+        console.error("Failed to fetch draft statuses");
+      }
+
       setDataReady(true);
     }
     checkData();
@@ -303,20 +377,37 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
             {recommendations.map((rec, i) => {
               const badge = categoryBadge[rec.category];
               const canAccess = canBuildProduct(rec.requiredTier);
+              const status = productStatuses[rec.nodeId] || "not-started";
+              const isCompleted = status === "completed";
+              const isInProgress = status === "in-progress";
               return (
-                <div key={i} className="flex items-center gap-3 rounded-lg border border-border p-3 bg-card">
-                  <span className="shrink-0 w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground">
-                    {rec.sequence}
+                <div key={i} className={`flex items-center gap-3 rounded-lg border p-3 ${
+                  isCompleted ? "border-emerald-300 bg-emerald-50/50" : isInProgress ? "border-amber-300 bg-amber-50/30" : "border-border bg-card"
+                }`}>
+                  <span className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                    isCompleted ? "bg-emerald-500 text-white" : isInProgress ? "bg-amber-500 text-white" : "bg-muted text-muted-foreground"
+                  }`}>
+                    {isCompleted ? <CheckCircle2 className="h-3.5 w-3.5" /> : rec.sequence}
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium truncate">{rec.name}</span>
                       <span className={`text-[10px] font-medium rounded-full px-2 py-0.5 ${badge.className}`}>{badge.label}</span>
+                      {isCompleted && (
+                        <span className="text-[10px] font-semibold rounded-full px-2 py-0.5 bg-emerald-100 text-emerald-700">Completed</span>
+                      )}
+                      {isInProgress && (
+                        <span className="text-[10px] font-semibold rounded-full px-2 py-0.5 bg-amber-100 text-amber-700">In Progress</span>
+                      )}
                     </div>
                     <span className="text-xs text-muted-foreground">{rec.revenue}</span>
                   </div>
                   {canAccess ? (
-                    <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-teal-700 border-teal-300 hover:bg-teal-50" onClick={() => {
+                    <Button size="sm" variant="outline" className={`text-xs h-7 gap-1 ${
+                      isCompleted ? "text-emerald-700 border-emerald-300 hover:bg-emerald-50" :
+                      isInProgress ? "text-amber-700 border-amber-300 hover:bg-amber-50" :
+                      "text-teal-700 border-teal-300 hover:bg-teal-50"
+                    }`} onClick={() => {
                       const titleParam = book.title ? `&bookTitle=${encodeURIComponent(book.title)}` : "";
                       const studioPath = getStudioPath(rec.nodeId, book.id, titleParam);
                       if (studioPath) {
@@ -325,7 +416,9 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
                         onNavigateTab("revenue-streams");
                       }
                     }}>
-                      Build Now <ArrowRight className="h-3 w-3" />
+                      {isCompleted ? <>View <ArrowRight className="h-3 w-3" /></> :
+                       isInProgress ? <>Continue <ArrowRight className="h-3 w-3" /></> :
+                       <>Build Now <ArrowRight className="h-3 w-3" /></>}
                     </Button>
                   ) : (
                     <span className="flex items-center gap-1 text-xs text-muted-foreground">
