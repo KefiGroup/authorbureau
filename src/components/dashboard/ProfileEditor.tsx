@@ -609,7 +609,7 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
         <div>
           <h2 className="font-heading text-2xl font-bold">Author Profile</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Managed on PublishNow.io — edit your profile there, then click <strong>Sync</strong> to pull updates here.
+            Your profile is managed on PublishNow.io and synced here.
           </p>
         </div>
         <div className="flex gap-2">
@@ -622,6 +622,40 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
           </Button>
         </div>
       </div>
+
+      {/* How it works instructions */}
+      <section className="rounded-xl border border-border bg-card p-6 space-y-4">
+        <h3 className="font-heading text-lg font-semibold">How Your Profile Works</h3>
+        <p className="text-sm text-muted-foreground">
+          Your author profile lives on <strong>PublishNow.io</strong> and is synced back to Authors Bureau. Follow the route that applies to you:
+        </p>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          {/* Route 1 */}
+          <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-2">
+            <p className="text-sm font-semibold text-primary">Route 1 — Already on PublishNow</p>
+            <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+              <li>Click <strong>"Sync"</strong> above to pull your existing profile.</li>
+              <li>To edit, click <strong>"Edit on PublishNow"</strong>, make changes, then come back and <strong>Sync</strong> again.</li>
+            </ol>
+          </div>
+
+          {/* Route 2 */}
+          <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2">
+            <p className="text-sm font-semibold">Route 2 — New to PublishNow</p>
+            <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+              <li>Click <strong>"Edit on PublishNow"</strong> — you'll be signed in automatically.</li>
+              <li>Complete your profile (name, photo, bio, links).</li>
+              <li>Go to <strong>Settings → Set Password</strong> on PublishNow to secure your account.</li>
+              <li>Come back here and click <strong>"Sync"</strong> to pull your profile.</li>
+            </ol>
+          </div>
+        </div>
+
+        <p className="text-xs text-muted-foreground border-t border-border pt-3">
+          💡 <strong>Tip:</strong> After your first sign-in on PublishNow, go to <strong>Settings → Set Password</strong> to create a password for direct access anytime.
+        </p>
+      </section>
 
       {/* Profile Card */}
       <section className="rounded-xl border border-border bg-card p-6">
