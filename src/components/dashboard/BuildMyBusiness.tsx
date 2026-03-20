@@ -14,6 +14,7 @@ import FullPlanDialog from "@/components/dashboard/FullPlanDialog";
 import FrameworkInterviewModal, { type BuildMode } from "@/components/dashboard/FrameworkInterviewModal";
 import SubscriptionSalesPitch from "@/components/dashboard/framework-dashboard/SubscriptionSalesPitch";
 import ManuscriptUpload from "@/components/dashboard/ManuscriptUpload";
+import AbbyNarrativeLoading from "@/components/dashboard/builders/AbbyNarrativeLoading";
 import ChatChoiceButtons, { parseChoices, parseConfirmation } from "@/components/dashboard/ChatChoiceButtons";
 import type { AuthorFramework } from "@/components/dashboard/FrameworksEditor";
 import {
@@ -69,6 +70,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [isBuildingPlan, setIsBuildingPlan] = useState(false);
   const [isBuilding, setIsBuilding] = useState<string | null>(null);
   const [pendingBuildReq, setPendingBuildReq] = useState<Record<string, string> | null>(null);
   const [showFrameworkModal, setShowFrameworkModal] = useState(false);
@@ -233,6 +235,13 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
     setInput("");
     setIsStreaming(true);
 
+    // Detect if this is likely to trigger business plan generation (Turn 4)
+    const lowerContent = content.toLowerCase();
+    const lastAssistantMsg = messages.filter(m => m.role === "assistant").pop()?.content?.toLowerCase() || "";
+    const isPlanTrigger = (lowerContent.includes("yes") || lowerContent.includes("let's go") || lowerContent.includes("ready") || lowerContent.includes("go ahead") || lowerContent.includes("🚀")) 
+      && (lastAssistantMsg.includes("ready for me to build") || lastAssistantMsg.includes("ready to build") || lastAssistantMsg.includes("business plan"));
+    if (isPlanTrigger) setIsBuildingPlan(true);
+
     const abort = new AbortController();
     abortRef.current = abort;
 
@@ -293,6 +302,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
       }
     } finally {
       setIsStreaming(false);
+      setIsBuildingPlan(false);
     }
   }, [selectedBook, messages, isStreaming, toast]);
 
@@ -1169,7 +1179,24 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
           );
         })}
 
-        {isStreaming && messages[messages.length - 1]?.role === "assistant" && !messages[messages.length - 1]?.content && (
+        {/* Narrative loading for business plan generation */}
+        {isBuildingPlan && isStreaming && (
+          <AbbyNarrativeLoading
+            messages={[
+              "Reading your book's core frameworks…",
+              "Mapping your transformation promise…",
+              "Designing your Brand Products suite…",
+              "Building your Authority growth strategy…",
+              "Calculating revenue projections…",
+              "Assembling your complete ABBY Business Plan…",
+            ]}
+            builderLabel="Business Plan"
+            bookTitle={selectedBook?.title || "your book"}
+          />
+        )}
+
+        {/* Standard loading for regular messages */}
+        {isStreaming && !isBuildingPlan && messages[messages.length - 1]?.role === "assistant" && !messages[messages.length - 1]?.content && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
