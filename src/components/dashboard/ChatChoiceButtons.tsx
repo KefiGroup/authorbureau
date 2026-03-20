@@ -36,7 +36,7 @@ export function parseChoices(content: string): { choices: Choice[]; multiSelect:
     }
   }
   if (choices.length >= 2) {
-    return { choices, multiSelect: detectMultiSelect(content) };
+    return { choices, multiSelect: detectMultiSelect(content, choices) };
   }
 
   // Try numbered emoji patterns: 1️⃣ text, 2️⃣ text, or • 1️⃣ text
