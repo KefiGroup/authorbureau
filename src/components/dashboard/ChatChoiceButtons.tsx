@@ -69,12 +69,15 @@ export function parseChoices(content: string): { choices: Choice[]; multiSelect:
 }
 
 /** Detect if the question asks for single or multiple selection */
-function detectMultiSelect(content: string): boolean {
+function detectMultiSelect(content: string, choices: Choice[]): boolean {
   const lower = content.toLowerCase();
-  if (/pick one[^a-z]|choose one[^a-z]|select one[^a-z]|pick one\b/i.test(lower)) return false;
-  if (/which one\b/i.test(lower)) return false;
+  // Explicit multi-select signals
   if (/pick .*(all|multiple|any)|select .*(all|multiple|any)|choose .*(all|multiple|any)/i.test(lower)) return true;
   if (/one or more/i.test(lower)) return true;
+  // Numbered choices (1-5 audience levels etc.) are always single-select
+  if (choices.length > 0 && /^\d+$/.test(choices[0].letter)) return false;
+  // Lettered choices (A-D strategy options) default to multi-select
+  if (choices.length >= 2 && /^[A-Z]$/.test(choices[0].letter)) return true;
   return false;
 }
 
