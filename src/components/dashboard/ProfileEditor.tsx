@@ -345,6 +345,14 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
     }));
   };
 
+  const handleEditOnPublishNow = async () => {
+    const result = await redirectToPublishNow("/profile");
+    if (result.error) {
+      toast({ title: "Redirect failed", description: result.fallbackUrl ? "Opening PublishNow directly…" : result.error, variant: "destructive" });
+      if (result.fallbackUrl) window.open(result.fallbackUrl, "_blank");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -367,10 +375,8 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
           </p>
         </div>
         <div className="flex gap-3 justify-center">
-          <Button asChild className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
-            <a href="https://publishnow.io/dashboard?section=profile" target="_blank" rel="noopener noreferrer">
+          <Button className="bg-secondary text-secondary-foreground hover:bg-secondary/90" onClick={handleEditOnPublishNow}>
               <PlusCircle className="h-4 w-4 mr-2" /> Create on PublishNow
-            </a>
           </Button>
           <Button variant="outline" onClick={handleSync} disabled={syncing}>
             {syncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
@@ -584,10 +590,8 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
             {syncing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
             {syncing ? "Syncing..." : "Sync"}
           </Button>
-          <Button size="sm" asChild className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
-            <a href="https://publishnow.io/dashboard?section=profile" target="_blank" rel="noopener noreferrer">
+          <Button size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90" onClick={handleEditOnPublishNow}>
               <Pencil className="h-4 w-4 mr-1" /> Edit on PublishNow
-            </a>
           </Button>
         </div>
       </div>
