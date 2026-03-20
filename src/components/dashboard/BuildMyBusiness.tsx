@@ -223,7 +223,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
   useEffect(() => {
     if (shouldAutoStart && selectedBook && !isStreaming && !abbyReading && messages.length === 0) {
       setShouldAutoStart(false);
-      sendMessage("I'd like to build a business around my book. Please analyze my book and advise me on the best strategy.", true);
+      sendMessage("Start a brand new consultation. Begin with TURN 1 — GREETING & OPPORTUNITY REVEAL exactly as specified in your consultation sequence. Do not skip any turns or assume previous context.", true);
     }
   }, [shouldAutoStart, abbyReading, selectedBook, messages.length, isStreaming]);
 
