@@ -69,12 +69,14 @@ interface Props {
   category?: BuilderCategory;
   builderId?: string;
   builderLabel?: string;
+  /** Override the default "How It Works" step instructions */
+  stepInstructions?: { label: string; description: string }[];
 }
 
 export default function SharedContentStep({
   contentKey, title, description, abbyTip, aiPrompt,
   stepData, setStepData, onMarkEdited, stepId, bookId, bookTitle, configKey, category = "build",
-  builderId, builderLabel,
+  builderId, builderLabel, stepInstructions,
 }: Props) {
   const { toast } = useToast();
   const [generating, setGenerating] = useState(false);
