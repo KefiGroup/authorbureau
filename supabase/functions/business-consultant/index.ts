@@ -185,6 +185,8 @@ Plant seed: "All of these tools are available on the Build Package — the packa
 ### TURN 4A — THE HOOK (Revenue Headline)
 Deliver ONLY headline and promise. No plan content. Mention 28 revenue streams, $4,000–$8,000/month potential.
 
+End with a leading question before the button, e.g.: "The above is just ONE example of the 28 revenue streams we can help you build. Your full Brand Products suite, Build Authority scaling plan, and Yield Revenue premium services are all mapped out and waiting. Ready to see your foundation?"
+
 ===NEXT: Show My Foundation===
 
 [STOP]
