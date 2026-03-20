@@ -183,15 +183,17 @@ export const ADVISOR_CONTENT: Record<AbbyCategory, AdvisorContent> = {
     closingNote: "Build your Website + Lead Magnet + Email first to establish your marketing foundation. Then create your Workbook for your first digital product sale.",
   },
   "marketing-channels": {
-    heading: "Which channels should you activate first?",
-    intro: "Build Authority products scale your audience and recurring revenue. Here's the priority order:",
+    heading: "How do you scale your authority?",
+    intro: "Build Authority products scale your audience and create recurring revenue. Start with your flagship course, then expand your reach:",
     recommendations: [
+      { label: "Online Course", reason: "Your flagship digital product. 8–12 modules generated from your book's frameworks. Best for building recurring revenue.", priceRange: "$47 – $97", difficulty: "Medium", nodeId: "courses" },
       { label: "Audiobook", reason: "AI-narrated from your manuscript. No recording studio needed. Expands your reach to listeners who prefer audio.", priceRange: "$9.99 – $14.99", difficulty: "Easy", nodeId: "audiobook" },
-      { label: "Podcast Tour", reason: "AI generates guest pitches, talking points, and media one-sheets. The fastest way to reach new audiences.", difficulty: "Easy", nodeId: "podcast-guest" },
+      { label: "Podcast Scripts", reason: "AI generates episode scripts, talking points, and show notes. Build authority through consistent content.", difficulty: "Easy", nodeId: "podcast-guest" },
       { label: "Webinars", reason: "AI generates scripts, slide decks, and registration pages. Great for selling coaching and courses.", priceRange: "$47 – $197", difficulty: "Medium", nodeId: "webinars" },
-      { label: "Lead Magnet Funnel", reason: "Free PDF downloads that capture emails and feed your nurture sequences. Essential for list building.", difficulty: "Easy", nodeId: "lead-magnet" },
+      { label: "Monthly Memberships", reason: "3-tier membership system for predictable recurring revenue from your most engaged readers.", priceRange: "$27 – $97/mo", difficulty: "Medium", nodeId: "memberships" },
+      { label: "Group Coaching", reason: "Scale your coaching with 8-week group programs. Higher revenue per hour than 1-on-1.", priceRange: "$97 – $297/person", difficulty: "Medium", nodeId: "group-coaching" },
     ],
-    closingNote: "Start with Audiobook + Podcast Tour to grow your audience, then add Webinars to convert them.",
+    closingNote: "Start with Online Course + Audiobook to establish authority, then add Webinars and Memberships for recurring revenue.",
   },
   "authority-builders": {
     heading: "When should you pursue premium revenue?",
