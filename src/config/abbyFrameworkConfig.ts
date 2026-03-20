@@ -261,9 +261,9 @@ export function getEffectiveNodeStatus(
   isSuperAdmin = false,
   openNodeIds?: Set<string>,
 ): AbbyNode["status"] {
-  // Superadmin fallback when DB gating rows are not loaded yet.
-  if (isSuperAdmin && !openNodeIds) {
-    return node.status === "planned" ? "planned" : "available";
+  // Superadmins bypass ALL gating — everything is available
+  if (isSuperAdmin) {
+    return "available";
   }
 
   // If we have DB gating data, use it

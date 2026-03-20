@@ -247,7 +247,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
   if (!user) return <Navigate to="/auth" replace />;
 
   const gate = (featureName: string, children: React.ReactNode, requiredTier: "starter" | "pro" | "enterprise" = "starter") => (
-    <PremiumGate isPremium={isPremium || isAdmin} featureName={featureName} requiredTier={requiredTier} currentTier={tier}>{children}</PremiumGate>
+    <PremiumGate isPremium={isPremium || isAdmin || userIsSuperAdmin} featureName={featureName} requiredTier={requiredTier} currentTier={userIsSuperAdmin ? "enterprise" : tier}>{children}</PremiumGate>
   );
 
   const handleNavigate = (s: string) => setActiveSection(s as DashboardSection);
@@ -372,7 +372,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         return gate("Email Marketing", <EmailMarketing activeTab={activeSection} onTabChange={(s) => setActiveSection(s as DashboardSection)} />);
       case "revenue-streams":
         // Subscribers can always access product sections; only gate for free users without analysis
-        if (!hasAnalysis && !isPremium && !isAdmin) {
+        if (!hasAnalysis && !isPremium && !isAdmin && !userIsSuperAdmin) {
           return <SectionGatePage
             sectionTitle="B · Build Authority"
             sectionSubtitle="Create digital products that establish you as the expert in your field."
