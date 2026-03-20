@@ -583,6 +583,18 @@ function FormattedBody({ body, sectionTitle }: { body: string; sectionTitle: str
     );
   }
 
+  // Generic "Option N:" pattern (e.g. headline options in lead magnets)
+  const genericData = extractGenericOptions(body);
+  if (genericData) {
+    return (
+      <div className="space-y-4">
+        {genericData.preamble && <FormattedBodyInner body={genericData.preamble} sectionTitle={sectionTitle} showWritingSpaces={showWritingSpaces} />}
+        <GenericOptionSelector options={genericData.options} />
+        {genericData.rest && <FormattedBodyInner body={genericData.rest} sectionTitle={sectionTitle} showWritingSpaces={showWritingSpaces} />}
+      </div>
+    );
+  }
+
   return <FormattedBodyInner body={body} sectionTitle={sectionTitle} showWritingSpaces={showWritingSpaces} />;
 }
 
