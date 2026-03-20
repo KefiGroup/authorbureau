@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import { motion } from "framer-motion";
 import { BarChart3, TrendingUp, Sparkles, ExternalLink, Loader2 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
