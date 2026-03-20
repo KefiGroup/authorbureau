@@ -39,6 +39,8 @@ interface Props {
   marketData?: MarketResearchData | null;
   marketLoading?: boolean;
   category?: BuilderCategory;
+  /** Clear dependent keys in stepData when specific setup fields change */
+  invalidateOnFieldChange?: Record<string, string[]>;
 }
 
 const categorySelectedStyles: Record<BuilderCategory, string> = {
@@ -61,7 +63,7 @@ const categoryHoverStyles: Record<BuilderCategory, string> = {
 
 export default function SharedSetupStep({
   configKey, fields, abbyTip, stepData, setStepData, onMarkEdited, stepId, plan, bookTitle, bookId, builderId, builderLabel, defaults,
-  marketData, marketLoading, category = "build",
+  marketData, marketLoading, category = "build", invalidateOnFieldChange,
 }: Props) {
   const config: Record<string, any> = stepData[configKey] || defaults || {};
   const [analyzing, setAnalyzing] = useState(false);
@@ -69,7 +71,20 @@ export default function SharedSetupStep({
 
   const update = (key: string, value: any) => {
     onMarkEdited(stepId);
-    setStepData(prev => ({ ...prev, [configKey]: { ...config, [key]: value } }));
+    setStepData(prev => {
+      const currentConfig: Record<string, any> = prev[configKey] || defaults || {};
+      const next: Record<string, any> = {
+        ...prev,
+        [configKey]: { ...currentConfig, [key]: value },
+      };
+
+      const keysToInvalidate = invalidateOnFieldChange?.[key] || [];
+      for (const dependentKey of keysToInvalidate) {
+        next[dependentKey] = "";
+      }
+
+      return next;
+    });
   };
 
   const analyzeWithAbby = async () => {

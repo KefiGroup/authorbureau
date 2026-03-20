@@ -31,9 +31,18 @@ interface Props {
 export default function LeadMagnetStepRenderer({ stepId, stepData, setStepData, onMarkEdited, bookId, bookTitle, plan, userId }: Props) {
   switch (stepId) {
     case "configure":
-      return <SharedSetupStep bookId={bookId} configKey="leadMagnetConfig" fields={SETUP_FIELDS} abbyTip="Checklists and cheat sheets convert best. They promise a quick win with minimal effort from the reader." stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} plan={plan} bookTitle={bookTitle} defaults={{ type: "checklist", deliveryMethod: "pdf" }} />;
+      return <SharedSetupStep bookId={bookId} configKey="leadMagnetConfig" fields={SETUP_FIELDS} abbyTip="Checklists and cheat sheets convert best. They promise a quick win with minimal effort from the reader." stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} plan={plan} bookTitle={bookTitle} defaults={{ type: "checklist", deliveryMethod: "pdf" }} invalidateOnFieldChange={{
+        type: ["leadMagnetContent", "leadMagnetEdited", "leadMagnetDesign"],
+      }} />;
     case "generate":
-      return <SharedContentStep contentKey="leadMagnetContent" title="Lead Magnet Content" description="AI generates your lead magnet content from your book's most actionable advice." abbyTip="I'll pull the most actionable insights from your manuscript into a compact, high-value format." aiPrompt={`Generate a complete lead magnet for "{bookTitle}". Config: {config}. Create: 1) HEADLINE & SUBHEADLINE (benefit-driven), 2) MAIN CONTENT (the actual lead magnet content — checklist items, cheat sheet sections, templates, etc.), 3) INTRODUCTION (why this matters), 4) CALL-TO-ACTION (what to do next — buy the book, take the course, etc.), 5) AUTHOR BIO BLURB. Format as markdown.`} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="leadMagnetConfig" stepInstructions={[
+      return <SharedContentStep contentKey="leadMagnetContent" title="Lead Magnet Content" description="AI generates your lead magnet content from your book's most actionable advice." abbyTip="I'll pull the most actionable insights from your manuscript into a compact, high-value format." aiPrompt={`Generate a complete lead magnet for "{bookTitle}". Config: {config}. You MUST follow config.type exactly.
+If config.type is "checklist": output a checklist-style lead magnet only (no quiz/scoring/assessment).
+If config.type is "cheatsheet": output a cheat-sheet reference format.
+If config.type is "mini-course": output a 3-5 day email mini-course format.
+If config.type is "quiz": output an interactive quiz/assessment format.
+If config.type is "template": output reusable template pack format.
+If config.type is "chapter": output free chapter preview format.
+Create: 1) HEADLINE & SUBHEADLINE (benefit-driven), 2) MAIN CONTENT in the selected format, 3) INTRODUCTION (why this matters), 4) CALL-TO-ACTION (what to do next — buy the book, take the course, etc.), 5) AUTHOR BIO BLURB. Format as markdown.`} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="leadMagnetConfig" stepInstructions={[
         { label: "Click Generate", description: "Abby creates your lead magnet from your book's best ideas." },
         { label: "Review sections", description: "Expand each card to read headline options, content, and CTA." },
         { label: "Pick your favorite", description: "Select from multiple headline/content options Abby provides." },
