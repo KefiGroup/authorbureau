@@ -92,19 +92,19 @@ export default function SharedSetupStep({
 
   return (
     <div className="space-y-6">
-      <StepInstructions
-        category={category}
-        items={[
-          { label: "Text fields", description: "Type to set titles, descriptions, and other details." },
-          { label: "Option cards", description: "Click to select a preset format, tier, or duration." },
-          { label: "Price field", description: "Set your selling price in USD. Change anytime." },
-          { label: "Abby's Tip", description: "Personalized advice from your business plan." },
-        ]}
-      />
-
       <AbbyRecommendationCard>
         <p className="text-sm text-foreground leading-relaxed">{abbyTip}</p>
       </AbbyRecommendationCard>
+
+      <StepInstructions
+        category={category}
+        items={[
+          { label: "Abby's Tip", description: "Review Abby's personalized advice above first." },
+          { label: "Text fields", description: "Type to set titles, descriptions, and other details." },
+          { label: "Option cards", description: "Click to select a preset format, tier, or duration." },
+          { label: "Price field", description: "Set your selling price in USD. Change anytime." },
+        ]}
+      />
 
       {fields.map(field => {
         const marketFieldType = getMarketFieldType(field.key, field.type);
