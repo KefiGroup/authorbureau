@@ -11,6 +11,7 @@ import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import SiteThemePicker from "@/components/dashboard/SiteThemePicker";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
+import AbbyRecommendationCard from "@/components/dashboard/builders/shared/AbbyRecommendationCard";
 
 /* ---------- Types ---------- */
 interface BookProduct {
@@ -217,6 +218,18 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
 
   return (
     <div className="max-w-6xl space-y-6">
+      {/* ACT 1 — ANALYSE: Abby's Website Strategy */}
+      <AbbyRecommendationCard>
+        <p className="text-sm text-foreground leading-relaxed">
+          Your author website is the central hub that connects all your Brand Products, builds credibility, and captures leads.
+          I recommend setting up your <strong>author slug</strong> first, then choosing a theme that matches your genre.
+          As you publish products through the builders, they'll automatically appear on your site — no extra work needed.
+        </p>
+        <p className="text-xs text-muted-foreground mt-2">
+          Focus on completing your <strong>Author Profile</strong> and publishing at least one book page before sharing your site publicly.
+        </p>
+      </AbbyRecommendationCard>
+
       {/* Header */}
       <div>
         <div className="flex items-center gap-2 mb-1">
