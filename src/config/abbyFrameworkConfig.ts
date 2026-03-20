@@ -170,15 +170,17 @@ export interface AdvisorContent {
 export const ADVISOR_CONTENT: Record<AbbyCategory, AdvisorContent> = {
   "revenue-streams": {
     heading: "Where should you start building?",
-    intro: "Based on the ABBY Framework, here's my recommended build order. Start with the lowest-effort, highest-impact products first:",
+    intro: "Based on the ABBY Framework, here's your recommended build sequence. Start with your branding & marketing foundations first, then create your digital products:",
     recommendations: [
-      { label: "Workbook", reason: "Your fastest win. AI generates it directly from your manuscript: exercises, reflection prompts, and action plans. Most authors finish in under 30 minutes.", priceRange: "$4.99 – $9.99", difficulty: "Easy", nodeId: "workbooks" },
-      { label: "Home Study Course", reason: "A structured self-paced program with daily schedules. Great lead magnet or entry-level product.", priceRange: "$27 – $47", difficulty: "Medium", nodeId: "home-study" },
-      { label: "Book Sales", reason: "QR code order pages and direct sales funnels. Quick to set up, immediate revenue from your existing book.", priceRange: "$15 – $30/book", difficulty: "Easy", nodeId: "book-sales-events" },
-      { label: "Social Media (90-day Calendar)", reason: "AI generates a full content calendar from your book. Start building your audience while creating digital products.", difficulty: "Easy", nodeId: "social-media" },
-      { label: "Online Course", reason: "Your flagship digital product. 8–12 modules generated from your book's frameworks. Best for building recurring revenue.", priceRange: "$47 – $97", difficulty: "Medium", nodeId: "courses" },
+      { label: "Author Website & Microsite", reason: "Your branding foundation. Every product you create lives here — it's the hub for your entire author business. Start here.", difficulty: "Easy", nodeId: "microsite" },
+      { label: "Lead Magnet & Email Opt-in", reason: "Capture reader emails with a free PDF download. This feeds your email list and unlocks every other revenue stream.", difficulty: "Easy", nodeId: "lead-magnet" },
+      { label: "Email Marketing Flows", reason: "Automated nurture sequences that turn subscribers into buyers. Set it once and it sells for you 24/7.", difficulty: "Easy", nodeId: "email-marketing" },
+      { label: "Social Media (90-day Calendar)", reason: "AI generates a full content calendar from your book. Build your audience while you create digital products.", difficulty: "Easy", nodeId: "social-media" },
+      { label: "Workbook", reason: "Your first digital product. AI generates exercises, reflection prompts, and action plans directly from your manuscript.", priceRange: "$4.99 – $9.99", difficulty: "Easy", nodeId: "workbooks" },
+      { label: "Home Study Course", reason: "A structured self-paced program with daily schedules. Great entry-level product once you have an audience to sell to.", priceRange: "$27 – $47", difficulty: "Medium", nodeId: "home-study" },
+      { label: "Book Sales (Events & QR)", reason: "QR code order pages and direct sales funnels. Quick to set up, immediate revenue from your existing book.", priceRange: "$15 – $30/book", difficulty: "Easy", nodeId: "book-sales-events" },
     ],
-    closingNote: "Start with Workbook + Book Sales for quick wins, then add Online Course to build momentum.",
+    closingNote: "Build your Website + Lead Magnet + Email first to establish your marketing foundation. Then create your Workbook for your first digital product sale.",
   },
   "marketing-channels": {
     heading: "Which channels should you activate first?",
