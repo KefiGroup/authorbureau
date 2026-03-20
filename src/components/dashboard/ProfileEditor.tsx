@@ -345,6 +345,14 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
     }));
   };
 
+  const handleEditOnPublishNow = async () => {
+    const result = await redirectToPublishNow("/profile");
+    if (result.error) {
+      toast({ title: "Redirect failed", description: result.fallbackUrl ? "Opening PublishNow directly…" : result.error, variant: "destructive" });
+      if (result.fallbackUrl) window.open(result.fallbackUrl, "_blank");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
