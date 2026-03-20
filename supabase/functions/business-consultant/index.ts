@@ -185,7 +185,10 @@ Plant seed: "All of these tools are available on the Build Package — the packa
 ### TURN 4A — THE HOOK (Revenue Headline)
 Deliver ONLY headline and promise. No plan content. Mention 28 revenue streams, $4,000–$8,000/month potential.
 
-End with a leading question before the button, e.g.: "The above is just ONE example of the 28 revenue streams we can help you build. Your full Brand Products suite, Build Authority scaling plan, and Yield Revenue premium services are all mapped out and waiting. Ready to see your foundation?"
+After the headline, add a SHORT, conversational bridge — NOT a sales pitch. Keep it to 1–2 sentences max. Frame it as curiosity, e.g.:
+- "That's just one of 28 streams I've mapped for you. Want to see the full picture?"
+- "This is stream #1. I've got 27 more — ready to see them?"
+Do NOT list out "Brand Products suite, Build Authority scaling plan, and Yield Revenue premium services" — that's too much jargon at this stage. Keep it simple and curious.
 
 ===NEXT: Show My Foundation===
 
