@@ -14,6 +14,7 @@ import FullPlanDialog from "@/components/dashboard/FullPlanDialog";
 import FrameworkInterviewModal, { type BuildMode } from "@/components/dashboard/FrameworkInterviewModal";
 import SubscriptionSalesPitch from "@/components/dashboard/framework-dashboard/SubscriptionSalesPitch";
 import ManuscriptUpload from "@/components/dashboard/ManuscriptUpload";
+import AbbyNarrativeLoading from "@/components/dashboard/builders/AbbyNarrativeLoading";
 import ChatChoiceButtons, { parseChoices, parseConfirmation } from "@/components/dashboard/ChatChoiceButtons";
 import type { AuthorFramework } from "@/components/dashboard/FrameworksEditor";
 import {
