@@ -61,21 +61,33 @@ interface Props {
   onNavigateTab: (tab: string) => void;
 }
 
-// Top 3 recommendations mock — in real implementation these come from the business plan
+// Top recommendations — sequenced by the ABBY Framework build order
+// Phase A (Branding & Marketing) → Phase B (Digital Products) → Build Authority → Yield Revenue
 interface Recommendation {
   name: string;
   nodeId: string;
   category: "build" | "bridge" | "yield";
   revenue: string;
   requiredTier: SubscriptionTier;
+  sequence: number; // lower = do first
 }
 
 function getRecommendationsFromPlan(planContent: string | null): Recommendation[] {
-  // Default recommendations when plan parsing isn't available
+  // Sequenced defaults following the ABBY Framework build order:
+  // 1. Branding & Marketing foundations (Sub-Phase A)
+  // 2. Digital Products (Sub-Phase B)
+  // 3. Build Authority (Act 3)
+  // 4. Yield Revenue (Act 4)
   return [
-    { name: "Quick-Start Workbook", nodeId: "workbooks", category: "build", revenue: "Potential Revenue: $270 - $1,500 per month", requiredTier: "starter" },
-    { name: "Online Course", nodeId: "courses", category: "build", revenue: "Potential Revenue: $500 - $3,000 per month", requiredTier: "pro" },
-    { name: "1-on-1 Coaching Program", nodeId: "coaching-1on1", category: "bridge", revenue: "Potential Revenue: $1,000 - $5,000 per month", requiredTier: "pro" },
+    { name: "Author Website & Microsite", nodeId: "website", category: "build", revenue: "Your branding foundation — start here", requiredTier: "starter", sequence: 1 },
+    { name: "Lead Magnet & Email Opt-in", nodeId: "lead-magnets", category: "build", revenue: "Start building your audience list", requiredTier: "starter", sequence: 2 },
+    { name: "Email Marketing Flows", nodeId: "email-marketing", category: "build", revenue: "Nurture readers into buyers", requiredTier: "starter", sequence: 3 },
+    { name: "Social Media Calendar", nodeId: "social-media", category: "build", revenue: "90-day content plan for visibility", requiredTier: "starter", sequence: 4 },
+    { name: "Quick-Start Workbook", nodeId: "workbooks", category: "build", revenue: "Potentially Generating: $270 - $1,500/mo", requiredTier: "starter", sequence: 5 },
+    { name: "Home Study Course", nodeId: "home-study", category: "build", revenue: "Potentially Generating: $400 - $2,000/mo", requiredTier: "starter", sequence: 6 },
+    { name: "Online Course", nodeId: "courses", category: "bridge", revenue: "Potentially Generating: $500 - $3,000/mo", requiredTier: "pro", sequence: 7 },
+    { name: "Audiobook", nodeId: "audiobooks", category: "bridge", revenue: "Potentially Generating: $300 - $1,500/mo", requiredTier: "pro", sequence: 8 },
+    { name: "1-on-1 Coaching Program", nodeId: "coaching-1on1", category: "yield", revenue: "Potentially Generating: $1,000 - $5,000/mo", requiredTier: "enterprise", sequence: 9 },
   ];
 }
 
