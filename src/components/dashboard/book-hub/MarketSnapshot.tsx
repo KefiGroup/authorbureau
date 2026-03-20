@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import { motion } from "framer-motion";
 import { BarChart3, TrendingUp, Sparkles, ExternalLink, Loader2 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -60,8 +61,8 @@ export default function MarketSnapshot({ data, loading }: Props) {
         <TabsContent value="trends" className="mt-4 space-y-5">
           {hasKeywords && <TrendingKeywords keywords={data.amazonBestsellers!.topTitleKeywords} marketIntel={data.marketIntelligence} />}
           {hasMarketIntel && !hasKeywords && (
-            <div className="rounded-lg bg-muted/30 p-4 text-sm text-foreground leading-relaxed whitespace-pre-line">
-              {data.marketIntelligence}
+            <div className="rounded-lg bg-muted/30 p-4 text-sm leading-relaxed">
+              <MarkdownRenderer content={data.marketIntelligence || ""} />
             </div>
           )}
         </TabsContent>
