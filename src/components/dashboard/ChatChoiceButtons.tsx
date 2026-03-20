@@ -62,7 +62,7 @@ export function parseChoices(content: string): { choices: Choice[]; multiSelect:
     }
   }
   if (choices.length >= 2) {
-    return { choices, multiSelect: detectMultiSelect(content) };
+    return { choices, multiSelect: detectMultiSelect(content, choices) };
   }
 
   return null;
