@@ -1053,7 +1053,11 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
           const displayContent = msg.content
             .replace(/===BUILD_REQUEST===[\s\S]*?===END_BUILD_REQUEST===/g, "")
             .replace(/===SUBSCRIBE_CTA===/g, "")
+            .replace(/===CHOICE_SINGLE:\s*.*?===/g, "")
+            .replace(/===CHOICE_MULTI:\s*.*?===/g, "")
+            .replace(/===NEXT:\s*.*?===/g, "")
             .replace(/===NAV:[\w-]+===/g, "")
+            .replace(/\[STOP\]/g, "")
             .trim();
 
           return (
