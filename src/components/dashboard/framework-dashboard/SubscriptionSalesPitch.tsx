@@ -260,10 +260,11 @@ export default function SubscriptionSalesPitch({
         >
           <Clock className={`h-4 w-4 ${countdown.urgent ? "animate-pulse" : ""}`} />
           <span>
-            First-timer pricing expires in{" "}
+            Special: Build Package is usually <span className="line-through">$199/mo</span>, now <strong>$99/mo</strong> for the next{" "}
             <span className="font-mono font-bold text-base">
               {String(countdown.minutes).padStart(2, "0")}:{String(countdown.seconds).padStart(2, "0")}
             </span>
+            . Save $100/mo.
           </span>
           {countdown.urgent && <AlertTriangle className="h-4 w-4 animate-pulse" />}
         </motion.div>
@@ -323,19 +324,26 @@ export default function SubscriptionSalesPitch({
                     <p className="text-xs text-muted-foreground">{plan.description}</p>
                   </div>
 
-                  {/* Pricing with usual price strikethrough */}
+                  {/* Pricing with promo / standard switch */}
                   <div>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-sm text-muted-foreground line-through">{plan.usualPrice}/mo</span>
-                    </div>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-bold">{plan.price}</span>
-                      <span className="text-muted-foreground text-sm">{plan.period}</span>
-                    </div>
-                    {!countdown.expired && (
-                      <p className="text-[11px] text-green-600 dark:text-green-400 font-semibold mt-1">
-                        You save {plan.savings}/mo ({plan.annualSavings}/yr)
-                      </p>
+                    {!countdown.expired ? (
+                      <>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-sm text-muted-foreground line-through">{plan.usualPrice}/mo</span>
+                        </div>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-4xl font-bold">{plan.price}</span>
+                          <span className="text-muted-foreground text-sm">{plan.period}</span>
+                        </div>
+                        <p className="text-[11px] text-green-600 dark:text-green-400 font-semibold mt-1">
+                          You save {plan.savings}/mo ({plan.annualSavings}/yr)
+                        </p>
+                      </>
+                    ) : (
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-4xl font-bold">{plan.usualPrice}</span>
+                        <span className="text-muted-foreground text-sm">{plan.period}</span>
+                      </div>
                     )}
                   </div>
 
@@ -378,7 +386,11 @@ export default function SubscriptionSalesPitch({
                       ) : (
                         <Crown className="h-4 w-4 mr-2 shrink-0" />
                       )}
-                      {isSubscribed ? `Upgrade to ${plan.name}` : `Get ${plan.name}`}
+                      {isSubscribed
+                        ? `Upgrade to ${plan.name}`
+                        : countdown.expired
+                        ? `Get ${plan.name} — ${plan.usualPrice}/mo`
+                        : `Get ${plan.name} — ${plan.price}/mo`}
                     </Button>
                   )}
                 </div>
