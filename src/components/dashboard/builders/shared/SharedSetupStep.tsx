@@ -43,6 +43,24 @@ interface Props {
   invalidateOnFieldChange?: Record<string, string[]>;
 }
 
+const categorySelectedStyles: Record<BuilderCategory, string> = {
+  build: "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 ring-1 ring-emerald-500/20",
+  bridge: "border-violet-500 bg-violet-50 dark:bg-violet-950/30 ring-1 ring-violet-500/20",
+  yield: "border-sky-500 bg-sky-50 dark:bg-sky-950/30 ring-1 ring-sky-500/20",
+};
+
+const categoryCheckStyles: Record<BuilderCategory, string> = {
+  build: "bg-emerald-500",
+  bridge: "bg-violet-500",
+  yield: "bg-sky-500",
+};
+
+const categoryHoverStyles: Record<BuilderCategory, string> = {
+  build: "hover:border-emerald-300 dark:hover:border-emerald-700",
+  bridge: "hover:border-violet-300 dark:hover:border-violet-700",
+  yield: "hover:border-sky-300 dark:hover:border-sky-700",
+};
+
 export default function SharedSetupStep({
   configKey, fields, abbyTip, stepData, setStepData, onMarkEdited, stepId, plan, bookTitle, bookId, builderId, builderLabel, defaults,
   marketData, marketLoading, category = "build", invalidateOnFieldChange,
