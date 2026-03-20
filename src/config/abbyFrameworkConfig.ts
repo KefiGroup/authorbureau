@@ -230,6 +230,13 @@ export function getStudioPath(nodeId: string, bookId: string, titleParam: string
     "book-sales-events": `/dashboard?section=book-sales&bookId=${bookId}${titleParam}`,
     "special-editions": `/dashboard?section=special-editions&bookId=${bookId}${titleParam}`,
     microsite: `/dashboard?section=microsite-manager`,
+    website: `/dashboard?section=microsite-manager`,
+    "lead-magnets": `/dashboard?section=lead-magnet&bookId=${bookId}${titleParam}`,
+    "big-ticket": `/dashboard?section=big-ticket&bookId=${bookId}${titleParam}`,
+    training: `/dashboard?section=training&bookId=${bookId}${titleParam}`,
+    masterminds: `/dashboard?section=masterminds&bookId=${bookId}${titleParam}`,
+    retreats: `/dashboard?section=retreats&bookId=${bookId}${titleParam}`,
+    certification: `/dashboard?section=certification&bookId=${bookId}${titleParam}`,
   };
   return map[nodeId] || null;
 }
