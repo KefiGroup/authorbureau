@@ -363,12 +363,14 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
         <div>
           <h2 className="font-heading text-2xl font-bold">Set Up Your Author Profile</h2>
           <p className="text-muted-foreground text-sm mt-2 max-w-md mx-auto">
-            Create your profile to get started. This powers your public directory profile and website.
+            Create your profile on PublishNow.io, then sync it here. This powers your public directory profile and website.
           </p>
         </div>
         <div className="flex gap-3 justify-center">
-          <Button onClick={() => setEditMode(true)} className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
-            <PlusCircle className="h-4 w-4 mr-2" /> Create Profile
+          <Button asChild className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
+            <a href="https://publishnow.io/dashboard?section=profile" target="_blank" rel="noopener noreferrer">
+              <PlusCircle className="h-4 w-4 mr-2" /> Create on PublishNow
+            </a>
           </Button>
           <Button variant="outline" onClick={handleSync} disabled={syncing}>
             {syncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
