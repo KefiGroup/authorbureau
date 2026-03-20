@@ -79,6 +79,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
   const [abbyReading, setAbbyReading] = useState(false);
   const [readingProgress, setReadingProgress] = useState(0);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const lastAssistantRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [shouldAutoStart, setShouldAutoStart] = useState(false);
