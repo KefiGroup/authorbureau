@@ -30,7 +30,7 @@ interface Props {
 export default function LicensingStepRenderer({ stepId, stepData, setStepData, onMarkEdited, bookId, bookTitle, plan, userId }: Props) {
   switch (stepId) {
     case "inventory":
-      return <SharedSetupStep configKey="licensingConfig" fields={SETUP_FIELDS} abbyTip="Your frameworks, assessments, and training materials are your most licensable assets." stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} plan={plan} bookTitle={bookTitle} defaults={{ licenseType: "team" }} />;
+      return <SharedSetupStep bookId={bookId} configKey="licensingConfig" fields={SETUP_FIELDS} abbyTip="Your frameworks, assessments, and training materials are your most licensable assets." stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} plan={plan} bookTitle={bookTitle} defaults={{ licenseType: "team" }} />;
     case "packages":
       return <SharedContentStep contentKey="licensingPackages" title="License Packages" description="Create tiered licensing packages with benefits, pricing, and included materials." abbyTip="Offer Individual ($297/yr), Team ($997/yr), and Enterprise ($4,997/yr) licenses." aiPrompt={`Generate licensing packages for "{bookTitle}". Config: {config}. Create: 1) INDIVIDUAL LICENSE ($297/yr) — what's included, usage rights, 2) TEAM LICENSE ($997/yr) — up to 10 users, 3) ENTERPRISE LICENSE ($4,997/yr) — unlimited users, customization, 4) COMPARISON TABLE of all tiers, 5) FAQ for licensees. Format as markdown.`} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="licensingConfig" />;
     case "terms":

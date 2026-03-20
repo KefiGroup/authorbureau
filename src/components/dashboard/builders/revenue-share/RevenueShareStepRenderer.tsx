@@ -31,7 +31,7 @@ interface Props {
 export default function RevenueShareStepRenderer({ stepId, stepData, setStepData, onMarkEdited, bookId, bookTitle, plan, userId }: Props) {
   switch (stepId) {
     case "identify":
-      return <SharedSetupStep configKey="revenueShareConfig" fields={SETUP_FIELDS} abbyTip="Look for partners with distribution but no content, or content but no audience." stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} plan={plan} bookTitle={bookTitle} defaults={{ model: "affiliate" }} />;
+      return <SharedSetupStep bookId={bookId} configKey="revenueShareConfig" fields={SETUP_FIELDS} abbyTip="Look for partners with distribution but no content, or content but no audience." stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} plan={plan} bookTitle={bookTitle} defaults={{ model: "affiliate" }} />;
     case "structure":
       return <SharedContentStep contentKey="dealStructure" title="Deal Structure" description="Design revenue sharing models, terms, and performance benchmarks." abbyTip="Standard splits: 60/40 (content creator/distributor) for digital, 70/30 for licensing." aiPrompt={`Generate revenue sharing deal structures for "{bookTitle}". Config: {config}. Include: 1) DEAL STRUCTURE (terms, revenue split, responsibilities per party), 2) PERFORMANCE BENCHMARKS (minimum sales, reporting cadence), 3) PAYMENT TERMS (monthly, quarterly, net-30), 4) PILOT PROGRAM (30-60 day trial terms), 5) SCALING CRITERIA (when to move from pilot to full partnership). Format as markdown.`} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="revenueShareConfig" />;
     case "agreements":

@@ -29,7 +29,7 @@ interface Props {
 export default function CommunityStepRenderer({ stepId, stepData, setStepData, onMarkEdited, bookId, bookTitle, plan, userId }: Props) {
   switch (stepId) {
     case "configure":
-      return <SharedSetupStep configKey="communityConfig" fields={SETUP_FIELDS} abbyTip="Circle or Discord for premium communities. Facebook Groups for free communities." stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} plan={plan} bookTitle={bookTitle} defaults={{ platform: "circle", type: "hybrid" }} />;
+      return <SharedSetupStep bookId={bookId} configKey="communityConfig" fields={SETUP_FIELDS} abbyTip="Circle or Discord for premium communities. Facebook Groups for free communities." stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} plan={plan} bookTitle={bookTitle} defaults={{ platform: "circle", type: "hybrid" }} />;
     case "structure":
       return <SharedContentStep contentKey="communityStructure" title="Community Structure" description="Design channels, categories, and roles for your community." abbyTip="Keep it simple: General, Wins, Q&A, Resources, and one topic-specific channel." aiPrompt={`Design a community structure for "{bookTitle}". Config: {config}. Include: 1) CHANNEL LIST with descriptions (General, Introductions, Wins & Celebrations, Q&A, Resources, 2-3 topic channels from book), 2) MEMBER ROLES (New Member, Active Member, Champion, Moderator), 3) WELCOME POST template, 4) CHANNEL RULES per category, 5) PINNED RESOURCES list. Format as markdown.`} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="communityConfig" />;
     case "content-plan":
