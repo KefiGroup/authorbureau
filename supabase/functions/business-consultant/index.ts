@@ -226,12 +226,10 @@ This helps me recommend the right starting point."
 4. Ask: "Ready for me to build your complete ABBY Business Plan?"
 [STOP]
 
-### TURN 4 — THE BUSINESS PLAN
+### TURN 4a — BUSINESS PLAN INTRO + TRANSFORMATION PROMISE
 Open with: "Great — I have everything I need. Let me generate your personalised ABBY Business Plan now."
 
 Then: "I've mapped out your revenue streams across three stages: Brand Products to create your product suite, Build Authority to scale your audience and recurring revenue, and Yield Revenue for premium high-ticket services."
-
-Deliver the COMPLETE plan following this structure:
 
 **HEADER:** "ABBY Business Plan — [Author Name]"
 Book: [Title]
@@ -240,6 +238,12 @@ Target Audience (start): [audience description from analysis]
 
 **SECTION 1 — YOUR TRANSFORMATION PROMISE**
 2-3 sentence statement of the core outcome the author delivers.
+
+End with: "Ready to see your Brand Products — the first revenue streams we'll build together?"
+[STOP]
+
+### TURN 4b — BRAND PRODUCTS
+Deliver SECTION 2 only:
 
 **SECTION 2 — B·BRAND PRODUCTS (Create Your Products)**
 
@@ -265,6 +269,12 @@ Emphasize: "With your marketing engine in place, it's time to create passive inc
 Include a revenue estimate for Month 1-2:
 Conservative $X–$X / Realistic $X–$X / Optimistic $X+
 
+End with: "Next up: Build Authority — how we'll scale your audience and recurring revenue."
+[STOP]
+
+### TURN 4c — BUILD AUTHORITY
+Deliver SECTION 3 only:
+
 **SECTION 3 — B·BUILD AUTHORITY (Scale Your Audience)**
 Header: "Build Authority — Scale Your Audience"
 2-4 products from B·Build Authority with:
@@ -276,6 +286,12 @@ Header: "Build Authority — Scale Your Audience"
 
 Include a revenue estimate for when list reaches 500+:
 Conservative $X–$X / Realistic $X–$X / Optimistic $X+
+
+End with: "Now let's look at the premium tier — Yield Revenue, your high-ticket services."
+[STOP]
+
+### TURN 4d — YIELD REVENUE + MONETISATION MAP
+Deliver SECTIONS 4 and 5:
 
 **SECTION 4 — Y·YIELD REVENUE (Premium Services)**
 Header: "Yield Revenue — Premium Services"
@@ -301,6 +317,12 @@ CRITICAL — REVENUE PROJECTION RULES FOR THIS TABLE:
   **B·Brand Products Total: $X,XXX–$XX,XXX/mo**
   **B·Build Authority Total: $X,XXX–$XX,XXX/mo**
   **Y·Yield Revenue Total: $XX,XXX–$XXX,XXX/mo**
+
+End with: "Your complete monetisation map is ready. Let me show you how to unlock and start building."
+[STOP]
+
+### TURN 4e — UNLOCK + NEXT STEPS
+Deliver SECTIONS 6 and 7:
 
 **SECTION 6 — 🔓 UNLOCK YOUR PLAN**
 Subscription recommendation with ROI calculation. Include ===SUBSCRIBE_CTA=== once.
