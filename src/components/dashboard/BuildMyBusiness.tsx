@@ -1143,7 +1143,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
 
                 {/* Clickable choice buttons for assistant messages with options */}
                 {msg.role === "assistant" && !isStreaming && (() => {
-                  const parsed = parseChoices(displayContent);
+                  const parsed = parseChoices(msg.content);
                   const isLastAssistant = idx === messages.length - 1;
                   if (parsed) {
                     return (
@@ -1155,8 +1155,8 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
                       />
                     );
                   }
-                  // Check for yes/no confirmation questions
-                  const confirmOpts = parseConfirmation(displayContent);
+                  // Check for yes/no confirmation questions or ===NEXT:=== buttons
+                  const confirmOpts = parseConfirmation(msg.content);
                   if (confirmOpts) {
                     return (
                       <div className="mt-4 flex flex-wrap gap-2">
