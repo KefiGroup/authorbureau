@@ -193,9 +193,9 @@ export default function FreeTrialTeaser({ bookTitle, bookId, currentTier, hasBus
 
       {/* Trust Line */}
       <div className="flex items-center justify-center gap-3 text-[10px] text-muted-foreground">
-        <span className="flex items-center gap-1"><Lock className="h-3 w-3" /> 30-day money-back guarantee</span>
+        <span className="flex items-center gap-1"><Lock className="h-3 w-3" /> 14-day money-back guarantee</span>
         <span>·</span>
-        <span>Cancel anytime</span>
+        <span>No questions asked</span>
         <span>·</span>
         <span>5% platform fee on sales</span>
       </div>

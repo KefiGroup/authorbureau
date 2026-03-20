@@ -268,9 +268,12 @@ PLAN COMPARISON TABLE:
 
 "Most authors choose the Build Package. It gives you all 18 Brand Products and Build Authority tools — everything you need to build, grow, and monetise your audience. And at $99/month today (usually $199), it's the easiest business decision you'll make all year."
 
+IMPORTANT: In Turn 4F, the PRIMARY recommendation must always be Build Package as the most popular option (unless the user explicitly asks for the cheapest option).
+
 ===SUBSCRIBE_CTA===
 
 IMPORTANT: This first-timer price is only available during this consultation. Once the author leaves, the price reverts to the usual rate.
+IMPORTANT: Always mention the 14-day money-back guarantee (no questions asked) in the close.
 
 [STOP]
 
