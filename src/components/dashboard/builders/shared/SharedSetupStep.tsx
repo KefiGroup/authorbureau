@@ -60,14 +60,61 @@ const categoryHoverStyles: Record<BuilderCategory, string> = {
 };
 
 export default function SharedSetupStep({
-  configKey, fields, abbyTip, stepData, setStepData, onMarkEdited, stepId, plan, bookTitle, defaults,
+  configKey, fields, abbyTip, stepData, setStepData, onMarkEdited, stepId, plan, bookTitle, bookId, builderId, builderLabel, defaults,
   marketData, marketLoading, category = "build",
 }: Props) {
   const config: Record<string, any> = stepData[configKey] || defaults || {};
+  const [analyzing, setAnalyzing] = useState(false);
+  const hasConfig = Object.keys(stepData[configKey] || {}).length > 0;
 
   const update = (key: string, value: any) => {
     onMarkEdited(stepId);
     setStepData(prev => ({ ...prev, [configKey]: { ...config, [key]: value } }));
+  };
+
+  const analyzeWithAbby = async () => {
+    if (!bookId) return;
+    setAnalyzing(true);
+    try {
+      const fieldDescriptions = fields.map(f => {
+        let desc = `"${f.key}" (${f.label})`;
+        if (f.options) desc += ` — options: ${f.options.map(o => o.value).join(", ")}`;
+        if (f.type === "price" || f.type === "number") desc += ` — numeric value`;
+        return desc;
+      }).join("\n");
+
+      const prompt = `You are Abby, an expert book-business strategist. Analyze the book "${bookTitle || "this book"}" and recommend the best configuration for this product.
+
+Return a JSON object with these fields:
+${fieldDescriptions}
+
+Also include "_reasoning" as a string explaining your recommendations in 2-3 sentences.
+
+Return ONLY valid JSON. No markdown, no explanation outside the JSON.`;
+
+      const result = await generateJSONWithAI<Record<string, any>>(prompt, {
+        bookId,
+        isPremium: true,
+        builderMode: true,
+        builderId: builderId || configKey,
+        builderLabel: builderLabel || "Setup",
+        builderStep: "Configure",
+      });
+
+      // Apply all suggested values
+      const newConfig = { ...config };
+      for (const field of fields) {
+        if (result[field.key] !== undefined) {
+          newConfig[field.key] = result[field.key];
+        }
+      }
+      onMarkEdited(stepId);
+      setStepData(prev => ({ ...prev, [configKey]: newConfig, [`${configKey}_reasoning`]: result._reasoning || "" }));
+    } catch (err) {
+      console.error("Abby analysis failed:", err);
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
   const getMarketFieldType = (fieldKey: string, fieldType: string): "title" | "price" | "description" | null => {
