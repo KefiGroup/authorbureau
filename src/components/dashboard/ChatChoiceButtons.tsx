@@ -53,16 +53,20 @@ export function parseChoices(content: string): { choices: Choice[]; multiSelect:
   }
 
   // Try plain numbered patterns: 1) text, 1. text, - 1) text
-  const numRegex = /(?:^|\n)\s*(?:[-•*]\s*)?(\d+)\s*[).]\s*(.+)/g;
-  while ((match = numRegex.exec(content)) !== null) {
-    const letter = match[1];
-    const text = match[2].replace(/\*\*/g, "").replace(/\[STOP\]/g, "").trim();
-    if (text && !choices.find(c => c.letter === letter)) {
-      choices.push({ letter, text });
+  // BUT skip if the message ends with a confirmation question — the numbers are just a list, not choices
+  const hasConfirmationAtEnd = /ready\s*(for|to)\b/i.test(content.toLowerCase()) && content.includes("[STOP]");
+  if (!hasConfirmationAtEnd) {
+    const numRegex = /(?:^|\n)\s*(?:[-•*]\s*)?(\d+)\s*[).]\s*(.+)/g;
+    while ((match = numRegex.exec(content)) !== null) {
+      const letter = match[1];
+      const text = match[2].replace(/\*\*/g, "").replace(/\[STOP\]/g, "").trim();
+      if (text && !choices.find(c => c.letter === letter)) {
+        choices.push({ letter, text });
+      }
     }
-  }
-  if (choices.length >= 2) {
-    return { choices, multiSelect: detectMultiSelect(content, choices) };
+    if (choices.length >= 2) {
+      return { choices, multiSelect: detectMultiSelect(content, choices) };
+    }
   }
 
   return null;
@@ -94,7 +98,11 @@ export function parseConfirmation(content: string): string[] | null {
   const lower = content.toLowerCase();
   // Look for ready/yes-no patterns near the end
   if (/ready\s*(for|to)\b/i.test(lower) || /shall (i|we)\b/i.test(lower) || /would you like (me |us )?to\b/i.test(lower) || /want (me |us )?to\b/i.test(lower) || /let'?s (go|do|start|build|begin)/i.test(lower)) {
-    return ["Yes, let's go! 🚀", "Not yet, I have questions"];
+    // Check if it's specifically about business plan
+    if (/business plan/i.test(lower)) {
+      return ["Yes, I'm excited to see my business plan! 🚀", "Not yet, I have more questions"];
+    }
+    return ["Yes, let's go! 🚀", "Not yet, I have more questions"];
   }
   // Generic question at [STOP]
   if (/\?\s*\n*\s*\[STOP\]/i.test(content)) {
