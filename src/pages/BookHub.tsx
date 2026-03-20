@@ -129,7 +129,7 @@ export default function BookHub() {
           <PortfolioStepView
             categoryId={activeTab}
             tier={effectiveTier}
-            onNavigate={(section) => navigate(`/dashboard?section=${section}`)}
+            onNavigate={(section) => navigate(`/dashboard?section=${section}&bookId=${book.id}&bookTitle=${encodeURIComponent(book.title)}`)}
             analyzedBooks={book ? [{ id: book.id, title: book.title }] : []}
           />
         );
