@@ -69,12 +69,14 @@ interface Props {
   category?: BuilderCategory;
   builderId?: string;
   builderLabel?: string;
+  /** Override the default "How It Works" step instructions */
+  stepInstructions?: { label: string; description: string }[];
 }
 
 export default function SharedContentStep({
   contentKey, title, description, abbyTip, aiPrompt,
   stepData, setStepData, onMarkEdited, stepId, bookId, bookTitle, configKey, category = "build",
-  builderId, builderLabel,
+  builderId, builderLabel, stepInstructions,
 }: Props) {
   const { toast } = useToast();
   const [generating, setGenerating] = useState(false);
@@ -224,7 +226,7 @@ export default function SharedContentStep({
     <div className="space-y-6">
       <StepInstructions
         category={category}
-        items={[
+        items={stepInstructions || [
           { label: "Generate with AI", description: "Creates complete content from your book's themes and plan." },
           { label: "Regenerate", description: "Re-runs AI generation with a fresh version." },
           { label: "Text editor", description: "Edit generated content directly — auto-saved." },
