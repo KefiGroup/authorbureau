@@ -83,8 +83,8 @@ export default function DashboardSidebar({
   // BUILD YOUR BUSINESS
   // Determine lock state for each B-B-Y category
   const brandAccessible = hasAnalysis || bypassLocks;
-  const buildAccessible = (isSuperAdminProp || buildAuthorityCategoryOpen) && tierAccess("pro");
-  const yieldAccessible = (isSuperAdminProp || yieldCategoryOpen) && tierAccess("enterprise");
+  const buildAccessible = isSuperAdminProp || (buildAuthorityCategoryOpen && tierAccess("pro"));
+  const yieldAccessible = isSuperAdminProp || (yieldCategoryOpen && tierAccess("enterprise"));
 
   const businessItems: NavItem[] = [
     {
