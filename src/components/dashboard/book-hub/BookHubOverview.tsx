@@ -210,6 +210,41 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
               statuses[nodeId] = "in-progress";
             }
           }
+
+          // Check website status via author_profiles (website is a native feature, not a draft)
+          const { data: profileData } = await supabase
+            .from("author_profiles")
+            .select("author_slug, site_theme")
+            .eq("user_id", userId)
+            .maybeSingle();
+          if (profileData?.author_slug) {
+            statuses["website"] = "completed";
+          }
+
+          // Also check completedAssets from generated_assets as fallback
+          const { data: genAssets } = await supabase
+            .from("generated_assets")
+            .select("asset_type")
+            .eq("book_id", book.id)
+            .eq("author_id", userId);
+          if (genAssets) {
+            const assetTypes = genAssets.map(a => a.asset_type);
+            const assetToNode: Record<string, string> = {
+              "lead_magnet": "lead-magnets",
+              "email_sequence": "email-marketing",
+              "social_media": "social-media",
+              "workbook": "workbooks",
+              "home_study": "home-study",
+              "course": "courses",
+              "audiobook_script": "audiobooks",
+            };
+            for (const [assetType, nodeId] of Object.entries(assetToNode)) {
+              if (assetTypes.includes(assetType) && !statuses[nodeId]) {
+                statuses[nodeId] = "in-progress";
+              }
+            }
+          }
+
           setProductStatuses(statuses);
         }
       } catch {
