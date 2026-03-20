@@ -285,13 +285,15 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
         }
       }
 
-      if (accumulated && isBusinessPlanMessage(accumulated) && selectedBook && user) {
+      // Save plan: check if the accumulated content OR the full conversation contains a business plan
+      const allAssistantContent = [...messages.filter(m => m.role === "assistant").map(m => m.content), accumulated].join("\n\n");
+      if (accumulated && isBusinessPlanMessage(allAssistantContent) && selectedBook && user) {
         try {
           const saveToken = await getActiveToken();
           await fetch(CONSULTANT_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${saveToken || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-            body: JSON.stringify({ action: "save-plan", bookId: selectedBook.id, content: accumulated }),
+            body: JSON.stringify({ action: "save-plan", bookId: selectedBook.id, content: allAssistantContent }),
           });
         } catch {}
       }
