@@ -32,6 +32,9 @@ interface Props {
   stepId: string;
   plan?: any;
   bookTitle?: string;
+  bookId?: string;
+  builderId?: string;
+  builderLabel?: string;
   defaults?: Record<string, any>;
   marketData?: MarketResearchData | null;
   marketLoading?: boolean;
