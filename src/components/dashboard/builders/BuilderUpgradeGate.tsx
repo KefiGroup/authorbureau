@@ -242,7 +242,7 @@ export default function BuilderUpgradeGate({ nodeConfig, currentTier, planData, 
         )}
 
         <p className="text-[10px] text-muted-foreground">
-          30-day money-back guarantee · Cancel anytime · 5% platform fee on sales
+          14-day money-back guarantee · No questions asked · 5% platform fee on sales
         </p>
       </motion.div>
     </div>
