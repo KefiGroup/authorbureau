@@ -285,7 +285,7 @@ Return ONLY valid JSON. No markdown, no explanation outside the JSON.`;
       )}
 
       {/* Fields — shown when: no Abby analysis yet, OR manual mode, OR accepted (for review) */}
-      {(!abbyHasAnalyzed || manualMode || stepData[`${configKey}_accepted`]) && (
+      {(!abbyHasAnalyzed || manualMode) && (
         <>
           {/* If accepted, show a compact confirmation + re-analyze */}
           {stepData[`${configKey}_accepted`] && !manualMode && (
