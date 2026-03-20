@@ -126,13 +126,11 @@ export default function BookHub() {
       case "marketing-channels":
       case "authority-builders":
         return (
-          <BookHubStepTab
+          <PortfolioStepView
             categoryId={activeTab}
-            bookId={book.id}
-            bookTitle={book.title}
-            bookGenre={book.genre || undefined}
-            isPremium={isPremium || isAdmin}
             tier={effectiveTier}
+            onNavigate={(section) => navigate(`/dashboard?section=${section}`)}
+            analyzedBooks={book ? [{ id: book.id, title: book.title }] : []}
           />
         );
       case "analytics":
