@@ -98,7 +98,11 @@ export function parseConfirmation(content: string): string[] | null {
   const lower = content.toLowerCase();
   // Look for ready/yes-no patterns near the end
   if (/ready\s*(for|to)\b/i.test(lower) || /shall (i|we)\b/i.test(lower) || /would you like (me |us )?to\b/i.test(lower) || /want (me |us )?to\b/i.test(lower) || /let'?s (go|do|start|build|begin)/i.test(lower)) {
-    return ["Yes, let's go! 🚀", "Not yet, I have questions"];
+    // Check if it's specifically about business plan
+    if (/business plan/i.test(lower)) {
+      return ["Yes, I'm excited to see my business plan! 🚀", "Not yet, I have more questions"];
+    }
+    return ["Yes, let's go! 🚀", "Not yet, I have more questions"];
   }
   // Generic question at [STOP]
   if (/\?\s*\n*\s*\[STOP\]/i.test(content)) {
