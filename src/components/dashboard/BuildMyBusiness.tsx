@@ -1046,7 +1046,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
         )}
 
         {messages.map((msg, idx) => {
-          if (idx === 0 && msg.role === "user" && msg.content.includes("I'd like to build a business")) return null;
+          if (idx === 0 && msg.role === "user" && (msg.content.includes("I'd like to build a business") || msg.content.includes("Start a brand new consultation"))) return null;
           const buildRequests = msg.role === "assistant" ? parseBuildRequests(msg.content) : [];
           const hasSubscribeCta = msg.role === "assistant" && msg.content.includes("===SUBSCRIBE_CTA===");
           const navMarkers = msg.role === "assistant" ? parseNavMarkers(msg.content) : [];
