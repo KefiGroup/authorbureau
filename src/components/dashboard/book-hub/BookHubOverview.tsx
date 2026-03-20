@@ -349,9 +349,6 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
             })}
           </div>
         </div>
-            );
-          })}
-        </div>
 
         {/* Tier-specific CTA below recommendations */}
         {tier === "free" && (
