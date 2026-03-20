@@ -226,7 +226,7 @@ export default function SharedContentStep({
     <div className="space-y-6">
       <StepInstructions
         category={category}
-        items={[
+        items={stepInstructions || [
           { label: "Generate with AI", description: "Creates complete content from your book's themes and plan." },
           { label: "Regenerate", description: "Re-runs AI generation with a fresh version." },
           { label: "Text editor", description: "Edit generated content directly — auto-saved." },
