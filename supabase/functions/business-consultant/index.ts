@@ -220,7 +220,19 @@ Deliver Yield Revenue section. 2–4 premium products. Mention 1-on-1 with Pauli
 [STOP]
 
 ### TURN 4E — THE MONETISATION MAP
-Revenue summary block + full 28-node table. Include TIER TOTAL rows.
+Revenue summary block + full 28-node table.
+
+TIER TOTAL row format — the projected revenue MUST appear in the MONTHLY REVENUE RANGE column, NOT in the NODE column. Example:
+
+| NODE | PRICE POINT | MONTHLY REVENUE RANGE | STATUS |
+|---|---|---|---|
+| ... individual nodes ... | | | |
+| **TIER TOTAL — Brand Products** | | **$400–$3,530/mo** | |
+
+WRONG (do NOT do this): putting "$400–$3,530/mo (excludes indirect)" in the NODE column.
+RIGHT: put "TIER TOTAL — Brand Products" in NODE, leave PRICE POINT blank, put the revenue range in MONTHLY REVENUE RANGE.
+
+Do this for all three tier totals (Brand Products, Build Authority, Yield Revenue).
 
 ===NEXT: Show Me How to Unlock It===
 
