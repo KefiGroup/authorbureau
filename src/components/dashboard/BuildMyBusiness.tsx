@@ -1222,6 +1222,10 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
                 <p className="text-xs text-muted-foreground">Building your personalized strategy</p>
               </div>
             </div>
+            <p className="text-xs text-muted-foreground/80 mt-2 px-1">
+              ⏱ This may take <span className="font-medium text-foreground">5–10 minutes</span> — Abby is cross-referencing your book against 34 proven frameworks including Russell Brunson's Value Ladder, McKinsey SCQ, Bloom's Taxonomy, and the Expert Business Model to build your personalised strategy.
+            </p>
+            </div>
             <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
               <motion.div
                 className="h-full bg-gradient-to-r from-secondary/60 via-secondary to-secondary/60 rounded-full"
