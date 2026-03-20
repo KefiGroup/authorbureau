@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Check, Send } from "lucide-react";
+import { Check, Send, ArrowRight } from "lucide-react";
 
 interface Choice {
   letter: string;
@@ -15,16 +15,47 @@ interface Props {
 }
 
 /**
+ * Parse ===CHOICE_SINGLE: Option A | Option B=== or ===CHOICE_MULTI: ... === markers.
+ * Returns structured choices with auto-generated letters (A, B, C...).
+ */
+function parseMarkerChoices(content: string): { choices: Choice[]; multiSelect: boolean } | null {
+  const singleMatch = content.match(/===CHOICE_SINGLE:\s*(.*?)\s*===/);
+  const multiMatch = content.match(/===CHOICE_MULTI:\s*(.*?)\s*===/);
+
+  const match = singleMatch || multiMatch;
+  if (!match) return null;
+
+  const options = match[1].split("|").map(o => o.trim()).filter(Boolean);
+  if (options.length < 2) return null;
+
+  const choices: Choice[] = options.map((text, i) => ({
+    letter: String.fromCharCode(65 + i), // A, B, C...
+    text: text.replace(/\*\*/g, "").trim(),
+  }));
+
+  return { choices, multiSelect: !!multiMatch };
+}
+
+/**
+ * Parse ===NEXT: Button Label=== markers.
+ * Returns the button label text, or null if not found.
+ */
+export function parseNextMarker(content: string): string | null {
+  const match = content.match(/===NEXT:\s*(.*?)\s*===/);
+  return match ? match[1].trim() : null;
+}
+
+/**
  * Parses lettered choice options from an assistant message.
- * Matches patterns like:
- *   • A) text / B) text
- *   • A. text / B. text  
- *   • - A) text
- *   • * A) text
- * Returns null if no choices found.
+ * First checks for ===CHOICE_SINGLE/MULTI:=== markers (v2.4 format).
+ * Falls back to pattern matching: A) text, A. text, etc.
  */
 export function parseChoices(content: string): { choices: Choice[]; multiSelect: boolean } | null {
-  // Try lettered patterns first: A) text, A. text, - A) text, • A) text
+  // v2.4 marker format takes priority
+  const markerResult = parseMarkerChoices(content);
+  if (markerResult) return markerResult;
+
+  // Try lettered patterns: A) text, A. text, - A) text, • A) text
   const letterRegex = /(?:^|\n)\s*(?:[-•*]\s*)?([A-Z])\s*[).]\s*(.+)/g;
   const choices: Choice[] = [];
   let match;
@@ -39,7 +70,7 @@ export function parseChoices(content: string): { choices: Choice[]; multiSelect:
     return { choices, multiSelect: detectMultiSelect(content, choices) };
   }
 
-  // Try numbered emoji patterns: 1️⃣ text, 2️⃣ text, or • 1️⃣ text
+  // Try numbered emoji patterns: 1️⃣ text, 2️⃣ text
   const emojiNumRegex = /(?:^|\n)\s*(?:[-•*]\s*)?([1-9])\uFE0F?\u20E3\s*(.+)/g;
   while ((match = emojiNumRegex.exec(content)) !== null) {
     const letter = match[1];
@@ -52,10 +83,10 @@ export function parseChoices(content: string): { choices: Choice[]; multiSelect:
     return { choices, multiSelect: detectMultiSelect(content, choices) };
   }
 
-  // Try plain numbered patterns: 1) text, 1. text, - 1) text
-  // BUT skip if the message ends with a confirmation question — the numbers are just a list, not choices
+  // Try plain numbered patterns — skip if there's a ===NEXT:=== or confirmation context
+  const hasNextMarker = /===NEXT:/i.test(content);
   const hasConfirmationAtEnd = /ready\s*(for|to)\b/i.test(content.toLowerCase()) && content.includes("[STOP]");
-  if (!hasConfirmationAtEnd) {
+  if (!hasConfirmationAtEnd && !hasNextMarker) {
     const numRegex = /(?:^|\n)\s*(?:[-•*]\s*)?(\d+)\s*[).]\s*(.+)/g;
     while ((match = numRegex.exec(content)) !== null) {
       const letter = match[1];
@@ -75,31 +106,30 @@ export function parseChoices(content: string): { choices: Choice[]; multiSelect:
 /** Detect if the question asks for single or multiple selection */
 function detectMultiSelect(content: string, choices: Choice[]): boolean {
   const lower = content.toLowerCase();
-  // Explicit multi-select signals
   if (/pick .*(all|multiple|any)|select .*(all|multiple|any)|choose .*(all|multiple|any)/i.test(lower)) return true;
   if (/one or more/i.test(lower)) return true;
-  // Numbered choices (1-5 audience levels etc.) are always single-select
   if (choices.length > 0 && /^\d+$/.test(choices[0].letter)) return false;
-  // Lettered choices (A-D strategy options) default to multi-select
-  if (choices.length >= 2 && /^[A-Z]$/.test(choices[0].letter)) return true;
+  // Default lettered choices to single-select (v2.4 uses explicit CHOICE_MULTI for multi)
   return false;
 }
 
 /**
- * Detects if a message ends with a yes/no confirmation question at a [STOP] marker.
+ * Detects if a message has a ===NEXT:=== button or ends with a confirmation question at [STOP].
  * Returns quick-reply options if so.
  */
 export function parseConfirmation(content: string): string[] | null {
   // Must end with [STOP]
   if (!content.includes("[STOP]")) return null;
-  // Already has lettered/numbered choices — skip
+  // Already has choice markers — skip
   if (parseChoices(content)) return null;
-  
-  const lower = content.toLowerCase();
-  // Business plan progression — "Ready to see your Brand Products?", "Next up: Build Authority", etc.
-  if (/ready to see\b/i.test(lower) || /next up:/i.test(lower) || /let me show you/i.test(lower) || /let's look at/i.test(lower)) {
-    return ["Continue →"];
+
+  // Check for ===NEXT: Button Label=== marker
+  const nextLabel = parseNextMarker(content);
+  if (nextLabel) {
+    return [nextLabel];
   }
+
+  const lower = content.toLowerCase();
   // Ready/shall patterns for plan generation
   if (/ready\s*(for|to)\b/i.test(lower) || /shall (i|we)\b/i.test(lower) || /would you like (me |us )?to\b/i.test(lower) || /want (me |us )?to\b/i.test(lower) || /let'?s (go|do|start|build|begin)/i.test(lower)) {
     if (/business plan/i.test(lower)) {
@@ -114,7 +144,7 @@ export function parseConfirmation(content: string): string[] | null {
   return null;
 }
 
-export default function ChatChoiceButtons({ choices, multiSelect = true, onSubmit, disabled }: Props) {
+export default function ChatChoiceButtons({ choices, multiSelect = false, onSubmit, disabled }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const toggle = (letter: string) => {
@@ -122,7 +152,7 @@ export default function ChatChoiceButtons({ choices, multiSelect = true, onSubmi
     if (!multiSelect) {
       // Single select: immediately submit
       const choice = choices.find(c => c.letter === letter);
-      onSubmit(`${letter}${choice ? ` — ${choice.text}` : ""}`);
+      onSubmit(choice ? choice.text : letter);
       setSelected(new Set([letter]));
       return;
     }
@@ -139,11 +169,11 @@ export default function ChatChoiceButtons({ choices, multiSelect = true, onSubmi
     const sorted = [...selected].sort();
     if (sorted.length === 1) {
       const choice = choices.find(c => c.letter === sorted[0]);
-      onSubmit(`${sorted[0]}${choice ? ` — ${choice.text}` : ""}`);
+      onSubmit(choice ? choice.text : sorted[0]);
     } else {
       const labels = sorted.map(l => {
         const c = choices.find(ch => ch.letter === l);
-        return c ? `${l}) ${c.text}` : l;
+        return c ? c.text : l;
       });
       onSubmit(labels.join(", "));
     }
@@ -185,7 +215,7 @@ export default function ChatChoiceButtons({ choices, multiSelect = true, onSubmi
           );
         })}
       </div>
-      {selected.size > 0 && (
+      {multiSelect && selected.size > 0 && (
         <Button
           onClick={handleSubmit}
           disabled={disabled}
