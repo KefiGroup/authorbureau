@@ -10,6 +10,7 @@ import ManuscriptUpload from "@/components/dashboard/ManuscriptUpload";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import MarketSnapshot from "./MarketSnapshot";
 import { supabase } from "@/integrations/supabase/client";
+import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { printExportHtml } from "@/lib/print-export";
 import { useToast } from "@/hooks/use-toast";
 import { useAbbyPlan } from "@/hooks/useAbbyPlan";
