@@ -1045,6 +1045,14 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
           </div>
         )}
 
+        {/* Session time estimate banner */}
+        <div className="rounded-lg border border-secondary/15 bg-secondary/5 px-4 py-3 flex items-start gap-2.5 text-xs text-muted-foreground">
+          <span className="text-base leading-none mt-0.5">⏱</span>
+          <p>
+            This consultation takes <span className="font-medium text-foreground">5–10 minutes</span>. Abby cross-references your book against 34 proven frameworks — including Russell Brunson's Value Ladder, McKinsey SCQ, Bloom's Taxonomy, and the Expert Business Model — to build your personalised strategy.
+          </p>
+        </div>
+
         {messages.map((msg, idx) => {
           if (idx === 0 && msg.role === "user" && (msg.content.includes("I'd like to build a business") || msg.content.includes("Start a brand new consultation"))) return null;
           const buildRequests = msg.role === "assistant" ? parseBuildRequests(msg.content) : [];
@@ -1221,9 +1229,6 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
                 <p className="text-sm font-semibold text-foreground">Abby is analyzing your answer…</p>
                 <p className="text-xs text-muted-foreground">Building your personalized strategy</p>
             </div>
-            <p className="text-xs text-muted-foreground/80 mt-2 mb-3 px-1">
-              ⏱ This may take <span className="font-medium text-foreground">5–10 minutes</span> — Abby is cross-referencing your book against 34 proven frameworks including Russell Brunson's Value Ladder, McKinsey SCQ, Bloom's Taxonomy, and the Expert Business Model to build your personalised strategy.
-            </p>
             </div>
             <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
               <motion.div
