@@ -86,7 +86,11 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
   const [viewPlanBook, setViewPlanBook] = useState<Book | null>(null);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (lastAssistantRef.current) {
+      lastAssistantRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages]);
 
   // Fetch user's books + analysis status
