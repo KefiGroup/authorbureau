@@ -71,14 +71,33 @@ export function parseChoices(content: string): { choices: Choice[]; multiSelect:
 /** Detect if the question asks for single or multiple selection */
 function detectMultiSelect(content: string): boolean {
   const lower = content.toLowerCase();
-  // Single-select signals
   if (/pick one[^a-z]|choose one[^a-z]|select one[^a-z]|pick one\b/i.test(lower)) return false;
   if (/which one\b/i.test(lower)) return false;
-  // Multi-select signals
   if (/pick .*(all|multiple|any)|select .*(all|multiple|any)|choose .*(all|multiple|any)/i.test(lower)) return true;
   if (/one or more/i.test(lower)) return true;
-  // Default to single select
   return false;
+}
+
+/**
+ * Detects if a message ends with a yes/no confirmation question at a [STOP] marker.
+ * Returns quick-reply options if so.
+ */
+export function parseConfirmation(content: string): string[] | null {
+  // Must end with [STOP]
+  if (!content.includes("[STOP]")) return null;
+  // Already has lettered/numbered choices — skip
+  if (parseChoices(content)) return null;
+  
+  const lower = content.toLowerCase();
+  // Look for ready/yes-no patterns near the end
+  if (/ready\s*(for|to)\b/i.test(lower) || /shall (i|we)\b/i.test(lower) || /would you like (me |us )?to\b/i.test(lower) || /want (me |us )?to\b/i.test(lower) || /let'?s (go|do|start|build|begin)/i.test(lower)) {
+    return ["Yes, let's go! 🚀", "Not yet, I have questions"];
+  }
+  // Generic question at [STOP]
+  if (/\?\s*\n*\s*\[STOP\]/i.test(content)) {
+    return ["Yes", "No", "Tell me more"];
+  }
+  return null;
 }
 
 export default function ChatChoiceButtons({ choices, multiSelect = true, onSubmit, disabled }: Props) {
