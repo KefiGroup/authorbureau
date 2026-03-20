@@ -305,39 +305,50 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
           </Tabs>
         )}
 
-        {/* Recommendations cards */}
-        <div className="mt-4 space-y-2">
-          {recommendations.map((rec, i) => {
-            const badge = categoryBadge[rec.category];
-            const canAccess = canBuildProduct(rec.requiredTier);
-            return (
-              <div key={i} className="flex items-center gap-3 rounded-lg border border-border p-3 bg-card">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium truncate">{rec.name}</span>
-                    <span className={`text-[10px] font-medium rounded-full px-2 py-0.5 ${badge.className}`}>{badge.label}</span>
-                  </div>
-                  <span className="text-xs text-muted-foreground">{rec.revenue}</span>
-                </div>
-                {canAccess ? (
-                  <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-teal-700 border-teal-300 hover:bg-teal-50" onClick={() => {
-                    const titleParam = book.title ? `&bookTitle=${encodeURIComponent(book.title)}` : "";
-                    const studioPath = getStudioPath(rec.nodeId, book.id, titleParam);
-                    if (studioPath) {
-                      navigate(studioPath);
-                    } else {
-                      onNavigateTab("revenue-streams");
-                    }
-                  }}>
-                    Build Now <ArrowRight className="h-3 w-3" />
-                  </Button>
-                ) : (
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Lock className="h-3 w-3" />
-                    {rec.requiredTier === "pro" ? "Upgrade to Pro" : rec.requiredTier === "enterprise" ? "Upgrade to Enterprise" : "Subscribe to build"}
+        {/* Recommendations cards — sequenced by build order */}
+        <div className="mt-4">
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+            <ArrowRight className="h-3 w-3" /> Your recommended build sequence
+          </h4>
+          <div className="space-y-2">
+            {recommendations.map((rec, i) => {
+              const badge = categoryBadge[rec.category];
+              const canAccess = canBuildProduct(rec.requiredTier);
+              return (
+                <div key={i} className="flex items-center gap-3 rounded-lg border border-border p-3 bg-card">
+                  <span className="shrink-0 w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground">
+                    {rec.sequence}
                   </span>
-                )}
-              </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium truncate">{rec.name}</span>
+                      <span className={`text-[10px] font-medium rounded-full px-2 py-0.5 ${badge.className}`}>{badge.label}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{rec.revenue}</span>
+                  </div>
+                  {canAccess ? (
+                    <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-teal-700 border-teal-300 hover:bg-teal-50" onClick={() => {
+                      const titleParam = book.title ? `&bookTitle=${encodeURIComponent(book.title)}` : "";
+                      const studioPath = getStudioPath(rec.nodeId, book.id, titleParam);
+                      if (studioPath) {
+                        navigate(studioPath);
+                      } else {
+                        onNavigateTab("revenue-streams");
+                      }
+                    }}>
+                      Build Now <ArrowRight className="h-3 w-3" />
+                    </Button>
+                  ) : (
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Lock className="h-3 w-3" />
+                      {rec.requiredTier === "pro" ? "Build Package" : rec.requiredTier === "enterprise" ? "Yield Package" : "Brand Package"}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
             );
           })}
         </div>
