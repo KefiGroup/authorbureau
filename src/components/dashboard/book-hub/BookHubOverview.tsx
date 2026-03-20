@@ -281,15 +281,19 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
           )}
         </p>
 
-        {/* Plan section tabs if available */}
-        {planSections.length > 0 && (
+        {/* Plan section content */}
+        {planSections.length === 1 ? (
+          <div className="mt-3 rounded-lg bg-muted/30 p-4 max-h-[300px] overflow-y-auto text-sm">
+            <MarkdownRenderer content={planSections[0].content} />
+          </div>
+        ) : planSections.length > 1 ? (
           <Tabs defaultValue={planSections[0]?.key} className="mt-3">
             <TabsList className="h-auto flex-wrap gap-1 bg-transparent p-0">
               {planSections.map((s) => (
                 <TabsTrigger
                   key={s.key}
                   value={s.key}
-                  className="text-[11px] px-3 py-1.5 data-[state=active]:bg-secondary/15 data-[state=active]:text-secondary rounded-full"
+                  className="text-[11px] px-3 py-1.5 data-[state=active]:bg-secondary/15 data-[state=active]:text-secondary data-[state=active]:shadow-sm rounded-full border border-transparent data-[state=active]:border-secondary/30"
                 >
                   {s.emoji} {s.label}
                 </TabsTrigger>
@@ -303,7 +307,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
               </TabsContent>
             ))}
           </Tabs>
-        )}
+        ) : null}
 
         {/* Recommendations cards — sequenced by build order */}
         <div className="mt-4">
