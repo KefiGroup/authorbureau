@@ -36,35 +36,36 @@ interface Props {
 const plans = [
   {
     id: "starter" as const,
-    name: "Starter",
+    name: "Brand Package",
     price: "$49",
+    usualPrice: "$69",
     priceNum: 49,
     period: "/mo",
     tagline: "Test the waters.",
-    description: "Start building with 3 core AI builders",
+    description: "Start building with all 9 Brand Products",
     popular: false,
     features: [
       "Abby AI Unlimited",
-      "3 B·Build builders (Workbook, Social Media, Email)",
+      "All 9 B·Brand Product builders",
       "Basic author profile page",
       "1 product sales page",
       "+ 5% platform fee on sales",
     ],
-    unlockedCategories: ["B·Build (3 of 8)"],
-    builderCount: 3,
+    unlockedCategories: ["B·Brand (9)"],
+    builderCount: 9,
   },
   {
     id: "pro" as const,
-    name: "Pro",
-    price: "$199",
-    priceNum: 199,
+    name: "Build Package",
+    price: "$99",
+    usualPrice: "$199",
+    priceNum: 99,
     period: "/mo",
     tagline: "Build a real business.",
     description: "Full Brand + Build Authority — everything to monetize",
     popular: true,
     features: [
-      "Everything in Starter",
-      "All 7 B·Build AI builders",
+      "Everything in Brand",
       "All 9 B·Build Authority builders (Courses, Audiobooks, Memberships, Podcasts)",
       "Full microsite with unlimited sales pages",
       "Stripe Connect payment processing",
@@ -74,20 +75,21 @@ const plans = [
       "+ 5% platform fee on sales",
     ],
     unlockedCategories: ["B·Brand (9)", "B·Build (9)"],
-    builderCount: 16,
+    builderCount: 18,
   },
   {
     id: "enterprise" as const,
-    name: "Enterprise",
-    price: "$499",
-    priceNum: 499,
+    name: "Yield Package",
+    price: "$249",
+    usualPrice: "$499",
+    priceNum: 249,
     period: "/mo",
     tagline: "Build an empire.",
     description: "Complete monetization empire — all 28 streams",
     popular: false,
     features: [
-      "Everything in Pro",
-      "All 7 Y·Yield builders (Retreats, Certification, Masterminds)",
+      "Everything in Build",
+      "All 10 Y·Yield builders (Retreats, Certification, Masterminds)",
       "Full site with custom domain support",
       "White-label option (Authors Bureau branding removed)",
       "Events management system",
@@ -118,8 +120,8 @@ function getBreakEven(planPrice: number, products: PlanAnalysisData["products"])
 
 function getRevenueHookText(tier: SubscriptionTier): string {
   switch (tier) {
-    case "starter": return "You've unlocked 3 builders. Upgrade to access all 28 revenue streams.";
-    case "pro": return "You've unlocked 21 builders. Upgrade to Enterprise for retreats, certification, and a 1-on-1 session with Pauline Teo.";
+    case "starter": return "You've unlocked all 9 Brand Products. Upgrade to Build to access 18 builders and scale your authority.";
+    case "pro": return "You've unlocked 18 builders. Upgrade to Yield for retreats, certification, and a 1-on-1 session with Pauline Teo.";
     case "enterprise": return "You have full access to all 28 builders. Start building!";
     default: return "";
   }
@@ -171,7 +173,7 @@ export default function SubscriptionSalesPitch({
         <div className="text-center py-8">
           <div className="inline-flex items-center gap-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full px-5 py-2.5 text-sm font-bold mb-6">
             <Shield className="h-4 w-4" />
-            ✅ ENTERPRISE PLAN — Full Access to All 28 Builders
+            ✅ YIELD PACKAGE — Full Access to All 28 Builders
           </div>
           {onBuildBusiness && (
             <Button size="lg" onClick={onBuildBusiness} className="bg-amber-500 hover:bg-amber-600 text-white text-lg px-10 py-6 rounded-xl shadow-lg">
@@ -329,12 +331,12 @@ export default function SubscriptionSalesPitch({
           </p>
           <p className="text-xs text-muted-foreground max-w-md mx-auto">
             {currentTier === "starter"
-              ? "Upgrade to Pro to unlock coaching, courses, and webinars."
-              : "Upgrade to Enterprise for retreats, certification, and a 1-on-1 session with Pauline Teo."}
+              ? "Upgrade to Build to unlock coaching, courses, and webinars."
+              : "Upgrade to Yield for retreats, certification, and a 1-on-1 session with Pauline Teo."}
           </p>
           <Button onClick={() => onSubscribe(currentTier === "starter" ? "pro" : "enterprise")} disabled={loading}>
             <ArrowUpRight className="h-4 w-4 mr-2" />
-            Upgrade to {currentTier === "starter" ? "Pro" : "Enterprise"}
+            Upgrade to {currentTier === "starter" ? "Build" : "Yield"}
           </Button>
         </div>
       )}
