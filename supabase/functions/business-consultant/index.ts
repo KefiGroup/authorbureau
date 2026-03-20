@@ -846,7 +846,7 @@ PRICING SECTION:
 - Total value: $X
 - Your price: $Y (with savings highlighted)
 - Payment plan option if price > $200
-- Money-back guarantee (30-day, no questions asked)
+- Money-back guarantee (14-day, no questions asked)
 
 FAQ SECTION:
 - 6-8 common objections addressed:
