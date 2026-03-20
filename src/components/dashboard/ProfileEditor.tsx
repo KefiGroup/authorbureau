@@ -361,27 +361,54 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
     );
   }
 
-  // ── New profile: show creation form directly ──
+  // ── New profile: show setup instructions ──
   if (!profileExists && !editMode) {
     return (
-      <div className="max-w-xl mx-auto text-center py-16 space-y-6">
-        <div className="w-16 h-16 rounded-2xl bg-secondary/10 flex items-center justify-center mx-auto">
-          <Pencil className="h-8 w-8 text-secondary" />
-        </div>
-        <div>
+      <div className="max-w-2xl mx-auto py-12 space-y-8">
+        <div className="text-center space-y-2">
+          <div className="w-14 h-14 rounded-2xl bg-secondary/10 flex items-center justify-center mx-auto mb-4">
+            <Pencil className="h-7 w-7 text-secondary" />
+          </div>
           <h2 className="font-heading text-2xl font-bold">Set Up Your Author Profile</h2>
-          <p className="text-muted-foreground text-sm mt-2 max-w-md mx-auto">
-            Create your profile on PublishNow.io, then sync it here. This powers your public directory profile and website.
+          <p className="text-muted-foreground text-sm max-w-md mx-auto">
+            Your author profile is managed on PublishNow.io and synced here to power your directory listing and public website.
           </p>
         </div>
-        <div className="flex gap-3 justify-center">
-          <Button className="bg-secondary text-secondary-foreground hover:bg-secondary/90" onClick={handleEditOnPublishNow}>
+
+        {/* Two routes */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          {/* Route 1: Already have a profile */}
+          <div className="rounded-xl border border-border bg-card p-6 space-y-3">
+            <div className="flex items-center gap-2 text-secondary">
+              <Download className="h-5 w-5 shrink-0" />
+              <h3 className="font-heading font-bold text-base">Already have a PublishNow profile?</h3>
+            </div>
+            <ol className="text-sm text-muted-foreground space-y-1.5 list-decimal list-inside">
+              <li>Click <strong>"Sync from PublishNow"</strong> below.</li>
+              <li>Your profile data will be imported automatically.</li>
+              <li>Review your profile and you're all set!</li>
+            </ol>
+            <Button variant="outline" className="w-full mt-2" onClick={handleSync} disabled={syncing}>
+              {syncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+              {syncing ? "Syncing..." : "Sync from PublishNow"}
+            </Button>
+          </div>
+
+          {/* Route 2: Need to create a profile */}
+          <div className="rounded-xl border border-border bg-card p-6 space-y-3">
+            <div className="flex items-center gap-2 text-secondary">
+              <PlusCircle className="h-5 w-5 shrink-0" />
+              <h3 className="font-heading font-bold text-base">New to PublishNow?</h3>
+            </div>
+            <ol className="text-sm text-muted-foreground space-y-1.5 list-decimal list-inside">
+              <li>Click <strong>"Create on PublishNow"</strong> below.</li>
+              <li>Fill in your author details on PublishNow.io.</li>
+              <li>Come back here and click <strong>"Sync from PublishNow"</strong> to import your profile.</li>
+            </ol>
+            <Button className="w-full mt-2 bg-secondary text-secondary-foreground hover:bg-secondary/90" onClick={handleEditOnPublishNow}>
               <PlusCircle className="h-4 w-4 mr-2" /> Create on PublishNow
-          </Button>
-          <Button variant="outline" onClick={handleSync} disabled={syncing}>
-            {syncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
-            {syncing ? "Syncing..." : "Import from PublishNow"}
-          </Button>
+            </Button>
+          </div>
         </div>
       </div>
     );
