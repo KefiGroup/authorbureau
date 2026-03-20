@@ -1074,7 +1074,8 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
             .replace(/#{1,4}\s*TURN\s+\d+[A-F]?\s*[—–-]\s*.+/gi, "")
             .trim();
 
-          const isLastAssistantMsg = msg.role === "assistant" && idx === [...messages].reverse().findIndex(m => m.role === "assistant") ? false : msg.role === "assistant" && messages.length - 1 - [...messages].reverse().findIndex(m => m.role === "assistant") === idx;
+          const lastAssistantIdx = messages.reduce((acc, m, i) => m.role === "assistant" ? i : acc, -1);
+          const isLastAssistantMsg = msg.role === "assistant" && idx === lastAssistantIdx;
 
           return (
             <div key={idx} ref={isLastAssistantMsg ? lastAssistantRef : undefined} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : ""}`}>
