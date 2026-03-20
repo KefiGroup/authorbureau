@@ -582,8 +582,10 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
             {syncing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
             {syncing ? "Syncing..." : "Sync"}
           </Button>
-          <Button size="sm" onClick={() => setEditMode(true)} className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
-            <Pencil className="h-4 w-4 mr-1" /> Edit Profile
+          <Button size="sm" asChild className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
+            <a href="https://publishnow.io/dashboard?section=profile" target="_blank" rel="noopener noreferrer">
+              <Pencil className="h-4 w-4 mr-1" /> Edit on PublishNow
+            </a>
           </Button>
         </div>
       </div>
