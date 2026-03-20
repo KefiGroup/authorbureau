@@ -1195,8 +1195,8 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
           />
         )}
 
-        {/* Standard loading for regular messages — show until content starts appearing */}
-        {isStreaming && !isBuildingPlan && messages[messages.length - 1]?.role === "assistant" && (messages[messages.length - 1]?.content || "").length < 20 && (
+        {/* Standard loading — show when streaming and no substantial assistant content yet */}
+        {isStreaming && !isBuildingPlan && (messages[messages.length - 1]?.role !== "assistant" || (messages[messages.length - 1]?.content || "").length < 20) && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
