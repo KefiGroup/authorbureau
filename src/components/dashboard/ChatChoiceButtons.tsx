@@ -49,7 +49,7 @@ export function parseChoices(content: string): { choices: Choice[]; multiSelect:
     }
   }
   if (choices.length >= 2) {
-    return { choices, multiSelect: detectMultiSelect(content) };
+    return { choices, multiSelect: detectMultiSelect(content, choices) };
   }
 
   // Try plain numbered patterns: 1) text, 1. text, - 1) text
