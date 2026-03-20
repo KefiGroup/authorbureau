@@ -95,7 +95,7 @@ CRITICAL SEQUENCING RULE: ALWAYS recommend Brand Products (Act 2) as the startin
 - Speaking/Keynotes: 1 booking per 10 qualified applications
 - Masterminds/Retreats: 1% of engaged followers per cohort
 
-Always present revenue as a range (conservative / realistic / optimistic). Projected Monthly Revenue must be $100+ as a range. Include TIER TOTAL rows.
+Always present revenue as a range (conservative–optimistic). NEVER start a revenue range with $0. The minimum projected revenue for ANY node must be at least $100/mo. Example: "$200–$540/mo" not "$0–$540". If the author has no audience yet, use conservative estimates based on a starting email list of 100–500 contacts. Include TIER TOTAL rows.
 
 # SECTION 6: THE ABBY FRAMEWORK — ALL 28 NODES
 
