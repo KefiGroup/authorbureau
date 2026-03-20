@@ -29,14 +29,21 @@ interface PlanSection {
 function extractSections(fullContent: string): PlanSection[] {
   const sections: PlanSection[] = [];
   const patterns: Array<{ key: string; label: string; emoji: string; regex: RegExp }> = [
-    { key: "transformation", label: "Transformation Promise", emoji: "✨", regex: /(?:#{1,3}.*?TRANSFORMATION PROMISE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?STARTER PACKAGE|$)/i },
+    { key: "transformation", label: "Transformation Promise", emoji: "✨", regex: /(?:#{1,3}.*?(?:TRANSFORMATION PROMISE|SECTION 1).*?\n)([\s\S]*?)(?=\n#{1,3}\s*(?:SECTION|---)|$)/i },
+    { key: "brand", label: "B·Brand Products", emoji: "💰", regex: /(?:#{1,3}.*?(?:B[·.]?BRAND PRODUCTS|SECTION 2).*?\n)([\s\S]*?)(?=\n#{1,3}\s*(?:SECTION|---)\s|$)/i },
+    { key: "build", label: "B·Build Authority", emoji: "📈", regex: /(?:#{1,3}.*?(?:B[·.]?BUILD AUTHORITY|SECTION 3).*?\n)([\s\S]*?)(?=\n#{1,3}\s*(?:SECTION|---)\s|$)/i },
+    { key: "yield", label: "Y·Yield Revenue", emoji: "🏆", regex: /(?:#{1,3}.*?(?:Y[·.]?YIELD REVENUE|SECTION 4).*?\n)([\s\S]*?)(?=\n#{1,3}\s*(?:SECTION|---)\s|$)/i },
+    { key: "monetization", label: "Monetisation Map", emoji: "📊", regex: /(?:#{1,3}.*?(?:MONETIS?ATION MAP|SECTION 5).*?\n)([\s\S]*?)(?=\n#{1,3}\s*(?:SECTION|---)\s|$)/i },
+    { key: "unlock", label: "Unlock Your Plan", emoji: "🔓", regex: /(?:#{1,3}.*?(?:UNLOCK YOUR PLAN|SECTION 6).*?\n)([\s\S]*?)(?=\n#{1,3}\s*(?:SECTION|---)\s|$)/i },
+    { key: "nextsteps", label: "Next Steps", emoji: "🚀", regex: /(?:#{1,3}.*?(?:NEXT STEPS|SECTION 7).*?\n)([\s\S]*?)$/i },
+    // Legacy format fallbacks
     { key: "starter", label: "Starter Package", emoji: "🟢", regex: /(?:#{1,3}.*?STARTER PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?PRO PACKAGE|$)/i },
     { key: "pro", label: "Pro Package", emoji: "🔵", regex: /(?:#{1,3}.*?PRO PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?ENTERPRISE PACKAGE|$)/i },
     { key: "enterprise", label: "Enterprise Package", emoji: "🟣", regex: /(?:#{1,3}.*?ENTERPRISE PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?MONETIZATION MAP|$)/i },
-    { key: "monetization", label: "Monetization Map", emoji: "📊", regex: /(?:#{1,3}.*?MONETIZATION MAP.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?NEXT STEPS|$)/i },
-    { key: "nextsteps", label: "Next Steps", emoji: "🚀", regex: /(?:#{1,3}.*?NEXT STEPS.*?\n)([\s\S]*?)$/i },
   ];
   for (const p of patterns) {
+    // Skip legacy patterns if we already found new-format sections
+    if (["starter", "pro", "enterprise"].includes(p.key) && sections.some(s => ["brand", "build", "yield"].includes(s.key))) continue;
     const match = fullContent.match(p.regex);
     if (match?.[1]?.trim()) {
       sections.push({ key: p.key, label: p.label, emoji: p.emoji, content: match[1].trim() });
