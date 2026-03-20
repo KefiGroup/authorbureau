@@ -7,7 +7,7 @@ import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import BookHubContextBar from "@/components/dashboard/book-hub/BookHubContextBar";
 import BookHubOverview from "@/components/dashboard/book-hub/BookHubOverview";
-import BookHubStepTab from "@/components/dashboard/book-hub/BookHubStepTab";
+import PortfolioStepView from "@/components/dashboard/PortfolioStepView";
 import BookHubAnalytics from "@/components/dashboard/book-hub/BookHubAnalytics";
 import BookHubSkeleton from "@/components/dashboard/book-hub/BookHubSkeleton";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
@@ -126,13 +126,11 @@ export default function BookHub() {
       case "marketing-channels":
       case "authority-builders":
         return (
-          <BookHubStepTab
+          <PortfolioStepView
             categoryId={activeTab}
-            bookId={book.id}
-            bookTitle={book.title}
-            bookGenre={book.genre || undefined}
-            isPremium={isPremium || isAdmin}
             tier={effectiveTier}
+            onNavigate={(section) => navigate(`/dashboard?section=${section}`)}
+            analyzedBooks={book ? [{ id: book.id, title: book.title }] : []}
           />
         );
       case "analytics":
