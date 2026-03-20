@@ -498,44 +498,6 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
         </motion.div>
       )}
 
-      {/* Build My Author Business button — Pro/Enterprise only, analyzed only */}
-      {isAnalyzed && (
-        <BuildMyBusinessButton tier={tier} recommendedCount={recommendations.length} />
-      )}
-
-      {/* ROI Banner — Revenue Intelligence */}
-      {isAnalyzed && authorId && (
-        <ROIBanner
-          bookId={book.id}
-          authorId={authorId}
-          tier={tier}
-          onNavigateBuilder={(builderId) => onNavigateTab("revenue-streams")}
-        />
-      )}
-
-      {/* Free-to-Paid Conversion Teaser — only for free-tier analyzed users */}
-      {isAnalyzed && tier === "free" && (
-        <FreeTrialTeaser
-          bookTitle={book.title}
-          bookId={book.id}
-          currentTier={tier}
-          hasBusinessPlan={planSections.length > 0 || !!plan}
-          onNavigate={(section) => onNavigateTab(section)}
-        />
-      )}
-
-      {/* Website Theme Picker — choose look & feel early */}
-      <SiteThemePicker compact />
-
-      {/* ABBY Framework Visual */}
-      <ABBYFrameworkVisual
-        hasConsultation={isAnalyzed}
-        tier={tier}
-        completedAssets={completedAssets}
-        recommendedNodes={recommendedNodes}
-        onConsultAbby={onConsultAbby}
-        onNavigateTab={onNavigateTab}
-      />
     </div>
   );
 }
