@@ -351,6 +351,89 @@ function extractChoiceOptions(body: string): { preamble: string; options: string
   return { preamble, options, rest };
 }
 
+/** Generic "Option N (label):" pattern — each option has a label and body text */
+interface GenericOption {
+  label: string;
+  body: string;
+}
+
+function extractGenericOptions(body: string): { preamble: string; options: GenericOption[]; rest: string } | null {
+  const lines = body.split("\n");
+  const options: GenericOption[] = [];
+  let firstOptionIdx = -1;
+
+  // Find all "Option N" lines
+  const optionIndices: { idx: number; label: string }[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].trim().match(/^\*?\*?Option\s+\d+\s*(?:\([^)]*\))?\s*:?\*?\*?\s*$/i) ||
+              lines[i].trim().match(/^\*?\*?Option\s+\d+\s*\([^)]*\)\s*:?\*?\*?/i);
+    if (m) {
+      const label = lines[i].trim().replace(/\*\*/g, "").replace(/:$/, "").trim();
+      optionIndices.push({ idx: i, label });
+      if (firstOptionIdx === -1) firstOptionIdx = i;
+    }
+  }
+
+  if (optionIndices.length < 2) return null;
+
+  const preamble = lines.slice(0, firstOptionIdx).join("\n").trim();
+
+  for (let i = 0; i < optionIndices.length; i++) {
+    const startLine = optionIndices[i].idx + 1;
+    const endLine = i + 1 < optionIndices.length ? optionIndices[i + 1].idx : lines.length;
+    const optBody = lines.slice(startLine, endLine).join("\n").trim();
+    options.push({ label: optionIndices[i].label, body: optBody });
+  }
+
+  // Any remaining text after the last option's content
+  const lastEnd = optionIndices[optionIndices.length - 1].idx + 1;
+  let restStartLine = lines.length;
+  // If the last option body is followed by non-option content, it's already captured in body
+  const rest = "";
+
+  return { preamble, options, rest };
+}
+
+/** Generic option selector with label + body preview */
+function GenericOptionSelector({ options, onSelect }: { options: GenericOption[]; onSelect?: (idx: number) => void }) {
+  const [selected, setSelected] = useState<number | null>(null);
+
+  return (
+    <div className="space-y-2 my-3">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Choose an option</p>
+      {options.map((opt, idx) => {
+        const isActive = selected === idx;
+        return (
+          <button
+            key={idx}
+            type="button"
+            onClick={() => { setSelected(idx); onSelect?.(idx); }}
+            className={`w-full text-left px-4 py-3.5 rounded-xl border-2 text-sm transition-all ${
+              isActive
+                ? "border-secondary bg-secondary/10 shadow-sm"
+                : "border-border/60 bg-background hover:border-border hover:bg-muted/30"
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold shrink-0 mt-0.5 ${
+                isActive ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground"
+              }`}>
+                {isActive ? <Check className="h-3.5 w-3.5" /> : idx + 1}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className={`text-xs font-semibold uppercase tracking-wide mb-1 ${isActive ? "text-secondary" : "text-muted-foreground"}`}>
+                  {opt.label}
+                </p>
+                <p className="text-sm text-foreground leading-relaxed">{opt.body}</p>
+              </div>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 /** Title choice selector component */
 function TitleChoiceSelector({ options, onSelect }: { options: string[]; onSelect?: (idx: number, customTitle?: string) => void }) {
   const [selected, setSelected] = useState<number | null>(null);
