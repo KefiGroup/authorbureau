@@ -96,9 +96,12 @@ export function parseConfirmation(content: string): string[] | null {
   if (parseChoices(content)) return null;
   
   const lower = content.toLowerCase();
-  // Look for ready/yes-no patterns near the end
+  // Business plan progression — "Ready to see your Brand Products?", "Next up: Build Authority", etc.
+  if (/ready to see\b/i.test(lower) || /next up:/i.test(lower) || /let me show you/i.test(lower) || /let's look at/i.test(lower)) {
+    return ["Continue →"];
+  }
+  // Ready/shall patterns for plan generation
   if (/ready\s*(for|to)\b/i.test(lower) || /shall (i|we)\b/i.test(lower) || /would you like (me |us )?to\b/i.test(lower) || /want (me |us )?to\b/i.test(lower) || /let'?s (go|do|start|build|begin)/i.test(lower)) {
-    // Check if it's specifically about business plan
     if (/business plan/i.test(lower)) {
       return ["Yes, I'm excited to see my business plan! 🚀", "Not yet, I have more questions"];
     }
@@ -106,7 +109,7 @@ export function parseConfirmation(content: string): string[] | null {
   }
   // Generic question at [STOP]
   if (/\?\s*\n*\s*\[STOP\]/i.test(content)) {
-    return ["Yes", "No", "Tell me more"];
+    return ["Continue →", "I have a question"];
   }
   return null;
 }
