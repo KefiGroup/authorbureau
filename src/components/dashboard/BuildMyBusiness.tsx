@@ -1125,15 +1125,16 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
                   </div>
                 )}
 
-                {/* Clickable choice buttons for the last assistant message */}
-                {msg.role === "assistant" && !isStreaming && idx === messages.length - 1 && (() => {
+                {/* Clickable choice buttons for assistant messages with options */}
+                {msg.role === "assistant" && !isStreaming && (() => {
                   const choices = parseChoices(displayContent);
+                  const isLastAssistant = idx === messages.length - 1;
                   return choices ? (
                     <ChatChoiceButtons
                       choices={choices}
                       multiSelect={true}
                       onSubmit={(text) => sendMessage(text)}
-                      disabled={isStreaming}
+                      disabled={isStreaming || !isLastAssistant}
                     />
                   ) : null;
                 })()}
