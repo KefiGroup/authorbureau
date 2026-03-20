@@ -143,16 +143,37 @@ Return ONLY valid JSON. No markdown, no explanation outside the JSON.`;
   const checkStyle = categoryCheckStyles[category];
   const hoverStyle = categoryHoverStyles[category];
 
+  const reasoning = stepData[`${configKey}_reasoning`];
+
   return (
     <div className="space-y-6">
       <AbbyRecommendationCard>
-        <p className="text-sm text-foreground leading-relaxed">{abbyTip}</p>
+        <p className="text-sm text-foreground leading-relaxed mb-3">{abbyTip}</p>
+        {bookId && (
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={analyzeWithAbby}
+              disabled={analyzing}
+              size="sm"
+              className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold"
+            >
+              {analyzing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+              {analyzing ? "Analyzing your book..." : hasConfig ? "Re-analyze with Abby" : "Let Abby Configure This"}
+            </Button>
+            {hasConfig && !analyzing && (
+              <span className="text-xs text-muted-foreground">Abby has filled in the fields below</span>
+            )}
+          </div>
+        )}
+        {reasoning && (
+          <p className="text-xs text-muted-foreground mt-2 italic border-t border-secondary/20 pt-2">{reasoning}</p>
+        )}
       </AbbyRecommendationCard>
 
       <StepInstructions
         category={category}
         items={[
-          { label: "Abby's Tip", description: "Review Abby's personalized advice above first." },
+          { label: "Abby's Analysis", description: "Click the button above to let Abby analyze your book and pre-fill settings." },
           { label: "Text fields", description: "Type to set titles, descriptions, and other details." },
           { label: "Option cards", description: "Click to select a preset format, tier, or duration." },
           { label: "Price field", description: "Set your selling price in USD. Change anytime." },
