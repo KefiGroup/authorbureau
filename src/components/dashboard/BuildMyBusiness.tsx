@@ -79,13 +79,18 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
   const [abbyReading, setAbbyReading] = useState(false);
   const [readingProgress, setReadingProgress] = useState(0);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const lastAssistantRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [shouldAutoStart, setShouldAutoStart] = useState(false);
   const [viewPlanBook, setViewPlanBook] = useState<Book | null>(null);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (lastAssistantRef.current) {
+      lastAssistantRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages]);
 
   // Fetch user's books + analysis status
@@ -1069,8 +1074,11 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
             .replace(/#{1,4}\s*TURN\s+\d+[A-F]?\s*[—–-]\s*.+/gi, "")
             .trim();
 
+          const lastAssistantIdx = messages.reduce((acc, m, i) => m.role === "assistant" ? i : acc, -1);
+          const isLastAssistantMsg = msg.role === "assistant" && idx === lastAssistantIdx;
+
           return (
-            <div key={idx} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : ""}`}>
+            <div key={idx} ref={isLastAssistantMsg ? lastAssistantRef : undefined} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : ""}`}>
               {msg.role === "assistant" && (
                 <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center flex-shrink-0 mt-1 text-sm">👩‍💼</div>
               )}
