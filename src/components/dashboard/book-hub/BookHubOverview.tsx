@@ -7,9 +7,6 @@ import BookHubSkeleton from "./BookHubSkeleton";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ManuscriptUpload from "@/components/dashboard/ManuscriptUpload";
-import ABBYFrameworkVisual from "./ABBYFrameworkVisual";
-import ROIBanner from "@/components/dashboard/ROIBanner";
-import FreeTrialTeaser from "@/components/dashboard/builders/FreeTrialTeaser";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import MarketSnapshot from "./MarketSnapshot";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,7 +17,7 @@ import { useAbbyPlan } from "@/hooks/useAbbyPlan";
 import { useMarketResearch } from "@/hooks/useMarketResearch";
 import type { SubscriptionTier } from "@/hooks/useAuth";
 import { hasTierAccess } from "@/hooks/useAuth";
-import SiteThemePicker from "@/components/dashboard/SiteThemePicker";
+
 
 interface PlanSection {
   key: string;
@@ -119,25 +116,6 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
   const recommendations = getRecommendationsFromPlan(planContent);
   const builtCount = completedAssets.length;
 
-  // Extract recommended node IDs from structured plan OR fallback to recommendation nodeIds
-  const recommendedNodes: string[] = (() => {
-    // Source 1: structured plan packages
-    if (plan?.packages) {
-      const nodes = new Set<string>();
-      for (const pkg of Object.values(plan.packages)) {
-        if (pkg && typeof pkg === "object" && "products" in pkg) {
-          const p = pkg as { products: Array<{ node: string }> };
-          p.products?.forEach((prod) => { if (prod.node) nodes.add(prod.node); });
-        }
-      }
-      if (nodes.size > 0) return Array.from(nodes);
-    }
-    // Source 2: if book is analyzed, use recommendation nodeIds as fallback
-    if (isAnalyzed) {
-      return recommendations.map(r => r.nodeId);
-    }
-    return [];
-  })();
 
   useEffect(() => {
     async function checkData() {
@@ -498,80 +476,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
         </motion.div>
       )}
 
-      {/* Build My Author Business button — Pro/Enterprise only, analyzed only */}
-      {isAnalyzed && (
-        <BuildMyBusinessButton tier={tier} recommendedCount={recommendations.length} />
-      )}
-
-      {/* ROI Banner — Revenue Intelligence */}
-      {isAnalyzed && authorId && (
-        <ROIBanner
-          bookId={book.id}
-          authorId={authorId}
-          tier={tier}
-          onNavigateBuilder={(builderId) => onNavigateTab("revenue-streams")}
-        />
-      )}
-
-      {/* Free-to-Paid Conversion Teaser — only for free-tier analyzed users */}
-      {isAnalyzed && tier === "free" && (
-        <FreeTrialTeaser
-          bookTitle={book.title}
-          bookId={book.id}
-          currentTier={tier}
-          hasBusinessPlan={planSections.length > 0 || !!plan}
-          onNavigate={(section) => onNavigateTab(section)}
-        />
-      )}
-
-      {/* Website Theme Picker — choose look & feel early */}
-      <SiteThemePicker compact />
-
-      {/* ABBY Framework Visual */}
-      <ABBYFrameworkVisual
-        hasConsultation={isAnalyzed}
-        tier={tier}
-        completedAssets={completedAssets}
-        recommendedNodes={recommendedNodes}
-        onConsultAbby={onConsultAbby}
-        onNavigateTab={onNavigateTab}
-      />
     </div>
   );
 }
 
-function BuildMyBusinessButton({ tier, recommendedCount }: { tier: SubscriptionTier; recommendedCount: number }) {
-  const { toast } = useToast();
-  const canUse = hasTierAccess(tier, "pro");
-
-  if (!canUse) {
-    return (
-      <div className="rounded-xl border border-border bg-muted/50 p-4 flex items-center gap-3 opacity-70">
-        <Lock className="h-6 w-6 text-muted-foreground" />
-        <div>
-          <p className="text-sm font-semibold text-muted-foreground">Build My Author Business — One-Click</p>
-          <p className="text-xs text-muted-foreground">Upgrade to Pro to unlock one-click building of all recommended products.</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <button
-      onClick={() => toast({ title: "Build queue coming soon", description: "Use individual builders in the tabs below for now." })}
-      className="w-full rounded-xl p-4 text-left text-white transition-transform hover:scale-[1.02]"
-      style={{
-        background: "linear-gradient(135deg, #0D9488, #0F766E)",
-        boxShadow: "0 4px 12px rgba(13, 148, 136, 0.3)",
-      }}
-    >
-      <div className="flex items-center gap-3">
-        <Sparkles className="h-6 w-6 text-white shrink-0" />
-        <div>
-          <p className="text-base font-semibold">Build My Author Business — Create All Recommended Products</p>
-          <p className="text-[13px] text-white/70">Abby will generate {recommendedCount} products in ~15-30 minutes. Review and publish at your pace.</p>
-        </div>
-      </div>
-    </button>
-  );
-}
