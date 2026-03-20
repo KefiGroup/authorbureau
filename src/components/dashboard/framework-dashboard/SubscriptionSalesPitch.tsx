@@ -331,12 +331,12 @@ export default function SubscriptionSalesPitch({
           </p>
           <p className="text-xs text-muted-foreground max-w-md mx-auto">
             {currentTier === "starter"
-              ? "Upgrade to Pro to unlock coaching, courses, and webinars."
-              : "Upgrade to Enterprise for retreats, certification, and a 1-on-1 session with Pauline Teo."}
+              ? "Upgrade to Build to unlock coaching, courses, and webinars."
+              : "Upgrade to Yield for retreats, certification, and a 1-on-1 session with Pauline Teo."}
           </p>
           <Button onClick={() => onSubscribe(currentTier === "starter" ? "pro" : "enterprise")} disabled={loading}>
             <ArrowUpRight className="h-4 w-4 mr-2" />
-            Upgrade to {currentTier === "starter" ? "Pro" : "Enterprise"}
+            Upgrade to {currentTier === "starter" ? "Build" : "Yield"}
           </Button>
         </div>
       )}
