@@ -173,7 +173,7 @@ export default function SubscriptionSalesPitch({
         <div className="text-center py-8">
           <div className="inline-flex items-center gap-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full px-5 py-2.5 text-sm font-bold mb-6">
             <Shield className="h-4 w-4" />
-            ✅ ENTERPRISE PLAN — Full Access to All 28 Builders
+            ✅ YIELD PACKAGE — Full Access to All 28 Builders
           </div>
           {onBuildBusiness && (
             <Button size="lg" onClick={onBuildBusiness} className="bg-amber-500 hover:bg-amber-600 text-white text-lg px-10 py-6 rounded-xl shadow-lg">
