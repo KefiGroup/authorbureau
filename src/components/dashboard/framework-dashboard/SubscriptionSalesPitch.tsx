@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Check, Crown, Loader2, ArrowUpRight, Shield, Sparkles,
-  TrendingUp, Star, Lock, X,
+  TrendingUp, Star, Lock, X, Clock, AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -15,7 +15,6 @@ interface PlanAnalysisData {
   revenueLow?: string;
   revenueHigh?: string;
   recommendedTier?: "starter" | "pro" | "enterprise";
-  /** Array of product suggestions from Abby's analysis for ROI calc */
   products?: Array<{
     name: string;
     price: number;
@@ -40,10 +39,14 @@ const plans = [
     price: "$49",
     usualPrice: "$69",
     priceNum: 49,
+    usualPriceNum: 69,
+    savings: "$20",
+    annualSavings: "$240",
     period: "/mo",
     tagline: "Test the waters.",
     description: "Start building with all 9 Brand Products",
     popular: false,
+    promoCode: "BRAND-FIRSTTIMER",
     features: [
       "Abby AI Unlimited",
       "All 9 B·Brand Product builders",
@@ -60,10 +63,14 @@ const plans = [
     price: "$99",
     usualPrice: "$199",
     priceNum: 99,
+    usualPriceNum: 199,
+    savings: "$100",
+    annualSavings: "$1,200",
     period: "/mo",
     tagline: "Build a real business.",
     description: "Full Brand + Build Authority — everything to monetize",
     popular: true,
+    promoCode: "BUILD-FIRSTTIMER",
     features: [
       "Everything in Brand",
       "All 9 B·Build Authority builders (Courses, Audiobooks, Memberships, Podcasts)",
@@ -83,10 +90,14 @@ const plans = [
     price: "$249",
     usualPrice: "$499",
     priceNum: 249,
+    usualPriceNum: 499,
+    savings: "$250",
+    annualSavings: "$3,000",
     period: "/mo",
     tagline: "Build an empire.",
     description: "Complete monetization empire — all 28 streams",
     popular: false,
+    promoCode: "YIELD-FIRSTTIMER",
     features: [
       "Everything in Build",
       "All 10 Y·Yield builders (Retreats, Certification, Masterminds)",
@@ -103,15 +114,51 @@ const plans = [
 
 const tierOrder = ["free", "starter", "pro", "enterprise"] as const;
 
+/* ─── Countdown Timer Hook ─── */
+function useCountdown() {
+  const PROMO_DURATION_MS = 60 * 60 * 1000; // 60 minutes
+  const STORAGE_KEY = "ab_promo_start";
+
+  const getStartTime = useCallback(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) return parseInt(stored, 10);
+    const now = Date.now();
+    localStorage.setItem(STORAGE_KEY, String(now));
+    return now;
+  }, []);
+
+  const [startTime] = useState(getStartTime);
+  const [remaining, setRemaining] = useState(() => {
+    const elapsed = Date.now() - startTime;
+    return Math.max(0, PROMO_DURATION_MS - elapsed);
+  });
+
+  useEffect(() => {
+    if (remaining <= 0) return;
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const left = Math.max(0, PROMO_DURATION_MS - elapsed);
+      setRemaining(left);
+      if (left <= 0) clearInterval(interval);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [startTime, remaining]);
+
+  const minutes = Math.floor(remaining / 60000);
+  const seconds = Math.floor((remaining % 60000) / 1000);
+  const expired = remaining <= 0;
+  const urgent = remaining < 10 * 60 * 1000; // under 10 min
+
+  return { minutes, seconds, expired, urgent, remaining };
+}
+
 /* ─── Helpers ─── */
 function getBreakEven(planPrice: number, products: PlanAnalysisData["products"]): { qty: number; productName: string; productPrice: number; total: number } {
   if (!products || products.length === 0) {
-    // Fallback: generic workbook at $27
     const price = 27;
     const qty = Math.ceil(planPrice / price);
     return { qty, productName: "workbook", productPrice: price, total: qty * price };
   }
-  // Pick the lowest-priced product for a realistic break-even
   const sorted = [...products].sort((a, b) => a.price - b.price);
   const product = sorted[0];
   const qty = Math.ceil(planPrice / product.price);
@@ -135,6 +182,7 @@ export default function SubscriptionSalesPitch({
   const pricingRef = useRef<HTMLDivElement>(null);
   const [stickyDismissed, setStickyDismissed] = useState(false);
   const [showSticky, setShowSticky] = useState(false);
+  const countdown = useCountdown();
 
   // Observe pricing cards visibility for sticky banner
   useEffect(() => {
@@ -153,8 +201,9 @@ export default function SubscriptionSalesPitch({
     pricingRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
-  const recommended = analysisData.recommendedTier || "starter";
-  const recommendedPlan = plans.find(p => p.id === recommended) || plans[0];
+  // Always recommend Build Package (pro) as most popular
+  const recommended = "pro" as const;
+  const recommendedPlan = plans.find(p => p.id === recommended)!;
 
   const {
     bookTitle,
@@ -198,6 +247,34 @@ export default function SubscriptionSalesPitch({
         isSubscribed={isSubscribed}
       />
 
+      {/* ─── Countdown Timer Banner ─── */}
+      {!isSubscribed && !countdown.expired && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`rounded-xl mx-4 md:mx-8 mt-4 px-5 py-3 flex items-center justify-center gap-3 text-sm font-semibold ${
+            countdown.urgent
+              ? "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800"
+              : "bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
+          }`}
+        >
+          <Clock className={`h-4 w-4 ${countdown.urgent ? "animate-pulse" : ""}`} />
+          <span>
+            First-timer pricing expires in{" "}
+            <span className="font-mono font-bold text-base">
+              {String(countdown.minutes).padStart(2, "0")}:{String(countdown.seconds).padStart(2, "0")}
+            </span>
+          </span>
+          {countdown.urgent && <AlertTriangle className="h-4 w-4 animate-pulse" />}
+        </motion.div>
+      )}
+
+      {!isSubscribed && countdown.expired && (
+        <div className="rounded-xl mx-4 md:mx-8 mt-4 px-5 py-3 bg-muted text-center text-sm text-muted-foreground border border-border">
+          First-timer promotional pricing has expired. Standard pricing applies.
+        </div>
+      )}
+
       {/* ─── Part 2: Pricing Cards ─── */}
       <div ref={pricingRef} className="py-8 px-4 md:px-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-5xl mx-auto">
@@ -206,7 +283,6 @@ export default function SubscriptionSalesPitch({
             const currentIdx = tierOrder.indexOf(currentTier);
             const isCurrent = plan.id === currentTier;
             const isLower = tierIdx < currentIdx;
-            const isHigher = tierIdx > currentIdx;
 
             return (
               <motion.div
@@ -247,9 +323,20 @@ export default function SubscriptionSalesPitch({
                     <p className="text-xs text-muted-foreground">{plan.description}</p>
                   </div>
 
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-bold">{plan.price}</span>
-                    <span className="text-muted-foreground text-sm">{plan.period}</span>
+                  {/* Pricing with usual price strikethrough */}
+                  <div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-sm text-muted-foreground line-through">{plan.usualPrice}/mo</span>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-4xl font-bold">{plan.price}</span>
+                      <span className="text-muted-foreground text-sm">{plan.period}</span>
+                    </div>
+                    {!countdown.expired && (
+                      <p className="text-[11px] text-green-600 dark:text-green-400 font-semibold mt-1">
+                        You save {plan.savings}/mo ({plan.annualSavings}/yr)
+                      </p>
+                    )}
                   </div>
 
                   <p className="text-xs font-semibold italic text-amber-600 dark:text-amber-400">
@@ -320,6 +407,7 @@ export default function SubscriptionSalesPitch({
           recommendedTier={recommended}
           onSubscribe={onSubscribe}
           loading={loading}
+          countdown={countdown}
         />
       )}
 
@@ -344,7 +432,9 @@ export default function SubscriptionSalesPitch({
       {/* ─── Trust badges ─── */}
       {!isSubscribed && (
         <div className="flex items-center justify-center gap-4 text-[11px] text-muted-foreground py-4">
-          <span className="flex items-center gap-1"><Lock className="h-3 w-3" /> 30-day money-back guarantee</span>
+          <span className="flex items-center gap-1"><Shield className="h-3 w-3 text-green-500" /> 14-day money-back guarantee</span>
+          <span>·</span>
+          <span>No questions asked</span>
           <span>·</span>
           <span>Cancel anytime</span>
           <span>·</span>
@@ -364,10 +454,17 @@ export default function SubscriptionSalesPitch({
             <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">
-                  Abby recommends {recommendedPlan.name} ({recommendedPlan.price}/mo) for "{bookTitle}"
+                  🔥 Build Package: Usually $199/mo → <strong>$99/mo</strong> (save $1,200/yr)
                 </p>
-                <p className="text-xs text-white/70">
-                  Revenue potential: {revenueLow}–{revenueHigh}/mo
+                <p className="text-xs text-white/70 flex items-center gap-1">
+                  {!countdown.expired && (
+                    <>
+                      <Clock className="h-3 w-3" />
+                      {String(countdown.minutes).padStart(2, "0")}:{String(countdown.seconds).padStart(2, "0")} remaining
+                      <span className="mx-1">·</span>
+                    </>
+                  )}
+                  14-day money-back guarantee
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
@@ -376,7 +473,7 @@ export default function SubscriptionSalesPitch({
                   className="bg-amber-500 hover:bg-amber-600 text-white"
                   size="sm"
                 >
-                  Get Started with {recommendedPlan.name} →
+                  Get Build Package — $99/mo →
                 </Button>
                 <button onClick={() => setStickyDismissed(true)} className="text-white/50 hover:text-white p-1">
                   <X className="h-4 w-4" />
@@ -443,18 +540,19 @@ function RevenueHookBanner({
 }
 
 function ROICalculator({
-  bookTitle, products, recommendedTier, onSubscribe, loading,
+  bookTitle, products, recommendedTier, onSubscribe, loading, countdown,
 }: {
   bookTitle: string; products?: PlanAnalysisData["products"];
   recommendedTier: "starter" | "pro" | "enterprise";
   onSubscribe: (tier: "starter" | "pro" | "enterprise") => void; loading: boolean;
+  countdown: { minutes: number; seconds: number; expired: boolean; urgent: boolean };
 }) {
   const breakEvens = useMemo(() => plans.map(plan => ({
     plan,
     ...getBreakEven(plan.priceNum, products),
   })), [products]);
 
-  const recPlan = plans.find(p => p.id === recommendedTier) || plans[0];
+  const recPlan = plans.find(p => p.id === recommendedTier) || plans[1];
 
   return (
     <motion.div
@@ -479,6 +577,7 @@ function ROICalculator({
             plan.id === recommendedTier ? "border-amber-400 bg-amber-500/5" : "border-border"
           }`}>
             <p className="text-sm font-bold">{plan.name} {plan.price}</p>
+            <p className="text-[10px] text-muted-foreground line-through">Usually {plan.usualPrice}/mo</p>
             <div className="text-xs text-muted-foreground space-y-1">
               <p>Break even:</p>
               <p className="text-foreground font-semibold text-lg">
@@ -501,8 +600,28 @@ function ROICalculator({
       <div className="text-center space-y-4">
         <p className="text-sm font-medium flex items-center justify-center gap-2">
           <Star className="h-4 w-4 text-amber-500" />
-          Abby recommends: <strong>{recPlan.name.toUpperCase()}</strong> to start with Month 1-2 quick wins
+          Abby recommends: <strong>BUILD PACKAGE</strong> — most authors start here
         </p>
+
+        {/* Urgency + savings pitch */}
+        <div className="bg-amber-50 dark:bg-amber-900/10 rounded-xl px-5 py-4 max-w-lg mx-auto space-y-2 border border-amber-200 dark:border-amber-800">
+          <p className="text-sm font-semibold text-foreground">
+            Usually <span className="line-through">$199/mo</span> → <span className="text-amber-600 dark:text-amber-400">$99/mo today</span>
+          </p>
+          <p className="text-xs text-green-600 dark:text-green-400 font-semibold">
+            That's $100 off every month — $1,200 saved over the year.
+          </p>
+          {!countdown.expired && (
+            <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+              <Clock className="h-3 w-3" />
+              First-timer rate expires in{" "}
+              <span className="font-mono font-bold">
+                {String(countdown.minutes).padStart(2, "0")}:{String(countdown.seconds).padStart(2, "0")}
+              </span>
+            </p>
+          )}
+        </div>
+
         <Button
           onClick={() => onSubscribe(recommendedTier)}
           disabled={loading}
@@ -510,8 +629,18 @@ function ROICalculator({
           size="lg"
         >
           {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Crown className="h-4 w-4 mr-2" />}
-          Get Started with {recPlan.name} — {recPlan.price}/mo →
+          Get Started with Build Package — $99/mo →
         </Button>
+
+        <p className="text-xs text-muted-foreground">
+          <Shield className="h-3 w-3 inline mr-1" />
+          14-day money-back guarantee. No questions asked. Cancel anytime.
+        </p>
+
+        <p className="text-[11px] text-muted-foreground italic max-w-md mx-auto">
+          If $99 feels like a stretch today, the Brand Package at $49/mo (usually $69) gives you all 9 Brand Products to get started.
+          Most authors upgrade to Build within 60 days.
+        </p>
       </div>
     </motion.div>
   );
