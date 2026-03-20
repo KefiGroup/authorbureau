@@ -1147,12 +1147,33 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
         })}
 
         {isStreaming && messages[messages.length - 1]?.role === "assistant" && !messages[messages.length - 1]?.content && (
-          <div className="flex gap-3">
-            <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center flex-shrink-0 text-sm">👩‍💼</div>
-            <div className="bg-muted/50 rounded-2xl rounded-bl-md px-4 py-3">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" />Abby is thinking…</div>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-xl border border-secondary/20 bg-secondary/5 p-4"
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <motion.div
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+                className="w-9 h-9 rounded-full bg-secondary/15 flex items-center justify-center"
+              >
+                <Sparkles className="h-4.5 w-4.5 text-secondary" />
+              </motion.div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Abby is analyzing your answer…</p>
+                <p className="text-xs text-muted-foreground">Building your personalized strategy</p>
+              </div>
             </div>
-          </div>
+            <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-gradient-to-r from-secondary/60 via-secondary to-secondary/60 rounded-full"
+                animate={{ x: ["-100%", "100%"] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                style={{ width: "50%" }}
+              />
+            </div>
+          </motion.div>
         )}
         <div ref={chatEndRef} />
       </div>
