@@ -29,9 +29,9 @@ import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
 const tabs: { id: BookHubTab; label: string }[] = [
   { id: "overview", label: "Analysis" },
-  { id: "revenue-streams", label: "🏗️ Build" },
-  { id: "marketing-channels", label: "🏗️ Build" },
-  { id: "authority-builders", label: "💰 Yield" },
+  { id: "revenue-streams", label: "💰 Brand" },
+  { id: "marketing-channels", label: "📈 Build" },
+  { id: "authority-builders", label: "🏆 Yield" },
   { id: "analytics", label: "Analytics" },
 ];
 
