@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight, BookOpen, FileText, List } from "lucide-react";
-import StepInstructions from "../shared/StepInstructions";
+
 import { DESIGN_TEMPLATES, CONTENT_TYPE_LABELS, type WorkbookSection } from "./types";
 import type { WorkbookStepProps } from "./types";
 
