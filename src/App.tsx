@@ -111,6 +111,8 @@ const AppRoutes = () => (
       <Route path="/solutions/:genre" element={<Solutions />} />
       <Route path="/sso" element={<SSO />} />
       <Route path="/purchase-success" element={<PurchaseSuccess />} />
+      <Route path="/terms" element={<TermsOfService />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route path="/:authorSlug/:bookSlug/:productType" element={<AuthorProductPage />} />
       <Route path="/:authorSlug/:bookSlug" element={<AuthorBookPage />} />
       <Route path="/:authorSlug" element={<AuthorSite />} />
