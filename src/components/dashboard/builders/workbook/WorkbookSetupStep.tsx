@@ -1,4 +1,4 @@
-import { ExternalLink, BookOpen, ArrowRight, Sparkles, Upload, CheckCircle2 } from "lucide-react";
+import { ExternalLink, BookOpen, ArrowRight, Sparkles, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import StepInstructions from "../shared/StepInstructions";
