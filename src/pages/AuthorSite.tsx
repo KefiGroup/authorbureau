@@ -221,14 +221,23 @@ export default function AuthorSite() {
     if (!profile) { setNotFound(true); setLoading(false); return; }
     setAuthor(profile as unknown as AuthorData);
 
-    // When the owner views their own site, show all books (even unpublished)
+    // When the owner views their own site, include drafts; public sees only published books
     let booksQuery = supabase.from("books").select("*").eq("author_id", profile.user_id).order("created_at", { ascending: false });
     if (!isOwner) {
       booksQuery = booksQuery.not("published_at", "is", null);
     }
 
-    const [booksRes, homeStudyRes, coursesRes, coachingRes, audiobooksRes, podcastsRes] = await Promise.all([
+    let booksByNameQuery: any = null;
+    if (profile.pen_name) {
+      booksByNameQuery = supabase.from("books").select("*").eq("author_name", profile.pen_name).order("created_at", { ascending: false });
+      if (!isOwner) {
+        booksByNameQuery = booksByNameQuery.not("published_at", "is", null);
+      }
+    }
+
+    const [booksRes, booksByNameRes, homeStudyRes, coursesRes, coachingRes, audiobooksRes, podcastsRes] = await Promise.all([
       booksQuery,
+      booksByNameQuery ? booksByNameQuery : Promise.resolve({ data: [] as any[] }),
       supabase.from("home_study_courses").select("id, title, price, currency, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
       supabase.from("courses").select("id, title, price, currency, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
       supabase.from("coaching_packages").select("id, title, price, currency, description, duration_minutes, sessions_count").eq("author_id", profile.user_id).eq("status", "active"),
@@ -236,7 +245,9 @@ export default function AuthorSite() {
       supabase.from("podcasts").select("id, title, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
     ]);
 
-    const books = (booksRes.data || []) as any[];
+    const booksPrimary = (booksRes.data || []) as any[];
+    const booksFallback = (booksByNameRes?.data || []) as any[];
+    const books = booksPrimary.length > 0 ? booksPrimary : booksFallback;
     const homeStudy = (homeStudyRes.data || []) as any[];
     const courses = (coursesRes.data || []) as any[];
     const coaching = (coachingRes.data || []) as any[];

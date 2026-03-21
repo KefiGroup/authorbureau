@@ -227,10 +227,12 @@ export default function AuthorProductPage() {
     setLoading(true);
 
     let profile: any = null;
+    let isOwner = false;
     const { data: { user: currentUser } } = await supabase.auth.getUser();
     if (currentUser) {
       const { data } = await supabase.from("author_profiles").select("*").eq("author_slug", authorSlug).eq("user_id", currentUser.id).maybeSingle();
       profile = data;
+      if (data) isOwner = true;
     }
     if (!profile) {
       const { data } = await supabase.from("author_profiles").select("*").eq("author_slug", authorSlug).in("directory_status", ["listed", "verified", "featured"]).maybeSingle();
@@ -240,20 +242,46 @@ export default function AuthorProductPage() {
     setAuthor(profile);
     setTheme(getThemeById(profile.site_theme || "classic-elegant"));
 
-    const [bookRes, allBooksRes, coachRes] = await Promise.all([
-      supabase.from("books").select("id, title, slug, cover_image_url, author_name, description, genre").eq("author_id", profile.user_id).eq("slug", bookSlug).maybeSingle(),
-      supabase.from("books").select("slug, title, cover_image_url, genre").eq("author_id", profile.user_id).not("published_at", "is", null).order("created_at", { ascending: false }),
-      supabase.from("coaching_packages").select("id, title").eq("author_id", profile.user_id).eq("status", "active"),
+    let primaryBookQuery = supabase
+      .from("books")
+      .select("id, title, slug, cover_image_url, author_name, description, genre, author_id, published_at")
+      .eq("author_id", profile.user_id)
+      .eq("slug", bookSlug);
+    if (!isOwner) {
+      primaryBookQuery = primaryBookQuery.not("published_at", "is", null);
+    }
+    const { data: primaryBook } = await primaryBookQuery.maybeSingle();
+
+    let resolvedBook = primaryBook;
+    if (!resolvedBook && profile.pen_name) {
+      let fallbackBookQuery = supabase
+        .from("books")
+        .select("id, title, slug, cover_image_url, author_name, description, genre, author_id, published_at")
+        .eq("author_name", profile.pen_name)
+        .eq("slug", bookSlug);
+      if (!isOwner) {
+        fallbackBookQuery = fallbackBookQuery.not("published_at", "is", null);
+      }
+      const { data: fallbackBook } = await fallbackBookQuery.maybeSingle();
+      resolvedBook = fallbackBook;
+    }
+
+    if (!resolvedBook) { setNotFound(true); setLoading(false); return; }
+
+    const authorIds = [...new Set([profile.user_id, resolvedBook.author_id].filter(Boolean))];
+
+    const [allBooksRes, coachRes] = await Promise.all([
+      supabase.from("books").select("slug, title, cover_image_url, genre").in("author_id", authorIds).not("published_at", "is", null).order("created_at", { ascending: false }),
+      supabase.from("coaching_packages").select("id, title").in("author_id", authorIds).eq("status", "active"),
     ]);
 
-    if (!bookRes.data) { setNotFound(true); setLoading(false); return; }
-    setBook(bookRes.data);
+    setBook(resolvedBook);
     setAllAuthorBooks(allBooksRes.data || []);
     setCoachingServices(coachRes.data || []);
-    const bookId = bookRes.data.id;
+    const bookId = resolvedBook.id;
 
     // Load product
-    let query = supabase.from(config.table as any).select("*").eq("author_id", profile.user_id);
+    let query = supabase.from(config.table as any).select("*").in("author_id", authorIds);
     if (!["coaching_packages", "speaking_topics"].includes(config.table)) query = query.eq("book_id", bookId);
     if (config.statusField === "published_at") query = query.not("published_at", "is", null);
     else query = query.eq(config.statusField, config.statusValue);
@@ -267,9 +295,9 @@ export default function AuthorProductPage() {
 
     const [salesRes, testimonialsRes, ...siblingResults] = await Promise.all([
       salesAssetType
-        ? supabase.from("generated_assets").select("content").eq("book_id", bookId).eq("author_id", profile.user_id).eq("asset_type", salesAssetType).order("updated_at", { ascending: false }).limit(1).maybeSingle()
+        ? supabase.from("generated_assets").select("content").eq("book_id", bookId).in("author_id", authorIds).eq("asset_type", salesAssetType).order("updated_at", { ascending: false }).limit(1).maybeSingle()
         : Promise.resolve({ data: null }),
-      supabase.from("testimonials" as any).select("*").eq("author_id", profile.user_id).order("created_at", { ascending: false }).limit(10) as any,
+      supabase.from("testimonials" as any).select("*").in("author_id", authorIds).order("created_at", { ascending: false }).limit(10) as any,
       ...[
         { table: "home_study_courses", status: "published", fields: "id, title, price, currency, description, cover_image_url", byBook: true },
         { table: "courses", status: "published", fields: "id, title, price, currency, description, cover_image_url", byBook: true },
@@ -278,7 +306,7 @@ export default function AuthorProductPage() {
         { table: "coaching_packages", status: "active", fields: "id, title, price, currency, description, type", byBook: false },
         { table: "speaking_topics", status: "active", fields: "id, title, fee, fee_currency, description", byBook: false },
       ].map(t => {
-        let q = supabase.from(t.table as any).select(t.fields).eq("author_id", profile.user_id).eq("status", t.status);
+        let q = supabase.from(t.table as any).select(t.fields).in("author_id", authorIds).eq("status", t.status);
         if (t.byBook) q = q.eq("book_id", bookId);
         return q;
       }),
