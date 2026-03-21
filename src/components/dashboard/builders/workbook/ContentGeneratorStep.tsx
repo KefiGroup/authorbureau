@@ -99,7 +99,7 @@ export default function ContentGeneratorStep({ stepData, setStepData, onMarkEdit
 
     try {
       const rawText = await generateWithAI(
-        `Generate workbook content for the section "${section.title}" of a workbook for the book "${bookTitle}". Content types to include: ${effectiveTypes.join(", ")}. Return STRICT VALID JSON only with shape: {"intro": string, "elements": [{"id": string, "type": string, "title": string, "content": string}], "takeaway": string}. Rules: output plain JSON only; no markdown fences; escape quotes inside strings; ensure commas between all array objects. Keep each element concise (60-100 words).`,
+        `Generate workbook content for the section "${section.title}" of a workbook for the book "${bookTitle}". Content types to include: ${effectiveTypes.join(", ")}. Return STRICT VALID JSON only with shape: {"intro": string, "elements": [{"id": string, "type": string, "title": string, "content": string}], "takeaway": string}. Rules: output plain JSON only; no markdown fences; escape quotes inside strings; ensure commas between all array objects. Keep each element concise (60-100 words). CRITICAL FOR CHECKLISTS: Checklists must be ASSESSMENT-ONLY — a self-diagnosis tool where readers tick what feels true for them. Do NOT include "Next-step plan", action items, or "choose ONE" prompts inside checklists. The checklist's purpose is to reveal where the reader stands; the natural next step is purchasing the full workbook, home study course, or online course. End checklists with a brief interpretive note like "The more items you checked, the more this section's deeper work will benefit you."`,
         {
           bookId,
           isPremium: true,
