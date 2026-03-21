@@ -8,7 +8,7 @@ import { Play, Loader2, Volume2, Mic, CheckCircle2 } from "lucide-react";
 import { VOICE_OPTIONS, type AudiobookStepProps, type NarrationType, type VoiceOption } from "./types";
 import { toast } from "sonner";
 import AbbyCoachingTip from "@/components/dashboard/social-media/AbbyCoachingTip";
-import StepInstructions from "@/components/dashboard/builders/shared/StepInstructions";
+
 
 const VOICE_INSTRUCTIONS = {
   "ai-voice": {
@@ -92,7 +92,7 @@ export default function VoiceSelectionStep({ stepData, setStepData, onMarkEdited
   if (narration === "author") {
     return (
       <div className="space-y-5">
-        <StepInstructions summary={VOICE_INSTRUCTIONS.author.summary} items={VOICE_INSTRUCTIONS.author.items} />
+        
         <AbbyCoachingTip
           title="Recording Tips for Author Narration"
           expandedByDefault
@@ -122,7 +122,7 @@ export default function VoiceSelectionStep({ stepData, setStepData, onMarkEdited
   if (narration === "professional") {
     return (
       <div className="space-y-5">
-        <StepInstructions summary={VOICE_INSTRUCTIONS.professional.summary} items={VOICE_INSTRUCTIONS.professional.items} />
+        
         <AbbyCoachingTip
           title="Finding a Professional Narrator"
           expandedByDefault
@@ -149,7 +149,7 @@ export default function VoiceSelectionStep({ stepData, setStepData, onMarkEdited
   // AI Voice selection
   return (
     <div className="space-y-5">
-      <StepInstructions summary={VOICE_INSTRUCTIONS["ai-voice"].summary} items={VOICE_INSTRUCTIONS["ai-voice"].items} />
+      
       {/* Filters */}
       <div className="flex gap-3 flex-wrap">
         <div>

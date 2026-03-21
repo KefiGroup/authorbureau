@@ -1,7 +1,7 @@
-import { ExternalLink, BookOpen, ArrowRight, Sparkles, Upload, CheckCircle2 } from "lucide-react";
+import { ExternalLink, BookOpen, ArrowRight, Sparkles, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import StepInstructions from "../shared/StepInstructions";
+
 import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 import ProductDistinctionCard from "../shared/ProductDistinctionCard";
 import type { WorkbookStepProps } from "./types";
@@ -11,14 +11,6 @@ const PUBLISHNOW_WRITING_URL = "https://publishnow.io/#/writing";
 export default function WorkbookSetupStep({ bookTitle }: WorkbookStepProps) {
   return (
     <div className="space-y-6">
-      <StepInstructions
-        items={[
-          { label: "Go to PublishNow.io", description: "Open your Creative Studio where your manuscript is stored." },
-          { label: "Select Your Book", description: "Find your book and click on it to open the workbook creation tools." },
-          { label: "Build Your Workbook", description: "Use the guided builder to turn your chapters into interactive workbook pages." },
-          { label: "Export & Download", description: "Download your completed workbook as a print-ready PDF." },
-        ]}
-      />
 
       <ProductDistinctionCard highlight="workbook" />
 

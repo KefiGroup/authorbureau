@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Monitor, Smartphone, Download, Rocket, TrendingUp, Sparkles } from "lucide-react";
-import StepInstructions from "./StepInstructions";
+
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -79,16 +79,6 @@ export default function SharedPublishStep({
 
   return (
     <div className="space-y-6">
-      <StepInstructions
-        summary="Review your product, check the publishing checklist, preview on different devices, and publish when ready."
-        items={[
-          { label: "Revenue Projection", description: "Abby's estimate based on your pricing, audience, and product type." },
-          { label: "Publishing Checklist", description: "all items must be completed (green) before you can publish." },
-          { label: "Desktop / Mobile preview", description: "toggle to see how your product page looks on different devices." },
-          { label: "Export", description: "download your product data as a JSON file for backup or external use." },
-          { label: "Publish", description: "makes your product live and visible to your audience." },
-        ]}
-      />
       <Card className="p-5 border-secondary/20 bg-gradient-to-br from-secondary/5 to-transparent">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center shrink-0">

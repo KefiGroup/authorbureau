@@ -7,7 +7,7 @@ import { Loader2, Wand2, Check, X, ChevronLeft, ChevronRight, AlertTriangle, Boo
 import type { AudiobookStepProps, AudioChapter, AudioSuggestion } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import StepInstructions from "../shared/StepInstructions";
+
 import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 
 export default function ManuscriptOptimizationStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, generationState, setGenerationState }: AudiobookStepProps) {
@@ -79,14 +79,6 @@ export default function ManuscriptOptimizationStep({ stepData, setStepData, onMa
     return (
       <div className="space-y-6">
 
-        <StepInstructions
-          summary="AI analyzes your manuscript and creates an audio-optimized script. Visual references are removed, complex passages are simplified, and pronunciation guides are added."
-          items={[
-            { label: "Optimize for Audio", description: "Click the button below to let AI scan your manuscript and prepare it for narration." },
-            { label: "Review Suggestions", description: "After generation, review each AI suggestion — accept, reject, or manually edit the text." },
-            { label: "Edit Scripts", description: "Fine-tune the audio-optimized text for each chapter before moving to production." },
-          ]}
-        />
 
         <AbbyRecommendationCard>
           <div className="space-y-2">
@@ -125,14 +117,6 @@ export default function ManuscriptOptimizationStep({ stepData, setStepData, onMa
 
   return (
     <div className="space-y-4">
-      <StepInstructions
-        summary="Review the AI-optimized scripts for each chapter. Accept or reject individual suggestions, and manually edit text as needed."
-        items={[
-          { label: "Navigate chapters", description: "Use the arrows to move between chapters and review each one." },
-          { label: "Accept / Reject", description: "For each AI suggestion, click ✓ to accept or ✗ to reject the change." },
-          { label: "Edit directly", description: "You can edit the Audio-Optimized text directly in the right panel." },
-        ]}
-      />
 
       {/* Chapter nav */}
       <div className="flex items-center gap-3">

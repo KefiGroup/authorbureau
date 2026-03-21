@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Play, Pause, SkipBack, SkipForward, Download, ExternalLink, Headphones, Clock, BarChart3, BookOpen, Rocket, CheckCircle2 } from "lucide-react";
 import type { AudiobookStepProps, AudioChapter } from "./types";
 import AbbyCoachingTip from "@/components/dashboard/social-media/AbbyCoachingTip";
-import StepInstructions from "../shared/StepInstructions";
+
 import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 
 export default function AudiobookPublishStep({ stepData, bookTitle }: AudiobookStepProps) {
@@ -21,14 +21,6 @@ export default function AudiobookPublishStep({ stepData, bookTitle }: AudiobookS
 
   return (
     <div className="space-y-6">
-      <StepInstructions
-        summary="Preview your complete audiobook, verify all chapters are ready, then export and distribute to your chosen platforms."
-        items={[
-          { label: "Preview player", description: "Use the built-in player to listen through your audiobook and catch any issues." },
-          { label: "Export audio files", description: "Download your audio files as a ZIP package meeting 192kbps/44.1kHz standards." },
-          { label: "Publish", description: "Distribute to your selected platforms — your author website, Audible/ACX, or Google Play." },
-        ]}
-      />
 
       <AbbyRecommendationCard>
         <div className="space-y-2">

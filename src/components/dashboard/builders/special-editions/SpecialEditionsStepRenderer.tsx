@@ -4,7 +4,7 @@ import SharedPublishStep from "../shared/SharedPublishStep";
 import OccasionTemplateGrid, { OCCASION_TEMPLATES } from "./OccasionTemplateGrid";
 import EditionReviewTabs from "./EditionReviewTabs";
 import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
-import StepInstructions from "../shared/StepInstructions";
+
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -59,15 +59,6 @@ function SpecialEditionSetup({ stepData, setStepData, onMarkEdited, stepId, plan
         <p className="text-sm text-foreground leading-relaxed">{getDateAwareAbbyTip()}</p>
       </AbbyRecommendationCard>
 
-      <StepInstructions
-        category="build"
-        items={[
-          { label: "Abby's Tip", description: "Review Abby's personalized advice above first." },
-          { label: "Edition Type", description: "Choose the physical format of your special edition." },
-          { label: "Occasion Theme", description: "Add a seasonal theme for gift-buyer marketing." },
-          { label: "Print Run & Price", description: "Set scarcity level, extras, and pricing." },
-        ]}
-      />
 
       {/* ── Edition Type ── */}
       <div className="space-y-2.5">

@@ -6,7 +6,7 @@ import { Monitor, Smartphone, Download, ExternalLink, Loader2, CheckCircle2, Fil
 import { CONTENT_TYPE_LABELS, type WorkbookSection } from "./types";
 import type { WorkbookStepProps } from "./types";
 import AbbyCoachingTip from "@/components/dashboard/social-media/AbbyCoachingTip";
-import StepInstructions from "../shared/StepInstructions";
+
 import { toast } from "sonner";
 
 export default function WorkbookPublishStep({ stepData, bookTitle }: WorkbookStepProps) {
@@ -37,16 +37,6 @@ export default function WorkbookPublishStep({ stepData, bookTitle }: WorkbookSte
 
   return (
     <div className="space-y-6">
-      <StepInstructions
-        summary="Final review before publishing. Check your stats, preview the sales/landing page, and publish your workbook."
-        items={[
-          { label: "Stats cards", description: "overview of sections, exercises, and pricing at a glance." },
-          { label: "Abby's Final Review", description: "AI-generated assessment of your workbook with revenue estimates." },
-          { label: "Desktop / Mobile preview", description: "toggle to see how your sales or landing page looks on different devices." },
-          { label: "Download PDF Preview", description: "opens a print dialog to save your workbook as a PDF." },
-          { label: "Publish Workbook", description: "makes your workbook live and available to your audience." },
-        ]}
-      />
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">

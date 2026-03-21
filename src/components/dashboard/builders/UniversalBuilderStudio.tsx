@@ -10,7 +10,7 @@ import BuilderFooter from "./shared/BuilderFooter";
 import ActPhaseBadge from "./shared/ActPhaseBadge";
 import AbbyProposal from "./AbbyProposal";
 import BuilderGetStartedPage from "./shared/BuilderGetStartedPage";
-import BuilderProgressBar from "./shared/BuilderProgressBar";
+
 import ConnectedProductsSection from "./shared/ConnectedProductsSection";
 import EstimatedRevenueCard from "./shared/EstimatedRevenueCard";
 import BehindTheDesignPanel from "./shared/BehindTheDesignPanel";
