@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Mail, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Link } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
