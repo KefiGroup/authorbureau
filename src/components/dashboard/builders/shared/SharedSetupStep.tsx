@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Check, Sparkles, Loader2 } from "lucide-react";
 import AbbyRecommendationCard from "./AbbyRecommendationCard";
 import AbbyExplainsTooltip from "./AbbyExplainsTooltip";
-import StepInstructions, { type BuilderCategory } from "./StepInstructions";
+import { type BuilderCategory } from "./StepInstructions";
 import AbbyMarketAdvice from "@/components/dashboard/book-hub/AbbyMarketAdvice";
 import type { MarketResearchData } from "@/hooks/useMarketResearch";
 import { generateJSONWithAI } from "@/lib/ai-generate";
