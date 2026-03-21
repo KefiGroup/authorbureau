@@ -6,7 +6,7 @@ import { Monitor, Smartphone, Download, ExternalLink, Loader2, CheckCircle2, Fil
 import { CONTENT_TYPE_LABELS, type WorkbookSection } from "./types";
 import type { WorkbookStepProps } from "./types";
 import AbbyCoachingTip from "@/components/dashboard/social-media/AbbyCoachingTip";
-import StepInstructions from "../shared/StepInstructions";
+
 import { toast } from "sonner";
 
 export default function WorkbookPublishStep({ stepData, bookTitle }: WorkbookStepProps) {
