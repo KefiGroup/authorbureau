@@ -727,8 +727,8 @@ INTRODUCTION (1 page):
 - How long it takes to complete (e.g., "15 minutes that could change your approach to...")
 
 CORE CONTENT (3-5 pages):
-- If the format is a CHECKLIST: create an ASSESSMENT-ONLY self-diagnosis tool. Readers tick statements that feel true about their current situation. Do NOT include "Next-Step Plan", action items, or "choose ONE" prompts inside the checklist. End each section with an interpretive note like "The more items you checked, the more this area needs your attention." The checklist should take 2-3 minutes to complete and reveal where the reader stands.
-- If the format is a QUIZ/ASSESSMENT: create a scored self-assessment (2-3 minutes) that reveals the reader's current stage or type. No action plans inside — just diagnosis.
+- If the format is a CHECKLIST: create a STRICTLY ASSESSMENT-ONLY self-diagnosis tool. Readers tick statements that feel true about their current situation. Each section has ONLY "Tick what's true:" items followed by an interpretive note. ABSOLUTELY NO "Next step", "Next step (pick 1):", "Choose one:", "Try this:", action items, exercises, or tasks ANYWHERE inside the checklist sections. FORBIDDEN phrases inside checklist sections: "Next step", "pick 1", "choose one", "do this", "try this", "action step", "your task", "exercise". The checklist should take 2-3 minutes to complete and simply reveal where the reader stands.
+- If the format is a QUIZ/ASSESSMENT: create a scored self-assessment (2-3 minutes) that reveals the reader's current stage or type. No action plans inside — just diagnosis and scoring.
 - For all other formats (cheat sheet, template, mini-guide): derive content from the most actionable concept in book_details.core_concepts. Use the author's real terminology and frameworks — no generic advice.
 
 NEXT STEP PAGE:

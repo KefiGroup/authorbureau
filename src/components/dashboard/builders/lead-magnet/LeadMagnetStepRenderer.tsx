@@ -36,10 +36,19 @@ export default function LeadMagnetStepRenderer({ stepId, stepData, setStepData, 
       }} />;
     case "generate":
       return <SharedContentStep contentKey="leadMagnetContent" title="Lead Magnet Content" description="Abby generates your lead magnet content from your book's most actionable advice." abbyTip="I'll pull the most actionable insights from your manuscript into a compact, high-value format." aiPrompt={`Generate a complete lead magnet for "{bookTitle}". Config: {config}. You MUST follow config.type exactly.
-If config.type is "checklist": output a checklist-style lead magnet that is ASSESSMENT-ONLY. The checklist must be a self-diagnosis tool where readers tick statements that feel true. Do NOT include any "Next-Step Plan", "Next Steps", action items, or "choose ONE" prompts inside the checklist. The purpose is to reveal where the reader stands. End each checklist section with a brief interpretive note like "The more items you checked, the more this area needs attention." The natural next step (buying the workbook, home study, or online course) should ONLY appear in the CALL-TO-ACTION section at the end, NOT inside the checklist itself.
+
+CRITICAL RULES FOR CHECKLIST FORMAT:
+If config.type is "checklist": output a checklist-style lead magnet that is STRICTLY ASSESSMENT-ONLY.
+- Each section has ONLY "Tick what's true:" items — statements the reader checks if they relate.
+- ABSOLUTELY NO "Next step", "Next step (pick 1):", "Choose one:", "Try this:", action items, exercises, or tasks ANYWHERE inside the checklist sections.
+- FORBIDDEN phrases inside checklist sections: "Next step", "pick 1", "choose one", "do this", "try this", "action step", "your task", "exercise".
+- Each section ends with ONLY an interpretive note like "The more items you checked, the more this area needs attention."
+- The checklist should take 2-3 minutes to complete and simply reveal where the reader stands.
+- The ONLY place to mention next steps is in the CALL-TO-ACTION section at the very end, directing readers to the workbook, home study course, or online course.
+
+If config.type is "quiz": output a scored self-assessment (2-3 minutes). No action plans inside — just diagnosis and scoring.
 If config.type is "cheatsheet": output a cheat-sheet reference format.
 If config.type is "mini-course": output a 3-5 day email mini-course format.
-If config.type is "quiz": output an interactive quiz/assessment format.
 If config.type is "template": output reusable template pack format.
 If config.type is "chapter": output free chapter preview format.
 Create: 1) HEADLINE & SUBHEADLINE (benefit-driven), 2) INTRODUCTION (why this matters), 3) MAIN CONTENT in the selected format, 4) CALL-TO-ACTION (what to do next — buy the workbook, enroll in the home study course, or take the online course), 5) AUTHOR BIO BLURB. Format as markdown.`} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="leadMagnetConfig" stepInstructions={[
@@ -49,7 +58,7 @@ Create: 1) HEADLINE & SUBHEADLINE (benefit-driven), 2) INTRODUCTION (why this ma
         { label: "Edit & refine", description: "Click Edit on any section to customize the text." },
       ]} />;
     case "edit":
-      return <SharedContentStep contentKey="leadMagnetEdited" title="Edit & Polish" description="Customize the generated content. Add personal stories, refine language, adjust structure." abbyTip="Include your photo and a short bio. It builds trust and leads to book sales." aiPrompt={`Refine and polish this lead magnet content for "{bookTitle}". Existing content: {config}. CRITICAL: If the lead magnet type is checklist or quiz/assessment, it must remain ASSESSMENT-ONLY — a self-diagnosis tool. Do NOT add any "Next-Step Plan", action items, or exercises inside the checklist/quiz. The only next step should be in the CALL-TO-ACTION section directing readers to the workbook, home study course, or online course. Make it more compelling, add storytelling elements to the introduction, and ensure the CTA clearly directs to paid products.`} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="leadMagnetContent" stepInstructions={[
+      return <SharedContentStep contentKey="leadMagnetEdited" title="Edit & Polish" description="Customize the generated content. Add personal stories, refine language, adjust structure." abbyTip="Include your photo and a short bio. It builds trust and leads to book sales." aiPrompt={`Refine and polish this lead magnet content for "{bookTitle}". Existing content: {config}. CRITICAL: If the lead magnet type is checklist or quiz/assessment, it MUST remain STRICTLY ASSESSMENT-ONLY. REMOVE any "Next step (pick 1):", "Choose one:", action items, exercises, or tasks from inside checklist/quiz sections. FORBIDDEN phrases inside sections: "Next step", "pick 1", "choose one", "do this", "try this". Each section should ONLY have "Tick what's true:" items and end with an interpretive note. The ONLY next step belongs in the CALL-TO-ACTION section at the end, directing readers to the workbook, home study course, or online course. Make the introduction more compelling with storytelling and ensure the CTA clearly directs to paid products.`} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="leadMagnetContent" stepInstructions={[
         { label: "Review draft", description: "Read through the generated content from Step 2." },
         { label: "Add your voice", description: "Include personal stories and adjust the tone." },
         { label: "Strengthen CTA", description: "Make the call-to-action compelling and clear." },
