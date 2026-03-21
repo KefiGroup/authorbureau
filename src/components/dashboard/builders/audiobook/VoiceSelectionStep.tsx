@@ -122,7 +122,7 @@ export default function VoiceSelectionStep({ stepData, setStepData, onMarkEdited
   if (narration === "professional") {
     return (
       <div className="space-y-5">
-        <StepInstructions summary={VOICE_INSTRUCTIONS.professional.summary} items={VOICE_INSTRUCTIONS.professional.items} />
+        
         <AbbyCoachingTip
           title="Finding a Professional Narrator"
           expandedByDefault
