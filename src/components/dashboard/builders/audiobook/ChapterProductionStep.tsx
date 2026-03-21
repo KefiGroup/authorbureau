@@ -8,7 +8,7 @@ import { Play, Loader2, Upload, Clock, CheckCircle2, Circle, Wand2, Mic } from "
 import type { AudiobookStepProps, AudioChapter, NarrationType } from "./types";
 import { VOICE_OPTIONS } from "./types";
 import { toast } from "sonner";
-import StepInstructions from "../shared/StepInstructions";
+
 import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 
 export default function ChapterProductionStep({ stepData, setStepData, onMarkEdited, bookTitle }: AudiobookStepProps) {
