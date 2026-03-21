@@ -1,7 +1,7 @@
 import { ExternalLink, BookOpen, ArrowRight, Sparkles, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import StepInstructions from "../shared/StepInstructions";
+
 import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 import ProductDistinctionCard from "../shared/ProductDistinctionCard";
 import type { WorkbookStepProps } from "./types";
