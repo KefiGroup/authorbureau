@@ -192,6 +192,7 @@ export default function AuthorBookPage() {
 
     const { data: { user: currentUser } } = await supabase.auth.getUser();
     let profile: any = null;
+    let isOwner = false;
 
     if (currentUser) {
       const { data } = await supabase
@@ -201,6 +202,7 @@ export default function AuthorBookPage() {
         .eq("user_id", currentUser.id)
         .maybeSingle();
       profile = data;
+      if (data) isOwner = true;
     }
     if (!profile) {
       const { data } = await supabase
@@ -236,26 +238,46 @@ export default function AuthorBookPage() {
     setAuthorProfile(profile);
     setTheme(getThemeById(profile.site_theme || "classic-elegant"));
 
-    const { data: bookData } = await supabase
+    let primaryBookQuery = supabase
       .from("books")
       .select("*")
       .eq("author_id", profile.user_id)
-      .eq("slug", bookSlug)
-      .maybeSingle();
+      .eq("slug", bookSlug);
+    if (!isOwner) {
+      primaryBookQuery = primaryBookQuery.not("published_at", "is", null);
+    }
+
+    const { data: primaryBook } = await primaryBookQuery.maybeSingle();
+
+    let bookData = primaryBook;
+    if (!bookData && profile.pen_name) {
+      let fallbackBookQuery = supabase
+        .from("books")
+        .select("*")
+        .eq("author_name", profile.pen_name)
+        .eq("slug", bookSlug);
+      if (!isOwner) {
+        fallbackBookQuery = fallbackBookQuery.not("published_at", "is", null);
+      }
+      const { data: fallbackBook } = await fallbackBookQuery.maybeSingle();
+      bookData = fallbackBook;
+    }
 
     if (!bookData) { setNotFound(true); setLoading(false); return; }
     setBook(bookData as unknown as Book);
 
     const bookId = bookData.id;
+    const authorIds = [...new Set([profile.user_id, bookData.author_id].filter(Boolean))];
+
     const [hsRes, cRes, abRes, podRes, otherBooksRes, allBooksRes, coachRes, speakRes] = await Promise.all([
       supabase.from("home_study_courses").select("id, title, price, currency, description, cover_image_url").eq("book_id", bookId).eq("status", "published"),
       supabase.from("courses").select("id, title, price, currency, description, cover_image_url").eq("book_id", bookId).eq("status", "published"),
       supabase.from("audiobooks").select("id, title, price, currency, description").eq("book_id", bookId).eq("status", "published"),
       supabase.from("podcasts").select("id, title, description, cover_image_url").eq("book_id", bookId).eq("status", "published"),
-      supabase.from("books").select("id, title, slug, cover_image_url").eq("author_id", profile.user_id).not("published_at", "is", null).neq("id", bookId).limit(4),
-      supabase.from("books").select("slug, title, cover_image_url, genre").eq("author_id", profile.user_id).not("published_at", "is", null).order("created_at", { ascending: false }),
-      supabase.from("coaching_packages").select("id, title, price, currency, description, type").eq("author_id", profile.user_id).eq("status", "active"),
-      supabase.from("speaking_topics").select("id, title, fee, fee_currency, description").eq("author_id", profile.user_id).eq("status", "active"),
+      supabase.from("books").select("id, title, slug, cover_image_url").in("author_id", authorIds).not("published_at", "is", null).neq("id", bookId).limit(4),
+      supabase.from("books").select("slug, title, cover_image_url, genre").in("author_id", authorIds).not("published_at", "is", null).order("created_at", { ascending: false }),
+      supabase.from("coaching_packages").select("id, title, price, currency, description, type").in("author_id", authorIds).eq("status", "active"),
+      supabase.from("speaking_topics").select("id, title, fee, fee_currency, description").in("author_id", authorIds).eq("status", "active"),
     ]);
 
     const COACHING_TYPE_TO_ROUTE: Record<string, string> = {
