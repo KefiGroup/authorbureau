@@ -236,7 +236,7 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
           <Globe className="h-5 w-5 text-secondary" />
           <h2 className="font-heading text-2xl font-bold">My Website</h2>
         </div>
-        <p className="text-sm text-muted-foreground max-w-2xl">
+        <p className="text-sm text-muted-foreground whitespace-nowrap">
           Your author website is hosted on Authors Bureau. Published products appear automatically on your site.
         </p>
       </div>
