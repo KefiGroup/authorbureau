@@ -41,10 +41,31 @@ CRITICAL RULES FOR CHECKLIST FORMAT:
 If config.type is "checklist": output a checklist-style lead magnet that is STRICTLY ASSESSMENT-ONLY.
 - Each section has ONLY "Tick what's true:" items — statements the reader checks if they relate.
 - ABSOLUTELY NO "Next step", "Next step (pick 1):", "Choose one:", "Try this:", action items, exercises, or tasks ANYWHERE inside the checklist sections.
-- FORBIDDEN phrases inside checklist sections: "Next step", "pick 1", "choose one", "do this", "try this", "action step", "your task", "exercise".
+- FORBIDDEN phrases inside checklist sections: "Next step", "pick 1", "choose one", "do this", "try this", "action step", "your task", "exercise", "write your", "message one person", "ask for support".
+- FORBIDDEN open-ended prompts: Do NOT ask the reader to fill in blanks like "I will ___ for 10 minutes" or write anything. They are stuck and need specific guidance, not open questions.
 - Each section ends with ONLY an interpretive note like "The more items you checked, the more this area needs attention."
 - The checklist should take 2-3 minutes to complete and simply reveal where the reader stands.
-- The ONLY place to mention next steps is in the CALL-TO-ACTION section at the very end, directing readers to the workbook, home study course, or online course.
+
+CRITICAL RULES FOR CALL-TO-ACTION SECTION:
+- The CTA MUST provide exactly 3 SPECIFIC product recommendations based on what the reader's results reveal. These are NOT open-ended actions.
+- Format each as a clear recommendation with the product name, what it helps with, and why it's the logical next step based on their assessment.
+- Example format:
+  1. "If you checked 3+ items in [Section X], the {bookTitle} Companion Workbook gives you step-by-step exercises to [specific outcome]."
+  2. "If [Section Y] was your biggest gap, the Home Study Course walks you through [specific transformation] at your own pace."
+  3. "If you want guided support across all areas, the Online Course provides [specific benefit] with structured accountability."
+- Do NOT include generic actions like "pick one section and do one action" or "write your next tiny step" — the reader is stuck and needs to be told exactly what product will help them.
+
+If config.type is "quiz": output a scored self-assessment (2-3 minutes). No action plans inside — just diagnosis and scoring. CTA follows the same 3-product recommendation format above.
+If config.type is "cheatsheet": output a cheat-sheet reference format.
+If config.type is "mini-course": output a 3-5 day email mini-course format.
+If config.type is "template": output reusable template pack format.
+If config.type is "chapter": output free chapter preview format.
+Create: 1) HEADLINE & SUBHEADLINE (benefit-driven), 2) INTRODUCTION (why this matters), 3) MAIN CONTENT in the selected format, 4) CALL-TO-ACTION (3 specific product recommendations as described above), 5) AUTHOR BIO BLURB. Format as markdown.`} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="leadMagnetConfig" stepInstructions={[
+        { label: "Click Generate", description: "Abby creates your lead magnet from your book's best ideas." },
+        { label: "Review sections", description: "Expand each card to read headline options, content, and CTA." },
+        { label: "Pick your favorite", description: "Select from multiple headline/content options Abby provides." },
+        { label: "Edit & refine", description: "Click Edit on any section to customize the text." },
+      ]} />;
 
 If config.type is "quiz": output a scored self-assessment (2-3 minutes). No action plans inside — just diagnosis and scoring.
 If config.type is "cheatsheet": output a cheat-sheet reference format.
