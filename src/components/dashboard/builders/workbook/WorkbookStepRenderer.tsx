@@ -1,9 +1,6 @@
 import type { WorkbookStepProps } from "./types";
 import WorkbookSetupStep from "./WorkbookSetupStep";
-import ChapterMappingStep from "./ChapterMappingStep";
-import ContentGeneratorStep from "./ContentGeneratorStep";
-import DesignPreviewStep from "./DesignPreviewStep";
-import WorkbookPublishStep from "./WorkbookPublishStep";
+import WorkbookUploadStep from "./WorkbookUploadStep";
 
 interface Props {
   stepId: string;
@@ -38,14 +35,8 @@ export default function WorkbookStepRenderer(props: Props) {
   switch (props.stepId) {
     case "setup":
       return <WorkbookSetupStep {...shared} />;
-    case "mapping":
-      return <ChapterMappingStep {...shared} />;
-    case "content":
-      return <ContentGeneratorStep {...shared} />;
-    case "design":
-      return <DesignPreviewStep {...shared} />;
-    case "publish":
-      return <WorkbookPublishStep {...shared} />;
+    case "upload":
+      return <WorkbookUploadStep {...shared} />;
     default:
       return <WorkbookSetupStep {...shared} />;
   }
