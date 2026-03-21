@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Monitor, Smartphone, Download, Rocket, TrendingUp, Sparkles } from "lucide-react";
-import StepInstructions from "./StepInstructions";
+
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
