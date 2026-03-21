@@ -8,7 +8,7 @@ import { Play, Loader2, Volume2, Mic, CheckCircle2 } from "lucide-react";
 import { VOICE_OPTIONS, type AudiobookStepProps, type NarrationType, type VoiceOption } from "./types";
 import { toast } from "sonner";
 import AbbyCoachingTip from "@/components/dashboard/social-media/AbbyCoachingTip";
-import StepInstructions from "@/components/dashboard/builders/shared/StepInstructions";
+
 
 const VOICE_INSTRUCTIONS = {
   "ai-voice": {
