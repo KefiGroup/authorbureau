@@ -35,14 +35,14 @@ export default function LeadMagnetStepRenderer({ stepId, stepData, setStepData, 
         type: ["leadMagnetContent", "leadMagnetEdited", "leadMagnetDesign"],
       }} />;
     case "generate":
-      return <SharedContentStep contentKey="leadMagnetContent" title="Lead Magnet Content" description="AI generates your lead magnet content from your book's most actionable advice." abbyTip="I'll pull the most actionable insights from your manuscript into a compact, high-value format." aiPrompt={`Generate a complete lead magnet for "{bookTitle}". Config: {config}. You MUST follow config.type exactly.
-If config.type is "checklist": output a checklist-style lead magnet only (no quiz/scoring/assessment).
+      return <SharedContentStep contentKey="leadMagnetContent" title="Lead Magnet Content" description="Abby generates your lead magnet content from your book's most actionable advice." abbyTip="I'll pull the most actionable insights from your manuscript into a compact, high-value format." aiPrompt={`Generate a complete lead magnet for "{bookTitle}". Config: {config}. You MUST follow config.type exactly.
+If config.type is "checklist": output a checklist-style lead magnet that is ASSESSMENT-ONLY. The checklist must be a self-diagnosis tool where readers tick statements that feel true. Do NOT include any "Next-Step Plan", "Next Steps", action items, or "choose ONE" prompts inside the checklist. The purpose is to reveal where the reader stands. End each checklist section with a brief interpretive note like "The more items you checked, the more this area needs attention." The natural next step (buying the workbook, home study, or online course) should ONLY appear in the CALL-TO-ACTION section at the end, NOT inside the checklist itself.
 If config.type is "cheatsheet": output a cheat-sheet reference format.
 If config.type is "mini-course": output a 3-5 day email mini-course format.
 If config.type is "quiz": output an interactive quiz/assessment format.
 If config.type is "template": output reusable template pack format.
 If config.type is "chapter": output free chapter preview format.
-Create: 1) HEADLINE & SUBHEADLINE (benefit-driven), 2) MAIN CONTENT in the selected format, 3) INTRODUCTION (why this matters), 4) CALL-TO-ACTION (what to do next — buy the book, take the course, etc.), 5) AUTHOR BIO BLURB. Format as markdown.`} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="leadMagnetConfig" stepInstructions={[
+Create: 1) HEADLINE & SUBHEADLINE (benefit-driven), 2) INTRODUCTION (why this matters), 3) MAIN CONTENT in the selected format, 4) CALL-TO-ACTION (what to do next — buy the workbook, enroll in the home study course, or take the online course), 5) AUTHOR BIO BLURB. Format as markdown.`} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="leadMagnetConfig" stepInstructions={[
         { label: "Click Generate", description: "Abby creates your lead magnet from your book's best ideas." },
         { label: "Review sections", description: "Expand each card to read headline options, content, and CTA." },
         { label: "Pick your favorite", description: "Select from multiple headline/content options Abby provides." },
