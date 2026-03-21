@@ -38,6 +38,8 @@ import PurchaseSuccess from "./pages/PurchaseSuccess";
 import ReaderContentViewer from "./pages/ReaderContentViewer";
 import OnlineCourseViewer from "./pages/OnlineCourseViewer";
 import Methodology from "./pages/Methodology";
+import TermsOfService from "./pages/TermsOfService";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 const queryClient = new QueryClient();
 
