@@ -117,14 +117,6 @@ export default function ManuscriptOptimizationStep({ stepData, setStepData, onMa
 
   return (
     <div className="space-y-4">
-      <StepInstructions
-        summary="Review the AI-optimized scripts for each chapter. Accept or reject individual suggestions, and manually edit text as needed."
-        items={[
-          { label: "Navigate chapters", description: "Use the arrows to move between chapters and review each one." },
-          { label: "Accept / Reject", description: "For each AI suggestion, click ✓ to accept or ✗ to reject the change." },
-          { label: "Edit directly", description: "You can edit the Audio-Optimized text directly in the right panel." },
-        ]}
-      />
 
       {/* Chapter nav */}
       <div className="flex items-center gap-3">

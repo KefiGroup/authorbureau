@@ -153,16 +153,6 @@ export default function ContentGeneratorStep({ stepData, setStepData, onMarkEdit
 
   return (
     <div className="space-y-5">
-      <StepInstructions
-        summary="Generate and edit interactive content for each workbook section."
-        items={[
-          { label: "Section navigator", description: "use arrows to move between sections in your workbook structure." },
-          { label: "Generate Content", description: "AI creates an introduction, interactive elements, and a key takeaway for the current section." },
-          { label: "Add element buttons", description: "manually add a specific content type to the section." },
-          { label: "Element editor", description: "edit titles and content directly. The 'Edited' badge marks custom edits." },
-          { label: "Delete element", description: "remove any element you don't need." },
-        ]}
-      />
       {/* Section navigator */}
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" className="h-7 w-7" disabled={activeIdx === 0} onClick={() => setActiveIdx(activeIdx - 1)}>

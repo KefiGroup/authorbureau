@@ -34,15 +34,6 @@ export default function AudiobookSetupStep({ stepData, setStepData, onMarkEdited
   return (
     <div className="space-y-6">
 
-      <StepInstructions
-        summary="Configure your audiobook's foundation — title, narration method, distribution channels, and pricing. Abby will guide you based on your genre and audience."
-        items={[
-          { label: "Audiobook Title", description: "Defaults to your book title. You can customize it for the audio edition." },
-          { label: "Narration Style", description: "Choose between AI voice (fastest), your own voice (most authentic), or a professional narrator (highest quality)." },
-          { label: "Distribution", description: "Select where you want to sell. Start with your platform, then expand to Audible and Google Play." },
-          { label: "Pricing", description: "Set your audiobook price. $14.99–$24.99 is the sweet spot for most non-fiction." },
-        ]}
-      />
 
       <AbbyRecommendationCard>
         <div className="space-y-2">

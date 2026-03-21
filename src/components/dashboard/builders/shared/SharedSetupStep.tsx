@@ -345,15 +345,6 @@ Return ONLY valid JSON. No markdown, no explanation outside the JSON.`;
       {(!abbyHasAnalyzed || manualMode) && (
         <>
 
-          <StepInstructions
-            category={category}
-            items={[
-              { label: "Abby's Analysis", description: "Click the button above to let Abby analyze your book and pre-fill settings." },
-              { label: "Text fields", description: "Type to set titles, descriptions, and other details." },
-              { label: "Option cards", description: "Click to select a preset format, tier, or duration." },
-              { label: "Price field", description: "Set your selling price in USD. Change anytime." },
-            ]}
-          />
 
           {fields.map(field => {
             const marketFieldType = getMarketFieldType(field.key, field.type);
