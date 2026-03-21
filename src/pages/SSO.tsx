@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/useAuth";
 import { motion, AnimatePresence } from "framer-motion";
-import logoWithText from "@/assets/logo-with-text.png";
+import logoWithText from "@/assets/logo-with-text.webp";
 
 type Stage = "waiting" | "connecting" | "session" | "success" | "error" | "timeout";
 

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import logoText from "@/assets/logo-with-text.png";
+import logoText from "@/assets/logo-with-text.webp";
 
 export default function Footer() {
   return (

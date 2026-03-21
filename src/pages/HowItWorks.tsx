@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
-import staircaseImg from "@/assets/abby_journey_staircase_v6.png";
-import frameworkImg from "@/assets/abby_journey_framework_v13_bby.png";
+import staircaseImg from "@/assets/abby_journey_staircase_v6.webp";
+import frameworkImg from "@/assets/abby_journey_framework_v13_bby.webp";
 
 const FLOW_DIAGRAM_IMAGE = "/images/journey-flow-diagram.webp";
 const COMPARISON_IMAGE = "/images/journey-comparison.webp";

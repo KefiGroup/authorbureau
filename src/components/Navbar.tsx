@@ -4,7 +4,7 @@ import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import logoIcon from "@/assets/logo-icon.png";
+import logoIcon from "@/assets/logo-icon.webp";
 import { getPublishNowAuthUrl } from "@/lib/publishnow-auth";
 
 const PUBLISHNOW_AUTH_URL = getPublishNowAuthUrl("/dashboard");
