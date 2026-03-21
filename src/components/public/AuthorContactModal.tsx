@@ -35,6 +35,7 @@ export default function AuthorContactModal({
   const [form, setForm] = useState({ name: "", email: "", message: "" });
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [consent, setConsent] = useState(false);
 
   if (!open) return null;
 
@@ -209,9 +210,24 @@ export default function AuthorContactModal({
               />
             </div>
 
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={consent}
+                onChange={(e) => setConsent(e.target.checked)}
+                className="mt-1 h-4 w-4 rounded border accent-current"
+                style={{ accentColor: v.accent }}
+              />
+              <span className="text-xs leading-tight" style={{ color: v.mutedText }}>
+                I agree to receive communications from {firstName} and promotional materials from{" "}
+                <a href="/privacy" target="_blank" className="underline">Authors Bureau</a>.
+                View <a href="/terms" target="_blank" className="underline">Terms of Service</a>.
+              </span>
+            </label>
+
             <button
               type="submit"
-              disabled={sending}
+              disabled={sending || !consent}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-opacity hover:opacity-90 disabled:opacity-60"
               style={{ background: v.accent, color: v.accentText }}
             >

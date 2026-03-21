@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Mail, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -17,6 +19,7 @@ interface NewsletterSignupProps {
 export default function NewsletterSignup({ bookId, authorName, authorId }: NewsletterSignupProps) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [consent, setConsent] = useState(false);
   const [success, setSuccess] = useState(false);
   const { toast } = useToast();
 
@@ -80,23 +83,37 @@ export default function NewsletterSignup({ bookId, authorName, authorId }: Newsl
       <p className="text-sm text-muted-foreground mb-4">
         Get notified about new releases and updates from {authorName}.
       </p>
-      <form onSubmit={handleSubmit} className="flex gap-3">
-        <Input
-          type="email"
-          placeholder="your@email.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="flex-1"
-          required
-          maxLength={255}
-        />
-        <Button
-          type="submit"
-          disabled={loading}
-          className="bg-secondary text-secondary-foreground hover:bg-secondary/90 rounded-full font-semibold shrink-0"
-        >
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Subscribe"}
-        </Button>
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="flex gap-3">
+          <Input
+            type="email"
+            placeholder="your@email.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="flex-1"
+            required
+            maxLength={255}
+          />
+          <Button
+            type="submit"
+            disabled={loading || !consent}
+            className="bg-secondary text-secondary-foreground hover:bg-secondary/90 rounded-full font-semibold shrink-0"
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Subscribe"}
+          </Button>
+        </div>
+        <label className="flex items-start gap-2 cursor-pointer">
+          <Checkbox
+            checked={consent}
+            onCheckedChange={(v) => setConsent(v === true)}
+            className="mt-0.5"
+          />
+          <span className="text-xs text-muted-foreground leading-tight">
+            I agree to receive newsletters from {authorName} and promotional materials from{" "}
+            <Link to="/privacy" className="underline hover:text-foreground">Authors Bureau</Link>.
+            View our <Link to="/terms" className="underline hover:text-foreground">Terms of Service</Link>.
+          </span>
+        </label>
       </form>
     </div>
   );

@@ -50,6 +50,11 @@ export default function Footer() {
         </div>
 
         <div className="mt-8 border-t border-primary-foreground/10 pt-8 text-center text-xs text-primary-foreground/50" style={{ fontFamily: 'var(--font-body)' }}>
+          <div className="flex items-center justify-center gap-4 mb-3">
+            <Link to="/terms" className="hover:text-secondary transition-colors">Terms of Service</Link>
+            <span>·</span>
+            <Link to="/privacy" className="hover:text-secondary transition-colors">Privacy Policy</Link>
+          </div>
           © {new Date().getFullYear()} Authors Bureau. Authors Bureau and PublishNow.io are sister platforms.
         </div>
       </div>

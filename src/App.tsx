@@ -38,6 +38,8 @@ import PurchaseSuccess from "./pages/PurchaseSuccess";
 import ReaderContentViewer from "./pages/ReaderContentViewer";
 import OnlineCourseViewer from "./pages/OnlineCourseViewer";
 import Methodology from "./pages/Methodology";
+import TermsOfService from "./pages/TermsOfService";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 const queryClient = new QueryClient();
 
@@ -109,6 +111,8 @@ const AppRoutes = () => (
       <Route path="/solutions/:genre" element={<Solutions />} />
       <Route path="/sso" element={<SSO />} />
       <Route path="/purchase-success" element={<PurchaseSuccess />} />
+      <Route path="/terms" element={<TermsOfService />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route path="/:authorSlug/:bookSlug/:productType" element={<AuthorProductPage />} />
       <Route path="/:authorSlug/:bookSlug" element={<AuthorBookPage />} />
       <Route path="/:authorSlug" element={<AuthorSite />} />
