@@ -7,7 +7,7 @@ import { Loader2, Wand2, Check, X, ChevronLeft, ChevronRight, AlertTriangle, Boo
 import type { AudiobookStepProps, AudioChapter, AudioSuggestion } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import StepInstructions from "../shared/StepInstructions";
+
 import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 
 export default function ManuscriptOptimizationStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, generationState, setGenerationState }: AudiobookStepProps) {
