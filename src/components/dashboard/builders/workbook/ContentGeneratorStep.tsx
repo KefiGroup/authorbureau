@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Loader2, Wand2, ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
-import StepInstructions from "../shared/StepInstructions";
+
 import { CONTENT_TYPE_LABELS, type WorkbookSection, type WorkbookElement, type ContentType } from "./types";
 import type { WorkbookStepProps } from "./types";
 import { toast } from "sonner";
