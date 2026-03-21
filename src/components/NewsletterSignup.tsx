@@ -18,7 +18,7 @@ interface NewsletterSignupProps {
 export default function NewsletterSignup({ bookId, authorName, authorId }: NewsletterSignupProps) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [consent, setConsent] = useState(false);
+  
   const [success, setSuccess] = useState(false);
   const { toast } = useToast();
 

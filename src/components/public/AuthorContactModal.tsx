@@ -35,7 +35,7 @@ export default function AuthorContactModal({
   const [form, setForm] = useState({ name: "", email: "", message: "" });
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
-  const [consent, setConsent] = useState(false);
+  
 
   if (!open) return null;
 
