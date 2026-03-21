@@ -133,8 +133,8 @@ export default function PrivacyPolicy() {
           <h2 className="font-heading text-xl font-semibold text-foreground">13. Contact Us</h2>
           <p>
             For privacy-related inquiries, contact us at{" "}
-            <a href="mailto:privacy@authorsbureau.com" className="text-secondary hover:underline">
-              privacy@authorsbureau.com
+            <a href="mailto:support@authorsbureau.com" className="text-secondary hover:underline">
+              support@authorsbureau.com
             </a>.
           </p>
         </section>
