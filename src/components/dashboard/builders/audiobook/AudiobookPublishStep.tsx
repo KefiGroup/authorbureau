@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Play, Pause, SkipBack, SkipForward, Download, ExternalLink, Headphones, Clock, BarChart3, BookOpen, Rocket, CheckCircle2 } from "lucide-react";
 import type { AudiobookStepProps, AudioChapter } from "./types";
 import AbbyCoachingTip from "@/components/dashboard/social-media/AbbyCoachingTip";
-import StepInstructions from "../shared/StepInstructions";
+
 import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 
 export default function AudiobookPublishStep({ stepData, bookTitle }: AudiobookStepProps) {
