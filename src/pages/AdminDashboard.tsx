@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { LogOut, BookOpen, BarChart3, ShieldCheck, Globe, UserCheck, Users, BookMarked, Headphones, MessageSquare, Wallet, ToggleRight } from "lucide-react";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
-import logoIcon from "@/assets/logo-icon.png";
+import logoIcon from "@/assets/logo-icon.webp";
 
 import OverviewTab from "@/components/admin/OverviewTab";
 import BooksTab from "@/components/admin/BooksTab";

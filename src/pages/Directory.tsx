@@ -9,7 +9,7 @@ import BadgeDisplay from "@/components/BadgeDisplay";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
-import paulinePhoto from "@/assets/pauline-teo-headshot.jpg";
+import paulinePhoto from "@/assets/pauline-teo-headshot.webp";
 import feliciaPhoto from "@/assets/felicia-tan-headshot.png";
 
 const staticPhotoMap: Record<string, string> = {

@@ -3,7 +3,7 @@ import { BookOpen, Menu, X, Search, User, LogOut, LayoutDashboard } from "lucide
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { getPublishNowAuthUrl } from "@/lib/publishnow-auth";
-import logoIcon from "@/assets/logo-icon.png";
+import logoIcon from "@/assets/logo-icon.webp";
 
 const NAV_LINKS = [
   { label: "Authors Directory", to: "/directory" },

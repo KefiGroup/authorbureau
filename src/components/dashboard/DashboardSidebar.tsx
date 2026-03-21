@@ -7,7 +7,7 @@ import {
 import { useState } from "react";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
-import logoIcon from "@/assets/logo-icon.png";
+import logoIcon from "@/assets/logo-icon.webp";
 import { redirectToPublishNow } from "@/lib/publishnow-redirect";
 import { toast } from "@/hooks/use-toast";
 
