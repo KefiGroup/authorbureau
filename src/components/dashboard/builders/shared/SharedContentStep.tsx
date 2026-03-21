@@ -89,7 +89,7 @@ interface Props {
 
 export default function SharedContentStep({
   contentKey, title, description, abbyTip, aiPrompt,
-  stepData, setStepData, onMarkEdited, stepId, bookId, bookTitle, configKey, category = "build",
+  stepData, setStepData, onMarkEdited, stepId, bookId, bookTitle, configKey,
   builderId, builderLabel,
 }: Props) {
   const { toast } = useToast();
