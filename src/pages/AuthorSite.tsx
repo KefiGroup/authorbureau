@@ -198,6 +198,7 @@ export default function AuthorSite() {
     const { data: { user: currentUser } } = await supabase.auth.getUser();
 
     let profile: any = null;
+    let isOwner = false;
     if (currentUser) {
       const { data } = await supabase
         .from("author_profiles")
@@ -206,6 +207,7 @@ export default function AuthorSite() {
         .eq("user_id", currentUser.id)
         .maybeSingle();
       profile = data;
+      if (data) isOwner = true;
     }
     if (!profile) {
       const { data } = await supabase
@@ -219,8 +221,14 @@ export default function AuthorSite() {
     if (!profile) { setNotFound(true); setLoading(false); return; }
     setAuthor(profile as unknown as AuthorData);
 
+    // When the owner views their own site, show all books (even unpublished)
+    let booksQuery = supabase.from("books").select("*").eq("author_id", profile.user_id).order("created_at", { ascending: false });
+    if (!isOwner) {
+      booksQuery = booksQuery.not("published_at", "is", null);
+    }
+
     const [booksRes, homeStudyRes, coursesRes, coachingRes, audiobooksRes, podcastsRes] = await Promise.all([
-      supabase.from("books").select("*").eq("author_id", profile.user_id).not("published_at", "is", null).order("created_at", { ascending: false }),
+      booksQuery,
       supabase.from("home_study_courses").select("id, title, price, currency, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
       supabase.from("courses").select("id, title, price, currency, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
       supabase.from("coaching_packages").select("id, title, price, currency, description, duration_minutes, sessions_count").eq("author_id", profile.user_id).eq("status", "active"),
