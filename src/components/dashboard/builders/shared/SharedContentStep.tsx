@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Loader2, Wand2, FileText, Send, MessageCircle } from "lucide-react";
 import ContentSectionCards from "./ContentSectionCards";
-import StepInstructions, { type BuilderCategory } from "./StepInstructions";
+import { type BuilderCategory } from "./StepInstructions";
 import AbbyRecommendationCard from "./AbbyRecommendationCard";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -89,8 +89,8 @@ interface Props {
 
 export default function SharedContentStep({
   contentKey, title, description, abbyTip, aiPrompt,
-  stepData, setStepData, onMarkEdited, stepId, bookId, bookTitle, configKey, category = "build",
-  builderId, builderLabel, stepInstructions,
+  stepData, setStepData, onMarkEdited, stepId, bookId, bookTitle, configKey,
+  builderId, builderLabel,
 }: Props) {
   const { toast } = useToast();
   const [generating, setGenerating] = useState(false);
@@ -266,16 +266,6 @@ ${fullText}`;
 
   return (
     <div className="space-y-6">
-      <StepInstructions
-        category={category}
-        items={stepInstructions || [
-          { label: "Generate with AI", description: "Creates complete content from your book's themes and plan." },
-          { label: "Regenerate", description: "Re-runs AI generation with a fresh version." },
-          { label: "Text editor", description: "Edit generated content directly — auto-saved." },
-          { label: "AI Generated", description: "Badge indicates AI-created content." },
-        ]}
-      />
-
       <AbbyRecommendationCard>
         <p className="text-sm text-foreground leading-relaxed">{abbyTip}</p>
       </AbbyRecommendationCard>
