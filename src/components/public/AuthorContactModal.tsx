@@ -127,7 +127,7 @@ export default function AuthorContactModal({
               Message Sent!
             </h3>
             <p className="text-sm" style={{ color: v.mutedText }}>
-              {firstName} will get back to you soon. Thank you for reaching out.
+              {firstName} will get back to you soon. You'll also start receiving newsletters and updates from {firstName}. Thank you for reaching out.
             </p>
             <button
               onClick={handleClose}
