@@ -28,6 +28,36 @@ interface Props {
   plan: any; generationState: string; setGenerationState: (s: any) => void; userId: string;
 }
 
+const GENERATE_PROMPT = `Generate a complete lead magnet for "{bookTitle}". Config: {config}. You MUST follow config.type exactly.
+
+CRITICAL RULES FOR CHECKLIST FORMAT:
+If config.type is "checklist": output a checklist-style lead magnet that is STRICTLY ASSESSMENT-ONLY.
+- Each section has ONLY "Tick what's true:" items — statements the reader checks if they relate.
+- ABSOLUTELY NO "Next step", "Next step (pick 1):", "Choose one:", "Try this:", action items, exercises, or tasks ANYWHERE inside the checklist sections.
+- FORBIDDEN phrases ANYWHERE in the document: "Next step", "pick 1", "choose one", "do this", "try this", "action step", "your task", "exercise", "write your", "message one person", "ask for support", "pick one section", "do one action", "I will ___ for".
+- FORBIDDEN open-ended prompts: Do NOT ask the reader to fill in blanks, write anything, or take any self-directed action. They are stuck and need specific guidance.
+- Each section ends with ONLY an interpretive note like "The more items you checked, the more this area needs attention."
+- The checklist should take 2-3 minutes to complete and simply reveal where the reader stands.
+
+CRITICAL RULES FOR CALL-TO-ACTION SECTION:
+- The CTA MUST provide exactly 3 SPECIFIC product recommendations that tell the reader exactly what to do next based on their results.
+- Each recommendation must name the specific product, explain what it helps with based on their checklist results, and why it is the logical next step.
+- Format:
+  1. "If [specific checklist finding], get the {bookTitle} Companion Workbook — it gives you [specific exercises/tools] to [specific outcome]."
+  2. "If [specific checklist finding], the Home Study Course walks you through [specific transformation] at your own pace over [timeframe]."
+  3. "For a complete guided experience across all areas, the Online Course provides [specific benefit] with structured accountability."
+- Do NOT include ANY generic actions, open-ended prompts, or fill-in-the-blank exercises in the CTA.
+- The reader is STUCK — tell them exactly which product solves their problem. No vague suggestions.
+
+If config.type is "quiz": output a scored self-assessment (2-3 minutes). No action plans inside — just diagnosis and scoring. CTA follows the same 3-product recommendation format above.
+If config.type is "cheatsheet": output a cheat-sheet reference format.
+If config.type is "mini-course": output a 3-5 day email mini-course format.
+If config.type is "template": output reusable template pack format.
+If config.type is "chapter": output free chapter preview format.
+Create: 1) HEADLINE & SUBHEADLINE (benefit-driven), 2) INTRODUCTION (why this matters), 3) MAIN CONTENT in the selected format, 4) CALL-TO-ACTION (3 specific product recommendations as described above), 5) AUTHOR BIO BLURB. Format as markdown.`;
+
+const EDIT_PROMPT = `Refine and polish this lead magnet content for "{bookTitle}". Existing content: {config}. CRITICAL: If the lead magnet type is checklist or quiz/assessment, it MUST remain STRICTLY ASSESSMENT-ONLY. REMOVE any "Next step (pick 1):", "Choose one:", action items, exercises, tasks, open-ended prompts, or fill-in-the-blank exercises from ANYWHERE in the document. FORBIDDEN phrases: "Next step", "pick 1", "choose one", "do this", "try this", "write your", "message one person", "ask for support", "pick one section", "do one action", "I will ___ for". Each section should ONLY have "Tick what's true:" items and end with an interpretive note. The CALL-TO-ACTION must contain exactly 3 SPECIFIC product recommendations (Workbook, Home Study Course, Online Course) that tell the stuck reader exactly which product to get based on their results. No vague or open-ended suggestions. Make the introduction more compelling with storytelling.`;
+
 export default function LeadMagnetStepRenderer({ stepId, stepData, setStepData, onMarkEdited, bookId, bookTitle, plan, userId }: Props) {
   switch (stepId) {
     case "configure":
@@ -35,51 +65,14 @@ export default function LeadMagnetStepRenderer({ stepId, stepData, setStepData, 
         type: ["leadMagnetContent", "leadMagnetEdited", "leadMagnetDesign"],
       }} />;
     case "generate":
-      return <SharedContentStep contentKey="leadMagnetContent" title="Lead Magnet Content" description="Abby generates your lead magnet content from your book's most actionable advice." abbyTip="I'll pull the most actionable insights from your manuscript into a compact, high-value format." aiPrompt={`Generate a complete lead magnet for "{bookTitle}". Config: {config}. You MUST follow config.type exactly.
-
-CRITICAL RULES FOR CHECKLIST FORMAT:
-If config.type is "checklist": output a checklist-style lead magnet that is STRICTLY ASSESSMENT-ONLY.
-- Each section has ONLY "Tick what's true:" items — statements the reader checks if they relate.
-- ABSOLUTELY NO "Next step", "Next step (pick 1):", "Choose one:", "Try this:", action items, exercises, or tasks ANYWHERE inside the checklist sections.
-- FORBIDDEN phrases inside checklist sections: "Next step", "pick 1", "choose one", "do this", "try this", "action step", "your task", "exercise", "write your", "message one person", "ask for support".
-- FORBIDDEN open-ended prompts: Do NOT ask the reader to fill in blanks like "I will ___ for 10 minutes" or write anything. They are stuck and need specific guidance, not open questions.
-- Each section ends with ONLY an interpretive note like "The more items you checked, the more this area needs attention."
-- The checklist should take 2-3 minutes to complete and simply reveal where the reader stands.
-
-CRITICAL RULES FOR CALL-TO-ACTION SECTION:
-- The CTA MUST provide exactly 3 SPECIFIC product recommendations based on what the reader's results reveal. These are NOT open-ended actions.
-- Format each as a clear recommendation with the product name, what it helps with, and why it's the logical next step based on their assessment.
-- Example format:
-  1. "If you checked 3+ items in [Section X], the {bookTitle} Companion Workbook gives you step-by-step exercises to [specific outcome]."
-  2. "If [Section Y] was your biggest gap, the Home Study Course walks you through [specific transformation] at your own pace."
-  3. "If you want guided support across all areas, the Online Course provides [specific benefit] with structured accountability."
-- Do NOT include generic actions like "pick one section and do one action" or "write your next tiny step" — the reader is stuck and needs to be told exactly what product will help them.
-
-If config.type is "quiz": output a scored self-assessment (2-3 minutes). No action plans inside — just diagnosis and scoring. CTA follows the same 3-product recommendation format above.
-If config.type is "cheatsheet": output a cheat-sheet reference format.
-If config.type is "mini-course": output a 3-5 day email mini-course format.
-If config.type is "template": output reusable template pack format.
-If config.type is "chapter": output free chapter preview format.
-Create: 1) HEADLINE & SUBHEADLINE (benefit-driven), 2) INTRODUCTION (why this matters), 3) MAIN CONTENT in the selected format, 4) CALL-TO-ACTION (3 specific product recommendations as described above), 5) AUTHOR BIO BLURB. Format as markdown.`} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="leadMagnetConfig" stepInstructions={[
-        { label: "Click Generate", description: "Abby creates your lead magnet from your book's best ideas." },
-        { label: "Review sections", description: "Expand each card to read headline options, content, and CTA." },
-        { label: "Pick your favorite", description: "Select from multiple headline/content options Abby provides." },
-        { label: "Edit & refine", description: "Click Edit on any section to customize the text." },
-      ]} />;
-
-If config.type is "quiz": output a scored self-assessment (2-3 minutes). No action plans inside — just diagnosis and scoring.
-If config.type is "cheatsheet": output a cheat-sheet reference format.
-If config.type is "mini-course": output a 3-5 day email mini-course format.
-If config.type is "template": output reusable template pack format.
-If config.type is "chapter": output free chapter preview format.
-Create: 1) HEADLINE & SUBHEADLINE (benefit-driven), 2) INTRODUCTION (why this matters), 3) MAIN CONTENT in the selected format, 4) CALL-TO-ACTION (what to do next — buy the workbook, enroll in the home study course, or take the online course), 5) AUTHOR BIO BLURB. Format as markdown.`} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="leadMagnetConfig" stepInstructions={[
+      return <SharedContentStep contentKey="leadMagnetContent" title="Lead Magnet Content" description="Abby generates your lead magnet content from your book's most actionable advice." abbyTip="I'll pull the most actionable insights from your manuscript into a compact, high-value format." aiPrompt={GENERATE_PROMPT} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="leadMagnetConfig" stepInstructions={[
         { label: "Click Generate", description: "Abby creates your lead magnet from your book's best ideas." },
         { label: "Review sections", description: "Expand each card to read headline options, content, and CTA." },
         { label: "Pick your favorite", description: "Select from multiple headline/content options Abby provides." },
         { label: "Edit & refine", description: "Click Edit on any section to customize the text." },
       ]} />;
     case "edit":
-      return <SharedContentStep contentKey="leadMagnetEdited" title="Edit & Polish" description="Customize the generated content. Add personal stories, refine language, adjust structure." abbyTip="Include your photo and a short bio. It builds trust and leads to book sales." aiPrompt={`Refine and polish this lead magnet content for "{bookTitle}". Existing content: {config}. CRITICAL: If the lead magnet type is checklist or quiz/assessment, it MUST remain STRICTLY ASSESSMENT-ONLY. REMOVE any "Next step (pick 1):", "Choose one:", action items, exercises, or tasks from inside checklist/quiz sections. FORBIDDEN phrases inside sections: "Next step", "pick 1", "choose one", "do this", "try this". Each section should ONLY have "Tick what's true:" items and end with an interpretive note. The ONLY next step belongs in the CALL-TO-ACTION section at the end, directing readers to the workbook, home study course, or online course. Make the introduction more compelling with storytelling and ensure the CTA clearly directs to paid products.`} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="leadMagnetContent" stepInstructions={[
+      return <SharedContentStep contentKey="leadMagnetEdited" title="Edit & Polish" description="Customize the generated content. Add personal stories, refine language, adjust structure." abbyTip="Include your photo and a short bio. It builds trust and leads to book sales." aiPrompt={EDIT_PROMPT} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="leadMagnetContent" stepInstructions={[
         { label: "Review draft", description: "Read through the generated content from Step 2." },
         { label: "Add your voice", description: "Include personal stories and adjust the tone." },
         { label: "Strengthen CTA", description: "Make the call-to-action compelling and clear." },
