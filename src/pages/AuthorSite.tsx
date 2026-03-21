@@ -226,6 +226,9 @@ export default function AuthorSite() {
     if (!isOwner) {
       booksQuery = booksQuery.not("published_at", "is", null);
     }
+
+    const [booksRes, homeStudyRes, coursesRes, coachingRes, audiobooksRes, podcastsRes] = await Promise.all([
+      booksQuery,
       supabase.from("home_study_courses").select("id, title, price, currency, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
       supabase.from("courses").select("id, title, price, currency, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
       supabase.from("coaching_packages").select("id, title, price, currency, description, duration_minutes, sessions_count").eq("author_id", profile.user_id).eq("status", "active"),
