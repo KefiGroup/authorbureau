@@ -727,15 +727,15 @@ INTRODUCTION (1 page):
 - How long it takes to complete (e.g., "15 minutes that could change your approach to...")
 
 CORE CONTENT (3-5 pages):
-- The key framework, checklist, or template derived from the most actionable concept in book_details.core_concepts
-- Each step/item must be specific and immediately actionable
-- Include brief explanations connecting each point back to the book's methodology
-- Use the author's real terminology and frameworks — no generic advice
+- If the format is a CHECKLIST: create an ASSESSMENT-ONLY self-diagnosis tool. Readers tick statements that feel true about their current situation. Do NOT include "Next-Step Plan", action items, or "choose ONE" prompts inside the checklist. End each section with an interpretive note like "The more items you checked, the more this area needs your attention." The checklist should take 2-3 minutes to complete and reveal where the reader stands.
+- If the format is a QUIZ/ASSESSMENT: create a scored self-assessment (2-3 minutes) that reveals the reader's current stage or type. No action plans inside — just diagnosis.
+- For all other formats (cheat sheet, template, mini-guide): derive content from the most actionable concept in book_details.core_concepts. Use the author's real terminology and frameworks — no generic advice.
 
 NEXT STEP PAGE:
-- "If you found this valuable, your next step is [book title / home study course / workbook from progress_log or recommended_nodes] — [link]."
-- Include a compelling reason to take the next step
+- "Now that you know where you stand, go deeper with [workbook title / home study course / online course from progress_log or recommended_nodes]."
+- Position the paid products as the natural continuation of the self-discovery they just completed
 - Reference the transformation_promise as the full outcome
+- Do NOT put action steps or exercises here — only product recommendations
 
 All content must use the author's real name, book title, concepts, and voice. No placeholders.
 
