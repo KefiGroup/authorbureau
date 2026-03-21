@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Mail, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,7 +18,7 @@ interface NewsletterSignupProps {
 export default function NewsletterSignup({ bookId, authorName, authorId }: NewsletterSignupProps) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [consent, setConsent] = useState(false);
+  
   const [success, setSuccess] = useState(false);
   const { toast } = useToast();
 
@@ -96,24 +95,17 @@ export default function NewsletterSignup({ bookId, authorName, authorId }: Newsl
           />
           <Button
             type="submit"
-            disabled={loading || !consent}
+            disabled={loading}
             className="bg-secondary text-secondary-foreground hover:bg-secondary/90 rounded-full font-semibold shrink-0"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Subscribe"}
           </Button>
         </div>
-        <label className="flex items-start gap-2 cursor-pointer">
-          <Checkbox
-            checked={consent}
-            onCheckedChange={(v) => setConsent(v === true)}
-            className="mt-0.5"
-          />
-          <span className="text-xs text-muted-foreground leading-tight">
-            I agree to receive newsletters from {authorName} and promotional materials from{" "}
-            <Link to="/privacy" className="underline hover:text-foreground">Authors Bureau</Link>.
-            View our <Link to="/terms" className="underline hover:text-foreground">Terms of Service</Link>.
-          </span>
-        </label>
+        <p className="text-[10px] text-muted-foreground leading-tight">
+          By subscribing, you agree to our{" "}
+          <Link to="/terms" className="underline hover:text-foreground">Terms of Service</Link>,{" "}
+          <Link to="/privacy" className="underline hover:text-foreground">Privacy Policy</Link>, and to receive newsletters from {authorName} and promotional materials from Authors Bureau.
+        </p>
       </form>
     </div>
   );
