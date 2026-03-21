@@ -79,14 +79,6 @@ export default function ManuscriptOptimizationStep({ stepData, setStepData, onMa
     return (
       <div className="space-y-6">
 
-        <StepInstructions
-          summary="AI analyzes your manuscript and creates an audio-optimized script. Visual references are removed, complex passages are simplified, and pronunciation guides are added."
-          items={[
-            { label: "Optimize for Audio", description: "Click the button below to let AI scan your manuscript and prepare it for narration." },
-            { label: "Review Suggestions", description: "After generation, review each AI suggestion — accept, reject, or manually edit the text." },
-            { label: "Edit Scripts", description: "Fine-tune the audio-optimized text for each chapter before moving to production." },
-          ]}
-        />
 
         <AbbyRecommendationCard>
           <div className="space-y-2">
