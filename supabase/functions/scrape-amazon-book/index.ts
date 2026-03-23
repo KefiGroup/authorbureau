@@ -12,6 +12,39 @@ serve(async (req) => {
   }
 
   try {
+    // Require authentication to prevent API quota abuse
+    const authHeader = req.headers.get("authorization") ?? "";
+    const token = authHeader.replace("Bearer ", "");
+    if (!token) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Authentication required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate the token with Supabase
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: `Bearer ${token}` } } }
+    );
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // Also try shared backend if local auth fails
+    if (!user) {
+      const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
+      const SHARED_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnRkcG5la3NjcnNnaHF0c3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MDYzODksImV4cCI6MjA4NDQ4MjM4OX0.o2qA4tLao4UtxPGxSnavXIYKUmVZvS99pHtnL220L-s";
+      const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
+      const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
+      if (!sharedUser) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Invalid session" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     const { amazonBookUrl, amazonAuthorProfileUrl } = await req.json();
 
     if (!amazonBookUrl) {

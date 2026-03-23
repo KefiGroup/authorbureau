@@ -254,37 +254,25 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (conflicting) {
-      const isOrphan = conflicting.directory_status === "unlisted"
-        && !conflicting.bio_short && !conflicting.bio_long && !conflicting.photo_url;
-
-      if (isOrphan) {
-        // Merge: reassign orphan's books to real user, then delete orphan
-        console.log(`Merging orphaned profile (user_id=${conflicting.user_id}) into ${userId}`);
-        await cloudAdmin
-          .from("books")
-          .update({ author_id: userId })
-          .eq("author_id", conflicting.user_id);
-        await cloudAdmin
+      // Always resolve via suffix — never auto-delete other profiles
+      console.log(`Slug conflict: "${authorSlug}" held by user ${conflicting.user_id}, resolving with suffix`);
+      let suffix = 2;
+      const baseSlug = authorSlug;
+      while (suffix <= 20) {
+        const candidate = `${baseSlug}-${suffix}`;
+        const { data: check } = await cloudAdmin
           .from("author_profiles")
-          .delete()
-          .eq("user_id", conflicting.user_id);
-      } else {
-        // Legitimate conflict: append suffix
-        let suffix = 2;
-        while (true) {
-          const candidate = `${authorSlug}-${suffix}`;
-          const { data: check } = await cloudAdmin
-            .from("author_profiles")
-            .select("user_id")
-            .eq("author_slug", candidate)
-            .neq("user_id", userId)
-            .maybeSingle();
-          if (!check) { authorSlug = candidate; break; }
-          suffix++;
-          if (suffix > 20) { authorSlug = `${authorSlug}-${userId.slice(0, 8)}`; break; }
-        }
-        console.log(`Slug conflict resolved: using ${authorSlug}`);
+          .select("user_id")
+          .eq("author_slug", candidate)
+          .neq("user_id", userId)
+          .maybeSingle();
+        if (!check) { authorSlug = candidate; break; }
+        suffix++;
       }
+      if (suffix > 20) {
+        authorSlug = `${baseSlug}-${userId.slice(0, 8)}`;
+      }
+      console.log(`Slug conflict resolved: using ${authorSlug}`);
     }
 
     const upsertData: Record<string, any> = {

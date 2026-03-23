@@ -37,6 +37,17 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Check if caller is the profile owner (optional auth)
+    const authHeader = req.headers.get("authorization") ?? "";
+    const token = authHeader.replace("Bearer ", "");
+    let callerUserId: string | null = null;
+    if (token) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser(token);
+        callerUserId = user?.id ?? null;
+      } catch { /* not authenticated, that's fine for public access */ }
+    }
+
     // Try to find by author_slug first, then by user_id
     let author = null;
     const { data: bySlug } = await supabase
@@ -54,6 +65,18 @@ Deno.serve(async (req) => {
         .eq("user_id", slug)
         .maybeSingle();
       author = byUserId;
+    }
+
+    // Enforce directory_status access control:
+    // Only allow access to listed/featured/verified profiles, unless caller is the profile owner
+    if (author && callerUserId !== author.user_id) {
+      const allowedStatuses = ["listed", "featured", "verified"];
+      if (!allowedStatuses.includes(author.directory_status)) {
+        return new Response(JSON.stringify({ error: "Author not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     if (!author) {
