@@ -3,7 +3,7 @@
  * Superadmins can access ALL nodes regardless of Coming Soon gating.
  */
 
-const SUPERADMIN_EMAILS = ["paulinet77@gmail.com"];
+const SUPERADMIN_EMAILS = ["paulinet77@gmail.com", "mitchcarson@rocketmail.com"];
 
 export function isSuperAdmin(email: string | null | undefined): boolean {
   if (!email) return false;
