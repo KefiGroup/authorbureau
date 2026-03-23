@@ -3576,6 +3576,84 @@ export type Database = {
       }
     }
     Views: {
+      author_profiles_public: {
+        Row: {
+          author_slug: string | null
+          availability_notes: string | null
+          bio_long: string | null
+          bio_short: string | null
+          cover_photo_url: string | null
+          created_at: string | null
+          credentials: Json | null
+          directory_status: string | null
+          frameworks: Json | null
+          genres: string[] | null
+          id: string | null
+          is_speaker: boolean | null
+          location_city: string | null
+          location_country: string | null
+          pen_name: string | null
+          photo_crop_y: string | null
+          photo_url: string | null
+          photo_zoom: number | null
+          site_theme: string | null
+          speaker_fee_range: string | null
+          tagline: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          author_slug?: string | null
+          availability_notes?: string | null
+          bio_long?: string | null
+          bio_short?: string | null
+          cover_photo_url?: string | null
+          created_at?: string | null
+          credentials?: Json | null
+          directory_status?: string | null
+          frameworks?: Json | null
+          genres?: string[] | null
+          id?: string | null
+          is_speaker?: boolean | null
+          location_city?: string | null
+          location_country?: string | null
+          pen_name?: string | null
+          photo_crop_y?: string | null
+          photo_url?: string | null
+          photo_zoom?: number | null
+          site_theme?: string | null
+          speaker_fee_range?: string | null
+          tagline?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          author_slug?: string | null
+          availability_notes?: string | null
+          bio_long?: string | null
+          bio_short?: string | null
+          cover_photo_url?: string | null
+          created_at?: string | null
+          credentials?: Json | null
+          directory_status?: string | null
+          frameworks?: Json | null
+          genres?: string[] | null
+          id?: string | null
+          is_speaker?: boolean | null
+          location_city?: string | null
+          location_country?: string | null
+          pen_name?: string | null
+          photo_crop_y?: string | null
+          photo_url?: string | null
+          photo_zoom?: number | null
+          site_theme?: string | null
+          speaker_fee_range?: string | null
+          tagline?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       books_public: {
         Row: {
           ai_enriched: boolean | null
