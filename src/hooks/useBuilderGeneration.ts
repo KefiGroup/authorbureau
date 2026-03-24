@@ -371,7 +371,6 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
 
             pushResult = { pushed: result.pushed, errors: result.errors };
             if (result.pushed > 0) {
-              console.log(`Cross-builder: pushed ${result.pushed} outputs from ${builderId}`);
             }
           }
         } catch (pushErr) {

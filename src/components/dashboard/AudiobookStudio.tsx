@@ -103,7 +103,6 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
         const parsed: ChapterAudio[] = JSON.parse(saved);
         if (parsed.length > 0) {
           setChapters(parsed);
-          console.log(`Restored ${parsed.length} chapters from cache`);
         }
       } catch { /* ignore */ }
     }
