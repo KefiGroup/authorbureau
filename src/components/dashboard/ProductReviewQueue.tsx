@@ -110,6 +110,7 @@ export default function ProductReviewQueue({ onNavigate }: Props) {
   useEffect(() => {
     if (!user) return;
     fetchPending();
+  }, [user]);
 
   const handlePublish = async (product: PendingProduct) => {
     setPublishing(product.id);
