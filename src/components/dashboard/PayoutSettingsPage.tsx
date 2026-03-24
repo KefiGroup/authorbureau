@@ -81,6 +81,11 @@ export default function PayoutSettingsPage() {
     }
   };
 
+  useEffect(() => {
+    if (!user?.id) return;
+    loadSettings();
+  }, [user?.id]);
+
   const handleSave = async () => {
     if (!user?.id) return;
 

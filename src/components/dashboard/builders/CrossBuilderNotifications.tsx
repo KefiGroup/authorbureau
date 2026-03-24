@@ -48,6 +48,11 @@ export default function CrossBuilderNotifications({
     setLoading(false);
   };
 
+  useEffect(() => {
+    if (!authorId || !builderId) return;
+    loadPushes();
+  }, [authorId, builderId, bookId]);
+
   const handleImport = async (push: PushRecord) => {
     setProcessingIds(prev => new Set(prev).add(push.id));
     const success = await markPushImported(push.id);

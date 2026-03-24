@@ -75,6 +75,11 @@ export default function ROIBanner({
     setLoading(false);
   };
 
+  useEffect(() => {
+    if (!authorId || !bookId) return;
+    loadPortfolio();
+  }, [authorId, bookId, tier]);
+
   const gapRec = useMemo(() => {
     if (!analysis) return null;
     return getGapRecommendation(analysis.gaps);

@@ -105,6 +105,8 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
     }
   };
 
+  useEffect(() => { checkExisting(); }, [bookId]);
+
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;

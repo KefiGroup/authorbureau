@@ -225,6 +225,11 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
     }
   };
 
+  useEffect(() => {
+    if (!user) { setLoading(false); return; }
+    fetchProfile();
+  }, [user]);
+
   // ── Save profile via edge function ──
   const handleSave = async () => {
     if (!user) return;

@@ -42,6 +42,11 @@ export default function CrossBuilderPushSummary({
     setLoading(false);
   };
 
+  useEffect(() => {
+    if (!authorId || !builderId || !bookId) return;
+    loadPushes();
+  }, [authorId, builderId, bookId]);
+
   if (loading || pushes.length === 0) return null;
 
   const getDestLabel = (destId: string) => {

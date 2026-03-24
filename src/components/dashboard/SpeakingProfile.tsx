@@ -36,6 +36,10 @@ export default function SpeakingProfile() {
     setLoading(false);
   };
 
+  useEffect(() => {
+    if (user) fetchTopics();
+  }, [user]);
+
   const handleCreate = async () => {
     if (!newTopic.title.trim()) {
       toast({ title: "Title required", variant: "destructive" });

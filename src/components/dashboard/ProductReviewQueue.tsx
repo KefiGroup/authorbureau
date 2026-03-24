@@ -103,6 +103,16 @@ export default function ProductReviewQueue({ onNavigate }: Props) {
     } catch (err) {
       console.error("Failed to fetch pending products:", err);
     }
+    setPendingProducts(pending);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (!user) return;
+    fetchPending();
+  }, [user]);
+      console.error("Failed to fetch pending products:", err);
+    }
 
     setPendingProducts(pending);
     setLoading(false);

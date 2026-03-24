@@ -54,6 +54,11 @@ export default function WebinarsManager({ onNavigate }: { onNavigate?: (section:
     setLoading(false);
   };
 
+  useEffect(() => {
+    if (!user) return;
+    fetchWebinars();
+  }, [user, bookFilterId]);
+
   const selected = webinars.find(w => w.id === selectedId);
 
   const handleSave = async () => {

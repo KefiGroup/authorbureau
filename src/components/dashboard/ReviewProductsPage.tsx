@@ -159,6 +159,11 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
     setLoading(false);
   };
 
+  useEffect(() => {
+    if (!user) return;
+    fetchDrafts();
+  }, [user]);
+
   const handlePublish = async (product: DraftProduct) => {
     setPublishing(product.id);
     setConfirmProduct(null);
