@@ -130,7 +130,7 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
       setStateLoading(false);
     };
     fetchState();
-  }, [user]);
+  }, [user, applyDashboardState]);
 
   const handleSyncFromPublishNow = async () => {
     setSyncLoading(true);

@@ -221,7 +221,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
       setState(prev => ({ ...prev, act: "error", error: message }));
       toast({ title: "Analysis failed", description: message, variant: "destructive" });
     }
-  }, [builderId, builderLabel, toast]);
+  }, [builderId, builderLabel, toast, fetchBuilderEndpoint]);
 
   // ── ACT 3: Generate ────────────────────────────────────────────
   const startAct3 = useCallback(async (bookId: string, approvedProposal: BuilderProposal) => {
@@ -400,7 +400,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
       setState(prev => ({ ...prev, act: "error", error: message }));
       toast({ title: "Generation failed", description: message, variant: "destructive" });
     }
-  }, [builderId, builderLabel, toast]);
+  }, [builderId, builderLabel, toast, fetchBuilderEndpoint]);
 
   // ── Update proposal (for author edits in Act 2) ────────────────
   const updateProposal = useCallback((updates: Partial<BuilderProposal>) => {

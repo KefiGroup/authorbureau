@@ -138,7 +138,7 @@ export default function SupportTab() {
     setLoading(false);
   }, [fetchBugs, fetchFeedback, fetchChats]);
 
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => { refresh(); }, [refresh]);
 
   const updateBugStatus = async (id: string, status: string) => {
     try {

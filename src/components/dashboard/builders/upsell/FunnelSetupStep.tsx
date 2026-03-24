@@ -30,7 +30,7 @@ export default function FunnelSetupStep({ stepData, setStepData, onMarkEdited, b
         },
       }));
     }
-  }, []);
+  }, [bookTitle, setStepData]);
 
   const update = (field: string, value: string) => {
     setStepData(prev => ({ ...prev, setup: { ...prev.setup, [field]: value } }));

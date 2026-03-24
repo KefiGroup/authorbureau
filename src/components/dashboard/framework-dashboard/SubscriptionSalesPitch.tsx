@@ -142,7 +142,7 @@ function useCountdown() {
       if (left <= 0) clearInterval(interval);
     }, 1000);
     return () => clearInterval(interval);
-  }, [startTime, remaining]);
+  }, [startTime, remaining, PROMO_DURATION_MS]);
 
   const minutes = Math.floor(remaining / 60000);
   const seconds = Math.floor((remaining % 60000) / 1000);

@@ -154,14 +154,14 @@ export default function ReadersBureau() {
 
   useEffect(() => {
     fetchBooks().then(() => setLoading(false));
-  }, []);
+  }, [fetchBooks]);
 
   useEffect(() => {
     if (!authLoading) {
       fetchEntries();
       fetchPurchases();
     }
-  }, [authLoading, user]);
+  }, [authLoading, user, fetchEntries, fetchPurchases]);
 
   const getToken = useCallback(async () => {
     const { data: sessionData } = await sharedSupabase.auth.getSession();

@@ -114,7 +114,7 @@ export default function SharedContentStep({
       // Clear the saved content so conversation mode activates
       setStepData(prev => ({ ...prev, [contentKey]: "" }));
     }
-  }, [contentHasStop]);
+  }, [contentHasStop, contentKey, setStepData]);
 
   // Guard against stale/mismatched lead magnet content from previous type selections
   useEffect(() => {

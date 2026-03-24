@@ -114,7 +114,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
     setLoading(false);
   };
 
-  useEffect(() => { fetchBooks(); }, [user]);
+  useEffect(() => { fetchBooks(); }, [user, fetchBooks]);
 
   const handleUploadCover = async (bookId: string, file: File) => {
     setUploadingCover(bookId);

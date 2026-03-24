@@ -52,7 +52,7 @@ export default function SocialMediaManager() {
     setLoading(false);
   };
 
-  useEffect(() => { loadContent(); }, [user, bookId]);
+  useEffect(() => { loadContent(); }, [user, bookId, loadContent]);
 
   if (showStudio) {
     return (

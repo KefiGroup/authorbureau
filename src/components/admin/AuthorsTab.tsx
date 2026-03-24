@@ -87,7 +87,7 @@ export default function AuthorsTab() {
       toast({ title: "Failed to load authors", variant: "destructive" });
     }
     setLoading(false);
-  }, []);
+  }, [toast]);
 
   useEffect(() => { fetchAuthors(); }, [fetchAuthors]);
 

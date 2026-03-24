@@ -83,7 +83,7 @@ export default function AbbyExecutionDashboard({
         console.error("Failed to get execution plan:", err);
       }
     })();
-  }, [bookId, productNode]);
+  }, [bookId, productNode, businessPlan]);
 
   // Update progress
   useEffect(() => {
@@ -283,7 +283,7 @@ export default function AbbyExecutionDashboard({
     setIsRunning(false);
     onComplete(productNode);
     toast({ title: "✅ Product built!", description: `${productLabel} has been created and your business plan updated.` });
-  }, [steps, bookId, productNode, generatedContent, businessPlan, isPaused]);
+  }, [steps, bookId, productNode, generatedContent, businessPlan, isPaused, authorName, bookDescription, bookTitle, onComplete, productLabel, toast]);
 
   // Resume after approval
   const approveAndContinue = useCallback(async () => {
@@ -354,7 +354,7 @@ export default function AbbyExecutionDashboard({
       onComplete(productNode);
       toast({ title: "✅ Product built!", description: `${productLabel} has been created and your business plan updated.` });
     }
-  }, [steps, bookId, productNode, businessPlan]);
+  }, [steps, bookId, productNode, businessPlan, onComplete, productLabel, toast]);
 
   const statusIcon = (status: string) => {
     switch (status) {

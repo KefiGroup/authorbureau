@@ -51,7 +51,7 @@ export default function AdminCRMTab() {
       toast({ title: "Failed to load CRM contacts", variant: "destructive" });
     }
     setLoading(false);
-  }, []);
+  }, [toast]);
 
   useEffect(() => { fetchContacts(); }, [fetchContacts]);
 

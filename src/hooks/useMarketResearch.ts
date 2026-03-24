@@ -86,7 +86,7 @@ export function useMarketResearch(bookId: string | undefined, bookTitle?: string
 
   useEffect(() => {
     if (bookTitle && genre) fetch_();
-  }, [bookTitle, genre]);
+  }, [bookTitle, genre, fetch_]);
 
   return { data, loading, error, refetch: fetch_ };
 }

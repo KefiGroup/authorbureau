@@ -216,12 +216,12 @@ export default function AuthorProductPage() {
     } catch (error) {
       toast({ title: "Error", description: "Something went wrong.", variant: "destructive" });
     } finally { setBuying(false); }
-  }, [product, author, buying, authorSlug, bookSlug, productType]);
+  }, [product, author, buying, authorSlug, bookSlug, productType, navigate, pType]);
 
   useEffect(() => {
     if (!authorSlug || !bookSlug || !config) { setNotFound(true); setLoading(false); return; }
     loadProduct();
-  }, [authorSlug, bookSlug, productType]);
+  }, [authorSlug, bookSlug, productType, config, loadProduct]);
 
   async function loadProduct() {
     setLoading(true);

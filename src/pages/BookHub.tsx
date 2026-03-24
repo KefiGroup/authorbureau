@@ -99,7 +99,7 @@ export default function BookHub() {
 
   useEffect(() => {
     fetchBook();
-  }, [user, bookId]);
+  }, [user, bookId, fetchBook]);
 
   if (!authLoading && !user) {
     navigate("/auth", { replace: true });

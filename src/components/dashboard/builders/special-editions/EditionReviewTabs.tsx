@@ -557,7 +557,7 @@ export default function EditionReviewTabs(props: Props) {
     if (Object.keys(updates).length > 0) {
       props.setStepData(prev => ({ ...prev, ...updates }));
     }
-  }, [props.stepData.editionContent, props.stepData.editionSales]);
+  }, [props.stepData.editionContent, props.stepData.editionSales, props]);
 
   return (
     <Tabs defaultValue="identity" className="w-full">

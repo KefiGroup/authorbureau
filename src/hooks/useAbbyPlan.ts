@@ -68,7 +68,7 @@ export function useAbbyPlan(bookId: string | undefined): UseAbbyPlanReturn {
 
   useEffect(() => {
     refreshPlan();
-  }, [bookId]);
+  }, [bookId, refreshPlan]);
 
   return { plan, loading, completedAssets, refreshPlan, updatePlan };
 }

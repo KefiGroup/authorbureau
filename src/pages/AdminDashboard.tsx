@@ -138,7 +138,7 @@ export default function AdminDashboard() {
       toast({ title: "Failed to load stats", variant: "destructive" });
     }
     setStatsLoading(false);
-  }, []);
+  }, [toast]);
 
   const fetchBooks = useCallback(async () => {
     setBooksLoading(true);
@@ -150,7 +150,7 @@ export default function AdminDashboard() {
       toast({ title: "Failed to load books", variant: "destructive" });
     }
     setBooksLoading(false);
-  }, [booksPage, booksFilter]);
+  }, [booksPage, booksFilter, toast]);
 
   const fetchPendingCounts = useCallback(async () => {
     try {
@@ -171,7 +171,7 @@ export default function AdminDashboard() {
       toast({ title: "Failed to load admins", variant: "destructive" });
     }
     setAdminsLoading(false);
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -184,7 +184,7 @@ export default function AdminDashboard() {
     if (tab === "overview") { fetchStats(); fetchPendingCounts(); }
     else if (tab === "books") fetchBooks();
     else if (tab === "admins") fetchAdmins();
-  }, [tab, isAdmin, booksPage, booksFilter]);
+  }, [tab, isAdmin, booksPage, booksFilter, fetchAdmins, fetchBooks, fetchPendingCounts, fetchStats]);
 
   const handlePromote = async () => {
     if (!promoteEmail.trim()) return;

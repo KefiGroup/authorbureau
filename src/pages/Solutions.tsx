@@ -128,7 +128,7 @@ export default function Solutions() {
       if (data && !data.error) setMarketData(data);
     }).catch(() => {})
     .finally(() => setLoadingMarket(false));
-  }, [genre]);
+  }, [genre, normalizedGenre]);
 
   return (
     <div className="min-h-screen bg-background">
