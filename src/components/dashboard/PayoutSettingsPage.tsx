@@ -49,7 +49,7 @@ export default function PayoutSettingsPage() {
   useEffect(() => {
     if (!user?.id) return;
     loadSettings();
-  }, [user?.id, loadSettings]);
+  }, [user?.id]);
 
   const loadSettings = async () => {
     try {

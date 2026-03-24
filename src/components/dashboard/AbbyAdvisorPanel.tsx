@@ -60,7 +60,7 @@ export default function AbbyAdvisorPanel({ bookId, bookTitle, productNode, produ
       }
       setLoading(false);
     })();
-  }, [isOpen, bookId, generateContextualAdvice, plan]);
+  }, [isOpen, bookId, plan]);
 
   // Generate contextual advice for this specific product
   const generateContextualAdvice = useCallback((planData: AbbyPlan) => {

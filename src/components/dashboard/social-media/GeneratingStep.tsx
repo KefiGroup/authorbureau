@@ -47,7 +47,7 @@ export default function GeneratingStep({ config, onComplete, onBack }: Props) {
     if (hasStarted.current) return;
     hasStarted.current = true;
     startGeneration();
-  }, [startGeneration]);
+  }, []);
 
   useEffect(() => {
     if (feedRef.current) {

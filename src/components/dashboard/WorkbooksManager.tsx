@@ -75,7 +75,7 @@ export default function WorkbooksManager({ onNavigate }: { onNavigate?: (section
   useEffect(() => {
     if (!user) return;
     fetchWorkbooks();
-  }, [user, bookFilterId, fetchWorkbooks]);
+  }, [user, bookFilterId]);
 
   const fetchWorkbooks = async () => {
     setLoading(true);

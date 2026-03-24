@@ -38,7 +38,7 @@ export default function PodcastGeneratingStep({ config, onComplete, onBack }: Pr
     if (hasStarted.current) return;
     hasStarted.current = true;
     startGeneration();
-  }, [startGeneration]);
+  }, []);
 
   const startGeneration = async () => {
     setState("queued");

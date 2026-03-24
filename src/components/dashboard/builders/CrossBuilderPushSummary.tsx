@@ -38,7 +38,7 @@ export default function CrossBuilderPushSummary({
   useEffect(() => {
     if (!authorId || !builderId || !bookId) return;
     loadPushes();
-  }, [authorId, builderId, bookId, loadPushes]);
+  }, [authorId, builderId, bookId]);
 
   const loadPushes = async () => {
     setLoading(true);

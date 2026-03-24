@@ -44,7 +44,7 @@ export default function CoachingCRM() {
 
   useEffect(() => {
     if (user) fetchPackages();
-  }, [user, fetchPackages]);
+  }, [user]);
 
   const fetchPackages = async () => {
     const { data } = await supabase

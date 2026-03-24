@@ -37,7 +37,7 @@ export default function CourseBuilder() {
 
   useEffect(() => {
     if (user) fetchCourses();
-  }, [user, fetchCourses]);
+  }, [user]);
 
   const fetchCourses = async () => {
     const { data } = await supabase

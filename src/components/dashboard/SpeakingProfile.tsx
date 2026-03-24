@@ -28,7 +28,7 @@ export default function SpeakingProfile() {
 
   useEffect(() => {
     if (user) fetchTopics();
-  }, [user, fetchTopics]);
+  }, [user]);
 
   const fetchTopics = async () => {
     const { data } = await supabase

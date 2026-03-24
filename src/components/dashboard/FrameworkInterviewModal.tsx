@@ -52,7 +52,7 @@ export default function FrameworkInterviewModal({
         autoExtractFrameworks();
       }
     })();
-  }, [open, user, autoExtractFrameworks, bookId]);
+  }, [open, user, bookId]);
 
   const autoExtractFrameworks = async () => {
     setExtracting(true);

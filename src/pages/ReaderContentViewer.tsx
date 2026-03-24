@@ -158,7 +158,7 @@ export default function ReaderContentViewer() {
     (data.progress || []).forEach((p: ProgressEntry) => completedDays.add(p.day_number));
     setProgress(completedDays);
     setLoading(false);
-  }, [purchaseId, getToken, fetchUpsellProducts]);
+  }, [purchaseId, getToken]);
 
   // Fetch upsell products for this book's ecosystem
   const fetchUpsellProducts = useCallback(async (forBookId: string, currentProductType: string) => {

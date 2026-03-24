@@ -44,7 +44,7 @@ export default function CrossBuilderNotifications({
   useEffect(() => {
     if (!authorId || !builderId) return;
     loadPushes();
-  }, [authorId, builderId, bookId, loadPushes]);
+  }, [authorId, builderId, bookId]);
 
   const loadPushes = async () => {
     setLoading(true);

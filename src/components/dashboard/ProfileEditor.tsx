@@ -174,7 +174,7 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
   useEffect(() => {
     if (!user) { setLoading(false); return; }
     fetchProfile();
-  }, [user, fetchProfile]);
+  }, [user]);
 
   const getAuthToken = async (): Promise<string | null> => {
     const { data: sharedSession } = await sharedSupabase.auth.getSession();
