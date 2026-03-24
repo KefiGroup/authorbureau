@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  BookOpen, Check, ChevronDown, Loader2, Save,
+  BookOpen, Check, ChevronDown, Loader2, Save, ArrowRight,
   Sparkles, ChevronLeft, AlertCircle, Wand2, Pencil,
 } from "lucide-react";
 import AbbyNarrativeLoading from "./AbbyNarrativeLoading";
