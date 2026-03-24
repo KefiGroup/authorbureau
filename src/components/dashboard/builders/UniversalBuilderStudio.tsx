@@ -1332,109 +1332,19 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
       </div>
 
       {/* Abby Advisor Panel */}
-      <AnimatePresence>
-        {abbyOpen && (
-          <motion.aside
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 320, opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed top-0 right-0 bottom-0 z-40 w-80 bg-card border-l border-border shadow-2xl flex flex-col overflow-hidden"
-          >
-            {/* Panel header */}
-            <div className="px-4 py-3 border-b border-border bg-secondary/5 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-secondary/20 flex items-center justify-center">
-                  <Sparkles className="h-4 w-4 text-secondary" />
-                </div>
-                <div>
-                  <p className="text-[11px] font-bold text-secondary uppercase tracking-widest">Abby Advisor</p>
-                  <p className="text-[10px] text-muted-foreground truncate max-w-[180px]">{nodeConfig.label}</p>
-                </div>
-              </div>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setAbbyOpen(false)}>
-                <X className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-
-            {/* Contextual tip */}
-            <div className="px-4 py-3 border-b border-border bg-secondary/5 shrink-0">
-              <p className="text-[10px] font-bold text-secondary uppercase tracking-wider mb-1">\uD83D\uDCA1 Tip for this step</p>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                {currentStepConfig.abbyTip}
-              </p>
-            </div>
-
-            {/* Plan recommendation */}
-            {plan && (
-              <div className="px-4 py-2.5 border-b border-secondary/20 bg-secondary/5 shrink-0">
-                <p className="text-[10px] font-bold text-secondary/80 uppercase tracking-wider mb-0.5">\uD83D\uDCCB From your plan</p>
-                <p className="text-[11px] text-muted-foreground">
-                  {nodeConfig.abbyGreeting}
-                </p>
-              </div>
-            )}
-
-            {/* Chat messages */}
-            <div className="flex-1 overflow-y-auto p-3 space-y-3">
-              {showFirstVisit && (
-                <BuilderFirstVisitWelcome
-                  builderId={nodeConfig.id}
-                  builderLabel={nodeConfig.label}
-                  onDismiss={() => {
-                    setShowFirstVisit(false);
-                    markBuilderFirstVisitSeen(nodeConfig.id);
-                  }}
-                />
-              )}
-              {abbyMessages.length === 0 && !showFirstVisit && (
-                <div className="text-center py-6">
-                  <Sparkles className="h-6 w-6 text-muted-foreground/20 mx-auto mb-2" />
-                  <p className="text-xs text-muted-foreground/50">Ask Abby anything about this product</p>
-                </div>
-              )}
-              {abbyMessages.map((msg, i) => (
-                <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[90%] rounded-lg p-2.5 text-xs ${
-                    msg.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted"
-                  }`}>
-                    {msg.role === "assistant" ? (
-                      <MarkdownRenderer content={msg.content} />
-                    ) : (
-                      msg.content
-                    )}
-                  </div>
-                </div>
-              ))}
-              <div ref={chatEndRef} />
-            </div>
-
-            {/* Chat input */}
-            <div className="p-3 border-t border-border bg-muted/30 shrink-0">
-              <div className="flex gap-1.5">
-                <Textarea
-                  value={abbyInput}
-                  onChange={(e) => setAbbyInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendAbbyMessage(); } }}
-                  placeholder="Ask Abby..."
-                  className="min-h-[36px] max-h-[80px] resize-none text-xs"
-                  rows={1}
-                />
-                <Button
-                  onClick={sendAbbyMessage}
-                  disabled={!abbyInput.trim() || abbyStreaming}
-                  size="icon"
-                  className="shrink-0 h-9 w-9"
-                >
-                  {abbyStreaming ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                </Button>
-              </div>
-            </div>
-          </motion.aside>
-        )}
-      </AnimatePresence>
+      <AbbyAdvisorSidePanel
+        open={abbyOpen}
+        onClose={() => setAbbyOpen(false)}
+        nodeConfig={nodeConfig}
+        bookId={bookId}
+        bookTitle={bookTitle}
+        currentStepLabel={currentStepConfig.label}
+        currentStepDescription={currentStepConfig.description}
+        currentStepTip={currentStepConfig.abbyTip}
+        plan={plan}
+        manuscriptSummary={manuscriptSummary}
+        frameworks={frameworks}
+      />
     </div>
   );
 }
