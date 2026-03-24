@@ -72,6 +72,90 @@ export default function ReaderContentViewer() {
     return sessionData?.session?.access_token || null;
   }, []);
 
+  // Fetch upsell products for this book's ecosystem
+  const fetchUpsellProducts = useCallback(async (forBookId: string, currentProductType: string) => {
+    const upsells: UpsellProduct[] = [];
+
+    const { data: bookInfo } = await supabase
+      .from("books")
+      .select("title, slug, author_id")
+      .eq("id", forBookId)
+      .maybeSingle();
+
+    let authorSlug: string | undefined;
+    if (bookInfo?.author_id) {
+      const { data: profile } = await supabase
+        .from("author_profiles")
+        .select("author_slug")
+        .eq("user_id", bookInfo.author_id)
+        .maybeSingle();
+      authorSlug = profile?.author_slug || undefined;
+    }
+
+    const bookSlug = bookInfo?.slug;
+
+    const { data: courses } = await supabase
+      .from("courses")
+      .select("id, title, price, status, description")
+      .eq("book_id", forBookId)
+      .eq("status", "published")
+      .limit(1);
+
+    if (courses && courses.length > 0) {
+      upsells.push({
+        type: "online_course",
+        title: courses[0].title,
+        description: courses[0].description || "Take your learning to the next level with structured video lessons and guided modules.",
+        price: courses[0].price ?? undefined,
+        productId: courses[0].id,
+        authorSlug,
+        bookSlug: bookSlug || undefined,
+      });
+    }
+
+    const { data: audiobooks } = await supabase
+      .from("audiobooks")
+      .select("id, title, price, status, description")
+      .eq("book_id", forBookId)
+      .eq("status", "published")
+      .limit(1);
+
+    if (audiobooks && audiobooks.length > 0) {
+      upsells.push({
+        type: "audiobook",
+        title: audiobooks[0].title,
+        description: audiobooks[0].description || "Listen on the go and reinforce what you've learned with the audiobook companion.",
+        price: audiobooks[0].price ?? undefined,
+        productId: audiobooks[0].id,
+        authorSlug,
+        bookSlug: bookSlug || undefined,
+      });
+    }
+
+    if (bookInfo?.author_id) {
+      const { data: coaching } = await supabase
+        .from("coaching_packages")
+        .select("id, title, price, description, type, status")
+        .eq("author_id", bookInfo.author_id)
+        .eq("status", "active")
+        .limit(1);
+
+      if (coaching && coaching.length > 0) {
+        upsells.push({
+          type: "coaching",
+          title: coaching[0].title,
+          description: coaching[0].description || "Get personalized guidance and accelerate your transformation with 1-on-1 coaching.",
+          price: coaching[0].price ?? undefined,
+          productId: coaching[0].id,
+          authorSlug,
+          bookSlug: bookSlug || undefined,
+        });
+      }
+    }
+
+    setUpsellProducts(upsells);
+  }, []);
+
   const loadContent = useCallback(async () => {
     setLoading(true);
     const token = await getToken();
@@ -92,7 +176,6 @@ export default function ReaderContentViewer() {
     setUnlockedUpTo(data.unlockedUpToDay || 0);
     setStartDate(data.startDate || null);
 
-    // Get book cover image and upsell products
     let currentBookId: string | null = null;
     if (data.purchase?.product_id) {
       const { data: hsc } = await supabase
@@ -114,14 +197,11 @@ export default function ReaderContentViewer() {
       currentBookId = hsc?.book_id || null;
       setBookId(currentBookId);
 
-      // Fetch upsell products for this book
       if (currentBookId) {
         fetchUpsellProducts(currentBookId, data.purchase.product_type || "home_study");
       }
     }
 
-    // Resolve schedule from study_schedule_json (could be array or {days:[...]})
-    // or fall back to parsing content_markdown as JSON
     let rawDays: any[] | null = null;
     const schedule = data.studyData?.study_schedule_json;
     if (Array.isArray(schedule)) {
@@ -129,7 +209,6 @@ export default function ReaderContentViewer() {
     } else if (schedule?.days && Array.isArray(schedule.days)) {
       rawDays = schedule.days;
     }
-    // Fallback: try parsing content_markdown as JSON array
     if ((!rawDays || rawDays.length === 0) && data.studyData?.content_markdown) {
       try {
         const parsed = JSON.parse(data.studyData.content_markdown);
@@ -158,98 +237,7 @@ export default function ReaderContentViewer() {
     (data.progress || []).forEach((p: ProgressEntry) => completedDays.add(p.day_number));
     setProgress(completedDays);
     setLoading(false);
-  }, [purchaseId, getToken]);
-
-  // Fetch upsell products for this book's ecosystem
-  const fetchUpsellProducts = useCallback(async (forBookId: string, currentProductType: string) => {
-    const upsells: UpsellProduct[] = [];
-
-    // Get book info for slugs
-    const { data: bookInfo } = await supabase
-      .from("books")
-      .select("title, slug, author_id")
-      .eq("id", forBookId)
-      .maybeSingle();
-
-    let authorSlug: string | undefined;
-    if (bookInfo?.author_id) {
-      const { data: profile } = await supabase
-        .from("author_profiles")
-        .select("author_slug")
-        .eq("user_id", bookInfo.author_id)
-        .maybeSingle();
-      authorSlug = profile?.author_slug || undefined;
-    }
-
-    const bookSlug = bookInfo?.slug;
-
-    // The journey sequence: book → workbook → home_study → online_course → coaching
-    // Current user is viewing a home_study, so suggest what comes NEXT
-
-    // Check for online course
-    const { data: courses } = await supabase
-      .from("courses")
-      .select("id, title, price, status, description")
-      .eq("book_id", forBookId)
-      .eq("status", "published")
-      .limit(1);
-
-    if (courses && courses.length > 0) {
-      upsells.push({
-        type: "online_course",
-        title: courses[0].title,
-        description: courses[0].description || "Take your learning to the next level with structured video lessons and guided modules.",
-        price: courses[0].price ?? undefined,
-        productId: courses[0].id,
-        authorSlug,
-        bookSlug: bookSlug || undefined,
-      });
-    }
-
-    // Check for audiobook
-    const { data: audiobooks } = await supabase
-      .from("audiobooks")
-      .select("id, title, price, status, description")
-      .eq("book_id", forBookId)
-      .eq("status", "published")
-      .limit(1);
-
-    if (audiobooks && audiobooks.length > 0) {
-      upsells.push({
-        type: "audiobook",
-        title: audiobooks[0].title,
-        description: audiobooks[0].description || "Listen on the go and reinforce what you've learned with the audiobook companion.",
-        price: audiobooks[0].price ?? undefined,
-        productId: audiobooks[0].id,
-        authorSlug,
-        bookSlug: bookSlug || undefined,
-      });
-    }
-
-    // Check for coaching packages
-    if (bookInfo?.author_id) {
-      const { data: coaching } = await supabase
-        .from("coaching_packages")
-        .select("id, title, price, description, type, status")
-        .eq("author_id", bookInfo.author_id)
-        .eq("status", "active")
-        .limit(1);
-
-      if (coaching && coaching.length > 0) {
-        upsells.push({
-          type: "coaching",
-          title: coaching[0].title,
-          description: coaching[0].description || "Get personalized guidance and accelerate your transformation with 1-on-1 coaching.",
-          price: coaching[0].price ?? undefined,
-          productId: coaching[0].id,
-          authorSlug,
-          bookSlug: bookSlug || undefined,
-        });
-      }
-    }
-
-    setUpsellProducts(upsells);
-  }, []);
+  }, [purchaseId, getToken, fetchUpsellProducts]);
 
   useEffect(() => {
     if (user) loadContent();
