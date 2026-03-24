@@ -402,10 +402,7 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
     return () => { if (autoSaveRef.current) clearInterval(autoSaveRef.current); };
   }, [handleSaveDraft]);
 
-  // Scroll chat to bottom
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [abbyMessages]);
+  // (Abby chat scroll moved to AbbyAdvisorSidePanel)
 
   // Load saved draft on mount
   const draftLoadedRef = useRef(false);
