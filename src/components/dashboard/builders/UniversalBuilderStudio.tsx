@@ -267,11 +267,6 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
 
   // Abby advisor panel
   const [abbyOpen, setAbbyOpen] = useState(false);
-  const [abbyMessages, setAbbyMessages] = useState<Array<{ role: string; content: string }>>([]);
-  const [showFirstVisit, setShowFirstVisit] = useState(() => !hasSeenBuilderFirstVisit(nodeConfig.id));
-  const [abbyInput, setAbbyInput] = useState("");
-  const [abbyStreaming, setAbbyStreaming] = useState(false);
-  const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Plan context
   const { plan, loading: planLoading } = useAbbyPlan(bookId);
