@@ -35,10 +35,6 @@ export default function CourseBuilder() {
   const bookId = searchParams.get("bookId") || "";
   const bookTitle = searchParams.get("bookTitle") || "";
 
-  useEffect(() => {
-    if (user) fetchCourses();
-  }, [user]);
-
   const fetchCourses = async () => {
     const { data } = await supabase
       .from("courses")
