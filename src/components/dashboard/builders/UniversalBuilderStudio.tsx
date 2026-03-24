@@ -2,8 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, ArrowRight, BookOpen, Check, ChevronDown, Loader2, Save,
-  Sparkles, X, Send, ChevronLeft, Lock, AlertCircle, Wand2, Pencil,
+  BookOpen, Check, ChevronDown, Loader2, Save,
+  Sparkles, ChevronLeft, AlertCircle, Wand2, Pencil,
 } from "lucide-react";
 import AbbyNarrativeLoading from "./AbbyNarrativeLoading";
 import BuilderFooter from "./shared/BuilderFooter";
