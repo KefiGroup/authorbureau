@@ -865,7 +865,7 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                 return copy;
               });
             }
-          } catch { break; }
+          } catch (error) { console.error(error); break; }
         }
       }
     } catch (err) {

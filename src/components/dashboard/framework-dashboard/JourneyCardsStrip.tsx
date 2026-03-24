@@ -39,7 +39,7 @@ export default function JourneyCardsStrip() {
       const v = parseInt(localStorage.getItem(VISIT_KEY) || "0", 10);
       setVisitCount(v);
       localStorage.setItem(VISIT_KEY, String(v + 1));
-    } catch { /* ignore */ }
+    } catch (error) { console.error(error); }
   }, []);
 
   const showNewBadge = visitCount < 3;
@@ -47,7 +47,7 @@ export default function JourneyCardsStrip() {
   const toggleCollapsed = useCallback(() => {
     setCollapsed((c) => {
       const next = !c;
-      try { localStorage.setItem("abby_journey_strip_hidden", String(next)); } catch { /* */ }
+      try { localStorage.setItem("abby_journey_strip_hidden", String(next)); } catch (error) { console.error(error); }
       return next;
     });
   }, []);

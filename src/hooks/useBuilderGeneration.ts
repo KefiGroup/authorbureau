@@ -310,7 +310,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
                 content: salesPageText,
               } as any);
             }
-          } catch { /* Non-blocking */ }
+          } catch (error) { console.error(error); }
         }
 
         // Save product content as separate asset

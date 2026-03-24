@@ -66,7 +66,7 @@ export default function DistributeAudiobookModal({
           setAuthorName(data.author_name || "");
           setCoverImageUrl(data.cover_image_url || "");
         }
-      } catch { /* ignore */ }
+      } catch (error) { console.error(error); }
       setLoadingMeta(false);
     })();
   }, [open, bookId]);

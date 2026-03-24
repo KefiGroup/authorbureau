@@ -559,7 +559,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
             const parsed = JSON.parse(jsonStr);
             const delta = parsed.choices?.[0]?.delta?.content;
             if (delta) accumulated += delta;
-          } catch { break; }
+          } catch (error) { console.error(error); break; }
         }
       }
 

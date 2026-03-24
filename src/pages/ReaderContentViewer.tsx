@@ -135,7 +135,7 @@ export default function ReaderContentViewer() {
         const parsed = JSON.parse(data.studyData.content_markdown);
         if (Array.isArray(parsed)) rawDays = parsed;
         else if (parsed?.days && Array.isArray(parsed.days)) rawDays = parsed.days;
-      } catch { /* not JSON */ }
+      } catch (error) { console.error(error); }
     }
     if (rawDays && rawDays.length > 0) {
       setDays(rawDays.map((d: any, i: number) => ({

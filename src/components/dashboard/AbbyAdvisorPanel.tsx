@@ -149,7 +149,7 @@ export default function AbbyAdvisorPanel({ bookId, bookTitle, productNode, produ
                 return copy;
               });
             }
-          } catch { break; }
+          } catch (error) { console.error(error); break; }
         }
       }
     } catch (err) {

@@ -116,7 +116,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
                   setIsFirstPostAnalysis(true);
                   localStorage.setItem(key, "true");
                 }
-              } catch { /* ignore */ }
+              } catch (error) { console.error(error); }
             }
           }).catch(() => { /* non-critical */ });
         }
