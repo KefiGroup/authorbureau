@@ -191,7 +191,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
     } catch (err) {
       console.error("Failed to save session:", err);
     }
-  }, [user, selectedBook, getSessionHeaders]);
+  }, [user, selectedBook, getSessionHeaders, CONSULTATION_SESSION_URL]);
 
   const loadExistingSession = useCallback(async (bookId: string): Promise<ChatMessage[] | null> => {
     if (!user) return null;
@@ -210,11 +210,11 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
       console.error("Failed to load session:", err);
     }
     return null;
-  }, [user, getSessionHeaders]);
+  }, [user, getSessionHeaders, CONSULTATION_SESSION_URL]);
 
   useEffect(() => {
     if (!isStreaming && messages.length > 0 && selectedBook) saveSession(messages);
-  }, [isStreaming, messages.length, saveSession, selectedBook]);
+  }, [isStreaming, messages.length, saveSession, selectedBook, messages]);
 
   const messagesRef = useRef<ChatMessage[]>([]);
   const selectedBookRef = useRef<Book | null>(null);
@@ -238,14 +238,14 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
         toast({ title: "Session restored", description: "Your previous conversation with Abby has been loaded." });
       }
     })();
-  }, [selectedBook]);
+  }, [selectedBook, loadExistingSession, toast]);
 
   useEffect(() => {
     if (shouldAutoStart && selectedBook && !isStreaming && !abbyReading && messages.length === 0) {
       setShouldAutoStart(false);
       sendMessage("Start a brand new consultation. Begin with TURN 1 — GREETING & OPPORTUNITY REVEAL exactly as specified in your consultation sequence. Do not skip any turns or assume previous context.", true);
     }
-  }, [shouldAutoStart, abbyReading, selectedBook, messages.length, isStreaming]);
+  }, [shouldAutoStart, abbyReading, selectedBook, messages.length, isStreaming, sendMessage]);
 
   const sendMessage = useCallback(async (content: string, isAutoStart = false) => {
     if (!selectedBook || !content.trim() || isStreaming) return;
@@ -328,7 +328,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
       setIsStreaming(false);
       setIsBuildingPlan(false);
     }
-  }, [selectedBook, messages, isStreaming, toast]);
+  }, [selectedBook, messages, isStreaming, toast, isAdmin, isPremium, tier, user]);
 
   const parseBuildRequests = (content: string) => {
     const regex = /===BUILD_REQUEST===([\s\S]*?)===END_BUILD_REQUEST===/g;

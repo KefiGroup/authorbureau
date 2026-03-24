@@ -47,7 +47,7 @@ export default function ROIBanner({
   useEffect(() => {
     if (!authorId || !bookId) return;
     loadPortfolio();
-  }, [authorId, bookId, tier]);
+  }, [authorId, bookId, tier, loadPortfolio]);
 
   const loadPortfolio = async () => {
     setLoading(true);

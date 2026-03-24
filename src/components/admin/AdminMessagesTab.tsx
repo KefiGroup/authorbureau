@@ -63,7 +63,7 @@ export default function AdminMessagesTab() {
       toast({ title: "Failed to load messages", variant: "destructive" });
     }
     setLoading(false);
-  }, []);
+  }, [toast]);
 
   useEffect(() => { fetchMessages(); }, [fetchMessages]);
 

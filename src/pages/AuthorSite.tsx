@@ -191,7 +191,7 @@ export default function AuthorSite() {
   useEffect(() => {
     if (!authorSlug) return;
     loadAuthorSite();
-  }, [authorSlug]);
+  }, [authorSlug, loadAuthorSite]);
 
   async function loadAuthorSite() {
     setLoading(true);

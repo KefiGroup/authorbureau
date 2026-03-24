@@ -23,7 +23,7 @@ export default function MembershipSetupStep({ stepData, setStepData, onMarkEdite
         },
       }));
     }
-  }, []);
+  }, [bookTitle, setStepData]);
 
   const update = (field: string, value: string) => {
     setStepData(prev => ({ ...prev, setup: { ...prev.setup, [field]: value } }));

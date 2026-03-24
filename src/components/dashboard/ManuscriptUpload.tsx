@@ -80,7 +80,7 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
     return token;
   };
 
-  useEffect(() => { checkExisting(); }, [bookId]);
+  useEffect(() => { checkExisting(); }, [bookId, checkExisting]);
 
   const checkExisting = async () => {
     setChecking(true);

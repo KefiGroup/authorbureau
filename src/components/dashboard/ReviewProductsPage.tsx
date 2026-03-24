@@ -109,7 +109,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
   useEffect(() => {
     if (!user) return;
     fetchDrafts();
-  }, [user]);
+  }, [user, fetchDrafts]);
 
   const fetchDrafts = async () => {
     if (!user) return;

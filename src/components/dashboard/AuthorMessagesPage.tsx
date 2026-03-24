@@ -54,7 +54,7 @@ export default function AuthorMessagesPage() {
       setMessages((data as any[]) || []);
     }
     setLoading(false);
-  }, [user]);
+  }, [user, toast]);
 
   useEffect(() => { fetchMessages(); }, [fetchMessages]);
 

@@ -185,7 +185,7 @@ export default function AuthorBookPage() {
   useEffect(() => {
     if (!authorSlug || !bookSlug) { setNotFound(true); setLoading(false); return; }
     loadBookPage();
-  }, [authorSlug, bookSlug]);
+  }, [authorSlug, bookSlug, loadBookPage]);
 
   async function loadBookPage() {
     setLoading(true);

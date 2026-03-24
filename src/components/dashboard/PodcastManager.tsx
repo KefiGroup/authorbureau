@@ -40,7 +40,7 @@ export default function PodcastManager() {
     setLoading(false);
   };
 
-  useEffect(() => { loadPodcasts(); }, [user, bookId]);
+  useEffect(() => { loadPodcasts(); }, [user, bookId, loadPodcasts]);
 
   if (showStudio) {
     return (

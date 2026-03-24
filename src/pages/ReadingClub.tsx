@@ -86,11 +86,11 @@ export default function ReadingClub() {
   // Fetch books immediately (public), entries when auth resolves
   useEffect(() => {
     fetchBooks().then(() => setLoading(false));
-  }, []);
+  }, [fetchBooks]);
 
   useEffect(() => {
     if (!authLoading) fetchEntries();
-  }, [authLoading, user]);
+  }, [authLoading, user, fetchEntries]);
 
   const startChallenge = async (bookId: string) => {
     if (!user) return;

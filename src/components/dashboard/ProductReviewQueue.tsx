@@ -29,7 +29,7 @@ export default function ProductReviewQueue({ onNavigate }: Props) {
   useEffect(() => {
     if (!user) return;
     fetchPending();
-  }, [user]);
+  }, [user, fetchPending]);
 
   const fetchPending = async () => {
     if (!user) return;

@@ -42,7 +42,7 @@ export default function WebinarsManager({ onNavigate }: { onNavigate?: (section:
   useEffect(() => {
     if (!user) return;
     fetchWebinars();
-  }, [user, bookFilterId]);
+  }, [user, bookFilterId, fetchWebinars]);
 
   const fetchWebinars = async () => {
     setLoading(true);

@@ -140,7 +140,7 @@ function FlowsTab() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchFlows(); }, [user]);
+  useEffect(() => { fetchFlows(); }, [user, fetchFlows]);
 
   const toggleFlowStatus = async (flowId: string, currentStatus: string) => {
     const newStatus = currentStatus === "active" ? "paused" : "active";
@@ -408,7 +408,7 @@ function SubscribersTab() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchSubscribers(); }, [user]);
+  useEffect(() => { fetchSubscribers(); }, [user, fetchSubscribers]);
 
   const handleRemove = async (id: string) => {
     const { error } = await supabase

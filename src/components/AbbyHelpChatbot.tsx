@@ -215,7 +215,7 @@ export default function AbbyHelpChatbot() {
       addMessage("assistant", "Sorry, I'm having trouble connecting. Please try again in a moment.");
     }
     setIsStreaming(false);
-  }, [addMessage]);
+  }, [addMessage, getAuthToken, sessionExpired]);
 
   const sendMessage = useCallback(() => {
     const text = input.trim().slice(0, MAX_INPUT_LENGTH);

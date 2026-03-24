@@ -36,7 +36,7 @@ export default function NotificationCenter({ userId, onNavigate }: Props) {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [userId]);
+  }, [userId, fetchNotifications]);
 
   const fetchNotifications = async () => {
     const { data } = await supabase
