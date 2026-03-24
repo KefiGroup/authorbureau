@@ -26,11 +26,6 @@ export default function ProductReviewQueue({ onNavigate }: Props) {
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!user) return;
-    fetchPending();
-  }, [user]);
-
   const fetchPending = async () => {
     if (!user) return;
     setLoading(true);
@@ -108,10 +103,14 @@ export default function ProductReviewQueue({ onNavigate }: Props) {
     } catch (err) {
       console.error("Failed to fetch pending products:", err);
     }
-
     setPendingProducts(pending);
     setLoading(false);
   };
+
+  useEffect(() => {
+    if (!user) return;
+    fetchPending();
+  }, [user]);
 
   const handlePublish = async (product: PendingProduct) => {
     setPublishing(product.id);

@@ -39,11 +39,6 @@ export default function WebinarsManager({ onNavigate }: { onNavigate?: (section:
   const [editPrice, setEditPrice] = useState("");
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (!user) return;
-    fetchWebinars();
-  }, [user, bookFilterId]);
-
   const fetchWebinars = async () => {
     setLoading(true);
     let query = supabase
@@ -58,6 +53,11 @@ export default function WebinarsManager({ onNavigate }: { onNavigate?: (section:
     if (!error && data) setWebinars(data as any);
     setLoading(false);
   };
+
+  useEffect(() => {
+    if (!user) return;
+    fetchWebinars();
+  }, [user, bookFilterId]);
 
   const selected = webinars.find(w => w.id === selectedId);
 

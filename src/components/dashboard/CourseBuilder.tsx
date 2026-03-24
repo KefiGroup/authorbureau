@@ -35,10 +35,6 @@ export default function CourseBuilder() {
   const bookId = searchParams.get("bookId") || "";
   const bookTitle = searchParams.get("bookTitle") || "";
 
-  useEffect(() => {
-    if (user) fetchCourses();
-  }, [user]);
-
   const fetchCourses = async () => {
     const { data } = await supabase
       .from("courses")
@@ -48,6 +44,10 @@ export default function CourseBuilder() {
     setCourses((data as Course[]) || []);
     setLoading(false);
   };
+
+  useEffect(() => {
+    if (user) fetchCourses();
+  }, [user]);
 
   const handleCreate = async () => {
     if (!newCourse.title.trim()) {

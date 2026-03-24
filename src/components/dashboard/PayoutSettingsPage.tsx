@@ -46,11 +46,6 @@ export default function PayoutSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [hasStripeConnect, setHasStripeConnect] = useState(false);
 
-  useEffect(() => {
-    if (!user?.id) return;
-    loadSettings();
-  }, [user?.id]);
-
   const loadSettings = async () => {
     try {
       // Check Stripe Connect status
@@ -85,6 +80,11 @@ export default function PayoutSettingsPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!user?.id) return;
+    loadSettings();
+  }, [user?.id]);
 
   const handleSave = async () => {
     if (!user?.id) return;

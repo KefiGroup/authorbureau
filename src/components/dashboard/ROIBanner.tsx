@@ -44,11 +44,6 @@ export default function ROIBanner({
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(!compact);
 
-  useEffect(() => {
-    if (!authorId || !bookId) return;
-    loadPortfolio();
-  }, [authorId, bookId, tier]);
-
   const loadPortfolio = async () => {
     setLoading(true);
     try {
@@ -79,6 +74,11 @@ export default function ROIBanner({
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    if (!authorId || !bookId) return;
+    loadPortfolio();
+  }, [authorId, bookId, tier]);
 
   const gapRec = useMemo(() => {
     if (!analysis) return null;

@@ -171,11 +171,6 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (!user) { setLoading(false); return; }
-    fetchProfile();
-  }, [user]);
-
   const getAuthToken = async (): Promise<string | null> => {
     const { data: sharedSession } = await sharedSupabase.auth.getSession();
     if (sharedSession?.session?.access_token) return sharedSession.session.access_token;
@@ -229,6 +224,11 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!user) { setLoading(false); return; }
+    fetchProfile();
+  }, [user]);
 
   // ── Save profile via edge function ──
   const handleSave = async () => {

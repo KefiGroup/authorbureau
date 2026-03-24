@@ -48,9 +48,6 @@ export default function FrameworkInterviewModal({
       setFrameworks(existing);
       setLoading(false);
 
-      if (existing.length === 0 && bookId) {
-        autoExtractFrameworks();
-      }
     })();
   }, [open, user, bookId]);
 

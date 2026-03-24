@@ -44,12 +44,6 @@ export default function GeneratingStep({ config, onComplete, onBack }: Props) {
   const hasStarted = useRef(false);
 
   useEffect(() => {
-    if (hasStarted.current) return;
-    hasStarted.current = true;
-    startGeneration();
-  }, []);
-
-  useEffect(() => {
     if (feedRef.current) {
       feedRef.current.scrollTop = feedRef.current.scrollHeight;
     }
@@ -159,6 +153,12 @@ export default function GeneratingStep({ config, onComplete, onBack }: Props) {
       setState("error");
     }
   };
+
+  useEffect(() => {
+    if (hasStarted.current) return;
+    hasStarted.current = true;
+    startGeneration();
+  }, []);
 
   return (
     <div className="max-w-3xl mx-auto space-y-8 py-8">

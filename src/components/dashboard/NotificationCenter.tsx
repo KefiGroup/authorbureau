@@ -25,19 +25,6 @@ export default function NotificationCenter({ userId, onNavigate }: Props) {
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  useEffect(() => {
-    fetchNotifications();
-    // Subscribe to realtime
-    const channel = supabase
-      .channel('notifications')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` }, (payload) => {
-        setNotifications(prev => [payload.new as Notification, ...prev]);
-      })
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, [userId]);
-
   const fetchNotifications = async () => {
     const { data } = await supabase
       .from("notifications")
@@ -47,6 +34,17 @@ export default function NotificationCenter({ userId, onNavigate }: Props) {
       .limit(20);
     if (data) setNotifications(data as Notification[]);
   };
+
+  useEffect(() => {
+    fetchNotifications();
+    const channel = supabase
+      .channel('notifications')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` }, (payload) => {
+        setNotifications(prev => [payload.new as Notification, ...prev]);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [userId]);
 
   const markAllRead = async () => {
     const unread = notifications.filter(n => !n.read);

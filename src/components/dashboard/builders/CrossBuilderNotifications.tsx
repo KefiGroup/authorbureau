@@ -41,17 +41,17 @@ export default function CrossBuilderNotifications({
   const [expanded, setExpanded] = useState(true);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    if (!authorId || !builderId) return;
-    loadPushes();
-  }, [authorId, builderId, bookId]);
-
   const loadPushes = async () => {
     setLoading(true);
     const data = await fetchPendingPushes(authorId, builderId, bookId);
     setPushes(data as PushRecord[]);
     setLoading(false);
   };
+
+  useEffect(() => {
+    if (!authorId || !builderId) return;
+    loadPushes();
+  }, [authorId, builderId, bookId]);
 
   const handleImport = async (push: PushRecord) => {
     setProcessingIds(prev => new Set(prev).add(push.id));

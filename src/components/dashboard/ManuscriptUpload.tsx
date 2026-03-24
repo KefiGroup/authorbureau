@@ -80,8 +80,6 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
     return token;
   };
 
-  useEffect(() => { (); }, [bookId]);
-
   const checkExisting = async () => {
     setChecking(true);
     try {
@@ -106,6 +104,8 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
       setChecking(false);
     }
   };
+
+  useEffect(() => { checkExisting(); }, [bookId]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

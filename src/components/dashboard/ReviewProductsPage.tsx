@@ -106,11 +106,6 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
   const [activeTab, setActiveTab] = useState("all");
   const [detailProduct, setDetailProduct] = useState<DraftProduct | null>(null);
 
-  useEffect(() => {
-    if (!user) return;
-    fetchDrafts();
-  }, [user]);
-
   const fetchDrafts = async () => {
     if (!user) return;
     setLoading(true);
@@ -163,6 +158,11 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    if (!user) return;
+    fetchDrafts();
+  }, [user]);
 
   const handlePublish = async (product: DraftProduct) => {
     setPublishing(product.id);
