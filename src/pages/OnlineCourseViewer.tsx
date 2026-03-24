@@ -246,7 +246,9 @@ export default function OnlineCourseViewer() {
       if (savedProgress) {
         try {
           setCompletedLessons(new Set(JSON.parse(savedProgress)));
-        } catch {}
+        } catch (error) {
+      console.error(error);
+    }
       }
     } catch (err) {
       console.error("Failed to load course:", err);

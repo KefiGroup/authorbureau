@@ -173,7 +173,9 @@ export default function SharedContentStep({
       try {
         const parsed = JSON.parse(json);
         fullText += parsed.choices?.[0]?.delta?.content || "";
-      } catch {}
+      } catch (error) {
+      console.error(error);
+    }
     }
     return fullText;
   };

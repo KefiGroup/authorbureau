@@ -832,7 +832,9 @@ function WritableSection({ emoji, label, prompt, storageKey, hint }: { emoji: st
 
   const handleChange = (text: string) => {
     setValue(text);
-    try { localStorage.setItem(storageKey, text); } catch {}
+    try { localStorage.setItem(storageKey, text); } catch (error) {
+      console.error(error);
+    }
   };
 
   return (
@@ -870,7 +872,9 @@ function AccountabilityRatingSection({ prompt, storageKey, ratingStorageKey }: {
 
   const handleChange = (text: string) => {
     setValue(text);
-    try { localStorage.setItem(storageKey, text); } catch {}
+    try { localStorage.setItem(storageKey, text); } catch (error) {
+      console.error(error);
+    }
   };
 
   const handleRating = (val: number) => {
@@ -879,7 +883,9 @@ function AccountabilityRatingSection({ prompt, storageKey, ratingStorageKey }: {
     try {
       if (next !== null) localStorage.setItem(ratingStorageKey, String(next));
       else localStorage.removeItem(ratingStorageKey);
-    } catch {}
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (

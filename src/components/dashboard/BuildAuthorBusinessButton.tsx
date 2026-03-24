@@ -112,7 +112,9 @@ export default function BuildAuthorBusinessButton({
                 const parsed = JSON.parse(jsonStr);
                 const delta = parsed.choices?.[0]?.delta?.content;
                 if (delta) accumulated += delta;
-              } catch {}
+              } catch (error) {
+      console.error(error);
+    }
             }
           }
         }
@@ -130,7 +132,9 @@ export default function BuildAuthorBusinessButton({
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
             body: JSON.stringify({ assetType: toolType, bookId, rawContent: accumulated }),
           });
-        } catch {}
+        } catch (error) {
+      console.error(error);
+    }
 
         setItems(prev => prev.map((item, idx) =>
           idx === i ? { ...item, status: "done", resultTitle: buildItems[i].product.title } : item

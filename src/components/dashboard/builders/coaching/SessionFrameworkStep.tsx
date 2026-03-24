@@ -71,7 +71,9 @@ Return ONLY a JSON array, no markdown.`,
         try {
           const parsed = JSON.parse(json);
           fullText += parsed.choices?.[0]?.delta?.content || "";
-        } catch {}
+        } catch (error) {
+      console.error(error);
+    }
       }
 
       // Extract JSON from response

@@ -98,7 +98,9 @@ export default function AdminDashboard() {
       try {
         const adminsData = await adminApi.listAdmins();
         adminsCount = (adminsData?.admins || adminsData?.data || []).length;
-      } catch {}
+      } catch (error) {
+      console.error(error);
+    }
 
       setPendingBookCount(pendingBooks);
       setPendingAuthorCount(pendingAuthorsCount);
@@ -120,7 +122,9 @@ export default function AdminDashboard() {
           return res.ok ? await res.json() : null;
         })();
         authorCount = authorsRes?.authors?.length ?? 0;
-      } catch {}
+      } catch (error) {
+      console.error(error);
+    }
 
       setStats({
         total_users: authorCount,
@@ -153,7 +157,9 @@ export default function AdminDashboard() {
       const data = await adminFetch("pending-counts");
       setPendingBookCount(data.pendingBooks || 0);
       setPendingAuthorCount(data.pendingAuthors || 0);
-    } catch {}
+    } catch (error) {
+      console.error(error);
+    }
   }, []);
 
   const fetchAdmins = useCallback(async () => {

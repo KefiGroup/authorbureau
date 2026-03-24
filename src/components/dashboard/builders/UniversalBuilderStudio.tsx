@@ -1479,7 +1479,9 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                                     </details>
                                   ));
                                 }
-                              } catch {}
+                              } catch (error) {
+      console.error(error);
+    }
                               // Fallback: plain text
                               return <p className="text-sm text-muted-foreground whitespace-pre-wrap">{previewContentText || builderGen.generatedContent}</p>;
                             })()}

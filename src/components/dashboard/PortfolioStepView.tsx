@@ -91,7 +91,9 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
                 });
               }
             });
-          } catch {}
+          } catch (error) {
+      console.error(error);
+    }
         });
         setRecommendations(recs);
 

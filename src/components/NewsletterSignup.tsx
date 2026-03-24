@@ -53,7 +53,9 @@ export default function NewsletterSignup({ bookId, authorName, authorId }: Newsl
             }),
           }
         );
-      } catch {}
+      } catch (error) {
+      console.error(error);
+    }
     } catch (err: any) {
       toast({ title: "Something went wrong", description: err.message || "Please try again.", variant: "destructive" });
     } finally {

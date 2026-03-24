@@ -96,7 +96,9 @@ Generate 8 sections covering the full webinar. Make the script compelling with s
             const parsed = JSON.parse(json);
             const delta = parsed.choices?.[0]?.delta?.content;
             if (delta) accumulated += delta;
-          } catch {}
+          } catch (error) {
+      console.error(error);
+    }
         }
       }
 

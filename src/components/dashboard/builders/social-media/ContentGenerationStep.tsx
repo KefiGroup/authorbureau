@@ -103,7 +103,9 @@ Generate 3-5 posts per week per platform. Space them evenly. Start from tomorrow
             const parsed = JSON.parse(json);
             const delta = parsed.choices?.[0]?.delta?.content;
             if (delta) accumulated += delta;
-          } catch {}
+          } catch (error) {
+      console.error(error);
+    }
         }
       }
 

@@ -267,7 +267,9 @@ function tryParsePartialPosts(content: string): Partial<SocialPost>[] {
     if (objects) {
       try {
         return objects.map(o => JSON.parse(o)).filter(o => o.caption || o.platform);
-      } catch {}
+      } catch (error) {
+      console.error(error);
+    }
     }
   }
   return [];

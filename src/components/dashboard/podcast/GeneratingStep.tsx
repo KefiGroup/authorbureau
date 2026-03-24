@@ -206,7 +206,9 @@ function tryParsePartialEpisodes(content: string): Partial<PodcastEpisode>[] {
   } catch {
     const objects = content.match(/\{[^{}]*\}/g);
     if (objects) {
-      try { return objects.map(o => JSON.parse(o)).filter(o => o.title || o.episode_number); } catch {}
+      try { return objects.map(o => JSON.parse(o)).filter(o => o.title || o.episode_number); } catch (error) {
+      console.error(error);
+    }
     }
   }
   return [];
