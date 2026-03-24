@@ -40,7 +40,7 @@ export default function ManuscriptOptimizationStep({ stepData, setStepData, onMa
         const text = result.response || result.content || JSON.stringify(result);
         const match = text.match(/\[[\s\S]*\]/);
         if (match) parsed = JSON.parse(match[0]);
-      } catch {
+      } catch (error) {
         parsed = Array.from({ length: 10 }, (_, i) => ({
           id: `ch-${i + 1}`,
           title: `Chapter ${i + 1}`,
@@ -56,7 +56,7 @@ export default function ManuscriptOptimizationStep({ stepData, setStepData, onMa
       onMarkEdited("optimize");
       setGenerationState("complete");
       toast.success(`Optimized ${parsed.length} chapters for audio!`);
-    } catch {
+    } catch (error) {
       setGenerationState("error");
       toast.error("Failed to optimize manuscript");
     }

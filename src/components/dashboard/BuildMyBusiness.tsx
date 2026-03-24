@@ -301,7 +301,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
               accumulated += delta;
               setMessages(prev => { const copy = [...prev]; copy[copy.length - 1] = { role: "assistant", content: accumulated }; return copy; });
             }
-          } catch { textBuffer = line + "\n" + textBuffer; break; }
+          } catch (error) { textBuffer = line + "\n" + textBuffer; break; }
         }
       }
 
@@ -315,7 +315,9 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${saveToken || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
             body: JSON.stringify({ action: "save-plan", bookId: selectedBook.id, content: allAssistantContent }),
           });
-        } catch {}
+        } catch (error) {
+      console.error(error);
+    }
       }
     } catch (err: any) {
       if (!abort.signal.aborted) {
@@ -557,7 +559,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
             const parsed = JSON.parse(jsonStr);
             const delta = parsed.choices?.[0]?.delta?.content;
             if (delta) accumulated += delta;
-          } catch { break; }
+          } catch (error) { console.error(error); break; }
         }
       }
 
@@ -579,7 +581,9 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
           body: JSON.stringify({ assetType: toolType, bookId: selectedBook.id, rawContent: accumulated, appendMode: isOneEach, frameworkName: frameworks.length === 1 ? frameworks[0].name : undefined }),
         });
-      } catch {}
+      } catch (error) {
+      console.error(error);
+    }
 
       const productLink = getProductLink(toolType);
       const linkText = productLink ? `\n\n👉 [${productLink.label} →](${productLink.path})` : "";
@@ -642,7 +646,9 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
       try {
         const headers = await getSessionHeaders();
         await fetch(CONSULTATION_SESSION_URL, { method: "POST", headers, body: JSON.stringify({ action: "reset", session_id: sessionId }) });
-      } catch {}
+      } catch (error) {
+      console.error(error);
+    }
     }
     setMessages([]); updateSessionId(null); setInput(""); setAbbyReading(false); setReadingProgress(0);
     if (goBackToBookSelect) setSelectedBook(null);

@@ -135,7 +135,7 @@ export default function ReaderContentViewer() {
         const parsed = JSON.parse(data.studyData.content_markdown);
         if (Array.isArray(parsed)) rawDays = parsed;
         else if (parsed?.days && Array.isArray(parsed.days)) rawDays = parsed.days;
-      } catch { /* not JSON */ }
+      } catch (error) { console.error(error); }
     }
     if (rawDays && rawDays.length > 0) {
       setDays(rawDays.map((d: any, i: number) => ({
@@ -827,12 +827,14 @@ function ContentSection({ emoji, label, content, hint, highlight }: { emoji: str
 
 function WritableSection({ emoji, label, prompt, storageKey, hint }: { emoji: string; label: string; prompt: string; storageKey: string; hint?: string }) {
   const [value, setValue] = useState(() => {
-    try { return localStorage.getItem(storageKey) || ""; } catch { return ""; }
+    try { return localStorage.getItem(storageKey) || ""; } catch (error) { return ""; }
   });
 
   const handleChange = (text: string) => {
     setValue(text);
-    try { localStorage.setItem(storageKey, text); } catch {}
+    try { localStorage.setItem(storageKey, text); } catch (error) {
+      console.error(error);
+    }
   };
 
   return (
@@ -859,18 +861,20 @@ function WritableSection({ emoji, label, prompt, storageKey, hint }: { emoji: st
 
 function AccountabilityRatingSection({ prompt, storageKey, ratingStorageKey }: { prompt: string; storageKey: string; ratingStorageKey: string }) {
   const [value, setValue] = useState(() => {
-    try { return localStorage.getItem(storageKey) || ""; } catch { return ""; }
+    try { return localStorage.getItem(storageKey) || ""; } catch (error) { return ""; }
   });
   const [rating, setRating] = useState<number | null>(() => {
     try {
       const stored = localStorage.getItem(ratingStorageKey);
       return stored ? parseInt(stored, 10) : null;
-    } catch { return null; }
+    } catch (error) { return null; }
   });
 
   const handleChange = (text: string) => {
     setValue(text);
-    try { localStorage.setItem(storageKey, text); } catch {}
+    try { localStorage.setItem(storageKey, text); } catch (error) {
+      console.error(error);
+    }
   };
 
   const handleRating = (val: number) => {
@@ -879,7 +883,9 @@ function AccountabilityRatingSection({ prompt, storageKey, ratingStorageKey }: {
     try {
       if (next !== null) localStorage.setItem(ratingStorageKey, String(next));
       else localStorage.removeItem(ratingStorageKey);
-    } catch {}
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (

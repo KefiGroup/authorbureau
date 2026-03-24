@@ -213,7 +213,7 @@ export default function AuthorProductPage() {
       });
       if (error || !data?.url) { toast({ title: "Error", description: "Could not start checkout.", variant: "destructive" }); return; }
       window.location.href = data.url;
-    } catch {
+    } catch (error) {
       toast({ title: "Error", description: "Something went wrong.", variant: "destructive" });
     } finally { setBuying(false); }
   }, [product, author, buying, authorSlug, bookSlug, productType]);
@@ -322,7 +322,7 @@ export default function AuthorProductPage() {
         } else {
           setSalesPageContent(rawSalesContent);
         }
-      } catch {
+      } catch (error) {
         setSalesPageContent(rawSalesContent);
       }
     }

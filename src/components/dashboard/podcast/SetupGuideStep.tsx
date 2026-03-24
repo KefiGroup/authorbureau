@@ -88,7 +88,7 @@ export default function PodcastSetupGuideStep({ onNext, bookTitle = "", bookCove
       const restored: Record<string, Set<number>> = {};
       Object.entries(parsed).forEach(([id, indices]) => { restored[id] = new Set(indices); });
       setCompletedSteps(restored);
-    } catch { /* no-op */ }
+    } catch (error) { console.error(error); }
   }, [checklistStorageKey]);
 
   useEffect(() => {

@@ -33,7 +33,7 @@ function parseSectionPayload(rawText: string) {
   for (const attempt of attempts) {
     try {
       return JSON.parse(attempt);
-    } catch {
+    } catch (error) {
       // continue
     }
   }

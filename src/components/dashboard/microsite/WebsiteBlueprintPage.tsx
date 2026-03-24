@@ -88,7 +88,7 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
           const result = await response.json();
           if (!response.ok) return { books: [] };
           return { books: result.books || [] };
-        } catch {
+        } catch (error) {
           return { books: [] };
         }
       })(),

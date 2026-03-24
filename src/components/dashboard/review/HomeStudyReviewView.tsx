@@ -163,7 +163,7 @@ export default function HomeStudyReviewView({
           if (Array.isArray(parsed)) {
             nextDays = parsed as StudyDay[];
           }
-        } catch {
+        } catch (error) {
           // It's real markdown, not JSON
         }
       }
@@ -182,7 +182,7 @@ export default function HomeStudyReviewView({
       if (!markdownFallback && courseRecord?.content_markdown) {
         try {
           JSON.parse(courseRecord.content_markdown);
-        } catch {
+        } catch (error) {
           markdownFallback = courseRecord.content_markdown;
         }
       }
@@ -317,7 +317,7 @@ export default function HomeStudyReviewView({
 
       toast({ title: "Saved!", description: "Your changes have been saved." });
       setDrawerOpen(null);
-    } catch {
+    } catch (error) {
       toast({ title: "Save failed", variant: "destructive" });
     }
     setSaving(false);
@@ -371,7 +371,7 @@ export default function HomeStudyReviewView({
 
       toast({ title: "Sales page saved!" });
       setDrawerOpen(null);
-    } catch {
+    } catch (error) {
       toast({ title: "Save failed", variant: "destructive" });
     }
     setSaving(false);

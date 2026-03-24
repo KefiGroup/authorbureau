@@ -37,7 +37,7 @@ export default function PurchaseSuccess() {
 
         setData(result);
         setStatus("success");
-      } catch {
+      } catch (error) {
         setStatus("error");
       }
     }

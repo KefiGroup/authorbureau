@@ -99,7 +99,7 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
         setHasManuscript(false);
         setCharCount(null);
       }
-    } catch {
+    } catch (error) {
       setHasManuscript(false);
       setCharCount(null);
     } finally {
@@ -155,7 +155,7 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
         let result: any;
         try {
           result = await resp.json();
-        } catch {
+        } catch (error) {
           throw new Error("Server returned an invalid response. Please try again.");
         }
         if (!resp.ok) throw new Error(result.error || "Upload failed");
@@ -182,7 +182,7 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
         let result: any;
         try {
           result = await resp.json();
-        } catch {
+        } catch (error) {
           throw new Error("Server returned an invalid response. The file may be too large — try converting to TXT or PDF first.");
         }
         if (!resp.ok) throw new Error(result.error || "Parse failed");
@@ -220,7 +220,7 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
       setHasManuscript(false);
       setCharCount(null);
       toast.success("Manuscript removed.");
-    } catch {
+    } catch (error) {
       toast.error("Failed to remove manuscript.");
     } finally {
       setUploading(false);

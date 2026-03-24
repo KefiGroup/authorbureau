@@ -268,7 +268,7 @@ export default function BookHubStepTab({ categoryId, bookId, bookTitle, bookGenr
                       });
                       setNotifiedNodes(prev => new Set(prev).add(node.id));
                       toast({ title: "We'll notify you!", description: `You'll be notified when ${node.label} becomes available.` });
-                    } catch {
+                    } catch (error) {
                       toast({ title: "Error", description: "Could not register interest. Please try again.", variant: "destructive" });
                     }
                   };

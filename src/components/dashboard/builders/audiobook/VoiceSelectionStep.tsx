@@ -76,7 +76,7 @@ export default function VoiceSelectionStep({ stepData, setStepData, onMarkEdited
       const audio = new Audio(url);
       audio.onended = () => setPlayingId(null);
       await audio.play();
-    } catch {
+    } catch (error) {
       toast.error("Could not play voice preview");
       setPlayingId(null);
     }

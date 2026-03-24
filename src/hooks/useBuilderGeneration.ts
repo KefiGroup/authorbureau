@@ -277,7 +277,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
               accumulated += delta;
               setState(prev => ({ ...prev, generatedContent: accumulated }));
             }
-          } catch {
+          } catch (error) {
             // Partial JSON, re-buffer
             buffer = line + "\n" + buffer;
             break;
@@ -310,7 +310,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
                 content: salesPageText,
               } as any);
             }
-          } catch { /* Non-blocking */ }
+          } catch (error) { console.error(error); }
         }
 
         // Save product content as separate asset
@@ -330,7 +330,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
               content: contentToSave,
             } as any);
           }
-        } catch {
+        } catch (error) {
           // Non-blocking save failure
         }
       }
@@ -371,7 +371,6 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
 
             pushResult = { pushed: result.pushed, errors: result.errors };
             if (result.pushed > 0) {
-              console.log(`Cross-builder: pushed ${result.pushed} outputs from ${builderId}`);
             }
           }
         } catch (pushErr) {

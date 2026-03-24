@@ -32,7 +32,7 @@ export default function PlatformAccessTab() {
     try {
       const data = await adminApi.listPlatformUsers();
       setUsers(data?.users || data?.data || []);
-    } catch {
+    } catch (error) {
       toast({ title: "Failed to load platform users", variant: "destructive" });
     }
     setLoading(false);
@@ -65,7 +65,7 @@ export default function PlatformAccessTab() {
     try {
       await adminApi.togglePlatformAccess(user.user_id, platform, enabled);
       toast({ title: `${platform} access ${enabled ? "granted" : "revoked"} for ${user.email}` });
-    } catch {
+    } catch (error) {
       // Revert
       setUsers((prev) =>
         prev.map((u) => {

@@ -35,7 +35,7 @@ async function getFunctionErrorMessage(error: unknown): Promise<string> {
         if (payload?.error && typeof payload.error === "string") {
           return payload.error;
         }
-      } catch {
+      } catch (error) {
         // Ignore body parse failures and use fallback error.
       }
     }
@@ -64,7 +64,7 @@ export function useStripeConnect() {
         onboarding_complete: data.onboarding_complete ?? false,
         loading: false,
       });
-    } catch {
+    } catch (error) {
       setState(prev => ({ ...prev, loading: false }));
     }
   }, [user]);

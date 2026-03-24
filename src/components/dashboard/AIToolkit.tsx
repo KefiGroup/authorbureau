@@ -143,7 +143,7 @@ export default function AIToolkit() {
               accumulated += content;
               setResult(accumulated);
             }
-          } catch {
+          } catch (error) {
             textBuffer = line + "\n" + textBuffer;
             break;
           }

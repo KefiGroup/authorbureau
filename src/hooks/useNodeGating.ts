@@ -49,7 +49,7 @@ export function useNodeGating() {
 
       if (error) throw error;
       setGating(sortRows((data || []) as NodeGatingRow[]));
-    } catch {
+    } catch (error) {
       setGating([]);
     } finally {
       setLoading(false);
@@ -99,7 +99,7 @@ export function useNodeGating() {
       });
 
       return true;
-    } catch {
+    } catch (error) {
       return false;
     }
   }, []);
@@ -131,7 +131,7 @@ export function useNodeGating() {
       });
 
       return true;
-    } catch {
+    } catch (error) {
       return false;
     }
   }, []);

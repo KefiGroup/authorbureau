@@ -103,9 +103,8 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
         const parsed: ChapterAudio[] = JSON.parse(saved);
         if (parsed.length > 0) {
           setChapters(parsed);
-          console.log(`Restored ${parsed.length} chapters from cache`);
         }
-      } catch { /* ignore */ }
+      } catch (error) { console.error(error); }
     }
 
     // Also check storage bucket for any previously generated audio files
@@ -160,7 +159,7 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
         if (data?.status === "distributing" || data?.status === "distributed") {
           setDistributionStatus(data.status === "distributed" ? "distributed" : "distributing");
         }
-      } catch { /* ignore */ }
+      } catch (error) { console.error(error); }
     })();
   }, [bookId, userId]);
 
@@ -401,7 +400,7 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(blobUrl);
-    } catch {
+    } catch (error) {
       // Fallback: open in new tab
       window.open(url, "_blank");
     }

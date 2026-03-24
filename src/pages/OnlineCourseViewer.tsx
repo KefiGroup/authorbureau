@@ -187,7 +187,7 @@ export default function OnlineCourseViewer() {
             if (l.content) {
               try {
                 parsedContent = JSON.parse(l.content);
-              } catch {
+              } catch (error) {
                 // Not JSON, treat as script text
                 parsedContent = { script: l.content };
               }
@@ -246,7 +246,9 @@ export default function OnlineCourseViewer() {
       if (savedProgress) {
         try {
           setCompletedLessons(new Set(JSON.parse(savedProgress)));
-        } catch {}
+        } catch (error) {
+      console.error(error);
+    }
       }
     } catch (err) {
       console.error("Failed to load course:", err);

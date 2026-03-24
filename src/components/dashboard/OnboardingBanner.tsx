@@ -8,7 +8,7 @@ interface Props {
 
 export default function OnboardingBanner({ message, storageKey }: Props) {
   const [dismissed, setDismissed] = useState(() => {
-    try { return localStorage.getItem(storageKey) === "true"; } catch { return false; }
+    try { return localStorage.getItem(storageKey) === "true"; } catch (error) { return false; }
   });
 
   if (dismissed) return null;
@@ -20,7 +20,7 @@ export default function OnboardingBanner({ message, storageKey }: Props) {
       <button
         onClick={() => {
           setDismissed(true);
-          try { localStorage.setItem(storageKey, "true"); } catch { /* */ }
+          try { localStorage.setItem(storageKey, "true"); } catch (error) { console.error(error); }
         }}
         className="text-amber-600/60 hover:text-amber-600 transition-colors shrink-0"
       >

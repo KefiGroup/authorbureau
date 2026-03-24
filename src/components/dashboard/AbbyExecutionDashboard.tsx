@@ -162,7 +162,7 @@ export default function AbbyExecutionDashboard({
                   accumulated += delta;
                   setGeneratedContent(accumulated);
                 }
-              } catch { break; }
+              } catch (error) { console.error(error); break; }
             }
           }
 
@@ -198,7 +198,7 @@ export default function AbbyExecutionDashboard({
                 rawContent: generatedContent,
               }),
             });
-          } catch { /* non-critical */ }
+          } catch (error) { console.error(error); }
 
           setSteps(prev => prev.map((s, idx) =>
             idx === i ? { ...s, status: "completed" } : s

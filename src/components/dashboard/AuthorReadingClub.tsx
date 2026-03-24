@@ -144,7 +144,7 @@ export default function AuthorReadingClub({ onNavigate }: Props) {
         setFeaturedBooks(results);
         setTotalReaders(Object.values(participantCounts).reduce((a, b) => a + b, 0));
         setTotalDiscussions(Object.values(discussionCounts).reduce((a, b) => a + b, 0));
-      } catch {
+      } catch (error) {
         toast({ title: "Failed to load Reading Club data", variant: "destructive" });
       }
       setLoading(false);

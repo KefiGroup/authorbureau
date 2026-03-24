@@ -41,7 +41,7 @@ async function authFetch(body: Record<string, unknown>) {
   if (!res.ok) {
     // If backend returns a redirect URL even on error responses, follow it
     if (data?.authUrl) {
-      console.log("[Auth] authFetch: error response contained authUrl, redirecting:", data.authUrl);
+      console.debug("[Auth] authFetch: error response contained authUrl, redirecting:", data.authUrl);
       window.location.href = data.authUrl;
       return data;
     }
@@ -197,7 +197,7 @@ export default function Auth() {
     try {
       try {
         const data = await authFetch({ action: "verify", email: email.trim(), code });
-        console.log("[Auth] verify response:", JSON.stringify(data));
+        console.debug("[Auth] verify response:", JSON.stringify(data));
         if (data && data.success === false) {
           throw new Error(data.error || "Verification failed. Please try again.");
         }
@@ -212,7 +212,7 @@ export default function Auth() {
       } catch (primaryErr: any) {
         const msg = primaryErr?.message || "";
         // Fallback: try local Supabase OTP verification (works if code was sent via local fallback)
-        console.log("[Auth] Primary OTP verify failed, trying local fallback...", msg);
+        console.debug("[Auth] Primary OTP verify failed, trying local fallback...", msg);
         const { data: localAuth, error: localErr } = await supabase.auth.verifyOtp({
           email: email.trim(),
           token: code,
@@ -226,7 +226,7 @@ export default function Auth() {
             : msg || "Invalid or expired code. Please request a new one.");
         }
         // Local verification succeeded
-        console.log("[Auth] Local OTP fallback succeeded");
+        console.debug("[Auth] Local OTP fallback succeeded");
       }
     } catch (err: any) {
       toast({ title: err.message, variant: "destructive" });
@@ -243,7 +243,7 @@ export default function Auth() {
     try {
       try {
         const data = await authFetch({ action: "password_login", email: email.trim(), password });
-        console.log("[Auth] password_login response:", JSON.stringify(data));
+        console.debug("[Auth] password_login response:", JSON.stringify(data));
         if (data && data.success === false) {
           throw new Error(data.error || "Sign-in failed. Please try again.");
         }
@@ -304,7 +304,7 @@ export default function Auth() {
         code: otp,
         password,
       });
-      console.log("[Auth] reset_password response:", JSON.stringify(data));
+      console.debug("[Auth] reset_password response:", JSON.stringify(data));
       if (data && data.success === false) {
         throw new Error(data.error || "Password reset failed. Please try again.");
       }

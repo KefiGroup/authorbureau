@@ -272,7 +272,7 @@ Return ONLY valid JSON.`;
       let result: GeneratedLessonContent;
       try {
         result = await generateJSONWithAI<GeneratedLessonContent>(basePrompt, aiOptions);
-      } catch {
+      } catch (error) {
         result = await generateJSONWithAI<GeneratedLessonContent>(
           `${basePrompt}\n\nSTRICT FORMAT: Start with { and end with }. No markdown, no prose, no code fences, no comments.`,
           aiOptions,
@@ -319,7 +319,7 @@ Use well-known sites (HBR, TED, Coursera, Google Docs, Notion, Canva, Wikipedia,
               aiOptions,
             );
             normalizedResources = normalizeResourcesInput(resourceResult.resources);
-          } catch {
+          } catch (error) {
             // Fallback below
           }
         }

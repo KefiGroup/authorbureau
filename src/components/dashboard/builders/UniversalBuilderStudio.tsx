@@ -2,8 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, ArrowRight, BookOpen, Check, ChevronDown, Loader2, Save,
-  Sparkles, X, Send, ChevronLeft, Lock, AlertCircle, Wand2, Pencil,
+  BookOpen, Check, ChevronDown, Loader2, Save, ArrowRight,
+  Sparkles, ChevronLeft, AlertCircle, Wand2, Pencil,
 } from "lucide-react";
 import AbbyNarrativeLoading from "./AbbyNarrativeLoading";
 import BuilderFooter from "./shared/BuilderFooter";
@@ -17,7 +17,12 @@ import BehindTheDesignPanel from "./shared/BehindTheDesignPanel";
 import CrossBuilderNotifications from "./CrossBuilderNotifications";
 import CrossBuilderPushSummary from "./CrossBuilderPushSummary";
 import BuilderUpgradeGate from "./BuilderUpgradeGate";
-import { BUILDER_SYSTEM_PROMPTS } from "./builderSystemPrompts";
+import AbbyAdvisorSidePanel from "./AbbyAdvisorSidePanel";
+import {
+  extractHomeStudyDaysFromContent,
+  mapCoursePriceTier,
+  buildCourseModulesFromStructure,
+} from "./builderUtils";
 import { useBuilderGeneration, splitSalesAndContent } from "@/hooks/useBuilderGeneration";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -111,192 +116,7 @@ interface Props {
   onNavigate?: (section: string) => void;
 }
 
-const AI_GATEWAY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/business-consultant`;
-
-function extractBalancedJsonBlock(source: string, openChar: "[" | "{", closeChar: "]" | "}"): string | null {
-  for (let start = source.indexOf(openChar); start !== -1; start = source.indexOf(openChar, start + 1)) {
-    let depth = 0;
-    let inString = false;
-    let escaped = false;
-
-    for (let i = start; i < source.length; i++) {
-      const char = source[i];
-
-      if (inString) {
-        if (escaped) {
-          escaped = false;
-        } else if (char === "\\") {
-          escaped = true;
-        } else if (char === '"') {
-          inString = false;
-        }
-        continue;
-      }
-
-      if (char === '"') {
-        inString = true;
-        continue;
-      }
-
-      if (char === openChar) depth += 1;
-      if (char === closeChar) {
-        depth -= 1;
-        if (depth === 0) {
-          return source.slice(start, i + 1).trim();
-        }
-      }
-    }
-  }
-
-  return null;
-}
-
-function extractHomeStudyDaysFromContent(rawContent: string): Array<Record<string, any>> {
-  const trimmed = (rawContent || "").trim();
-  if (!trimmed) return [];
-
-  const candidates: string[] = [trimmed];
-  const fencedMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  if (fencedMatch?.[1]) candidates.unshift(fencedMatch[1].trim());
-
-  const arrayCandidate = extractBalancedJsonBlock(trimmed, "[", "]");
-  if (arrayCandidate) candidates.push(arrayCandidate);
-
-  const objectCandidate = extractBalancedJsonBlock(trimmed, "{", "}");
-  if (objectCandidate) candidates.push(objectCandidate);
-
-  const seen = new Set<string>();
-  for (const candidate of candidates) {
-    const normalized = candidate.trim();
-    if (!normalized || seen.has(normalized)) continue;
-    seen.add(normalized);
-
-    try {
-      const parsed = JSON.parse(normalized);
-      const rawDays = Array.isArray(parsed)
-        ? parsed
-        : Array.isArray(parsed?.days)
-          ? parsed.days
-          : Array.isArray(parsed?.daily_schedule)
-            ? parsed.daily_schedule
-            : [];
-
-      if (!Array.isArray(rawDays) || rawDays.length === 0) continue;
-
-      return rawDays.map((day: any, idx: number) => {
-        const dayNumber = Number(day?.dayNumber ?? day?.day_number ?? idx + 1);
-        const weekNumber = Number(day?.weekNumber ?? day?.week_number ?? Math.floor((dayNumber - 1) / 7) + 1);
-
-        return {
-          id: typeof day?.id === "string" && day.id ? day.id : crypto.randomUUID(),
-          dayNumber,
-          weekNumber,
-          theme: String(day?.theme ?? ""),
-          chapterRef: String(day?.chapterRef ?? day?.chapter_ref ?? ""),
-          reading: String(day?.reading ?? day?.concept ?? ""),
-          concept: String(day?.concept ?? day?.reading ?? ""),
-          exercise: String(day?.exercise ?? ""),
-          reflection: String(day?.reflection ?? ""),
-          actionPlan: String(day?.actionPlan ?? day?.action_plan ?? ""),
-          fieldAssignment: String(day?.fieldAssignment ?? day?.field_assignment ?? ""),
-          accountabilityCheck: String(day?.accountabilityCheck ?? day?.accountability_check ?? ""),
-          microHabit: String(day?.microHabit ?? day?.micro_habit ?? ""),
-          isCatchUp: Boolean(day?.isCatchUp ?? day?.is_catch_up ?? (dayNumber % 7 === 0)),
-        };
-      });
-    } catch {
-      // try next parse candidate
-    }
-  }
-
-  return [];
-}
-
-function mapCoursePriceTier(price: number): string {
-  if (!Number.isFinite(price) || price <= 0) return "0";
-  if (price <= 47) return "37";
-  if (price <= 197) return "147";
-  return "297";
-}
-
-function buildCourseModulesFromStructure(structure: any[] | undefined): Array<Record<string, any>> {
-  if (!Array.isArray(structure)) return [];
-
-  const getStringArray = (value: any): string[] =>
-    Array.isArray(value)
-      ? value
-          .map((item) => String(item ?? "").trim())
-          .filter(Boolean)
-      : [];
-
-  return structure
-    .filter((section) => section && (section.title || section.name || Array.isArray(section.items) || Array.isArray(section.lessons)))
-    .map((section, moduleIndex) => {
-      const learningObjectives = getStringArray(section.learning_objectives ?? section.learningObjectives);
-      const sourceChapters = getStringArray(section.source_chapters ?? section.sourceChapters);
-      const debriefPoints = getStringArray(section.debrief_points ?? section.debriefPoints);
-
-      const rawLessonItems =
-        (Array.isArray(section.items) && section.items) ||
-        (Array.isArray(section.lessons) && section.lessons) ||
-        (Array.isArray(section.topics) && section.topics) ||
-        learningObjectives.map((objective) => ({ title: objective }));
-
-      const lessons = rawLessonItems
-        .map((item: any, lessonIndex: number) => {
-          const normalized = typeof item === "string" ? { title: item } : (item || {});
-          const title = String(
-            normalized.title ||
-            normalized.lesson_title ||
-            normalized.name ||
-            normalized.topic ||
-            normalized.objective ||
-            `Lesson ${lessonIndex + 1}`,
-          ).trim();
-
-          if (!title) return null;
-
-          return {
-            id: crypto.randomUUID(),
-            title,
-            description: String(normalized.description || normalized.summary || ""),
-            keyTakeaway: String(normalized.keyTakeaway || normalized.key_takeaway || ""),
-            estimatedMinutes: Number(normalized.estimatedMinutes ?? normalized.estimated_minutes) || 15,
-            position: lessonIndex,
-          };
-        })
-        .filter(Boolean) as Array<Record<string, any>>;
-
-      if (lessons.length === 0) {
-        lessons.push({
-          id: crypto.randomUUID(),
-          title: `${String(section.title || section.name || `Module ${moduleIndex + 1}`)} — Core Lesson`,
-          description: String(section.description || section.content_summary || ""),
-          keyTakeaway: "",
-          estimatedMinutes: 15,
-          position: 0,
-        });
-      }
-
-      return {
-        id: crypto.randomUUID(),
-        moduleNumber: Number(section.module_number ?? section.moduleNumber) || moduleIndex + 1,
-        title: String(section.title || section.name || `Module ${moduleIndex + 1}`),
-        description: String(section.description || section.content_summary || section.contentSummary || ""),
-        bloomsLevel: String(section.blooms_level || section.bloomsLevel || section.bloom_level || ""),
-        kolbsStage: String(section.kolbs_stage || section.kolbsStage || section.kolb_stage || ""),
-        learningObjectives,
-        contentSummary: String(section.content_summary || section.contentSummary || section.description || ""),
-        facilitatorActivity: String(section.facilitator_activity || section.facilitatorActivity || ""),
-        debriefPoints: debriefPoints.length > 0 ? debriefPoints : ["", "", ""],
-        workbookPageDescription: String(section.workbook_page || section.workbookPage || section.workbook_page_description || ""),
-        durationMinutes: Number(section.duration_minutes ?? section.durationMinutes ?? section.duration) || 60,
-        sourceChapters,
-        position: moduleIndex,
-        lessons,
-      };
-    });
-}
+// Utility functions moved to ./builderUtils.ts
 
 export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props) {
   const [searchParams] = useSearchParams();
@@ -312,7 +132,7 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
     ? (() => {
         try {
           return decodeURIComponent(rawBookCoverUrl);
-        } catch {
+        } catch (error) {
           return rawBookCoverUrl;
         }
       })()
@@ -447,11 +267,6 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
 
   // Abby advisor panel
   const [abbyOpen, setAbbyOpen] = useState(false);
-  const [abbyMessages, setAbbyMessages] = useState<Array<{ role: string; content: string }>>([]);
-  const [showFirstVisit, setShowFirstVisit] = useState(() => !hasSeenBuilderFirstVisit(nodeConfig.id));
-  const [abbyInput, setAbbyInput] = useState("");
-  const [abbyStreaming, setAbbyStreaming] = useState(false);
-  const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Plan context
   const { plan, loading: planLoading } = useAbbyPlan(bookId);
@@ -587,10 +402,7 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
     return () => { if (autoSaveRef.current) clearInterval(autoSaveRef.current); };
   }, [handleSaveDraft]);
 
-  // Scroll chat to bottom
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [abbyMessages]);
+  // (Abby chat scroll moved to AbbyAdvisorSidePanel)
 
   // Load saved draft on mount
   const draftLoadedRef = useRef(false);
@@ -781,100 +593,7 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
     };
   }, [user, bookId, nodeConfig.id, inferStepFromDraftData, draftLoadAttempt, clampStepIndex]);
 
-  // Abby chat
-  const getToken = async (): Promise<string> => {
-    const { data } = await supabase.auth.getSession();
-    return data?.session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-  };
-
-  const sendAbbyMessage = useCallback(async () => {
-    if (!abbyInput.trim() || abbyStreaming) return;
-    const userMsg = { role: "user", content: abbyInput.trim() };
-    const newMsgs = [...abbyMessages, userMsg];
-    setAbbyMessages(newMsgs);
-    setAbbyInput("");
-    setAbbyStreaming(true);
-
-    try {
-      const token = await getToken();
-      const currentStepConfig = nodeConfig.steps[clampStepIndex(currentStep)] ?? nodeConfig.steps[0];
-      const resp = await fetch(AI_GATEWAY_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: "system",
-              content: `${BUILDER_SYSTEM_PROMPTS[nodeConfig.id] || `You are Abby, the AI business advisor for Authors Bureau. You're helping an author build a "${nodeConfig.label}" product.`}
-
-CONTEXT:
-- Book: "${bookTitle}"
-- Current step: "${currentStepConfig?.label}" \u2014 ${currentStepConfig?.description}
-- Step tip: ${currentStepConfig?.abbyTip}
-
-IMPORTANT RULES:
-- Stay focused ONLY on building this specific ${nodeConfig.label}. Never suggest leaving this page or going to another section.
-- Give practical, step-by-step advice about creating, designing, and publishing this product.
-- When suggesting titles, suggest exactly 3 options based on the book\u2019s frameworks and themes.
-- Keep responses brief (under 150 words), actionable, and encouraging.
-- Reference specific chapters, frameworks, and concepts from the manuscript when giving advice.
-- Use the book\u2019s own language and terminology in product names.
-${manuscriptSummary ? `\nMANUSCRIPT CONTEXT:\n${manuscriptSummary.slice(0, 1500)}` : ""}
-${frameworks ? `\nBOOK FRAMEWORKS:\n${frameworks.slice(0, 1000)}` : ""}
-${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""}`,
-            },
-            ...newMsgs,
-          ],
-          bookId,
-          isPremium: true,
-          builderMode: true,
-          builderId: nodeConfig.id,
-          builderLabel: nodeConfig.label,
-          builderStep: currentStepConfig?.label,
-        }),
-      });
-
-      if (!resp.ok || !resp.body) throw new Error("Chat failed");
-
-      const reader = resp.body.getReader();
-      const decoder = new TextDecoder();
-      let textBuffer = "";
-      let accumulated = "";
-      setAbbyMessages((prev) => [...prev, { role: "assistant", content: "" }]);
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        textBuffer += decoder.decode(value, { stream: true });
-        let nlIdx: number;
-        while ((nlIdx = textBuffer.indexOf("\n")) !== -1) {
-          let line = textBuffer.slice(0, nlIdx);
-          textBuffer = textBuffer.slice(nlIdx + 1);
-          if (line.endsWith("\r")) line = line.slice(0, -1);
-          if (!line.startsWith("data: ")) continue;
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") break;
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const delta = parsed.choices?.[0]?.delta?.content;
-            if (delta) {
-              accumulated += delta;
-              setAbbyMessages((prev) => {
-                const copy = [...prev];
-                copy[copy.length - 1] = { role: "assistant", content: accumulated };
-                return copy;
-              });
-            }
-          } catch { break; }
-        }
-      }
-    } catch (err) {
-      console.error("Abby chat error:", err);
-      toast({ title: "Chat failed", description: "Try again in a moment", variant: "destructive" });
-    } finally {
-      setAbbyStreaming(false);
-    }
-  }, [abbyInput, abbyMessages, abbyStreaming, bookId, bookTitle, nodeConfig, currentStep, plan, manuscriptSummary, frameworks, clampStepIndex]);
+  // Abby chat is now handled by AbbyAdvisorSidePanel
 
   const goToStep = useCallback(async (targetStep: number) => {
     const boundedStep = clampStepIndex(targetStep);
@@ -1479,7 +1198,9 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
                                     </details>
                                   ));
                                 }
-                              } catch {}
+                              } catch (error) {
+      console.error(error);
+    }
                               // Fallback: plain text
                               return <p className="text-sm text-muted-foreground whitespace-pre-wrap">{previewContentText || builderGen.generatedContent}</p>;
                             })()}
@@ -1611,109 +1332,19 @@ ${plan ? `\nBUSINESS PLAN CONTEXT:\n${JSON.stringify(plan).slice(0, 2000)}` : ""
       </div>
 
       {/* Abby Advisor Panel */}
-      <AnimatePresence>
-        {abbyOpen && (
-          <motion.aside
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 320, opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed top-0 right-0 bottom-0 z-40 w-80 bg-card border-l border-border shadow-2xl flex flex-col overflow-hidden"
-          >
-            {/* Panel header */}
-            <div className="px-4 py-3 border-b border-border bg-secondary/5 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-secondary/20 flex items-center justify-center">
-                  <Sparkles className="h-4 w-4 text-secondary" />
-                </div>
-                <div>
-                  <p className="text-[11px] font-bold text-secondary uppercase tracking-widest">Abby Advisor</p>
-                  <p className="text-[10px] text-muted-foreground truncate max-w-[180px]">{nodeConfig.label}</p>
-                </div>
-              </div>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setAbbyOpen(false)}>
-                <X className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-
-            {/* Contextual tip */}
-            <div className="px-4 py-3 border-b border-border bg-secondary/5 shrink-0">
-              <p className="text-[10px] font-bold text-secondary uppercase tracking-wider mb-1">\uD83D\uDCA1 Tip for this step</p>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                {currentStepConfig.abbyTip}
-              </p>
-            </div>
-
-            {/* Plan recommendation */}
-            {plan && (
-              <div className="px-4 py-2.5 border-b border-secondary/20 bg-secondary/5 shrink-0">
-                <p className="text-[10px] font-bold text-secondary/80 uppercase tracking-wider mb-0.5">\uD83D\uDCCB From your plan</p>
-                <p className="text-[11px] text-muted-foreground">
-                  {nodeConfig.abbyGreeting}
-                </p>
-              </div>
-            )}
-
-            {/* Chat messages */}
-            <div className="flex-1 overflow-y-auto p-3 space-y-3">
-              {showFirstVisit && (
-                <BuilderFirstVisitWelcome
-                  builderId={nodeConfig.id}
-                  builderLabel={nodeConfig.label}
-                  onDismiss={() => {
-                    setShowFirstVisit(false);
-                    markBuilderFirstVisitSeen(nodeConfig.id);
-                  }}
-                />
-              )}
-              {abbyMessages.length === 0 && !showFirstVisit && (
-                <div className="text-center py-6">
-                  <Sparkles className="h-6 w-6 text-muted-foreground/20 mx-auto mb-2" />
-                  <p className="text-xs text-muted-foreground/50">Ask Abby anything about this product</p>
-                </div>
-              )}
-              {abbyMessages.map((msg, i) => (
-                <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[90%] rounded-lg p-2.5 text-xs ${
-                    msg.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted"
-                  }`}>
-                    {msg.role === "assistant" ? (
-                      <MarkdownRenderer content={msg.content} />
-                    ) : (
-                      msg.content
-                    )}
-                  </div>
-                </div>
-              ))}
-              <div ref={chatEndRef} />
-            </div>
-
-            {/* Chat input */}
-            <div className="p-3 border-t border-border bg-muted/30 shrink-0">
-              <div className="flex gap-1.5">
-                <Textarea
-                  value={abbyInput}
-                  onChange={(e) => setAbbyInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendAbbyMessage(); } }}
-                  placeholder="Ask Abby..."
-                  className="min-h-[36px] max-h-[80px] resize-none text-xs"
-                  rows={1}
-                />
-                <Button
-                  onClick={sendAbbyMessage}
-                  disabled={!abbyInput.trim() || abbyStreaming}
-                  size="icon"
-                  className="shrink-0 h-9 w-9"
-                >
-                  {abbyStreaming ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                </Button>
-              </div>
-            </div>
-          </motion.aside>
-        )}
-      </AnimatePresence>
+      <AbbyAdvisorSidePanel
+        open={abbyOpen}
+        onClose={() => setAbbyOpen(false)}
+        nodeConfig={nodeConfig}
+        bookId={bookId}
+        bookTitle={bookTitle}
+        currentStepLabel={currentStepConfig.label}
+        currentStepDescription={currentStepConfig.description}
+        currentStepTip={currentStepConfig.abbyTip}
+        plan={plan}
+        manuscriptSummary={manuscriptSummary}
+        frameworks={frameworks}
+      />
     </div>
   );
 }

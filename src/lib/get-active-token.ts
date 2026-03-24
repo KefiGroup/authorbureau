@@ -9,13 +9,13 @@ export async function getActiveToken(): Promise<string | null> {
   try {
     const { data: cloudSession } = await cloudSupabase.auth.getSession();
     if (cloudSession?.session?.access_token) return cloudSession.session.access_token;
-  } catch {
+  } catch (error) {
     // Cloud session unavailable
   }
   try {
     const { data: sharedSession } = await sharedSupabase.auth.getSession();
     if (sharedSession?.session?.access_token) return sharedSession.session.access_token;
-  } catch {
+  } catch (error) {
     // Shared session unavailable
   }
   return null;

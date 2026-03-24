@@ -184,7 +184,7 @@ export default function FullPlanDialog({ open, onOpenChange, bookId, bookTitle }
       const fullHtml = generateExportHtml(plan, bookTitle);
       printExportHtml(fullHtml, `ABBY Business Plan - ${bookTitle}`);
       toast({ title: "Export ready!", description: "Use your browser's Save as PDF option for best results." });
-    } catch {
+    } catch (error) {
       toast({ title: "Export failed", variant: "destructive" });
     }
     setDownloading(false);

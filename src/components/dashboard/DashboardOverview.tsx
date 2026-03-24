@@ -123,7 +123,6 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
         if (!token) throw new Error("Not authenticated");
 
         const state = await fetchDashboardState(token);
-        console.log("[Dashboard] State from edge function:", state);
         applyDashboardState(state);
       } catch (err) {
         console.error("Failed to fetch onboarding state:", err);

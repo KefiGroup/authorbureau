@@ -555,7 +555,6 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
             setShowJourneyOnboarding(false);
             if (selectedPath) {
               // Track path preference (analytics)
-              console.log("User selected path:", selectedPath);
             }
           }}
         />

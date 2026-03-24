@@ -157,7 +157,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
         });
         const result = await resp.json();
         setHasConsultation((result.count ?? 0) > 0);
-      } catch {
+      } catch (error) {
         setHasConsultation(false);
       }
 
@@ -188,7 +188,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
             setPlanSections(extractSections(planResult.content));
           }
         }
-      } catch {
+      } catch (error) {
         console.error("Failed to fetch business plan");
       }
 
@@ -216,7 +216,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
             }
           }
         }
-      } catch {
+      } catch (error) {
         console.error("Failed to fetch draft statuses");
       }
 
@@ -245,7 +245,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
             statuses["website"] = "in-progress";
           }
         }
-      } catch {
+      } catch (error) {
         console.error("Failed to fetch profile website status");
       }
 
@@ -303,7 +303,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
       const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:'Calibri',sans-serif;color:#1a1a1a;line-height:1.6;padding:40px;max-width:800px;margin:0 auto}h1{font-size:26px;color:#B8860B;border-bottom:3px solid #B8860B;padding-bottom:12px}h2{font-size:20px;color:#333;margin-top:28px}h3{font-size:16px;color:#555}p{font-size:13px}ul,ol{font-size:13px}li{margin-bottom:4px}strong{color:#222}</style></head><body>${html}</body></html>`;
       printExportHtml(fullHtml, `ABBY Business Plan - ${book.title}`);
       toast({ title: "Downloaded!", description: "Business plan saved as .docx" });
-    } catch {
+    } catch (error) {
       toast({ title: "Download failed", variant: "destructive" });
     }
     setDownloading(false);

@@ -104,7 +104,7 @@ export default function PodcastGeneratingStep({ config, onComplete, onBack }: Pr
                 setProgress(Math.min(10 + (parsed.length / config.episodeCount) * 85, 95));
               }
             }
-          } catch {
+          } catch (error) {
             textBuffer = line + "\n" + textBuffer;
             break;
           }
@@ -203,10 +203,12 @@ function tryParsePartialEpisodes(content: string): Partial<PodcastEpisode>[] {
     if (!json.endsWith("]")) json += "]";
     const parsed = JSON.parse(json);
     if (Array.isArray(parsed)) return parsed;
-  } catch {
+  } catch (error) {
     const objects = content.match(/\{[^{}]*\}/g);
     if (objects) {
-      try { return objects.map(o => JSON.parse(o)).filter(o => o.title || o.episode_number); } catch {}
+      try { return objects.map(o => JSON.parse(o)).filter(o => o.title || o.episode_number); } catch (error) {
+      console.error(error);
+    }
     }
   }
   return [];

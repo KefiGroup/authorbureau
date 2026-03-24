@@ -62,7 +62,7 @@ function parseProductDescription(raw?: string | null): string | undefined {
     if (parsed.introduction?.paragraph) return parsed.introduction.paragraph;
     if (parsed.problem?.headline) return parsed.problem.headline;
     return undefined;
-  } catch {
+  } catch (error) {
     return trimmed;
   }
 }

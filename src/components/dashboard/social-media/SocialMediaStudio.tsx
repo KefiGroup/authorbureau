@@ -71,7 +71,7 @@ function decodePostMeta(imagePromptField: string | null): {
         suggested_time: parsed.suggested_time || defaults.suggested_time,
       };
     }
-  } catch {
+  } catch (error) {
     // Legacy format: hashtags as comma-separated string
     if (imagePromptField.includes("#") || imagePromptField.includes(",")) {
       return {

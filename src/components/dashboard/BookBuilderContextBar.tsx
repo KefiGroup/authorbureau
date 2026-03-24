@@ -18,7 +18,7 @@ export function useBookContext() {
     ? (() => {
         try {
           return decodeURIComponent(rawBookCoverUrl);
-        } catch {
+        } catch (error) {
           return rawBookCoverUrl;
         }
       })()

@@ -109,21 +109,27 @@ export default function SupportTab() {
     try {
       const data = await adminDataFetch("list-bugs");
       setBugs(data.bugs || []);
-    } catch {}
+    } catch (error) {
+      console.error(error);
+    }
   }, []);
 
   const fetchFeedback = useCallback(async () => {
     try {
       const data = await adminDataFetch("list-feedback");
       setFeedbackList(data.feedback || []);
-    } catch {}
+    } catch (error) {
+      console.error(error);
+    }
   }, []);
 
   const fetchChats = useCallback(async () => {
     try {
       const data = await adminDataFetch("list-chats");
       setChatSessions(data.chats || []);
-    } catch {}
+    } catch (error) {
+      console.error(error);
+    }
   }, []);
 
   const refresh = useCallback(async () => {

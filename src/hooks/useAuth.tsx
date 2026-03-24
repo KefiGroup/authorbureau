@@ -111,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         subscriptionEnd: data.subscription_end ?? null,
         loading: false,
       });
-    } catch {
+    } catch (error) {
       clearTimeout(timeout);
       setSubscription((prev) => ({ ...prev, loading: false }));
     }

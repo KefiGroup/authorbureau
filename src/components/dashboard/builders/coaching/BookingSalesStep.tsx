@@ -80,7 +80,9 @@ Return ONLY valid JSON.`,
         try {
           const parsed = JSON.parse(json);
           fullText += parsed.choices?.[0]?.delta?.content || "";
-        } catch {}
+        } catch (error) {
+      console.error(error);
+    }
       }
 
       const jsonMatch = fullText.match(/\{[\s\S]*\}/);

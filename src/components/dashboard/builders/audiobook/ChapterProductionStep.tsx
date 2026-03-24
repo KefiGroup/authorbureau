@@ -54,7 +54,7 @@ export default function ChapterProductionStep({ stepData, setStepData, onMarkEdi
       const data = await response.json();
       updateChapter(idx, { status: "audio-generated", audioUrl: data.audioUrl || "" });
       toast.success(`Audio generated for ${ch.title}!`);
-    } catch {
+    } catch (error) {
       toast.error("Audio generation failed");
     }
     setGenerating(null);
