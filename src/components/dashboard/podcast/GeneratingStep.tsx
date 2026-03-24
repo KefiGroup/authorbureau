@@ -34,12 +34,6 @@ export default function PodcastGeneratingStep({ config, onComplete, onBack }: Pr
   const [error, setError] = useState("");
   const hasStarted = useRef(false);
 
-  useEffect(() => {
-    if (hasStarted.current) return;
-    hasStarted.current = true;
-    startGeneration();
-  }, []);
-
   const startGeneration = async () => {
     setState("queued");
     setProgress(2);

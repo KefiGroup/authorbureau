@@ -39,29 +39,6 @@ export default function AbbyAdvisorPanel({ bookId, bookTitle, productNode, produ
   };
 
   // Load business plan on open
-  useEffect(() => {
-    if (!isOpen || plan) return;
-    (async () => {
-      setLoading(true);
-      try {
-        const token = await getToken();
-        const resp = await fetch(EXECUTE_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ action: "status", bookId }),
-        });
-        const data = await resp.json();
-        if (data.plan) {
-          setPlan(data.plan);
-          generateContextualAdvice(data.plan);
-        }
-      } catch (err) {
-        console.error("Failed to load plan:", err);
-      }
-      setLoading(false);
-    })();
-  }, [isOpen, bookId, plan]);
-
   // Generate contextual advice for this specific product
   const generateContextualAdvice = useCallback((planData: AbbyPlan) => {
     // Find this product in the plan

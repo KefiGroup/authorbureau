@@ -72,11 +72,6 @@ export default function WorkbooksManager({ onNavigate }: { onNavigate?: (section
   const [editPrice, setEditPrice] = useState("");
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (!user) return;
-    fetchWorkbooks();
-  }, [user, bookFilterId]);
-
   const fetchWorkbooks = async () => {
     setLoading(true);
 

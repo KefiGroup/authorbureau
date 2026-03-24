@@ -26,11 +26,6 @@ export default function ProductReviewQueue({ onNavigate }: Props) {
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!user) return;
-    fetchPending();
-  }, [user]);
-
   const fetchPending = async () => {
     if (!user) return;
     setLoading(true);

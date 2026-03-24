@@ -240,13 +240,6 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
     })();
   }, [selectedBook, loadExistingSession, toast]);
 
-  useEffect(() => {
-    if (shouldAutoStart && selectedBook && !isStreaming && !abbyReading && messages.length === 0) {
-      setShouldAutoStart(false);
-      sendMessage("Start a brand new consultation. Begin with TURN 1 — GREETING & OPPORTUNITY REVEAL exactly as specified in your consultation sequence. Do not skip any turns or assume previous context.", true);
-    }
-  }, [shouldAutoStart, abbyReading, selectedBook, messages.length, isStreaming]);
-
   const sendMessage = useCallback(async (content: string, isAutoStart = false) => {
     if (!selectedBook || !content.trim() || isStreaming) return;
     const userMsg: ChatMessage = { role: "user", content: content.trim() };

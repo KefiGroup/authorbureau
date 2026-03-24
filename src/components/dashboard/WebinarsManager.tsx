@@ -39,11 +39,6 @@ export default function WebinarsManager({ onNavigate }: { onNavigate?: (section:
   const [editPrice, setEditPrice] = useState("");
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (!user) return;
-    fetchWebinars();
-  }, [user, bookFilterId]);
-
   const fetchWebinars = async () => {
     setLoading(true);
     let query = supabase

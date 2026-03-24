@@ -35,11 +35,6 @@ export default function CrossBuilderPushSummary({
   const [pushes, setPushes] = useState<PushRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!authorId || !builderId || !bookId) return;
-    loadPushes();
-  }, [authorId, builderId, bookId]);
-
   const loadPushes = async () => {
     setLoading(true);
     const data = await fetchOutgoingPushes(authorId, builderId, bookId);

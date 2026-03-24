@@ -45,6 +45,10 @@ export default function CourseBuilder() {
     setLoading(false);
   };
 
+  useEffect(() => {
+    if (user) fetchCourses();
+  }, [user]);
+
   const handleCreate = async () => {
     if (!newCourse.title.trim()) {
       toast({ title: "Title required", variant: "destructive" });

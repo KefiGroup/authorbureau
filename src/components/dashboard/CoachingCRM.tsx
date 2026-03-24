@@ -52,6 +52,10 @@ export default function CoachingCRM() {
     setLoading(false);
   };
 
+  useEffect(() => {
+    if (user) fetchPackages();
+  }, [user]);
+
   const handleCreate = async () => {
     if (!form.title.trim() || !form.price) {
       toast({ title: "Title and price required", variant: "destructive" });

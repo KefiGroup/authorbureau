@@ -26,10 +26,6 @@ export default function SpeakingProfile() {
   const [creating, setCreating] = useState(false);
   const [newTopic, setNewTopic] = useState({ title: "", description: "", duration: "60", fee: "" });
 
-  useEffect(() => {
-    if (user) fetchTopics();
-  }, [user]);
-
   const fetchTopics = async () => {
     const { data } = await supabase
       .from("speaking_topics")

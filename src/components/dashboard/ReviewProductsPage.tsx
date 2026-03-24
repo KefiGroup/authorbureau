@@ -106,11 +106,6 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
   const [activeTab, setActiveTab] = useState("all");
   const [detailProduct, setDetailProduct] = useState<DraftProduct | null>(null);
 
-  useEffect(() => {
-    if (!user) return;
-    fetchDrafts();
-  }, [user]);
-
   const fetchDrafts = async () => {
     if (!user) return;
     setLoading(true);
