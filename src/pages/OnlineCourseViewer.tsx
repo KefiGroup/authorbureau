@@ -187,7 +187,7 @@ export default function OnlineCourseViewer() {
             if (l.content) {
               try {
                 parsedContent = JSON.parse(l.content);
-              } catch {
+              } catch (error) {
                 // Not JSON, treat as script text
                 parsedContent = { script: l.content };
               }

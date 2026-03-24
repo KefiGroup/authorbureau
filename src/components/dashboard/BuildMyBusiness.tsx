@@ -301,7 +301,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
               accumulated += delta;
               setMessages(prev => { const copy = [...prev]; copy[copy.length - 1] = { role: "assistant", content: accumulated }; return copy; });
             }
-          } catch { textBuffer = line + "\n" + textBuffer; break; }
+          } catch (error) { textBuffer = line + "\n" + textBuffer; break; }
         }
       }
 

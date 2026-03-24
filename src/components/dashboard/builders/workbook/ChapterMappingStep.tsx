@@ -34,7 +34,7 @@ function getArrayPayload(raw: string): WorkbookSection[] {
     try {
       const parsed = JSON.parse(attempt);
       if (Array.isArray(parsed)) return parsed;
-    } catch {
+    } catch (error) {
       // continue
     }
   }

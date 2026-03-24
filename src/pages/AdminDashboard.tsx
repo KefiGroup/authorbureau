@@ -134,7 +134,7 @@ export default function AdminDashboard() {
         pending_submissions: 0,
         recent_submissions: [],
       });
-    } catch {
+    } catch (error) {
       toast({ title: "Failed to load stats", variant: "destructive" });
     }
     setStatsLoading(false);
@@ -146,7 +146,7 @@ export default function AdminDashboard() {
       const data = await adminFetch("list", { page: booksPage, filter: booksFilter });
       setBooks(data?.books || []);
       setPendingBookCount(data?.pendingCount || 0);
-    } catch {
+    } catch (error) {
       toast({ title: "Failed to load books", variant: "destructive" });
     }
     setBooksLoading(false);
@@ -167,7 +167,7 @@ export default function AdminDashboard() {
     try {
       const data = await adminApi.listAdmins();
       setAdmins(data?.admins || data?.data || []);
-    } catch {
+    } catch (error) {
       toast({ title: "Failed to load admins", variant: "destructive" });
     }
     setAdminsLoading(false);

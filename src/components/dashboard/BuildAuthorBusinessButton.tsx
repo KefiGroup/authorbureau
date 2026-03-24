@@ -139,7 +139,7 @@ export default function BuildAuthorBusinessButton({
         setItems(prev => prev.map((item, idx) =>
           idx === i ? { ...item, status: "done", resultTitle: buildItems[i].product.title } : item
         ));
-      } catch {
+      } catch (error) {
         setItems(prev => prev.map((item, idx) =>
           idx === i ? { ...item, status: "error" } : item
         ));

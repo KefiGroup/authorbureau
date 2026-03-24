@@ -827,7 +827,7 @@ function ContentSection({ emoji, label, content, hint, highlight }: { emoji: str
 
 function WritableSection({ emoji, label, prompt, storageKey, hint }: { emoji: string; label: string; prompt: string; storageKey: string; hint?: string }) {
   const [value, setValue] = useState(() => {
-    try { return localStorage.getItem(storageKey) || ""; } catch { return ""; }
+    try { return localStorage.getItem(storageKey) || ""; } catch (error) { return ""; }
   });
 
   const handleChange = (text: string) => {
@@ -861,13 +861,13 @@ function WritableSection({ emoji, label, prompt, storageKey, hint }: { emoji: st
 
 function AccountabilityRatingSection({ prompt, storageKey, ratingStorageKey }: { prompt: string; storageKey: string; ratingStorageKey: string }) {
   const [value, setValue] = useState(() => {
-    try { return localStorage.getItem(storageKey) || ""; } catch { return ""; }
+    try { return localStorage.getItem(storageKey) || ""; } catch (error) { return ""; }
   });
   const [rating, setRating] = useState<number | null>(() => {
     try {
       const stored = localStorage.getItem(ratingStorageKey);
       return stored ? parseInt(stored, 10) : null;
-    } catch { return null; }
+    } catch (error) { return null; }
   });
 
   const handleChange = (text: string) => {

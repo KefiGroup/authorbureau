@@ -204,7 +204,7 @@ function extractHomeStudyDaysFromContent(rawContent: string): Array<Record<strin
           isCatchUp: Boolean(day?.isCatchUp ?? day?.is_catch_up ?? (dayNumber % 7 === 0)),
         };
       });
-    } catch {
+    } catch (error) {
       // try next parse candidate
     }
   }
@@ -312,7 +312,7 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
     ? (() => {
         try {
           return decodeURIComponent(rawBookCoverUrl);
-        } catch {
+        } catch (error) {
           return rawBookCoverUrl;
         }
       })()

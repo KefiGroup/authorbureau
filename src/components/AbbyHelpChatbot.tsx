@@ -61,7 +61,7 @@ export default function AbbyHelpChatbot() {
     try {
       const stored = sessionStorage.getItem(STORAGE_KEY);
       return stored ? JSON.parse(stored) : [];
-    } catch { return []; }
+    } catch (error) { return []; }
   });
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
@@ -205,13 +205,13 @@ export default function AbbyHelpChatbot() {
                 return [...prev, { role: "assistant", content: soFar, timestamp: Date.now() }];
               });
             }
-          } catch {
+          } catch (error) {
             textBuffer = line + "\n" + textBuffer;
             break;
           }
         }
       }
-    } catch {
+    } catch (error) {
       addMessage("assistant", "Sorry, I'm having trouble connecting. Please try again in a moment.");
     }
     setIsStreaming(false);
@@ -282,7 +282,7 @@ export default function AbbyHelpChatbot() {
         return false;
       }
       return true;
-    } catch {
+    } catch (error) {
       addMessage("assistant", "Something went wrong. Please try again.");
       return false;
     }

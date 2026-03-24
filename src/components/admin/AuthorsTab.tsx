@@ -83,7 +83,7 @@ export default function AuthorsTab() {
     try {
       const data = await adminDataFetch("list-authors");
       setAuthors(data.authors || []);
-    } catch {
+    } catch (error) {
       toast({ title: "Failed to load authors", variant: "destructive" });
     }
     setLoading(false);
@@ -201,7 +201,7 @@ export default function AuthorsTab() {
         prev.map((a) => (a.user_id === userId ? { ...a, photo_crop_y: `${cropValue}%` } : a))
       );
       toast({ title: "Photo position saved" });
-    } catch {
+    } catch (error) {
       toast({ title: "Failed to save", variant: "destructive" });
     }
     setCropEditing(null);

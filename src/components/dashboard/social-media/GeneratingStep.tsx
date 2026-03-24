@@ -133,7 +133,7 @@ export default function GeneratingStep({ config, onComplete, onBack }: Props) {
                 setProgress(Math.min(10 + (parsed.length / Math.max(total, 1)) * 85, 95));
               }
             }
-          } catch {
+          } catch (error) {
             textBuffer = line + "\n" + textBuffer;
             break;
           }
@@ -261,7 +261,7 @@ function tryParsePartialPosts(content: string): Partial<SocialPost>[] {
     
     const parsed = JSON.parse(json);
     if (Array.isArray(parsed)) return parsed;
-  } catch {
+  } catch (error) {
     // Count complete objects
     const objects = content.match(/\{[^{}]*\}/g);
     if (objects) {

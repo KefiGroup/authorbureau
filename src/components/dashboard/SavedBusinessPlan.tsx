@@ -112,7 +112,7 @@ export default function SavedBusinessPlan({ bookId, bookTitle, authorId }: Saved
 
       printExportHtml(fullHtml, `ABBY Business Plan - ${bookTitle}`);
       toast({ title: "Downloaded!", description: "Business plan saved as .docx" });
-    } catch {
+    } catch (error) {
       toast({ title: "Download failed", variant: "destructive" });
     }
     setDownloading(false);

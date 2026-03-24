@@ -400,7 +400,7 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(blobUrl);
-    } catch {
+    } catch (error) {
       // Fallback: open in new tab
       window.open(url, "_blank");
     }

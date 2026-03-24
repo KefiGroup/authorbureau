@@ -47,7 +47,7 @@ export default function AdminCRMTab() {
     try {
       const data = await adminDataFetch("list-crm-contacts");
       setContacts(data.contacts || []);
-    } catch {
+    } catch (error) {
       toast({ title: "Failed to load CRM contacts", variant: "destructive" });
     }
     setLoading(false);

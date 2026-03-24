@@ -8,7 +8,7 @@ interface Props {
 
 export default function OnboardingBanner({ message, storageKey }: Props) {
   const [dismissed, setDismissed] = useState(() => {
-    try { return localStorage.getItem(storageKey) === "true"; } catch { return false; }
+    try { return localStorage.getItem(storageKey) === "true"; } catch (error) { return false; }
   });
 
   if (dismissed) return null;

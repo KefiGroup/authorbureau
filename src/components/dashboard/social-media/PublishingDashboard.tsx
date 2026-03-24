@@ -97,7 +97,7 @@ export default function PublishingDashboard({ posts, config, onPostsChange }: Pr
         p.id === postId ? { ...p, status: "approved" as const } : p
       ));
       toast({ title: "Marked as posted ✓" });
-    } catch {
+    } catch (error) {
       toast({ title: "Failed to update", variant: "destructive" });
     } finally {
       setMarkingId(null);

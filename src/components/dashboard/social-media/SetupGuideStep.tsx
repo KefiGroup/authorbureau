@@ -145,7 +145,7 @@ export default function SetupGuideStep({
         restored[platformId] = new Set(indices);
       });
       setCompletedSteps(restored);
-    } catch {
+    } catch (error) {
       // no-op
     }
   }, [checklistStorageKey]);

@@ -249,7 +249,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
       );
       const result = await resp.json();
       setPreviewContent(result.preview || null);
-    } catch {
+    } catch (error) {
       setPreviewContent(null);
     }
     setPreviewLoading(false);
@@ -503,7 +503,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
               days: sd.schedule?.days || [],
               authorName: profile?.pen_name || "Author",
             };
-          } catch { return null; }
+          } catch (error) { return null; }
         } : undefined}
       />
     </div>
@@ -686,7 +686,7 @@ export function useReviewProductCount() {
         );
         const result = await resp.json();
         setCount((result.drafts || []).length);
-      } catch { setCount(0); }
+      } catch (error) { setCount(0); }
     })();
   }, [user]);
 

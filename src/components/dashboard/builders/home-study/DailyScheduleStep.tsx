@@ -106,7 +106,7 @@ Return ONLY valid JSON.`;
 
       try {
         parsedDays = normalizeSchedulePayload(await generateJSONWithAI<any>(basePrompt, opts));
-      } catch {
+      } catch (error) {
         parsedDays = [];
       }
 

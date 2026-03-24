@@ -79,7 +79,7 @@ export async function generateWithAI(
         try {
           const parsed = JSON.parse(jsonStr);
           fullText += parsed.choices?.[0]?.delta?.content || "";
-        } catch {
+        } catch (error) {
           textBuffer = line + "\n" + textBuffer;
           break;
         }
@@ -99,7 +99,7 @@ export async function generateWithAI(
       try {
         const parsed = JSON.parse(jsonStr);
         fullText += parsed.choices?.[0]?.delta?.content || "";
-      } catch {
+      } catch (error) {
         // ignore incomplete trailing chunk
       }
     }
@@ -138,14 +138,14 @@ export async function generateJSONWithAI<T = any>(
 
     try {
       return JSON.parse(normalized) as T;
-    } catch {
+    } catch (error) {
       // Retry with common cleanup for trailing commas.
     }
 
     try {
       const noTrailingCommas = normalized.replace(/,\s*([}\]])/g, "$1");
       return JSON.parse(noTrailingCommas) as T;
-    } catch {
+    } catch (error) {
       // Try next candidate.
     }
   }

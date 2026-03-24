@@ -277,7 +277,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
               accumulated += delta;
               setState(prev => ({ ...prev, generatedContent: accumulated }));
             }
-          } catch {
+          } catch (error) {
             // Partial JSON, re-buffer
             buffer = line + "\n" + buffer;
             break;
@@ -330,7 +330,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
               content: contentToSave,
             } as any);
           }
-        } catch {
+        } catch (error) {
           // Non-blocking save failure
         }
       }

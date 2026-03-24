@@ -245,7 +245,7 @@ export function buildPortfolioFromAssets(
       const parsed = JSON.parse(asset.content);
       if (parsed?.stepData?.setup?.price) price = Number(parsed.stepData.setup.price) || price;
       if (parsed?.stepData?.setup?.status === "published") status = "published";
-    } catch {
+    } catch (error) {
       // Content is markdown, use defaults
     }
 

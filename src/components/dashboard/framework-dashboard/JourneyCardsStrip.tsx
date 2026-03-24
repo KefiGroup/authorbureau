@@ -30,7 +30,7 @@ const VISIT_KEY = "abby_journey_strip_visits";
 export default function JourneyCardsStrip() {
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
   const [collapsed, setCollapsed] = useState(() => {
-    try { return localStorage.getItem("abby_journey_strip_hidden") === "true"; } catch { return false; }
+    try { return localStorage.getItem("abby_journey_strip_hidden") === "true"; } catch (error) { return false; }
   });
   const [visitCount, setVisitCount] = useState(0);
 

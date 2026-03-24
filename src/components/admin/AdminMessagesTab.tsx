@@ -59,7 +59,7 @@ export default function AdminMessagesTab() {
     try {
       const data = await adminDataFetch("list-messages");
       setMessages(data.messages || []);
-    } catch {
+    } catch (error) {
       toast({ title: "Failed to load messages", variant: "destructive" });
     }
     setLoading(false);
@@ -94,7 +94,7 @@ export default function AdminMessagesTab() {
       await adminDataFetch("update-message", { id, status: newStatus });
       setMessages(prev => prev.map(m => m.id === id ? { ...m, status: newStatus } : m));
       toast({ title: `Message marked as ${newStatus}` });
-    } catch {
+    } catch (error) {
       toast({ title: "Failed to update", variant: "destructive" });
     }
     setUpdatingId(null);

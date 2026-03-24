@@ -88,7 +88,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
       setContacts(
         (contactRows || []).map((c) => ({ ...c, tags: tagsMap[c.id] || [] }))
       );
-    } catch {
+    } catch (error) {
       toast({ title: "Failed to load contacts", variant: "destructive" });
     }
     setLoading(false);
@@ -177,7 +177,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
       setContacts((prev) => prev.filter((c) => c.id !== id));
       if (selected?.id === id) setSelected(null);
       toast({ title: "Contact deleted" });
-    } catch {
+    } catch (error) {
       toast({ title: "Delete failed", variant: "destructive" });
     }
   };
