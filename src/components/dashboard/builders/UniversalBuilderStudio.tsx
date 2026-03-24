@@ -17,7 +17,12 @@ import BehindTheDesignPanel from "./shared/BehindTheDesignPanel";
 import CrossBuilderNotifications from "./CrossBuilderNotifications";
 import CrossBuilderPushSummary from "./CrossBuilderPushSummary";
 import BuilderUpgradeGate from "./BuilderUpgradeGate";
-import { BUILDER_SYSTEM_PROMPTS } from "./builderSystemPrompts";
+import AbbyAdvisorSidePanel from "./AbbyAdvisorSidePanel";
+import {
+  extractHomeStudyDaysFromContent,
+  mapCoursePriceTier,
+  buildCourseModulesFromStructure,
+} from "./builderUtils";
 import { useBuilderGeneration, splitSalesAndContent } from "@/hooks/useBuilderGeneration";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
