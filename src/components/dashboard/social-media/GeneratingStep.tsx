@@ -154,6 +154,12 @@ export default function GeneratingStep({ config, onComplete, onBack }: Props) {
     }
   };
 
+  useEffect(() => {
+    if (hasStarted.current) return;
+    hasStarted.current = true;
+    startGeneration();
+  }, []);
+
   return (
     <div className="max-w-3xl mx-auto space-y-8 py-8">
       <AbbyCoachingTip

@@ -323,6 +323,13 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
     }
   }, [selectedBook, messages, isStreaming, toast, isAdmin, isPremium, tier, user]);
 
+  useEffect(() => {
+    if (shouldAutoStart && selectedBook && !isStreaming && !abbyReading && messages.length === 0) {
+      setShouldAutoStart(false);
+      sendMessage("Start a brand new consultation. Begin with TURN 1 — GREETING & OPPORTUNITY REVEAL exactly as specified in your consultation sequence. Do not skip any turns or assume previous context.", true);
+    }
+  }, [shouldAutoStart, abbyReading, selectedBook, messages.length, isStreaming, sendMessage]);
+
   const parseBuildRequests = (content: string) => {
     const regex = /===BUILD_REQUEST===([\s\S]*?)===END_BUILD_REQUEST===/g;
     const requests: Array<Record<string, string>> = [];

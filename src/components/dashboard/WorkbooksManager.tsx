@@ -102,7 +102,6 @@ export default function WorkbooksManager({ onNavigate }: { onNavigate?: (section
     if (!user) return;
     fetchWorkbooks();
   }, [user, bookFilterId]);
-  };
 
   const selected = workbooks.find(w => w.id === selectedId);
 
