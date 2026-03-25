@@ -157,7 +157,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
     return url;
   };
 
-  const fetchBuilderEndpoint = async (payload: Record<string, any>, signal?: AbortSignal) => {
+  const fetchBuilderEndpoint = useCallback(async (payload: Record<string, any>, signal?: AbortSignal) => {
     const token = await getToken();
     const baseUrl = getFunctionsBaseUrl();
 
