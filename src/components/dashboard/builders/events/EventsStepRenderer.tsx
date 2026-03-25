@@ -25,12 +25,9 @@ const SETUP_FIELDS: SetupField[] = [
   { key: "capacity", label: "Expected Attendees", type: "text", placeholder: "e.g. 500" },
 ];
 
-interface Props {
-  stepId: string; stepData: Record<string, any>;
-  setStepData: (fn: (prev: Record<string, any>) => Record<string, any>) => void;
-  onMarkEdited: (id: string) => void; bookId: string; bookTitle: string;
-  plan: any; generationState: string; setGenerationState: (s: any) => void; userId: string;
-}
+import type { StepRendererProps } from "../shared/builder-types";
+
+interface Props extends StepRendererProps {}
 
 export default function EventsStepRenderer({ stepId, stepData, setStepData, onMarkEdited, bookId, bookTitle, plan, userId }: Props) {
   switch (stepId) {

@@ -22,12 +22,9 @@ const SETUP_FIELDS: SetupField[] = [
   { key: "productsAvailable", label: "Products Available for Partnership", type: "textarea", placeholder: "List the products you want to offer through partnerships..." },
 ];
 
-interface Props {
-  stepId: string; stepData: Record<string, any>;
-  setStepData: (fn: (prev: Record<string, any>) => Record<string, any>) => void;
-  onMarkEdited: (id: string) => void; bookId: string; bookTitle: string;
-  plan: any; generationState: string; setGenerationState: (s: any) => void; userId: string;
-}
+import type { StepRendererProps } from "../shared/builder-types";
+
+interface Props extends StepRendererProps {}
 
 export default function JVPartnershipsStepRenderer({ stepId, stepData, setStepData, onMarkEdited, bookId, bookTitle, plan, userId }: Props) {
   switch (stepId) {
