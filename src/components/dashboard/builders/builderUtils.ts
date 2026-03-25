@@ -73,7 +73,7 @@ export function extractHomeStudyDaysFromContent(rawContent: string): Array<Recor
 
       if (!Array.isArray(rawDays) || rawDays.length === 0) continue;
 
-      return rawDays.map((day: any, idx: number) => {
+      return rawDays.map((day: Record<string, unknown>, idx: number) => {
         const dayNumber = Number(day?.dayNumber ?? day?.day_number ?? idx + 1);
         const weekNumber = Number(day?.weekNumber ?? day?.week_number ?? Math.floor((dayNumber - 1) / 7) + 1);
 
