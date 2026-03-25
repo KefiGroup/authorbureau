@@ -1,21 +1,11 @@
+import type { StepRendererProps } from "../shared/builder-types";
 import SocialMediaSetupStep from "./SocialMediaSetupStep";
 import ContentGenerationStep from "./ContentGenerationStep";
 import VisualAssetsStep from "./VisualAssetsStep";
 import HashtagCTAStep from "./HashtagCTAStep";
 import SocialMediaPublishStep from "./SocialMediaPublishStep";
 
-interface Props {
-  stepId: string;
-  stepData: Record<string, any>;
-  setStepData: (fn: (prev: Record<string, any>) => Record<string, any>) => void;
-  onMarkEdited: (id: string) => void;
-  bookId: string;
-  bookTitle: string;
-  plan: any;
-  generationState: string;
-  setGenerationState: (s: any) => void;
-  userId: string;
-}
+type Props = StepRendererProps;
 
 export default function SocialMediaStepRenderer({
   stepId, stepData, setStepData, onMarkEdited,
