@@ -134,7 +134,7 @@ export function buildCourseModulesFromStructure(structure: Record<string, unknow
 
       const lessons = rawLessonItems
         .map((item: unknown, lessonIndex: number) => {
-          const normalized = typeof item === "string" ? { title: item } : (item || {});
+          const normalized: Record<string, unknown> = typeof item === "string" ? { title: item } : ((item as Record<string, unknown>) || {});
           const title = String(
             normalized.title ||
             normalized.lesson_title ||
