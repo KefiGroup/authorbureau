@@ -34,7 +34,7 @@ export default function PodcastGeneratingStep({ config, onComplete, onBack }: Pr
   const [error, setError] = useState("");
   const hasStarted = useRef(false);
 
-  const startGeneration = async () => {
+  const startGeneration = useCallback(async () => {
     setState("queued");
     setProgress(2);
     await new Promise(r => setTimeout(r, 1500));
