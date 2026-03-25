@@ -5,7 +5,7 @@
  * Calculates live ROI from the author's product portfolio.
  */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { TrendingUp, DollarSign, AlertTriangle, Sparkles, ChevronDown, ChevronUp, ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
