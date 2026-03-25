@@ -80,7 +80,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
 
   const isSubscribed = isPremium || isAdmin;
 
-  const fetchBooks = async () => {
+  const fetchBooks = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     setFetchError(null);
