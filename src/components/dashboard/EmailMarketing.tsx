@@ -116,7 +116,7 @@ function FlowsTab() {
   const [expandedFlow, setExpandedFlow] = useState<string | null>(null);
   const [editingStep, setEditingStep] = useState<EmailFlowStep | null>(null);
 
-  const fetchFlows = async () => {
+  const fetchFlows = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     const { data, error } = await supabase
@@ -138,9 +138,9 @@ function FlowsTab() {
       setFlows(flowsWithSteps);
     }
     setLoading(false);
-  };
+  }, [user]);
 
-  useEffect(() => { fetchFlows(); }, [user, fetchFlows]);
+  useEffect(() => { fetchFlows(); }, [fetchFlows]);
 
   const toggleFlowStatus = async (flowId: string, currentStatus: string) => {
     const newStatus = currentStatus === "active" ? "paused" : "active";
