@@ -52,7 +52,7 @@ export default function ContentCalendarStep({ stepData, setStepData, onMarkEdite
   const [editingDrop, setEditingDrop] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
 
-  const tiers: MembershipTier[] = stepData.tiers || [];
+  const tiers: MembershipTier[] = useMemo(() => stepData.tiers || [], [stepData.tiers]);
   const calendar: ContentDrop[] = stepData.contentCalendar || [];
 
   useEffect(() => {
