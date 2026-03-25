@@ -49,7 +49,7 @@ export default function AdminAuth() {
         setMagicLinkProcessing(false);
       }
     })();
-  }, [location.hash, navigate, toast]);
+  }, [location.hash, location.pathname, navigate, toast]);
 
   if (loading || magicLinkProcessing) {
     return (

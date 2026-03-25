@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -116,7 +116,7 @@ function FlowsTab() {
   const [expandedFlow, setExpandedFlow] = useState<string | null>(null);
   const [editingStep, setEditingStep] = useState<EmailFlowStep | null>(null);
 
-  const fetchFlows = async () => {
+  const fetchFlows = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     const { data, error } = await supabase
@@ -138,9 +138,9 @@ function FlowsTab() {
       setFlows(flowsWithSteps);
     }
     setLoading(false);
-  };
+  }, [user]);
 
-  useEffect(() => { fetchFlows(); }, [user, fetchFlows]);
+  useEffect(() => { fetchFlows(); }, [fetchFlows]);
 
   const toggleFlowStatus = async (flowId: string, currentStatus: string) => {
     const newStatus = currentStatus === "active" ? "paused" : "active";
@@ -396,7 +396,7 @@ function SubscribersTab() {
   const [search, setSearch] = useState("");
   const [syncing, setSyncing] = useState(false);
 
-  const fetchSubscribers = async () => {
+  const fetchSubscribers = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     const { data, error } = await supabase
@@ -406,9 +406,9 @@ function SubscribersTab() {
       .order("subscribed_at", { ascending: false });
     if (!error && data) setSubscribers(data as any);
     setLoading(false);
-  };
+  }, [user]);
 
-  useEffect(() => { fetchSubscribers(); }, [user, fetchSubscribers]);
+  useEffect(() => { fetchSubscribers(); }, [fetchSubscribers]);
 
   const handleRemove = async (id: string) => {
     const { error } = await supabase

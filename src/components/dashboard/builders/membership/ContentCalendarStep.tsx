@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -52,14 +52,14 @@ export default function ContentCalendarStep({ stepData, setStepData, onMarkEdite
   const [editingDrop, setEditingDrop] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
 
-  const tiers: MembershipTier[] = stepData.tiers || [];
+  const tiers: MembershipTier[] = useMemo(() => stepData.tiers || [], [stepData.tiers]);
   const calendar: ContentDrop[] = stepData.contentCalendar || [];
 
   useEffect(() => {
     if (calendar.length === 0 && tiers.length > 0) {
       setStepData(prev => ({ ...prev, contentCalendar: generateDefaultCalendar(tiers) }));
     }
-  }, [tiers, setStepData]);
+  }, [tiers, setStepData, calendar.length]);
 
   const monthDrops = calendar.filter(d => d.scheduledDate.startsWith(`M${activeMonth + 1}`));
 

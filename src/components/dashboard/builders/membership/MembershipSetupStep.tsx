@@ -23,6 +23,7 @@ export default function MembershipSetupStep({ stepData, setStepData, onMarkEdite
         },
       }));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bookTitle, setStepData]);
 
   const update = (field: string, value: string) => {

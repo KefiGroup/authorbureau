@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2, Download, FileText, Target, Package, BarChart3, Rocket, X, Sparkles, TrendingUp } from "lucide-react";
@@ -169,7 +169,7 @@ export default function FullPlanDialog({ open, onOpenChange, bookId, bookTitle }
     })();
   }, [open, bookId]);
 
-  const sections = plan ? extractSections(plan) : [];
+  const sections = useMemo(() => plan ? extractSections(plan) : [], [plan]);
 
   useEffect(() => {
     if (sections.length > 0 && !activeSection) {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,7 +30,7 @@ export default function SocialMediaManager() {
   // Auto-launch studio when arriving from Book Hub with a book context
   const [showStudio, setShowStudio] = useState(!!bookId);
 
-  const loadContent = async () => {
+  const loadContent = useCallback(async () => {
     if (!user) return;
     setLoading(true);
 
@@ -50,9 +50,9 @@ export default function SocialMediaManager() {
     const { data, error } = await query;
     if (!error && data) setContent(data as any);
     setLoading(false);
-  };
+  }, [user, bookId]);
 
-  useEffect(() => { loadContent(); }, [user, bookId, loadContent]);
+  useEffect(() => { loadContent(); }, [loadContent]);
 
   if (showStudio) {
     return (

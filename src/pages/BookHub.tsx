@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth, SubscriptionTier, hasTierAccess } from "@/hooks/useAuth";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
@@ -66,7 +66,7 @@ export default function BookHub() {
 
   const effectiveTier: SubscriptionTier = isAdmin ? "enterprise" : tier;
 
-  const fetchBook = async () => {
+  const fetchBook = useCallback(async () => {
     if (!user || !bookId) return;
     if (bookCache.has(bookId)) {
       setBook(bookCache.get(bookId)!);
@@ -95,11 +95,11 @@ export default function BookHub() {
       setFetchError(err?.name === "AbortError" ? "Request timed out." : "Could not load book data.");
     }
     setLoading(false);
-  };
+  }, [user, bookId]);
 
   useEffect(() => {
     fetchBook();
-  }, [user, bookId, fetchBook]);
+  }, [fetchBook]);
 
   if (!authLoading && !user) {
     navigate("/auth", { replace: true });

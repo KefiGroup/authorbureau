@@ -185,7 +185,8 @@ export default function AuthorBookPage() {
   useEffect(() => {
     if (!authorSlug || !bookSlug) { setNotFound(true); setLoading(false); return; }
     loadBookPage();
-  }, [authorSlug, bookSlug, loadBookPage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authorSlug, bookSlug]);
 
   async function loadBookPage() {
     setLoading(true);

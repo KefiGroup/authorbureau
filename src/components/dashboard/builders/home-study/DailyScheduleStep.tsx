@@ -59,7 +59,7 @@ export default function DailyScheduleStep({ stepData, setStepData, onMarkEdited,
     if (isStuck && days.length === 0) {
       setGenerationState("idle");
     }
-  }, [generationState, setGenerationState]);
+  }, [generationState, setGenerationState, days.length]);
 
   const updateDays = (newDays: StudyDay[]) => {
     setStepData(prev => ({ ...prev, schedule: { ...prev.schedule, days: newDays } }));

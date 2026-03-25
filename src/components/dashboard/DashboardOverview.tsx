@@ -14,7 +14,7 @@ import {
   AlertCircle, Circle, AlertTriangle, Sparkles,
   FileText, Video, Share2, Users, Trophy, Podcast, Building, Calendar,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import BadgeDisplay, { type BadgeLevel } from "@/components/BadgeDisplay";
 import ABBYFrameworkGrid from "@/components/dashboard/ABBYFrameworkGrid";
 
@@ -69,7 +69,7 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
     }
   };
 
-  const applyDashboardState = (state: { profile: any; bookCount: number }) => {
+  const applyDashboardState = useCallback((state: { profile: any; bookCount: number }) => {
     const { profile, bookCount: count } = state;
 
     if (profile) {
@@ -101,7 +101,7 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
 
     setBookCount(count);
     setBooksStatus(count > 0 ? "done" : "pending");
-  };
+  }, [popupDismissed]);
 
   useEffect(() => {
     if (!user) return;
