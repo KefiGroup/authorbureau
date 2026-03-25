@@ -99,7 +99,7 @@ export default function Auth() {
           throw new Error("No session returned from magic link.");
         }
         window.history.replaceState(null, "", location.pathname);
-      } catch (err: any) {
+      } catch (err) {
         toast({ title: err.message || "Magic link sign-in failed", variant: "destructive" });
       } finally {
         setMagicLinkProcessing(false);
@@ -169,7 +169,7 @@ export default function Auth() {
           throw networkErr;
         }
       }
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
@@ -183,7 +183,7 @@ export default function Auth() {
       await authFetch({ action: "request_code", email: email.trim() });
       setResendCooldown(60);
       toast({ title: "New code sent to your email." });
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
@@ -228,7 +228,7 @@ export default function Auth() {
         // Local verification succeeded
         console.debug("[Auth] Local OTP fallback succeeded");
       }
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
@@ -268,7 +268,7 @@ export default function Auth() {
           throw networkErr;
         }
       }
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
@@ -282,7 +282,7 @@ export default function Auth() {
     try {
       await authFetch({ action: "forgot_password", email: email.trim() });
       setFlow("forgot-reset");
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
@@ -317,7 +317,7 @@ export default function Auth() {
       } else {
         throw new Error("Sign-in verified but no session was returned. Please try the magic link in your email instead.");
       }
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);

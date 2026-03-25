@@ -55,7 +55,7 @@ export default function ImageStylePicker({ post, config, open, onClose, onSelect
       } else {
         throw new Error(data?.error || "No images returned");
       }
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: "Generation failed", description: e.message, variant: "destructive" });
     } finally {
       setGenerating(false);

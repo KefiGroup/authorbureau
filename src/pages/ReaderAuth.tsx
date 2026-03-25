@@ -128,7 +128,7 @@ export default function ReaderAuth() {
           throw networkErr;
         }
       }
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
@@ -142,7 +142,7 @@ export default function ReaderAuth() {
       await authFetch({ action: "request_code", email: email.trim() });
       setResendCooldown(60);
       toast({ title: "New code sent to your email." });
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
@@ -177,7 +177,7 @@ export default function ReaderAuth() {
           throw new Error(msg || "Invalid or expired code. Please request a new one.");
         }
       }
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
@@ -212,7 +212,7 @@ export default function ReaderAuth() {
           throw networkErr;
         }
       }
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);

@@ -1,21 +1,11 @@
+import type { StepRendererProps } from "../shared/builder-types";
 import WebsiteSetupStep from "./WebsiteSetupStep";
 import PageBuilderStep from "./PageBuilderStep";
 import ProductIntegrationStep from "./ProductIntegrationStep";
 import SeoAnalyticsStep from "./SeoAnalyticsStep";
 import WebsitePublishStep from "./WebsitePublishStep";
 
-interface Props {
-  stepId: string;
-  stepData: Record<string, any>;
-  setStepData: (fn: (prev: Record<string, any>) => Record<string, any>) => void;
-  onMarkEdited: (id: string) => void;
-  bookId: string;
-  bookTitle: string;
-  plan: any;
-  generationState: string;
-  setGenerationState: (s: any) => void;
-  userId: string;
-}
+type Props = StepRendererProps;
 
 export default function WebsiteStepRenderer({
   stepId, stepData, setStepData, onMarkEdited,

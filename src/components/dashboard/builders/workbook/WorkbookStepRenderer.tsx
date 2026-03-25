@@ -1,18 +1,9 @@
+import type { StepRendererProps } from "../shared/builder-types";
 import type { WorkbookStepProps } from "./types";
 import WorkbookSetupStep from "./WorkbookSetupStep";
 import WorkbookUploadStep from "./WorkbookUploadStep";
 
-interface Props {
-  stepId: string;
-  stepData: Record<string, any>;
-  setStepData: React.Dispatch<React.SetStateAction<Record<string, any>>>;
-  onMarkEdited: (stepId: string) => void;
-  bookId: string;
-  bookTitle: string;
-  plan: any;
-  generationState: "idle" | "queued" | "analyzing" | "generating" | "complete" | "error";
-  setGenerationState: (s: "idle" | "queued" | "analyzing" | "generating" | "complete" | "error") => void;
-  userId: string;
+interface Props extends StepRendererProps {
   manuscriptSummary?: string;
   frameworks?: string;
 }

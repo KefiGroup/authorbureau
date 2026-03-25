@@ -177,7 +177,7 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
           console.error("Failed to refresh state after sync:", refreshErr);
         }
       }
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Sync failed", description: err.message, variant: "destructive" });
     }
     setSyncLoading(false);
@@ -198,7 +198,7 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
       });
       if (error) throw error;
       if (data?.url) window.open(data.url, "_blank");
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Could not start checkout", description: err.message, variant: "destructive" });
     }
     setCheckoutLoading(false);
@@ -212,7 +212,7 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
       });
       if (error) throw error;
       if (data?.url) window.open(data.url, "_blank");
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Could not open portal", description: err.message, variant: "destructive" });
     }
     setPortalLoading(false);

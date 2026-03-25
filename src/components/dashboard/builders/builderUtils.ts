@@ -41,7 +41,7 @@ export function extractBalancedJsonBlock(source: string, openChar: "[" | "{", cl
   return null;
 }
 
-export function extractHomeStudyDaysFromContent(rawContent: string): Array<Record<string, any>> {
+export function extractHomeStudyDaysFromContent(rawContent: string): Array<Record<string, string | number | boolean>> {
   const trimmed = (rawContent || "").trim();
   if (!trimmed) return [];
 
@@ -73,7 +73,7 @@ export function extractHomeStudyDaysFromContent(rawContent: string): Array<Recor
 
       if (!Array.isArray(rawDays) || rawDays.length === 0) continue;
 
-      return rawDays.map((day: any, idx: number) => {
+      return rawDays.map((day: Record<string, unknown>, idx: number) => {
         const dayNumber = Number(day?.dayNumber ?? day?.day_number ?? idx + 1);
         const weekNumber = Number(day?.weekNumber ?? day?.week_number ?? Math.floor((dayNumber - 1) / 7) + 1);
 
@@ -109,10 +109,10 @@ export function mapCoursePriceTier(price: number): string {
   return "297";
 }
 
-export function buildCourseModulesFromStructure(structure: any[] | undefined): Array<Record<string, any>> {
+export function buildCourseModulesFromStructure(structure: Record<string, unknown>[] | undefined): Array<Record<string, unknown>> {
   if (!Array.isArray(structure)) return [];
 
-  const getStringArray = (value: any): string[] =>
+  const getStringArray = (value: unknown): string[] =>
     Array.isArray(value)
       ? value
           .map((item) => String(item ?? "").trim())
@@ -133,8 +133,8 @@ export function buildCourseModulesFromStructure(structure: any[] | undefined): A
         learningObjectives.map((objective) => ({ title: objective }));
 
       const lessons = rawLessonItems
-        .map((item: any, lessonIndex: number) => {
-          const normalized = typeof item === "string" ? { title: item } : (item || {});
+        .map((item: unknown, lessonIndex: number) => {
+          const normalized: Record<string, unknown> = typeof item === "string" ? { title: item } : ((item as Record<string, unknown>) || {});
           const title = String(
             normalized.title ||
             normalized.lesson_title ||

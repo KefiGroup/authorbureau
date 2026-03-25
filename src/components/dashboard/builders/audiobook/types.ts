@@ -1,14 +1,6 @@
-export interface AudiobookStepProps {
-  stepData: Record<string, any>;
-  setStepData: React.Dispatch<React.SetStateAction<Record<string, any>>>;
-  onMarkEdited: (stepId: string) => void;
-  bookId: string;
-  bookTitle: string;
-  plan: any;
-  generationState: "idle" | "queued" | "analyzing" | "generating" | "complete" | "error";
-  setGenerationState: (s: "idle" | "queued" | "analyzing" | "generating" | "complete" | "error") => void;
-  userId: string;
-}
+import type { BaseBuilderStepProps } from "../shared/builder-types";
+
+export interface AudiobookStepProps extends BaseBuilderStepProps {}
 
 export type NarrationType = "author" | "ai-voice" | "professional";
 

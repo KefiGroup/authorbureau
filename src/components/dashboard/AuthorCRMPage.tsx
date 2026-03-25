@@ -163,7 +163,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
       toast({ title: "Contact added" });
       setShowForm(false);
       fetchContacts();
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     }
     setFormLoading(false);
@@ -300,7 +300,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
 
       toast({ title: `Imported ${imported} contacts from CSV` });
       fetchContacts();
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Import failed", description: err.message, variant: "destructive" });
     }
     setImporting(false);

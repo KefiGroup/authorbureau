@@ -99,7 +99,7 @@ export default function AuthorsTab() {
         prev.map((a) => (a.user_id === userId ? { ...a, directory_status: newStatus } : a))
       );
       toast({ title: `Author status changed to "${newStatus}"` });
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: err.message || "Update failed", variant: "destructive" });
     }
     setUpdatingId(null);
@@ -120,7 +120,7 @@ export default function AuthorsTab() {
         prev.map((a) => (a.user_id === uploadingPhotoFor ? { ...a, photo_url: publicUrl } : a))
       );
       toast({ title: "Photo updated successfully" });
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: err.message || "Upload failed", variant: "destructive" });
     }
     setUploading(false);
@@ -155,7 +155,7 @@ export default function AuthorsTab() {
       );
       toast({ title: "Profile updated" });
       setEditingAuthor(null);
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: err.message || "Update failed", variant: "destructive" });
     }
     setEditSaving(false);
@@ -169,7 +169,7 @@ export default function AuthorsTab() {
       setAuthors((prev) => prev.filter((a) => a.user_id !== deletingAuthor.user_id));
       toast({ title: `Author "${deletingAuthor.pen_name || 'Unnamed'}" deleted` });
       setDeletingAuthor(null);
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: err.message || "Delete failed", variant: "destructive" });
     }
     setDeleting(false);

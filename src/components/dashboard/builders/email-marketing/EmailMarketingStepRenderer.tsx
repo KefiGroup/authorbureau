@@ -11,7 +11,7 @@ interface Props {
   onMarkEdited: (id: string) => void;
   bookId: string;
   bookTitle: string;
-  plan: any;
+  plan: Record<string, any> | null;
   generationState: string;
   setGenerationState: (state: any) => void;
   userId: string;

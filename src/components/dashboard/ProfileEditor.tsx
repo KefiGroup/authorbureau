@@ -280,7 +280,7 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
       setProfile(prev => ({ ...prev, author_slug: slug }));
       setEditMode(false);
       toast({ title: "Profile saved! ✅" });
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Save failed", description: err.message, variant: "destructive" });
     } finally {
       setSaving(false);
@@ -310,7 +310,7 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
 
       toast({ title: "Profile synced successfully! ✅", description: "Your PublishNow data has been imported." });
       await fetchProfile();
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Sync failed", description: err.message || "Please try again.", variant: "destructive" });
     } finally {
       setSyncing(false);
@@ -330,7 +330,7 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
       const { data: { publicUrl } } = supabase.storage.from("author-photos").getPublicUrl(path);
       setProfile(prev => ({ ...prev, photo_url: publicUrl }));
       toast({ title: "Photo uploaded! 📸" });
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Upload failed", description: err.message, variant: "destructive" });
     } finally {
       setUploading(false);

@@ -125,7 +125,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
       if (isInitialLoad) {
         setHasBootstrapped(true);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Failed to load dashboard:", err);
       if (isInitialLoad) {
         setError(err?.name === "AbortError" ? "Request timed out. Please try again." : "Could not load dashboard data. Please try again.");
@@ -165,7 +165,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
       });
       if (error) throw error;
       if (data?.url) window.open(data.url, "_blank");
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Checkout error", description: err.message, variant: "destructive" });
     }
     setCheckoutLoading(false);
@@ -179,7 +179,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
       });
       if (error) throw error;
       if (data?.url) window.open(data.url, "_blank");
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Portal error", description: err.message, variant: "destructive" });
     }
     setPortalLoading(false);

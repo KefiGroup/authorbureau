@@ -90,7 +90,7 @@ export default function BookHub() {
       if (!response.ok) throw new Error(result.error);
       setBook(result.book);
       if (result.book) bookCache.set(bookId, result.book);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Failed to fetch book:", err);
       setFetchError(err?.name === "AbortError" ? "Request timed out." : "Could not load book data.");
     }

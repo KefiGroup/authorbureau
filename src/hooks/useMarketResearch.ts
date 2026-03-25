@@ -77,7 +77,7 @@ export function useMarketResearch(bookId: string | undefined, bookTitle?: string
       const result = await resp.json();
       setData(result);
       if (cacheKey) cache.set(cacheKey, result);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Market research error:", err);
       setError(err.message);
     }

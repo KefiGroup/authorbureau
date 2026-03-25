@@ -72,7 +72,7 @@ export default function LessonVideoUpload({ videoUrl, onVideoChange, bookId, les
       onVideoChange(urlData.publicUrl);
       setProgress(100);
       toast({ title: "Video uploaded!", description: file.name });
-    } catch (err: any) {
+    } catch (err) {
       console.error("Video upload failed:", err);
       toast({ title: "Upload failed", description: err?.message || "Please try again.", variant: "destructive" });
     } finally {

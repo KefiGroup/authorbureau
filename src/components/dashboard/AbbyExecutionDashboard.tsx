@@ -271,7 +271,7 @@ export default function AbbyExecutionDashboard({
           ));
           continue;
         }
-      } catch (err: any) {
+      } catch (err) {
         console.error(`Step ${steps[i].id} failed:`, err);
         setSteps(prev => prev.map((s, idx) =>
           idx === i ? { ...s, status: "failed" } : s
@@ -343,7 +343,7 @@ export default function AbbyExecutionDashboard({
           setSteps(prev => prev.map((s, idx) =>
             idx === realIdx ? { ...s, status: "completed" } : s
           ));
-        } catch (err: any) {
+        } catch (err) {
           setSteps(prev => prev.map((s, idx) =>
             idx === realIdx ? { ...s, status: "failed" } : s
           ));

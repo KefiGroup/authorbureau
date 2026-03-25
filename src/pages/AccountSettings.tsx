@@ -58,7 +58,7 @@ export default function AccountSettings() {
       });
       if (error) throw error;
       if (data?.url) window.open(data.url, "_blank");
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Could not open billing portal", description: err.message, variant: "destructive" });
     }
     setPortalLoading(false);

@@ -146,7 +146,7 @@ export default function SupportTab() {
       toast({ title: "Bug report updated" });
       fetchBugs();
       setSelectedBug(null);
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: err.message || "Update failed", variant: "destructive" });
     }
   };
@@ -157,7 +157,7 @@ export default function SupportTab() {
       toast({ title: "Feedback updated" });
       fetchFeedback();
       setSelectedFeedback(null);
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: err.message || "Update failed", variant: "destructive" });
     }
   };

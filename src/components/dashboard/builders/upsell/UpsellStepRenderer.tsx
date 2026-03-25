@@ -1,21 +1,11 @@
+import type { StepRendererProps } from "../shared/builder-types";
 import type { UpsellStepProps } from "./types";
 import FunnelSetupStep from "./FunnelSetupStep";
 import OfferBuilderStep from "./OfferBuilderStep";
 import PageDesignStep from "./PageDesignStep";
 import UpsellPublishStep from "./UpsellPublishStep";
 
-interface Props {
-  stepId: string;
-  stepData: Record<string, any>;
-  setStepData: React.Dispatch<React.SetStateAction<Record<string, any>>>;
-  onMarkEdited: (stepId: string) => void;
-  bookId: string;
-  bookTitle: string;
-  plan: any;
-  generationState: "idle" | "queued" | "analyzing" | "generating" | "complete" | "error";
-  setGenerationState: (s: "idle" | "queued" | "analyzing" | "generating" | "complete" | "error") => void;
-  userId: string;
-}
+type Props = StepRendererProps;
 
 export default function UpsellStepRenderer(props: Props) {
   const shared: UpsellStepProps = {
