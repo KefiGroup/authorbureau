@@ -36,11 +36,9 @@ function getDateAwareAbbyTip(): string {
   return "Year-end is peak gift-buying season. Christmas and New Year editions sell best when launched in October with pre-orders. A limited run of 200 signed copies at $49.99 generates $9,998. Add holiday-themed bonus content and a companion journal.";
 }
 
-interface Props {
-  stepId: string; stepData: Record<string, any>;
-  setStepData: (fn: (prev: Record<string, any>) => Record<string, any>) => void;
-  onMarkEdited: (id: string) => void; bookId: string; bookTitle: string;
-  plan: any; generationState: string; setGenerationState: (s: any) => void; userId: string;
+import type { StepRendererProps } from "../shared/builder-types";
+
+interface Props extends StepRendererProps {
 }
 
 /** Custom setup step that interleaves Edition Type + Occasion as a unified flow */
