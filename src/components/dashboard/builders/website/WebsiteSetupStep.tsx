@@ -12,7 +12,7 @@ interface Props {
   setStepData: (fn: (prev: Record<string, any>) => Record<string, any>) => void;
   onMarkEdited: (id: string) => void;
   bookTitle: string;
-  plan: any;
+  plan: Record<string, any> | null;
 }
 
 export default function WebsiteSetupStep({ stepData, setStepData, onMarkEdited, bookTitle, plan }: Props) {

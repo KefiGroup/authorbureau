@@ -12,7 +12,7 @@ interface Props {
   stepData: Record<string, any>;
   setStepData: (fn: (prev: Record<string, any>) => Record<string, any>) => void;
   onMarkEdited: (id: string) => void;
-  plan: any;
+  plan: Record<string, any> | null;
 }
 
 const DEFAULT_AUTOMATIONS: AutomationRule[] = [

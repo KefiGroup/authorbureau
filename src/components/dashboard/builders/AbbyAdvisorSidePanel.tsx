@@ -19,7 +19,7 @@ interface AbbyAdvisorSidePanelProps {
   currentStepLabel: string;
   currentStepDescription: string;
   currentStepTip: string;
-  plan: any;
+  plan: Record<string, any> | null;
   manuscriptSummary: string;
   frameworks: string;
 }

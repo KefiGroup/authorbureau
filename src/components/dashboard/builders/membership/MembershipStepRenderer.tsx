@@ -12,7 +12,7 @@ interface Props {
   onMarkEdited: (stepId: string) => void;
   bookId: string;
   bookTitle: string;
-  plan: any;
+  plan: Record<string, any> | null;
   generationState: "idle" | "queued" | "analyzing" | "generating" | "complete" | "error";
   setGenerationState: (s: "idle" | "queued" | "analyzing" | "generating" | "complete" | "error") => void;
   userId: string;

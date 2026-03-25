@@ -14,7 +14,7 @@ interface Props {
   setStepData: (fn: (prev: Record<string, any>) => Record<string, any>) => void;
   onMarkEdited: (id: string) => void;
   bookTitle: string;
-  plan: any;
+  plan: Record<string, any> | null;
 }
 
 const EPISODE_COUNTS = [10, 20, 30, 0]; // 0 = full season

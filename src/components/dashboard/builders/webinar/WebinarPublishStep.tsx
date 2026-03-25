@@ -15,7 +15,7 @@ interface Props {
   bookId: string;
   bookTitle: string;
   userId: string;
-  plan: any;
+  plan: Record<string, any> | null;
 }
 
 export default function WebinarPublishStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, userId, plan }: Props) {
