@@ -335,6 +335,7 @@ export type Database = {
       }
       author_profiles: {
         Row: {
+          account_id: string
           amazon_author_profile_url: string | null
           author_slug: string | null
           availability_notes: string | null
@@ -370,6 +371,7 @@ export type Database = {
           youtube_url: string | null
         }
         Insert: {
+          account_id?: string
           amazon_author_profile_url?: string | null
           author_slug?: string | null
           availability_notes?: string | null
@@ -405,6 +407,7 @@ export type Database = {
           youtube_url?: string | null
         }
         Update: {
+          account_id?: string
           amazon_author_profile_url?: string | null
           author_slug?: string | null
           availability_notes?: string | null
@@ -3750,6 +3753,7 @@ export type Database = {
         Args: { p_key: string; p_limit: number; p_window_seconds: number }
         Returns: boolean
       }
+      generate_account_id: { Args: never; Returns: string }
       get_reading_leaderboard: {
         Args: { limit_count?: number }
         Returns: {
