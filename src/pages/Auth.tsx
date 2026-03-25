@@ -105,7 +105,7 @@ export default function Auth() {
         setMagicLinkProcessing(false);
       }
     })();
-  }, [location.hash, toast]);
+  }, [location.hash, location.pathname, toast]);
 
   // Fail-safe: if auth context loading gets stuck, still show the sign-in form
   useEffect(() => {

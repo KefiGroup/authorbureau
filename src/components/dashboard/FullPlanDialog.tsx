@@ -169,7 +169,7 @@ export default function FullPlanDialog({ open, onOpenChange, bookId, bookTitle }
     })();
   }, [open, bookId]);
 
-  const sections = plan ? extractSections(plan) : [];
+  const sections = useMemo(() => plan ? extractSections(plan) : [], [plan]);
 
   useEffect(() => {
     if (sections.length > 0 && !activeSection) {

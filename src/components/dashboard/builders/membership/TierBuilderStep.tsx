@@ -75,7 +75,7 @@ export default function TierBuilderStep({ stepData, setStepData, onMarkEdited }:
       }));
       setStepData(prev => ({ ...prev, tiers: initial }));
     }
-  }, [setStepData, tierCount]);
+  }, [setStepData, tierCount, tiers.length]);
 
   const updateTier = (idx: number, field: string, value: any) => {
     const updated = [...tiers];

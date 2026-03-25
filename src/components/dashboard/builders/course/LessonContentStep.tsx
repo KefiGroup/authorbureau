@@ -26,7 +26,7 @@ interface GeneratedLessonContent {
 
 export default function LessonContentStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle, generationState, setGenerationState }: CourseStepProps) {
   const { toast } = useToast();
-  const modules: CourseModule[] = stepData.curriculum?.modules || [];
+  const modules: CourseModule[] = useMemo(() => stepData.curriculum?.modules || [], [stepData.curriculum?.modules]);
   const [selectedModIdx, setSelectedModIdx] = useState(0);
   const [selectedLessonIdx, setSelectedLessonIdx] = useState(0);
   const [lastGenerated, setLastGenerated] = useState<Record<string, any>>({});

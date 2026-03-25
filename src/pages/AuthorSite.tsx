@@ -191,7 +191,8 @@ export default function AuthorSite() {
   useEffect(() => {
     if (!authorSlug) return;
     loadAuthorSite();
-  }, [authorSlug, loadAuthorSite]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authorSlug]);
 
   async function loadAuthorSite() {
     setLoading(true);

@@ -37,7 +37,8 @@ export default function SocialMediaSetupStep({ stepData, setStepData, onMarkEdit
     if (config.contentPillars.length === 0) {
       updateConfig({ contentPillars: SUGGESTED_PILLARS.slice(0, 4) });
     }
-  }, [updateConfig]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config.contentPillars.length]);
 
   const togglePlatform = (p: string) => {
     const next = config.platforms.includes(p)

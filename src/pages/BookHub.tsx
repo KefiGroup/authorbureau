@@ -66,7 +66,7 @@ export default function BookHub() {
 
   const effectiveTier: SubscriptionTier = isAdmin ? "enterprise" : tier;
 
-  const fetchBook = async () => {
+  const fetchBook = useCallback(async () => {
     if (!user || !bookId) return;
     if (bookCache.has(bookId)) {
       setBook(bookCache.get(bookId)!);
@@ -95,11 +95,11 @@ export default function BookHub() {
       setFetchError(err?.name === "AbortError" ? "Request timed out." : "Could not load book data.");
     }
     setLoading(false);
-  };
+  }, [user, bookId]);
 
   useEffect(() => {
     fetchBook();
-  }, [user, bookId, fetchBook]);
+  }, [fetchBook]);
 
   if (!authLoading && !user) {
     navigate("/auth", { replace: true });

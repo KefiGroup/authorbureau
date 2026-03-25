@@ -89,5 +89,5 @@ export function useDocumentMeta(options: DocumentMetaOptions) {
       const el = document.getElementById(JSON_LD_ID);
       if (el) el.remove();
     };
-  }, [options.title, options.description, options.ogImage, options.ogUrl]);
+  }, [options.title, options.description, options.ogImage, options.ogUrl, options.canonical, options.jsonLd, options.ogDescription, options.ogSiteName, options.ogTitle, options.ogType, options.twitterCard]);
 }

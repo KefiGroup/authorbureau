@@ -26,7 +26,7 @@ export default function PodcastManager() {
   const navigate = useNavigate();
   const [showStudio, setShowStudio] = useState(!!bookId);
 
-  const loadPodcasts = async () => {
+  const loadPodcasts = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     const { data: cloudSession } = await supabase.auth.getSession();
@@ -38,9 +38,9 @@ export default function PodcastManager() {
     const { data, error } = await query;
     if (!error && data) setPodcasts(data as any);
     setLoading(false);
-  };
+  }, [user, bookId]);
 
-  useEffect(() => { loadPodcasts(); }, [user, bookId, loadPodcasts]);
+  useEffect(() => { loadPodcasts(); }, [loadPodcasts]);
 
   if (showStudio) {
     return (

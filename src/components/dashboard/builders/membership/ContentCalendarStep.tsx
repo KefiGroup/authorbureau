@@ -59,7 +59,7 @@ export default function ContentCalendarStep({ stepData, setStepData, onMarkEdite
     if (calendar.length === 0 && tiers.length > 0) {
       setStepData(prev => ({ ...prev, contentCalendar: generateDefaultCalendar(tiers) }));
     }
-  }, [tiers, setStepData]);
+  }, [tiers, setStepData, calendar.length]);
 
   const monthDrops = calendar.filter(d => d.scheduledDate.startsWith(`M${activeMonth + 1}`));
 

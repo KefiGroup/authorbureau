@@ -396,7 +396,7 @@ function SubscribersTab() {
   const [search, setSearch] = useState("");
   const [syncing, setSyncing] = useState(false);
 
-  const fetchSubscribers = async () => {
+  const fetchSubscribers = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     const { data, error } = await supabase
@@ -406,9 +406,9 @@ function SubscribersTab() {
       .order("subscribed_at", { ascending: false });
     if (!error && data) setSubscribers(data as any);
     setLoading(false);
-  };
+  }, [user]);
 
-  useEffect(() => { fetchSubscribers(); }, [user, fetchSubscribers]);
+  useEffect(() => { fetchSubscribers(); }, [fetchSubscribers]);
 
   const handleRemove = async (id: string) => {
     const { error } = await supabase

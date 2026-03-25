@@ -181,7 +181,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
     }
 
     throw lastError instanceof Error ? lastError : new Error("Failed to reach Abby service");
-  };
+  }, []);
 
   // ── ACT 1: Analyze ─────────────────────────────────────────────
   const startAct1 = useCallback(async (bookId: string) => {

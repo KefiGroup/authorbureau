@@ -30,6 +30,7 @@ export default function FunnelSetupStep({ stepData, setStepData, onMarkEdited, b
         },
       }));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bookTitle, setStepData]);
 
   const update = (field: string, value: string) => {

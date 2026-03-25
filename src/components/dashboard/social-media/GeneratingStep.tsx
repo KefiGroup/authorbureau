@@ -152,6 +152,7 @@ export default function GeneratingStep({ config, onComplete, onBack }: Props) {
       setError(e instanceof Error ? e.message : "Unknown error");
       setState("error");
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config, onComplete]);
 
   useEffect(() => {

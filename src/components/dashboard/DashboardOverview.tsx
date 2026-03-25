@@ -69,7 +69,7 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
     }
   };
 
-  const applyDashboardState = (state: { profile: any; bookCount: number }) => {
+  const applyDashboardState = useCallback((state: { profile: any; bookCount: number }) => {
     const { profile, bookCount: count } = state;
 
     if (profile) {
@@ -101,7 +101,7 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
 
     setBookCount(count);
     setBooksStatus(count > 0 ? "done" : "pending");
-  };
+  }, [popupDismissed]);
 
   useEffect(() => {
     if (!user) return;

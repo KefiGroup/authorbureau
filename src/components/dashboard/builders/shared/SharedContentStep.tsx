@@ -114,6 +114,7 @@ export default function SharedContentStep({
       // Clear the saved content so conversation mode activates
       setStepData(prev => ({ ...prev, [contentKey]: "" }));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contentHasStop, contentKey, setStepData]);
 
   // Guard against stale/mismatched lead magnet content from previous type selections
