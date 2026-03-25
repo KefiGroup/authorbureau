@@ -106,7 +106,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
   const [activeTab, setActiveTab] = useState("all");
   const [detailProduct, setDetailProduct] = useState<DraftProduct | null>(null);
 
-  const fetchDrafts = async () => {
+  const fetchDrafts = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
@@ -157,12 +157,12 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
       console.error("Failed to fetch drafts:", err);
     }
     setLoading(false);
-  };
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
     fetchDrafts();
-  }, [user]);
+  }, [user, fetchDrafts]);
 
   const handlePublish = async (product: DraftProduct) => {
     setPublishing(product.id);
