@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth, TIERS, type SubscriptionTier } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
