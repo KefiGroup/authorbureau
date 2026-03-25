@@ -12,8 +12,8 @@ export type GenerationState =
   | "complete"
   | "error";
 
-/** The business-plan JSON blob passed down from the book hub */
-export type BuilderPlan = Record<string, unknown> | null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- plan structure varies by book
+export type BuilderPlan = Record<string, any> | null;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- step data is intentionally dynamic per builder
 export type StepData = Record<string, any>;
