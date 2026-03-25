@@ -16,6 +16,7 @@ import {
   Loader2, Send, ArrowLeft, Sparkles, User, RotateCcw,
   Wrench, Crown, Rocket,
 } from "lucide-react";
+import type { SubscriptionTier } from "@/hooks/useAuth";
 import type { Book, ChatMessage } from "./types";
 import { parseBuildRequests, parseAnalysisData, parseNavMarkers, NAV_CONFIG } from "./parsers";
 
