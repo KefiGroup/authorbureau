@@ -41,7 +41,7 @@ export function extractBalancedJsonBlock(source: string, openChar: "[" | "{", cl
   return null;
 }
 
-export function extractHomeStudyDaysFromContent(rawContent: string): Array<Record<string, any>> {
+export function extractHomeStudyDaysFromContent(rawContent: string): Array<Record<string, string | number | boolean>> {
   const trimmed = (rawContent || "").trim();
   if (!trimmed) return [];
 
