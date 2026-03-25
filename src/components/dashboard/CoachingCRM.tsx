@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/shared-backend";
 import { Button } from "@/components/ui/button";
@@ -42,7 +42,7 @@ export default function CoachingCRM() {
     sessions: "1",
   });
 
-  const fetchPackages = async () => {
+  const fetchPackages = useCallback(async () => {
     const { data } = await supabase
       .from("coaching_packages")
       .select("*")
@@ -50,11 +50,11 @@ export default function CoachingCRM() {
       .order("created_at", { ascending: false });
     setPackages((data as CoachingPackage[]) || []);
     setLoading(false);
-  };
+  }, [user]);
 
   useEffect(() => {
     if (user) fetchPackages();
-  }, [user]);
+  }, [user, fetchPackages]);
 
   const handleCreate = async () => {
     if (!form.title.trim() || !form.price) {

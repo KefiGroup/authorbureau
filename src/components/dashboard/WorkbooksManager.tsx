@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth, TIERS } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -72,7 +72,7 @@ export default function WorkbooksManager({ onNavigate }: { onNavigate?: (section
   const [editPrice, setEditPrice] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const fetchWorkbooks = async () => {
+  const fetchWorkbooks = useCallback(async () => {
     setLoading(true);
 
     let query = supabase
@@ -96,12 +96,12 @@ export default function WorkbooksManager({ onNavigate }: { onNavigate?: (section
     }
 
     setLoading(false);
-  };
+  }, [bookFilterId]);
 
   useEffect(() => {
     if (!user) return;
     fetchWorkbooks();
-  }, [user, bookFilterId]);
+  }, [user, bookFilterId, fetchWorkbooks]);
 
   const selected = workbooks.find(w => w.id === selectedId);
 

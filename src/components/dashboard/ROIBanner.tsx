@@ -5,7 +5,7 @@
  * Calculates live ROI from the author's product portfolio.
  */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { TrendingUp, DollarSign, AlertTriangle, Sparkles, ChevronDown, ChevronUp, ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -44,7 +44,7 @@ export default function ROIBanner({
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(!compact);
 
-  const loadPortfolio = async () => {
+  const loadPortfolio = useCallback(async () => {
     setLoading(true);
     try {
       const { data: assets } = await supabase
@@ -73,12 +73,12 @@ export default function ROIBanner({
       console.error("ROI Banner load error:", err);
     }
     setLoading(false);
-  };
+  }, [authorId, bookId, tier]);
 
   useEffect(() => {
     if (!authorId || !bookId) return;
     loadPortfolio();
-  }, [authorId, bookId, tier]);
+  }, [authorId, bookId, tier, loadPortfolio]);
 
   const gapRec = useMemo(() => {
     if (!analysis) return null;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,7 +39,7 @@ export default function WebinarsManager({ onNavigate }: { onNavigate?: (section:
   const [editPrice, setEditPrice] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const fetchWebinars = async () => {
+  const fetchWebinars = useCallback(async () => {
     setLoading(true);
     let query = supabase
       .from("webinars" as any)
@@ -52,12 +52,12 @@ export default function WebinarsManager({ onNavigate }: { onNavigate?: (section:
     const { data, error } = await query;
     if (!error && data) setWebinars(data as any);
     setLoading(false);
-  };
+  }, [user, bookFilterId]);
 
   useEffect(() => {
     if (!user) return;
     fetchWebinars();
-  }, [user, bookFilterId]);
+  }, [user, bookFilterId, fetchWebinars]);
 
   const selected = webinars.find(w => w.id === selectedId);
 

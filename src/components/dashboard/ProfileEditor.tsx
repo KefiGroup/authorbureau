@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import FrameworksEditor, { type AuthorFramework } from "@/components/dashboard/FrameworksEditor";
 import { useAuth, hasTierAccess } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -178,7 +178,7 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
     return cloudSession?.session?.access_token || null;
   };
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     setLoading(true);
     try {
       const token = await getAuthToken();
@@ -223,12 +223,12 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
     fetchProfile();
-  }, [user]);
+  }, [user, fetchProfile]);
 
   // ── Save profile via edge function ──
   const handleSave = async () => {

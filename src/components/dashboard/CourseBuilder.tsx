@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/shared-backend";
@@ -35,7 +35,7 @@ export default function CourseBuilder() {
   const bookId = searchParams.get("bookId") || "";
   const bookTitle = searchParams.get("bookTitle") || "";
 
-  const fetchCourses = async () => {
+  const fetchCourses = useCallback(async () => {
     const { data } = await supabase
       .from("courses")
       .select("*")
@@ -43,11 +43,11 @@ export default function CourseBuilder() {
       .order("created_at", { ascending: false });
     setCourses((data as Course[]) || []);
     setLoading(false);
-  };
+  }, [user]);
 
   useEffect(() => {
     if (user) fetchCourses();
-  }, [user]);
+  }, [user, fetchCourses]);
 
   const handleCreate = async () => {
     if (!newCourse.title.trim()) {

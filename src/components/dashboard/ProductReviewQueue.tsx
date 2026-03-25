@@ -26,89 +26,87 @@ export default function ProductReviewQueue({ onNavigate }: Props) {
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState<string | null>(null);
 
-  const fetchPending = async () => {
-    if (!user) return;
-    setLoading(true);
-    const pending: PendingProduct[] = [];
-
-    try {
-      // Check courses
-      const { data: courses } = await supabase
-        .from("courses")
-        .select("id, title, book_id, created_at, status")
-        .eq("author_id", user.id)
-        .eq("status", "ready_for_review");
-
-      // Check home study courses
-      const { data: homeStudy } = await supabase
-        .from("home_study_courses")
-        .select("id, title, book_id, created_at, status")
-        .eq("author_id", user.id)
-        .eq("status", "ready_for_review");
-
-      // Check webinars
-      const { data: webinars } = await supabase
-        .from("webinars")
-        .select("id, title, book_id, created_at, status")
-        .eq("author_id", user.id)
-        .eq("status", "ready_for_review");
-
-      // Check audiobooks
-      const { data: audiobooks } = await supabase
-        .from("audiobooks")
-        .select("id, title, book_id, created_at, status")
-        .eq("author_id", user.id)
-        .eq("status", "ready_for_review");
-
-      // Check podcasts
-      const { data: podcasts } = await supabase
-        .from("podcasts")
-        .select("id, title, book_id, created_at, status")
-        .eq("author_id", user.id)
-        .eq("status", "ready_for_review");
-
-      // Get book titles
-      const bookIds = new Set<string>();
-      [courses, homeStudy, webinars, audiobooks, podcasts].forEach(arr =>
-        (arr || []).forEach((item: any) => { if (item.book_id) bookIds.add(item.book_id); })
-      );
-
-      let bookTitles: Record<string, string> = {};
-      if (bookIds.size > 0) {
-        const { data: books } = await supabase
-          .from("books")
-          .select("id, title")
-          .in("id", Array.from(bookIds));
-        (books || []).forEach((b: any) => { bookTitles[b.id] = b.title; });
-      }
-
-      const mapItems = (items: any[] | null, type: string, table: string) =>
-        (items || []).map((item) => ({
-          id: item.id,
-          title: item.title,
-          type,
-          bookTitle: bookTitles[item.book_id] || "Unknown Book",
-          bookId: item.book_id,
-          table,
-          createdAt: item.created_at,
-        }));
-
-      pending.push(
-        ...mapItems(courses, "Online Course", "courses"),
-        ...mapItems(homeStudy, "Home Study Course", "home_study_courses"),
-        ...mapItems(webinars, "Webinar", "webinars"),
-        ...mapItems(audiobooks, "Audiobook", "audiobooks"),
-        ...mapItems(podcasts, "Podcast", "podcasts"),
-      );
-    } catch (err) {
-      console.error("Failed to fetch pending products:", err);
-    }
-    setPendingProducts(pending);
-    setLoading(false);
-  };
-
   useEffect(() => {
     if (!user) return;
+    const fetchPending = async () => {
+      setLoading(true);
+      const pending: PendingProduct[] = [];
+
+      try {
+        // Check courses
+        const { data: courses } = await supabase
+          .from("courses")
+          .select("id, title, book_id, created_at, status")
+          .eq("author_id", user.id)
+          .eq("status", "ready_for_review");
+
+        // Check home study courses
+        const { data: homeStudy } = await supabase
+          .from("home_study_courses")
+          .select("id, title, book_id, created_at, status")
+          .eq("author_id", user.id)
+          .eq("status", "ready_for_review");
+
+        // Check webinars
+        const { data: webinars } = await supabase
+          .from("webinars")
+          .select("id, title, book_id, created_at, status")
+          .eq("author_id", user.id)
+          .eq("status", "ready_for_review");
+
+        // Check audiobooks
+        const { data: audiobooks } = await supabase
+          .from("audiobooks")
+          .select("id, title, book_id, created_at, status")
+          .eq("author_id", user.id)
+          .eq("status", "ready_for_review");
+
+        // Check podcasts
+        const { data: podcasts } = await supabase
+          .from("podcasts")
+          .select("id, title, book_id, created_at, status")
+          .eq("author_id", user.id)
+          .eq("status", "ready_for_review");
+
+        // Get book titles
+        const bookIds = new Set<string>();
+        [courses, homeStudy, webinars, audiobooks, podcasts].forEach(arr =>
+          (arr || []).forEach((item: any) => { if (item.book_id) bookIds.add(item.book_id); })
+        );
+
+        let bookTitles: Record<string, string> = {};
+        if (bookIds.size > 0) {
+          const { data: books } = await supabase
+            .from("books")
+            .select("id, title")
+            .in("id", Array.from(bookIds));
+          (books || []).forEach((b: any) => { bookTitles[b.id] = b.title; });
+        }
+
+        const mapItems = (items: any[] | null, type: string, table: string) =>
+          (items || []).map((item) => ({
+            id: item.id,
+            title: item.title,
+            type,
+            bookTitle: bookTitles[item.book_id] || "Unknown Book",
+            bookId: item.book_id,
+            table,
+            createdAt: item.created_at,
+          }));
+
+        pending.push(
+          ...mapItems(courses, "Online Course", "courses"),
+          ...mapItems(homeStudy, "Home Study Course", "home_study_courses"),
+          ...mapItems(webinars, "Webinar", "webinars"),
+          ...mapItems(audiobooks, "Audiobook", "audiobooks"),
+          ...mapItems(podcasts, "Podcast", "podcasts"),
+        );
+      } catch (err) {
+        console.error("Failed to fetch pending products:", err);
+      }
+      setPendingProducts(pending);
+      setLoading(false);
+    };
     fetchPending();
   }, [user]);
 

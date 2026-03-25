@@ -25,17 +25,16 @@ export default function NotificationCenter({ userId, onNavigate }: Props) {
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  const fetchNotifications = async () => {
-    const { data } = await supabase
-      .from("notifications")
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(20);
-    if (data) setNotifications(data as Notification[]);
-  };
-
   useEffect(() => {
+    const fetchNotifications = async () => {
+      const { data } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (data) setNotifications(data as Notification[]);
+    };
     fetchNotifications();
     const channel = supabase
       .channel('notifications')

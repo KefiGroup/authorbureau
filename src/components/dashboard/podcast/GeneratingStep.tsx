@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +34,7 @@ export default function PodcastGeneratingStep({ config, onComplete, onBack }: Pr
   const [error, setError] = useState("");
   const hasStarted = useRef(false);
 
-  const startGeneration = async () => {
+  const startGeneration = useCallback(async () => {
     setState("queued");
     setProgress(2);
     await new Promise(r => setTimeout(r, 1500));
@@ -118,13 +118,13 @@ export default function PodcastGeneratingStep({ config, onComplete, onBack }: Pr
       setError(e instanceof Error ? e.message : "Unknown error");
       setState("error");
     }
-  };
+  }, [config, onComplete]);
 
   useEffect(() => {
     if (hasStarted.current) return;
     hasStarted.current = true;
     startGeneration();
-  }, []);
+  }, [startGeneration]);
 
   return (
     <div className="max-w-3xl mx-auto space-y-8 py-8">
