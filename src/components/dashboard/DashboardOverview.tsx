@@ -14,7 +14,7 @@ import {
   AlertCircle, Circle, AlertTriangle, Sparkles,
   FileText, Video, Share2, Users, Trophy, Podcast, Building, Calendar,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import BadgeDisplay, { type BadgeLevel } from "@/components/BadgeDisplay";
 import ABBYFrameworkGrid from "@/components/dashboard/ABBYFrameworkGrid";
 
