@@ -15,8 +15,8 @@ export type GenerationState =
 /** The business-plan JSON blob passed down from the book hub */
 export type BuilderPlan = Record<string, unknown> | null;
 
-/** Dynamic step data bag — intentionally loose because each builder stores different keys */
-export type StepData = Record<string, unknown>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- step data is intentionally dynamic per builder
+export type StepData = Record<string, any>;
 
 export interface BaseBuilderStepProps {
   stepData: StepData;
