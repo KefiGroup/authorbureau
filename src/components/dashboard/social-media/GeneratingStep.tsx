@@ -152,7 +152,7 @@ export default function GeneratingStep({ config, onComplete, onBack }: Props) {
       setError(e instanceof Error ? e.message : "Unknown error");
       setState("error");
     }
-  };
+  }, [config, onComplete]);
 
   useEffect(() => {
     if (hasStarted.current) return;
