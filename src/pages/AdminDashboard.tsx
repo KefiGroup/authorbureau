@@ -194,7 +194,7 @@ export default function AdminDashboard() {
       toast({ title: `${promoteEmail} promoted to admin` });
       setPromoteEmail("");
       fetchAdmins();
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: err.message || "Promotion failed", variant: "destructive" });
     }
     setPromoting(false);
@@ -205,7 +205,7 @@ export default function AdminDashboard() {
       await adminApi.demoteAdmin(userId);
       toast({ title: "Admin demoted" });
       fetchAdmins();
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: err.message || "Demotion failed", variant: "destructive" });
     }
   };
@@ -216,7 +216,7 @@ export default function AdminDashboard() {
       await adminFetch("delete", { bookId });
       setBooks((prev) => prev.filter((b) => b.id !== bookId));
       toast({ title: "Book deleted" });
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: err.message || "Delete failed", variant: "destructive" });
     }
     setDeletingBookId(null);
@@ -228,7 +228,7 @@ export default function AdminDashboard() {
       await adminFetch("approve", { bookId });
       toast({ title: "Book approved & microsite published! 🎉" });
       fetchBooks();
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: err.message || "Approve failed", variant: "destructive" });
     }
     setApprovingBookId(null);
@@ -240,7 +240,7 @@ export default function AdminDashboard() {
       await adminFetch("reject", { bookId });
       toast({ title: "Book unpublished" });
       fetchBooks();
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: err.message || "Reject failed", variant: "destructive" });
     }
     setApprovingBookId(null);

@@ -59,7 +59,7 @@ export default function WorkbookUploadStep({ stepData, setStepData, onMarkEdited
       update("fileName", file.name);
       update("fileSize", (file.size / (1024 * 1024)).toFixed(1) + " MB");
       toast.success("Workbook PDF uploaded successfully!");
-    } catch (err: any) {
+    } catch (err) {
       toast.error("Upload failed: " + (err.message || "Unknown error"));
     } finally {
       setUploading(false);
@@ -92,7 +92,7 @@ export default function WorkbookUploadStep({ stepData, setStepData, onMarkEdited
 
       update("coverImageUrl", urlData.publicUrl);
       toast.success("Cover image uploaded!");
-    } catch (err: any) {
+    } catch (err) {
       toast.error("Upload failed: " + (err.message || "Unknown error"));
     } finally {
       setUploadingCover(false);

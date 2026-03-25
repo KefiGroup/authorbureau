@@ -42,7 +42,7 @@ export default function WorkbooksManager({ onNavigate }: { onNavigate?: (section
       });
       if (error) throw error;
       if (data?.url) window.open(data.url, "_blank");
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err?.message || "Could not start checkout");
     } finally {
       setCheckoutLoading(false);
@@ -55,7 +55,7 @@ export default function WorkbooksManager({ onNavigate }: { onNavigate?: (section
       const { data, error } = await sharedSupabase.functions.invoke("customer-portal");
       if (error) throw error;
       if (data?.url) window.open(data.url, "_blank");
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err?.message || "Could not open portal");
     } finally {
       setCheckoutLoading(false);

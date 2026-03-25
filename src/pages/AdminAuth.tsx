@@ -43,7 +43,7 @@ export default function AdminAuth() {
 
         window.history.replaceState(null, "", location.pathname);
         navigate("/admin", { replace: true });
-      } catch (err: any) {
+      } catch (err) {
         toast({ title: err.message || "Admin magic link failed", variant: "destructive" });
       } finally {
         setMagicLinkProcessing(false);
@@ -75,7 +75,7 @@ export default function AdminAuth() {
     try {
       await adminApi.requestCode(email.trim());
       setSent(true);
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: err.message || "Failed to send code", variant: "destructive" });
     } finally {
       setSubmitting(false);
@@ -109,7 +109,7 @@ export default function AdminAuth() {
       }
 
       throw new Error("Login succeeded but no session was returned.");
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: err.message || "Verification failed", variant: "destructive" });
     } finally {
       setVerifying(false);

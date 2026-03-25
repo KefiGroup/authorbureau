@@ -104,7 +104,7 @@ export async function redirectToPublishNow(
     const url = `${PUBLISHNOW_SSO_URL}?token=${token}&from=authorsbureau&redirect=${encodeURIComponent(targetPath)}`;
     window.open(url, "_blank");
     return {};
-  } catch (err: any) {
+  } catch (err) {
     return {
       error: err.message || "SSO redirect failed. Please try again.",
       fallbackUrl,

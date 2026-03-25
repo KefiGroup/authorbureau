@@ -362,7 +362,7 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
     try {
       await generateChapter(i, authToken);
       toast({ title: `${chapters[i].title} generated!` });
-    } catch (e: any) {
+    } catch (e) {
       setChapters(prev => prev.map((ch, idx) => idx === i ? { ...ch, status: "error", error: e.message } : ch));
       toast({ title: `${chapters[i].title} failed`, description: e.message, variant: "destructive" });
     }

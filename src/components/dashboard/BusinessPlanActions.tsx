@@ -138,7 +138,7 @@ export default function BusinessPlanActions({
       });
       if (error) throw error;
       if (data?.url) window.open(data.url, "_blank");
-    } catch (err: any) {
+    } catch (err) {
       toast({
         title: "Could not start checkout",
         description: err?.message || "Please try again.",

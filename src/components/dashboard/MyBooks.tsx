@@ -107,7 +107,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
       setManuscriptBooks(manuscripts);
       setProductCounts(result.productCounts || {});
       setCategoryCounts(result.categoryCounts || {});
-    } catch (err: any) {
+    } catch (err) {
       console.error("Failed to fetch books:", err);
       setFetchError(err?.name === "AbortError" ? "Request timed out. Please try again." : "Could not load your books. Please try again.");
     }

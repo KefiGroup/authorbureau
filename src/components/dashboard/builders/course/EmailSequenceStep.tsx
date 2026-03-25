@@ -132,7 +132,7 @@ Make each email specific to the course topic. Return ONLY valid JSON.`;
       updateEmails(generated);
       setGenerationState("complete");
       toast({ title: "Email sequence generated!", description: "7 emails ready to review and customize." });
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
       setGenerationState("error");
       toast({

@@ -103,7 +103,7 @@ export default function DistributeAudiobookModal({
       toast({ title: "Audiobook sent to PublishNow!", description: "You can track distribution status in the AI Publishing Studio." });
       onOpenChange(false);
       onDistributed();
-    } catch (e: any) {
+    } catch (e) {
       toast({ title: "Distribution failed", description: e.message || "Please try again.", variant: "destructive" });
     }
     setSending(false);

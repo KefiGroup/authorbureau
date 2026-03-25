@@ -444,7 +444,7 @@ function SubscribersTab() {
       } else {
         toast({ title: "Sync failed", description: result.error, variant: "destructive" });
       }
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Sync error", description: err.message, variant: "destructive" });
     }
     setSyncing(false);

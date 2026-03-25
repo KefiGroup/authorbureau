@@ -373,7 +373,7 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
       setLastSaved(savedAt);
       if (!silent) toast({ title: "Draft saved" });
       return true;
-    } catch (err: any) {
+    } catch (err) {
       if (!silent) toast({ title: "Save failed", description: err?.message || "Please try again.", variant: "destructive" });
       return false;
     } finally {

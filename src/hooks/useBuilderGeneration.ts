@@ -173,7 +173,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
           body: JSON.stringify(payload),
           signal,
         });
-      } catch (err: any) {
+      } catch (err) {
         lastError = err;
         if (signal?.aborted || err?.name === "AbortError") throw err;
         if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 500));
@@ -213,7 +213,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
       });
 
       toast({ title: "Abby's proposal is ready!", description: "Review and approve to generate all content." });
-    } catch (err: any) {
+    } catch (err) {
       console.error("Act 1 error:", err);
       const message = err?.message?.toLowerCase?.().includes("failed to fetch")
         ? "Connection issue while reaching Abby. Please retry."
@@ -391,7 +391,7 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
           ? `Review below. ${pushResult.pushed} assets pushed to other builders.`
           : "Review everything below." 
       });
-    } catch (err: any) {
+    } catch (err) {
       if (err.name === "AbortError") return;
       console.error("Act 3 error:", err);
       const message = err?.message?.toLowerCase?.().includes("failed to fetch")

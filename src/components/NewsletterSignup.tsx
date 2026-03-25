@@ -56,7 +56,7 @@ export default function NewsletterSignup({ bookId, authorName, authorId }: Newsl
       } catch (error) {
       console.error(error);
     }
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Something went wrong", description: err.message || "Please try again.", variant: "destructive" });
     } finally {
       setLoading(false);
