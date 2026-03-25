@@ -49,7 +49,7 @@ export default function GeneratingStep({ config, onComplete, onBack }: Props) {
     }
   }, [latestPosts]);
 
-  const startGeneration = async () => {
+  const startGeneration = useCallback(async () => {
     setState("queued");
     setProgress(2);
 

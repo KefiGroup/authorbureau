@@ -118,7 +118,7 @@ export default function PodcastGeneratingStep({ config, onComplete, onBack }: Pr
       setError(e instanceof Error ? e.message : "Unknown error");
       setState("error");
     }
-  };
+  }, [config, onComplete]);
 
   useEffect(() => {
     if (hasStarted.current) return;
