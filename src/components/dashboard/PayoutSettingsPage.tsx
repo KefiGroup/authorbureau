@@ -46,7 +46,7 @@ export default function PayoutSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [hasStripeConnect, setHasStripeConnect] = useState(false);
 
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     try {
       // Check Stripe Connect status
       const { data: profile } = await supabase
@@ -79,12 +79,12 @@ export default function PayoutSettingsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     if (!user?.id) return;
     loadSettings();
-  }, [user?.id]);
+  }, [user?.id, loadSettings]);
 
   const handleSave = async () => {
     if (!user?.id) return;
