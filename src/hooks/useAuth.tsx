@@ -10,24 +10,36 @@ const ADMIN_AUTH_KEY = "ab_admin_auth";
 export const TIERS = {
   starter: {
     price_id: "price_1TCjzFCk4r0emyO8LdzhvM9V",
+    annual_price_id: "price_1TF01ZCk4r0emyO8xHrc9Vc8",
     product_id: "prod_UB6BxxNnqv6UpV",
     label: "Brand Package",
     monthlyPrice: 49,
+    annualPrice: 488,
     usualPrice: 69,
+    payment_link_monthly: "https://buy.stripe.com/00w5kC0TYeqvfyF7etao800",
+    payment_link_annual: "https://buy.stripe.com/eVqbJ05aedmrcmtcyNao801",
   },
   pro: {
     price_id: "price_1TCjzGCk4r0emyO8jkYgPpmL",
+    annual_price_id: "price_1TF01aCk4r0emyO8Whkqo6gz",
     product_id: "prod_UB6BfcKCAYrgp0",
     label: "Build Package",
     monthlyPrice: 99,
+    annualPrice: 988,
     usualPrice: 199,
+    payment_link_monthly: "https://buy.stripe.com/5kQcN4fOS1DJgCJbuJao802",
+    payment_link_annual: "https://buy.stripe.com/4gMeVc7imdmrfyFfKZao803",
   },
   enterprise: {
     price_id: "price_1TCjzHCk4r0emyO82PblWqRl",
+    annual_price_id: "price_1TF01bCk4r0emyO8WOX1NhtB",
     product_id: "prod_UB6BVLnks6JWoJ",
     label: "Yield Package",
     monthlyPrice: 249,
+    annualPrice: 2488,
     usualPrice: 499,
+    payment_link_monthly: "https://buy.stripe.com/3cI4gybyC4PV5Y59mBao804",
+    payment_link_annual: "https://buy.stripe.com/cNifZgauy96baelcyNao805",
   },
 } as const;
 
