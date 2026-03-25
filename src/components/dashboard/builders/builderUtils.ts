@@ -112,7 +112,7 @@ export function mapCoursePriceTier(price: number): string {
 export function buildCourseModulesFromStructure(structure: Record<string, unknown>[] | undefined): Array<Record<string, unknown>> {
   if (!Array.isArray(structure)) return [];
 
-  const getStringArray = (value: any): string[] =>
+  const getStringArray = (value: unknown): string[] =>
     Array.isArray(value)
       ? value
           .map((item) => String(item ?? "").trim())
