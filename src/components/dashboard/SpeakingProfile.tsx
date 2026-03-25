@@ -26,7 +26,7 @@ export default function SpeakingProfile() {
   const [creating, setCreating] = useState(false);
   const [newTopic, setNewTopic] = useState({ title: "", description: "", duration: "60", fee: "" });
 
-  const fetchTopics = async () => {
+  const fetchTopics = useCallback(async () => {
     const { data } = await supabase
       .from("speaking_topics")
       .select("*")
@@ -34,11 +34,11 @@ export default function SpeakingProfile() {
       .order("created_at", { ascending: false });
     setTopics((data as SpeakingTopic[]) || []);
     setLoading(false);
-  };
+  }, [user]);
 
   useEffect(() => {
     if (user) fetchTopics();
-  }, [user]);
+  }, [user, fetchTopics]);
 
   const handleCreate = async () => {
     if (!newTopic.title.trim()) {
