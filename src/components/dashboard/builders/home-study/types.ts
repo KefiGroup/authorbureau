@@ -1,13 +1,6 @@
-export interface HomeStudyStepProps {
-  stepData: Record<string, any>;
-  setStepData: React.Dispatch<React.SetStateAction<Record<string, any>>>;
-  onMarkEdited: (stepId: string) => void;
-  bookId: string;
-  bookTitle: string;
-  plan: any;
-  generationState: "idle" | "queued" | "analyzing" | "generating" | "complete" | "error";
-  setGenerationState: (s: "idle" | "queued" | "analyzing" | "generating" | "complete" | "error") => void;
-  userId: string;
+import type { BaseBuilderStepProps } from "../shared/builder-types";
+
+export interface HomeStudyStepProps extends BaseBuilderStepProps {
   onStartGeneration?: () => void;
   builderAct?: string;
   onNavigate?: (section: string) => void;
