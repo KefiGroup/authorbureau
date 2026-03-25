@@ -13,7 +13,7 @@ interface Props {
   bookTitle: string;
   plan: Record<string, any> | null;
   generationState: string;
-  setGenerationState: (s: any) => void;
+  setGenerationState: (s: "idle" | "queued" | "analyzing" | "generating" | "complete" | "error") => void;
   userId: string;
 }
 
