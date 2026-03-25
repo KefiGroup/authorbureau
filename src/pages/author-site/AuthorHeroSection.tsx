@@ -97,7 +97,7 @@ export default function AuthorHeroSection({ author, displayName, booksWithProduc
               >
                 {socialLinks.map((s) => {
                   const Icon = s.icon;
-                  const url = (author as Record<string, unknown>)[s.key] as string;
+                  const url = (author as unknown as Record<string, unknown>)[s.key] as string;
                   return (
                     <a key={s.key} href={url} target="_blank" rel="noopener noreferrer" title={s.label}
                       className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-110"
