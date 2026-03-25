@@ -30,7 +30,7 @@ interface ChatViewProps {
   isBuilding: string | null;
   isPremium: boolean;
   isAdmin: boolean;
-  tier: string;
+  tier: SubscriptionTier;
   userId: string;
   checkoutLoading: boolean;
   portalLoading: boolean;
