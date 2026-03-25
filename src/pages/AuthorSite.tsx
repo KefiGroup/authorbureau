@@ -94,7 +94,7 @@ export default function AuthorSite() {
     let booksQuery = supabase.from("books").select("*").eq("author_id", profile.user_id).order("created_at", { ascending: false });
     if (!isOwner) booksQuery = booksQuery.not("published_at", "is", null);
 
-    let booksByNameQuery: ReturnType<typeof supabase.from<"books">> | null = null;
+    let booksByNameQuery: typeof booksQuery | null = null;
     if (profile.pen_name) {
       booksByNameQuery = supabase.from("books").select("*").eq("author_name", profile.pen_name).order("created_at", { ascending: false });
       if (!isOwner) booksByNameQuery = booksByNameQuery.not("published_at", "is", null);
