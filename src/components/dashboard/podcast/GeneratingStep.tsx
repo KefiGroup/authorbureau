@@ -124,7 +124,7 @@ export default function PodcastGeneratingStep({ config, onComplete, onBack }: Pr
     if (hasStarted.current) return;
     hasStarted.current = true;
     startGeneration();
-  }, []);
+  }, [startGeneration]);
 
   return (
     <div className="max-w-3xl mx-auto space-y-8 py-8">

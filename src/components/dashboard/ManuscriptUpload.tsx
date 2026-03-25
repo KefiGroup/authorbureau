@@ -80,32 +80,33 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
     return token;
   };
 
-  const checkExisting = async () => {
-    setChecking(true);
-    try {
-      const token = await getToken();
-      const resp = await fetch(EDGE_FN_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ action: "check", bookId }),
-      });
-      const result = await resp.json();
-      if (resp.ok && result.exists) {
-        setHasManuscript(true);
-        setCharCount(result.characterCount || 0);
-      } else {
+  useEffect(() => {
+    const checkExisting = async () => {
+      setChecking(true);
+      try {
+        const token = await getToken();
+        const resp = await fetch(EDGE_FN_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ action: "check", bookId }),
+        });
+        const result = await resp.json();
+        if (resp.ok && result.exists) {
+          setHasManuscript(true);
+          setCharCount(result.characterCount || 0);
+        } else {
+          setHasManuscript(false);
+          setCharCount(null);
+        }
+      } catch (error) {
         setHasManuscript(false);
         setCharCount(null);
+      } finally {
+        setChecking(false);
       }
-    } catch (error) {
-      setHasManuscript(false);
-      setCharCount(null);
-    } finally {
-      setChecking(false);
-    }
-  };
-
-  useEffect(() => { checkExisting(); }, [bookId]);
+    };
+    checkExisting();
+  }, [bookId]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
