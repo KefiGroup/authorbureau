@@ -26,7 +26,7 @@ export default function AuthorHeroSection({ author, displayName, booksWithProduc
   const totalProducts = allProducts.length;
 
   const socialLinks = SOCIAL_LINKS.filter(
-    (s) => (author as Record<string, unknown>)[s.key]
+    (s) => (author as unknown as Record<string, unknown>)[s.key]
   );
 
   return (
