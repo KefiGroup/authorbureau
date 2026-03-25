@@ -133,7 +133,7 @@ export function buildCourseModulesFromStructure(structure: Record<string, unknow
         learningObjectives.map((objective) => ({ title: objective }));
 
       const lessons = rawLessonItems
-        .map((item: any, lessonIndex: number) => {
+        .map((item: unknown, lessonIndex: number) => {
           const normalized = typeof item === "string" ? { title: item } : (item || {});
           const title = String(
             normalized.title ||
