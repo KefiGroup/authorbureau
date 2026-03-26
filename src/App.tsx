@@ -40,6 +40,7 @@ import OnlineCourseViewer from "./pages/OnlineCourseViewer";
 import Methodology from "./pages/Methodology";
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import BrandProductsHub from "./pages/BrandProductsHub";
 
 const queryClient = new QueryClient();
 
