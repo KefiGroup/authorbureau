@@ -98,6 +98,8 @@ const AppRoutes = () => (
       <Route path="/my-books" element={<AuthorDashboard initialSection="my-books" />} />
       <Route path="/brand-products" element={<ProtectedRoute><BrandProductsHub /></ProtectedRoute>} />
       <Route path="/build-authority" element={<ProtectedRoute><BuildAuthorityHub /></ProtectedRoute>} />
+      <Route path="/yield-revenue" element={<ProtectedRoute><YieldRevenueHub /></ProtectedRoute>} />
+      <Route path="/revenue-dashboard" element={<ProtectedRoute><RevenueFullDashboard /></ProtectedRoute>} />
       <Route path="/node-builder/:nodeId" element={<ProtectedRoute><NodeBuilder /></ProtectedRoute>} />
       <Route path="/contact" element={<Contact />} />
       <Route path="/faq" element={<FAQ />} />
