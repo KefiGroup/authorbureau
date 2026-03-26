@@ -14,6 +14,96 @@ export type Database = {
   }
   public: {
     Tables: {
+      abby_conversations: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string | null
+          id: string
+          role: string
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string | null
+          id?: string
+          role: string
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string | null
+          id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "abby_conversations_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "abby_conversations_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      abby_nudges: {
+        Row: {
+          action_label: string | null
+          action_url: string | null
+          author_id: string
+          content: string
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          nudge_type: string
+          title: string
+        }
+        Insert: {
+          action_label?: string | null
+          action_url?: string | null
+          author_id: string
+          content: string
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          nudge_type: string
+          title: string
+        }
+        Update: {
+          action_label?: string | null
+          action_url?: string | null
+          author_id?: string
+          content?: string
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          nudge_type?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "abby_nudges_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "abby_nudges_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_usage_logs: {
         Row: {
           author_id: string
