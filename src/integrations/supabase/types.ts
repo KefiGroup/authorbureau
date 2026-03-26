@@ -392,11 +392,14 @@ export type Database = {
           created_at: string
           ghl_resource_id: string | null
           id: string
+          microsite_url: string | null
           node_id: string
           node_name: string
+          payment_link: string | null
           personalised_name: string | null
           revenue_to_date: number
           status: string
+          third_party_url: string | null
         }
         Insert: {
           activated_at?: string | null
@@ -405,11 +408,14 @@ export type Database = {
           created_at?: string
           ghl_resource_id?: string | null
           id?: string
+          microsite_url?: string | null
           node_id: string
           node_name: string
+          payment_link?: string | null
           personalised_name?: string | null
           revenue_to_date?: number
           status?: string
+          third_party_url?: string | null
         }
         Update: {
           activated_at?: string | null
@@ -418,11 +424,14 @@ export type Database = {
           created_at?: string
           ghl_resource_id?: string | null
           id?: string
+          microsite_url?: string | null
           node_id?: string
           node_name?: string
+          payment_link?: string | null
           personalised_name?: string | null
           revenue_to_date?: number
           status?: string
+          third_party_url?: string | null
         }
         Relationships: [
           {
