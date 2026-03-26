@@ -292,6 +292,9 @@ export default function RevenueFullDashboard() {
           </CardContent>
         </Card>
 
+        {/* ABBY Nudges */}
+        <NudgeCards authorId={authorId} />
+
         {/* SECTION 2: Key Metrics */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard
