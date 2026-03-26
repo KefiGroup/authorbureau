@@ -412,6 +412,8 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         return gate("My Contacts", <AuthorCRMPage onNavigate={handleNavigate} />, "pro");
       case "messages":
         return <AuthorMessagesPage />;
+      case "marketing-hub":
+        return <MarketingHub onNavigate={handleNavigate} />;
       case "reading-club":
         return <AuthorReadingClub onNavigate={handleNavigate} />;
       case "book-sales":
