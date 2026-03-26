@@ -98,6 +98,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
+  const dashboardNavigate = useNavigate();
   const sectionParam = searchParams.get("section") as DashboardSection | null;
   const [activeSection, setActiveSectionState] = useState<DashboardSection>(
     sectionParam || initialSection || (location.pathname === "/my-books" ? "my-books" : "overview")
@@ -105,6 +106,11 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
 
   // Sync section to URL so refresh preserves the active section
   const setActiveSection = (section: DashboardSection) => {
+    // Intercept Brand Products Hub → navigate to standalone page
+    if (section === ("brand-products-hub" as DashboardSection)) {
+      dashboardNavigate("/brand-products");
+      return;
+    }
     setActiveSectionState(section);
     if (section === "overview") {
       searchParams.delete("section");

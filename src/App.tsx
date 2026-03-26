@@ -40,6 +40,7 @@ import OnlineCourseViewer from "./pages/OnlineCourseViewer";
 import Methodology from "./pages/Methodology";
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import BrandProductsHub from "./pages/BrandProductsHub";
 
 const queryClient = new QueryClient();
 
@@ -91,6 +92,7 @@ const AppRoutes = () => (
       <Route path="/account-settings" element={<ProtectedRoute><AccountSettings /></ProtectedRoute>} />
       <Route path="/dashboard/book/:bookId" element={<BookHub />} />
       <Route path="/my-books" element={<AuthorDashboard initialSection="my-books" />} />
+      <Route path="/brand-products" element={<ProtectedRoute><BrandProductsHub /></ProtectedRoute>} />
       <Route path="/contact" element={<Contact />} />
       <Route path="/faq" element={<FAQ />} />
 

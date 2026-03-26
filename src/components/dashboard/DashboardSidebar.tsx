@@ -72,6 +72,11 @@ export default function DashboardSidebar({
   // HOME
   const homeItems: NavItem[] = [
     { id: "overview", label: "Dashboard", icon: LayoutDashboard },
+    { id: "brand-products-hub" as DashboardSection, label: "Brand Products", icon: Package,
+      subtitle: "9 Revenue Streams",
+      tooltip: "View and build your 9 Brand Product nodes.",
+      color: "text-emerald-500",
+    },
   ];
 
   // GET STARTED
