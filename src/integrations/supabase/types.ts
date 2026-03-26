@@ -195,6 +195,69 @@ export type Database = {
         }
         Relationships: []
       }
+      author_context: {
+        Row: {
+          author_id: string
+          book_subtitle: string | null
+          book_title: string
+          commercial_angles: Json | null
+          competitor_books: Json | null
+          core_thesis: string
+          created_at: string
+          id: string
+          key_frameworks: Json | null
+          manuscript_url: string | null
+          parsed_at: string | null
+          target_audience_persona: Json | null
+          unique_insights: Json | null
+        }
+        Insert: {
+          author_id: string
+          book_subtitle?: string | null
+          book_title: string
+          commercial_angles?: Json | null
+          competitor_books?: Json | null
+          core_thesis: string
+          created_at?: string
+          id?: string
+          key_frameworks?: Json | null
+          manuscript_url?: string | null
+          parsed_at?: string | null
+          target_audience_persona?: Json | null
+          unique_insights?: Json | null
+        }
+        Update: {
+          author_id?: string
+          book_subtitle?: string | null
+          book_title?: string
+          commercial_angles?: Json | null
+          competitor_books?: Json | null
+          core_thesis?: string
+          created_at?: string
+          id?: string
+          key_frameworks?: Json | null
+          manuscript_url?: string | null
+          parsed_at?: string | null
+          target_audience_persona?: Json | null
+          unique_insights?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "author_context_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_context_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       author_email_settings: {
         Row: {
           author_id: string
@@ -230,6 +293,63 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      author_nodes: {
+        Row: {
+          activated_at: string | null
+          author_id: string
+          content_json: Json | null
+          created_at: string
+          ghl_resource_id: string | null
+          id: string
+          node_id: string
+          node_name: string
+          personalised_name: string | null
+          revenue_to_date: number
+          status: string
+        }
+        Insert: {
+          activated_at?: string | null
+          author_id: string
+          content_json?: Json | null
+          created_at?: string
+          ghl_resource_id?: string | null
+          id?: string
+          node_id: string
+          node_name: string
+          personalised_name?: string | null
+          revenue_to_date?: number
+          status?: string
+        }
+        Update: {
+          activated_at?: string | null
+          author_id?: string
+          content_json?: Json | null
+          created_at?: string
+          ghl_resource_id?: string | null
+          id?: string
+          node_id?: string
+          node_name?: string
+          personalised_name?: string | null
+          revenue_to_date?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "author_nodes_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_nodes_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       author_payout_settings: {
         Row: {
@@ -341,6 +461,7 @@ export type Database = {
           availability_notes: string | null
           bio_long: string | null
           bio_short: string | null
+          business_plan_json: Json | null
           cover_photo_url: string | null
           created_at: string
           credentials: Json | null
@@ -359,6 +480,7 @@ export type Database = {
           linkedin_url: string | null
           location_city: string | null
           location_country: string | null
+          onboarding_completed: boolean
           pen_name: string | null
           photo_crop_y: string | null
           photo_url: string | null
@@ -367,6 +489,7 @@ export type Database = {
           speaker_fee_range: string | null
           stripe_account_id: string | null
           stripe_onboarding_complete: boolean | null
+          subscription_tier: string
           tagline: string | null
           twitter_url: string | null
           updated_at: string
@@ -381,6 +504,7 @@ export type Database = {
           availability_notes?: string | null
           bio_long?: string | null
           bio_short?: string | null
+          business_plan_json?: Json | null
           cover_photo_url?: string | null
           created_at?: string
           credentials?: Json | null
@@ -399,6 +523,7 @@ export type Database = {
           linkedin_url?: string | null
           location_city?: string | null
           location_country?: string | null
+          onboarding_completed?: boolean
           pen_name?: string | null
           photo_crop_y?: string | null
           photo_url?: string | null
@@ -407,6 +532,7 @@ export type Database = {
           speaker_fee_range?: string | null
           stripe_account_id?: string | null
           stripe_onboarding_complete?: boolean | null
+          subscription_tier?: string
           tagline?: string | null
           twitter_url?: string | null
           updated_at?: string
@@ -421,6 +547,7 @@ export type Database = {
           availability_notes?: string | null
           bio_long?: string | null
           bio_short?: string | null
+          business_plan_json?: Json | null
           cover_photo_url?: string | null
           created_at?: string
           credentials?: Json | null
@@ -439,6 +566,7 @@ export type Database = {
           linkedin_url?: string | null
           location_city?: string | null
           location_country?: string | null
+          onboarding_completed?: boolean
           pen_name?: string | null
           photo_crop_y?: string | null
           photo_url?: string | null
@@ -447,6 +575,7 @@ export type Database = {
           speaker_fee_range?: string | null
           stripe_account_id?: string | null
           stripe_onboarding_complete?: boolean | null
+          subscription_tier?: string
           tagline?: string | null
           twitter_url?: string | null
           updated_at?: string
