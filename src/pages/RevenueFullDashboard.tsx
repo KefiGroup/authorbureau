@@ -191,6 +191,8 @@ export default function RevenueFullDashboard() {
     if (authorId) {
       syncMetrics();
       fetchInsight();
+      // Trigger nudge generation (max once per day, handled server-side)
+      supabase.functions.invoke("generate-nudges").catch(() => {});
     }
   }, [authorId, syncMetrics, fetchInsight]);
 
