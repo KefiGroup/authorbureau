@@ -42,6 +42,8 @@ import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import BrandProductsHub from "./pages/BrandProductsHub";
 import BuildAuthorityHub from "./pages/BuildAuthorityHub";
+import YieldRevenueHub from "./pages/YieldRevenueHub";
+import RevenueFullDashboard from "./pages/RevenueFullDashboard";
 import NodeBuilder from "./pages/NodeBuilder";
 
 const queryClient = new QueryClient();
