@@ -10,7 +10,7 @@
 | Sprint 6 | ✅ COMPLETE | Node BP-04: Website 4-step builder (/node-builder/BP-04), generate-bp04-website edge function (AI content), deploy-bp04-to-ghl edge function (GHL Website Builder deployment) |
 | Sprint 7 | ✅ COMPLETE | Node BP-05: Webinars 4-step builder (/node-builder/BP-05), generate-bp05-webinars edge function (AI content), deploy-bp05-to-ghl edge function (GHL Calendar deployment) |
 | Sprint 8 | ✅ COMPLETE | Nodes BP-06 to BP-09: Online Course, Coaching Programme, Mastermind, Speaking & Events — 4 builders with AI generation + Stripe payment links + GHL opportunity records (8 edge functions total) |
-| Sprint 9 | Pending | Build Authority Hub + Nodes BA-10 to BA-18 |
-| Sprint 10 | Pending | Yield Revenue Hub + Nodes YR-19 to YR-28 |
-| Sprint 11 | Pending | Revenue Dashboard + GHL + Stripe data sync |
-| Sprint 12 | Pending | ABBY Performance Coach + ongoing nudges |
+| Sprint 9 | ✅ COMPLETE | Build Authority Hub + Nodes BA-10 to BA-18: 9 builders with Thinkific, GHL Memberships, Transistor.fm, GHL Affiliate Manager integrations (18 edge functions) |
+| Sprint 10 | ✅ COMPLETE | Yield Revenue Hub + Nodes YR-19 to YR-28: 10 high-ticket builders ($297–$50,000) with Stripe payment links + GHL pipelines (20 edge functions) |
+| Sprint 11 | ✅ COMPLETE | Revenue Dashboard + GHL + Stripe data sync: sync-ghl-metrics, sync-stripe-metrics, generate-daily-insight edge functions, /revenue-dashboard page with ABBY insights, charts, milestones |
+| Sprint 12 | ✅ COMPLETE | ABBY Performance Coach (/abby-coach) + Nudge Engine (9 trigger conditions) + abby-chat & generate-nudges edge functions + real-time notification badge on sidebar |
