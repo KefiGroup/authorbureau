@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import BP01Builder from "@/components/dashboard/builders/bp01/BP01Builder";
+import BP02Builder from "@/components/dashboard/builders/bp02/BP02Builder";
 
 export default function NodeBuilder() {
   const { nodeId } = useParams<{ nodeId: string }>();
@@ -34,6 +35,10 @@ export default function NodeBuilder() {
 
   if (nodeId === "BP-01") {
     return <BP01Builder authorId={authorId} />;
+  }
+
+  if (nodeId === "BP-02") {
+    return <BP02Builder authorId={authorId} />;
   }
 
   return (
