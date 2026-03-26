@@ -69,8 +69,54 @@ export default function DashboardSidebar({
   // Collapse BUILD YOUR BUSINESS if no analysis and no products
   const [businessExpanded, setBusinessExpanded] = useState(true);
 
+  // Unread nudge count for ABBY Coach badge
+  const [unreadNudges, setUnreadNudges] = useState(0);
+
+  // Fetch unread nudges count
+  useEffect(() => {
+    let channel: any;
+    const fetchCount = async () => {
+      const { data: profileData } = await supabase
+        .from("author_profiles")
+        .select("id")
+        .limit(1)
+        .maybeSingle();
+      if (!profileData) return;
+      const authorId = profileData.id;
+
+      const { count } = await supabase
+        .from("abby_nudges")
+        .select("id", { count: "exact", head: true })
+        .eq("author_id", authorId)
+        .eq("is_read", false);
+      setUnreadNudges(count || 0);
+
+      // Realtime subscription
+      channel = supabase
+        .channel("nudge-badge")
+        .on("postgres_changes", { event: "*", schema: "public", table: "abby_nudges", filter: `author_id=eq.${authorId}` }, () => {
+          // Re-fetch count on any change
+          supabase
+            .from("abby_nudges")
+            .select("id", { count: "exact", head: true })
+            .eq("author_id", authorId)
+            .eq("is_read", false)
+            .then(({ count: c }) => setUnreadNudges(c || 0));
+        })
+        .subscribe();
+    };
+    fetchCount();
+    return () => { if (channel) supabase.removeChannel(channel); };
+  }, []);
+
   // HOME
   const homeItems: NavItem[] = [
+    { id: "abby-coach" as DashboardSection, label: "ABBY Coach", icon: Sparkles,
+      subtitle: "Your AI Business Coach",
+      tooltip: "Ask ABBY anything about your author business.",
+      color: "text-secondary",
+      notificationCount: unreadNudges > 0 ? unreadNudges : undefined,
+    },
     { id: "overview", label: "Dashboard", icon: LayoutDashboard },
     { id: "brand-products-hub" as DashboardSection, label: "Brand Products", icon: Package,
       subtitle: "9 Revenue Streams",
