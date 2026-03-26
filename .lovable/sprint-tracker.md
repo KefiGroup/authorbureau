@@ -9,7 +9,7 @@
 | Sprint 5 | ✅ COMPLETE | Node BP-03: Social Media 4-step builder (/node-builder/BP-03), generate-bp03-social-media edge function (AI content, 30-day calendar), deploy-bp03-to-ghl edge function (GHL Social Planner deployment) |
 | Sprint 6 | ✅ COMPLETE | Node BP-04: Website 4-step builder (/node-builder/BP-04), generate-bp04-website edge function (AI content), deploy-bp04-to-ghl edge function (GHL Website Builder deployment) |
 | Sprint 7 | ✅ COMPLETE | Node BP-05: Webinars 4-step builder (/node-builder/BP-05), generate-bp05-webinars edge function (AI content), deploy-bp05-to-ghl edge function (GHL Calendar deployment) |
-| Sprint 8 | Pending | Nodes BP-06 to BP-09: Digital Products + Stripe |
+| Sprint 8 | ✅ COMPLETE | Nodes BP-06 to BP-09: Online Course, Coaching Programme, Mastermind, Speaking & Events — 4 builders with AI generation + Stripe payment links + GHL opportunity records (8 edge functions total) |
 | Sprint 9 | Pending | Build Authority Hub + Nodes BA-10 to BA-18 |
 | Sprint 10 | Pending | Yield Revenue Hub + Nodes YR-19 to YR-28 |
 | Sprint 11 | Pending | Revenue Dashboard + GHL + Stripe data sync |

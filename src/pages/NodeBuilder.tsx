@@ -7,6 +7,10 @@ import BP02Builder from "@/components/dashboard/builders/bp02/BP02Builder";
 import BP03Builder from "@/components/dashboard/builders/bp03/BP03Builder";
 import BP04Builder from "@/components/dashboard/builders/bp04/BP04Builder";
 import BP05Builder from "@/components/dashboard/builders/bp05/BP05Builder";
+import BP06Builder from "@/components/dashboard/builders/bp06/BP06Builder";
+import BP07Builder from "@/components/dashboard/builders/bp07/BP07Builder";
+import BP08Builder from "@/components/dashboard/builders/bp08/BP08Builder";
+import BP09Builder from "@/components/dashboard/builders/bp09/BP09Builder";
 
 export default function NodeBuilder() {
   const { nodeId } = useParams<{ nodeId: string }>();
@@ -36,25 +40,20 @@ export default function NodeBuilder() {
     );
   }
 
-  if (nodeId === "BP-01") {
-    return <BP01Builder authorId={authorId} />;
-  }
+  const builders: Record<string, React.ComponentType<{ authorId: string | null }>> = {
+    "BP-01": BP01Builder,
+    "BP-02": BP02Builder,
+    "BP-03": BP03Builder,
+    "BP-04": BP04Builder,
+    "BP-05": BP05Builder,
+    "BP-06": BP06Builder,
+    "BP-07": BP07Builder,
+    "BP-08": BP08Builder,
+    "BP-09": BP09Builder,
+  };
 
-  if (nodeId === "BP-02") {
-    return <BP02Builder authorId={authorId} />;
-  }
-
-  if (nodeId === "BP-03") {
-    return <BP03Builder authorId={authorId} />;
-  }
-
-  if (nodeId === "BP-04") {
-    return <BP04Builder authorId={authorId} />;
-  }
-
-  if (nodeId === "BP-05") {
-    return <BP05Builder authorId={authorId} />;
-  }
+  const Builder = nodeId ? builders[nodeId] : null;
+  if (Builder) return <Builder authorId={authorId} />;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-6">
