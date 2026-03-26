@@ -45,6 +45,7 @@ import BuildAuthorityHub from "./pages/BuildAuthorityHub";
 import YieldRevenueHub from "./pages/YieldRevenueHub";
 import RevenueFullDashboard from "./pages/RevenueFullDashboard";
 import NodeBuilder from "./pages/NodeBuilder";
+import AbbyCoachPage from "./pages/AbbyCoachPage";
 
 const queryClient = new QueryClient();
 
