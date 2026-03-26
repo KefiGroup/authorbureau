@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Sparkles, Users, Mail, TrendingUp, DollarSign, ArrowLeft, CheckCircle2, Eye, ExternalLink, CreditCard, Info } from "lucide-react";
+import { Sparkles, Users, Mail, TrendingUp, DollarSign, ArrowLeft, CheckCircle2, Eye, ExternalLink, CreditCard, Info, X } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { toast } from "sonner";
 
@@ -191,6 +191,8 @@ export default function RevenueFullDashboard() {
     if (authorId) {
       syncMetrics();
       fetchInsight();
+      // Trigger nudge generation (max once per day, handled server-side)
+      supabase.functions.invoke("generate-nudges").catch(() => {});
     }
   }, [authorId, syncMetrics, fetchInsight]);
 
@@ -291,6 +293,9 @@ export default function RevenueFullDashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* ABBY Nudges */}
+        <NudgeCards authorId={authorId} />
 
         {/* SECTION 2: Key Metrics */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -525,5 +530,81 @@ function MetricCard({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+/* ── Nudge Cards Component ──────────────────────────────── */
+interface Nudge {
+  id: string;
+  title: string;
+  content: string;
+  action_label: string | null;
+  action_url: string | null;
+}
+
+function NudgeCards({ authorId }: { authorId: string | null }) {
+  const navigate = useNavigate();
+  const [nudges, setNudges] = useState<Nudge[]>([]);
+
+  useEffect(() => {
+    if (!authorId) return;
+    const fetchNudges = () => {
+      supabase
+        .from("abby_nudges")
+        .select("id, title, content, action_label, action_url")
+        .eq("author_id", authorId)
+        .eq("is_read", false)
+        .order("created_at", { ascending: false })
+        .limit(3)
+        .then(({ data }) => setNudges((data as Nudge[]) || []));
+    };
+    fetchNudges();
+
+    const channel = supabase
+      .channel("revenue-nudges")
+      .on("postgres_changes", { event: "*", schema: "public", table: "abby_nudges", filter: `author_id=eq.${authorId}` }, fetchNudges)
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [authorId]);
+
+  const dismiss = async (id: string) => {
+    await supabase.from("abby_nudges").update({ is_read: true }).eq("id", id);
+    setNudges((prev) => prev.filter((n) => n.id !== id));
+  };
+
+  if (nudges.length === 0) return null;
+
+  return (
+    <div className="space-y-3">
+      {nudges.map((nudge) => (
+        <Card key={nudge.id} className="border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/20">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-start gap-3">
+              <div className="shrink-0 w-8 h-8 rounded-full bg-amber-200/50 dark:bg-amber-800/30 flex items-center justify-center mt-0.5">
+                <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground mb-1">{nudge.title}</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">{nudge.content}</p>
+                {nudge.action_label && nudge.action_url && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 text-xs"
+                    onClick={() => navigate(nudge.action_url!)}
+                  >
+                    {nudge.action_label}
+                  </Button>
+                )}
+              </div>
+              <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => dismiss(nudge.id)}>
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
   );
 }

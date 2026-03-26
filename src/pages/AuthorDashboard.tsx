@@ -127,6 +127,10 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       dashboardNavigate("/revenue-dashboard");
       return;
     }
+    if (section === ("abby-coach" as DashboardSection)) {
+      dashboardNavigate("/abby-coach");
+      return;
+    }
     setActiveSectionState(section);
     if (section === "overview") {
       searchParams.delete("section");

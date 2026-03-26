@@ -45,6 +45,7 @@ import BuildAuthorityHub from "./pages/BuildAuthorityHub";
 import YieldRevenueHub from "./pages/YieldRevenueHub";
 import RevenueFullDashboard from "./pages/RevenueFullDashboard";
 import NodeBuilder from "./pages/NodeBuilder";
+import AbbyCoachPage from "./pages/AbbyCoachPage";
 
 const queryClient = new QueryClient();
 
@@ -100,6 +101,7 @@ const AppRoutes = () => (
       <Route path="/build-authority" element={<ProtectedRoute><BuildAuthorityHub /></ProtectedRoute>} />
       <Route path="/yield-revenue" element={<ProtectedRoute><YieldRevenueHub /></ProtectedRoute>} />
       <Route path="/revenue-dashboard" element={<ProtectedRoute><RevenueFullDashboard /></ProtectedRoute>} />
+      <Route path="/abby-coach" element={<ProtectedRoute><AbbyCoachPage /></ProtectedRoute>} />
       <Route path="/node-builder/:nodeId" element={<ProtectedRoute><NodeBuilder /></ProtectedRoute>} />
       <Route path="/contact" element={<Contact />} />
       <Route path="/faq" element={<FAQ />} />
