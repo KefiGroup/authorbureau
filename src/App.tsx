@@ -92,6 +92,7 @@ const AppRoutes = () => (
       <Route path="/account-settings" element={<ProtectedRoute><AccountSettings /></ProtectedRoute>} />
       <Route path="/dashboard/book/:bookId" element={<BookHub />} />
       <Route path="/my-books" element={<AuthorDashboard initialSection="my-books" />} />
+      <Route path="/brand-products" element={<ProtectedRoute><BrandProductsHub /></ProtectedRoute>} />
       <Route path="/contact" element={<Contact />} />
       <Route path="/faq" element={<FAQ />} />
 
