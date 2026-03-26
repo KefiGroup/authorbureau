@@ -20,6 +20,16 @@ import BA15Builder from "@/components/dashboard/builders/ba15/BA15Builder";
 import BA16Builder from "@/components/dashboard/builders/ba16/BA16Builder";
 import BA17Builder from "@/components/dashboard/builders/ba17/BA17Builder";
 import BA18Builder from "@/components/dashboard/builders/ba18/BA18Builder";
+import YR19Builder from "@/components/dashboard/builders/yr19/YR19Builder";
+import YR20Builder from "@/components/dashboard/builders/yr20/YR20Builder";
+import YR21Builder from "@/components/dashboard/builders/yr21/YR21Builder";
+import YR22Builder from "@/components/dashboard/builders/yr22/YR22Builder";
+import YR23Builder from "@/components/dashboard/builders/yr23/YR23Builder";
+import YR24Builder from "@/components/dashboard/builders/yr24/YR24Builder";
+import YR25Builder from "@/components/dashboard/builders/yr25/YR25Builder";
+import YR26Builder from "@/components/dashboard/builders/yr26/YR26Builder";
+import YR27Builder from "@/components/dashboard/builders/yr27/YR27Builder";
+import YR28Builder from "@/components/dashboard/builders/yr28/YR28Builder";
 
 export default function NodeBuilder() {
   const { nodeId } = useParams<{ nodeId: string }>();
@@ -68,6 +78,16 @@ export default function NodeBuilder() {
     "BA-16": BA16Builder,
     "BA-17": BA17Builder,
     "BA-18": BA18Builder,
+    "YR-19": YR19Builder,
+    "YR-20": YR20Builder,
+    "YR-21": YR21Builder,
+    "YR-22": YR22Builder,
+    "YR-23": YR23Builder,
+    "YR-24": YR24Builder,
+    "YR-25": YR25Builder,
+    "YR-26": YR26Builder,
+    "YR-27": YR27Builder,
+    "YR-28": YR28Builder,
   };
 
   const Builder = nodeId ? builders[nodeId] : null;

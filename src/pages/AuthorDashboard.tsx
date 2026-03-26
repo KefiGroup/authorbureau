@@ -106,9 +106,25 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
 
   // Sync section to URL so refresh preserves the active section
   const setActiveSection = (section: DashboardSection) => {
-    // Intercept Brand Products Hub → navigate to standalone page
+    // Intercept standalone page navigations
     if (section === ("brand-products-hub" as DashboardSection)) {
       dashboardNavigate("/brand-products");
+      return;
+    }
+    if (section === ("revenue-streams" as DashboardSection)) {
+      dashboardNavigate("/brand-products");
+      return;
+    }
+    if (section === ("marketing-channels" as DashboardSection)) {
+      dashboardNavigate("/build-authority");
+      return;
+    }
+    if (section === ("authority-builders" as DashboardSection)) {
+      dashboardNavigate("/yield-revenue");
+      return;
+    }
+    if (section === ("analytics" as DashboardSection)) {
+      dashboardNavigate("/revenue-dashboard");
       return;
     }
     setActiveSectionState(section);

@@ -1,0 +1,529 @@
+import { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Sparkles, Users, Mail, TrendingUp, DollarSign, ArrowLeft, CheckCircle2, Eye, ExternalLink, CreditCard, Info } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { toast } from "sonner";
+
+interface Snapshot {
+  snapshot_date: string;
+  total_contacts: number;
+  email_subscribers: number;
+  pipeline_value_usd: number;
+  stripe_revenue_mtd_usd: number;
+  stripe_revenue_ytd_usd: number;
+  nodes_live: number;
+}
+
+interface LiveNode {
+  node_id: string;
+  node_name: string;
+  personalised_name: string | null;
+  status: string;
+  content_json: any;
+}
+
+const MILESTONES = [
+  { name: "First Contact", target: 1, metric: "contacts" as const, icon: "👤" },
+  { name: "First 100 Subscribers", target: 100, metric: "subscribers" as const, icon: "📧" },
+  { name: "First $1,000", target: 1000, metric: "revenue_mtd" as const, icon: "💰" },
+  { name: "1,000 Subscribers", target: 1000, metric: "subscribers" as const, icon: "🔓", note: "Unlocks Build Authority" },
+  { name: "First $10,000", target: 10000, metric: "revenue_mtd" as const, icon: "🚀" },
+  { name: "5,000 Subscribers", target: 5000, metric: "subscribers" as const, icon: "🔓", note: "Unlocks Yield Revenue" },
+  { name: "First $50,000", target: 50000, metric: "revenue_ytd" as const, icon: "⭐" },
+  { name: "First $100,000", target: 100000, metric: "revenue_ytd" as const, icon: "🏆" },
+];
+
+const NODE_REVENUE_ESTIMATES: Record<string, number> = {
+  "BP-01": 200, "BP-02": 150, "BP-03": 100, "BP-04": 300, "BP-05": 250,
+  "BP-06": 400, "BP-07": 350, "BP-08": 500, "BP-09": 300,
+  "BA-10": 800, "BA-11": 200, "BA-12": 600, "BA-13": 1000, "BA-14": 150,
+  "BA-15": 300, "BA-16": 400, "BA-17": 500, "BA-18": 300,
+  "YR-19": 1500, "YR-20": 3000, "YR-21": 2500, "YR-22": 4000, "YR-23": 2000,
+  "YR-24": 3500, "YR-25": 2500, "YR-26": 2000, "YR-27": 1000, "YR-28": 1500,
+};
+
+function getHub(nodeId: string): string {
+  if (nodeId.startsWith("BP")) return "Brand Products";
+  if (nodeId.startsWith("BA")) return "Build Authority";
+  return "Yield Revenue";
+}
+
+export default function RevenueFullDashboard() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [authorId, setAuthorId] = useState<string | null>(null);
+  const [penName, setPenName] = useState("");
+  const [stripeAccountId, setStripeAccountId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Data states
+  const [insight, setInsight] = useState<string | null>(null);
+  const [insightLoading, setInsightLoading] = useState(true);
+  const [metrics, setMetrics] = useState({ contacts: 0, subscribers: 0, pipeline: 0, revenueMtd: 0 });
+  const [projected, setProjected] = useState({ ghl: true, stripe: true });
+  const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
+  const [liveNodes, setLiveNodes] = useState<LiveNode[]>([]);
+  const [nodesLive, setNodesLive] = useState(0);
+
+  // Connect Stripe modal
+  const [showStripeModal, setShowStripeModal] = useState(false);
+  const [stripeInput, setStripeInput] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  // Fetch author profile
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("author_profiles")
+      .select("id, pen_name, stripe_connected_account_id")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setAuthorId(data.id);
+          setPenName(data.pen_name || "Author");
+          setStripeAccountId(data.stripe_connected_account_id || null);
+        }
+        setLoading(false);
+      });
+  }, [user]);
+
+  // Fetch live nodes
+  useEffect(() => {
+    if (!authorId) return;
+    supabase
+      .from("author_nodes")
+      .select("node_id, node_name, personalised_name, status, content_json")
+      .eq("author_id", authorId)
+      .eq("status", "live")
+      .then(({ data }) => {
+        setLiveNodes((data as LiveNode[]) || []);
+        setNodesLive(data?.length || 0);
+      });
+  }, [authorId]);
+
+  // Fetch historical snapshots
+  useEffect(() => {
+    if (!authorId) return;
+    supabase
+      .from("author_revenue_snapshots")
+      .select("*")
+      .eq("author_id", authorId)
+      .order("snapshot_date", { ascending: true })
+      .limit(180)
+      .then(({ data }) => setSnapshots((data as Snapshot[]) || []));
+  }, [authorId]);
+
+  // Sync metrics (max once per hour — simplified: just call on mount)
+  const syncMetrics = useCallback(async () => {
+    if (!authorId) return;
+    try {
+      const [ghlRes, stripeRes] = await Promise.all([
+        supabase.functions.invoke("sync-ghl-metrics", { body: { author_id: authorId } }),
+        supabase.functions.invoke("sync-stripe-metrics", { body: { author_id: authorId } }),
+      ]);
+
+      const ghl = ghlRes.data;
+      const stripe = stripeRes.data;
+
+      if (ghl?.success) {
+        setMetrics((m) => ({
+          ...m,
+          contacts: ghl.data.total_contacts || 0,
+          subscribers: ghl.data.email_subscribers || 0,
+          pipeline: ghl.data.pipeline_value_usd || 0,
+        }));
+        setProjected((p) => ({ ...p, ghl: ghl.projected }));
+        setNodesLive(ghl.nodes_live || 0);
+      }
+
+      if (stripe?.success) {
+        setMetrics((m) => ({
+          ...m,
+          revenueMtd: stripe.data.stripe_revenue_mtd_usd || 0,
+        }));
+        setProjected((p) => ({ ...p, stripe: stripe.projected }));
+      }
+    } catch (e) {
+      console.error("Sync error:", e);
+    }
+  }, [authorId]);
+
+  // Fetch ABBY daily insight
+  const fetchInsight = useCallback(async () => {
+    if (!authorId) return;
+    setInsightLoading(true);
+
+    // Check cache (localStorage, 24 hours)
+    const cacheKey = `abby_insight_${authorId}`;
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Date.now() - parsed.ts < 24 * 60 * 60 * 1000) {
+        setInsight(parsed.text);
+        setInsightLoading(false);
+        return;
+      }
+    }
+
+    try {
+      const { data } = await supabase.functions.invoke("generate-daily-insight", {
+        body: { author_id: authorId },
+      });
+      const text = data?.insight || "Keep building — every node you activate brings you closer to your revenue goals!";
+      setInsight(text);
+      localStorage.setItem(cacheKey, JSON.stringify({ text, ts: Date.now() }));
+    } catch {
+      setInsight("Welcome to your Revenue Dashboard! Start activating nodes to see your earnings grow.");
+    } finally {
+      setInsightLoading(false);
+    }
+  }, [authorId]);
+
+  useEffect(() => {
+    if (authorId) {
+      syncMetrics();
+      fetchInsight();
+    }
+  }, [authorId, syncMetrics, fetchInsight]);
+
+  // Save Stripe account ID
+  const saveStripeAccountId = async () => {
+    if (!stripeInput.trim() || !authorId) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("author_profiles")
+      .update({ stripe_connected_account_id: stripeInput.trim() })
+      .eq("id", authorId);
+    setSaving(false);
+    if (error) {
+      toast.error("Failed to save. Please try again.");
+    } else {
+      setStripeAccountId(stripeInput.trim());
+      setShowStripeModal(false);
+      toast.success("Payment account connected!");
+      syncMetrics();
+    }
+  };
+
+  // Build chart data (last 6 months)
+  const chartData = (() => {
+    const months: { month: string; actual: number | null; projected: number | null }[] = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const label = d.toLocaleString("default", { month: "short" });
+      const yearMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const snap = snapshots.find((s) => s.snapshot_date.startsWith(yearMonth));
+      if (snap) {
+        months.push({ month: label, actual: Number(snap.stripe_revenue_mtd_usd) || 0, projected: null });
+      } else {
+        // Project based on nodes live
+        months.push({ month: label, actual: null, projected: nodesLive * 200 * (1 + (5 - i) * 0.1) });
+      }
+    }
+    return months;
+  })();
+
+  // Milestone values
+  const milestoneValues = {
+    contacts: metrics.contacts,
+    subscribers: metrics.subscribers,
+    revenue_mtd: metrics.revenueMtd,
+    revenue_ytd: snapshots.length > 0 ? Number(snapshots[snapshots.length - 1]?.stripe_revenue_ytd_usd || 0) : metrics.revenueMtd,
+  };
+
+  if (!user || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="border-b border-border bg-card px-4 py-3">
+        <div className="max-w-6xl mx-auto flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex-1">
+            <h1 className="text-lg font-semibold">Revenue Dashboard</h1>
+            <p className="text-xs text-muted-foreground">Track your earnings across all 28 nodes</p>
+          </div>
+          {!stripeAccountId && (
+            <Button variant="outline" size="sm" onClick={() => setShowStripeModal(true)} className="gap-2">
+              <CreditCard className="h-4 w-4" />
+              Connect Payment Account
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+        {/* SECTION 1: ABBY Daily Insight */}
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="pt-6">
+            <div className="flex gap-3">
+              <div className="shrink-0 w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                <Sparkles className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-primary mb-1">ABBY's Daily Insight</p>
+                {insightLoading ? (
+                  <div className="space-y-2">
+                    <div className="h-4 bg-muted animate-pulse rounded w-3/4" />
+                    <div className="h-4 bg-muted animate-pulse rounded w-1/2" />
+                  </div>
+                ) : (
+                  <p className="text-sm text-foreground leading-relaxed">{insight}</p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* SECTION 2: Key Metrics */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <MetricCard
+            icon={Users}
+            label="Total Contacts"
+            value={metrics.contacts}
+            isProjected={projected.ghl}
+            format="number"
+          />
+          <MetricCard
+            icon={Mail}
+            label="Email Subscribers"
+            value={metrics.subscribers}
+            isProjected={projected.ghl}
+            format="number"
+          />
+          <MetricCard
+            icon={TrendingUp}
+            label="Pipeline Value"
+            value={metrics.pipeline}
+            isProjected={projected.ghl}
+            format="currency"
+          />
+          <MetricCard
+            icon={DollarSign}
+            label="Revenue This Month"
+            value={metrics.revenueMtd}
+            isProjected={projected.stripe}
+            format="currency"
+          />
+        </div>
+
+        {/* SECTION 3: Revenue Trend Chart */}
+        <Card>
+          <CardContent className="pt-6">
+            <h3 className="text-sm font-semibold mb-4">Revenue Trend (Last 6 Months)</h3>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis dataKey="month" className="text-xs" />
+                  <YAxis className="text-xs" tickFormatter={(v) => `$${v}`} />
+                  <Tooltip
+                    formatter={(value: number, name: string) => [`$${value?.toFixed(0) || 0}`, name === "actual" ? "Actual" : "Projected"]}
+                  />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="actual"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2}
+                    dot
+                    name="Actual"
+                    connectNulls={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="projected"
+                    stroke="#d97706"
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    dot={false}
+                    name="Projected"
+                    connectNulls={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* SECTION 4: Node Performance Table */}
+        <Card>
+          <CardContent className="pt-6">
+            <h3 className="text-sm font-semibold mb-4">Node Performance</h3>
+            {liveNodes.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground text-sm mb-3">No live nodes yet. Head to Brand Products to build your first node.</p>
+                <Button variant="outline" size="sm" onClick={() => navigate("/brand-products")} className="gap-2">
+                  <ExternalLink className="h-4 w-4" /> Go to Brand Products
+                </Button>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-2 px-2 text-muted-foreground font-medium">Node</th>
+                      <th className="text-left py-2 px-2 text-muted-foreground font-medium hidden sm:table-cell">Hub</th>
+                      <th className="text-left py-2 px-2 text-muted-foreground font-medium">Status</th>
+                      <th className="text-right py-2 px-2 text-muted-foreground font-medium">Est. Monthly</th>
+                      <th className="text-right py-2 px-2 text-muted-foreground font-medium"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {liveNodes.map((node) => (
+                      <tr key={node.node_id} className="border-b last:border-b-0">
+                        <td className="py-2 px-2">
+                          <div>
+                            <span className="font-mono text-xs text-muted-foreground mr-1">{node.node_id}</span>
+                            <span className="font-medium">{node.personalised_name || node.node_name}</span>
+                          </div>
+                        </td>
+                        <td className="py-2 px-2 text-muted-foreground hidden sm:table-cell">{getHub(node.node_id)}</td>
+                        <td className="py-2 px-2">
+                          <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                            <CheckCircle2 className="h-3 w-3" /> Live
+                          </span>
+                        </td>
+                        <td className="py-2 px-2 text-right font-medium">
+                          ${(NODE_REVENUE_ESTIMATES[node.node_id] || 200).toLocaleString()}
+                          <span className="text-xs text-amber-600 ml-1">est.</span>
+                        </td>
+                        <td className="py-2 px-2 text-right">
+                          <Button variant="ghost" size="sm" onClick={() => navigate(`/node-builder/${node.node_id}`)} className="h-7 text-xs gap-1">
+                            <Eye className="h-3 w-3" /> View
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* SECTION 5: Growth Milestones */}
+        <Card>
+          <CardContent className="pt-6">
+            <h3 className="text-sm font-semibold mb-4">Growth Milestones</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {MILESTONES.map((ms) => {
+                const current = milestoneValues[ms.metric];
+                const achieved = current >= ms.target;
+                const pct = Math.min(100, (current / ms.target) * 100);
+                return (
+                  <div key={ms.name} className={`p-3 rounded-lg border ${achieved ? "border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/30" : "border-border"}`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-lg">{ms.icon}</span>
+                      <span className="text-sm font-medium flex-1">{ms.name}</span>
+                      {achieved ? (
+                        <span className="text-xs text-emerald-600 font-medium">Achieved ✓</span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">
+                          {current.toLocaleString()} / {ms.target.toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                    <Progress value={pct} className="h-1.5" />
+                    {ms.note && !achieved && (
+                      <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                        <Info className="h-3 w-3" /> {ms.note}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Connect Stripe Modal */}
+      <Dialog open={showStripeModal} onOpenChange={setShowStripeModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Connect Your Payment Account</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Connect your payment account to see your real revenue data on this dashboard.
+            Your payment links are already working — connecting your account lets ABBY track your earnings automatically.
+          </p>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Your Account ID</label>
+            <Input
+              placeholder="acct_XXXXXXXXXXXXXXXXXX"
+              value={stripeInput}
+              onChange={(e) => setStripeInput(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Find this in your payment dashboard under Settings → Account Details
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowStripeModal(false)}>Cancel</Button>
+            <Button onClick={saveStripeAccountId} disabled={saving || !stripeInput.trim()}>
+              {saving ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+/* ── Metric Card Component ──────────────────────────────── */
+function MetricCard({
+  icon: Icon,
+  label,
+  value,
+  isProjected,
+  format,
+}: {
+  icon: typeof Users;
+  label: string;
+  value: number;
+  isProjected: boolean;
+  format: "number" | "currency";
+}) {
+  const formatted = format === "currency"
+    ? `$${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+    : value.toLocaleString();
+
+  return (
+    <Card>
+      <CardContent className="pt-4 pb-4">
+        <div className="flex items-center gap-2 mb-1">
+          <Icon className="h-4 w-4 text-muted-foreground" />
+          <span className="text-xs text-muted-foreground">{label}</span>
+        </div>
+        <div className="flex items-baseline gap-2">
+          <span className={`text-2xl font-bold ${isProjected ? "text-amber-600 dark:text-amber-400" : "text-foreground"}`}>
+            {formatted}
+          </span>
+          {isProjected && (
+            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+              Projected
+            </span>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

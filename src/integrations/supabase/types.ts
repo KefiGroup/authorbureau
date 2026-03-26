@@ -468,6 +468,7 @@ export type Database = {
           directory_status: string
           frameworks: Json | null
           genres: string[] | null
+          ghl_api_key: string | null
           ghl_provision_status: string | null
           ghl_provisioned_at: string | null
           ghl_sub_account_id: string | null
@@ -488,6 +489,8 @@ export type Database = {
           site_theme: string
           speaker_fee_range: string | null
           stripe_account_id: string | null
+          stripe_connected_account_id: string | null
+          stripe_customer_id: string | null
           stripe_onboarding_complete: boolean | null
           subscription_tier: string
           tagline: string | null
@@ -511,6 +514,7 @@ export type Database = {
           directory_status?: string
           frameworks?: Json | null
           genres?: string[] | null
+          ghl_api_key?: string | null
           ghl_provision_status?: string | null
           ghl_provisioned_at?: string | null
           ghl_sub_account_id?: string | null
@@ -531,6 +535,8 @@ export type Database = {
           site_theme?: string
           speaker_fee_range?: string | null
           stripe_account_id?: string | null
+          stripe_connected_account_id?: string | null
+          stripe_customer_id?: string | null
           stripe_onboarding_complete?: boolean | null
           subscription_tier?: string
           tagline?: string | null
@@ -554,6 +560,7 @@ export type Database = {
           directory_status?: string
           frameworks?: Json | null
           genres?: string[] | null
+          ghl_api_key?: string | null
           ghl_provision_status?: string | null
           ghl_provisioned_at?: string | null
           ghl_sub_account_id?: string | null
@@ -574,6 +581,8 @@ export type Database = {
           site_theme?: string
           speaker_fee_range?: string | null
           stripe_account_id?: string | null
+          stripe_connected_account_id?: string | null
+          stripe_customer_id?: string | null
           stripe_onboarding_complete?: boolean | null
           subscription_tier?: string
           tagline?: string | null
@@ -584,6 +593,60 @@ export type Database = {
           youtube_url?: string | null
         }
         Relationships: []
+      }
+      author_revenue_snapshots: {
+        Row: {
+          author_id: string
+          created_at: string | null
+          email_subscribers: number | null
+          id: string
+          nodes_live: number | null
+          pipeline_value_usd: number | null
+          snapshot_date: string
+          stripe_revenue_mtd_usd: number | null
+          stripe_revenue_ytd_usd: number | null
+          total_contacts: number | null
+        }
+        Insert: {
+          author_id: string
+          created_at?: string | null
+          email_subscribers?: number | null
+          id?: string
+          nodes_live?: number | null
+          pipeline_value_usd?: number | null
+          snapshot_date: string
+          stripe_revenue_mtd_usd?: number | null
+          stripe_revenue_ytd_usd?: number | null
+          total_contacts?: number | null
+        }
+        Update: {
+          author_id?: string
+          created_at?: string | null
+          email_subscribers?: number | null
+          id?: string
+          nodes_live?: number | null
+          pipeline_value_usd?: number | null
+          snapshot_date?: string
+          stripe_revenue_mtd_usd?: number | null
+          stripe_revenue_ytd_usd?: number | null
+          total_contacts?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "author_revenue_snapshots_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_revenue_snapshots_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       author_subscribers: {
         Row: {
