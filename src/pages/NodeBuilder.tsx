@@ -42,6 +42,10 @@ export default function NodeBuilder() {
     return <BP02Builder authorId={authorId} />;
   }
 
+  if (nodeId === "BP-03") {
+    return <BP03Builder authorId={authorId} />;
+  }
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-6">
       <h1 className="text-2xl font-bold mb-2">Coming Soon</h1>
