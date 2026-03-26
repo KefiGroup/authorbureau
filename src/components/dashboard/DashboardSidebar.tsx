@@ -2,7 +2,7 @@ import {
   LayoutDashboard, User, BookOpen, Sparkles,
   ChevronLeft, ChevronRight, Crown, ExternalLink, PenLine, BookMarked,
   Lock, Globe, BarChart3, Contact, DollarSign, Radio, Award, CreditCard, Package, Wallet,
-  BookHeart, HelpCircle, ChevronDown, ChevronUp, MessageSquare,
+  BookHeart, HelpCircle, ChevronDown, ChevronUp, MessageSquare, Megaphone,
 } from "lucide-react";
 import { useState } from "react";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
@@ -154,6 +154,13 @@ export default function DashboardSidebar({
     {
       id: "messages" as DashboardSection, label: "Messages",
       icon: MessageSquare,
+    },
+    {
+      id: "marketing-hub" as DashboardSection, label: "Marketing Hub",
+      icon: Megaphone,
+      subtitle: "Campaign Management",
+      tooltip: "View and manage all your automated marketing campaigns.",
+      color: "text-rose-500",
     },
   ];
 
