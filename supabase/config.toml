@@ -83,3 +83,7 @@ project_id = "tubpbslfrxyfhldkcyyq"
     verify_jwt = false
   [functions.save-author-profile]
     verify_jwt = false
+  [functions.ghl-provision-author]
+    verify_jwt = false
+  [functions.ghl-deploy-campaign]
+    verify_jwt = false
