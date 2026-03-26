@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Sparkles, Users, Mail, TrendingUp, DollarSign, ArrowLeft, CheckCircle2, Eye, ExternalLink, CreditCard, Info } from "lucide-react";
+import { Sparkles, Users, Mail, TrendingUp, DollarSign, ArrowLeft, CheckCircle2, Eye, ExternalLink, CreditCard, Info, X } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { toast } from "sonner";
 
