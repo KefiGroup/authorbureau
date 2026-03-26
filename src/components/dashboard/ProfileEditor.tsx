@@ -280,6 +280,18 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
       setProfile(prev => ({ ...prev, author_slug: slug }));
       setEditMode(false);
       toast({ title: "Profile saved! ✅" });
+
+      // Silently provision GHL sub-account (fire and forget)
+      if (result.profile?.id) {
+        fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ghl-provision-author`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ author_id: result.profile.id }),
+          }
+        ).catch(() => {}); // Silent — author never sees this
+      }
     } catch (err) {
       toast({ title: "Save failed", description: err.message, variant: "destructive" });
     } finally {
