@@ -59,6 +59,15 @@ export default function NodeBuilder() {
     "BP-07": BP07Builder,
     "BP-08": BP08Builder,
     "BP-09": BP09Builder,
+    "BA-10": BA10Builder,
+    "BA-11": BA11Builder,
+    "BA-12": BA12Builder,
+    "BA-13": BA13Builder,
+    "BA-14": BA14Builder,
+    "BA-15": BA15Builder,
+    "BA-16": BA16Builder,
+    "BA-17": BA17Builder,
+    "BA-18": BA18Builder,
   };
 
   const Builder = nodeId ? builders[nodeId] : null;
