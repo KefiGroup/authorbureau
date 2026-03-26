@@ -1,0 +1,118 @@
+import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { ArrowRight, Heart, Gift, Mail, Settings2 } from "lucide-react";
+import { toast } from "sonner";
+import { StepHeader, AbbyCard, LoadingStep, MultiPaymentLinks, SummaryCard, SuccessCheckmark } from "../yr-shared/YRBuilderShared";
+
+const GEN_MSGS = ["Designing your fundraising campaign...", "Creating donation tiers...", "Building your communication plan...", "Finalising your campaign..."];
+const ACT_MSGS = ["Creating donation payment links...", "Almost ready..."];
+interface Props { authorId: string | null; }
+
+export default function YR27Builder({ authorId }: Props) {
+  const navigate = useNavigate();
+  const [step, setStep] = useState(0);
+  const [authorName, setAuthorName] = useState("");
+  const [bookTitle, setBookTitle] = useState("");
+  const [content, setContent] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [msgIndex, setMsgIndex] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => { if (!authorId) return; (async () => {
+    const { data: p } = await supabase.from("author_profiles").select("pen_name").eq("id", authorId).single();
+    setAuthorName(p?.pen_name || "there");
+    const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    setBookTitle(ctx?.book_title || "");
+    const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "YR-27").maybeSingle();
+    if (node?.content_json && (node.status === "content_ready" || node.status === "live")) { setContent(node.content_json); setStep(node.status === "live" ? 3 : 2); if (node.status === "live") setContent((p: any) => ({ ...p, activated: true })); }
+  })(); }, [authorId]);
+
+  useEffect(() => { if (step === 1 || (step === 3 && !content?.activated)) { const msgs = step === 1 ? GEN_MSGS : ACT_MSGS; setMsgIndex(0); intervalRef.current = setInterval(() => setMsgIndex(i => (i + 1) % msgs.length), 3000); return () => { if (intervalRef.current) clearInterval(intervalRef.current); }; } }, [step]);
+
+  const handleGenerate = async () => { setStep(1); setError(null); try { const { data, error: e } = await supabase.functions.invoke("generate-yr27-fundraising", { body: { author_id: authorId } }); if (e || !data?.success) throw new Error(data?.error || e?.message || "Failed"); setContent(data.content); setStep(2); } catch (e: any) { setError(e.message); setStep(0); } };
+  const handleActivate = async () => { setStep(3); setError(null); try { const { data, error: e } = await supabase.functions.invoke("deploy-yr27-to-stripe", { body: { author_id: authorId } }); if (e || !data?.success) throw new Error(data?.error || e?.message || "Failed"); setContent((p: any) => ({ ...p, activated: true, payment_links: data.payment_links })); } catch (e: any) { console.error(e); setContent((p: any) => ({ ...p, activated: true })); } };
+
+  if (!authorId) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Please set up your author profile first.</p></div>;
+
+  return (
+    <div className="min-h-screen bg-background">
+      <StepHeader nodeId="YR-27" nodeName="Fundraising" step={step} />
+      <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+        {step === 0 && (<AbbyCard><h2 className="text-xl font-bold mb-3">Let's launch your Fundraising Campaign</h2><p className="text-muted-foreground mb-4">Hi {authorName}! Fundraising connects your platform to a cause greater than yourself — and builds deep loyalty with your audience. I'm going to design a complete fundraising campaign based on '{bookTitle || "your book"}' — with a campaign concept, donation tiers, and a donor communication plan. Ready to make an impact?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>Build My Campaign</Button>{error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{error}</div>}</AbbyCard>)}
+        {step === 1 && <LoadingStep messages={GEN_MSGS} msgIndex={msgIndex} />}
+        {step === 2 && content && (
+          <div className="space-y-4">
+            <AbbyCard><p className="text-muted-foreground">{content.abby_summary}</p></AbbyCard>
+            <Tabs defaultValue="overview" className="w-full">
+              <TabsList className="w-full grid grid-cols-4 h-auto">
+                <TabsTrigger value="overview" className="text-xs py-2"><Heart className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Overview</TabsTrigger>
+                <TabsTrigger value="tiers" className="text-xs py-2"><Gift className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Tiers</TabsTrigger>
+                <TabsTrigger value="comms" className="text-xs py-2"><Mail className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Comms Plan</TabsTrigger>
+                <TabsTrigger value="settings" className="text-xs py-2"><Settings2 className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Settings</TabsTrigger>
+              </TabsList>
+              <TabsContent value="overview" className="space-y-4 mt-4">
+                <Card><CardContent className="pt-6 space-y-3">
+                  <h3 className="text-xl font-bold">{content.campaign_title}</h3>
+                  {content.tagline && <p className="text-sm font-semibold text-primary italic">"{content.tagline}"</p>}
+                  <p className="text-sm">{content.cause_alignment}</p>
+                  <div className="flex gap-4"><div className="bg-muted/30 p-3 rounded flex-1"><p className="text-xs font-semibold text-muted-foreground">Goal</p><p className="text-lg font-bold">${content.campaign_goal_usd?.toLocaleString()}</p></div><div className="bg-muted/30 p-3 rounded flex-1"><p className="text-xs font-semibold text-muted-foreground">Duration</p><p className="text-lg font-bold">{content.campaign_duration_days} days</p></div></div>
+                  <div><p className="text-xs font-semibold text-muted-foreground mb-1">Impact Statement</p><p className="text-sm font-medium">{content.impact_statement}</p></div>
+                </CardContent></Card>
+              </TabsContent>
+              <TabsContent value="tiers" className="space-y-3 mt-4">
+                {content.donation_tiers?.map((t: any, i: number) => (
+                  <Card key={i}><CardContent className="pt-6 flex items-center justify-between">
+                    <div><h4 className="font-bold">{t.tier_name}</h4><p className="text-sm text-muted-foreground">{t.benefit}</p></div>
+                    <span className="text-xl font-bold">${t.amount_usd}</span>
+                  </CardContent></Card>
+                ))}
+              </TabsContent>
+              <TabsContent value="comms" className="space-y-3 mt-4">
+                <div className="relative pl-6 border-l-2 border-primary/20">
+                  {content.donor_communication_plan?.map((c: any, i: number) => (
+                    <div key={i} className="relative mb-6 last:mb-0">
+                      <div className="absolute -left-[25px] w-4 h-4 rounded-full bg-primary" />
+                      <Card><CardContent className="pt-4 pb-4">
+                        <div className="flex items-center gap-2 mb-1"><span className="text-xs bg-muted px-2 py-0.5 rounded-full">Day {c.day}</span><span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">{c.type}</span></div>
+                        <h4 className="font-bold text-sm">{c.subject}</h4>
+                        <p className="text-sm text-muted-foreground">{c.summary}</p>
+                      </CardContent></Card>
+                    </div>
+                  ))}
+                </div>
+              </TabsContent>
+              <TabsContent value="settings" className="space-y-4 mt-4">
+                <Card><CardContent className="pt-6 space-y-4">
+                  <div><p className="text-xs font-semibold text-muted-foreground mb-1">Campaign Goal (USD)</p><Input type="number" defaultValue={content.campaign_goal_usd} className="max-w-xs" /></div>
+                  <div><p className="text-xs font-semibold text-muted-foreground mb-1">Campaign Duration (days)</p><Input type="number" defaultValue={content.campaign_duration_days} className="max-w-xs" /></div>
+                </CardContent></Card>
+              </TabsContent>
+            </Tabs>
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon.")}>Edit</Button>
+              <Button className="flex-1" size="lg" onClick={handleActivate}>Activate My Campaign <ArrowRight className="h-4 w-4 ml-2" /></Button>
+            </div>
+          </div>
+        )}
+        {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
+        {step === 3 && content?.activated && (
+          <div className="space-y-4">
+            <SuccessCheckmark />
+            <AbbyCard><p className="text-muted-foreground">🎉 Your fundraising campaign is ready, {authorName}! 4 donation tiers are live.</p></AbbyCard>
+            <MultiPaymentLinks links={content.payment_links || content.donation_tiers?.map((t: any) => ({ label: t.tier_name, url: t.payment_link_url || "" })) || []} />
+            <SummaryCard items={[`Campaign: ${content.campaign_title}`, `Goal: $${content.campaign_goal_usd?.toLocaleString()}`, "Donation tiers: 4 ready", "Communication plan: 5 emails"]} />
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => navigate("/yield-revenue")}>Back to Yield Revenue</Button>
+              <Button className="flex-1" onClick={() => navigate("/node-builder/YR-28")}>Next: Set Up Exhibitors & Sponsors <ArrowRight className="h-4 w-4 ml-2" /></Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
