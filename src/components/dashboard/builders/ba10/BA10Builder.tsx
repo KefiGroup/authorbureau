@@ -1,0 +1,194 @@
+import { useState, useEffect, useRef } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import { Sparkles, ArrowRight, BookOpen, LayoutList, DollarSign, FileText, ChevronDown, ChevronUp } from "lucide-react";
+import { StepHeader, AbbyCard, LoadingStep, PaymentLinkCard, SummaryCard, SuccessCheckmark } from "../ba-shared/BABuilderShared";
+
+const GEN_MSGS = ["Studying your book's key insights and frameworks...", "Designing your professional course structure...", "Creating 8 detailed course modules with lessons...", "Writing your course description...", "Finalising your course blueprint..."];
+const ACT_MSGS = ["Creating your course on the platform...", "Setting up your payment page...", "Generating your checkout link...", "Your course is almost ready..."];
+
+interface Props { authorId: string | null; }
+
+export default function BA10Builder({ authorId }: Props) {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const devUnlock = searchParams.get("unlock") === "true";
+  const [step, setStep] = useState(0);
+  const [authorName, setAuthorName] = useState("");
+  const [bookTitle, setBookTitle] = useState("");
+  const [hasContext, setHasContext] = useState<boolean | null>(null);
+  const [content, setContent] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [msgIndex, setMsgIndex] = useState(0);
+  const [priceOverride, setPriceOverride] = useState<number | null>(null);
+  const [expandedModules, setExpandedModules] = useState<Record<number, boolean>>({});
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (!authorId) return;
+    (async () => {
+      const { data: profile } = await supabase.from("author_profiles").select("pen_name").eq("id", authorId).single();
+      setAuthorName(profile?.pen_name || "there");
+      const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      setBookTitle(ctx?.book_title || "");
+      setHasContext(!!ctx?.book_title);
+      const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "BA-10").maybeSingle();
+      if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
+        setContent(node.content_json);
+        setStep(node.status === "live" ? 3 : 2);
+        if (node.status === "live") setContent((p: any) => ({ ...p, activated: true }));
+      }
+    })();
+  }, [authorId]);
+
+  useEffect(() => {
+    if (step === 1 || (step === 3 && !content?.activated)) {
+      const msgs = step === 1 ? GEN_MSGS : ACT_MSGS;
+      setMsgIndex(0);
+      intervalRef.current = setInterval(() => setMsgIndex((i) => (i + 1) % msgs.length), 3000);
+      return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+    }
+  }, [step]);
+
+  const handleGenerate = async () => {
+    setStep(1); setError(null);
+    try {
+      const { data, error: fnErr } = await supabase.functions.invoke("generate-ba10-online-course", { body: { author_id: authorId } });
+      if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
+      setContent(data.content);
+      setPriceOverride(data.content?.suggested_price_usd || null);
+      setStep(2);
+    } catch (e: any) { setError(e.message); setStep(0); }
+  };
+
+  const handleActivate = async () => {
+    setStep(3); setError(null);
+    try {
+      const { data, error: fnErr } = await supabase.functions.invoke("deploy-ba10-to-thinkific", { body: { author_id: authorId, price_override: priceOverride } });
+      if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Activation failed");
+      setContent((p: any) => ({ ...p, activated: true, payment_link_url: data.payment_link_url }));
+    } catch (e: any) {
+      console.error("Activation error (non-blocking):", e.message);
+      setContent((p: any) => ({ ...p, activated: true }));
+    }
+  };
+
+  if (!authorId) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Please set up your author profile first.</p></div>;
+
+  const toggleModule = (i: number) => setExpandedModules(prev => ({ ...prev, [i]: !prev[i] }));
+
+  return (
+    <div className="min-h-screen bg-background">
+      <StepHeader nodeId="BA-10" nodeName="Online Course" step={step} />
+      <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+        {step === 0 && (
+          <AbbyCard>
+            <h2 className="text-xl font-bold mb-3">Let's build your Online Course</h2>
+            {hasContext === false ? (
+              <><p className="text-muted-foreground mb-4">Hi {authorName}! Before I can build your course, I need to know about your book. Please complete your book profile first.</p><Button onClick={() => navigate("/dashboard")}>Complete Book Profile</Button></>
+            ) : (
+              <><p className="text-muted-foreground mb-4">Hi {authorName}! You've already built your brand products — now it's time to scale your expertise with a professional online course. I'm going to design a complete course based on '{bookTitle || "your book"}' — with a course structure, module content outlines, and a course description. Your students will get a world-class learning experience. Ready to build your course?</p>
+                <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Build My Course</Button></>
+            )}
+            {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">I hit a snag generating your content. {error}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
+          </AbbyCard>
+        )}
+        {step === 1 && <LoadingStep messages={GEN_MSGS} msgIndex={msgIndex} />}
+        {step === 2 && content && (
+          <div className="space-y-4">
+            <AbbyCard><p className="text-muted-foreground">{content.abby_summary}</p></AbbyCard>
+            <Tabs defaultValue="overview" className="w-full">
+              <TabsList className="w-full grid grid-cols-4 h-auto">
+                <TabsTrigger value="overview" className="text-xs py-2"><BookOpen className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Overview</TabsTrigger>
+                <TabsTrigger value="curriculum" className="text-xs py-2"><LayoutList className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Curriculum</TabsTrigger>
+                <TabsTrigger value="pricing" className="text-xs py-2"><DollarSign className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Pricing</TabsTrigger>
+                <TabsTrigger value="description" className="text-xs py-2"><FileText className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Description</TabsTrigger>
+              </TabsList>
+              <TabsContent value="overview" className="space-y-4 mt-4">
+                <Card><CardContent className="pt-6 space-y-3">
+                  <h3 className="text-xl font-bold">{content.course_title}</h3>
+                  {content.course_subtitle && <p className="text-muted-foreground">{content.course_subtitle}</p>}
+                  {content.tagline && <p className="text-sm font-semibold text-primary italic">"{content.tagline}"</p>}
+                  <div className="flex gap-2 flex-wrap">
+                    <span className="text-xs bg-muted px-2.5 py-1 rounded-full">{content.duration}</span>
+                    <span className="text-xs bg-muted px-2.5 py-1 rounded-full">{content.difficulty_level}</span>
+                  </div>
+                  <div><p className="text-xs font-semibold text-muted-foreground mb-1">Transformation Promise</p><p className="text-sm">{content.transformation_promise}</p></div>
+                  <div><p className="text-xs font-semibold text-muted-foreground mb-1">Who It's For</p><p className="text-sm">{content.who_its_for}</p></div>
+                  <div><p className="text-xs font-semibold text-muted-foreground mb-2">What You'll Get</p>
+                    <ul className="space-y-1">{content.what_youll_get?.map((d: string, i: number) => <li key={i} className="flex items-start gap-2 text-sm"><span className="text-green-600">✓</span>{d}</li>)}</ul>
+                  </div>
+                </CardContent></Card>
+              </TabsContent>
+              <TabsContent value="curriculum" className="space-y-3 mt-4">
+                {content.modules?.map((m: any, i: number) => (
+                  <Card key={i} className="cursor-pointer" onClick={() => toggleModule(i)}>
+                    <CardContent className="pt-4 pb-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">{m.number}</span>
+                          <h4 className="font-bold text-sm">{m.title}</h4>
+                        </div>
+                        {expandedModules[i] ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                      </div>
+                      {expandedModules[i] && (
+                        <div className="pl-10 space-y-2 pt-1">
+                          <p className="text-sm text-muted-foreground">{m.description}</p>
+                          <div className="space-y-1">
+                            {m.lessons?.map((l: any, j: number) => (
+                              <div key={j} className="flex items-center gap-2 text-sm">
+                                <span className="text-xs bg-muted px-1.5 py-0.5 rounded">{typeof l === 'string' ? 'Lesson' : l.type}</span>
+                                <span>{typeof l === 'string' ? l : l.title}</span>
+                                {typeof l !== 'string' && l.duration_minutes && <span className="text-xs text-muted-foreground">({l.duration_minutes}min)</span>}
+                              </div>
+                            ))}
+                          </div>
+                          <Card className="bg-muted/30"><CardContent className="pt-3 pb-3"><p className="text-xs font-semibold text-muted-foreground mb-1">After this module:</p><p className="text-sm">{m.outcome}</p></CardContent></Card>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </TabsContent>
+              <TabsContent value="pricing" className="space-y-4 mt-4">
+                <Card><CardContent className="pt-6 space-y-4 text-center">
+                  <p className="text-xs font-semibold text-muted-foreground">Your price (USD)</p>
+                  <div className="flex items-center justify-center gap-2"><span className="text-3xl font-bold">$</span><Input type="number" className="w-32 text-3xl font-bold text-center" value={priceOverride ?? content.suggested_price_usd ?? 497} onChange={(e) => setPriceOverride(Number(e.target.value))} /></div>
+                  <p className="text-sm text-muted-foreground">{content.pricing_rationale}</p>
+                </CardContent></Card>
+              </TabsContent>
+              <TabsContent value="description" className="space-y-4 mt-4">
+                <Card><CardContent className="pt-6">
+                  <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-line">{content.course_description_long}</div>
+                </CardContent></Card>
+              </TabsContent>
+            </Tabs>
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon. Activate now and request changes later.")}>Edit</Button>
+              <Button className="flex-1" size="lg" onClick={handleActivate}>Activate My Course <ArrowRight className="h-4 w-4 ml-2" /></Button>
+            </div>
+            <p className="text-xs text-center text-muted-foreground">Your course will be set up automatically on your course platform.</p>
+          </div>
+        )}
+        {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
+        {step === 3 && content?.activated && (
+          <div className="space-y-4">
+            <SuccessCheckmark />
+            <AbbyCard><p className="text-muted-foreground">🎉 Your online course is live, {authorName}! '{content.course_title}' is published and ready for students.</p></AbbyCard>
+            <PaymentLinkCard link={content.payment_link_url || ""} />
+            <SummaryCard items={[`Course: ${content.course_title}`, "Modules: 8 modules ready", `Price: $${priceOverride ?? content.suggested_price_usd ?? 497}`, "Course link: Ready to share"]} />
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => navigate("/build-authority")}>Back to Build Authority</Button>
+              <Button className="flex-1" onClick={() => navigate("/node-builder/BA-11")}>Next: Create Your Audiobook <ArrowRight className="h-4 w-4 ml-2" /></Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

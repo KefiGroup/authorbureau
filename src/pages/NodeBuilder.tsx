@@ -11,6 +11,15 @@ import BP06Builder from "@/components/dashboard/builders/bp06/BP06Builder";
 import BP07Builder from "@/components/dashboard/builders/bp07/BP07Builder";
 import BP08Builder from "@/components/dashboard/builders/bp08/BP08Builder";
 import BP09Builder from "@/components/dashboard/builders/bp09/BP09Builder";
+import BA10Builder from "@/components/dashboard/builders/ba10/BA10Builder";
+import BA11Builder from "@/components/dashboard/builders/ba11/BA11Builder";
+import BA12Builder from "@/components/dashboard/builders/ba12/BA12Builder";
+import BA13Builder from "@/components/dashboard/builders/ba13/BA13Builder";
+import BA14Builder from "@/components/dashboard/builders/ba14/BA14Builder";
+import BA15Builder from "@/components/dashboard/builders/ba15/BA15Builder";
+import BA16Builder from "@/components/dashboard/builders/ba16/BA16Builder";
+import BA17Builder from "@/components/dashboard/builders/ba17/BA17Builder";
+import BA18Builder from "@/components/dashboard/builders/ba18/BA18Builder";
 
 export default function NodeBuilder() {
   const { nodeId } = useParams<{ nodeId: string }>();
@@ -50,6 +59,15 @@ export default function NodeBuilder() {
     "BP-07": BP07Builder,
     "BP-08": BP08Builder,
     "BP-09": BP09Builder,
+    "BA-10": BA10Builder,
+    "BA-11": BA11Builder,
+    "BA-12": BA12Builder,
+    "BA-13": BA13Builder,
+    "BA-14": BA14Builder,
+    "BA-15": BA15Builder,
+    "BA-16": BA16Builder,
+    "BA-17": BA17Builder,
+    "BA-18": BA18Builder,
   };
 
   const Builder = nodeId ? builders[nodeId] : null;
