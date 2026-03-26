@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import BP01Builder from "@/components/dashboard/builders/bp01/BP01Builder";
 import BP02Builder from "@/components/dashboard/builders/bp02/BP02Builder";
+import BP03Builder from "@/components/dashboard/builders/bp03/BP03Builder";
 
 export default function NodeBuilder() {
   const { nodeId } = useParams<{ nodeId: string }>();
