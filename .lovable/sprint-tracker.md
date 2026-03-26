@@ -7,7 +7,7 @@
 | Sprint 3 | ✅ COMPLETE | Node BP-01: Email Marketing 4-step builder (/node-builder/BP-01), generate-bp01-email-marketing edge function (AI content), deploy-bp01-to-ghl edge function (GHL deployment) |
 | Sprint 4 | ✅ COMPLETE | Node BP-02: Lead Magnets 4-step builder (/node-builder/BP-02), generate-bp02-lead-magnets edge function (AI content), deploy-bp02-to-ghl edge function (GHL funnel deployment) |
 | Sprint 5 | ✅ COMPLETE | Node BP-03: Social Media 4-step builder (/node-builder/BP-03), generate-bp03-social-media edge function (AI content, 30-day calendar), deploy-bp03-to-ghl edge function (GHL Social Planner deployment) |
-| Sprint 6 | Pending | Node BP-04: Website / Microsite + GHL Website Builder |
+| Sprint 6 | ✅ COMPLETE | Node BP-04: Website 4-step builder (/node-builder/BP-04), generate-bp04-website edge function (AI content), deploy-bp04-to-ghl edge function (GHL Website Builder deployment) |
 | Sprint 7 | Pending | Node BP-05: Webinars + Zoom API |
 | Sprint 8 | Pending | Nodes BP-06 to BP-09: Digital Products + Stripe |
 | Sprint 9 | Pending | Build Authority Hub + Nodes BA-10 to BA-18 |
