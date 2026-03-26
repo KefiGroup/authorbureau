@@ -1,0 +1,120 @@
+import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { ArrowRight, Palmtree, CalendarDays, DollarSign, Sparkles as SparklesIcon } from "lucide-react";
+import { toast } from "sonner";
+import { StepHeader, AbbyCard, LoadingStep, MultiPaymentLinks, SummaryCard, SuccessCheckmark, HighTicketPrice } from "../yr-shared/YRBuilderShared";
+
+const GEN_MSGS = ["Designing your retreat experience...", "Crafting your itinerary...", "Building retreat packages...", "Finalising your retreat programme..."];
+const ACT_MSGS = ["Creating your booking pages...", "Setting up payment links...", "Almost ready..."];
+interface Props { authorId: string | null; }
+
+export default function YR24Builder({ authorId }: Props) {
+  const navigate = useNavigate();
+  const [step, setStep] = useState(0);
+  const [authorName, setAuthorName] = useState("");
+  const [bookTitle, setBookTitle] = useState("");
+  const [content, setContent] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [msgIndex, setMsgIndex] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => { if (!authorId) return; (async () => {
+    const { data: p } = await supabase.from("author_profiles").select("pen_name").eq("id", authorId).single();
+    setAuthorName(p?.pen_name || "there");
+    const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    setBookTitle(ctx?.book_title || "");
+    const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "YR-24").maybeSingle();
+    if (node?.content_json && (node.status === "content_ready" || node.status === "live")) { setContent(node.content_json); setStep(node.status === "live" ? 3 : 2); if (node.status === "live") setContent((p: any) => ({ ...p, activated: true })); }
+  })(); }, [authorId]);
+
+  useEffect(() => { if (step === 1 || (step === 3 && !content?.activated)) { const msgs = step === 1 ? GEN_MSGS : ACT_MSGS; setMsgIndex(0); intervalRef.current = setInterval(() => setMsgIndex(i => (i + 1) % msgs.length), 3000); return () => { if (intervalRef.current) clearInterval(intervalRef.current); }; } }, [step]);
+
+  const handleGenerate = async () => { setStep(1); setError(null); try { const { data, error: e } = await supabase.functions.invoke("generate-yr24-retreats", { body: { author_id: authorId } }); if (e || !data?.success) throw new Error(data?.error || e?.message || "Failed"); setContent(data.content); setStep(2); } catch (e: any) { setError(e.message); setStep(0); } };
+  const handleActivate = async () => { setStep(3); setError(null); try { const { data, error: e } = await supabase.functions.invoke("deploy-yr24-to-ghl", { body: { author_id: authorId } }); if (e || !data?.success) throw new Error(data?.error || e?.message || "Failed"); setContent((p: any) => ({ ...p, activated: true, payment_links: data.payment_links })); } catch (e: any) { console.error(e); setContent((p: any) => ({ ...p, activated: true })); } };
+
+  if (!authorId) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Please set up your author profile first.</p></div>;
+
+  return (
+    <div className="min-h-screen bg-background">
+      <StepHeader nodeId="YR-24" nodeName="Retreats" step={step} />
+      <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+        {step === 0 && (<AbbyCard><h2 className="text-xl font-bold mb-3">Let's plan your Retreat</h2><p className="text-muted-foreground mb-4">Hi {authorName}! Retreats create the deepest transformation and command the highest per-person fees. I'm going to design your complete retreat experience based on '{bookTitle || "your book"}' — with a retreat concept, itinerary, and pricing. Ready to create an unforgettable experience?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>Build My Retreat</Button>{error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{error}</div>}</AbbyCard>)}
+        {step === 1 && <LoadingStep messages={GEN_MSGS} msgIndex={msgIndex} />}
+        {step === 2 && content && (
+          <div className="space-y-4">
+            <AbbyCard><p className="text-muted-foreground">{content.abby_summary}</p></AbbyCard>
+            <Tabs defaultValue="concept" className="w-full">
+              <TabsList className="w-full grid grid-cols-4 h-auto">
+                <TabsTrigger value="concept" className="text-xs py-2"><Palmtree className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Concept</TabsTrigger>
+                <TabsTrigger value="options" className="text-xs py-2"><DollarSign className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Options</TabsTrigger>
+                <TabsTrigger value="itinerary" className="text-xs py-2"><CalendarDays className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Itinerary</TabsTrigger>
+                <TabsTrigger value="pricing" className="text-xs py-2"><SparklesIcon className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Pricing</TabsTrigger>
+              </TabsList>
+              <TabsContent value="concept" className="space-y-4 mt-4">
+                <Card><CardContent className="pt-6 space-y-3">
+                  <h3 className="text-xl font-bold">{content.retreat_title}</h3>
+                  {content.tagline && <p className="text-sm font-semibold text-primary italic">"{content.tagline}"</p>}
+                  <p className="text-sm">{content.retreat_concept}</p>
+                  <div><p className="text-xs font-semibold text-muted-foreground mb-1">Transformation Arc</p><p className="text-sm">{content.transformation_arc}</p></div>
+                </CardContent></Card>
+              </TabsContent>
+              <TabsContent value="options" className="space-y-3 mt-4">
+                {content.retreat_options?.map((o: any, i: number) => (
+                  <Card key={i} className="border-amber-300 dark:border-amber-700">
+                    <CardContent className="pt-6 space-y-3">
+                      <div className="flex items-center justify-between flex-wrap gap-2"><h4 className="font-bold">{o.format}</h4><HighTicketPrice price={o.price_per_person_usd} /><span className="text-xs text-muted-foreground">/person</span></div>
+                      <div className="flex gap-2 flex-wrap"><span className="text-xs bg-muted px-2.5 py-1 rounded-full">{o.duration}</span><span className="text-xs bg-muted px-2.5 py-1 rounded-full">{o.group_size}</span><span className="text-xs bg-muted px-2.5 py-1 rounded-full">{o.location_type}</span></div>
+                      <ul className="space-y-1">{o.includes?.map((inc: string, j: number) => <li key={j} className="flex items-start gap-2 text-sm"><span className="text-green-600">✓</span>{inc}</li>)}</ul>
+                    </CardContent>
+                  </Card>
+                ))}
+              </TabsContent>
+              <TabsContent value="itinerary" className="space-y-3 mt-4">
+                {content.sample_itinerary?.map((d: any, i: number) => (
+                  <Card key={i}><CardContent className="pt-4 pb-4">
+                    <h4 className="font-bold text-sm mb-2">Day {d.day}: {d.title}</h4>
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div className="bg-muted/30 p-2 rounded"><p className="font-semibold text-muted-foreground mb-1">Morning</p><p>{d.morning}</p></div>
+                      <div className="bg-muted/30 p-2 rounded"><p className="font-semibold text-muted-foreground mb-1">Afternoon</p><p>{d.afternoon}</p></div>
+                      <div className="bg-muted/30 p-2 rounded"><p className="font-semibold text-muted-foreground mb-1">Evening</p><p>{d.evening}</p></div>
+                    </div>
+                  </CardContent></Card>
+                ))}
+              </TabsContent>
+              <TabsContent value="pricing" className="space-y-3 mt-4">
+                {content.retreat_options?.map((o: any, i: number) => (
+                  <Card key={i}><CardContent className="pt-6 space-y-2 text-center">
+                    <p className="text-xs font-semibold text-muted-foreground">{o.format} — Price per person (USD)</p>
+                    <div className="flex items-center justify-center gap-2"><span className="text-2xl font-bold">$</span><Input type="number" className="w-32 text-2xl font-bold text-center" defaultValue={o.price_per_person_usd} /></div>
+                  </CardContent></Card>
+                ))}
+              </TabsContent>
+            </Tabs>
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon.")}>Edit</Button>
+              <Button className="flex-1" size="lg" onClick={handleActivate}>Activate My Retreat <ArrowRight className="h-4 w-4 ml-2" /></Button>
+            </div>
+          </div>
+        )}
+        {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
+        {step === 3 && content?.activated && (
+          <div className="space-y-4">
+            <SuccessCheckmark />
+            <AbbyCard><p className="text-muted-foreground">🎉 Your retreat programme is live, {authorName}! 2 retreat options are ready to book.</p></AbbyCard>
+            <MultiPaymentLinks links={content.payment_links || content.retreat_options?.map((o: any) => ({ label: o.format, url: o.payment_link_url || "" })) || []} />
+            <SummaryCard items={["Retreat options: 2 ready", "Itinerary: 3 days planned", "Transformation arc: Defined", "Booking links: Ready"]} />
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => navigate("/yield-revenue")}>Back to Yield Revenue</Button>
+              <Button className="flex-1" onClick={() => navigate("/node-builder/YR-25")}>Next: Launch Your Certification <ArrowRight className="h-4 w-4 ml-2" /></Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
