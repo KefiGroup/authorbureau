@@ -35,6 +35,7 @@ import AuthorMessagesPage from "@/components/dashboard/AuthorMessagesPage";
 import AuthorReadingClub from "@/components/dashboard/AuthorReadingClub";
 // AbbyConsultantBanner removed from dashboard per reorganization
 import ABBYJourneyOnboarding from "@/components/dashboard/ABBYJourneyOnboarding";
+import MarketingHub from "@/components/dashboard/MarketingHub";
 import { Loader2, Rocket, FileText, Video, Share2, CreditCard, Users, Trophy, Podcast, Building2, Bookmark, Award, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
