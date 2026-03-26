@@ -6,6 +6,7 @@ import BP01Builder from "@/components/dashboard/builders/bp01/BP01Builder";
 import BP02Builder from "@/components/dashboard/builders/bp02/BP02Builder";
 import BP03Builder from "@/components/dashboard/builders/bp03/BP03Builder";
 import BP04Builder from "@/components/dashboard/builders/bp04/BP04Builder";
+import BP05Builder from "@/components/dashboard/builders/bp05/BP05Builder";
 
 export default function NodeBuilder() {
   const { nodeId } = useParams<{ nodeId: string }>();
@@ -49,6 +50,10 @@ export default function NodeBuilder() {
 
   if (nodeId === "BP-04") {
     return <BP04Builder authorId={authorId} />;
+  }
+
+  if (nodeId === "BP-05") {
+    return <BP05Builder authorId={authorId} />;
   }
 
   return (
