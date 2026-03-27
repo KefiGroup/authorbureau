@@ -13,7 +13,7 @@ import Footer from "@/components/Footer";
 import heroBg from "@/assets/hero-bg.jpg";
 import paulineFullPhoto from "@/assets/pauline-teo.jpeg";
 import besuckcessfulCover from "@/assets/besuckcessful-cover.jpg";
-import { getPublishNowAuthUrl as _unused } from "@/lib/publishnow-auth";
+// getPublishNowAuthUrl no longer used — CTAs link to /auth directly
 import MethodologyTrustBadge from "@/components/MethodologyTrustBadge";
 
 const SIGNUP_URL = "/auth";
