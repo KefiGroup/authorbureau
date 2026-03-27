@@ -47,6 +47,8 @@ import YieldRevenueHub from "./pages/YieldRevenueHub";
 import RevenueFullDashboard from "./pages/RevenueFullDashboard";
 import NodeBuilder from "./pages/NodeBuilder";
 import AbbyCoachPage from "./pages/AbbyCoachPage";
+import Pricing from "./pages/Pricing";
+import SubscriptionSuccess from "./pages/SubscriptionSuccess";
 
 const queryClient = new QueryClient();
 
