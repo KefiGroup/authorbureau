@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Sparkles, ArrowRight, Mic, LayoutList, Globe, CalendarDays, ChevronDown, ChevronUp } from "lucide-react";
 import { StepHeader, AbbyCard, LoadingStep, PaymentLinkCard, SummaryCard, SuccessCheckmark } from "../ba-shared/BABuilderShared";
+import NodeSuccessScreen from "@/components/dashboard/builders/shared/NodeSuccessScreen";
 
 const GEN_MSGS = ["Designing your podcast concept...", "Creating your first 10 episode ideas...", "Planning your distribution strategy...", "Building your launch plan...", "Finalising your podcast blueprint..."];
 const ACT_MSGS = ["Creating your podcast show...", "Setting up your distribution...", "Your podcast is almost ready..."];
