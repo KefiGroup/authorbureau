@@ -218,7 +218,21 @@ export default function BP04Builder({ authorId }: Props) {
         )}
 
         {step === 3 && content?.activated && (
-          <SuccessStep content={content} authorName={authorName} bookTitle={bookTitle} navigate={navigate} />
+          <NodeSuccessScreen
+            nodeId="BP-04"
+            authorName={authorName}
+            penNameSlug={authorSlug}
+            celebrationMessage={`Your author website is live, ${authorName}! Your homepage, about page, book page, and contact page are all set up. '${bookTitle || "Your book"}' now has a professional online home!`}
+            whatHappensNext={[
+              "Your homepage is live with your hero copy and book teaser",
+              "Your about page and book showcase are ready for readers",
+              `SEO is optimised for "${content.seo?.keywords?.[0] || "your niche"}" — search engines will find you`,
+            ]}
+            actions={[
+              { label: "Back to Brand Products", variant: "outline", onClick: () => navigate("/brand-products") },
+              { label: "Next: Set Up Webinars", onClick: () => navigate("/node-builder/BP-05") },
+            ]}
+          />
         )}
       </div>
     </div>
