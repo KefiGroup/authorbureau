@@ -28,6 +28,7 @@ serve(async (req) => {
       .eq("id", author_id)
       .single();
     if (authorErr || !author) throw new Error("Author not found");
+    const penSlug = author.author_slug || (author.pen_name || "").toLowerCase().replace(/\s+/g, "-");
 
     const { data: node, error: nodeErr } = await supabase
       .from("author_nodes")
