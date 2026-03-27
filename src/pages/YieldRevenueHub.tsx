@@ -115,6 +115,22 @@ export default function YieldRevenueHub() {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        <Button asChild variant="ghost" size="sm" className="mb-4 -ml-2">
+          <Link to="/dashboard">← Back to Dashboard</Link>
+        </Button>
+
+        {!isTierUnlocked && (
+          <Card className="p-5 mb-6 border-secondary/30 bg-secondary/5">
+            <div className="flex items-start gap-3">
+              <Lock className="h-5 w-5 text-secondary mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold mb-1">Upgrade to unlock Yield Revenue</p>
+                <p className="text-xs text-muted-foreground mb-3">Subscribe to the Yield Package for all 28 revenue streams.</p>
+                <Button size="sm" onClick={() => navigate("/pricing")}>View Plans <ArrowRight className="ml-1.5 h-3.5 w-3.5" /></Button>
+              </div>
+            </div>
+          </Card>
+        )}
         <div className="mb-8">
           <h1 className="font-heading text-2xl sm:text-3xl font-bold text-foreground mb-2">Yield Revenue</h1>
           <p className="text-muted-foreground text-sm sm:text-base mb-4">Premium high-ticket services — the pinnacle of your author business.</p>
