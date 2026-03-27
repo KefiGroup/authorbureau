@@ -34,6 +34,7 @@ export default function BP01Builder({ authorId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
+  const [authorSlug, setAuthorSlug] = useState("");
   const [bookTitle, setBookTitle] = useState("");
   const [hasContext, setHasContext] = useState<boolean | null>(null);
   const [content, setContent] = useState<any>(null);
