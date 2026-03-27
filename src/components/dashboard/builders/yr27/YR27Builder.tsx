@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { ArrowRight, Heart, Gift, Mail, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import { StepHeader, AbbyCard, LoadingStep, MultiPaymentLinks, SummaryCard, SuccessCheckmark } from "../yr-shared/YRBuilderShared";
+import NodeSuccessScreen from "../shared/NodeSuccessScreen";
+import { getMicrositeUrl } from "@/lib/node-slug-map";
 
 const GEN_MSGS = ["Designing your fundraising campaign...", "Creating donation tiers...", "Building your communication plan...", "Finalising your campaign..."];
 const ACT_MSGS = ["Creating donation payment links...", "Almost ready..."];
