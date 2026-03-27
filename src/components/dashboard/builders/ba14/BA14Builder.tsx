@@ -86,7 +86,7 @@ export default function BA14Builder({ authorId }: Props) {
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's launch your Podcast</h2>
             {hasContext === false ? (
-              <><p className="text-muted-foreground mb-4">Hi {authorName}! Please complete your book profile first.</p><Button onClick={() => navigate("/dashboard")}>Complete Book Profile</Button></>
+              <><p className="text-muted-foreground mb-4">Hi {authorName}! Please complete your book profile first.</p><Button onClick={() => navigate("/my-books?returnTo=/node-builder/BA-14")}>Complete Book Profile</Button></>
             ) : (
               <><p className="text-muted-foreground mb-4">Hi {authorName}! A podcast is one of the most powerful ways to build a loyal audience and establish your authority. I'm going to design your complete podcast — with a show concept, episode format, first 10 episode titles, and distribution strategy. Ready to hit record?</p>
                 <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Design My Podcast</Button></>

@@ -83,7 +83,7 @@ export default function BA17Builder({ authorId }: Props) {
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Upsells & Bundles</h2>
             {hasContext === false ? (
-              <><p className="text-muted-foreground mb-4">Hi {authorName}! Please complete your book profile first.</p><Button onClick={() => navigate("/dashboard")}>Complete Book Profile</Button></>
+              <><p className="text-muted-foreground mb-4">Hi {authorName}! Please complete your book profile first.</p><Button onClick={() => navigate("/my-books?returnTo=/node-builder/BA-17")}>Complete Book Profile</Button></>
             ) : (
               <><p className="text-muted-foreground mb-4">Hi {authorName}! Upsells and bundles are the fastest way to increase your average order value. I'm going to design a complete product ladder for '{bookTitle || "your book"}' — with 3 bundle offers and 3 upsell sequences. Ready to maximise every sale?</p>
                 <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Build My Upsell System</Button></>

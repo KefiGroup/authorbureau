@@ -171,7 +171,7 @@ export default function BP03Builder({ authorId }: Props) {
                 <p className="text-muted-foreground mb-4">
                   Hi {authorName}! Before I can build your social media, I need to know about your book. Please complete your book profile first.
                 </p>
-                <Button onClick={() => navigate("/dashboard")}>Complete Book Profile</Button>
+                <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-03")}>Complete Book Profile</Button>
               </>
             ) : (
               <>

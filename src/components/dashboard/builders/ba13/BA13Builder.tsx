@@ -85,7 +85,7 @@ export default function BA13Builder({ authorId }: Props) {
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Group Coaching Programme</h2>
             {hasContext === false ? (
-              <><p className="text-muted-foreground mb-4">Hi {authorName}! Please complete your book profile first.</p><Button onClick={() => navigate("/dashboard")}>Complete Book Profile</Button></>
+              <><p className="text-muted-foreground mb-4">Hi {authorName}! Please complete your book profile first.</p><Button onClick={() => navigate("/my-books?returnTo=/node-builder/BA-13")}>Complete Book Profile</Button></>
             ) : (
               <><p className="text-muted-foreground mb-4">Hi {authorName}! Group coaching lets you serve more clients at a higher impact than 1-on-1. I'm going to design a complete group coaching programme based on '{bookTitle || "your book"}' — with a cohort structure, session plan, and a sales page. Ready to coach your first group?</p>
                 <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Build My Programme</Button></>

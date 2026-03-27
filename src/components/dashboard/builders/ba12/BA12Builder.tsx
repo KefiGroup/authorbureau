@@ -83,7 +83,7 @@ export default function BA12Builder({ authorId }: Props) {
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Membership Community</h2>
             {hasContext === false ? (
-              <><p className="text-muted-foreground mb-4">Hi {authorName}! Please complete your book profile first.</p><Button onClick={() => navigate("/dashboard")}>Complete Book Profile</Button></>
+              <><p className="text-muted-foreground mb-4">Hi {authorName}! Please complete your book profile first.</p><Button onClick={() => navigate("/my-books?returnTo=/node-builder/BA-12")}>Complete Book Profile</Button></>
             ) : (
               <><p className="text-muted-foreground mb-4">Hi {authorName}! A membership site is your most powerful recurring revenue engine. I'm going to design a complete membership community based on '{bookTitle || "your book"}' — with a membership structure, content calendar, pricing tiers, and a welcome sequence. Ready to build your community?</p>
                 <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Build My Membership</Button></>

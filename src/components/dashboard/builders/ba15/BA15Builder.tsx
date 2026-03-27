@@ -83,7 +83,7 @@ export default function BA15Builder({ authorId }: Props) {
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Media Kit</h2>
             {hasContext === false ? (
-              <><p className="text-muted-foreground mb-4">Hi {authorName}! Please complete your book profile first.</p><Button onClick={() => navigate("/dashboard")}>Complete Book Profile</Button></>
+              <><p className="text-muted-foreground mb-4">Hi {authorName}! Please complete your book profile first.</p><Button onClick={() => navigate("/my-books?returnTo=/node-builder/BA-15")}>Complete Book Profile</Button></>
             ) : (
               <><p className="text-muted-foreground mb-4">Hi {authorName}! Media coverage and PR are the fastest ways to build credibility and reach new audiences. I'm going to build your complete media kit — with a speaker bio, press release, media pitch template, and a list of target media outlets. Ready to get featured?</p>
                 <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Build My Media Kit</Button></>
