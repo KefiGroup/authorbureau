@@ -468,6 +468,7 @@ const CampaignRow = forwardRef<HTMLDivElement, {
   nodeRows: NodeRow[];
   onActivate: () => void;
 }>(({ campaign, status, isHighlighted, nodeRows, onActivate }, ref) => {
+  const navigate = useNavigate();
   const config = statusConfig[status];
   const StatusIcon = config.icon;
 
