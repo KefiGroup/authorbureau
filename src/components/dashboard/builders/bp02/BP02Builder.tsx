@@ -7,9 +7,10 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Gift, FileText, ThumbsUp, Settings, Star } from "lucide-react";
-import NodeSuccessScreen from "@/components/dashboard/builders/shared/NodeSuccessScreen";
+import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
+import { publishNodeToSite } from "@/lib/publish-node";
 
-const STEPS = ["Introduction", "Generating", "Review", "Activate"];
+const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 
 const GENERATING_MESSAGES = [
   "Reading your book to find the best lead magnet angles...",
