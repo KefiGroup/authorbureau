@@ -54,7 +54,8 @@ serve(async (req) => {
       } catch (e) { console.error("GHL error:", e); }
     }
 
-    await supabase.from("author_nodes").update({ status: "live", ghl_resource_id: ghlId, content_json: content, activated_at: new Date().toISOString() }).eq("author_id", author_id).eq("node_id", "BA-12");
+    const micrositeUrl = `https://authorsbureau.com/${authorSlug}/membership`;
+    await supabase.from("author_nodes").update({ status: "live", ghl_resource_id: ghlId, content_json: content, activated_at: new Date().toISOString(), microsite_url: micrositeUrl, payment_link: paymentLinks[0]?.url || null }).eq("author_id", author_id).eq("node_id", "BA-12");
 
     return new Response(JSON.stringify({ success: true, payment_links: paymentLinks }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err) {

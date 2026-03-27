@@ -57,7 +57,8 @@ serve(async (req) => {
     }
 
     content.payment_link_url = paymentLinkUrl;
-    await supabase.from("author_nodes").update({ status: "live", ghl_resource_id: paymentLinkUrl, content_json: content, activated_at: new Date().toISOString() }).eq("author_id", author_id).eq("node_id", "BA-13");
+    const micrositeUrl = `https://authorsbureau.com/${authorSlug}/group-coaching`;
+    await supabase.from("author_nodes").update({ status: "live", ghl_resource_id: paymentLinkUrl, content_json: content, activated_at: new Date().toISOString(), microsite_url: micrositeUrl, payment_link: paymentLinkUrl }).eq("author_id", author_id).eq("node_id", "BA-13");
 
     return new Response(JSON.stringify({ success: true, payment_link_url: paymentLinkUrl }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err) {
