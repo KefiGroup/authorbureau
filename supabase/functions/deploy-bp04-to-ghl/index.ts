@@ -132,6 +132,7 @@ serve(async (req) => {
         status: "live",
         ghl_resource_id: websiteId,
         activated_at: new Date().toISOString(),
+        microsite_url: `https://authorsbureau.com/${penSlug}`,
       })
       .eq("author_id", author_id)
       .eq("node_id", "BP-04");

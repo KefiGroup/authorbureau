@@ -124,6 +124,7 @@ serve(async (req) => {
         status: "live",
         ghl_resource_id: calendarId,
         activated_at: new Date().toISOString(),
+        microsite_url: `https://authorsbureau.com/${penSlug}/webinar`,
       })
       .eq("author_id", author_id)
       .eq("node_id", "BP-05");
