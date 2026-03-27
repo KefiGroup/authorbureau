@@ -6,7 +6,7 @@
 
 export const NODE_SLUG_MAP: Record<string, string> = {
   "BP-02": "free-gift",
-  "BP-04": "",              // root author page — handled by AuthorSite
+  "BP-04": "author-website",
   "BP-05": "webinar",
   "BP-06": "workbook",
   "BP-07": "home-study",
