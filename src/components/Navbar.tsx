@@ -5,17 +5,15 @@ import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import logoIcon from "@/assets/logo-icon.webp";
-import { getPublishNowAuthUrl } from "@/lib/publishnow-auth";
-
-const PUBLISHNOW_AUTH_URL = getPublishNowAuthUrl("/dashboard");
+// Auth links point to local /auth page
+const AUTH_URL = "/auth";
 
 const navLinks = [
   { label: "Home", to: "/", hash: "" },
   { label: "How It Works", to: "/how-it-works", hash: "" },
-  
+  { label: "Pricing", to: "/pricing", hash: "" },
   { label: "Methodology", to: "/methodology", hash: "" },
   { label: "Authors Directory", to: "/directory", hash: "" },
-  { label: "Readers Bureau", to: "/readers-bureau", hash: "" },
   { label: "Help", to: "/faq", hash: "" },
 ];
 
@@ -88,13 +86,13 @@ export default function Navbar() {
           ) : (
             <>
               <Link
-                to={PUBLISHNOW_AUTH_URL}
+                to={AUTH_URL}
                 className="text-sm font-semibold text-secondary transition-colors hover:text-secondary/80"
               >
                 Sign In
               </Link>
               <Button asChild variant="default" size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-none rounded-full">
-                <Link to={PUBLISHNOW_AUTH_URL}>Sign Up</Link>
+                <Link to={AUTH_URL}>Sign Up</Link>
               </Button>
             </>
           )}
@@ -137,14 +135,14 @@ export default function Navbar() {
               ) : (
                 <>
                   <Link
-                    to={PUBLISHNOW_AUTH_URL}
+                    to={AUTH_URL}
                     onClick={() => setOpen(false)}
                     className="text-sm font-semibold text-secondary"
                   >
                     Sign In
                   </Link>
                   <Link
-                    to={PUBLISHNOW_AUTH_URL}
+                    to={AUTH_URL}
                     onClick={() => setOpen(false)}
                     className="inline-flex w-fit items-center rounded-full bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground"
                   >

@@ -13,11 +13,11 @@ import Footer from "@/components/Footer";
 import heroBg from "@/assets/hero-bg.jpg";
 import paulineFullPhoto from "@/assets/pauline-teo.jpeg";
 import besuckcessfulCover from "@/assets/besuckcessful-cover.jpg";
-import { getPublishNowAuthUrl } from "@/lib/publishnow-auth";
+// getPublishNowAuthUrl no longer used — CTAs link to /auth directly
 import MethodologyTrustBadge from "@/components/MethodologyTrustBadge";
 
-const SIGNUP_URL = getPublishNowAuthUrl("/dashboard?section=build-business");
-const getPlanUrl = (plan: string) => getPublishNowAuthUrl(`/dashboard?plan=${plan}`);
+const SIGNUP_URL = "/auth";
+const getPlanUrl = (_plan: string) => "/pricing";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -40,7 +40,7 @@ const comparisonRows = [
 
 const pricingPaths = [
   {
-    name: "The Side Hustler",
+    name: "Brand Package",
     price: "$49",
     tagline: "Build passive income while keeping your day job",
     streams: 9,
@@ -54,29 +54,29 @@ const pricingPaths = [
     planKey: "starter",
   },
   {
-    name: "The Serious Business",
-    price: "$199",
+    name: "Build Package",
+    price: "$99",
     tagline: "Turn your book into a real business",
     streams: 18,
     category: "BRAND + BUILD",
     time: "15–25 hours/week",
     year1: "$13,500–$39,500/year",
-    roi: "6x–51x return",
-    cta: "Start Your Business →",
+    roi: "6x–16x return",
+    cta: "Build My Authority →",
     badge: "MOST POPULAR",
     accent: true,
     planKey: "pro",
   },
   {
-    name: "The Enterprise Builder",
-    price: "$499",
+    name: "Yield Package",
+    price: "$249",
     tagline: "Build an empire around your expertise",
     streams: 28,
     category: "BRAND + BUILD + YIELD",
     time: "Full-time (leveraged)",
     year1: "$68,500–$215,500/year",
-    roi: "11x–130x return",
-    cta: "Build Your Empire →",
+    roi: "23x–72x return",
+    cta: "Unlock Full Platform →",
     badge: "BEST VALUE",
     accent: false,
     planKey: "enterprise",
@@ -91,9 +91,9 @@ const jsonLd = {
   description:
     "AI-powered platform that helps published authors turn one book into 28 revenue streams with courses, coaching, speaking, memberships, and more.",
   offers: [
-    { "@type": "Offer", name: "Side Hustler", price: "49", priceCurrency: "USD" },
-    { "@type": "Offer", name: "Serious Business", price: "199", priceCurrency: "USD" },
-    { "@type": "Offer", name: "Enterprise Builder", price: "499", priceCurrency: "USD" },
+    { "@type": "Offer", name: "Brand Package", price: "49", priceCurrency: "USD" },
+    { "@type": "Offer", name: "Build Package", price: "99", priceCurrency: "USD" },
+    { "@type": "Offer", name: "Yield Package", price: "249", priceCurrency: "USD" },
   ],
   creator: {
     "@type": "Person",
@@ -149,7 +149,7 @@ export default function Index() {
 
             <motion.div variants={fadeUp} custom={3.5} className="flex flex-wrap justify-center gap-4">
               <Button asChild size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 text-base font-semibold shadow-[var(--shadow-gold)] rounded-full px-8">
-                <Link to={SIGNUP_URL}>Get Your Free Business Plan <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                <Link to="/auth">Start for Free <ArrowRight className="ml-2 h-4 w-4" /></Link>
               </Button>
               <Button asChild size="lg" className="border-2 border-secondary/60 bg-transparent text-secondary hover:bg-secondary hover:text-secondary-foreground text-base font-semibold rounded-full px-8">
                 <a href="#how-it-works">See How It Works ↓</a>
@@ -161,6 +161,11 @@ export default function Index() {
               <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-secondary" /> AI-Powered</span>
               <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-secondary" /> Free to Start</span>
               <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-secondary" /> Built by a Bestselling Author</span>
+            </motion.div>
+            <motion.div variants={fadeUp} custom={4.5} className="mt-4">
+              <Link to="/auth" className="text-sm text-primary-foreground/50 hover:text-secondary transition-colors underline">
+                Already have an account? Sign in →
+              </Link>
             </motion.div>
           </motion.div>
         </div>
@@ -367,7 +372,7 @@ export default function Index() {
 
               <motion.div variants={fadeUp} custom={10}>
                 <Button asChild size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold shadow-[var(--shadow-gold)] rounded-full px-8">
-                  <Link to={SIGNUP_URL}>Start with Abby <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                  <Link to="/auth">Start for Free <ArrowRight className="ml-2 h-4 w-4" /></Link>
                 </Button>
               </motion.div>
             </motion.div>
@@ -500,37 +505,108 @@ export default function Index() {
         </div>
       </section>
 
-      {/* ===== SECTION 11: SOCIAL PROOF & TRUST ===== */}
+      {/* ===== SECTION 11: TESTIMONIALS ===== */}
       <section className="py-16 bg-primary text-primary-foreground">
         <div className="container">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} className="text-center mb-10">
             <motion.p variants={fadeUp} custom={0} className="mb-2 text-xs font-semibold uppercase tracking-widest text-secondary">
-              Trusted by Authors Worldwide
+              Author Success Stories
             </motion.p>
             <motion.h2 variants={fadeUp} custom={1} className="font-heading text-2xl font-bold md:text-3xl">
-              Join the Growing Community of Author-Entrepreneurs
+              What Authors Are Saying
             </motion.h2>
           </motion.div>
 
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0} variants={fadeUp} className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0} variants={fadeUp} className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-              { stat: "28", label: "Revenue Streams" },
-              { stat: "3", label: "Subscription Tiers" },
-              { stat: "AI", label: "Powered by Abby" },
-              { stat: "Free", label: "To Start" },
-            ].map((item) => (
-              <div key={item.label} className="py-4">
-                <p className="text-3xl md:text-4xl font-heading font-bold text-secondary">{item.stat}</p>
-                <p className="text-sm text-primary-foreground/60 mt-1">{item.label}</p>
+              {
+                quote: "I went from earning $200/month in royalties to $4,500/month in course sales — all because Abby built my course from my manuscript in 2 hours.",
+                name: "Sarah Chen",
+                title: 'Author of "The Mindful Leader"',
+              },
+              {
+                quote: "Within 3 weeks of joining, I had a full coaching programme, a lead magnet, and a webinar funnel. Abby did all the heavy lifting — I just reviewed and published.",
+                name: "David Okonkwo",
+                title: 'Author of "Resilient Teams"',
+              },
+              {
+                quote: "I've been sitting on my manuscript for years not knowing how to monetise it. Authors Bureau showed me 28 ways and built half of them for me automatically.",
+                name: "Maria Gonzalez",
+                title: 'Author of "The Empathy Advantage"',
+              },
+            ].map((t, i) => (
+              <div key={i} className="rounded-xl border border-primary-foreground/10 bg-primary-foreground/5 p-6">
+                <div className="flex gap-1 mb-3">
+                  {[...Array(5)].map((_, j) => (
+                    <Star key={j} className="h-4 w-4 fill-secondary text-secondary" />
+                  ))}
+                </div>
+                <blockquote className="italic text-primary-foreground/80 text-sm leading-relaxed mb-4">
+                  "{t.quote}"
+                </blockquote>
+                <p className="text-sm font-semibold text-primary-foreground">{t.name}</p>
+                <p className="text-xs text-primary-foreground/50">{t.title}</p>
               </div>
             ))}
           </motion.div>
 
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={1} variants={fadeUp} className="mt-10 mx-auto max-w-2xl text-center">
-            <blockquote className="italic text-primary-foreground/70 text-lg leading-relaxed">
-              "I went from earning $200/month in royalties to $4,500/month in course sales — all because Abby built my course from my manuscript in 2 hours."
-            </blockquote>
-            <p className="mt-3 text-sm text-primary-foreground/50">— Featured Author Testimonial (Coming Soon)</p>
+          <p className="text-center text-xs text-primary-foreground/30 mt-6">* Placeholder testimonials — real stories coming soon</p>
+        </div>
+      </section>
+
+      {/* ===== SECTION 11b: PRICING PREVIEW ===== */}
+      <section id="pricing" className="py-24 bg-muted/50 border-y border-border">
+        <div className="container">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} className="text-center mb-12">
+            <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
+              Simple Pricing
+            </motion.p>
+            <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-5xl mb-4">
+              Choose Your <span className="text-gradient-gold">Growth Path</span>
+            </motion.h2>
+            <motion.p variants={fadeUp} custom={2} className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Start free with your ABBY consultation, then pick the plan that matches your ambition.
+            </motion.p>
+          </motion.div>
+
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0} variants={fadeUp} className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {pricingPaths.map((plan, i) => (
+              <div
+                key={plan.planKey}
+                className={`relative rounded-2xl border p-6 bg-card flex flex-col ${
+                  plan.accent ? "border-secondary shadow-lg ring-1 ring-secondary/20" : "border-border"
+                }`}
+              >
+                {plan.badge && (
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[11px] font-bold uppercase tracking-widest bg-secondary text-secondary-foreground px-4 py-1 rounded-full">
+                    {plan.badge}
+                  </span>
+                )}
+                <h3 className="font-heading text-lg font-bold mb-1">{plan.name}</h3>
+                <p className="text-xs text-muted-foreground mb-4">{plan.tagline}</p>
+                <div className="mb-4">
+                  <span className="text-3xl font-bold">{plan.price}</span>
+                  <span className="text-muted-foreground text-sm">/mo</span>
+                </div>
+                <div className="space-y-2 mb-6 flex-1">
+                  <p className="text-xs text-muted-foreground"><strong>{plan.streams}</strong> revenue streams</p>
+                  <p className="text-xs text-muted-foreground">Year 1 potential: <strong className="text-foreground">{plan.year1}</strong></p>
+                  <p className="text-xs text-secondary font-medium">{plan.roi}</p>
+                </div>
+                <Button
+                  asChild
+                  className={`w-full rounded-full ${plan.accent ? "bg-secondary text-secondary-foreground hover:bg-secondary/90" : ""}`}
+                >
+                  <Link to="/pricing">{plan.cta}</Link>
+                </Button>
+              </div>
+            ))}
+          </motion.div>
+
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={1} variants={fadeUp} className="text-center mt-8">
+            <Button asChild variant="link" className="text-sm">
+              <Link to="/pricing">Compare all features →</Link>
+            </Button>
           </motion.div>
         </div>
       </section>
@@ -550,7 +626,7 @@ export default function Index() {
             </motion.p>
             <motion.div variants={fadeUp} custom={2} className="flex flex-wrap justify-center gap-4">
               <Button asChild size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 text-base font-semibold shadow-[var(--shadow-gold)] rounded-full px-8">
-                <Link to={SIGNUP_URL}>Get Your Free Business Plan <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                <Link to="/auth">Start for Free <ArrowRight className="ml-2 h-4 w-4" /></Link>
               </Button>
               <Button asChild size="lg" className="border-2 border-secondary/60 bg-transparent text-secondary hover:bg-secondary hover:text-secondary-foreground text-base font-semibold rounded-full px-8">
                 <Link to="/pricing">See Pricing Plans →</Link>
