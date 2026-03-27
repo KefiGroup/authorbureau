@@ -221,27 +221,4 @@ function ReviewStep({ content, authorName, onActivate, priceOverride, setPriceOv
   );
 }
 
-function SuccessStep({ content, authorName, priceOverride, navigate }: { content: any; authorName: string; priceOverride: number | null; navigate: (p: string) => void }) {
-  const price = priceOverride ?? content.suggested_price_usd ?? 497;
-  const link = content.payment_link_url || "";
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-center py-4"><div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center animate-bounce"><Check className="h-8 w-8 text-green-600" /></div></div>
-      <AbbyCard><p className="text-muted-foreground">🎉 Your online course is live, {authorName}! '{content.course_title}' is ready to sell. Your payment link is ready to share with your audience.</p></AbbyCard>
-      {link && <Card className="border-green-200 bg-green-50"><CardContent className="pt-6">
-        <p className="text-xs font-semibold text-muted-foreground mb-2">Your Payment Link</p>
-        <div className="flex items-center gap-2"><code className="flex-1 text-sm bg-background p-2 rounded border truncate">{link}</code><Button variant="outline" size="icon" onClick={() => { navigator.clipboard.writeText(link); toast.success("Copied!"); }}><Copy className="h-4 w-4" /></Button></div>
-      </CardContent></Card>}
-      <Card><CardContent className="pt-6 space-y-2">
-        <p className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-600" /> Course: {content.course_title}</p>
-        <p className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-600" /> Modules: 6 modules ready</p>
-        <p className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-600" /> Price: ${price}</p>
-        <p className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-600" /> Payment link: Ready to share</p>
-      </CardContent></Card>
-      <div className="flex flex-col sm:flex-row gap-3">
-        <Button variant="outline" className="flex-1" onClick={() => navigate("/brand-products")}>Back to Brand Products</Button>
-        <Button className="flex-1" onClick={() => navigate("/node-builder/BP-07")}>Next: Set Up Coaching Programme <ArrowRight className="h-4 w-4 ml-2" /></Button>
-      </div>
-    </div>
-  );
-}
+// SuccessStep replaced by NodeSuccessScreen

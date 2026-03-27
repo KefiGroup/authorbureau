@@ -141,18 +141,22 @@ export default function BP08Builder({ authorId }: Props) {
         )}
         {step === 3 && !content?.activated && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{ACT_MSGS[msgIndex % ACT_MSGS.length]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /></div></AbbyCard>}
         {step === 3 && content?.activated && (
-          <div className="space-y-4">
-            <div className="flex justify-center py-4"><div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center animate-bounce"><Check className="h-8 w-8 text-green-600" /></div></div>
-            <AbbyCard><p className="text-muted-foreground">🎉 Your mastermind is live, {authorName}! '{content.mastermind_title}' is ready to accept applications.</p></AbbyCard>
-            {content.payment_link_url && <Card className="border-green-200 bg-green-50"><CardContent className="pt-6"><p className="text-xs font-semibold text-muted-foreground mb-2">Your Payment Link</p><div className="flex items-center gap-2"><code className="flex-1 text-sm bg-background p-2 rounded border truncate">{content.payment_link_url}</code><Button variant="outline" size="icon" onClick={() => { navigator.clipboard.writeText(content.payment_link_url); toast.success("Copied!"); }}><Copy className="h-4 w-4" /></Button></div></CardContent></Card>}
-            <Card><CardContent className="pt-6 space-y-2">
-              <p className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-600" /> Mastermind: {content.mastermind_title}</p>
-              <p className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-600" /> Group size: {content.group_size}</p>
-              <p className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-600" /> Price: ${priceOverride ?? content.suggested_price_usd ?? 9997}</p>
-              <p className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-600" /> Payment link: Ready to share</p>
-            </CardContent></Card>
-            <div className="flex flex-col sm:flex-row gap-3"><Button variant="outline" className="flex-1" onClick={() => navigate("/brand-products")}>Back to Brand Products</Button><Button className="flex-1" onClick={() => navigate("/node-builder/BP-09")}>Next: Set Up Speaking & Events <ArrowRight className="h-4 w-4 ml-2" /></Button></div>
-          </div>
+          <NodeSuccessScreen
+            nodeId="BP-08"
+            authorName={authorName}
+            penNameSlug={authorSlug}
+            celebrationMessage={`Your mastermind is live, ${authorName}! '${content.mastermind_title}' is ready to accept applications.`}
+            paymentLinks={content.payment_link_url ? [{ label: "Mastermind Payment Link", url: content.payment_link_url, price: `$${priceOverride ?? content.suggested_price_usd ?? 9997}` }] : undefined}
+            whatHappensNext={[
+              `Mastermind "${content.mastermind_title}" for ${content.group_size} members is set up`,
+              "Payment link is live — share it with premium prospects",
+              "Applications will flow into your pipeline automatically",
+            ]}
+            actions={[
+              { label: "Back to Brand Products", variant: "outline", onClick: () => navigate("/brand-products") },
+              { label: "Next: Set Up Speaking", onClick: () => navigate("/node-builder/BP-09") },
+            ]}
+          />
         )}
       </div>
     </div>
