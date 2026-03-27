@@ -219,7 +219,21 @@ export default function BP03Builder({ authorId }: Props) {
         )}
 
         {step === 3 && content?.activated && (
-          <SuccessStep content={content} authorName={authorName} bookTitle={bookTitle} navigate={navigate} />
+          <NodeSuccessScreen
+            nodeId="BP-03"
+            authorName={authorName}
+            penNameSlug={authorSlug}
+            celebrationMessage={`Your social media is live, ${authorName}! Your 30-day content calendar is ready. Your audience is about to discover '${bookTitle || "your book"}' — one post at a time!`}
+            whatHappensNext={[
+              `${content.posts?.length || 30} posts are scheduled across LinkedIn, Instagram, Facebook, and Twitter/X`,
+              `Your hashtag strategy includes ${content.hashtag_strategy?.author_hashtag || "your branded hashtag"} for consistent branding`,
+              "First week of posts will go live automatically — no action needed",
+            ]}
+            actions={[
+              { label: "Back to Brand Products", variant: "outline", onClick: () => navigate("/brand-products") },
+              { label: "Next: Build Your Website", onClick: () => navigate("/node-builder/BP-04") },
+            ]}
+          />
         )}
       </div>
     </div>
