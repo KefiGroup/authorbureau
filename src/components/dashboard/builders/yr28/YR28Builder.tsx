@@ -103,15 +103,20 @@ export default function YR28Builder({ authorId }: Props) {
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
-          <div className="space-y-4">
-            <SuccessCheckmark />
-            <AbbyCard><p className="text-muted-foreground">🎉 Your sponsorship programme is live, {authorName}! 4 packages are ready to pitch.</p></AbbyCard>
-            <MultiPaymentLinks links={content.payment_links || content.sponsorship_packages?.map((sp: any) => ({ label: sp.tier, url: sp.payment_link_url || "" })) || []} />
-            <SummaryCard items={["Packages: 4 ready", "Pitch deck: 5 slides outlined", "Outreach strategy: Ready", "Enquiry pipeline: Active"]} />
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => navigate("/yield-revenue")}>Back to Yield Revenue</Button>
-              <Button className="flex-1" onClick={() => navigate("/yield-revenue")}>View All Yield Revenue <ArrowRight className="h-4 w-4 ml-2" /></Button>
-            </div>
+          <div className="space-y-6">
+            <NodeSuccessScreen
+              nodeId="YR-28"
+              authorName={authorName}
+              penNameSlug={authorSlug}
+              celebrationMessage="Your sponsorship programme is live! 4 packages are ready to pitch."
+              paymentLinks={content.payment_links || content.sponsorship_packages?.map((sp: any) => ({ label: sp.tier, url: sp.payment_link_url || "" })) || []}
+              whatHappensNext={["Your sponsorship packages page is live for potential sponsors", "Sponsors can view tiers and enquire directly", "Sponsorship enquiries will appear in your dashboard"]}
+              socialShareText={`Looking for sponsors and exhibitors for my events! View packages: ${getMicrositeUrl(authorSlug, "YR-28") || ""}`}
+              actions={[
+                { label: "Back to Yield Revenue", variant: "outline", onClick: () => navigate("/yield-revenue") },
+                { label: "View All Yield Revenue", onClick: () => navigate("/yield-revenue") },
+              ]}
+            />
           </div>
         )}
       </div>

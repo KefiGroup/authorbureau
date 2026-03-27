@@ -100,15 +100,20 @@ export default function YR23Builder({ authorId }: Props) {
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
-          <div className="space-y-4">
-            <SuccessCheckmark />
-            <AbbyCard><p className="text-muted-foreground">🎉 Your mastermind is live, {authorName}! '{content.mastermind_title}' is ready for applications.</p></AbbyCard>
-            <MultiPaymentLinks links={content.payment_links || content.membership_tiers?.map((t: any) => ({ label: t.tier_name, url: t.payment_link_url || "" })) || []} />
-            <SummaryCard items={[`Mastermind: ${content.mastermind_title}`, "Tiers: 2 ready", "Application process: 5 questions", "Sales page: Ready"]} />
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => navigate("/yield-revenue")}>Back to Yield Revenue</Button>
-              <Button className="flex-1" onClick={() => navigate("/node-builder/YR-24")}>Next: Plan Your Retreat <ArrowRight className="h-4 w-4 ml-2" /></Button>
-            </div>
+          <div className="space-y-6">
+            <NodeSuccessScreen
+              nodeId="YR-23"
+              authorName={authorName}
+              penNameSlug={authorSlug}
+              celebrationMessage={`Your mastermind is live! '${content.mastermind_title}' is ready for applications.`}
+              paymentLinks={content.payment_links || content.membership_tiers?.map((t: any) => ({ label: t.tier_name, url: t.payment_link_url || "" })) || []}
+              whatHappensNext={["Your mastermind application page is live", "Qualified applicants can apply directly from your page", "Applications will be reviewed in your dashboard"]}
+              socialShareText={`I just launched my mastermind: ${content.mastermind_title}! Apply now: ${getMicrositeUrl(authorSlug, "YR-23") || ""}`}
+              actions={[
+                { label: "Back to Yield Revenue", variant: "outline", onClick: () => navigate("/yield-revenue") },
+                { label: "Next: Plan Retreat", onClick: () => navigate("/node-builder/YR-24") },
+              ]}
+            />
           </div>
         )}
       </div>

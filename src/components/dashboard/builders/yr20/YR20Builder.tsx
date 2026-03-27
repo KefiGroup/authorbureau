@@ -132,15 +132,20 @@ export default function YR20Builder({ authorId }: Props) {
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
-          <div className="space-y-4">
-            <SuccessCheckmark />
-            <AbbyCard><p className="text-muted-foreground">🎉 Your big ticket offers are live, {authorName}! 3 premium packages are ready to sell.</p></AbbyCard>
-            <MultiPaymentLinks links={content.payment_links || content.offers?.map((o: any) => ({ label: o.offer_name, url: o.payment_link_url || "" })) || []} />
-            <SummaryCard items={["Offers: 3 ready", "Total potential: $42,000 per 3 clients", "Sales guide: Ready", "Payment links: Ready to share"]} />
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => navigate("/yield-revenue")}>Back to Yield Revenue</Button>
-              <Button className="flex-1" onClick={() => navigate("/node-builder/YR-21")}>Next: Build Your Speaking Business <ArrowRight className="h-4 w-4 ml-2" /></Button>
-            </div>
+          <div className="space-y-6">
+            <NodeSuccessScreen
+              nodeId="YR-20"
+              authorName={authorName}
+              penNameSlug={authorSlug}
+              celebrationMessage="Your big ticket offers are live! 3 premium packages are ready to sell."
+              paymentLinks={content.payment_links || content.offers?.map((o: any) => ({ label: o.offer_name, url: o.payment_link_url || "" })) || []}
+              whatHappensNext={["Your premium offer pages are live and accepting applications", "Share your VIP offer links with qualified prospects", "Enquiries will be tracked in your revenue dashboard"]}
+              socialShareText={`I just launched my premium VIP offers! Check them out: ${getMicrositeUrl(authorSlug, "YR-20") || ""}`}
+              actions={[
+                { label: "Back to Yield Revenue", variant: "outline", onClick: () => navigate("/yield-revenue") },
+                { label: "Next: Speaking Business", onClick: () => navigate("/node-builder/YR-21") },
+              ]}
+            />
           </div>
         )}
       </div>

@@ -88,15 +88,20 @@ export default function YR26Builder({ authorId }: Props) {
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
-          <div className="space-y-4">
-            <SuccessCheckmark />
-            <AbbyCard><p className="text-muted-foreground">🎉 Your conference is planned, {authorName}! Ticket links and sponsorship pipeline are ready.</p></AbbyCard>
-            <MultiPaymentLinks links={content.payment_links || content.event_formats?.map((f: any) => ({ label: f.format, url: f.payment_link_url || "" })) || []} />
-            <SummaryCard items={["Event formats: 3 ready", "Programme: 5 sessions", "Sponsorship: 3 tiers", "Ticket links: Ready"]} />
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => navigate("/yield-revenue")}>Back to Yield Revenue</Button>
-              <Button className="flex-1" onClick={() => navigate("/node-builder/YR-27")}>Next: Launch Your Fundraising <ArrowRight className="h-4 w-4 ml-2" /></Button>
-            </div>
+          <div className="space-y-6">
+            <NodeSuccessScreen
+              nodeId="YR-26"
+              authorName={authorName}
+              penNameSlug={authorSlug}
+              celebrationMessage="Your conference is planned! Ticket links and sponsorship pipeline are ready."
+              paymentLinks={content.payment_links || content.event_formats?.map((f: any) => ({ label: f.format, url: f.payment_link_url || "" })) || []}
+              whatHappensNext={["Your conference ticket pages are live and selling", "Sponsors can view packages on your conference page", "Registrations will be tracked in your dashboard"]}
+              socialShareText={`I'm hosting a conference! Get your tickets: ${getMicrositeUrl(authorSlug, "YR-26") || ""}`}
+              actions={[
+                { label: "Back to Yield Revenue", variant: "outline", onClick: () => navigate("/yield-revenue") },
+                { label: "Next: Fundraising", onClick: () => navigate("/node-builder/YR-27") },
+              ]}
+            />
           </div>
         )}
       </div>

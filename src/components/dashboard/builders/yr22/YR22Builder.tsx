@@ -99,15 +99,20 @@ export default function YR22Builder({ authorId }: Props) {
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
-          <div className="space-y-4">
-            <SuccessCheckmark />
-            <AbbyCard><p className="text-muted-foreground">🎉 Your corporate training programme is live, {authorName}! 4 formats and your proposal template are ready.</p></AbbyCard>
-            <MultiPaymentLinks links={content.payment_links || content.training_formats?.map((f: any) => ({ label: f.format, url: f.payment_link_url || "" })) || []} />
-            <SummaryCard items={["Formats: 4 ready", "Learning outcomes: 5 defined", "Proposal template: Ready", "Enquiry pipeline: Active"]} />
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => navigate("/yield-revenue")}>Back to Yield Revenue</Button>
-              <Button className="flex-1" onClick={() => navigate("/node-builder/YR-23")}>Next: Launch Your Mastermind <ArrowRight className="h-4 w-4 ml-2" /></Button>
-            </div>
+          <div className="space-y-6">
+            <NodeSuccessScreen
+              nodeId="YR-22"
+              authorName={authorName}
+              penNameSlug={authorSlug}
+              celebrationMessage="Your corporate training programme is live! 4 formats and your proposal template are ready."
+              paymentLinks={content.payment_links || content.training_formats?.map((f: any) => ({ label: f.format, url: f.payment_link_url || "" })) || []}
+              whatHappensNext={["Your corporate training enquiry page is accepting requests", "HR teams can view your training formats and outcomes", "Corporate enquiries will be tracked in your dashboard"]}
+              socialShareText={`I now offer corporate training programmes for teams! Learn more: ${getMicrositeUrl(authorSlug, "YR-22") || ""}`}
+              actions={[
+                { label: "Back to Yield Revenue", variant: "outline", onClick: () => navigate("/yield-revenue") },
+                { label: "Next: Mastermind", onClick: () => navigate("/node-builder/YR-23") },
+              ]}
+            />
           </div>
         )}
       </div>
