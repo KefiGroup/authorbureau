@@ -145,15 +145,8 @@ serve(async (req) => {
               })
               .eq("id", author_id);
 
-            // Return the actual GHL error to the caller
-            return new Response(
-              JSON.stringify({
-                success: false,
-                error: `GHL API error (${createResponse.status}): ${responseText}`,
-                ghl_status: createResponse.status,
-              }),
-              { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
+            // Don't return error - continue to seed nodes even if GHL fails
+            // The GHL provisioning can be retried later
           }
         } catch (ghlErr) {
           console.error("[GHL] Provisioning exception:", ghlErr?.message || ghlErr);
