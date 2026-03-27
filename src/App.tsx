@@ -106,6 +106,8 @@ const AppRoutes = () => (
       <Route path="/revenue-dashboard" element={<ProtectedRoute><RevenueFullDashboard /></ProtectedRoute>} />
       <Route path="/abby-coach" element={<ProtectedRoute><AbbyCoachPage /></ProtectedRoute>} />
       <Route path="/node-builder/:nodeId" element={<ProtectedRoute><NodeBuilder /></ProtectedRoute>} />
+      <Route path="/pricing" element={<Pricing />} />
+      <Route path="/subscription-success" element={<SubscriptionSuccess />} />
       <Route path="/contact" element={<Contact />} />
       <Route path="/faq" element={<FAQ />} />
 
