@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Calendar, Hash, Clock, Settings, ChevronDown, ChevronUp } from "lucide-react";
+import NodeSuccessScreen from "@/components/dashboard/builders/shared/NodeSuccessScreen";
 
 const STEPS = ["Introduction", "Generating", "Review", "Activate"];
 
@@ -34,6 +35,7 @@ export default function BP03Builder({ authorId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
+  const [authorSlug, setAuthorSlug] = useState("");
   const [bookTitle, setBookTitle] = useState("");
   const [hasContext, setHasContext] = useState<boolean | null>(null);
   const [content, setContent] = useState<any>(null);
@@ -46,10 +48,11 @@ export default function BP03Builder({ authorId }: Props) {
     (async () => {
       const { data: profile } = await supabase
         .from("author_profiles")
-        .select("pen_name")
+        .select("pen_name, author_slug")
         .eq("id", authorId)
         .single();
       setAuthorName(profile?.pen_name || "there");
+      setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
 
       const { data: ctx } = await supabase
         .from("author_context")
@@ -216,7 +219,21 @@ export default function BP03Builder({ authorId }: Props) {
         )}
 
         {step === 3 && content?.activated && (
-          <SuccessStep content={content} authorName={authorName} bookTitle={bookTitle} navigate={navigate} />
+          <NodeSuccessScreen
+            nodeId="BP-03"
+            authorName={authorName}
+            penNameSlug={authorSlug}
+            celebrationMessage={`Your social media is live, ${authorName}! Your 30-day content calendar is ready. Your audience is about to discover '${bookTitle || "your book"}' — one post at a time!`}
+            whatHappensNext={[
+              `${content.posts?.length || 30} posts are scheduled across LinkedIn, Instagram, Facebook, and Twitter/X`,
+              `Your hashtag strategy includes ${content.hashtag_strategy?.author_hashtag || "your branded hashtag"} for consistent branding`,
+              "First week of posts will go live automatically — no action needed",
+            ]}
+            actions={[
+              { label: "Back to Brand Products", variant: "outline", onClick: () => navigate("/brand-products") },
+              { label: "Next: Build Your Website", onClick: () => navigate("/node-builder/BP-04") },
+            ]}
+          />
         )}
       </div>
     </div>
@@ -432,50 +449,4 @@ function PostCard({ post }: { post: any }) {
   );
 }
 
-function SuccessStep({ content, authorName, bookTitle, navigate }: { content: any; authorName: string; bookTitle: string; navigate: (path: string) => void }) {
-  const hashtagCount = (content.hashtag_strategy?.primary_hashtags?.length || 0) + (content.hashtag_strategy?.secondary_hashtags?.length || 0);
-
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-center py-4">
-        <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center animate-in zoom-in duration-500">
-          <Check className="h-10 w-10 text-green-600" />
-        </div>
-      </div>
-
-      <AbbyCard>
-        <p className="text-muted-foreground">
-          🎉 Your social media is live, {authorName}! Your 30-day content calendar is ready, and your first week
-          of posts is scheduled. Your audience is about to discover '{bookTitle}' — one post at a time!
-        </p>
-      </AbbyCard>
-
-      <Card>
-        <CardContent className="pt-6 space-y-3">
-          <SummaryItem label={`Content calendar: ${content.posts?.length || 30} posts ready`} />
-          <SummaryItem label="Platforms: LinkedIn, Instagram, Facebook, Twitter/X" />
-          <SummaryItem label={`Hashtag strategy: ${content.hashtag_strategy?.author_hashtag} and ${hashtagCount} hashtags`} />
-          <SummaryItem label="First week: Scheduled automatically" />
-        </CardContent>
-      </Card>
-
-      <div className="flex flex-col sm:flex-row gap-3 pt-2">
-        <Button variant="outline" className="flex-1" onClick={() => navigate("/brand-products")}>
-          <ArrowLeft className="h-4 w-4 mr-2" /> Back to Brand Products
-        </Button>
-        <Button className="flex-1" onClick={() => navigate("/node-builder/BP-04")}>
-          Next: Build Your Website <ArrowRight className="h-4 w-4 ml-2" />
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function SummaryItem({ label }: { label: string }) {
-  return (
-    <div className="flex items-center gap-2">
-      <Check className="h-4 w-4 text-green-600 shrink-0" />
-      <span className="text-sm">{label}</span>
-    </div>
-  );
-}
+// SuccessStep replaced by NodeSuccessScreen

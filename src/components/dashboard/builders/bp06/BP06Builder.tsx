@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, BookOpen, LayoutList, DollarSign, FileText, Copy } from "lucide-react";
+import NodeSuccessScreen from "@/components/dashboard/builders/shared/NodeSuccessScreen";
 
 const STEPS = ["Introduction", "Generating", "Review", "Activate"];
 const GEN_MSGS = [
@@ -30,6 +31,7 @@ export default function BP06Builder({ authorId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
+  const [authorSlug, setAuthorSlug] = useState("");
   const [bookTitle, setBookTitle] = useState("");
   const [hasContext, setHasContext] = useState<boolean | null>(null);
   const [content, setContent] = useState<any>(null);
@@ -41,8 +43,9 @@ export default function BP06Builder({ authorId }: Props) {
   useEffect(() => {
     if (!authorId) return;
     (async () => {
-      const { data: profile } = await supabase.from("author_profiles").select("pen_name").eq("id", authorId).single();
+      const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug").eq("id", authorId).single();
       setAuthorName(profile?.pen_name || "there");
+      setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
       const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
       setBookTitle(ctx?.book_title || "");
       setHasContext(!!ctx?.book_title);
@@ -126,7 +129,24 @@ export default function BP06Builder({ authorId }: Props) {
         {step === 1 && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{GEN_MSGS[msgIndex]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /><p className="text-xs text-muted-foreground">This usually takes 20–40 seconds</p></div></AbbyCard>}
         {step === 2 && content && <ReviewStep content={content} authorName={authorName} onActivate={handleActivate} priceOverride={priceOverride} setPriceOverride={setPriceOverride} />}
         {step === 3 && !content?.activated && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{ACT_MSGS[msgIndex % ACT_MSGS.length]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /></div></AbbyCard>}
-        {step === 3 && content?.activated && <SuccessStep content={content} authorName={authorName} priceOverride={priceOverride} navigate={navigate} />}
+        {step === 3 && content?.activated && (
+          <NodeSuccessScreen
+            nodeId="BP-06"
+            authorName={authorName}
+            penNameSlug={authorSlug}
+            celebrationMessage={`Your online course is live, ${authorName}! '${content.course_title}' is ready to sell. Your payment link is ready to share with your audience.`}
+            paymentLinks={content.payment_link_url ? [{ label: "Course Payment Link", url: content.payment_link_url, price: `$${priceOverride ?? content.suggested_price_usd ?? 497}` }] : undefined}
+            whatHappensNext={[
+              `Your course "${content.course_title}" has 6 modules ready for students`,
+              "Every purchase automatically grants access to course materials",
+              "Share your payment link on social media, email, or your website",
+            ]}
+            actions={[
+              { label: "Back to Brand Products", variant: "outline", onClick: () => navigate("/brand-products") },
+              { label: "Next: Set Up Coaching", onClick: () => navigate("/node-builder/BP-07") },
+            ]}
+          />
+        )}
       </div>
     </div>
   );
@@ -201,27 +221,4 @@ function ReviewStep({ content, authorName, onActivate, priceOverride, setPriceOv
   );
 }
 
-function SuccessStep({ content, authorName, priceOverride, navigate }: { content: any; authorName: string; priceOverride: number | null; navigate: (p: string) => void }) {
-  const price = priceOverride ?? content.suggested_price_usd ?? 497;
-  const link = content.payment_link_url || "";
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-center py-4"><div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center animate-bounce"><Check className="h-8 w-8 text-green-600" /></div></div>
-      <AbbyCard><p className="text-muted-foreground">🎉 Your online course is live, {authorName}! '{content.course_title}' is ready to sell. Your payment link is ready to share with your audience.</p></AbbyCard>
-      {link && <Card className="border-green-200 bg-green-50"><CardContent className="pt-6">
-        <p className="text-xs font-semibold text-muted-foreground mb-2">Your Payment Link</p>
-        <div className="flex items-center gap-2"><code className="flex-1 text-sm bg-background p-2 rounded border truncate">{link}</code><Button variant="outline" size="icon" onClick={() => { navigator.clipboard.writeText(link); toast.success("Copied!"); }}><Copy className="h-4 w-4" /></Button></div>
-      </CardContent></Card>}
-      <Card><CardContent className="pt-6 space-y-2">
-        <p className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-600" /> Course: {content.course_title}</p>
-        <p className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-600" /> Modules: 6 modules ready</p>
-        <p className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-600" /> Price: ${price}</p>
-        <p className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-600" /> Payment link: Ready to share</p>
-      </CardContent></Card>
-      <div className="flex flex-col sm:flex-row gap-3">
-        <Button variant="outline" className="flex-1" onClick={() => navigate("/brand-products")}>Back to Brand Products</Button>
-        <Button className="flex-1" onClick={() => navigate("/node-builder/BP-07")}>Next: Set Up Coaching Programme <ArrowRight className="h-4 w-4 ml-2" /></Button>
-      </div>
-    </div>
-  );
-}
+// SuccessStep replaced by NodeSuccessScreen

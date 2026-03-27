@@ -23,9 +23,10 @@ serve(async (req) => {
 
     const { data: author } = await supabase
       .from("author_profiles")
-      .select("ghl_sub_account_id")
+      .select("ghl_sub_account_id, pen_name, author_slug")
       .eq("id", author_id)
       .single();
+    const penSlug = author?.author_slug || (author?.pen_name || "").toLowerCase().replace(/\s+/g, "-");
 
     let subAccountId = author?.ghl_sub_account_id;
 
@@ -135,6 +136,7 @@ serve(async (req) => {
         status: "live",
         ghl_resource_id: ghlFunnelId,
         activated_at: new Date().toISOString(),
+        microsite_url: `https://authorsbureau.com/${penSlug}/free-gift`,
       })
       .eq("author_id", author_id)
       .eq("node_id", "BP-02");

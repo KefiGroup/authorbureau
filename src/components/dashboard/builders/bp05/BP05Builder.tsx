@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Video, FileText, Mail, Megaphone, Star, ChevronDown, ChevronUp, Clock } from "lucide-react";
+import NodeSuccessScreen from "@/components/dashboard/builders/shared/NodeSuccessScreen";
 
 const STEPS = ["Introduction", "Generating", "Review", "Activate"];
 
@@ -33,6 +34,7 @@ export default function BP05Builder({ authorId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
+  const [authorSlug, setAuthorSlug] = useState("");
   const [bookTitle, setBookTitle] = useState("");
   const [hasContext, setHasContext] = useState<boolean | null>(null);
   const [content, setContent] = useState<any>(null);
@@ -45,10 +47,11 @@ export default function BP05Builder({ authorId }: Props) {
     (async () => {
       const { data: profile } = await supabase
         .from("author_profiles")
-        .select("pen_name")
+        .select("pen_name, author_slug")
         .eq("id", authorId)
         .single();
       setAuthorName(profile?.pen_name || "there");
+      setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
 
       const { data: ctx } = await supabase
         .from("author_context")
@@ -211,7 +214,21 @@ export default function BP05Builder({ authorId }: Props) {
         )}
 
         {step === 3 && content?.activated && (
-          <SuccessStep content={content} authorName={authorName} bookTitle={bookTitle} navigate={navigate} />
+          <NodeSuccessScreen
+            nodeId="BP-05"
+            authorName={authorName}
+            penNameSlug={authorSlug}
+            celebrationMessage={`Your webinar system is live, ${authorName}! Your registration page is ready, follow-up emails are configured, and your first webinar topic is set up. Time to invite your audience!`}
+            whatHappensNext={[
+              "3 signature webinar topics are ready — registration pages are live",
+              "Your 4-email follow-up sequence will engage registrants automatically",
+              "Your 14-day promotion plan is ready to launch",
+            ]}
+            actions={[
+              { label: "Back to Brand Products", variant: "outline", onClick: () => navigate("/brand-products") },
+              { label: "Next: Create Digital Products", onClick: () => navigate("/node-builder/BP-06") },
+            ]}
+          />
         )}
       </div>
     </div>
@@ -414,34 +431,4 @@ function ReviewStep({ content, authorName, onActivate }: { content: any; authorN
   );
 }
 
-function SuccessStep({ content, authorName, bookTitle, navigate }: { content: any; authorName: string; bookTitle: string; navigate: (path: string) => void }) {
-  const recIdx = (content.recommended_webinar || 1) - 1;
-  const recTitle = content.webinar_topics?.[recIdx]?.title || "your webinar";
-
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-center py-4">
-        <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center animate-bounce">
-          <Check className="h-8 w-8 text-green-600" />
-        </div>
-      </div>
-      <AbbyCard>
-        <p className="text-muted-foreground">
-          🎉 Your webinar system is live, {authorName}! Your registration page is ready, your follow-up emails are configured, and your first webinar topic is set up. Time to invite your audience to '{recTitle}'!
-        </p>
-      </AbbyCard>
-      <Card>
-        <CardContent className="pt-6 space-y-2">
-          <p className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-600" /> Webinar topics: 3 signature topics ready</p>
-          <p className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-600" /> Registration page: Live and ready to share</p>
-          <p className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-600" /> Follow-up emails: 4-email sequence configured</p>
-          <p className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-600" /> Promotion plan: 14-day launch strategy ready</p>
-        </CardContent>
-      </Card>
-      <div className="flex flex-col sm:flex-row gap-3">
-        <Button variant="outline" className="flex-1" onClick={() => navigate("/brand-products")}>Back to Brand Products</Button>
-        <Button className="flex-1" onClick={() => navigate("/node-builder/BP-06")}>Next: Create Digital Products <ArrowRight className="h-4 w-4 ml-2" /></Button>
-      </div>
-    </div>
-  );
-}
+// SuccessStep replaced by NodeSuccessScreen

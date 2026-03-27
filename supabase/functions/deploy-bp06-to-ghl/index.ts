@@ -16,8 +16,9 @@ serve(async (req) => {
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    const { data: author } = await supabase.from("author_profiles").select("ghl_sub_account_id, pen_name").eq("id", author_id).single();
+    const { data: author } = await supabase.from("author_profiles").select("ghl_sub_account_id, pen_name, author_slug").eq("id", author_id).single();
     if (!author) throw new Error("Author not found");
+    const penSlug = author.author_slug || (author.pen_name || "").toLowerCase().replace(/\s+/g, "-");
 
     const { data: node } = await supabase.from("author_nodes").select("content_json").eq("author_id", author_id).eq("node_id", "BP-06").single();
     if (!node?.content_json) throw new Error("BP-06 content not found");
@@ -57,7 +58,8 @@ serve(async (req) => {
     }
 
     content.payment_link_url = paymentLinkUrl;
-    await supabase.from("author_nodes").update({ status: "live", ghl_resource_id: paymentLinkUrl, content_json: content, activated_at: new Date().toISOString() }).eq("author_id", author_id).eq("node_id", "BP-06");
+    const micrositeUrl = `https://authorsbureau.com/${penSlug}/workbook`;
+    await supabase.from("author_nodes").update({ status: "live", ghl_resource_id: paymentLinkUrl, content_json: content, activated_at: new Date().toISOString(), microsite_url: micrositeUrl, payment_link: paymentLinkUrl }).eq("author_id", author_id).eq("node_id", "BP-06");
 
     return new Response(JSON.stringify({ success: true, payment_link_url: paymentLinkUrl }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err) {

@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Home, User, BookOpen, Mail, Quote, ChevronDown, ChevronUp, Search, MessageSquare } from "lucide-react";
+import NodeSuccessScreen from "@/components/dashboard/builders/shared/NodeSuccessScreen";
 
 const STEPS = ["Introduction", "Generating", "Review", "Activate"];
 
@@ -33,6 +34,7 @@ export default function BP04Builder({ authorId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
+  const [authorSlug, setAuthorSlug] = useState("");
   const [bookTitle, setBookTitle] = useState("");
   const [hasContext, setHasContext] = useState<boolean | null>(null);
   const [content, setContent] = useState<any>(null);
@@ -45,10 +47,11 @@ export default function BP04Builder({ authorId }: Props) {
     (async () => {
       const { data: profile } = await supabase
         .from("author_profiles")
-        .select("pen_name")
+        .select("pen_name, author_slug")
         .eq("id", authorId)
         .single();
       setAuthorName(profile?.pen_name || "there");
+      setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
 
       const { data: ctx } = await supabase
         .from("author_context")
@@ -215,7 +218,21 @@ export default function BP04Builder({ authorId }: Props) {
         )}
 
         {step === 3 && content?.activated && (
-          <SuccessStep content={content} authorName={authorName} bookTitle={bookTitle} navigate={navigate} />
+          <NodeSuccessScreen
+            nodeId="BP-04"
+            authorName={authorName}
+            penNameSlug={authorSlug}
+            celebrationMessage={`Your author website is live, ${authorName}! Your homepage, about page, book page, and contact page are all set up. '${bookTitle || "Your book"}' now has a professional online home!`}
+            whatHappensNext={[
+              "Your homepage is live with your hero copy and book teaser",
+              "Your about page and book showcase are ready for readers",
+              `SEO is optimised for "${content.seo?.keywords?.[0] || "your niche"}" — search engines will find you`,
+            ]}
+            actions={[
+              { label: "Back to Brand Products", variant: "outline", onClick: () => navigate("/brand-products") },
+              { label: "Next: Set Up Webinars", onClick: () => navigate("/node-builder/BP-05") },
+            ]}
+          />
         )}
       </div>
     </div>
@@ -418,48 +435,4 @@ function ReviewStep({ content, authorName, onActivate }: { content: any; authorN
   );
 }
 
-function SuccessStep({ content, authorName, bookTitle, navigate }: { content: any; authorName: string; bookTitle: string; navigate: (path: string) => void }) {
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-center py-4">
-        <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center animate-in zoom-in duration-500">
-          <Check className="h-10 w-10 text-green-600" />
-        </div>
-      </div>
-
-      <AbbyCard>
-        <p className="text-muted-foreground">
-          🎉 Your author website is live, {authorName}! Your homepage, about page, book page, and contact page are all set up and ready for your readers. '{bookTitle || "Your book"}' now has a professional online home!
-        </p>
-      </AbbyCard>
-
-      <Card>
-        <CardContent className="pt-6 space-y-3">
-          <SummaryItem label="Homepage: Live with your hero copy and book teaser" />
-          <SummaryItem label="About page: Your full author bio is ready" />
-          <SummaryItem label="Book page: Your book showcase is live" />
-          <SummaryItem label="Contact page: Readers and media can reach you" />
-          <SummaryItem label={`SEO: Optimised for ${content.seo?.keywords?.[0] || "your niche"}`} />
-        </CardContent>
-      </Card>
-
-      <div className="flex flex-col sm:flex-row gap-3 pt-2">
-        <Button variant="outline" className="flex-1" onClick={() => navigate("/brand-products")}>
-          <ArrowLeft className="h-4 w-4 mr-2" /> Back to Brand Products
-        </Button>
-        <Button className="flex-1" onClick={() => navigate("/node-builder/BP-05")}>
-          Next: Set Up Webinars <ArrowRight className="h-4 w-4 ml-2" />
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function SummaryItem({ label }: { label: string }) {
-  return (
-    <div className="flex items-center gap-2">
-      <Check className="h-4 w-4 text-green-600 shrink-0" />
-      <span className="text-sm">{label}</span>
-    </div>
-  );
-}
+// SuccessStep replaced by NodeSuccessScreen

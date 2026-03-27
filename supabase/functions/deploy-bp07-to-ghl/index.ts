@@ -15,8 +15,9 @@ serve(async (req) => {
     if (!author_id) throw new Error("author_id is required");
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const { data: author } = await supabase.from("author_profiles").select("ghl_sub_account_id, pen_name").eq("id", author_id).single();
+    const { data: author } = await supabase.from("author_profiles").select("ghl_sub_account_id, pen_name, author_slug").eq("id", author_id).single();
     if (!author) throw new Error("Author not found");
+    const penSlug = author.author_slug || (author.pen_name || "").toLowerCase().replace(/\s+/g, "-");
 
     const { data: node } = await supabase.from("author_nodes").select("content_json").eq("author_id", author_id).eq("node_id", "BP-07").single();
     if (!node?.content_json) throw new Error("BP-07 content not found");
@@ -45,7 +46,8 @@ serve(async (req) => {
     if (locationId && GHL_AGENCY_KEY) { try { await fetch(`${GHL_BASE_URL}/opportunities/`, { method: "POST", headers: { Authorization: `Bearer ${GHL_AGENCY_KEY}`, "Content-Type": "application/json", Version: "2021-07-28" }, body: JSON.stringify({ locationId, name: title, pipelineId: "digital-products", status: "open", monetaryValue: price }) }); } catch (e) { console.error("GHL opp:", e); } }
 
     content.payment_link_url = paymentLinkUrl;
-    await supabase.from("author_nodes").update({ status: "live", ghl_resource_id: paymentLinkUrl, content_json: content, activated_at: new Date().toISOString() }).eq("author_id", author_id).eq("node_id", "BP-07");
+    const micrositeUrl = `https://authorsbureau.com/${penSlug}/home-study`;
+    await supabase.from("author_nodes").update({ status: "live", ghl_resource_id: paymentLinkUrl, content_json: content, activated_at: new Date().toISOString(), microsite_url: micrositeUrl, payment_link: paymentLinkUrl }).eq("author_id", author_id).eq("node_id", "BP-07");
 
     return new Response(JSON.stringify({ success: true, payment_link_url: paymentLinkUrl }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err) {

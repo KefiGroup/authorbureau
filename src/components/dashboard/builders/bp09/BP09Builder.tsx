@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Mic, LayoutList, DollarSign, FileText, Copy, Star, ChevronDown, ChevronUp } from "lucide-react";
+import NodeSuccessScreen from "@/components/dashboard/builders/shared/NodeSuccessScreen";
 
 const STEPS = ["Introduction", "Generating", "Review", "Activate"];
 const GEN_MSGS = ["Studying your book's key themes...", "Designing your signature talks...", "Writing your speaker bio...", "Building your fee structure...", "Finalising your speaking business..."];
@@ -19,6 +20,7 @@ export default function BP09Builder({ authorId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
+  const [authorSlug, setAuthorSlug] = useState("");
   const [bookTitle, setBookTitle] = useState("");
   const [hasContext, setHasContext] = useState<boolean | null>(null);
   const [content, setContent] = useState<any>(null);
@@ -31,8 +33,9 @@ export default function BP09Builder({ authorId }: Props) {
   useEffect(() => {
     if (!authorId) return;
     (async () => {
-      const { data: profile } = await supabase.from("author_profiles").select("pen_name").eq("id", authorId).single();
+      const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug").eq("id", authorId).single();
       setAuthorName(profile?.pen_name || "there");
+      setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
       const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
       setBookTitle(ctx?.book_title || "");
       setHasContext(!!ctx?.book_title);
@@ -161,18 +164,22 @@ export default function BP09Builder({ authorId }: Props) {
         )}
         {step === 3 && !content?.activated && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{ACT_MSGS[msgIndex % ACT_MSGS.length]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /></div></AbbyCard>}
         {step === 3 && content?.activated && (
-          <div className="space-y-4">
-            <div className="flex justify-center py-4"><div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center animate-bounce"><Check className="h-8 w-8 text-green-600" /></div></div>
-            <AbbyCard><p className="text-muted-foreground">🎉 Your speaking business is live, {authorName}! Your booking page is ready and your speaking fee is set. Time to get on stage!</p></AbbyCard>
-            {content.payment_link_url && <Card className="border-green-200 bg-green-50"><CardContent className="pt-6"><p className="text-xs font-semibold text-muted-foreground mb-2">Your Payment Link</p><div className="flex items-center gap-2"><code className="flex-1 text-sm bg-background p-2 rounded border truncate">{content.payment_link_url}</code><Button variant="outline" size="icon" onClick={() => { navigator.clipboard.writeText(content.payment_link_url); toast.success("Copied!"); }}><Copy className="h-4 w-4" /></Button></div></CardContent></Card>}
-            <Card><CardContent className="pt-6 space-y-2">
-              <p className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-600" /> Signature talks: 3 talks ready</p>
-              <p className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-600" /> Speaker bio: Short + full bio ready</p>
-              <p className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-600" /> Keynote fee: ${priceOverride ?? content.fee_structure?.keynote_fee_usd ?? 5000}</p>
-              <p className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-600" /> Booking link: Ready to share</p>
-            </CardContent></Card>
-            <div className="flex flex-col sm:flex-row gap-3"><Button variant="outline" className="flex-1" onClick={() => navigate("/brand-products")}>Back to Brand Products</Button><Button className="flex-1" onClick={() => navigate("/brand-products")}>View All Brand Products <ArrowRight className="h-4 w-4 ml-2" /></Button></div>
-          </div>
+          <NodeSuccessScreen
+            nodeId="BP-09"
+            authorName={authorName}
+            penNameSlug={authorSlug}
+            celebrationMessage={`Your speaking business is live, ${authorName}! Your booking page is ready and your speaking fee is set. Time to get on stage!`}
+            paymentLinks={content.payment_link_url ? [{ label: "Speaking Booking Link", url: content.payment_link_url, price: `$${priceOverride ?? content.fee_structure?.keynote_fee_usd ?? 5000}` }] : undefined}
+            whatHappensNext={[
+              "3 signature talks are ready — your speaker profile is complete",
+              "Your booking page is live for event organisers to find you",
+              "Enquiries will flow into your pipeline automatically",
+            ]}
+            actions={[
+              { label: "Back to Brand Products", variant: "outline", onClick: () => navigate("/brand-products") },
+              { label: "View All Brand Products", onClick: () => navigate("/brand-products") },
+            ]}
+          />
         )}
       </div>
     </div>

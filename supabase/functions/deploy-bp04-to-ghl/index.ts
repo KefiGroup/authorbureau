@@ -29,10 +29,11 @@ serve(async (req) => {
 
     const { data: author, error: authorErr } = await supabase
       .from("author_profiles")
-      .select("ghl_sub_account_id, pen_name")
+      .select("ghl_sub_account_id, pen_name, author_slug")
       .eq("id", author_id)
       .single();
     if (authorErr || !author) throw new Error("Author not found");
+    const penSlug = author.author_slug || (author.pen_name || "").toLowerCase().replace(/\s+/g, "-");
 
     const { data: node, error: nodeErr } = await supabase
       .from("author_nodes")
@@ -131,6 +132,7 @@ serve(async (req) => {
         status: "live",
         ghl_resource_id: websiteId,
         activated_at: new Date().toISOString(),
+        microsite_url: `https://authorsbureau.com/${penSlug}`,
       })
       .eq("author_id", author_id)
       .eq("node_id", "BP-04");

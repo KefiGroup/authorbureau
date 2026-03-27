@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Gift, FileText, ThumbsUp, Settings, Star } from "lucide-react";
+import NodeSuccessScreen from "@/components/dashboard/builders/shared/NodeSuccessScreen";
 
 const STEPS = ["Introduction", "Generating", "Review", "Activate"];
 
@@ -33,6 +34,7 @@ export default function BP02Builder({ authorId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
+  const [authorSlug, setAuthorSlug] = useState("");
   const [bookTitle, setBookTitle] = useState("");
   const [hasContext, setHasContext] = useState<boolean | null>(null);
   const [content, setContent] = useState<any>(null);
@@ -45,10 +47,11 @@ export default function BP02Builder({ authorId }: Props) {
     (async () => {
       const { data: profile } = await supabase
         .from("author_profiles")
-        .select("pen_name")
+        .select("pen_name, author_slug")
         .eq("id", authorId)
         .single();
       setAuthorName(profile?.pen_name || "there");
+      setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
 
       const { data: ctx } = await supabase
         .from("author_context")
@@ -231,7 +234,21 @@ export default function BP02Builder({ authorId }: Props) {
         )}
 
         {step === 3 && content?.activated && (
-          <SuccessStep content={content} authorName={authorName} navigate={navigate} />
+          <NodeSuccessScreen
+            nodeId="BP-02"
+            authorName={authorName}
+            penNameSlug={authorSlug}
+            celebrationMessage={`Your lead magnet funnel is live, ${authorName}! Your opt-in page is ready to capture subscribers. Share your link and start building your list!`}
+            whatHappensNext={[
+              "Every visitor who opts in will be added to your email list automatically",
+              "Your thank you page will deliver the lead magnet instantly",
+              "New subscribers enter your welcome email sequence on autopilot",
+            ]}
+            actions={[
+              { label: "Back to Brand Products", variant: "outline", onClick: () => navigate("/brand-products") },
+              { label: "Next: Set Up Social Media", onClick: () => navigate("/node-builder/BP-03") },
+            ]}
+          />
         )}
       </div>
     </div>
@@ -378,50 +395,4 @@ function ReviewStep({ content, authorName, onActivate }: { content: any; authorN
   );
 }
 
-function SuccessStep({ content, authorName, navigate }: { content: any; authorName: string; navigate: (path: string) => void }) {
-  const recommended = content.lead_magnets?.find((lm: any) => lm.number === (content.recommended_lead_magnet || 1));
-
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-center py-4">
-        <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center animate-in zoom-in duration-500">
-          <Check className="h-10 w-10 text-green-600" />
-        </div>
-      </div>
-
-      <AbbyCard>
-        <p className="text-muted-foreground">
-          🎉 Your lead magnet funnel is live, {authorName}! Your opt-in page is ready to capture subscribers,
-          and your thank you page is set up. Share your opt-in link with your audience and start building your list!
-        </p>
-      </AbbyCard>
-
-      <Card>
-        <CardContent className="pt-6 space-y-3">
-          <SummaryItem label={`Lead magnet: ${recommended?.title || "Ready"}`} />
-          <SummaryItem label="Opt-in page: Live and ready to share" />
-          <SummaryItem label="Thank you page: Set up" />
-          <SummaryItem label={`Funnel: ${content.funnel_name}`} />
-        </CardContent>
-      </Card>
-
-      <div className="flex flex-col sm:flex-row gap-3 pt-2">
-        <Button variant="outline" className="flex-1" onClick={() => navigate("/brand-products")}>
-          <ArrowLeft className="h-4 w-4 mr-2" /> Back to Brand Products
-        </Button>
-        <Button className="flex-1" onClick={() => navigate("/node-builder/BP-03")}>
-          Next: Set Up Social Media <ArrowRight className="h-4 w-4 ml-2" />
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function SummaryItem({ label }: { label: string }) {
-  return (
-    <div className="flex items-center gap-2">
-      <Check className="h-4 w-4 text-green-600 shrink-0" />
-      <span className="text-sm">{label}</span>
-    </div>
-  );
-}
+// SuccessStep replaced by NodeSuccessScreen

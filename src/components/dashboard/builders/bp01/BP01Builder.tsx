@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Mail, Gift, Radio, Settings, ChevronDown, ChevronUp } from "lucide-react";
+import NodeSuccessScreen from "@/components/dashboard/builders/shared/NodeSuccessScreen";
 
 const STEPS = ["Introduction", "Generating", "Review", "Activate"];
 
@@ -33,6 +34,7 @@ export default function BP01Builder({ authorId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
+  const [authorSlug, setAuthorSlug] = useState("");
   const [bookTitle, setBookTitle] = useState("");
   const [hasContext, setHasContext] = useState<boolean | null>(null);
   const [content, setContent] = useState<any>(null);
@@ -46,10 +48,11 @@ export default function BP01Builder({ authorId }: Props) {
     (async () => {
       const { data: profile } = await supabase
         .from("author_profiles")
-        .select("pen_name")
+        .select("pen_name, author_slug")
         .eq("id", authorId)
         .single();
       setAuthorName(profile?.pen_name || "there");
+      setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
 
       const { data: ctx } = await supabase
         .from("author_context")
@@ -237,7 +240,22 @@ export default function BP01Builder({ authorId }: Props) {
         )}
 
         {step === 3 && content?.activated && (
-          <SuccessStep content={content} authorName={authorName} navigate={navigate} />
+          <NodeSuccessScreen
+            nodeId="BP-01"
+            authorName={authorName}
+            penNameSlug={authorSlug}
+            celebrationMessage={`Your email marketing is live, ${authorName}! Your welcome sequence is ready for new subscribers, and your first campaign is set up. Every reader who signs up will automatically receive your personalised welcome series. You're building your list!`}
+            whatHappensNext={[
+              `Welcome sequence: ${content.welcome_sequence?.length || 5} emails will be sent automatically to every new subscriber`,
+              `Lead magnet offer: "${content.lead_magnet_offer?.title}" is ready to capture new readers`,
+              "Your email list is growing on autopilot — every opt-in is handled for you",
+            ]}
+            socialShareText={`I just set up my author email marketing with @AuthorsBureau! Building my list automatically 📧`}
+            actions={[
+              { label: "Back to Brand Products", variant: "outline", onClick: () => navigate("/brand-products") },
+              { label: "Next: Build Your Lead Magnets", onClick: () => navigate("/node-builder/BP-02") },
+            ]}
+          />
         )}
       </div>
     </div>
@@ -396,50 +414,4 @@ function EmailCard({ email }: { email: any }) {
   );
 }
 
-function SuccessStep({ content, authorName, navigate }: { content: any; authorName: string; navigate: (path: string) => void }) {
-  return (
-    <div className="space-y-4">
-      {/* Success animation */}
-      <div className="flex justify-center py-4">
-        <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center animate-in zoom-in duration-500">
-          <Check className="h-10 w-10 text-green-600" />
-        </div>
-      </div>
-
-      <AbbyCard>
-        <p className="text-muted-foreground">
-          🎉 Your email marketing is live, {authorName}! Your welcome sequence is ready for new subscribers,
-          and your first campaign is set up. Every reader who signs up will automatically receive your
-          personalised welcome series. You're building your list!
-        </p>
-      </AbbyCard>
-
-      <Card>
-        <CardContent className="pt-6 space-y-3">
-          <SummaryItem label={`Welcome sequence: ${content.welcome_sequence?.length || 5} emails ready`} />
-          <SummaryItem label={`Lead magnet offer: ${content.lead_magnet_offer?.title}`} />
-          <SummaryItem label="First broadcast: Ready to send" />
-          <SummaryItem label={`Email list: ${content.list_name}`} />
-        </CardContent>
-      </Card>
-
-      <div className="flex flex-col sm:flex-row gap-3 pt-2">
-        <Button variant="outline" className="flex-1" onClick={() => navigate("/brand-products")}>
-          <ArrowLeft className="h-4 w-4 mr-2" /> Back to Brand Products
-        </Button>
-        <Button className="flex-1" onClick={() => navigate("/node-builder/BP-02")}>
-          Next: Build Your Lead Magnets <ArrowRight className="h-4 w-4 ml-2" />
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function SummaryItem({ label }: { label: string }) {
-  return (
-    <div className="flex items-center gap-2">
-      <Check className="h-4 w-4 text-green-600 shrink-0" />
-      <span className="text-sm">{label}</span>
-    </div>
-  );
-}
+// SuccessStep replaced by NodeSuccessScreen
