@@ -138,7 +138,11 @@ serve(async (req) => {
             console.error("[GHL] Sub-account creation failed:", createResponse.status, responseText);
             await supabase
               .from("author_profiles")
-              .update({ ghl_provision_status: "failed" })
+              .update({
+                ghl_provision_status: "failed",
+                ghl_provisioning_failed: true,
+                ghl_provisioning_attempts: (author as any).ghl_provisioning_attempts ? (author as any).ghl_provisioning_attempts + 1 : 1,
+              })
               .eq("id", author_id);
 
             // Return the actual GHL error to the caller
