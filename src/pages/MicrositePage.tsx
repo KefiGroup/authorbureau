@@ -115,6 +115,8 @@ export default function MicrositePage() {
 
   const theme = getThemeById(data.author.theme || "classic-elegant");
   const v = theme.vars;
+  const hFont = theme.headingFont;
+  const bgColor = theme.colors.heroBackground;
   const content = data.node.content_json || {};
 
   // Determine page type
