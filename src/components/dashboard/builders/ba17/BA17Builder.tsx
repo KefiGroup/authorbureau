@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Sparkles, ArrowRight, Layers, Package, TrendingUp, ArrowDown } from "lucide-react";
 import { StepHeader, AbbyCard, LoadingStep, PaymentLinkCard, SummaryCard, SuccessCheckmark } from "../ba-shared/BABuilderShared";
+import NodeSuccessScreen from "@/components/dashboard/builders/shared/NodeSuccessScreen";
 
 const GEN_MSGS = ["Designing your product ladder...", "Creating your 3 bundle offers...", "Building your upsell sequences...", "Configuring your downsell...", "Finalising your upsell system..."];
 const ACT_MSGS = ["Creating your bundle products...", "Setting up payment links...", "Configuring your upsell flows...", "Almost ready..."];
