@@ -390,6 +390,7 @@ export type Database = {
           author_id: string
           content_json: Json | null
           created_at: string
+          current_step: number | null
           ghl_resource_id: string | null
           id: string
           marketing_activated_at: string | null
@@ -407,6 +408,7 @@ export type Database = {
           author_id: string
           content_json?: Json | null
           created_at?: string
+          current_step?: number | null
           ghl_resource_id?: string | null
           id?: string
           marketing_activated_at?: string | null
@@ -424,6 +426,7 @@ export type Database = {
           author_id?: string
           content_json?: Json | null
           created_at?: string
+          current_step?: number | null
           ghl_resource_id?: string | null
           id?: string
           marketing_activated_at?: string | null
@@ -573,6 +576,8 @@ export type Database = {
           ghl_api_key: string | null
           ghl_provision_status: string | null
           ghl_provisioned_at: string | null
+          ghl_provisioning_attempts: number | null
+          ghl_provisioning_failed: boolean | null
           ghl_sub_account_id: string | null
           ghl_sub_account_name: string | null
           has_seen_journey_onboarding: boolean
@@ -619,6 +624,8 @@ export type Database = {
           ghl_api_key?: string | null
           ghl_provision_status?: string | null
           ghl_provisioned_at?: string | null
+          ghl_provisioning_attempts?: number | null
+          ghl_provisioning_failed?: boolean | null
           ghl_sub_account_id?: string | null
           ghl_sub_account_name?: string | null
           has_seen_journey_onboarding?: boolean
@@ -665,6 +672,8 @@ export type Database = {
           ghl_api_key?: string | null
           ghl_provision_status?: string | null
           ghl_provisioned_at?: string | null
+          ghl_provisioning_attempts?: number | null
+          ghl_provisioning_failed?: boolean | null
           ghl_sub_account_id?: string | null
           ghl_sub_account_name?: string | null
           has_seen_journey_onboarding?: boolean
