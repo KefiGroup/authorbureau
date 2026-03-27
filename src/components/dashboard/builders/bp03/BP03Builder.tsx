@@ -49,7 +49,7 @@ export default function BP03Builder({ authorId }: Props) {
     (async () => {
       const { data: profile } = await supabase
         .from("author_profiles")
-        .select("pen_name, author_slug")
+        .select("pen_name, author_slug, user_id")
         .eq("id", authorId)
         .single();
       setAuthorName(profile?.pen_name || "there");
@@ -69,7 +69,7 @@ export default function BP03Builder({ authorId }: Props) {
         const { data: book } = await supabase
           .from("books")
           .select("title")
-          .eq("author_id", authorId)
+          .eq("author_id", profile?.user_id || authorId)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
