@@ -371,7 +371,7 @@ function ReviewStep({ content, authorName, onActivate }: { content: any; authorN
           Edit
         </Button>
         <Button className="flex-1" size="lg" onClick={onActivate}>
-          Activate My Lead Magnets <ArrowRight className="h-4 w-4 ml-2" />
+          Publish to My Site <ArrowRight className="h-4 w-4 ml-2" />
         </Button>
       </div>
       <p className="text-xs text-center text-muted-foreground">
