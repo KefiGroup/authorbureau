@@ -59,31 +59,46 @@ export default function MarketingHub({ onNavigate }: Props) {
   const fetchDeployments = useCallback(async () => {
     if (!user) return;
     try {
-      // Get author profile id
+      // Get author profile id — try Cloud first, then shared backend
+      let profileId: string | null = null;
       const { data: profile } = await supabase
         .from("author_profiles")
         .select("id")
         .eq("user_id", user.id)
         .maybeSingle();
 
-      if (!profile) {
-        // Try shared backend
+      if (profile) {
+        profileId = profile.id;
+      } else {
         const { data: sharedProfile } = await sharedSupabase
           .from("author_profiles")
           .select("id")
           .eq("user_id", user.id)
           .maybeSingle();
-        if (sharedProfile) setAuthorProfileId(sharedProfile.id);
-      } else {
-        setAuthorProfileId(profile.id);
+        if (sharedProfile) profileId = sharedProfile.id;
       }
+      
+      if (profileId) setAuthorProfileId(profileId);
 
-      const { data } = await supabase
-        .from("ghl_deployments")
-        .select("*")
-        .eq("author_id", authorProfileId || profile?.id || "");
-
-      setDeployments((data as Deployment[]) || []);
+      // Fetch deployments via edge function to bypass RLS auth mismatch
+      const token = await getActiveToken();
+      if (profileId && token) {
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-deployments`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ author_id: profileId }),
+          }
+        );
+        const result = await res.json();
+        setDeployments((result.deployments as Deployment[]) || []);
+      } else {
+        setDeployments([]);
+      }
     } catch (err) {
       console.error("Failed to fetch deployments:", err);
     } finally {
