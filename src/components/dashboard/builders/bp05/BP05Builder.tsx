@@ -214,7 +214,21 @@ export default function BP05Builder({ authorId }: Props) {
         )}
 
         {step === 3 && content?.activated && (
-          <SuccessStep content={content} authorName={authorName} bookTitle={bookTitle} navigate={navigate} />
+          <NodeSuccessScreen
+            nodeId="BP-05"
+            authorName={authorName}
+            penNameSlug={authorSlug}
+            celebrationMessage={`Your webinar system is live, ${authorName}! Your registration page is ready, follow-up emails are configured, and your first webinar topic is set up. Time to invite your audience!`}
+            whatHappensNext={[
+              "3 signature webinar topics are ready — registration pages are live",
+              "Your 4-email follow-up sequence will engage registrants automatically",
+              "Your 14-day promotion plan is ready to launch",
+            ]}
+            actions={[
+              { label: "Back to Brand Products", variant: "outline", onClick: () => navigate("/brand-products") },
+              { label: "Next: Create Digital Products", onClick: () => navigate("/node-builder/BP-06") },
+            ]}
+          />
         )}
       </div>
     </div>
