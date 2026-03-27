@@ -12,7 +12,6 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Card } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { NODE_NAMES } from "@/lib/node-slug-map";
 
