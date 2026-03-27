@@ -7,6 +7,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ArrowRight, Gem, MessageSquare, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import { StepHeader, AbbyCard, LoadingStep, MultiPaymentLinks, SummaryCard, SuccessCheckmark, HighTicketPrice } from "../yr-shared/YRBuilderShared";
+import NodeSuccessScreen from "../shared/NodeSuccessScreen";
+import { getMicrositeUrl } from "@/lib/node-slug-map";
 
 const GEN_MSGS = ["Crafting your premium transformation packages...", "Designing high-value offer structures...", "Building your sales conversation guide...", "Finalising your big ticket offers..."];
 const ACT_MSGS = ["Creating your premium payment pages...", "Setting up your sales pipeline...", "Almost ready..."];
