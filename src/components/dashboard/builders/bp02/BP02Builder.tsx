@@ -234,7 +234,21 @@ export default function BP02Builder({ authorId }: Props) {
         )}
 
         {step === 3 && content?.activated && (
-          <SuccessStep content={content} authorName={authorName} navigate={navigate} />
+          <NodeSuccessScreen
+            nodeId="BP-02"
+            authorName={authorName}
+            penNameSlug={authorSlug}
+            celebrationMessage={`Your lead magnet funnel is live, ${authorName}! Your opt-in page is ready to capture subscribers. Share your link and start building your list!`}
+            whatHappensNext={[
+              "Every visitor who opts in will be added to your email list automatically",
+              "Your thank you page will deliver the lead magnet instantly",
+              "New subscribers enter your welcome email sequence on autopilot",
+            ]}
+            actions={[
+              { label: "Back to Brand Products", variant: "outline", onClick: () => navigate("/brand-products") },
+              { label: "Next: Set Up Social Media", onClick: () => navigate("/node-builder/BP-03") },
+            ]}
+          />
         )}
       </div>
     </div>
