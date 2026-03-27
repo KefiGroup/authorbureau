@@ -87,13 +87,13 @@ export default function Navbar() {
           ) : (
             <>
               <Link
-                to={PUBLISHNOW_AUTH_URL}
+                to={AUTH_URL}
                 className="text-sm font-semibold text-secondary transition-colors hover:text-secondary/80"
               >
                 Sign In
               </Link>
               <Button asChild variant="default" size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-none rounded-full">
-                <Link to={PUBLISHNOW_AUTH_URL}>Sign Up</Link>
+                <Link to={AUTH_URL}>Sign Up</Link>
               </Button>
             </>
           )}
