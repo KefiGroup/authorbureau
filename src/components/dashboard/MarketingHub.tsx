@@ -506,6 +506,9 @@ const CampaignRow = forwardRef<HTMLDivElement, {
     .filter(nid => nodeRows.find(r => r.node_id === nid)?.status === "live")
     .map(nid => NODE_NAMES[nid] || nid);
 
+  // Find the first howToStart step with a link for the CTA button
+  const ctaStep = campaign.howToStart.find(s => s.link);
+
   return (
     <div
       ref={ref}
@@ -527,36 +530,60 @@ const CampaignRow = forwardRef<HTMLDivElement, {
         </div>
       )}
 
-      <div className="flex items-center gap-4 p-4">
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate">{campaign.label}</p>
-          <p className="text-xs text-muted-foreground truncate">{campaign.description}</p>
+      <div className="p-4">
+        <div className="flex items-center gap-4">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">{campaign.label}</p>
+            <p className="text-xs text-muted-foreground truncate">{campaign.description}</p>
+          </div>
+
+          <Badge variant="outline" className={`shrink-0 text-[10px] ${config.className}`}>
+            <StatusIcon className={`h-3 w-3 mr-1 ${status === "activating" ? "animate-spin" : ""}`} />
+            {config.label}
+          </Badge>
+
+          <div className="shrink-0">
+            {status === "ready" ? (
+              <Button size="sm" onClick={onActivate} className="text-xs bg-amber-600 hover:bg-amber-700 text-white">
+                Activate Now <ArrowRight className="ml-1 h-3 w-3" />
+              </Button>
+            ) : status === "activating" ? (
+              <Button size="sm" disabled className="text-xs">
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" /> Setting up…
+              </Button>
+            ) : status === "failed" ? (
+              <Button size="sm" variant="outline" className="text-xs border-red-500/20 text-red-600" onClick={onActivate}>
+                <RefreshCw className="h-3 w-3 mr-1" /> Retry
+              </Button>
+            ) : null}
+          </div>
         </div>
 
-        <Badge variant="outline" className={`shrink-0 text-[10px] ${config.className}`}>
-          <StatusIcon className={`h-3 w-3 mr-1 ${status === "activating" ? "animate-spin" : ""}`} />
-          {config.label}
-        </Badge>
-
-        <div className="shrink-0">
-          {status === "ready" ? (
-            <Button size="sm" onClick={onActivate} className="text-xs bg-amber-600 hover:bg-amber-700 text-white">
-              Activate Now <ArrowRight className="ml-1 h-3 w-3" />
-            </Button>
-          ) : status === "activating" ? (
-            <Button size="sm" disabled className="text-xs">
-              <Loader2 className="h-3 w-3 mr-1 animate-spin" /> Setting up…
-            </Button>
-          ) : status === "failed" ? (
-            <Button size="sm" variant="outline" className="text-xs border-red-500/20 text-red-600" onClick={onActivate}>
-              <RefreshCw className="h-3 w-3 mr-1" /> Retry
-            </Button>
-          ) : (
-            <Button size="sm" variant="ghost" disabled className="text-xs text-muted-foreground">
-              Publish first
-            </Button>
-          )}
-        </div>
+        {/* Step-by-step instructions for pending campaigns */}
+        {status === "pending" && (
+          <div className="mt-3 pt-3 border-t border-border">
+            <p className="text-xs font-semibold text-muted-foreground mb-2">How to get started:</p>
+            <ol className="space-y-1.5">
+              {campaign.howToStart.map((item, i) => (
+                <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                  <span className="shrink-0 w-4 h-4 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold mt-0.5">
+                    {i + 1}
+                  </span>
+                  <span>{item.step}</span>
+                </li>
+              ))}
+            </ol>
+            {ctaStep && (
+              <Button
+                size="sm"
+                className="mt-3 w-full sm:w-auto"
+                onClick={() => navigate(ctaStep.link!)}
+              >
+                {ctaStep.linkLabel || "Get Started"} <ArrowRight className="ml-1 h-3 w-3" />
+              </Button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
