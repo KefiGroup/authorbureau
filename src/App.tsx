@@ -12,6 +12,7 @@ import Directory from "./pages/Directory";
 import AuthorProfile from "./pages/AuthorProfile";
 import { AuthorSlugRedirect } from "./pages/AuthorSlugRedirect";
 import DynamicBookMicrosite from "./pages/DynamicBookMicrosite";
+import AuthorSubpageResolver from "./pages/AuthorSubpageResolver";
 import CreateMicrosite from "./pages/CreateMicrosite";
 import Join from "./pages/Join";
 import Auth from "./pages/Auth";
