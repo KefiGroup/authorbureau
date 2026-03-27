@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Sparkles, ArrowRight, Users, Crown, Package, Target } from "lucide-react";
 import { StepHeader, AbbyCard, LoadingStep, SummaryCard, SuccessCheckmark } from "../ba-shared/BABuilderShared";
+import NodeSuccessScreen from "@/components/dashboard/builders/shared/NodeSuccessScreen";
 
 const GEN_MSGS = ["Designing your affiliate programme...", "Creating commission tiers...", "Building affiliate resources...", "Planning your recruitment strategy...", "Finalising your programme..."];
 const ACT_MSGS = ["Setting up your affiliate programme...", "Creating affiliate resources...", "Almost ready..."];
