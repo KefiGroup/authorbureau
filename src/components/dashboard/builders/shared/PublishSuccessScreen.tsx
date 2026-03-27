@@ -131,7 +131,7 @@ export default function PublishSuccessScreen({ nodeId, authorName, penNameSlug, 
         <Button
           className="w-full"
           size="lg"
-          onClick={() => navigate(`/marketing-hub?highlight=${campaignId}`)}
+          onClick={() => navigate(`/dashboard?section=marketing-hub&highlight=${campaignId}`)}
         >
           Activate My Marketing Campaign <ArrowRight className="h-4 w-4 ml-2" />
         </Button>
@@ -139,7 +139,7 @@ export default function PublishSuccessScreen({ nodeId, authorName, penNameSlug, 
         <Button
           className="w-full"
           size="lg"
-          onClick={() => navigate("/marketing-hub")}
+          onClick={() => navigate("/dashboard?section=marketing-hub")}
         >
           View My Marketing Hub <ArrowRight className="h-4 w-4 ml-2" />
         </Button>
