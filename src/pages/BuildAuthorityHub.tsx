@@ -277,3 +277,11 @@ export default function BuildAuthorityHub() {
                     <Button size="sm" variant="secondary" className="w-full text-xs" onClick={() => navigate("/pricing")}>Upgrade to Unlock</Button>
                   )}
                 </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
