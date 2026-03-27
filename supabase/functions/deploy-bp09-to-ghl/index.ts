@@ -46,7 +46,8 @@ serve(async (req) => {
     if (locationId && GHL_AGENCY_KEY) { try { await fetch(`${GHL_BASE_URL}/opportunities/`, { method: "POST", headers: { Authorization: `Bearer ${GHL_AGENCY_KEY}`, "Content-Type": "application/json", Version: "2021-07-28" }, body: JSON.stringify({ locationId, name: title, pipelineId: "digital-products", status: "open", monetaryValue: price }) }); } catch (e) { console.error("GHL opp:", e); } }
 
     content.payment_link_url = paymentLinkUrl;
-    await supabase.from("author_nodes").update({ status: "live", ghl_resource_id: paymentLinkUrl, content_json: content, activated_at: new Date().toISOString() }).eq("author_id", author_id).eq("node_id", "BP-09");
+    const micrositeUrl = `https://authorsbureau.com/${penSlug}/book`;
+    await supabase.from("author_nodes").update({ status: "live", ghl_resource_id: paymentLinkUrl, content_json: content, activated_at: new Date().toISOString(), microsite_url: micrositeUrl, payment_link: paymentLinkUrl }).eq("author_id", author_id).eq("node_id", "BP-09");
 
     return new Response(JSON.stringify({ success: true, payment_link_url: paymentLinkUrl }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err) {
