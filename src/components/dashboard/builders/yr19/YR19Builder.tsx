@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuthorBook } from "@/hooks/useAuthorBook";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -29,6 +30,7 @@ export default function YR19Builder({ authorId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook(authorId);
 
   useEffect(() => {
     if (!authorId) return;
@@ -89,7 +91,7 @@ export default function YR19Builder({ authorId }: Props) {
         {step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Coaching Practice</h2>
-            <p className="text-muted-foreground mb-4">Hi {authorName}! 1-on-1 coaching is the most direct way to create transformation and command premium fees. I'm going to design your complete coaching practice based on '{bookTitle || "your book"}' — with coaching packages, a discovery call script, and a client agreement outline. Ready to build your coaching practice?</p>
+            <p className="text-muted-foreground mb-4">Hi {authorName}! 1-on-1 coaching is the most direct way to create transformation and command premium fees. I'm going to design your complete coaching practice based on '{detectedBookTitle || "your book"}' — with coaching packages, a discovery call script, and a client agreement outline. Ready to build your coaching practice?</p>
             <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>Build My Coaching Practice</Button>
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{error}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>

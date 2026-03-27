@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuthorBook } from "@/hooks/useAuthorBook";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -42,6 +43,7 @@ export default function BP01Builder({ authorId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook(authorId);
 
   // Load author info
   useEffect(() => {
@@ -199,7 +201,7 @@ export default function BP01Builder({ authorId }: Props) {
           <>
             <AbbyCard>
               <h2 className="text-xl font-bold mb-3">Let's build your Email Marketing</h2>
-              {hasContext === false ? (
+              {!isBookLoading && !hasBook ? (
                 <>
                   <p className="text-muted-foreground mb-4">
                     Hi {authorName}! Before I can build your email marketing, I need to know about your book. Please complete your book profile first.
@@ -210,7 +212,7 @@ export default function BP01Builder({ authorId }: Props) {
                 <>
                   <p className="text-muted-foreground mb-4">
                     Hi {authorName}! Email marketing is the single most powerful revenue tool for authors.
-                    I'm going to create a complete email marketing system for '{bookTitle || "your book"}' — including
+                    I'm going to create a complete email marketing system for '{detectedBookTitle || "your book"}' — including
                     your welcome sequence, your list-building strategy, and your first campaign. This will run
                     automatically in the background. Ready to see what I've prepared for you?
                   </p>

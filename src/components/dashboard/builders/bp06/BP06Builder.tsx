@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuthorBook } from "@/hooks/useAuthorBook";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -40,6 +41,7 @@ export default function BP06Builder({ authorId }: Props) {
   const [msgIndex, setMsgIndex] = useState(0);
   const [priceOverride, setPriceOverride] = useState<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook(authorId);
 
   useEffect(() => {
     if (!authorId) return;
@@ -134,10 +136,10 @@ export default function BP06Builder({ authorId }: Props) {
         {step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Online Course</h2>
-            {hasContext === false ? (
+            {!isBookLoading && !hasBook ? (
               <><p className="text-muted-foreground mb-4">Hi {authorName}! Before I can build your course, I need to know about your book. Please complete your book profile first.</p><Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-06")}>Complete Book Profile</Button></>
             ) : (
-              <><p className="text-muted-foreground mb-4">Hi {authorName}! Your book is the perfect foundation for an online course. I'm going to design a complete online course based on '{bookTitle || "your book"}' — with a course title, module structure, learning outcomes, and a sales page. Your students will get the transformation your book promises, delivered in a structured learning experience. Ready to build your course?</p>
+              <><p className="text-muted-foreground mb-4">Hi {authorName}! Your book is the perfect foundation for an online course. I'm going to design a complete online course based on '{detectedBookTitle || "your book"}' — with a course title, module structure, learning outcomes, and a sales page. Your students will get the transformation your book promises, delivered in a structured learning experience. Ready to build your course?</p>
                 <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Build My Course</Button></>
             )}
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">I hit a snag generating your content. {error}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}

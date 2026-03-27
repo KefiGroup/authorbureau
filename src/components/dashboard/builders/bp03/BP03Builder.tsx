@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuthorBook } from "@/hooks/useAuthorBook";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -43,6 +44,7 @@ export default function BP03Builder({ authorId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook(authorId);
 
   useEffect(() => {
     if (!authorId) return;
@@ -182,7 +184,7 @@ export default function BP03Builder({ authorId }: Props) {
         {step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Social Media</h2>
-            {hasContext === false ? (
+            {!isBookLoading && !hasBook ? (
               <>
                 <p className="text-muted-foreground mb-4">
                   Hi {authorName}! Before I can build your social media, I need to know about your book. Please complete your book profile first.
@@ -193,7 +195,7 @@ export default function BP03Builder({ authorId }: Props) {
               <>
                 <p className="text-muted-foreground mb-4">
                   Hi {authorName}! Social media is how readers discover you and how your community grows.
-                  I'm going to create a complete 30-day social media content calendar for '{bookTitle || "your book"}' —
+                  I'm going to create a complete 30-day social media content calendar for '{detectedBookTitle || "your book"}' —
                   with posts for LinkedIn, Instagram, Facebook, and Twitter/X — all personalised to your book's themes and your audience.
                   Everything will be scheduled automatically. Ready?
                 </p>
