@@ -345,6 +345,9 @@ export default function BrandProductsHub() {
                     </Button>
                   )}
                 </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
