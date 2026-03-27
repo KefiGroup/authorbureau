@@ -23,9 +23,10 @@ serve(async (req) => {
 
     const { data: author } = await supabase
       .from("author_profiles")
-      .select("ghl_sub_account_id")
+      .select("ghl_sub_account_id, pen_name, author_slug")
       .eq("id", author_id)
       .single();
+    const penSlug = author?.author_slug || (author?.pen_name || "").toLowerCase().replace(/\s+/g, "-");
 
     let subAccountId = author?.ghl_sub_account_id;
 
