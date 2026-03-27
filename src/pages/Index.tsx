@@ -162,6 +162,11 @@ export default function Index() {
               <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-secondary" /> Free to Start</span>
               <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-secondary" /> Built by a Bestselling Author</span>
             </motion.div>
+            <motion.div variants={fadeUp} custom={4.5} className="mt-4">
+              <Link to="/auth" className="text-sm text-primary-foreground/50 hover:text-secondary transition-colors underline">
+                Already have an account? Sign in →
+              </Link>
+            </motion.div>
           </motion.div>
         </div>
       </section>
