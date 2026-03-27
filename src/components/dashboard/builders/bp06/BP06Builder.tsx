@@ -129,7 +129,24 @@ export default function BP06Builder({ authorId }: Props) {
         {step === 1 && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{GEN_MSGS[msgIndex]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /><p className="text-xs text-muted-foreground">This usually takes 20–40 seconds</p></div></AbbyCard>}
         {step === 2 && content && <ReviewStep content={content} authorName={authorName} onActivate={handleActivate} priceOverride={priceOverride} setPriceOverride={setPriceOverride} />}
         {step === 3 && !content?.activated && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{ACT_MSGS[msgIndex % ACT_MSGS.length]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /></div></AbbyCard>}
-        {step === 3 && content?.activated && <SuccessStep content={content} authorName={authorName} priceOverride={priceOverride} navigate={navigate} />}
+        {step === 3 && content?.activated && (
+          <NodeSuccessScreen
+            nodeId="BP-06"
+            authorName={authorName}
+            penNameSlug={authorSlug}
+            celebrationMessage={`Your online course is live, ${authorName}! '${content.course_title}' is ready to sell. Your payment link is ready to share with your audience.`}
+            paymentLinks={content.payment_link_url ? [{ label: "Course Payment Link", url: content.payment_link_url, price: `$${priceOverride ?? content.suggested_price_usd ?? 497}` }] : undefined}
+            whatHappensNext={[
+              `Your course "${content.course_title}" has 6 modules ready for students`,
+              "Every purchase automatically grants access to course materials",
+              "Share your payment link on social media, email, or your website",
+            ]}
+            actions={[
+              { label: "Back to Brand Products", variant: "outline", onClick: () => navigate("/brand-products") },
+              { label: "Next: Set Up Coaching", onClick: () => navigate("/node-builder/BP-07") },
+            ]}
+          />
+        )}
       </div>
     </div>
   );
