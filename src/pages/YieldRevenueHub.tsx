@@ -187,7 +187,13 @@ export default function YieldRevenueHub() {
                   <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${statusCfg.color}`}><StatusIcon className="h-3 w-3" />{statusCfg.label}</span>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">{NODE_DESCRIPTIONS[node.node_id]}</p>
-                <div className="mt-auto pt-1"><Button size="sm" variant={cta.variant} className="w-full text-xs" disabled={node.status === "locked"} onClick={() => handleCardClick(node)}>{cta.text}</Button></div>
+                <div className="mt-auto pt-1">
+                  {isTierUnlocked ? (
+                    <Button size="sm" variant={cta.variant} className="w-full text-xs" disabled={node.status === "locked"} onClick={() => handleCardClick(node)}>{cta.text}</Button>
+                  ) : (
+                    <Button size="sm" variant="secondary" className="w-full text-xs" onClick={() => navigate("/pricing")}>Upgrade to Unlock</Button>
+                  )}
+                </div>
               </div>
             );
           })}
