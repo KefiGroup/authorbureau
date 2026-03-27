@@ -240,7 +240,22 @@ export default function BP01Builder({ authorId }: Props) {
         )}
 
         {step === 3 && content?.activated && (
-          <SuccessStep content={content} authorName={authorName} navigate={navigate} />
+          <NodeSuccessScreen
+            nodeId="BP-01"
+            authorName={authorName}
+            penNameSlug={authorSlug}
+            celebrationMessage={`Your email marketing is live, ${authorName}! Your welcome sequence is ready for new subscribers, and your first campaign is set up. Every reader who signs up will automatically receive your personalised welcome series. You're building your list!`}
+            whatHappensNext={[
+              `Welcome sequence: ${content.welcome_sequence?.length || 5} emails will be sent automatically to every new subscriber`,
+              `Lead magnet offer: "${content.lead_magnet_offer?.title}" is ready to capture new readers`,
+              "Your email list is growing on autopilot — every opt-in is handled for you",
+            ]}
+            socialShareText={`I just set up my author email marketing with @AuthorsBureau! Building my list automatically 📧`}
+            actions={[
+              { label: "Back to Brand Products", variant: "outline", onClick: () => navigate("/brand-products") },
+              { label: "Next: Build Your Lead Magnets", onClick: () => navigate("/node-builder/BP-02") },
+            ]}
+          />
         )}
       </div>
     </div>
