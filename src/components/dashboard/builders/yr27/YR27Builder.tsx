@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuthorBook } from "@/hooks/useAuthorBook";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -26,19 +27,16 @@ export default function YR27Builder({ authorId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook(authorId);
 
   useEffect(() => { if (!authorId) return; (async () => {
     const { data: p } = await supabase.from("author_profiles").select("pen_name, author_slug, user_id").eq("id", authorId).single();
     setAuthorName(p?.pen_name || "there");
     setAuthorSlug(p?.author_slug || "");
-    const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
-    if (ctx?.book_title) { setBookTitle(ctx.book_title); } else {
-      const { data: book } = await supabase.from("books").select("title").eq("author_id", p?.user_id || authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
-      if (book?.title) setBookTitle(book.title);
-    }
+    if (detectedBookTitle && detectedBookTitle !== "your book") setBookTitle(detectedBookTitle);
     const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "YR-27").maybeSingle();
     if (node?.content_json && (node.status === "content_ready" || node.status === "live")) { setContent(node.content_json); setStep(node.status === "live" ? 3 : 2); if (node.status === "live") setContent((p: any) => ({ ...p, activated: true })); }
-  })(); }, [authorId]);
+  })(); }, [authorId, detectedBookTitle]);
 
   useEffect(() => { if (step === 1 || (step === 3 && !content?.activated)) { const msgs = step === 1 ? GEN_MSGS : ACT_MSGS; setMsgIndex(0); intervalRef.current = setInterval(() => setMsgIndex(i => (i + 1) % msgs.length), 3000); return () => { if (intervalRef.current) clearInterval(intervalRef.current); }; } }, [step]);
 
