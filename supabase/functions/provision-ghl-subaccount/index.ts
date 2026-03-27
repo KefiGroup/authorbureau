@@ -187,6 +187,7 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         ghl_subaccount_id: ghlSubaccountId,
+        ghl_provisioning_failed: !ghlSubaccountId,
         nodes_created: 28,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
