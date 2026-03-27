@@ -29,7 +29,8 @@ export default function BA15Builder({ authorId }: Props) {
   useEffect(() => {
     if (!authorId) return;
     (async () => {
-      const { data: profile } = await supabase.from("author_profiles").select("pen_name").eq("id", authorId).single();
+      const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug").eq("id", authorId).single();
+      setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
       setAuthorName(profile?.pen_name || "there");
       const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
       setBookTitle(ctx?.book_title || ""); setHasContext(!!ctx?.book_title);
