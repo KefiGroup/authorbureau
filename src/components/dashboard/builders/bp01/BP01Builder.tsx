@@ -48,10 +48,11 @@ export default function BP01Builder({ authorId }: Props) {
     (async () => {
       const { data: profile } = await supabase
         .from("author_profiles")
-        .select("pen_name")
+        .select("pen_name, author_slug")
         .eq("id", authorId)
         .single();
       setAuthorName(profile?.pen_name || "there");
+      setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
 
       const { data: ctx } = await supabase
         .from("author_context")
