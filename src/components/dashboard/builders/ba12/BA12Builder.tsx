@@ -23,6 +23,7 @@ export default function BA12Builder({ authorId }: Props) {
   const [content, setContent] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
+  const [authorSlug, setAuthorSlug] = useState("");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
