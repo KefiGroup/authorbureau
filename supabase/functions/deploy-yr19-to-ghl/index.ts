@@ -9,7 +9,7 @@ serve(async (req) => {
     const { author_id, price_override } = await req.json();
     if (!author_id) throw new Error("author_id is required");
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const { data: author } = await supabase.from("author_profiles").select("ghl_sub_account_id, pen_name").eq("id", author_id).single();
+    const { data: author } = await supabase.from("author_profiles").select("ghl_sub_account_id, pen_name, author_slug").eq("id", author_id).single();
     if (!author) throw new Error("Author not found");
     const { data: node } = await supabase.from("author_nodes").select("content_json").eq("author_id", author_id).eq("node_id", "YR-19").single();
     if (!node?.content_json) throw new Error("YR-19 content not found");
@@ -36,7 +36,8 @@ serve(async (req) => {
       try { await fetch(`${GHL_BASE_URL}/opportunities/`, { method: "POST", headers: { Authorization: `Bearer ${GHL_AGENCY_KEY}`, "Content-Type": "application/json", Version: "2021-07-28" }, body: JSON.stringify({ locationId, name: "coaching", pipelineId: "coaching-packages", status: "open", monetaryValue: items[0]?.price || 0 }) }); } catch (e) { console.error("GHL error:", e); }
     }
     content.payment_links = paymentLinks;
-    await supabase.from("author_nodes").update({ status: "live", ghl_resource_id: paymentLinks[0]?.url || "", content_json: content, activated_at: new Date().toISOString() }).eq("author_id", author_id).eq("node_id", "YR-19");
+    const micrositeUrl = author.author_slug ? `https://authorsbureau.com/${author.author_slug}/coaching` : null;
+    await supabase.from("author_nodes").update({ status: "live", ghl_resource_id: paymentLinks[0]?.url || "", content_json: content, activated_at: new Date().toISOString(), microsite_url: micrositeUrl, payment_link: paymentLinks[0]?.url || null }).eq("author_id", author_id).eq("node_id", "YR-19");
     return new Response(JSON.stringify({ success: true, payment_links: paymentLinks }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err) { console.error("deploy-yr19-to-ghl error:", err.message); return new Response(JSON.stringify({ success: false, error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }); }
 });

@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { ArrowRight, Heart, Gift, Mail, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import { StepHeader, AbbyCard, LoadingStep, MultiPaymentLinks, SummaryCard, SuccessCheckmark } from "../yr-shared/YRBuilderShared";
+import NodeSuccessScreen from "../shared/NodeSuccessScreen";
+import { getMicrositeUrl } from "@/lib/node-slug-map";
 
 const GEN_MSGS = ["Designing your fundraising campaign...", "Creating donation tiers...", "Building your communication plan...", "Finalising your campaign..."];
 const ACT_MSGS = ["Creating donation payment links...", "Almost ready..."];
@@ -17,6 +19,7 @@ export default function YR27Builder({ authorId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
+  const [authorSlug, setAuthorSlug] = useState("");
   const [bookTitle, setBookTitle] = useState("");
   const [content, setContent] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -24,8 +27,9 @@ export default function YR27Builder({ authorId }: Props) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => { if (!authorId) return; (async () => {
-    const { data: p } = await supabase.from("author_profiles").select("pen_name").eq("id", authorId).single();
+    const { data: p } = await supabase.from("author_profiles").select("pen_name, author_slug").eq("id", authorId).single();
     setAuthorName(p?.pen_name || "there");
+    setAuthorSlug(p?.author_slug || "");
     const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
     setBookTitle(ctx?.book_title || "");
     const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "YR-27").maybeSingle();
@@ -101,15 +105,20 @@ export default function YR27Builder({ authorId }: Props) {
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
-          <div className="space-y-4">
-            <SuccessCheckmark />
-            <AbbyCard><p className="text-muted-foreground">🎉 Your fundraising campaign is ready, {authorName}! 4 donation tiers are live.</p></AbbyCard>
-            <MultiPaymentLinks links={content.payment_links || content.donation_tiers?.map((t: any) => ({ label: t.tier_name, url: t.payment_link_url || "" })) || []} />
-            <SummaryCard items={[`Campaign: ${content.campaign_title}`, `Goal: $${content.campaign_goal_usd?.toLocaleString()}`, "Donation tiers: 4 ready", "Communication plan: 5 emails"]} />
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => navigate("/yield-revenue")}>Back to Yield Revenue</Button>
-              <Button className="flex-1" onClick={() => navigate("/node-builder/YR-28")}>Next: Set Up Exhibitors & Sponsors <ArrowRight className="h-4 w-4 ml-2" /></Button>
-            </div>
+          <div className="space-y-6">
+            <NodeSuccessScreen
+              nodeId="YR-27"
+              authorName={authorName}
+              penNameSlug={authorSlug}
+              celebrationMessage="Your fundraising campaign is ready! 4 donation tiers are live."
+              paymentLinks={content.payment_links || content.donation_tiers?.map((t: any) => ({ label: t.tier_name, url: t.payment_link_url || "" })) || []}
+              whatHappensNext={["Your fundraising donation page is live and accepting contributions", "Donors can choose their support tier and contribute", "Donations will be tracked in your revenue dashboard"]}
+              socialShareText={`I just launched a fundraising campaign: ${content.campaign_title}! Support the cause: ${getMicrositeUrl(authorSlug, "YR-27") || ""}`}
+              actions={[
+                { label: "Back to Yield Revenue", variant: "outline", onClick: () => navigate("/yield-revenue") },
+                { label: "Next: Sponsors", onClick: () => navigate("/node-builder/YR-28") },
+              ]}
+            />
           </div>
         )}
       </div>

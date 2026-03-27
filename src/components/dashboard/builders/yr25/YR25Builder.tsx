@@ -7,6 +7,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ArrowRight, Award, LayoutList, DollarSign, BadgeCheck } from "lucide-react";
 import { toast } from "sonner";
 import { StepHeader, AbbyCard, LoadingStep, MultiPaymentLinks, SummaryCard, SuccessCheckmark, HighTicketPrice } from "../yr-shared/YRBuilderShared";
+import NodeSuccessScreen from "../shared/NodeSuccessScreen";
+import { getMicrositeUrl } from "@/lib/node-slug-map";
 
 const GEN_MSGS = ["Designing your certification programme...", "Building the curriculum...", "Creating certification levels...", "Finalising your certification..."];
 const ACT_MSGS = ["Setting up your certification platform...", "Creating payment pages...", "Almost ready..."];
@@ -16,6 +18,7 @@ export default function YR25Builder({ authorId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
+  const [authorSlug, setAuthorSlug] = useState("");
   const [bookTitle, setBookTitle] = useState("");
   const [content, setContent] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -23,8 +26,9 @@ export default function YR25Builder({ authorId }: Props) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => { if (!authorId) return; (async () => {
-    const { data: p } = await supabase.from("author_profiles").select("pen_name").eq("id", authorId).single();
+    const { data: p } = await supabase.from("author_profiles").select("pen_name, author_slug").eq("id", authorId).single();
     setAuthorName(p?.pen_name || "there");
+    setAuthorSlug(p?.author_slug || "");
     const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
     setBookTitle(ctx?.book_title || "");
     const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "YR-25").maybeSingle();
@@ -108,15 +112,20 @@ export default function YR25Builder({ authorId }: Props) {
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
-          <div className="space-y-4">
-            <SuccessCheckmark />
-            <AbbyCard><p className="text-muted-foreground">🎉 Your certification programme is live, {authorName}! 3 certification levels are ready to enrol.</p></AbbyCard>
-            <MultiPaymentLinks links={content.payment_links || content.certification_levels?.map((l: any) => ({ label: l.level, url: l.payment_link_url || "" })) || []} />
-            <SummaryCard items={[`Programme: ${content.certification_title}`, "Curriculum: 6 modules", "Levels: 3 tiers", "Enrolment links: Ready"]} />
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => navigate("/yield-revenue")}>Back to Yield Revenue</Button>
-              <Button className="flex-1" onClick={() => navigate("/node-builder/YR-26")}>Next: Plan Your Conference <ArrowRight className="h-4 w-4 ml-2" /></Button>
-            </div>
+          <div className="space-y-6">
+            <NodeSuccessScreen
+              nodeId="YR-25"
+              authorName={authorName}
+              penNameSlug={authorSlug}
+              celebrationMessage={`Your certification programme is live! 3 certification levels are ready to enrol.`}
+              paymentLinks={content.payment_links || content.certification_levels?.map((l: any) => ({ label: l.level, url: l.payment_link_url || "" })) || []}
+              whatHappensNext={["Your certification enrolment pages are live", "Students can choose their certification level and enrol", "Enrolments will be tracked in your revenue dashboard"]}
+              socialShareText={`I just launched my certification programme: ${content.certification_title}! Enrol now: ${getMicrositeUrl(authorSlug, "YR-25") || ""}`}
+              actions={[
+                { label: "Back to Yield Revenue", variant: "outline", onClick: () => navigate("/yield-revenue") },
+                { label: "Next: Conference", onClick: () => navigate("/node-builder/YR-26") },
+              ]}
+            />
           </div>
         )}
       </div>

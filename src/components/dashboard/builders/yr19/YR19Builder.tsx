@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { ArrowRight, Users, FileText, DollarSign, Shield } from "lucide-react";
 import { StepHeader, AbbyCard, LoadingStep, MultiPaymentLinks, SummaryCard, SuccessCheckmark, HighTicketPrice } from "../yr-shared/YRBuilderShared";
+import NodeSuccessScreen from "../shared/NodeSuccessScreen";
+import { getMicrositeUrl } from "@/lib/node-slug-map";
 
 const GEN_MSGS = ["Analysing your book's coaching potential...", "Designing your coaching packages...", "Creating your discovery call script...", "Outlining your client agreement...", "Finalising your coaching practice..."];
 const ACT_MSGS = ["Setting up your coaching calendar...", "Creating your payment pages...", "Generating your booking links...", "Almost ready..."];
@@ -20,6 +22,7 @@ export default function YR19Builder({ authorId }: Props) {
   const devUnlock = searchParams.get("unlock") === "true";
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
+  const [authorSlug, setAuthorSlug] = useState("");
   const [bookTitle, setBookTitle] = useState("");
   const [content, setContent] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -29,8 +32,9 @@ export default function YR19Builder({ authorId }: Props) {
   useEffect(() => {
     if (!authorId) return;
     (async () => {
-      const { data: p } = await supabase.from("author_profiles").select("pen_name").eq("id", authorId).single();
+      const { data: p } = await supabase.from("author_profiles").select("pen_name, author_slug").eq("id", authorId).single();
       setAuthorName(p?.pen_name || "there");
+      setAuthorSlug(p?.author_slug || "");
       const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
       setBookTitle(ctx?.book_title || "");
       const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "YR-19").maybeSingle();
@@ -143,15 +147,20 @@ export default function YR19Builder({ authorId }: Props) {
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
-          <div className="space-y-4">
-            <SuccessCheckmark />
-            <AbbyCard><p className="text-muted-foreground">🎉 Your coaching practice is live, {authorName}! 3 packages are ready to book.</p></AbbyCard>
-            <MultiPaymentLinks links={content.payment_links || content.packages?.map((p: any) => ({ label: p.package_name, url: p.payment_link_url || "" })) || []} />
-            <SummaryCard items={["Packages: 3 ready", "Discovery call script: Ready", "Client agreement: Outlined", "Booking links: Ready to share"]} />
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => navigate("/yield-revenue")}>Back to Yield Revenue</Button>
-              <Button className="flex-1" onClick={() => navigate("/node-builder/YR-20")}>Next: Create Big Ticket Offers <ArrowRight className="h-4 w-4 ml-2" /></Button>
-            </div>
+          <div className="space-y-6">
+            <NodeSuccessScreen
+              nodeId="YR-19"
+              authorName={authorName}
+              penNameSlug={authorSlug}
+              celebrationMessage="Your coaching practice is live! 3 packages are ready to book."
+              paymentLinks={content.payment_links || content.packages?.map((p: any) => ({ label: p.package_name, url: p.payment_link_url || "" })) || []}
+              whatHappensNext={["Your coaching booking pages are live and accepting clients", "Share your coaching link on social media and your website", "Discovery call enquiries will appear in your dashboard"]}
+              socialShareText={`I'm now offering 1-on-1 coaching based on my book! Book a discovery call: ${getMicrositeUrl(authorSlug, "YR-19") || ""}`}
+              actions={[
+                { label: "Back to Yield Revenue", variant: "outline", onClick: () => navigate("/yield-revenue") },
+                { label: "Next: Big Ticket Offers", onClick: () => navigate("/node-builder/YR-20") },
+              ]}
+            />
           </div>
         )}
       </div>

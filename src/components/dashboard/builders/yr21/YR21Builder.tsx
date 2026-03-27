@@ -7,6 +7,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ArrowRight, Mic, DollarSign, FileText, ListChecks, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { StepHeader, AbbyCard, LoadingStep, SummaryCard, SuccessCheckmark, HighTicketPrice } from "../yr-shared/YRBuilderShared";
+import NodeSuccessScreen from "../shared/NodeSuccessScreen";
+import { getMicrositeUrl } from "@/lib/node-slug-map";
 
 const GEN_MSGS = ["Crafting your signature talks...", "Building your speaker one-sheet...", "Designing your fee schedule...", "Finalising your speaking business..."];
 const ACT_MSGS = ["Setting up your speaking enquiry pipeline...", "Creating your booking calendar...", "Almost ready..."];
@@ -17,6 +19,7 @@ export default function YR21Builder({ authorId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
+  const [authorSlug, setAuthorSlug] = useState("");
   const [bookTitle, setBookTitle] = useState("");
   const [content, setContent] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -27,8 +30,9 @@ export default function YR21Builder({ authorId }: Props) {
   useEffect(() => {
     if (!authorId) return;
     (async () => {
-      const { data: p } = await supabase.from("author_profiles").select("pen_name").eq("id", authorId).single();
+      const { data: p } = await supabase.from("author_profiles").select("pen_name, author_slug").eq("id", authorId).single();
       setAuthorName(p?.pen_name || "there");
+      setAuthorSlug(p?.author_slug || "");
       const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
       setBookTitle(ctx?.book_title || "");
       const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "YR-21").maybeSingle();
@@ -161,14 +165,19 @@ export default function YR21Builder({ authorId }: Props) {
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
-          <div className="space-y-4">
-            <SuccessCheckmark />
-            <AbbyCard><p className="text-muted-foreground">🎉 Your speaking business is live, {authorName}! 3 signature talks and your fee schedule are ready.</p></AbbyCard>
-            <SummaryCard items={["Talks: 3 ready", "Fee schedule: 5 tiers", "Speaker one-sheet: Ready", "Booking pipeline: Active"]} />
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => navigate("/yield-revenue")}>Back to Yield Revenue</Button>
-              <Button className="flex-1" onClick={() => navigate("/node-builder/YR-22")}>Next: Launch Corporate Training <ArrowRight className="h-4 w-4 ml-2" /></Button>
-            </div>
+          <div className="space-y-6">
+            <NodeSuccessScreen
+              nodeId="YR-21"
+              authorName={authorName}
+              penNameSlug={authorSlug}
+              celebrationMessage="Your speaking business is live! 3 signature talks and your fee schedule are ready."
+              whatHappensNext={["Your speaking enquiry page is live and accepting bookings", "Event organisers can view your topics and fees online", "Speaking enquiries will appear in your dashboard"]}
+              socialShareText={`I'm now available for keynote speaking engagements! Learn more: ${getMicrositeUrl(authorSlug, "YR-21") || ""}`}
+              actions={[
+                { label: "Back to Yield Revenue", variant: "outline", onClick: () => navigate("/yield-revenue") },
+                { label: "Next: Corporate Training", onClick: () => navigate("/node-builder/YR-22") },
+              ]}
+            />
           </div>
         )}
       </div>
