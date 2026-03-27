@@ -54,7 +54,8 @@ const STATUS_CONFIG: Record<NodeStatus, { label: string; color: string; icon: ty
 };
 
 export default function BrandProductsHub() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, tier } = useAuth();
+  const isTierUnlocked = hasTierAccess(tier, "starter");
   const navigate = useNavigate();
   const [nodes, setNodes] = useState<NodeCard[]>([]);
   const [authorName, setAuthorName] = useState("");
