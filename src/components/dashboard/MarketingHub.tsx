@@ -28,6 +28,8 @@ interface CampaignConfig {
   deployFunctions: string[];
   successMessage: string;
   checklist: string[];
+  /** Step-by-step instructions for users who haven't published yet */
+  howToStart: { step: string; link?: string; linkLabel?: string }[];
 }
 
 const CAMPAIGNS: CampaignConfig[] = [
