@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useAuth, hasTierAccess } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Sparkles, ArrowRight, Lock, AlertCircle, CheckCircle2, Zap, Clock, Eye } from "lucide-react";
 
 const NODE_DESCRIPTIONS: Record<string, string> = {
