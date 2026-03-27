@@ -34,7 +34,7 @@ export default function BP09Builder({ authorId }: Props) {
   useEffect(() => {
     if (!authorId) return;
     (async () => {
-      const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug").eq("id", authorId).single();
+      const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug, user_id").eq("id", authorId).single();
       setAuthorName(profile?.pen_name || "there");
       setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
       const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
@@ -45,7 +45,7 @@ export default function BP09Builder({ authorId }: Props) {
         const { data: book } = await supabase
           .from("books")
           .select("title")
-          .eq("author_id", authorId)
+          .eq("author_id", profile?.user_id || authorId)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();

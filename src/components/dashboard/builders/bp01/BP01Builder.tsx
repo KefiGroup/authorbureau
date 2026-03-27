@@ -49,7 +49,7 @@ export default function BP01Builder({ authorId }: Props) {
     (async () => {
       const { data: profile } = await supabase
         .from("author_profiles")
-        .select("pen_name, author_slug")
+        .select("pen_name, author_slug, user_id")
         .eq("id", authorId)
         .single();
       setAuthorName(profile?.pen_name || "there");
@@ -68,11 +68,11 @@ export default function BP01Builder({ authorId }: Props) {
         setBookTitle(ctx.book_title);
         setHasContext(true);
       } else {
-        // Fallback: check books table
+        // Fallback: check books table (uses user_id since books.author_id = auth.users.id)
         const { data: book } = await supabase
           .from("books")
           .select("title")
-          .eq("author_id", authorId)
+          .eq("author_id", profile?.user_id || authorId)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();

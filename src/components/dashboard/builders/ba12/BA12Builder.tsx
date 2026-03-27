@@ -33,7 +33,7 @@ export default function BA12Builder({ authorId }: Props) {
   useEffect(() => {
     if (!authorId) return;
     (async () => {
-      const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug").eq("id", authorId).single();
+      const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug, user_id").eq("id", authorId).single();
       setAuthorName(profile?.pen_name || "there");
       setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
       const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
@@ -41,7 +41,7 @@ export default function BA12Builder({ authorId }: Props) {
         setBookTitle(ctx.book_title);
         setHasContext(true);
       } else {
-        const { data: book } = await supabase.from("books").select("title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+        const { data: book } = await supabase.from("books").select("title").eq("author_id", profile?.user_id || authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
         if (book?.title) { setBookTitle(book.title); setHasContext(true); } else { setHasContext(false); }
       }
       const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "BA-12").maybeSingle();
