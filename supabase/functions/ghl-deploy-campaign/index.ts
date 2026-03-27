@@ -57,8 +57,22 @@ serve(async (req) => {
           body: JSON.stringify({ author_id }),
         }
       );
-      const provisionData = await provisionRes.json();
-      if (!provisionData.success) throw new Error("Could not provision marketing account for author");
+      const provisionText = await provisionRes.text();
+      let provisionData: any = null;
+      try {
+        provisionData = provisionText ? JSON.parse(provisionText) : null;
+      } catch (_err) {
+        provisionData = null;
+      }
+
+      if (!provisionRes.ok || !provisionData?.success) {
+        const upstreamError =
+          provisionData?.error ||
+          provisionData?.message ||
+          provisionText ||
+          `Provisioning request failed with status ${provisionRes.status}`;
+        throw new Error(`Could not provision marketing account for author: ${upstreamError}`);
+      }
 
       // Re-fetch after provisioning
       const { data: refreshed } = await supabase
