@@ -422,6 +422,15 @@ export default function MarketingHub({ onNavigate }: Props) {
           <p className="text-sm text-foreground">
             <span className="font-semibold">Abby says:</span> {getAbbyRecommendation()}
           </p>
+          {getCampaignStatus(CAMPAIGNS[0]) !== "active" && (
+            <Button
+              size="sm"
+              className="mt-3"
+              onClick={() => navigate("/node-builder/BP-01")}
+            >
+              Build Email Marketing First <ArrowRight className="ml-1 h-3 w-3" />
+            </Button>
+          )}
         </div>
       )}
 
