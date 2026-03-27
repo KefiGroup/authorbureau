@@ -259,7 +259,7 @@ export default function ABBYFrameworkArticle() {
         <h3 className="text-xl font-bold text-white">Your Book Deserves More Than Royalties</h3>
         <p className="text-white/60 text-sm mt-2">No credit card required. Upload your book and let Abby show you what's possible.</p>
         <Button asChild size="lg" className="mt-5 bg-[hsl(45,50%,54%)] hover:bg-[hsl(45,50%,46%)] text-[hsl(228,34%,16%)] font-bold rounded-xl">
-          <Link to="/join">Get Started Free <ArrowRight className="ml-2 h-4 w-4" /></Link>
+          <Link to="/auth?redirect=%2Fdashboard%3Fsection%3Dbuild-business">Get Started Free <ArrowRight className="ml-2 h-4 w-4" /></Link>
         </Button>
       </div>
     </div>
