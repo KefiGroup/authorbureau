@@ -5,9 +5,8 @@ import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import logoIcon from "@/assets/logo-icon.webp";
-import { getPublishNowAuthUrl } from "@/lib/publishnow-auth";
-
-const PUBLISHNOW_AUTH_URL = getPublishNowAuthUrl("/dashboard");
+// Auth links point to local /auth page
+const AUTH_URL = "/auth";
 
 const navLinks = [
   { label: "Home", to: "/", hash: "" },
