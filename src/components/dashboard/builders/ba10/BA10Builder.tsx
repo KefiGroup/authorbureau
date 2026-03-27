@@ -28,6 +28,7 @@ export default function BA10Builder({ authorId }: Props) {
   const [msgIndex, setMsgIndex] = useState(0);
   const [priceOverride, setPriceOverride] = useState<number | null>(null);
   const [expandedModules, setExpandedModules] = useState<Record<number, boolean>>({});
+  const [authorSlug, setAuthorSlug] = useState("");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
