@@ -134,8 +134,8 @@ export default function BrandProductsHub() {
   const micrositeNodes = new Set(["BP-02", "BP-05", "BP-06", "BP-07", "BP-08", "BP-09"]);
 
   const handleCardClick = (node: NodeCard) => {
-    if (node.status === "locked") {
-      toast({ title: "Locked", description: "Upgrade your plan to unlock this node." });
+    if (!isTierUnlocked || node.status === "locked") {
+      navigate("/pricing");
       return;
     }
     navigate(`/node-builder/${node.node_id}`);
