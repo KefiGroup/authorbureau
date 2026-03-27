@@ -61,8 +61,24 @@ export default function BP04Builder({ authorId }: Props) {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      setBookTitle(ctx?.book_title || "");
-      setHasContext(!!ctx?.book_title);
+      if (ctx?.book_title) {
+        setBookTitle(ctx.book_title);
+        setHasContext(true);
+      } else {
+        const { data: book } = await supabase
+          .from("books")
+          .select("title")
+          .eq("author_id", authorId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (book?.title) {
+          setBookTitle(book.title);
+          setHasContext(true);
+        } else {
+          setHasContext(false);
+        }
+      }
 
       const { data: node } = await supabase
         .from("author_nodes")
