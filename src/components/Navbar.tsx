@@ -136,14 +136,14 @@ export default function Navbar() {
               ) : (
                 <>
                   <Link
-                    to={PUBLISHNOW_AUTH_URL}
+                    to={AUTH_URL}
                     onClick={() => setOpen(false)}
                     className="text-sm font-semibold text-secondary"
                   >
                     Sign In
                   </Link>
                   <Link
-                    to={PUBLISHNOW_AUTH_URL}
+                    to={AUTH_URL}
                     onClick={() => setOpen(false)}
                     className="inline-flex w-fit items-center rounded-full bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground"
                   >
