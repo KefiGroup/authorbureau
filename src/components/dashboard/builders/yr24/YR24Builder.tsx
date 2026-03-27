@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { ArrowRight, Palmtree, CalendarDays, DollarSign, Sparkles as SparklesIcon } from "lucide-react";
 import { toast } from "sonner";
 import { StepHeader, AbbyCard, LoadingStep, MultiPaymentLinks, SummaryCard, SuccessCheckmark, HighTicketPrice } from "../yr-shared/YRBuilderShared";
+import NodeSuccessScreen from "../shared/NodeSuccessScreen";
+import { getMicrositeUrl } from "@/lib/node-slug-map";
 
 const GEN_MSGS = ["Designing your retreat experience...", "Crafting your itinerary...", "Building retreat packages...", "Finalising your retreat programme..."];
 const ACT_MSGS = ["Creating your booking pages...", "Setting up payment links...", "Almost ready..."];
