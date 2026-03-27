@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Gift, FileText, ThumbsUp, Settings, Star } from "lucide-react";
+import NodeSuccessScreen from "@/components/dashboard/builders/shared/NodeSuccessScreen";
 
 const STEPS = ["Introduction", "Generating", "Review", "Activate"];
 
