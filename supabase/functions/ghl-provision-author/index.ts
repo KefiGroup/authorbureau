@@ -72,6 +72,32 @@ serve(async (req) => {
       const errText = await createResponse.text();
       console.error("GHL sub-account creation failed:", errText);
 
+      // Fallback path: if agency provisioning is forbidden, use shared sub-account
+      const sharedSubAccountId = Deno.env.get("GHL_SUBACCOUNT_KEY");
+      if (createResponse.status === 403 && sharedSubAccountId) {
+        console.warn("GHL provisioning returned 403. Falling back to shared sub-account.");
+
+        await supabase
+          .from("author_profiles")
+          .update({
+            ghl_sub_account_id: sharedSubAccountId,
+            ghl_sub_account_name: "Authors Bureau Shared Account",
+            ghl_provisioned_at: new Date().toISOString(),
+            ghl_provision_status: "provisioned",
+          })
+          .eq("id", author_id);
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: "Provisioned using shared account fallback",
+            fallback_used: true,
+            ghl_location_id: sharedSubAccountId,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       // Mark as failed
       await supabase
         .from("author_profiles")
