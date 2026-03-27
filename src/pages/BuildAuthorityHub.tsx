@@ -51,7 +51,8 @@ const STATUS_CONFIG: Record<NodeStatus, { label: string; color: string; icon: ty
 };
 
 export default function BuildAuthorityHub() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, tier } = useAuth();
+  const isTierUnlocked = hasTierAccess(tier, "pro");
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const devUnlock = searchParams.get("unlock") === "true";
