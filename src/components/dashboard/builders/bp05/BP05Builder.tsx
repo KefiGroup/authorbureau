@@ -431,34 +431,4 @@ function ReviewStep({ content, authorName, onActivate }: { content: any; authorN
   );
 }
 
-function SuccessStep({ content, authorName, bookTitle, navigate }: { content: any; authorName: string; bookTitle: string; navigate: (path: string) => void }) {
-  const recIdx = (content.recommended_webinar || 1) - 1;
-  const recTitle = content.webinar_topics?.[recIdx]?.title || "your webinar";
-
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-center py-4">
-        <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center animate-bounce">
-          <Check className="h-8 w-8 text-green-600" />
-        </div>
-      </div>
-      <AbbyCard>
-        <p className="text-muted-foreground">
-          🎉 Your webinar system is live, {authorName}! Your registration page is ready, your follow-up emails are configured, and your first webinar topic is set up. Time to invite your audience to '{recTitle}'!
-        </p>
-      </AbbyCard>
-      <Card>
-        <CardContent className="pt-6 space-y-2">
-          <p className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-600" /> Webinar topics: 3 signature topics ready</p>
-          <p className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-600" /> Registration page: Live and ready to share</p>
-          <p className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-600" /> Follow-up emails: 4-email sequence configured</p>
-          <p className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-600" /> Promotion plan: 14-day launch strategy ready</p>
-        </CardContent>
-      </Card>
-      <div className="flex flex-col sm:flex-row gap-3">
-        <Button variant="outline" className="flex-1" onClick={() => navigate("/brand-products")}>Back to Brand Products</Button>
-        <Button className="flex-1" onClick={() => navigate("/node-builder/BP-06")}>Next: Create Digital Products <ArrowRight className="h-4 w-4 ml-2" /></Button>
-      </div>
-    </div>
-  );
-}
+// SuccessStep replaced by NodeSuccessScreen
