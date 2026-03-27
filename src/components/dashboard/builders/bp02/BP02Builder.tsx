@@ -61,8 +61,24 @@ export default function BP02Builder({ authorId }: Props) {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      setBookTitle(ctx?.book_title || "");
-      setHasContext(!!ctx?.book_title);
+      if (ctx?.book_title) {
+        setBookTitle(ctx.book_title);
+        setHasContext(true);
+      } else {
+        const { data: book } = await supabase
+          .from("books")
+          .select("title")
+          .eq("author_id", authorId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (book?.title) {
+          setBookTitle(book.title);
+          setHasContext(true);
+        } else {
+          setHasContext(false);
+        }
+      }
 
       const { data: node } = await supabase
         .from("author_nodes")
@@ -177,7 +193,7 @@ export default function BP02Builder({ authorId }: Props) {
                 <p className="text-muted-foreground mb-4">
                   Hi {authorName}! Before I can build your lead magnets, I need to know about your book. Please complete your book profile first.
                 </p>
-                <Button onClick={() => navigate("/dashboard")}>Complete Book Profile</Button>
+                <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-02")}>Complete Book Profile</Button>
               </>
             ) : (
               <>
