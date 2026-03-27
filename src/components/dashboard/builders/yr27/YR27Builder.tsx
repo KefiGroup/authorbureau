@@ -28,11 +28,14 @@ export default function YR27Builder({ authorId }: Props) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => { if (!authorId) return; (async () => {
-    const { data: p } = await supabase.from("author_profiles").select("pen_name, author_slug").eq("id", authorId).single();
+    const { data: p } = await supabase.from("author_profiles").select("pen_name, author_slug, user_id").eq("id", authorId).single();
     setAuthorName(p?.pen_name || "there");
     setAuthorSlug(p?.author_slug || "");
     const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
-    setBookTitle(ctx?.book_title || "");
+    if (ctx?.book_title) { setBookTitle(ctx.book_title); } else {
+      const { data: book } = await supabase.from("books").select("title").eq("author_id", p?.user_id || authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (book?.title) setBookTitle(book.title);
+    }
     const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "YR-27").maybeSingle();
     if (node?.content_json && (node.status === "content_ready" || node.status === "live")) { setContent(node.content_json); setStep(node.status === "live" ? 3 : 2); if (node.status === "live") setContent((p: any) => ({ ...p, activated: true })); }
   })(); }, [authorId]);
