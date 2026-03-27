@@ -57,7 +57,7 @@ serve(async (req) => {
     // Fetch author profile
     const { data: author, error: authorErr } = await supabase
       .from("author_profiles")
-      .select("id, pen_name, user_id, ghl_sub_account_id, location_country")
+      .select("id, pen_name, user_id, ghl_sub_account_id, location_country, ghl_provisioning_attempts")
       .eq("id", author_id)
       .single();
 
@@ -138,33 +138,28 @@ serve(async (req) => {
             console.error("[GHL] Sub-account creation failed:", createResponse.status, responseText);
             await supabase
               .from("author_profiles")
-              .update({ ghl_provision_status: "failed" })
+              .update({
+                ghl_provision_status: "failed",
+                ghl_provisioning_failed: true,
+                ghl_provisioning_attempts: (author as any).ghl_provisioning_attempts ? (author as any).ghl_provisioning_attempts + 1 : 1,
+              })
               .eq("id", author_id);
 
-            // Return the actual GHL error to the caller
-            return new Response(
-              JSON.stringify({
-                success: false,
-                error: `GHL API error (${createResponse.status}): ${responseText}`,
-                ghl_status: createResponse.status,
-              }),
-              { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
+            // Don't return error - continue to seed nodes even if GHL fails
+            // The GHL provisioning can be retried later
           }
         } catch (ghlErr) {
           console.error("[GHL] Provisioning exception:", ghlErr?.message || ghlErr);
           await supabase
             .from("author_profiles")
-            .update({ ghl_provision_status: "failed" })
+            .update({
+              ghl_provision_status: "failed",
+              ghl_provisioning_failed: true,
+              ghl_provisioning_attempts: (author as any).ghl_provisioning_attempts ? (author as any).ghl_provisioning_attempts + 1 : 1,
+            })
             .eq("id", author_id);
 
-          return new Response(
-            JSON.stringify({
-              success: false,
-              error: `GHL provisioning exception: ${ghlErr?.message || String(ghlErr)}`,
-            }),
-            { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
+          // Don't return error - continue to seed nodes even if GHL fails
         }
       } else {
         console.warn("[GHL] GHL_AGENCY_KEY is not set — skipping sub-account creation");
@@ -192,6 +187,7 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         ghl_subaccount_id: ghlSubaccountId,
+        ghl_provisioning_failed: !ghlSubaccountId,
         nodes_created: 28,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

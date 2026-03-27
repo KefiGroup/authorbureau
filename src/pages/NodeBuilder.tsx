@@ -1,7 +1,9 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { ArrowLeft } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import BP01Builder from "@/components/dashboard/builders/bp01/BP01Builder";
 import BP02Builder from "@/components/dashboard/builders/bp02/BP02Builder";
 import BP03Builder from "@/components/dashboard/builders/bp03/BP03Builder";
@@ -31,6 +33,18 @@ import YR26Builder from "@/components/dashboard/builders/yr26/YR26Builder";
 import YR27Builder from "@/components/dashboard/builders/yr27/YR27Builder";
 import YR28Builder from "@/components/dashboard/builders/yr28/YR28Builder";
 
+function getHubPath(nodeId: string): string {
+  if (nodeId.startsWith("BP-")) return "/brand-products";
+  if (nodeId.startsWith("BA-")) return "/build-authority";
+  return "/yield-revenue";
+}
+
+function getHubLabel(nodeId: string): string {
+  if (nodeId.startsWith("BP-")) return "Brand Products";
+  if (nodeId.startsWith("BA-")) return "Build Authority";
+  return "Yield Revenue";
+}
+
 export default function NodeBuilder() {
   const { nodeId } = useParams<{ nodeId: string }>();
   const { user } = useAuth();
@@ -53,45 +67,48 @@ export default function NodeBuilder() {
 
   if (!user || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
+      <div className="min-h-screen bg-background">
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <Skeleton className="h-5 w-40 mb-6" />
+          <Skeleton className="h-8 w-64 mb-4" />
+          <Skeleton className="h-64 rounded-xl" />
+        </div>
       </div>
     );
   }
 
   const builders: Record<string, React.ComponentType<{ authorId: string | null }>> = {
-    "BP-01": BP01Builder,
-    "BP-02": BP02Builder,
-    "BP-03": BP03Builder,
-    "BP-04": BP04Builder,
-    "BP-05": BP05Builder,
-    "BP-06": BP06Builder,
-    "BP-07": BP07Builder,
-    "BP-08": BP08Builder,
-    "BP-09": BP09Builder,
-    "BA-10": BA10Builder,
-    "BA-11": BA11Builder,
-    "BA-12": BA12Builder,
-    "BA-13": BA13Builder,
-    "BA-14": BA14Builder,
-    "BA-15": BA15Builder,
-    "BA-16": BA16Builder,
-    "BA-17": BA17Builder,
-    "BA-18": BA18Builder,
-    "YR-19": YR19Builder,
-    "YR-20": YR20Builder,
-    "YR-21": YR21Builder,
-    "YR-22": YR22Builder,
-    "YR-23": YR23Builder,
-    "YR-24": YR24Builder,
-    "YR-25": YR25Builder,
-    "YR-26": YR26Builder,
-    "YR-27": YR27Builder,
+    "BP-01": BP01Builder, "BP-02": BP02Builder, "BP-03": BP03Builder,
+    "BP-04": BP04Builder, "BP-05": BP05Builder, "BP-06": BP06Builder,
+    "BP-07": BP07Builder, "BP-08": BP08Builder, "BP-09": BP09Builder,
+    "BA-10": BA10Builder, "BA-11": BA11Builder, "BA-12": BA12Builder,
+    "BA-13": BA13Builder, "BA-14": BA14Builder, "BA-15": BA15Builder,
+    "BA-16": BA16Builder, "BA-17": BA17Builder, "BA-18": BA18Builder,
+    "YR-19": YR19Builder, "YR-20": YR20Builder, "YR-21": YR21Builder,
+    "YR-22": YR22Builder, "YR-23": YR23Builder, "YR-24": YR24Builder,
+    "YR-25": YR25Builder, "YR-26": YR26Builder, "YR-27": YR27Builder,
     "YR-28": YR28Builder,
   };
 
   const Builder = nodeId ? builders[nodeId] : null;
-  if (Builder) return <Builder authorId={authorId} />;
+
+  if (Builder) {
+    return (
+      <div className="min-h-screen bg-background">
+        {/* Back link */}
+        <div className="max-w-5xl mx-auto px-4 pt-4">
+          <Link
+            to={getHubPath(nodeId!)}
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to {getHubLabel(nodeId!)}
+          </Link>
+        </div>
+        <Builder authorId={authorId} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-6">

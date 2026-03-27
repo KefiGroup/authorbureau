@@ -6,18 +6,19 @@ import { toast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Sparkles, ArrowRight, Lock, AlertCircle, CheckCircle2, Zap, Clock, Eye, Star, Globe } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Sparkles, ArrowRight, Lock, AlertCircle, CheckCircle2, Zap, Clock, Eye, Star, Globe, ExternalLink } from "lucide-react";
 
 const NODE_DESCRIPTIONS: Record<string, string> = {
-  "BP-01": "Build your email list and send campaigns to your readers",
-  "BP-02": "Create free resources that attract new subscribers",
-  "BP-03": "Schedule and publish content across all social platforms",
-  "BP-04": "Your author website and book landing page",
-  "BP-05": "Host live webinars to teach and convert your audience",
-  "BP-06": "Sell a companion workbook to your book",
-  "BP-07": "Turn your book into a self-paced online course",
-  "BP-08": "Bundle your book with bonuses for a premium edition",
-  "BP-09": "Sell your book directly and through Amazon",
+  "BP-01": "Builds your list — foundation for all revenue",
+  "BP-02": "Free gift that grows your subscriber list",
+  "BP-03": "90-day content calendar, automated",
+  "BP-04": "Your author home on the web",
+  "BP-05": "Live events that convert readers to buyers",
+  "BP-06": "$27–$47 per sale",
+  "BP-07": "$97–$197 per sale",
+  "BP-08": "$47–$97 per bundle",
+  "BP-09": "Direct + Amazon",
 };
 
 const FALLBACK_NODES = [
@@ -39,13 +40,15 @@ interface NodeCard {
   node_name: string;
   personalised_name: string | null;
   status: NodeStatus;
+  microsite_url: string | null;
+  current_step: number;
 }
 
 const STATUS_CONFIG: Record<NodeStatus, { label: string; color: string; icon: typeof CheckCircle2 }> = {
   locked:        { label: "Locked",            color: "bg-muted text-muted-foreground",                    icon: Lock },
   not_started:   { label: "Ready to Build",    color: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300", icon: Zap },
-  building:      { label: "Building...",       color: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300", icon: Clock },
-  content_ready: { label: "Ready to Activate", color: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300", icon: Eye },
+  building:      { label: "In Progress",       color: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300", icon: Clock },
+  content_ready: { label: "Ready to Publish",  color: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300", icon: Eye },
   live:          { label: "Live ✓",            color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300", icon: CheckCircle2 },
   error:         { label: "Needs Attention",   color: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300", icon: AlertCircle },
 };
@@ -61,7 +64,6 @@ export default function BrandProductsHub() {
     if (authLoading || !user) return;
 
     async function fetchData() {
-      // Get author profile
       const { data: profile } = await supabase
         .from("author_profiles")
         .select("id, pen_name, user_id")
@@ -69,29 +71,30 @@ export default function BrandProductsHub() {
         .maybeSingle();
 
       if (!profile) {
-        setNodes(FALLBACK_NODES.map(n => ({ ...n, personalised_name: null, status: n.status as NodeStatus })));
+        setNodes(FALLBACK_NODES.map(n => ({ ...n, personalised_name: null, status: n.status as NodeStatus, microsite_url: null, current_step: 1 })));
         setLoading(false);
         return;
       }
 
       setAuthorName(profile.pen_name || "");
 
-      // Get BP nodes
       const { data: nodeRows } = await supabase
         .from("author_nodes")
-        .select("node_id, node_name, personalised_name, status")
+        .select("node_id, node_name, personalised_name, status, microsite_url, current_step")
         .eq("author_id", profile.id)
         .like("node_id", "BP-%")
         .order("node_id");
 
       if (!nodeRows || nodeRows.length === 0) {
-        setNodes(FALLBACK_NODES.map(n => ({ ...n, personalised_name: null, status: n.status as NodeStatus })));
+        setNodes(FALLBACK_NODES.map(n => ({ ...n, personalised_name: null, status: n.status as NodeStatus, microsite_url: null, current_step: 1 })));
       } else {
         setNodes(nodeRows.map(r => ({
           node_id: r.node_id,
           node_name: r.node_name,
           personalised_name: r.personalised_name,
           status: r.status as NodeStatus,
+          microsite_url: r.microsite_url || null,
+          current_step: (r as any).current_step || 1,
         })));
       }
       setLoading(false);
@@ -102,8 +105,17 @@ export default function BrandProductsHub() {
 
   if (authLoading || loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="animate-pulse text-muted-foreground">Loading your products...</div>
+      <div className="min-h-screen bg-background">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+          <Skeleton className="h-8 w-64 mb-2" />
+          <Skeleton className="h-4 w-96 mb-4" />
+          <Skeleton className="h-2 w-48 mb-8" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 9 }).map((_, i) => (
+              <Skeleton key={i} className="h-48 rounded-xl" />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -131,8 +143,8 @@ export default function BrandProductsHub() {
   const ctaForStatus = (status: NodeStatus) => {
     switch (status) {
       case "not_started":    return { text: "Start Building",     variant: "default" as const };
-      case "building":       return { text: "Continue",           variant: "default" as const };
-      case "content_ready":  return { text: "Review & Activate",  variant: "default" as const };
+      case "building":       return { text: "Continue Building",  variant: "default" as const };
+      case "content_ready":  return { text: "Review & Publish",   variant: "default" as const };
       case "live":           return { text: "View Details",       variant: "outline" as const };
       case "locked":         return { text: "Unlock",             variant: "secondary" as const };
       case "error":          return { text: "Fix Issue",          variant: "destructive" as const };
@@ -191,10 +203,10 @@ export default function BrandProductsHub() {
             <div className="flex-1 min-w-0">
               <p className="text-sm text-foreground leading-relaxed mb-3">
                 Hi {authorName || "there"}! I've prepared 9 ways to turn your book into a business.
-                Start with Email Marketing — it's the foundation everything else builds on. Ready?
+                Start with your <strong>Website</strong> — it's the foundation everything else builds on. Then move to <strong>Email Marketing</strong> and <strong>Lead Magnets</strong>. Ready?
               </p>
-              <Button size="sm" onClick={() => navigate("/node-builder/BP-01")}>
-                Start with Email Marketing <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+              <Button size="sm" onClick={() => navigate("/node-builder/BP-04")}>
+                Start with Your Website <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
               </Button>
             </div>
           </div>
@@ -239,10 +251,23 @@ export default function BrandProductsHub() {
                   </span>
                 </div>
 
-                {/* Description */}
+                {/* Description / Revenue estimate */}
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   {NODE_DESCRIPTIONS[node.node_id]}
                 </p>
+
+                {/* Live URL */}
+                {node.status === "live" && node.microsite_url && (
+                  <a
+                    href={node.microsite_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] text-primary flex items-center gap-1 hover:underline truncate"
+                  >
+                    <ExternalLink className="h-3 w-3 shrink-0" />
+                    {node.microsite_url.replace("https://", "")}
+                  </a>
+                )}
 
                 {/* Soft warning if BP-04 not live and this node needs a microsite */}
                 {needsWebsiteWarning && (
