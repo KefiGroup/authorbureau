@@ -94,7 +94,10 @@ export default function YieldRevenueHub() {
   const subscriberProgress = Math.min((subscriberCount / SUBSCRIBER_THRESHOLD) * 100, 100);
 
   const handleCardClick = (node: NodeCard) => {
-    if (node.status === "locked") { toast({ title: "Building Towards Unlock", description: `You need ${SUBSCRIBER_THRESHOLD - subscriberCount} more subscribers to unlock Yield Revenue.` }); return; }
+    if (!isTierUnlocked || node.status === "locked") {
+      navigate("/pricing");
+      return;
+    }
     navigate(`/node-builder/${node.node_id}`);
   };
 
