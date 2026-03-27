@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Sparkles, ArrowRight, Handshake, Users, Mail, ListChecks } from "lucide-react";
 import { StepHeader, AbbyCard, LoadingStep, SummaryCard, SuccessCheckmark } from "../ba-shared/BABuilderShared";
+import NodeSuccessScreen from "@/components/dashboard/builders/shared/NodeSuccessScreen";
 
 const GEN_MSGS = ["Designing your JV partnership strategy...", "Creating ideal partner profiles...", "Writing your partnership pitch...", "Building your outreach checklist...", "Finalising your strategy..."];
 const ACT_MSGS = ["Setting up your partnerships pipeline...", "Preparing your outreach materials...", "Almost ready..."];
