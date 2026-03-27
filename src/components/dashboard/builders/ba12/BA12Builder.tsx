@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Sparkles, ArrowRight, Users, Crown, CalendarDays, Mail } from "lucide-react";
 import { StepHeader, AbbyCard, LoadingStep, PaymentLinkCard, SummaryCard, SuccessCheckmark } from "../ba-shared/BABuilderShared";
+import NodeSuccessScreen from "@/components/dashboard/builders/shared/NodeSuccessScreen";
 
 const GEN_MSGS = ["Designing your membership community...", "Creating membership tiers and benefits...", "Building your content calendar...", "Writing your welcome sequence...", "Finalising your membership blueprint..."];
 const ACT_MSGS = ["Setting up your membership tiers...", "Creating payment links for each tier...", "Configuring your welcome emails...", "Your membership is almost ready..."];
