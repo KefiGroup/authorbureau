@@ -155,6 +155,11 @@ export default function BrandProductsHub() {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        {/* Back nav */}
+        <Button asChild variant="ghost" size="sm" className="mb-4 -ml-2">
+          <Link to="/dashboard">← Back to Dashboard</Link>
+        </Button>
+
         {/* Header */}
         <div className="mb-8">
           <h1 className="font-heading text-2xl sm:text-3xl font-bold text-foreground mb-2">
@@ -168,6 +173,24 @@ export default function BrandProductsHub() {
             <Progress value={progressPercent} className="h-2 flex-1 max-w-xs" />
           </div>
         </div>
+
+        {/* Paywall banner for free users */}
+        {!isTierUnlocked && (
+          <Card className="p-5 mb-6 border-secondary/30 bg-secondary/5">
+            <div className="flex items-start gap-3">
+              <Lock className="h-5 w-5 text-secondary mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold mb-1">Upgrade to unlock Brand Products</p>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Subscribe to the Brand Package to start building your 9 revenue streams.
+                </p>
+                <Button size="sm" onClick={() => navigate("/pricing")}>
+                  View Plans <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
 
         {/* BP-04 Prerequisite Banner */}
         {!bp04IsLive && (
