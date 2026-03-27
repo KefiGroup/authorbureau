@@ -324,19 +324,27 @@ export default function BrandProductsHub() {
 
                 {/* CTA */}
                 <div className="mt-auto pt-1">
-                  <Button
-                    size="sm"
-                    variant={cta.variant}
-                    className="w-full text-xs"
-                    disabled={node.status === "locked"}
-                    onClick={() => handleCardClick(node)}
-                  >
-                    {cta.text}
-                  </Button>
+                  {isTierUnlocked ? (
+                    <Button
+                      size="sm"
+                      variant={cta.variant}
+                      className="w-full text-xs"
+                      disabled={node.status === "locked"}
+                      onClick={() => handleCardClick(node)}
+                    >
+                      {cta.text}
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="w-full text-xs"
+                      onClick={() => navigate("/pricing")}
+                    >
+                      Upgrade to Unlock
+                    </Button>
+                  )}
                 </div>
-              </div>
-            );
-          })}
         </div>
       </div>
     </div>
