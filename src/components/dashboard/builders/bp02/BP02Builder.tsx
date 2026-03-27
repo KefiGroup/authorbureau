@@ -110,20 +110,15 @@ export default function BP02Builder({ authorId }: Props) {
     }
   };
 
-  const handleActivate = async () => {
+  const handlePublish = async () => {
     setStep(3);
     setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("deploy-bp02-to-ghl", {
-        body: { author_id: authorId },
-      });
-      if (fnErr || !data?.success) {
-        throw new Error(data?.error || fnErr?.message || "Activation failed");
-      }
+      await publishNodeToSite(authorId!, "BP-02", authorSlug);
       setContent((prev: any) => ({ ...prev, activated: true }));
     } catch (e: any) {
-      console.error("Activation error (non-blocking):", e.message);
-      setContent((prev: any) => ({ ...prev, activated: true }));
+      setError(e.message);
+      setStep(2);
     }
   };
 
