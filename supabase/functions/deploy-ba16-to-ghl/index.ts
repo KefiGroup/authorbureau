@@ -15,8 +15,9 @@ serve(async (req) => {
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    const { data: author } = await supabase.from("author_profiles").select("ghl_sub_account_id, pen_name").eq("id", author_id).single();
+    const { data: author } = await supabase.from("author_profiles").select("ghl_sub_account_id, pen_name, author_slug").eq("id", author_id).single();
     if (!author) throw new Error("Author not found");
+    const authorSlug = author.author_slug || (author.pen_name || "").toLowerCase().replace(/\s+/g, "-");
 
     const { data: node } = await supabase.from("author_nodes").select("content_json").eq("author_id", author_id).eq("node_id", "BA-16").single();
     if (!node?.content_json) throw new Error("BA-16 content not found");
@@ -38,7 +39,8 @@ serve(async (req) => {
       } catch (e) { console.error("GHL opportunity error:", e); }
     }
 
-    await supabase.from("author_nodes").update({ status: "live", ghl_resource_id: "affiliate-programme-" + author_id.slice(0, 8), content_json: content, activated_at: new Date().toISOString() }).eq("author_id", author_id).eq("node_id", "BA-16");
+    const micrositeUrl = `https://authorsbureau.com/${authorSlug}/affiliates`;
+    await supabase.from("author_nodes").update({ status: "live", ghl_resource_id: "affiliate-programme-" + author_id.slice(0, 8), content_json: content, activated_at: new Date().toISOString(), microsite_url: micrositeUrl }).eq("author_id", author_id).eq("node_id", "BA-16");
 
     return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err) {

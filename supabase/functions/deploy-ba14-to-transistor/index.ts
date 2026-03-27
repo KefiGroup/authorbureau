@@ -15,8 +15,9 @@ serve(async (req) => {
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    const { data: author } = await supabase.from("author_profiles").select("ghl_sub_account_id, pen_name").eq("id", author_id).single();
+    const { data: author } = await supabase.from("author_profiles").select("ghl_sub_account_id, pen_name, author_slug").eq("id", author_id).single();
     if (!author) throw new Error("Author not found");
+    const authorSlug = author.author_slug || (author.pen_name || "").toLowerCase().replace(/\s+/g, "-");
 
     const { data: node } = await supabase.from("author_nodes").select("content_json").eq("author_id", author_id).eq("node_id", "BA-14").single();
     if (!node?.content_json) throw new Error("BA-14 content not found");
@@ -38,9 +39,11 @@ serve(async (req) => {
       } catch (e) { console.error("GHL opportunity error:", e); }
     }
 
-    await supabase.from("author_nodes").update({ status: "live", ghl_resource_id: "podcast-shows-" + author_id.slice(0, 8), content_json: content, activated_at: new Date().toISOString() }).eq("author_id", author_id).eq("node_id", "BA-14");
+    const showUrl = "https://share.transistor.fm/" + author_id.slice(0, 8);
+    const micrositeUrl = `https://authorsbureau.com/${authorSlug}/podcast`;
+    await supabase.from("author_nodes").update({ status: "live", ghl_resource_id: "podcast-shows-" + author_id.slice(0, 8), content_json: content, activated_at: new Date().toISOString(), microsite_url: micrositeUrl, third_party_url: showUrl }).eq("author_id", author_id).eq("node_id", "BA-14");
 
-    return new Response(JSON.stringify({ success: true, show_url: "https://share.transistor.fm/" + author_id.slice(0, 8) }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ success: true, show_url: showUrl }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err) {
     console.error("deploy-ba14-to-transistor error:", err.message);
     return new Response(JSON.stringify({ success: false, error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });

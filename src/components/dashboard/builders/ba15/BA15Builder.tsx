@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Sparkles, ArrowRight, Newspaper, FileText, Mail, Target } from "lucide-react";
 import { StepHeader, AbbyCard, LoadingStep, SummaryCard, SuccessCheckmark } from "../ba-shared/BABuilderShared";
+import NodeSuccessScreen from "@/components/dashboard/builders/shared/NodeSuccessScreen";
 
 const GEN_MSGS = ["Building your media kit...", "Writing your press release...", "Creating your media pitch template...", "Identifying target media outlets...", "Finalising your PR strategy..."];
 const ACT_MSGS = ["Setting up your media outreach pipeline...", "Preparing your press materials...", "Almost ready..."];
@@ -22,12 +23,14 @@ export default function BA15Builder({ authorId }: Props) {
   const [content, setContent] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
+  const [authorSlug, setAuthorSlug] = useState("");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (!authorId) return;
     (async () => {
-      const { data: profile } = await supabase.from("author_profiles").select("pen_name").eq("id", authorId).single();
+      const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug").eq("id", authorId).single();
+      setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
       setAuthorName(profile?.pen_name || "there");
       const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
       setBookTitle(ctx?.book_title || ""); setHasContext(!!ctx?.book_title);
@@ -138,15 +141,22 @@ export default function BA15Builder({ authorId }: Props) {
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
-          <div className="space-y-4">
-            <SuccessCheckmark />
-            <AbbyCard><p className="text-muted-foreground">🎉 Your media kit is ready, {authorName}! Your press release, media pitch, and target outlet list are all set. Time to get featured!</p></AbbyCard>
-            <SummaryCard items={["Press release: Ready", "Media pitch: Ready", "Target outlets: 5 identified", "Talking points: 5 ready"]} />
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => navigate("/build-authority")}>Back to Build Authority</Button>
-              <Button className="flex-1" onClick={() => navigate("/node-builder/BA-16")}>Next: Launch Your Affiliate Programme <ArrowRight className="h-4 w-4 ml-2" /></Button>
-            </div>
-          </div>
+          <NodeSuccessScreen
+            nodeId="BA-15"
+            authorName={authorName}
+            penNameSlug={authorSlug}
+            celebrationMessage={`Your media kit is ready! Your press release, media pitch, and target outlet list are all set. Time to get featured!`}
+            whatHappensNext={[
+              "Your press release is ready to send to 5 target media outlets",
+              "Media pitch template is personalised to your book's unique angle",
+              "Your talking points are prepared for interview opportunities",
+            ]}
+            socialShareText={`I just created my professional media kit with @AuthorsBureau! 📰`}
+            actions={[
+              { label: "Back to Build Authority", variant: "outline", onClick: () => navigate("/build-authority") },
+              { label: "Next: Launch Affiliate Programme", onClick: () => navigate("/node-builder/BA-16") },
+            ]}
+          />
         )}
       </div>
     </div>

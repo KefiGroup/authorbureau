@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Sparkles, ArrowRight, Mic, LayoutList, Globe, CalendarDays, ChevronDown, ChevronUp } from "lucide-react";
 import { StepHeader, AbbyCard, LoadingStep, PaymentLinkCard, SummaryCard, SuccessCheckmark } from "../ba-shared/BABuilderShared";
+import NodeSuccessScreen from "@/components/dashboard/builders/shared/NodeSuccessScreen";
 
 const GEN_MSGS = ["Designing your podcast concept...", "Creating your first 10 episode ideas...", "Planning your distribution strategy...", "Building your launch plan...", "Finalising your podcast blueprint..."];
 const ACT_MSGS = ["Creating your podcast show...", "Setting up your distribution...", "Your podcast is almost ready..."];
@@ -23,13 +24,15 @@ export default function BA14Builder({ authorId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
   const [expandedEpisodes, setExpandedEpisodes] = useState<Record<number, boolean>>({});
+  const [authorSlug, setAuthorSlug] = useState("");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (!authorId) return;
     (async () => {
-      const { data: profile } = await supabase.from("author_profiles").select("pen_name").eq("id", authorId).single();
+      const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug").eq("id", authorId).single();
       setAuthorName(profile?.pen_name || "there");
+      setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
       const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
       setBookTitle(ctx?.book_title || ""); setHasContext(!!ctx?.book_title);
       const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "BA-14").maybeSingle();
@@ -155,16 +158,24 @@ export default function BA14Builder({ authorId }: Props) {
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
-          <div className="space-y-4">
-            <SuccessCheckmark />
-            <AbbyCard><p className="text-muted-foreground">🎉 Your podcast is live, {authorName}! '{content.show_title}' is ready for your first episode.</p></AbbyCard>
-            <PaymentLinkCard link={content.show_url || ""} />
-            <SummaryCard items={[`Show: ${content.show_title}`, "Episodes planned: 10", "Platforms: 6 directories", "Show URL: Ready to share"]} />
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => navigate("/build-authority")}>Back to Build Authority</Button>
-              <Button className="flex-1" onClick={() => navigate("/node-builder/BA-15")}>Next: Build Your Media Profile <ArrowRight className="h-4 w-4 ml-2" /></Button>
-            </div>
-          </div>
+          <NodeSuccessScreen
+            nodeId="BA-14"
+            authorName={authorName}
+            penNameSlug={authorSlug}
+            celebrationMessage={`Your podcast '${content.show_title}' is live! 10 episode ideas are planned and your distribution is set up.`}
+            thirdPartyUrl={content.show_url}
+            thirdPartyLabel="Podcast Platform"
+            whatHappensNext={[
+              "Record your first 3 episodes and upload them to your podcast platform",
+              "Your show is distributed to 6 podcast directories automatically",
+              "Promote episodes on social media to grow your audience",
+            ]}
+            socialShareText={`I just launched my podcast "${content.show_title}" with @AuthorsBureau! 🎙️`}
+            actions={[
+              { label: "Back to Build Authority", variant: "outline", onClick: () => navigate("/build-authority") },
+              { label: "Next: Build Your Media Profile", onClick: () => navigate("/node-builder/BA-15") },
+            ]}
+          />
         )}
       </div>
     </div>

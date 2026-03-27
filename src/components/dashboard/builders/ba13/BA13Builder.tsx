@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Sparkles, ArrowRight, Users, LayoutList, DollarSign, FileText } from "lucide-react";
 import { StepHeader, AbbyCard, LoadingStep, PaymentLinkCard, SummaryCard, SuccessCheckmark } from "../ba-shared/BABuilderShared";
+import NodeSuccessScreen from "@/components/dashboard/builders/shared/NodeSuccessScreen";
 
 const GEN_MSGS = ["Designing your group coaching programme...", "Creating your 8-week curriculum...", "Writing your sales page...", "Finalising your programme blueprint..."];
 const ACT_MSGS = ["Setting up your group sessions...", "Creating your payment page...", "Your programme is almost ready..."];
@@ -24,13 +25,15 @@ export default function BA13Builder({ authorId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
   const [priceOverride, setPriceOverride] = useState<number | null>(null);
+  const [authorSlug, setAuthorSlug] = useState("");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (!authorId) return;
     (async () => {
-      const { data: profile } = await supabase.from("author_profiles").select("pen_name").eq("id", authorId).single();
+      const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug").eq("id", authorId).single();
       setAuthorName(profile?.pen_name || "there");
+      setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
       const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
       setBookTitle(ctx?.book_title || ""); setHasContext(!!ctx?.book_title);
       const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "BA-13").maybeSingle();
@@ -149,16 +152,23 @@ export default function BA13Builder({ authorId }: Props) {
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
-          <div className="space-y-4">
-            <SuccessCheckmark />
-            <AbbyCard><p className="text-muted-foreground">🎉 Your group coaching programme is live, {authorName}! '{content.programme_title}' is ready for your first cohort.</p></AbbyCard>
-            <PaymentLinkCard link={content.payment_link_url || ""} />
-            <SummaryCard items={[`Programme: ${content.programme_title}`, "Duration: 8 weeks", `Cohort size: ${content.cohort_size}`, `Price: $${priceOverride ?? content.suggested_price_usd ?? 1997}`]} />
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => navigate("/build-authority")}>Back to Build Authority</Button>
-              <Button className="flex-1" onClick={() => navigate("/node-builder/BA-14")}>Next: Launch Your Podcast <ArrowRight className="h-4 w-4 ml-2" /></Button>
-            </div>
-          </div>
+          <NodeSuccessScreen
+            nodeId="BA-13"
+            authorName={authorName}
+            penNameSlug={authorSlug}
+            celebrationMessage={`Your group coaching programme '${content.programme_title}' is live and ready for your first cohort!`}
+            paymentLinks={content.payment_link_url ? [{ label: content.programme_title || "Group Coaching", url: content.payment_link_url, price: `$${priceOverride ?? content.suggested_price_usd ?? 1997}` }] : []}
+            whatHappensNext={[
+              "Your 8-week curriculum is ready to deliver to your first cohort",
+              "Students can purchase and enrol immediately",
+              "Your coaching dashboard will track enrolments automatically",
+            ]}
+            socialShareText={`I just launched my group coaching programme "${content.programme_title}" with @AuthorsBureau! 🚀`}
+            actions={[
+              { label: "Back to Build Authority", variant: "outline", onClick: () => navigate("/build-authority") },
+              { label: "Next: Launch Your Podcast", onClick: () => navigate("/node-builder/BA-14") },
+            ]}
+          />
         )}
       </div>
     </div>

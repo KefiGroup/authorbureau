@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Sparkles, ArrowRight, Mic, BookOpen, DollarSign, Globe } from "lucide-react";
 import { StepHeader, AbbyCard, LoadingStep, SummaryCard, SuccessCheckmark } from "../ba-shared/BABuilderShared";
+import NodeSuccessScreen from "@/components/dashboard/builders/shared/NodeSuccessScreen";
 
 const GEN_MSGS = ["Analysing your book's structure for audio...", "Writing your narrator brief...", "Creating chapter-by-chapter recording guides...", "Researching distribution platforms...", "Finalising your audiobook package..."];
 const ACT_MSGS = ["Preparing your audiobook production package...", "Setting up your distribution strategy...", "Creating your production checklist...", "Almost ready..."];
@@ -24,13 +25,15 @@ export default function BA11Builder({ authorId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
   const [priceOverride, setPriceOverride] = useState<number | null>(null);
+  const [authorSlug, setAuthorSlug] = useState("");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (!authorId) return;
     (async () => {
-      const { data: profile } = await supabase.from("author_profiles").select("pen_name").eq("id", authorId).single();
+      const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug").eq("id", authorId).single();
       setAuthorName(profile?.pen_name || "there");
+      setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
       const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
       setBookTitle(ctx?.book_title || "");
       setHasContext(!!ctx?.book_title);
@@ -146,23 +149,22 @@ export default function BA11Builder({ authorId }: Props) {
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
-          <div className="space-y-4">
-            <SuccessCheckmark />
-            <AbbyCard><p className="text-muted-foreground">🎉 Your audiobook production package is ready, {authorName}! Your narrator brief, chapter guides, and distribution strategy are all set. Your next step is to submit to ACX.</p></AbbyCard>
-            <Card><CardContent className="pt-6 space-y-3">
-              <p className="font-semibold text-sm mb-2">Next Steps</p>
-              <div className="space-y-2">
-                <p className="text-sm flex items-start gap-2"><span className="text-primary font-bold">1.</span> Submit to ACX (Amazon Audible)</p>
-                <p className="text-sm flex items-start gap-2"><span className="text-primary font-bold">2.</span> Submit to Findaway Voices</p>
-                <p className="text-sm flex items-start gap-2"><span className="text-primary font-bold">3.</span> Submit to Spotify for Podcasters</p>
-              </div>
-            </CardContent></Card>
-            <SummaryCard items={["Narrator brief: Ready", "Chapter guides: 5 chapters", "Distribution: 3 platforms", `Retail price: $${priceOverride ?? content.suggested_retail_price_usd ?? 19.99}`]} />
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => navigate("/build-authority")}>Back to Build Authority</Button>
-              <Button className="flex-1" onClick={() => navigate("/node-builder/BA-12")}>Next: Launch Your Membership <ArrowRight className="h-4 w-4 ml-2" /></Button>
-            </div>
-          </div>
+          <NodeSuccessScreen
+            nodeId="BA-11"
+            authorName={authorName}
+            penNameSlug={authorSlug}
+            celebrationMessage={`Your audiobook production package is ready! Your narrator brief, chapter guides, and distribution strategy are all set.`}
+            whatHappensNext={[
+              "Submit to ACX (Amazon Audible) to reach millions of listeners",
+              "Submit to Findaway Voices for wide distribution",
+              "Submit to Spotify for Podcasters for streaming audiences",
+            ]}
+            socialShareText={`I just created my audiobook production package with @AuthorsBureau! 🎧`}
+            actions={[
+              { label: "Back to Build Authority", variant: "outline", onClick: () => navigate("/build-authority") },
+              { label: "Next: Launch Your Membership", onClick: () => navigate("/node-builder/BA-12") },
+            ]}
+          />
         )}
       </div>
     </div>

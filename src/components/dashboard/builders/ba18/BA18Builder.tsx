@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Sparkles, ArrowRight, Handshake, Users, Mail, ListChecks } from "lucide-react";
 import { StepHeader, AbbyCard, LoadingStep, SummaryCard, SuccessCheckmark } from "../ba-shared/BABuilderShared";
+import NodeSuccessScreen from "@/components/dashboard/builders/shared/NodeSuccessScreen";
 
 const GEN_MSGS = ["Designing your JV partnership strategy...", "Creating ideal partner profiles...", "Writing your partnership pitch...", "Building your outreach checklist...", "Finalising your strategy..."];
 const ACT_MSGS = ["Setting up your partnerships pipeline...", "Preparing your outreach materials...", "Almost ready..."];
@@ -24,13 +25,15 @@ export default function BA18Builder({ authorId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
   const [checkedItems, setCheckedItems] = useState<Record<number, boolean>>({});
+  const [authorSlug, setAuthorSlug] = useState("");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (!authorId) return;
     (async () => {
-      const { data: profile } = await supabase.from("author_profiles").select("pen_name").eq("id", authorId).single();
+      const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug").eq("id", authorId).single();
       setAuthorName(profile?.pen_name || "there");
+      setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
       const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
       setBookTitle(ctx?.book_title || ""); setHasContext(!!ctx?.book_title);
       const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "BA-18").maybeSingle();
@@ -145,15 +148,22 @@ export default function BA18Builder({ authorId }: Props) {
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
-          <div className="space-y-4">
-            <SuccessCheckmark />
-            <AbbyCard><p className="text-muted-foreground">🎉 Your JV partnership strategy is ready, {authorName}! Your partner profiles, pitch, and outreach checklist are all set. Time to reach out!</p></AbbyCard>
-            <SummaryCard items={["Partner profiles: 3 types", "Partnership pitch: Ready", "Partnership types: 3 models", "Outreach checklist: 5 steps"]} />
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => navigate("/build-authority")}>Back to Build Authority</Button>
-              <Button className="flex-1" onClick={() => navigate("/build-authority")}>View All Build Authority <ArrowRight className="h-4 w-4 ml-2" /></Button>
-            </div>
-          </div>
+          <NodeSuccessScreen
+            nodeId="BA-18"
+            authorName={authorName}
+            penNameSlug={authorSlug}
+            celebrationMessage={`Your JV partnership strategy is ready! Your partner profiles, pitch, and outreach checklist are all set. Time to reach out!`}
+            whatHappensNext={[
+              "Use your 3 ideal partner profiles to identify strategic allies",
+              "Send the personalised partnership pitch to your first 5 targets",
+              "Follow the outreach checklist to build profitable partnerships",
+            ]}
+            socialShareText={`I just built my JV partnership strategy with @AuthorsBureau! 🤝`}
+            actions={[
+              { label: "Back to Build Authority", variant: "outline", onClick: () => navigate("/build-authority") },
+              { label: "View All Build Authority", onClick: () => navigate("/build-authority") },
+            ]}
+          />
         )}
       </div>
     </div>

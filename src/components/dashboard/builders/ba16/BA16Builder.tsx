@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Sparkles, ArrowRight, Users, Crown, Package, Target } from "lucide-react";
 import { StepHeader, AbbyCard, LoadingStep, SummaryCard, SuccessCheckmark } from "../ba-shared/BABuilderShared";
+import NodeSuccessScreen from "@/components/dashboard/builders/shared/NodeSuccessScreen";
 
 const GEN_MSGS = ["Designing your affiliate programme...", "Creating commission tiers...", "Building affiliate resources...", "Planning your recruitment strategy...", "Finalising your programme..."];
 const ACT_MSGS = ["Setting up your affiliate programme...", "Creating affiliate resources...", "Almost ready..."];
@@ -22,13 +23,15 @@ export default function BA16Builder({ authorId }: Props) {
   const [content, setContent] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
+  const [authorSlug, setAuthorSlug] = useState("");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (!authorId) return;
     (async () => {
-      const { data: profile } = await supabase.from("author_profiles").select("pen_name").eq("id", authorId).single();
+      const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug").eq("id", authorId).single();
       setAuthorName(profile?.pen_name || "there");
+      setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
       const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
       setBookTitle(ctx?.book_title || ""); setHasContext(!!ctx?.book_title);
       const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "BA-16").maybeSingle();
@@ -141,15 +144,22 @@ export default function BA16Builder({ authorId }: Props) {
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
-          <div className="space-y-4">
-            <SuccessCheckmark />
-            <AbbyCard><p className="text-muted-foreground">🎉 Your affiliate programme is live, {authorName}! '{content.programme_title}' is ready to recruit affiliates.</p></AbbyCard>
-            <SummaryCard items={[`Programme: ${content.programme_title}`, "Commission tiers: 2 tiers", "Affiliate resources: 4 ready", "Recruitment strategy: Ready"]} />
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => navigate("/build-authority")}>Back to Build Authority</Button>
-              <Button className="flex-1" onClick={() => navigate("/node-builder/BA-17")}>Next: Create Upsells & Bundles <ArrowRight className="h-4 w-4 ml-2" /></Button>
-            </div>
-          </div>
+          <NodeSuccessScreen
+            nodeId="BA-16"
+            authorName={authorName}
+            penNameSlug={authorSlug}
+            celebrationMessage={`Your affiliate programme '${content.programme_title}' is live and ready to recruit affiliates!`}
+            whatHappensNext={[
+              "Your commission tiers and affiliate resources are ready to share",
+              "Use the recruitment strategy to find your first affiliates",
+              "Track affiliate performance automatically on your dashboard",
+            ]}
+            socialShareText={`I just launched my affiliate programme "${content.programme_title}" with @AuthorsBureau! 🤝`}
+            actions={[
+              { label: "Back to Build Authority", variant: "outline", onClick: () => navigate("/build-authority") },
+              { label: "Next: Create Upsells & Bundles", onClick: () => navigate("/node-builder/BA-17") },
+            ]}
+          />
         )}
       </div>
     </div>
