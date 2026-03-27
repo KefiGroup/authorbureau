@@ -91,9 +91,9 @@ const jsonLd = {
   description:
     "AI-powered platform that helps published authors turn one book into 28 revenue streams with courses, coaching, speaking, memberships, and more.",
   offers: [
-    { "@type": "Offer", name: "Side Hustler", price: "49", priceCurrency: "USD" },
-    { "@type": "Offer", name: "Serious Business", price: "199", priceCurrency: "USD" },
-    { "@type": "Offer", name: "Enterprise Builder", price: "499", priceCurrency: "USD" },
+    { "@type": "Offer", name: "Brand Package", price: "49", priceCurrency: "USD" },
+    { "@type": "Offer", name: "Build Package", price: "99", priceCurrency: "USD" },
+    { "@type": "Offer", name: "Yield Package", price: "249", priceCurrency: "USD" },
   ],
   creator: {
     "@type": "Person",
