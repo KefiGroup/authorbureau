@@ -2,22 +2,57 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useAuth, hasTierAccess } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
-import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Sparkles, ArrowRight, Lock, AlertCircle, CheckCircle2, Zap, Clock, Eye } from "lucide-react";
+import { Sparkles, ArrowRight, Lock, Star, Clock } from "lucide-react";
 
-const NODE_DESCRIPTIONS: Record<string, string> = {
-  "BA-10": "Turn your book into a structured online course on your course platform",
-  "BA-11": "Convert your book to audio and distribute to Audible, Spotify, Apple Books",
-  "BA-12": "Create a recurring revenue membership community",
-  "BA-13": "Run cohort-based group coaching programmes",
-  "BA-14": "Launch your podcast and distribute to all major platforms",
-  "BA-15": "Build your media profile and speaking opportunities",
-  "BA-16": "Recruit affiliates to sell your products for you",
-  "BA-17": "Create product bundles and upsell sequences",
-  "BA-18": "Build joint venture partnerships with complementary authors",
+type NodeStatus = "locked" | "not_started" | "building" | "content_ready" | "live" | "error";
+
+interface NodeCard {
+  node_id: string;
+  node_name: string;
+  personalised_name: string | null;
+  status: NodeStatus;
+}
+
+interface NodeDef {
+  id: string;
+  name: string;
+  description: string;
+  revenue: string;
+  time: string;
+  difficulty: number;
+  section: "scale" | "reach" | "monetise";
+}
+
+const BA_NODES: NodeDef[] = [
+  { id: "BA-10", name: "Online Course", description: "Your most scalable asset. Teach your book's methodology in a structured, self-paced format. Students complete at their own pace; you earn while you sleep.", revenue: "$6,000/yr estimated", time: "~4 hours", difficulty: 3, section: "scale" },
+  { id: "BA-11", name: "Audiobook", description: "Reach commuters, multitaskers, gym-goers, and people who prefer listening. Your book, your voice, your story — distributed to Audible, Spotify, and Apple Books.", revenue: "$1,200/yr estimated", time: "~4 hours", difficulty: 3, section: "scale" },
+  { id: "BA-12", name: "Memberships", description: "Recurring monthly income from your most engaged readers. Give members exclusive content, live Q&As, and community access. Predictable revenue that grows with your audience.", revenue: "$6,000/yr estimated", time: "~4 hours", difficulty: 3, section: "scale" },
+  { id: "BA-13", name: "Group Coaching", description: "Bring paying readers together to implement your book's framework as a group. More scalable than 1-on-1, more personal than a course. Community accelerates results.", revenue: "$9,600/yr estimated", time: "~2 hours", difficulty: 3, section: "reach" },
+  { id: "BA-14", name: "Podcast", description: "Distribute your expertise in audio form to new audiences who have never heard of you. Your podcast becomes a discovery engine for every other product.", revenue: "Audience growth", time: "~2 hours", difficulty: 3, section: "reach" },
+  { id: "BA-15", name: "Media Outreach", description: "Systematically, almost invisibly, present your content to new audiences through media channels, podcasts, and social media. Now amplify your visibility.", revenue: "$8,340/yr estimated", time: "~1 hour", difficulty: 3, section: "reach" },
+  { id: "BA-16", name: "Affiliates", description: "Recommend products you already use and trust. Every recommendation becomes a revenue stream. No product creation required.", revenue: "$6,000/yr estimated", time: "~1 hour", difficulty: 3, section: "monetise" },
+  { id: "BA-17", name: "Upsells / Downsells", description: "Combine your products into bundles, packages, and sequences that maximise the value of every customer. Customers who buy bundles spend 3x more on average.", revenue: "$12,000/yr estimated", time: "~2 hours", difficulty: 3, section: "monetise" },
+  { id: "BA-18", name: "Revenue Sharing", description: "No money having because sharing is caring. Revenue sharing is the ultimate form of partnership — you share revenue with partners who bring you clients.", revenue: "$8,340/yr estimated", time: "~1 hour", difficulty: 3, section: "monetise" },
+];
+
+const SECTION_META: Record<string, { heading: string; description: string; subdesc: string }> = {
+  scale: {
+    heading: "SCALE YOUR CONTENT",
+    description: "Repurpose what you've already created. Your book and brand products contain valuable knowledge. Now put that knowledge into formats that reach new audiences and command higher prices.",
+    subdesc: "Why this order? Online Courses are the foundation. They prove your teaching ability and establish you as an authority. Audiobooks extend reach without additional content creation. Memberships monetise the author's desire for ongoing access and community.",
+  },
+  reach: {
+    heading: "GROW YOUR REACH",
+    description: "Get in front of new audiences through live interaction and media channels. Your content and authority are established. Now amplify your visibility.",
+    subdesc: "Why this order? Group Coaching gives you real-time connection to real people. It's the credibility builder. Podcast then amplifies that credibility to new audiences. Media Outreach takes it to the mainstream level where you become a recognised authority in your field.",
+  },
+  monetise: {
+    heading: "MONETISE YOUR NETWORK",
+    description: "Use your established audience and authority to create passive income and partnership revenue. You've built the platform; now leverage it.",
+    subdesc: "Why this order? Affiliates are the easiest because you're recommending existing products. Upsells require understanding your audience's buying psychology and funnel optimisation. Revenue Sharing requires established authority and audience size to attract ideal partners.",
+  },
 };
 
 const FALLBACK_NODES = [
@@ -32,23 +67,15 @@ const FALLBACK_NODES = [
   { node_id: "BA-18", node_name: "JV Partnerships", status: "not_started" },
 ];
 
-type NodeStatus = "locked" | "not_started" | "building" | "content_ready" | "live" | "error";
-
-interface NodeCard {
-  node_id: string;
-  node_name: string;
-  personalised_name: string | null;
-  status: NodeStatus;
+function StarRating({ count }: { count: number }) {
+  return (
+    <div className="flex gap-0.5">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <Star key={i} className={`h-3 w-3 ${i < count ? "fill-amber-400 text-amber-400" : "text-muted-foreground/20"}`} />
+      ))}
+    </div>
+  );
 }
-
-const STATUS_CONFIG: Record<NodeStatus, { label: string; color: string; icon: typeof CheckCircle2 }> = {
-  locked:        { label: "Locked",            color: "bg-muted text-muted-foreground",                    icon: Lock },
-  not_started:   { label: "Ready to Build",    color: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300", icon: Zap },
-  building:      { label: "Building...",       color: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300", icon: Clock },
-  content_ready: { label: "Ready to Activate", color: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300", icon: Eye },
-  live:          { label: "Live ✓",            color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300", icon: CheckCircle2 },
-  error:         { label: "Needs Attention",   color: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300", icon: AlertCircle },
-};
 
 export default function BuildAuthorityHub() {
   const { user, loading: authLoading, tier } = useAuth();
@@ -58,112 +85,71 @@ export default function BuildAuthorityHub() {
   const devUnlock = searchParams.get("unlock") === "true";
   const [nodes, setNodes] = useState<NodeCard[]>([]);
   const [authorName, setAuthorName] = useState("");
-  const [subscriberCount, setSubscriberCount] = useState(0);
-  const [bpLiveCount, setBpLiveCount] = useState(0);
   const [loading, setLoading] = useState(true);
-
-  const SUBSCRIBER_THRESHOLD = 1000;
-  const isUnlocked = devUnlock || subscriberCount >= SUBSCRIBER_THRESHOLD;
 
   useEffect(() => {
     if (authLoading || !user) return;
-
-    async function fetchData() {
-      const { data: profile } = await supabase
-        .from("author_profiles")
-        .select("id, pen_name, ghl_sub_account_id")
-        .eq("user_id", user!.id)
-        .maybeSingle();
-
-      if (!profile) {
-        setNodes(FALLBACK_NODES.map(n => ({ ...n, personalised_name: null, status: "locked" as NodeStatus })));
-        setLoading(false);
-        return;
-      }
-
+    (async () => {
+      const { data: profile } = await supabase.from("author_profiles").select("id, pen_name").eq("user_id", user.id).maybeSingle();
+      if (!profile) { setNodes(FALLBACK_NODES.map(n => ({ ...n, personalised_name: null, status: "locked" as NodeStatus }))); setLoading(false); return; }
       setAuthorName(profile.pen_name || "");
 
-      // Count subscribers
-      const { count: subCount } = await supabase
-        .from("author_subscribers")
-        .select("*", { count: "exact", head: true })
-        .eq("author_id", profile.id)
-        .eq("status", "active");
-      setSubscriberCount(subCount || 0);
-
-      // Count live BP nodes
-      const { data: bpNodes } = await supabase
-        .from("author_nodes")
-        .select("status")
-        .eq("author_id", profile.id)
-        .like("node_id", "BP-%");
-      const bpLive = bpNodes?.filter(n => n.status === "live").length || 0;
-      setBpLiveCount(bpLive);
-
-      // Get BA nodes
-      const { data: nodeRows } = await supabase
-        .from("author_nodes")
-        .select("node_id, node_name, personalised_name, status")
-        .eq("author_id", profile.id)
-        .like("node_id", "BA-%")
-        .order("node_id");
-
-      const unlocked = devUnlock || (subCount || 0) >= SUBSCRIBER_THRESHOLD;
+      const { data: nodeRows } = await supabase.from("author_nodes").select("node_id, node_name, personalised_name, status").eq("author_id", profile.id).like("node_id", "BA-%").order("node_id");
 
       if (!nodeRows || nodeRows.length === 0) {
-        setNodes(FALLBACK_NODES.map(n => ({
-          ...n,
-          personalised_name: null,
-          status: unlocked ? (n.status as NodeStatus) : ("locked" as NodeStatus),
-        })));
+        setNodes(FALLBACK_NODES.map(n => ({ ...n, personalised_name: null, status: (isTierUnlocked || devUnlock) ? (n.status as NodeStatus) : ("locked" as NodeStatus) })));
       } else {
         setNodes(nodeRows.map(r => ({
-          node_id: r.node_id,
-          node_name: r.node_name,
-          personalised_name: r.personalised_name,
-          status: unlocked || r.status === "live" || r.status === "content_ready" || r.status === "building"
-            ? (r.status as NodeStatus)
-            : ("locked" as NodeStatus),
+          node_id: r.node_id, node_name: r.node_name, personalised_name: r.personalised_name,
+          status: (isTierUnlocked || devUnlock) || r.status === "live" || r.status === "content_ready" || r.status === "building" ? (r.status as NodeStatus) : ("locked" as NodeStatus),
         })));
       }
       setLoading(false);
-    }
+    })();
+  }, [user, authLoading, devUnlock, isTierUnlocked]);
 
-    fetchData();
-  }, [user, authLoading, devUnlock]);
-
-  if (authLoading || loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="animate-pulse text-muted-foreground">Loading Build Authority...</div>
-      </div>
-    );
-  }
-
+  if (authLoading || loading) return <div className="flex items-center justify-center min-h-screen bg-background"><div className="animate-pulse text-muted-foreground">Loading Build Authority...</div></div>;
   if (!user) { navigate("/auth"); return null; }
 
-  const liveCount = nodes.filter(n => n.status === "live").length;
-  const progressPercent = (liveCount / 9) * 100;
-  const subscriberProgress = Math.min((subscriberCount / SUBSCRIBER_THRESHOLD) * 100, 100);
-  const showAbbyWelcome = liveCount === 0;
-
-  const handleCardClick = (node: NodeCard) => {
-    if (!isTierUnlocked || node.status === "locked") {
-      navigate("/pricing");
-      return;
-    }
-    navigate(`/node-builder/${node.node_id}`);
+  const getNodeStatus = (nodeId: string): NodeStatus => {
+    const node = nodes.find(n => n.node_id === nodeId);
+    return node?.status || "locked";
   };
 
-  const ctaForStatus = (status: NodeStatus) => {
-    switch (status) {
-      case "not_started":    return { text: "Start Building",     variant: "default" as const };
-      case "building":       return { text: "Continue",           variant: "default" as const };
-      case "content_ready":  return { text: "Review & Activate",  variant: "default" as const };
-      case "live":           return { text: "View Details",       variant: "outline" as const };
-      case "locked":         return { text: "Unlock",             variant: "secondary" as const };
-      case "error":          return { text: "Fix Issue",          variant: "destructive" as const };
-    }
+  const handleCardClick = (nodeId: string) => {
+    if (!isTierUnlocked && !devUnlock) { navigate("/pricing"); return; }
+    navigate(`/node-builder/${nodeId}`);
+  };
+
+  const renderNodeCard = (def: NodeDef) => {
+    const status = getNodeStatus(def.id);
+    const isLocked = status === "locked";
+    return (
+      <div key={def.id} className="rounded-2xl border border-border bg-[hsl(var(--card))] p-5 flex flex-col gap-3 hover:shadow-lg transition-shadow">
+        <div className="flex items-start justify-between">
+          <h3 className="font-heading text-base font-bold text-foreground">{def.name}</h3>
+          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${isLocked ? "bg-muted text-muted-foreground" : "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300"}`}>
+            {isLocked ? <><Lock className="h-3 w-3" /> Locked</> : status === "live" ? "Live ✓" : "Ready to Build"}
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground leading-relaxed flex-1">{def.description}</p>
+        <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+          <span className="font-semibold text-foreground">{def.revenue}</span>
+        </div>
+        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+          <div className="flex items-center gap-1"><Clock className="h-3 w-3" /> {def.time}</div>
+          <StarRating count={def.difficulty} />
+        </div>
+        <Button
+          size="sm"
+          variant={isLocked ? "secondary" : "default"}
+          className="w-full text-xs mt-1"
+          onClick={() => handleCardClick(def.id)}
+        >
+          {isLocked ? "Upgrade to Pro →" : "Build This Product →"}
+        </Button>
+      </div>
+    );
   };
 
   return (
@@ -173,8 +159,34 @@ export default function BuildAuthorityHub() {
           <Link to="/dashboard">← Back to Dashboard</Link>
         </Button>
 
+        {/* SECTION 1 — Header Card */}
+        <Card className="rounded-2xl border-2 border-violet-200 dark:border-violet-800 bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/20 p-6 mb-6">
+          <div className="flex items-start justify-between">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-xl bg-violet-100 dark:bg-violet-900/50 flex items-center justify-center shrink-0">
+                <span className="text-xl">👑</span>
+              </div>
+              <div>
+                <h1 className="font-heading text-xl sm:text-2xl font-black text-foreground">Your Audience. Your Authority. Built From Your Brand.</h1>
+                <p className="text-sm text-muted-foreground mt-1">Scale Your Audience (9 nodes)</p>
+              </div>
+            </div>
+            <span className="inline-flex items-center rounded-full bg-violet-100 dark:bg-violet-900/50 px-3 py-1 text-xs font-semibold text-violet-700 dark:text-violet-300 shrink-0">9 products</span>
+          </div>
+        </Card>
+
+        {/* SECTION 2 — Progression Box */}
+        <div className="rounded-xl border-l-4 border-violet-500 bg-violet-50/50 dark:bg-violet-950/20 p-5 mb-6">
+          <h3 className="text-xs font-black uppercase tracking-wider text-violet-600 dark:text-violet-400 mb-2">The Build Authority Progression</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            <strong>Brand Products</strong> build your foundation: website, book sales, email list, audience.<br/>
+            <strong>Build Authority</strong> scales that foundation: courses, coaching, media visibility, new partnership models.<br/>
+            Everything in Build Authority is designed to do one thing: <span className="font-semibold text-violet-600 dark:text-violet-400">turn your book and brand into recognised expertise that attracts high-value opportunities</span>. These 9 products fall into two groups, and the order matters.
+          </p>
+        </div>
+
         {/* Paywall banner */}
-        {!isTierUnlocked && (
+        {!isTierUnlocked && !devUnlock && (
           <Card className="p-5 mb-6 border-secondary/30 bg-secondary/5">
             <div className="flex items-start gap-3">
               <Lock className="h-5 w-5 text-secondary mt-0.5 shrink-0" />
@@ -186,100 +198,43 @@ export default function BuildAuthorityHub() {
             </div>
           </Card>
         )}
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="font-heading text-2xl sm:text-3xl font-bold text-foreground mb-2">
-            Build Authority
-          </h1>
-          <p className="text-muted-foreground text-sm sm:text-base mb-4">
-            Scale your audience, create recurring revenue, and establish your authority with 9 powerful nodes.
-          </p>
 
-          {/* Subscriber Progress Bar */}
-          <div className="rounded-xl border border-border bg-card p-4 mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-foreground">
-                {subscriberCount.toLocaleString()} of {SUBSCRIBER_THRESHOLD.toLocaleString()} subscribers
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {isUnlocked ? "Unlocked!" : `${SUBSCRIBER_THRESHOLD - subscriberCount} to go`}
-              </span>
-            </div>
-            <Progress value={subscriberProgress} className="h-2.5 mb-2" />
-            <p className="text-xs text-muted-foreground">
-              {isUnlocked
-                ? "🚀 Build Authority is unlocked! Time to scale."
-                : bpLiveCount >= 9
-                ? "🎉 You're building momentum! Keep growing your audience to unlock Build Authority."
-                : "Complete your Brand Products and grow your subscriber list to unlock these nodes."}
-            </p>
-          </div>
-
-          {/* Node Progress */}
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-foreground">{liveCount} of 9 live</span>
-            <Progress value={progressPercent} className="h-2 flex-1 max-w-xs" />
-          </div>
-        </div>
-
-        {/* ABBY Welcome */}
-        {showAbbyWelcome && (
-          <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 mb-8 flex flex-col sm:flex-row items-start gap-4">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <Sparkles className="h-5 w-5 text-primary" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-foreground leading-relaxed mb-3">
-                {isUnlocked
-                  ? `Hi ${authorName || "there"}! Build Authority is unlocked — time to scale your expertise. Start with an Online Course — it's the most impactful way to monetise your knowledge at scale.`
-                  : `Hi ${authorName || "there"}! Build Authority unlocks at ${SUBSCRIBER_THRESHOLD.toLocaleString()} email subscribers. Keep growing your audience with your Brand Products, and you'll unlock these powerful scaling tools soon!`}
-              </p>
-              {isUnlocked && (
-                <Button size="sm" onClick={() => navigate("/node-builder/BA-10")}>
-                  Start with Online Course <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Node Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {nodes.map((node) => {
-            const statusCfg = STATUS_CONFIG[node.status];
-            const cta = ctaForStatus(node.status);
-            const StatusIcon = statusCfg.icon;
-
-            return (
-              <div
-                key={node.node_id}
-                className="relative rounded-xl border border-border bg-card p-5 flex flex-col gap-3 hover:shadow-md transition-shadow"
-              >
-                <span className="absolute top-3 right-3 text-[10px] font-mono text-muted-foreground/50">
-                  {node.node_id}
-                </span>
-                <h3 className="font-heading text-base font-semibold text-foreground pr-12 leading-tight">
-                  {node.personalised_name || node.node_name}
-                </h3>
-                <div className="flex items-center gap-1.5">
-                  <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${statusCfg.color}`}>
-                    <StatusIcon className="h-3 w-3" />
-                    {statusCfg.label}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {NODE_DESCRIPTIONS[node.node_id]}
-                </p>
-                <div className="mt-auto pt-1">
-                  {isTierUnlocked ? (
-                    <Button size="sm" variant={cta.variant} className="w-full text-xs" disabled={node.status === "locked"} onClick={() => handleCardClick(node)}>{cta.text}</Button>
-                  ) : (
-                    <Button size="sm" variant="secondary" className="w-full text-xs" onClick={() => navigate("/pricing")}>Upgrade to Unlock</Button>
-                  )}
-                </div>
+        {/* Node sections */}
+        {(["scale", "reach", "monetise"] as const).map(section => {
+          const meta = SECTION_META[section];
+          const sectionNodes = BA_NODES.filter(n => n.section === section);
+          return (
+            <div key={section} className="mb-8">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-1 h-6 rounded-full bg-violet-500" />
+                <h2 className="font-heading text-sm font-black uppercase tracking-wider text-violet-600 dark:text-violet-400">{meta.heading}</h2>
               </div>
-            );
-          })}
+              <p className="text-xs text-muted-foreground mb-1 ml-4">{meta.description}</p>
+              <p className="text-xs text-muted-foreground mb-4 ml-4">{meta.subdesc}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {sectionNodes.map(renderNodeCard)}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Estimated Revenue */}
+        <Card className="rounded-2xl border-2 border-violet-200 dark:border-violet-800 bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/20 p-6 mb-6">
+          <div className="flex items-center gap-3 mb-1">
+            <Sparkles className="h-5 w-5 text-violet-600" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-violet-700 dark:text-violet-400">Estimated Revenue</span>
+          </div>
+          <p className="font-heading text-2xl sm:text-3xl font-black text-violet-800 dark:text-violet-300">$13,500 – $39,480 <span className="text-base">↑</span></p>
+        </Card>
+
+        {/* Tip */}
+        <div className="rounded-xl border border-border bg-muted/30 p-5 mb-4">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            <span className="font-semibold text-foreground">Tip:</span> You don't have to launch all 9 at once. Abby recommends starting with products 1–3 (Online Courses, Audiobook, Memberships) and adding Group 2–3 as your audience grows and your authority solidifies.
+          </p>
+        </div>
+        <div className="rounded-xl border border-dashed border-border bg-card p-5 text-center">
+          <p className="text-xs text-muted-foreground">Analyse plans with Abby to get personalised recommendations and revenue estimates for each product.</p>
         </div>
       </div>
     </div>

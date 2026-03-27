@@ -2,24 +2,45 @@ import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth, hasTierAccess } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
-import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sparkles, ArrowRight, Lock, AlertCircle, CheckCircle2, Zap, Clock, Eye, Star, Globe, ExternalLink } from "lucide-react";
+import { Sparkles, ArrowRight, Lock, Star, Clock, BarChart3 } from "lucide-react";
 
-const NODE_DESCRIPTIONS: Record<string, string> = {
-  "BP-01": "Builds your list — foundation for all revenue",
-  "BP-02": "Free gift that grows your subscriber list",
-  "BP-03": "90-day content calendar, automated",
-  "BP-04": "Your author home on the web",
-  "BP-05": "Live events that convert readers to buyers",
-  "BP-06": "$27–$47 per sale",
-  "BP-07": "$97–$197 per sale",
-  "BP-08": "$47–$97 per bundle",
-  "BP-09": "Direct + Amazon",
-};
+type NodeStatus = "locked" | "not_started" | "building" | "content_ready" | "live" | "error";
+
+interface NodeCard {
+  node_id: string;
+  node_name: string;
+  personalised_name: string | null;
+  status: NodeStatus;
+  microsite_url: string | null;
+  current_step: number;
+}
+
+interface NodeDef {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+  revenue: string;
+  time: string;
+  difficulty: number;
+  startHere?: boolean;
+  section: "marketing" | "digital";
+}
+
+const BRAND_NODES: NodeDef[] = [
+  { id: "BP-04", name: "Website", icon: "🌐", description: "Your digital home base. Every other product points back here. Without a website, your book sales, lead magnets, and email marketing have nowhere to live. Build this first.", revenue: "Revenue Enabler — unlocks all other streams", time: "~1 hour", difficulty: 3, startHere: true, section: "marketing" },
+  { id: "BP-02", name: "Lead Magnets", icon: "🎁", description: "Free resources (checklists, sample chapters) that turn casual readers into subscribers. You need these before you can build an email list or run webinars.", revenue: "Revenue Enabler — feeds your email list", time: "~1 hour", difficulty: 3, section: "marketing" },
+  { id: "BP-01", name: "Email Marketing", icon: "📧", description: "Your most valuable asset. Social media gets attention; email keeps it. Once people opt in through your lead magnets, nurture them with automated sequences that build trust and drive sales.", revenue: "$1,940/yr estimated", time: "~2 hours", difficulty: 3, section: "marketing" },
+  { id: "BP-03", name: "Social Media", icon: "📱", description: "Consistent content drives traffic to your website and lead magnets. And that puts your audience on your email list. It is a loop. It is almost always on.", revenue: "$6,480/yr estimated", time: "~1 hour", difficulty: 3, section: "marketing" },
+  { id: "BP-05", name: "Webinars", icon: "🎥", description: "Live or recorded video events that showcase your expertise. You can teach a webinar, promote products, and build relationships with your audience at scale.", revenue: "$5,400/yr estimated", time: "~2 hours", difficulty: 3, section: "marketing" },
+  { id: "BP-06", name: "Workbook", icon: "📓", description: "Companion guides, exercises, and templates that get your readers doing, not just reading. The easiest digital product to create because the content already exists in your manuscript.", revenue: "$4,800/yr estimated", time: "~1 hour", difficulty: 3, section: "digital" },
+  { id: "BP-07", name: "Home Study Course", icon: "🎓", description: "A self-paced program built from your book's core teachings. Typically priced 5x to 10x higher than your book alone.", revenue: "$14,400/yr estimated", time: "~3 hours", difficulty: 4, section: "digital" },
+  { id: "BP-09", name: "Book Sales", icon: "📚", description: "Combine how you sell directly, privately, through Amazon, social pages, and on-site. Now you have book sales everywhere. Maximise your book's reach.", revenue: "$4,800/yr estimated", time: "~1 hour", difficulty: 3, section: "digital" },
+  { id: "BP-08", name: "Special Editions", icon: "✨", description: "Premium versions of your book (hardcover, signed, boxed sets, collector editions). Build these last because they require the most effort to fulfil and only make sense once you've proven demand and have a reader base.", revenue: "$6,000/yr estimated", time: "~1 hour", difficulty: 3, section: "digital" },
+];
 
 const FALLBACK_NODES = [
   { node_id: "BP-01", node_name: "Email Marketing", status: "not_started" },
@@ -33,25 +54,15 @@ const FALLBACK_NODES = [
   { node_id: "BP-09", node_name: "Book Sales", status: "not_started" },
 ];
 
-type NodeStatus = "locked" | "not_started" | "building" | "content_ready" | "live" | "error";
-
-interface NodeCard {
-  node_id: string;
-  node_name: string;
-  personalised_name: string | null;
-  status: NodeStatus;
-  microsite_url: string | null;
-  current_step: number;
+function StarRating({ count }: { count: number }) {
+  return (
+    <div className="flex gap-0.5">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <Star key={i} className={`h-3 w-3 ${i < count ? "fill-amber-400 text-amber-400" : "text-muted-foreground/20"}`} />
+      ))}
+    </div>
+  );
 }
-
-const STATUS_CONFIG: Record<NodeStatus, { label: string; color: string; icon: typeof CheckCircle2 }> = {
-  locked:        { label: "Locked",            color: "bg-muted text-muted-foreground",                    icon: Lock },
-  not_started:   { label: "Ready to Build",    color: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300", icon: Zap },
-  building:      { label: "In Progress",       color: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300", icon: Clock },
-  content_ready: { label: "Ready to Publish",  color: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300", icon: Eye },
-  live:          { label: "Live ✓",            color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300", icon: CheckCircle2 },
-  error:         { label: "Needs Attention",   color: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300", icon: AlertCircle },
-};
 
 export default function BrandProductsHub() {
   const { user, loading: authLoading, tier } = useAuth();
@@ -110,10 +121,9 @@ export default function BrandProductsHub() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
           <Skeleton className="h-8 w-64 mb-2" />
           <Skeleton className="h-4 w-96 mb-4" />
-          <Skeleton className="h-2 w-48 mb-8" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
             {Array.from({ length: 9 }).map((_, i) => (
-              <Skeleton key={i} className="h-48 rounded-xl" />
+              <Skeleton key={i} className="h-64 rounded-xl" />
             ))}
           </div>
         </div>
@@ -121,36 +131,67 @@ export default function BrandProductsHub() {
     );
   }
 
-  if (!user) {
-    navigate("/auth");
-    return null;
-  }
+  if (!user) { navigate("/auth"); return null; }
+
+  const getNodeStatus = (nodeId: string): NodeStatus => {
+    const node = nodes.find(n => n.node_id === nodeId);
+    return node?.status || "not_started";
+  };
+
+  const getStatusBadge = (nodeId: string, def: NodeDef) => {
+    if (!isTierUnlocked) {
+      return <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium bg-muted text-muted-foreground"><Lock className="h-3 w-3" /> Locked</span>;
+    }
+    const status = getNodeStatus(nodeId);
+    if (def.startHere && status === "not_started") {
+      return <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold bg-amber-500 text-white"><Star className="h-3 w-3" /> Start Here</span>;
+    }
+    const configs: Record<string, { label: string; cls: string }> = {
+      not_started: { label: "Ready to Build", cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" },
+      building: { label: "In Progress", cls: "bg-blue-100 text-blue-700" },
+      content_ready: { label: "Ready to Publish", cls: "bg-purple-100 text-purple-700" },
+      live: { label: "Live ✓", cls: "bg-emerald-100 text-emerald-700" },
+      error: { label: "Needs Attention", cls: "bg-red-100 text-red-700" },
+    };
+    const cfg = configs[status] || configs.not_started;
+    return <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${cfg.cls}`}>{cfg.label}</span>;
+  };
+
+  const handleCardClick = (nodeId: string) => {
+    if (!isTierUnlocked) { navigate("/pricing"); return; }
+    navigate(`/node-builder/${nodeId}`);
+  };
 
   const liveCount = nodes.filter(n => n.status === "live").length;
-  const progressPercent = (liveCount / 9) * 100;
-  const showAbbyWelcome = liveCount === 0;
-  const bp04Node = nodes.find(n => n.node_id === "BP-04");
-  const bp04IsLive = bp04Node?.status === "live";
-  const micrositeNodes = new Set(["BP-02", "BP-05", "BP-06", "BP-07", "BP-08", "BP-09"]);
 
-  const handleCardClick = (node: NodeCard) => {
-    if (!isTierUnlocked || node.status === "locked") {
-      navigate("/pricing");
-      return;
-    }
-    navigate(`/node-builder/${node.node_id}`);
-  };
+  const renderNodeCard = (def: NodeDef) => (
+    <div key={def.id} className="rounded-2xl border border-border bg-[hsl(var(--card))] p-5 flex flex-col gap-3 hover:shadow-lg transition-shadow">
+      <div className="flex items-start justify-between">
+        <span className="text-2xl">{def.icon}</span>
+        {getStatusBadge(def.id, def)}
+      </div>
+      <h3 className="font-heading text-base font-bold text-foreground">{def.name}</h3>
+      <p className="text-xs text-muted-foreground leading-relaxed flex-1">{def.description}</p>
+      <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+        <span className="font-semibold text-foreground">{def.revenue}</span>
+      </div>
+      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+        <div className="flex items-center gap-1"><Clock className="h-3 w-3" /> {def.time}</div>
+        <StarRating count={def.difficulty} />
+      </div>
+      <Button
+        size="sm"
+        variant={isTierUnlocked ? "default" : "secondary"}
+        className="w-full text-xs mt-1"
+        onClick={() => handleCardClick(def.id)}
+      >
+        {isTierUnlocked ? "Build This Product →" : "Upgrade to Unlock"}
+      </Button>
+    </div>
+  );
 
-  const ctaForStatus = (status: NodeStatus) => {
-    switch (status) {
-      case "not_started":    return { text: "Start Building",     variant: "default" as const };
-      case "building":       return { text: "Continue Building",  variant: "default" as const };
-      case "content_ready":  return { text: "Review & Publish",   variant: "default" as const };
-      case "live":           return { text: "View Details",       variant: "outline" as const };
-      case "locked":         return { text: "Unlock",             variant: "secondary" as const };
-      case "error":          return { text: "Fix Issue",          variant: "destructive" as const };
-    }
-  };
+  const marketingNodes = BRAND_NODES.filter(n => n.section === "marketing");
+  const digitalNodes = BRAND_NODES.filter(n => n.section === "digital");
 
   return (
     <div className="min-h-screen bg-background">
@@ -160,18 +201,27 @@ export default function BrandProductsHub() {
           <Link to="/dashboard">← Back to Dashboard</Link>
         </Button>
 
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="font-heading text-2xl sm:text-3xl font-bold text-foreground mb-2">
-            Your Brand Products
-          </h1>
-          <p className="text-muted-foreground text-sm sm:text-base mb-4">
-            ABBY has prepared 9 revenue streams for your book. Activate them one by one.
-          </p>
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-foreground">{liveCount} of 9 live</span>
-            <Progress value={progressPercent} className="h-2 flex-1 max-w-xs" />
+        {/* SECTION 1 — Header Card */}
+        <Card className="rounded-2xl border-2 border-emerald-200 dark:border-emerald-800 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/20 p-6 mb-6">
+          <div className="flex items-start justify-between">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center shrink-0">
+                <span className="text-xl">💰</span>
+              </div>
+              <div>
+                <h1 className="font-heading text-xl sm:text-2xl font-black text-foreground">Your Products. Your Brand. Built From Your Book.</h1>
+                <p className="text-sm text-muted-foreground mt-1">Create Your Products (9 nodes)</p>
+              </div>
+            </div>
+            <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-900/50 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300 shrink-0">9 products</span>
           </div>
+        </Card>
+
+        {/* SECTION 2 — Introduction */}
+        <div className="rounded-xl border border-border bg-card p-5 mb-6">
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Everything in Brand Products is designed to do one thing: <span className="font-semibold text-emerald-600 dark:text-emerald-400">turn your book into a recognisable brand that sells while you sleep</span>. These 9 products fall into two groups, and the order matters.
+          </p>
         </div>
 
         {/* Paywall banner for free users */}
@@ -181,53 +231,22 @@ export default function BrandProductsHub() {
               <Lock className="h-5 w-5 text-secondary mt-0.5 shrink-0" />
               <div>
                 <p className="text-sm font-semibold mb-1">Upgrade to unlock Brand Products</p>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Subscribe to the Brand Package to start building your 9 revenue streams.
-                </p>
-                <Button size="sm" onClick={() => navigate("/pricing")}>
-                  View Plans <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-                </Button>
+                <p className="text-xs text-muted-foreground mb-3">Subscribe to the Brand Package to start building your 9 revenue streams.</p>
+                <Button size="sm" onClick={() => navigate("/pricing")}>View Plans <ArrowRight className="ml-1.5 h-3.5 w-3.5" /></Button>
               </div>
             </div>
           </Card>
         )}
 
-        {/* BP-04 Prerequisite Banner */}
-        {!bp04IsLive && (
-          <Card className="p-4 sm:p-5 mb-6 border-amber-200 dark:border-amber-800 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/20">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center shrink-0">
-                <Globe className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-1">
-                  Build your author website first
-                </p>
-                <p className="text-xs text-amber-700 dark:text-amber-300 mb-3">
-                  Your website is the home for everything you create. Start here to give all your pages a home.
-                </p>
-                <Button
-                  size="sm"
-                  className="bg-amber-600 hover:bg-amber-700 text-white"
-                  onClick={() => navigate("/node-builder/BP-04")}
-                >
-                  Build Your Website <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-                </Button>
-              </div>
-            </div>
-          </Card>
-        )}
-
-        {/* ABBY Welcome */}
-        {showAbbyWelcome && (
+        {/* SECTION 3 — ABBY Welcome */}
+        {liveCount === 0 && (
           <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 mb-8 flex flex-col sm:flex-row items-start gap-4">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <Sparkles className="h-5 w-5 text-primary" />
+            <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center shrink-0">
+              <Sparkles className="h-5 w-5 text-secondary" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm text-foreground leading-relaxed mb-3">
-                Hi {authorName || "there"}! I've prepared 9 ways to turn your book into a business.
-                Start with your <strong>Website</strong> — it's the foundation everything else builds on. Then move to <strong>Email Marketing</strong> and <strong>Lead Magnets</strong>. Ready?
+                Hi {authorName || "there"}! I've prepared 9 ways to turn your book into a business. Start with your <strong>Website</strong> — it's the foundation everything else builds on. Then move to <strong>Email Marketing</strong> and <strong>Lead Magnets</strong>. Ready?
               </p>
               <Button size="sm" onClick={() => navigate("/node-builder/BP-04")}>
                 Start with Your Website <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
@@ -236,118 +255,54 @@ export default function BrandProductsHub() {
           </div>
         )}
 
-        {/* Node Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {nodes.map((node) => {
-            const statusCfg = STATUS_CONFIG[node.status];
-            const cta = ctaForStatus(node.status);
-            const StatusIcon = statusCfg.icon;
-            const isBP04 = node.node_id === "BP-04";
-            const needsWebsiteWarning = !bp04IsLive && micrositeNodes.has(node.node_id) && node.status !== "live";
+        {/* SECTION 4 — BRANDING & MARKETING */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-1 h-6 rounded-full bg-amber-500" />
+            <h2 className="font-heading text-sm font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">Branding & Marketing</h2>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4 ml-4">
+            Start here. Before you sell anything, people need to find you, trust you, and hear from you consistently. These six products build your author platform, the foundation that makes everything else work.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {marketingNodes.map(renderNodeCard)}
+          </div>
+        </div>
 
-            return (
-              <div
-                key={node.node_id}
-                className={`relative rounded-xl border bg-card p-5 flex flex-col gap-3 hover:shadow-md transition-shadow ${
-                  !isTierUnlocked ? "opacity-60" :
-                  isBP04 && !bp04IsLive ? "border-amber-300 dark:border-amber-700 ring-1 ring-amber-200 dark:ring-amber-800" : "border-border"
-                }`}
-              >
-                {/* Lock icon for free users */}
-                {!isTierUnlocked && (
-                  <div className="absolute top-3 right-3">
-                    <Lock className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                )}
+        {/* SECTION 5 — DIGITAL PRODUCTS */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-1 h-6 rounded-full bg-amber-500" />
+            <h2 className="font-heading text-sm font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">Digital Products</h2>
+          </div>
+          <p className="text-xs text-muted-foreground mb-1 ml-4">
+            Once your branding and marketing engine is running, these three products give your audience more ways to buy from you at higher price points.
+          </p>
+          <p className="text-xs text-muted-foreground mb-4 ml-4">
+            Why this order? Workbooks are the lowest lift because you're repurposing what you already wrote. Home Study Courses require more structure but command higher prices. Special Editions only make sense once you've proven demand and have a reader base.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {digitalNodes.map(renderNodeCard)}
+          </div>
+        </div>
 
-                {/* Start Here badge for BP-04 (only for subscribed users) */}
-                {isTierUnlocked && isBP04 && !bp04IsLive && (
-                  <span className="absolute -top-2.5 left-4 inline-flex items-center gap-1 rounded-full bg-amber-500 text-white px-3 py-0.5 text-[11px] font-bold shadow-sm">
-                    <Star className="h-3 w-3" /> Start Here
-                  </span>
-                )}
+        {/* SECTION 6 — Estimated Revenue */}
+        <Card className="rounded-2xl border-2 border-emerald-200 dark:border-emerald-800 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/20 p-6 mb-6">
+          <div className="flex items-center gap-3 mb-1">
+            <Sparkles className="h-5 w-5 text-emerald-600" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Estimated Revenue</span>
+          </div>
+          <p className="font-heading text-2xl sm:text-3xl font-black text-emerald-800 dark:text-emerald-300">$5,520 – $15,480 <span className="text-base">↑</span></p>
+        </Card>
 
-                {/* Node ID badge */}
-                {isTierUnlocked && (
-                  <span className="absolute top-3 right-3 text-[10px] font-mono text-muted-foreground/50">
-                    {node.node_id}
-                  </span>
-                )}
-
-                {/* Name */}
-                <h3 className="font-heading text-base font-semibold text-foreground pr-12 leading-tight">
-                  {node.personalised_name || node.node_name}
-                </h3>
-
-                {/* Status badge */}
-                {isTierUnlocked ? (
-                  <div className="flex items-center gap-1.5">
-                    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${statusCfg.color}`}>
-                      <StatusIcon className="h-3 w-3" />
-                      {statusCfg.label}
-                    </span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5">
-                    <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium bg-muted text-muted-foreground">
-                      <Lock className="h-3 w-3" />
-                      Locked
-                    </span>
-                  </div>
-                )}
-
-                {/* Description / Revenue estimate */}
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {NODE_DESCRIPTIONS[node.node_id]}
-                </p>
-
-                {/* Live URL */}
-                {node.status === "live" && node.microsite_url && (
-                  <a
-                    href={node.microsite_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[11px] text-primary flex items-center gap-1 hover:underline truncate"
-                  >
-                    <ExternalLink className="h-3 w-3 shrink-0" />
-                    {node.microsite_url.replace("https://", "")}
-                  </a>
-                )}
-
-                {/* Soft warning if BP-04 not live and this node needs a microsite */}
-                {needsWebsiteWarning && (
-                  <p className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                    <Globe className="h-3 w-3 shrink-0" />
-                    Build your website first to give this page a home.
-                  </p>
-                )}
-
-                {/* CTA */}
-                <div className="mt-auto pt-1">
-                  {isTierUnlocked ? (
-                    <Button
-                      size="sm"
-                      variant={cta.variant}
-                      className="w-full text-xs"
-                      disabled={node.status === "locked"}
-                      onClick={() => handleCardClick(node)}
-                    >
-                      {cta.text}
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="w-full text-xs"
-                      onClick={() => navigate("/pricing")}
-                    >
-                      Upgrade to Unlock
-                    </Button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+        {/* SECTION 7 — ABBY Tip */}
+        <div className="rounded-xl border border-border bg-muted/30 p-5 mb-4">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            <span className="font-semibold text-foreground">Tip:</span> You don't have to build all 9 at once. Abby recommends starting with products 1–3 (Website, Book Sales, Lead Magnets) and adding the rest as your audience grows.
+          </p>
+        </div>
+        <div className="rounded-xl border border-dashed border-border bg-card p-5 text-center">
+          <p className="text-xs text-muted-foreground">Analyse plans with Abby to get personalised recommendations and revenue estimates for each product.</p>
         </div>
       </div>
     </div>
