@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuthorBook } from "@/hooks/useAuthorBook";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -42,6 +43,7 @@ export default function BP05Builder({ authorId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook(authorId);
 
   useEffect(() => {
     if (!authorId) return;
@@ -180,7 +182,7 @@ export default function BP05Builder({ authorId }: Props) {
         {step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's set up your Webinars</h2>
-            {hasContext === false ? (
+            {!isBookLoading && !hasBook ? (
               <>
                 <p className="text-muted-foreground mb-4">
                   Hi {authorName}! Before I can set up your webinars, I need to know about your book. Please complete your book profile first.
@@ -190,7 +192,7 @@ export default function BP05Builder({ authorId }: Props) {
             ) : (
               <>
                 <p className="text-muted-foreground mb-4">
-                  Hi {authorName}! Webinars are one of the most powerful ways to connect with your audience, establish your expertise, and sell your book and programs. I'm going to design a complete webinar system for '{bookTitle || "your book"}' — including 3 signature webinar topics, a registration page, a follow-up email sequence, and a promotional strategy. Ready to go live?
+                  Hi {authorName}! Webinars are one of the most powerful ways to connect with your audience, establish your expertise, and sell your book and programs. I'm going to design a complete webinar system for '{detectedBookTitle || "your book"}' — including 3 signature webinar topics, a registration page, a follow-up email sequence, and a promotional strategy. Ready to go live?
                 </p>
                 <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>
                   <Sparkles className="h-4 w-4 mr-2" /> Design My Webinars

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuthorBook } from "@/hooks/useAuthorBook";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -42,6 +43,7 @@ export default function BP02Builder({ authorId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook(authorId);
 
   useEffect(() => {
     if (!authorId) return;
@@ -188,7 +190,7 @@ export default function BP02Builder({ authorId }: Props) {
         {step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Lead Magnets</h2>
-            {hasContext === false ? (
+            {!isBookLoading && !hasBook ? (
               <>
                 <p className="text-muted-foreground mb-4">
                   Hi {authorName}! Before I can build your lead magnets, I need to know about your book. Please complete your book profile first.
@@ -199,7 +201,7 @@ export default function BP02Builder({ authorId }: Props) {
               <>
                 <p className="text-muted-foreground mb-4">
                   Hi {authorName}! A lead magnet is a free resource you give readers in exchange for their email address — it's how you build your list.
-                  I'm going to create 3 lead magnet concepts perfectly matched to '{bookTitle || "your book"}', plus a complete opt-in page that captures subscribers automatically. Ready?
+                  I'm going to create 3 lead magnet concepts perfectly matched to '{detectedBookTitle || "your book"}', plus a complete opt-in page that captures subscribers automatically. Ready?
                 </p>
                 <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>
                   <Sparkles className="h-4 w-4 mr-2" /> Generate My Lead Magnets

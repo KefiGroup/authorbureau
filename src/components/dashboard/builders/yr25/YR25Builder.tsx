@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuthorBook } from "@/hooks/useAuthorBook";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -25,6 +26,7 @@ export default function YR25Builder({ authorId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook(authorId);
 
   useEffect(() => { if (!authorId) return; (async () => {
     const { data: p } = await supabase.from("author_profiles").select("pen_name, author_slug, user_id").eq("id", authorId).single();
@@ -50,7 +52,7 @@ export default function YR25Builder({ authorId }: Props) {
     <div className="min-h-screen bg-background">
       <StepHeader nodeId="YR-25" nodeName="Certification Program" step={step} />
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-        {step === 0 && (<AbbyCard><h2 className="text-xl font-bold mb-3">Let's build your Certification Programme</h2><p className="text-muted-foreground mb-4">Hi {authorName}! A certification programme turns your methodology into a credential that others can earn — and pay for. I'm going to design your complete certification programme based on '{bookTitle || "your book"}' — with a curriculum, assessment structure, and a certification badge concept. Ready to certify practitioners in your method?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>Build My Certification</Button>{error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{error}</div>}</AbbyCard>)}
+        {step === 0 && (<AbbyCard><h2 className="text-xl font-bold mb-3">Let's build your Certification Programme</h2><p className="text-muted-foreground mb-4">Hi {authorName}! A certification programme turns your methodology into a credential that others can earn — and pay for. I'm going to design your complete certification programme based on '{detectedBookTitle || "your book"}' — with a curriculum, assessment structure, and a certification badge concept. Ready to certify practitioners in your method?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>Build My Certification</Button>{error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{error}</div>}</AbbyCard>)}
         {step === 1 && <LoadingStep messages={GEN_MSGS} msgIndex={msgIndex} />}
         {step === 2 && content && (
           <div className="space-y-4">

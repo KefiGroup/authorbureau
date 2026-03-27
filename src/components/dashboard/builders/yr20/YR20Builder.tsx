@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuthorBook } from "@/hooks/useAuthorBook";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -26,6 +27,7 @@ export default function YR20Builder({ authorId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook(authorId);
 
   useEffect(() => {
     if (!authorId) return;
@@ -85,7 +87,7 @@ export default function YR20Builder({ authorId }: Props) {
         {step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's create your Big Ticket Offers</h2>
-            <p className="text-muted-foreground mb-4">Hi {authorName}! Big ticket offers are where the real transformation happens — and where the real revenue is. I'm going to design 3 premium transformation packages based on '{bookTitle || "your book"}' — each priced between $5,000 and $25,000. Ready to create your most powerful offers?</p>
+            <p className="text-muted-foreground mb-4">Hi {authorName}! Big ticket offers are where the real transformation happens — and where the real revenue is. I'm going to design 3 premium transformation packages based on '{detectedBookTitle || "your book"}' — each priced between $5,000 and $25,000. Ready to create your most powerful offers?</p>
             <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>Build My Big Ticket Offers</Button>
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{error}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>

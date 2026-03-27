@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuthorBook } from "@/hooks/useAuthorBook";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -29,6 +30,7 @@ export default function BP07Builder({ authorId }: Props) {
   const [msgIndex, setMsgIndex] = useState(0);
   const [priceOverride, setPriceOverride] = useState<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook(authorId);
 
   useEffect(() => {
     if (!authorId) return;
@@ -106,7 +108,7 @@ export default function BP07Builder({ authorId }: Props) {
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         {step === 0 && (
           <AbbyCard><h2 className="text-xl font-bold mb-3">Let's build your Coaching Programme</h2>
-            {hasContext === false ? (<><p className="text-muted-foreground mb-4">Hi {authorName}! Before I can build your coaching programme, I need to know about your book. Please complete your book profile first.</p><Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-07")}>Complete Book Profile</Button></>) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! A coaching programme is where your book's transformation becomes personal. I'm going to design a complete 1-on-1 or group coaching programme based on '{bookTitle || "your book"}' — with a programme structure, session outline, deliverables, and a sales page. Ready to start coaching?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Design My Programme</Button></>)}
+            {!isBookLoading && !hasBook ? (<><p className="text-muted-foreground mb-4">Hi {authorName}! Before I can build your coaching programme, I need to know about your book. Please complete your book profile first.</p><Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-07")}>Complete Book Profile</Button></>) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! A coaching programme is where your book's transformation becomes personal. I'm going to design a complete 1-on-1 or group coaching programme based on '{detectedBookTitle || "your book"}' — with a programme structure, session outline, deliverables, and a sales page. Ready to start coaching?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Design My Programme</Button></>)}
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">I hit a snag. {error}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>
         )}
