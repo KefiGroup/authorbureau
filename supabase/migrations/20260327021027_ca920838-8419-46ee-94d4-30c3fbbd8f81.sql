@@ -1,0 +1,1 @@
+ALTER TABLE public.author_nodes ADD COLUMN IF NOT EXISTS marketing_activated_at timestamptz DEFAULT NULL;

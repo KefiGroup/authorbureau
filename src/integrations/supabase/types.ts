@@ -392,6 +392,7 @@ export type Database = {
           created_at: string
           ghl_resource_id: string | null
           id: string
+          marketing_activated_at: string | null
           microsite_url: string | null
           node_id: string
           node_name: string
@@ -408,6 +409,7 @@ export type Database = {
           created_at?: string
           ghl_resource_id?: string | null
           id?: string
+          marketing_activated_at?: string | null
           microsite_url?: string | null
           node_id: string
           node_name: string
@@ -424,6 +426,7 @@ export type Database = {
           created_at?: string
           ghl_resource_id?: string | null
           id?: string
+          marketing_activated_at?: string | null
           microsite_url?: string | null
           node_id?: string
           node_name?: string
