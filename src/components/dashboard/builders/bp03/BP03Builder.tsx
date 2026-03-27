@@ -8,9 +8,10 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Calendar, Hash, Clock, Settings, ChevronDown, ChevronUp } from "lucide-react";
-import NodeSuccessScreen from "@/components/dashboard/builders/shared/NodeSuccessScreen";
+import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
+import { publishNodeToSite } from "@/lib/publish-node";
 
-const STEPS = ["Introduction", "Generating", "Review", "Activate"];
+const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 
 const GENERATING_MESSAGES = [
   "Studying your book's key themes and insights...",
@@ -109,18 +110,15 @@ export default function BP03Builder({ authorId }: Props) {
     }
   };
 
-  const handleActivate = async () => {
+  const handlePublish = async () => {
     setStep(3);
     setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("deploy-bp03-to-ghl", {
-        body: { author_id: authorId },
-      });
-      if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Activation failed");
+      await publishNodeToSite(authorId!, "BP-03", authorSlug);
       setContent((prev: any) => ({ ...prev, activated: true }));
     } catch (e: any) {
-      console.error("Activation error (non-blocking):", e.message);
-      setContent((prev: any) => ({ ...prev, activated: true }));
+      setError(e.message);
+      setStep(2);
     }
   };
 
@@ -207,7 +205,7 @@ export default function BP03Builder({ authorId }: Props) {
           </AbbyCard>
         )}
 
-        {step === 2 && content && <ReviewStep content={content} authorName={authorName} onActivate={handleActivate} />}
+        {step === 2 && content && <ReviewStep content={content} authorName={authorName} onActivate={handlePublish} />}
 
         {step === 3 && !content?.activated && (
           <AbbyCard>
@@ -219,21 +217,11 @@ export default function BP03Builder({ authorId }: Props) {
         )}
 
         {step === 3 && content?.activated && (
-          <NodeSuccessScreen
-            nodeId="BP-03"
-            authorName={authorName}
-            penNameSlug={authorSlug}
-            celebrationMessage={`Your social media is live, ${authorName}! Your 30-day content calendar is ready. Your audience is about to discover '${bookTitle || "your book"}' — one post at a time!`}
-            whatHappensNext={[
-              `${content.posts?.length || 30} posts are scheduled across LinkedIn, Instagram, Facebook, and Twitter/X`,
-              `Your hashtag strategy includes ${content.hashtag_strategy?.author_hashtag || "your branded hashtag"} for consistent branding`,
-              "First week of posts will go live automatically — no action needed",
-            ]}
-            actions={[
-              { label: "Back to Brand Products", variant: "outline", onClick: () => navigate("/brand-products") },
-              { label: "Next: Build Your Website", onClick: () => navigate("/node-builder/BP-04") },
-            ]}
-          />
+          <PublishSuccessScreen
+              nodeId="BP-03"
+              authorName={authorName}
+              penNameSlug={authorSlug}
+            />
         )}
       </div>
     </div>
@@ -390,7 +378,7 @@ function ReviewStep({ content, authorName, onActivate }: { content: any; authorN
           Edit
         </Button>
         <Button className="flex-1" size="lg" onClick={onActivate}>
-          Activate My Social Media <ArrowRight className="h-4 w-4 ml-2" />
+          Publish to My Site<ArrowRight className="h-4 w-4 ml-2" />
         </Button>
       </div>
       <p className="text-xs text-center text-muted-foreground">

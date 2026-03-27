@@ -8,7 +8,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Sparkles, ArrowRight, Handshake, Users, Mail, ListChecks } from "lucide-react";
 import { StepHeader, AbbyCard, LoadingStep, SummaryCard, SuccessCheckmark } from "../ba-shared/BABuilderShared";
-import NodeSuccessScreen from "@/components/dashboard/builders/shared/NodeSuccessScreen";
+import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
+import { publishNodeToSite } from "@/lib/publish-node";
 
 const GEN_MSGS = ["Designing your JV partnership strategy...", "Creating ideal partner profiles...", "Writing your partnership pitch...", "Building your outreach checklist...", "Finalising your strategy..."];
 const ACT_MSGS = ["Setting up your partnerships pipeline...", "Preparing your outreach materials...", "Almost ready..."];
@@ -62,13 +63,16 @@ export default function BA18Builder({ authorId }: Props) {
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 
-  const handleActivate = async () => {
-    setStep(3); setError(null);
+  const handlePublish = async () => {
+    setStep(3);
+    setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("deploy-ba18-to-ghl", { body: { author_id: authorId } });
-      if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Activation failed");
-      setContent((p: any) => ({ ...p, activated: true }));
-    } catch (e: any) { console.error(e.message); setContent((p: any) => ({ ...p, activated: true })); }
+      await publishNodeToSite(authorId!, "BA-18", authorSlug);
+      setContent((prev: any) => ({ ...prev, activated: true }));
+    } catch (e: any) {
+      setError(e.message);
+      setStep(2);
+    }
   };
 
   if (!authorId) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Please set up your author profile first.</p></div>;
@@ -142,28 +146,17 @@ export default function BA18Builder({ authorId }: Props) {
             </Tabs>
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon.")}>Edit</Button>
-              <Button className="flex-1" size="lg" onClick={handleActivate}>Activate My JV Strategy <ArrowRight className="h-4 w-4 ml-2" /></Button>
+              <Button className="flex-1" size="lg" onClick={handlePublish}>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></Button>
             </div>
           </div>
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
-          <NodeSuccessScreen
-            nodeId="BA-18"
-            authorName={authorName}
-            penNameSlug={authorSlug}
-            celebrationMessage={`Your JV partnership strategy is ready! Your partner profiles, pitch, and outreach checklist are all set. Time to reach out!`}
-            whatHappensNext={[
-              "Use your 3 ideal partner profiles to identify strategic allies",
-              "Send the personalised partnership pitch to your first 5 targets",
-              "Follow the outreach checklist to build profitable partnerships",
-            ]}
-            socialShareText={`I just built my JV partnership strategy with @AuthorsBureau! 🤝`}
-            actions={[
-              { label: "Back to Build Authority", variant: "outline", onClick: () => navigate("/build-authority") },
-              { label: "View All Build Authority", onClick: () => navigate("/build-authority") },
-            ]}
-          />
+          <PublishSuccessScreen
+              nodeId="BA-18"
+              authorName={authorName}
+              penNameSlug={authorSlug}
+            />
         )}
       </div>
     </div>

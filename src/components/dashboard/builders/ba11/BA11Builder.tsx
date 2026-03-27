@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Sparkles, ArrowRight, Mic, BookOpen, DollarSign, Globe } from "lucide-react";
 import { StepHeader, AbbyCard, LoadingStep, SummaryCard, SuccessCheckmark } from "../ba-shared/BABuilderShared";
-import NodeSuccessScreen from "@/components/dashboard/builders/shared/NodeSuccessScreen";
+import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
+import { publishNodeToSite } from "@/lib/publish-node";
 
 const GEN_MSGS = ["Analysing your book's structure for audio...", "Writing your narrator brief...", "Creating chapter-by-chapter recording guides...", "Researching distribution platforms...", "Finalising your audiobook package..."];
 const ACT_MSGS = ["Preparing your audiobook production package...", "Setting up your distribution strategy...", "Creating your production checklist...", "Almost ready..."];
@@ -63,13 +64,16 @@ export default function BA11Builder({ authorId }: Props) {
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 
-  const handleActivate = async () => {
-    setStep(3); setError(null);
+  const handlePublish = async () => {
+    setStep(3);
+    setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("deploy-ba11-audiobook", { body: { author_id: authorId, price_override: priceOverride } });
-      if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Activation failed");
-      setContent((p: any) => ({ ...p, activated: true }));
-    } catch (e: any) { console.error(e.message); setContent((p: any) => ({ ...p, activated: true })); }
+      await publishNodeToSite(authorId!, "BA-11", authorSlug);
+      setContent((prev: any) => ({ ...prev, activated: true }));
+    } catch (e: any) {
+      setError(e.message);
+      setStep(2);
+    }
   };
 
   if (!authorId) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Please set up your author profile first.</p></div>;
@@ -143,28 +147,17 @@ export default function BA11Builder({ authorId }: Props) {
             </Tabs>
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon.")}>Edit</Button>
-              <Button className="flex-1" size="lg" onClick={handleActivate}>Activate My Audiobook <ArrowRight className="h-4 w-4 ml-2" /></Button>
+              <Button className="flex-1" size="lg" onClick={handlePublish}>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></Button>
             </div>
           </div>
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
-          <NodeSuccessScreen
-            nodeId="BA-11"
-            authorName={authorName}
-            penNameSlug={authorSlug}
-            celebrationMessage={`Your audiobook production package is ready! Your narrator brief, chapter guides, and distribution strategy are all set.`}
-            whatHappensNext={[
-              "Submit to ACX (Amazon Audible) to reach millions of listeners",
-              "Submit to Findaway Voices for wide distribution",
-              "Submit to Spotify for Podcasters for streaming audiences",
-            ]}
-            socialShareText={`I just created my audiobook production package with @AuthorsBureau! 🎧`}
-            actions={[
-              { label: "Back to Build Authority", variant: "outline", onClick: () => navigate("/build-authority") },
-              { label: "Next: Launch Your Membership", onClick: () => navigate("/node-builder/BA-12") },
-            ]}
-          />
+          <PublishSuccessScreen
+              nodeId="BA-11"
+              authorName={authorName}
+              penNameSlug={authorSlug}
+            />
         )}
       </div>
     </div>

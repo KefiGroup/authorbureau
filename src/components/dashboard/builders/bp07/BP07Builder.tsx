@@ -8,9 +8,10 @@ import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Users, LayoutList, DollarSign, FileText, Copy } from "lucide-react";
-import NodeSuccessScreen from "@/components/dashboard/builders/shared/NodeSuccessScreen";
+import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
+import { publishNodeToSite } from "@/lib/publish-node";
 
-const STEPS = ["Introduction", "Generating", "Review", "Activate"];
+const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = ["Studying your book's transformation framework...", "Designing your coaching programme structure...", "Creating 3 programme phases...", "Writing your sales page copy...", "Finalising your coaching blueprint..."];
 const ACT_MSGS = ["Creating your coaching product...", "Setting up your payment page...", "Generating your checkout link...", "Your programme is almost ready..."];
 
@@ -68,13 +69,16 @@ export default function BP07Builder({ authorId }: Props) {
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 
-  const handleActivate = async () => {
-    setStep(3); setError(null);
+  const handlePublish = async () => {
+    setStep(3);
+    setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("deploy-bp07-to-ghl", { body: { author_id: authorId, price_override: priceOverride } });
-      if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Activation failed");
-      setContent((p: any) => ({ ...p, activated: true, payment_link_url: data.payment_link_url }));
-    } catch (e: any) { console.error("Activation error:", e.message); setContent((p: any) => ({ ...p, activated: true })); }
+      await publishNodeToSite(authorId!, "BP-07", authorSlug);
+      setContent((prev: any) => ({ ...prev, activated: true }));
+    } catch (e: any) {
+      setError(e.message);
+      setStep(2);
+    }
   };
 
   if (!authorId) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Please set up your author profile first.</p></div>;
@@ -134,29 +138,18 @@ export default function BP07Builder({ authorId }: Props) {
             </Tabs>
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon. Activate now and request changes from ABBY later.")}>Edit</Button>
-              <Button className="flex-1" size="lg" onClick={handleActivate}>Activate My Programme <ArrowRight className="h-4 w-4 ml-2" /></Button>
+              <Button className="flex-1" size="lg" onClick={handlePublish}>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></Button>
             </div>
             <p className="text-xs text-center text-muted-foreground">Your coaching programme will be set up automatically with a payment link.</p>
           </div>
         )}
         {step === 3 && !content?.activated && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{ACT_MSGS[msgIndex % ACT_MSGS.length]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /></div></AbbyCard>}
         {step === 3 && content?.activated && (
-          <NodeSuccessScreen
-            nodeId="BP-07"
-            authorName={authorName}
-            penNameSlug={authorSlug}
-            celebrationMessage={`Your coaching programme is live, ${authorName}! '${content.programme_title}' is ready to sell.`}
-            paymentLinks={content.payment_link_url ? [{ label: "Coaching Payment Link", url: content.payment_link_url, price: `$${priceOverride ?? content.suggested_price_usd ?? 2997}` }] : undefined}
-            whatHappensNext={[
-              `Programme "${content.programme_title}" with ${content.session_count} sessions is ready`,
-              "Payment link is live — share it with qualified prospects",
-              "Every purchase automatically enrolls the client",
-            ]}
-            actions={[
-              { label: "Back to Brand Products", variant: "outline", onClick: () => navigate("/brand-products") },
-              { label: "Next: Set Up Mastermind", onClick: () => navigate("/node-builder/BP-08") },
-            ]}
-          />
+          <PublishSuccessScreen
+              nodeId="BP-07"
+              authorName={authorName}
+              penNameSlug={authorSlug}
+            />
         )}
       </div>
     </div>

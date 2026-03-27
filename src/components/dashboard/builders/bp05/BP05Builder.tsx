@@ -7,9 +7,10 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Video, FileText, Mail, Megaphone, Star, ChevronDown, ChevronUp, Clock } from "lucide-react";
-import NodeSuccessScreen from "@/components/dashboard/builders/shared/NodeSuccessScreen";
+import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
+import { publishNodeToSite } from "@/lib/publish-node";
 
-const STEPS = ["Introduction", "Generating", "Review", "Activate"];
+const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 
 const GENERATING_MESSAGES = [
   "Studying your book's key insights and frameworks...",
@@ -107,18 +108,15 @@ export default function BP05Builder({ authorId }: Props) {
     }
   };
 
-  const handleActivate = async () => {
+  const handlePublish = async () => {
     setStep(3);
     setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("deploy-bp05-to-ghl", {
-        body: { author_id: authorId },
-      });
-      if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Activation failed");
+      await publishNodeToSite(authorId!, "BP-05", authorSlug);
       setContent((prev: any) => ({ ...prev, activated: true }));
     } catch (e: any) {
-      console.error("Activation error (non-blocking):", e.message);
-      setContent((prev: any) => ({ ...prev, activated: true }));
+      setError(e.message);
+      setStep(2);
     }
   };
 
@@ -202,7 +200,7 @@ export default function BP05Builder({ authorId }: Props) {
           </AbbyCard>
         )}
 
-        {step === 2 && content && <ReviewStep content={content} authorName={authorName} onActivate={handleActivate} />}
+        {step === 2 && content && <ReviewStep content={content} authorName={authorName} onActivate={handlePublish} />}
 
         {step === 3 && !content?.activated && (
           <AbbyCard>
@@ -214,21 +212,11 @@ export default function BP05Builder({ authorId }: Props) {
         )}
 
         {step === 3 && content?.activated && (
-          <NodeSuccessScreen
-            nodeId="BP-05"
-            authorName={authorName}
-            penNameSlug={authorSlug}
-            celebrationMessage={`Your webinar system is live, ${authorName}! Your registration page is ready, follow-up emails are configured, and your first webinar topic is set up. Time to invite your audience!`}
-            whatHappensNext={[
-              "3 signature webinar topics are ready — registration pages are live",
-              "Your 4-email follow-up sequence will engage registrants automatically",
-              "Your 14-day promotion plan is ready to launch",
-            ]}
-            actions={[
-              { label: "Back to Brand Products", variant: "outline", onClick: () => navigate("/brand-products") },
-              { label: "Next: Create Digital Products", onClick: () => navigate("/node-builder/BP-06") },
-            ]}
-          />
+          <PublishSuccessScreen
+              nodeId="BP-05"
+              authorName={authorName}
+              penNameSlug={authorSlug}
+            />
         )}
       </div>
     </div>
@@ -421,7 +409,7 @@ function ReviewStep({ content, authorName, onActivate }: { content: any; authorN
       <div className="flex flex-col sm:flex-row gap-3 pt-2">
         <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon. Activate now and request changes from ABBY later.")}>Edit</Button>
         <Button className="flex-1" size="lg" onClick={onActivate}>
-          Activate My Webinars <ArrowRight className="h-4 w-4 ml-2" />
+          Publish to My Site<ArrowRight className="h-4 w-4 ml-2" />
         </Button>
       </div>
       <p className="text-xs text-center text-muted-foreground">
