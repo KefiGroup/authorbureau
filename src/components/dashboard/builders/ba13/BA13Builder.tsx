@@ -25,6 +25,7 @@ export default function BA13Builder({ authorId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
   const [priceOverride, setPriceOverride] = useState<number | null>(null);
+  const [authorSlug, setAuthorSlug] = useState("");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
