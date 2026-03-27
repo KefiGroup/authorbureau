@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { useNavigate, Link } from "react-router-dom";
+import { useAuth, hasTierAccess } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
@@ -54,7 +54,8 @@ const STATUS_CONFIG: Record<NodeStatus, { label: string; color: string; icon: ty
 };
 
 export default function BrandProductsHub() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, tier } = useAuth();
+  const isTierUnlocked = hasTierAccess(tier, "starter");
   const navigate = useNavigate();
   const [nodes, setNodes] = useState<NodeCard[]>([]);
   const [authorName, setAuthorName] = useState("");
@@ -133,8 +134,8 @@ export default function BrandProductsHub() {
   const micrositeNodes = new Set(["BP-02", "BP-05", "BP-06", "BP-07", "BP-08", "BP-09"]);
 
   const handleCardClick = (node: NodeCard) => {
-    if (node.status === "locked") {
-      toast({ title: "Locked", description: "Upgrade your plan to unlock this node." });
+    if (!isTierUnlocked || node.status === "locked") {
+      navigate("/pricing");
       return;
     }
     navigate(`/node-builder/${node.node_id}`);
@@ -154,6 +155,11 @@ export default function BrandProductsHub() {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        {/* Back nav */}
+        <Button asChild variant="ghost" size="sm" className="mb-4 -ml-2">
+          <Link to="/dashboard">← Back to Dashboard</Link>
+        </Button>
+
         {/* Header */}
         <div className="mb-8">
           <h1 className="font-heading text-2xl sm:text-3xl font-bold text-foreground mb-2">
@@ -167,6 +173,24 @@ export default function BrandProductsHub() {
             <Progress value={progressPercent} className="h-2 flex-1 max-w-xs" />
           </div>
         </div>
+
+        {/* Paywall banner for free users */}
+        {!isTierUnlocked && (
+          <Card className="p-5 mb-6 border-secondary/30 bg-secondary/5">
+            <div className="flex items-start gap-3">
+              <Lock className="h-5 w-5 text-secondary mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold mb-1">Upgrade to unlock Brand Products</p>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Subscribe to the Brand Package to start building your 9 revenue streams.
+                </p>
+                <Button size="sm" onClick={() => navigate("/pricing")}>
+                  View Plans <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
 
         {/* BP-04 Prerequisite Banner */}
         {!bp04IsLive && (
@@ -224,19 +248,31 @@ export default function BrandProductsHub() {
             return (
               <div
                 key={node.node_id}
-                className={`relative rounded-xl border bg-card p-5 flex flex-col gap-3 hover:shadow-md transition-shadow ${isBP04 && !bp04IsLive ? "border-amber-300 dark:border-amber-700 ring-1 ring-amber-200 dark:ring-amber-800" : "border-border"}`}
+                className={`relative rounded-xl border bg-card p-5 flex flex-col gap-3 hover:shadow-md transition-shadow ${
+                  !isTierUnlocked ? "opacity-60" :
+                  isBP04 && !bp04IsLive ? "border-amber-300 dark:border-amber-700 ring-1 ring-amber-200 dark:ring-amber-800" : "border-border"
+                }`}
               >
-                {/* Start Here badge for BP-04 */}
-                {isBP04 && !bp04IsLive && (
+                {/* Lock icon for free users */}
+                {!isTierUnlocked && (
+                  <div className="absolute top-3 right-3">
+                    <Lock className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                )}
+
+                {/* Start Here badge for BP-04 (only for subscribed users) */}
+                {isTierUnlocked && isBP04 && !bp04IsLive && (
                   <span className="absolute -top-2.5 left-4 inline-flex items-center gap-1 rounded-full bg-amber-500 text-white px-3 py-0.5 text-[11px] font-bold shadow-sm">
                     <Star className="h-3 w-3" /> Start Here
                   </span>
                 )}
 
                 {/* Node ID badge */}
-                <span className="absolute top-3 right-3 text-[10px] font-mono text-muted-foreground/50">
-                  {node.node_id}
-                </span>
+                {isTierUnlocked && (
+                  <span className="absolute top-3 right-3 text-[10px] font-mono text-muted-foreground/50">
+                    {node.node_id}
+                  </span>
+                )}
 
                 {/* Name */}
                 <h3 className="font-heading text-base font-semibold text-foreground pr-12 leading-tight">
@@ -244,12 +280,21 @@ export default function BrandProductsHub() {
                 </h3>
 
                 {/* Status badge */}
-                <div className="flex items-center gap-1.5">
-                  <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${statusCfg.color}`}>
-                    <StatusIcon className="h-3 w-3" />
-                    {statusCfg.label}
-                  </span>
-                </div>
+                {isTierUnlocked ? (
+                  <div className="flex items-center gap-1.5">
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${statusCfg.color}`}>
+                      <StatusIcon className="h-3 w-3" />
+                      {statusCfg.label}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium bg-muted text-muted-foreground">
+                      <Lock className="h-3 w-3" />
+                      Locked
+                    </span>
+                  </div>
+                )}
 
                 {/* Description / Revenue estimate */}
                 <p className="text-xs text-muted-foreground leading-relaxed">
@@ -279,15 +324,26 @@ export default function BrandProductsHub() {
 
                 {/* CTA */}
                 <div className="mt-auto pt-1">
-                  <Button
-                    size="sm"
-                    variant={cta.variant}
-                    className="w-full text-xs"
-                    disabled={node.status === "locked"}
-                    onClick={() => handleCardClick(node)}
-                  >
-                    {cta.text}
-                  </Button>
+                  {isTierUnlocked ? (
+                    <Button
+                      size="sm"
+                      variant={cta.variant}
+                      className="w-full text-xs"
+                      disabled={node.status === "locked"}
+                      onClick={() => handleCardClick(node)}
+                    >
+                      {cta.text}
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="w-full text-xs"
+                      onClick={() => navigate("/pricing")}
+                    >
+                      Upgrade to Unlock
+                    </Button>
+                  )}
                 </div>
               </div>
             );

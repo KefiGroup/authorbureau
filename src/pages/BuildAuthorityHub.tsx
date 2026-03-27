@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useAuth, hasTierAccess } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Sparkles, ArrowRight, Lock, AlertCircle, CheckCircle2, Zap, Clock, Eye } from "lucide-react";
 
 const NODE_DESCRIPTIONS: Record<string, string> = {
@@ -50,7 +51,8 @@ const STATUS_CONFIG: Record<NodeStatus, { label: string; color: string; icon: ty
 };
 
 export default function BuildAuthorityHub() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, tier } = useAuth();
+  const isTierUnlocked = hasTierAccess(tier, "pro");
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const devUnlock = searchParams.get("unlock") === "true";
@@ -146,8 +148,8 @@ export default function BuildAuthorityHub() {
   const showAbbyWelcome = liveCount === 0;
 
   const handleCardClick = (node: NodeCard) => {
-    if (node.status === "locked") {
-      toast({ title: "Building Towards Unlock", description: `You need ${SUBSCRIBER_THRESHOLD - subscriberCount} more subscribers to unlock Build Authority. Keep growing!` });
+    if (!isTierUnlocked || node.status === "locked") {
+      navigate("/pricing");
       return;
     }
     navigate(`/node-builder/${node.node_id}`);
@@ -167,6 +169,23 @@ export default function BuildAuthorityHub() {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        <Button asChild variant="ghost" size="sm" className="mb-4 -ml-2">
+          <Link to="/dashboard">← Back to Dashboard</Link>
+        </Button>
+
+        {/* Paywall banner */}
+        {!isTierUnlocked && (
+          <Card className="p-5 mb-6 border-secondary/30 bg-secondary/5">
+            <div className="flex items-start gap-3">
+              <Lock className="h-5 w-5 text-secondary mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold mb-1">Upgrade to unlock Build Authority</p>
+                <p className="text-xs text-muted-foreground mb-3">Subscribe to the Build Package to unlock 9 audience-scaling nodes.</p>
+                <Button size="sm" onClick={() => navigate("/pricing")}>View Plans <ArrowRight className="ml-1.5 h-3.5 w-3.5" /></Button>
+              </div>
+            </div>
+          </Card>
+        )}
         {/* Header */}
         <div className="mb-8">
           <h1 className="font-heading text-2xl sm:text-3xl font-bold text-foreground mb-2">
@@ -252,15 +271,11 @@ export default function BuildAuthorityHub() {
                   {NODE_DESCRIPTIONS[node.node_id]}
                 </p>
                 <div className="mt-auto pt-1">
-                  <Button
-                    size="sm"
-                    variant={cta.variant}
-                    className="w-full text-xs"
-                    disabled={node.status === "locked"}
-                    onClick={() => handleCardClick(node)}
-                  >
-                    {cta.text}
-                  </Button>
+                  {isTierUnlocked ? (
+                    <Button size="sm" variant={cta.variant} className="w-full text-xs" disabled={node.status === "locked"} onClick={() => handleCardClick(node)}>{cta.text}</Button>
+                  ) : (
+                    <Button size="sm" variant="secondary" className="w-full text-xs" onClick={() => navigate("/pricing")}>Upgrade to Unlock</Button>
+                  )}
                 </div>
               </div>
             );
