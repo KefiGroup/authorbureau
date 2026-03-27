@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Sparkles, ArrowRight, BookOpen, LayoutList, DollarSign, FileText, ChevronDown, ChevronUp } from "lucide-react";
 import { StepHeader, AbbyCard, LoadingStep, PaymentLinkCard, SummaryCard, SuccessCheckmark } from "../ba-shared/BABuilderShared";
-import NodeSuccessScreen from "@/components/dashboard/builders/shared/NodeSuccessScreen";
+import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
+import { publishNodeToSite } from "@/lib/publish-node";
 
 const GEN_MSGS = ["Studying your book's key insights and frameworks...", "Designing your professional course structure...", "Creating 8 detailed course modules with lessons...", "Writing your course description...", "Finalising your course blueprint..."];
 const ACT_MSGS = ["Creating your course on the platform...", "Setting up your payment page...", "Generating your checkout link...", "Your course is almost ready..."];
@@ -69,15 +70,15 @@ export default function BA10Builder({ authorId }: Props) {
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 
-  const handleActivate = async () => {
-    setStep(3); setError(null);
+  const handlePublish = async () => {
+    setStep(3);
+    setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("deploy-ba10-to-thinkific", { body: { author_id: authorId, price_override: priceOverride } });
-      if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Activation failed");
-      setContent((p: any) => ({ ...p, activated: true, payment_link_url: data.payment_link_url }));
+      await publishNodeToSite(authorId!, "BA-10", authorSlug);
+      setContent((prev: any) => ({ ...prev, activated: true }));
     } catch (e: any) {
-      console.error("Activation error (non-blocking):", e.message);
-      setContent((p: any) => ({ ...p, activated: true }));
+      setError(e.message);
+      setStep(2);
     }
   };
 
@@ -173,32 +174,18 @@ export default function BA10Builder({ authorId }: Props) {
             </Tabs>
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon. Activate now and request changes later.")}>Edit</Button>
-              <Button className="flex-1" size="lg" onClick={handleActivate}>Activate My Course <ArrowRight className="h-4 w-4 ml-2" /></Button>
+              <Button className="flex-1" size="lg" onClick={handlePublish}>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></Button>
             </div>
             <p className="text-xs text-center text-muted-foreground">Your course will be set up automatically on your course platform.</p>
           </div>
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
-          <NodeSuccessScreen
-            nodeId="BA-10"
-            authorName={authorName}
-            penNameSlug={authorSlug}
-            celebrationMessage={`Your online course '${content.course_title}' is live and ready for students! Your 8-module course with payment link is set up automatically.`}
-            paymentLinks={content.payment_link_url ? [{ label: content.course_title || "Online Course", url: content.payment_link_url, price: `$${priceOverride ?? content.suggested_price_usd ?? 497}` }] : []}
-            thirdPartyUrl={content.third_party_url}
-            thirdPartyLabel="Course Platform"
-            whatHappensNext={[
-              `${content.course_title} is published with 8 modules and ready to enrol students`,
-              "Students can purchase and access your course immediately",
-              "Your course analytics will update automatically on your dashboard",
-            ]}
-            socialShareText={`I just launched my online course "${content.course_title}" with @AuthorsBureau! 🎓`}
-            actions={[
-              { label: "Back to Build Authority", variant: "outline", onClick: () => navigate("/build-authority") },
-              { label: "Next: Create Your Audiobook", onClick: () => navigate("/node-builder/BA-11") },
-            ]}
-          />
+          <PublishSuccessScreen
+              nodeId="BA-10"
+              authorName={authorName}
+              penNameSlug={authorSlug}
+            />
         )}
       </div>
     </div>

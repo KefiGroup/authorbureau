@@ -7,9 +7,10 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Gift, FileText, ThumbsUp, Settings, Star } from "lucide-react";
-import NodeSuccessScreen from "@/components/dashboard/builders/shared/NodeSuccessScreen";
+import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
+import { publishNodeToSite } from "@/lib/publish-node";
 
-const STEPS = ["Introduction", "Generating", "Review", "Activate"];
+const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 
 const GENERATING_MESSAGES = [
   "Reading your book to find the best lead magnet angles...",
@@ -109,20 +110,15 @@ export default function BP02Builder({ authorId }: Props) {
     }
   };
 
-  const handleActivate = async () => {
+  const handlePublish = async () => {
     setStep(3);
     setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("deploy-bp02-to-ghl", {
-        body: { author_id: authorId },
-      });
-      if (fnErr || !data?.success) {
-        throw new Error(data?.error || fnErr?.message || "Activation failed");
-      }
+      await publishNodeToSite(authorId!, "BP-02", authorSlug);
       setContent((prev: any) => ({ ...prev, activated: true }));
     } catch (e: any) {
-      console.error("Activation error (non-blocking):", e.message);
-      setContent((prev: any) => ({ ...prev, activated: true }));
+      setError(e.message);
+      setStep(2);
     }
   };
 
@@ -219,7 +215,7 @@ export default function BP02Builder({ authorId }: Props) {
         )}
 
         {/* STEP 2: Review */}
-        {step === 2 && content && <ReviewStep content={content} authorName={authorName} onActivate={handleActivate} />}
+        {step === 2 && content && <ReviewStep content={content} authorName={authorName} onActivate={handlePublish} />}
 
         {/* STEP 3: Activation / Success */}
         {step === 3 && !content?.activated && (
@@ -234,20 +230,10 @@ export default function BP02Builder({ authorId }: Props) {
         )}
 
         {step === 3 && content?.activated && (
-          <NodeSuccessScreen
+          <PublishSuccessScreen
             nodeId="BP-02"
             authorName={authorName}
             penNameSlug={authorSlug}
-            celebrationMessage={`Your lead magnet funnel is live, ${authorName}! Your opt-in page is ready to capture subscribers. Share your link and start building your list!`}
-            whatHappensNext={[
-              "Every visitor who opts in will be added to your email list automatically",
-              "Your thank you page will deliver the lead magnet instantly",
-              "New subscribers enter your welcome email sequence on autopilot",
-            ]}
-            actions={[
-              { label: "Back to Brand Products", variant: "outline", onClick: () => navigate("/brand-products") },
-              { label: "Next: Set Up Social Media", onClick: () => navigate("/node-builder/BP-03") },
-            ]}
           />
         )}
       </div>
@@ -385,7 +371,7 @@ function ReviewStep({ content, authorName, onActivate }: { content: any; authorN
           Edit
         </Button>
         <Button className="flex-1" size="lg" onClick={onActivate}>
-          Activate My Lead Magnets <ArrowRight className="h-4 w-4 ml-2" />
+          Publish to My Site <ArrowRight className="h-4 w-4 ml-2" />
         </Button>
       </div>
       <p className="text-xs text-center text-muted-foreground">

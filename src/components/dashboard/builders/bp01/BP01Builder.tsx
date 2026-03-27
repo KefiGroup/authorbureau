@@ -7,9 +7,10 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Mail, Gift, Radio, Settings, ChevronDown, ChevronUp } from "lucide-react";
-import NodeSuccessScreen from "@/components/dashboard/builders/shared/NodeSuccessScreen";
+import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
+import { publishNodeToSite } from "@/lib/publish-node";
 
-const STEPS = ["Introduction", "Generating", "Review", "Activate"];
+const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 
 const GENERATING_MESSAGES = [
   "Reading your book and understanding your audience...",
@@ -109,7 +110,7 @@ export default function BP01Builder({ authorId }: Props) {
     }
   };
 
-  const handleActivate = async () => {
+  const handlePublish = async () => {
     const prevStep = step;
     setStep(3);
     setError(null);
@@ -225,7 +226,7 @@ export default function BP01Builder({ authorId }: Props) {
         )}
 
         {/* STEP 2: Review */}
-        {step === 2 && content && <ReviewStep content={content} authorName={authorName} onActivate={handleActivate} />}
+        {step === 2 && content && <ReviewStep content={content} authorName={authorName} onActivate={handlePublish} />}
 
         {/* STEP 3: Activation / Success */}
         {step === 3 && !content?.activated && (
@@ -240,22 +241,11 @@ export default function BP01Builder({ authorId }: Props) {
         )}
 
         {step === 3 && content?.activated && (
-          <NodeSuccessScreen
-            nodeId="BP-01"
-            authorName={authorName}
-            penNameSlug={authorSlug}
-            celebrationMessage={`Your email marketing is live, ${authorName}! Your welcome sequence is ready for new subscribers, and your first campaign is set up. Every reader who signs up will automatically receive your personalised welcome series. You're building your list!`}
-            whatHappensNext={[
-              `Welcome sequence: ${content.welcome_sequence?.length || 5} emails will be sent automatically to every new subscriber`,
-              `Lead magnet offer: "${content.lead_magnet_offer?.title}" is ready to capture new readers`,
-              "Your email list is growing on autopilot — every opt-in is handled for you",
-            ]}
-            socialShareText={`I just set up my author email marketing with @AuthorsBureau! Building my list automatically 📧`}
-            actions={[
-              { label: "Back to Brand Products", variant: "outline", onClick: () => navigate("/brand-products") },
-              { label: "Next: Build Your Lead Magnets", onClick: () => navigate("/node-builder/BP-02") },
-            ]}
-          />
+          <PublishSuccessScreen
+              nodeId="BP-01"
+              authorName={authorName}
+              penNameSlug={authorSlug}
+            />
         )}
       </div>
     </div>
@@ -369,7 +359,7 @@ function ReviewStep({ content, authorName, onActivate }: { content: any; authorN
           Edit
         </Button>
         <Button className="flex-1" size="lg" onClick={onActivate}>
-          Activate My Email Marketing <ArrowRight className="h-4 w-4 ml-2" />
+          Publish to My Site<ArrowRight className="h-4 w-4 ml-2" />
         </Button>
       </div>
       <p className="text-xs text-center text-muted-foreground">

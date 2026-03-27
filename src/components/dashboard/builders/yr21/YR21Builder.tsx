@@ -7,7 +7,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ArrowRight, Mic, DollarSign, FileText, ListChecks, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { StepHeader, AbbyCard, LoadingStep, SummaryCard, SuccessCheckmark, HighTicketPrice } from "../yr-shared/YRBuilderShared";
-import NodeSuccessScreen from "../shared/NodeSuccessScreen";
+import PublishSuccessScreen from "../shared/PublishSuccessScreen";
+import { publishNodeToSite } from "@/lib/publish-node";
 import { getMicrositeUrl } from "@/lib/node-slug-map";
 
 const GEN_MSGS = ["Crafting your signature talks...", "Building your speaker one-sheet...", "Designing your fee schedule...", "Finalising your speaking business..."];
@@ -60,13 +61,16 @@ export default function YR21Builder({ authorId }: Props) {
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 
-  const handleActivate = async () => {
-    setStep(3); setError(null);
+  const handlePublish = async () => {
+    setStep(3);
+    setError(null);
     try {
-      const { data, error: e } = await supabase.functions.invoke("deploy-yr21-to-ghl", { body: { author_id: authorId } });
-      if (e || !data?.success) throw new Error(data?.error || e?.message || "Activation failed");
-      setContent((p: any) => ({ ...p, activated: true }));
-    } catch (e: any) { console.error(e); setContent((p: any) => ({ ...p, activated: true })); }
+      await publishNodeToSite(authorId!, "YR-21", authorSlug);
+      setContent((prev: any) => ({ ...prev, activated: true }));
+    } catch (e: any) {
+      setError(e.message);
+      setStep(2);
+    }
   };
 
   if (!authorId) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Please set up your author profile first.</p></div>;
@@ -159,24 +163,17 @@ export default function YR21Builder({ authorId }: Props) {
             </Tabs>
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon.")}>Edit</Button>
-              <Button className="flex-1" size="lg" onClick={handleActivate}>Activate My Speaking Business <ArrowRight className="h-4 w-4 ml-2" /></Button>
+              <Button className="flex-1" size="lg" onClick={handlePublish}>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></Button>
             </div>
           </div>
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
           <div className="space-y-6">
-            <NodeSuccessScreen
+            <PublishSuccessScreen
               nodeId="YR-21"
               authorName={authorName}
               penNameSlug={authorSlug}
-              celebrationMessage="Your speaking business is live! 3 signature talks and your fee schedule are ready."
-              whatHappensNext={["Your speaking enquiry page is live and accepting bookings", "Event organisers can view your topics and fees online", "Speaking enquiries will appear in your dashboard"]}
-              socialShareText={`I'm now available for keynote speaking engagements! Learn more: ${getMicrositeUrl(authorSlug, "YR-21") || ""}`}
-              actions={[
-                { label: "Back to Yield Revenue", variant: "outline", onClick: () => navigate("/yield-revenue") },
-                { label: "Next: Corporate Training", onClick: () => navigate("/node-builder/YR-22") },
-              ]}
             />
           </div>
         )}

@@ -7,9 +7,10 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Home, User, BookOpen, Mail, Quote, ChevronDown, ChevronUp, Search, MessageSquare } from "lucide-react";
-import NodeSuccessScreen from "@/components/dashboard/builders/shared/NodeSuccessScreen";
+import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
+import { publishNodeToSite } from "@/lib/publish-node";
 
-const STEPS = ["Introduction", "Generating", "Review", "Activate"];
+const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 
 const GENERATING_MESSAGES = [
   "Studying your book's themes and your author brand...",
@@ -109,20 +110,15 @@ export default function BP04Builder({ authorId }: Props) {
     }
   };
 
-  const handleActivate = async () => {
+  const handlePublish = async () => {
     setStep(3);
     setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("deploy-bp04-to-ghl", {
-        body: { author_id: authorId },
-      });
-      if (fnErr || !data?.success) {
-        throw new Error(data?.error || fnErr?.message || "Activation failed");
-      }
+      await publishNodeToSite(authorId!, "BP-04", authorSlug);
       setContent((prev: any) => ({ ...prev, activated: true }));
     } catch (e: any) {
-      console.error("Activation error (non-blocking):", e.message);
-      setContent((prev: any) => ({ ...prev, activated: true }));
+      setError(e.message);
+      setStep(2);
     }
   };
 
@@ -206,7 +202,7 @@ export default function BP04Builder({ authorId }: Props) {
           </AbbyCard>
         )}
 
-        {step === 2 && content && <ReviewStep content={content} authorName={authorName} onActivate={handleActivate} />}
+        {step === 2 && content && <ReviewStep content={content} authorName={authorName} onActivate={handlePublish} />}
 
         {step === 3 && !content?.activated && (
           <AbbyCard>
@@ -218,21 +214,11 @@ export default function BP04Builder({ authorId }: Props) {
         )}
 
         {step === 3 && content?.activated && (
-          <NodeSuccessScreen
-            nodeId="BP-04"
-            authorName={authorName}
-            penNameSlug={authorSlug}
-            celebrationMessage={`Your author website is live, ${authorName}! Your homepage, about page, book page, and contact page are all set up. '${bookTitle || "Your book"}' now has a professional online home!`}
-            whatHappensNext={[
-              "Your homepage is live with your hero copy and book teaser",
-              "Your about page and book showcase are ready for readers",
-              `SEO is optimised for "${content.seo?.keywords?.[0] || "your niche"}" — search engines will find you`,
-            ]}
-            actions={[
-              { label: "Back to Brand Products", variant: "outline", onClick: () => navigate("/brand-products") },
-              { label: "Next: Set Up Webinars", onClick: () => navigate("/node-builder/BP-05") },
-            ]}
-          />
+          <PublishSuccessScreen
+              nodeId="BP-04"
+              authorName={authorName}
+              penNameSlug={authorSlug}
+            />
         )}
       </div>
     </div>

@@ -8,9 +8,10 @@ import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, BookOpen, LayoutList, DollarSign, FileText, Copy } from "lucide-react";
-import NodeSuccessScreen from "@/components/dashboard/builders/shared/NodeSuccessScreen";
+import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
+import { publishNodeToSite } from "@/lib/publish-node";
 
-const STEPS = ["Introduction", "Generating", "Review", "Activate"];
+const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = [
   "Studying your book's key insights and frameworks...",
   "Designing your online course structure...",
@@ -78,15 +79,15 @@ export default function BP06Builder({ authorId }: Props) {
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 
-  const handleActivate = async () => {
-    setStep(3); setError(null);
+  const handlePublish = async () => {
+    setStep(3);
+    setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("deploy-bp06-to-ghl", { body: { author_id: authorId, price_override: priceOverride } });
-      if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Activation failed");
-      setContent((p: any) => ({ ...p, activated: true, payment_link_url: data.payment_link_url }));
+      await publishNodeToSite(authorId!, "BP-06", authorSlug);
+      setContent((prev: any) => ({ ...prev, activated: true }));
     } catch (e: any) {
-      console.error("Activation error (non-blocking):", e.message);
-      setContent((p: any) => ({ ...p, activated: true }));
+      setError(e.message);
+      setStep(2);
     }
   };
 
@@ -127,25 +128,14 @@ export default function BP06Builder({ authorId }: Props) {
           </AbbyCard>
         )}
         {step === 1 && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{GEN_MSGS[msgIndex]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /><p className="text-xs text-muted-foreground">This usually takes 20–40 seconds</p></div></AbbyCard>}
-        {step === 2 && content && <ReviewStep content={content} authorName={authorName} onActivate={handleActivate} priceOverride={priceOverride} setPriceOverride={setPriceOverride} />}
+        {step === 2 && content && <ReviewStep content={content} authorName={authorName} onActivate={handlePublish} priceOverride={priceOverride} setPriceOverride={setPriceOverride} />}
         {step === 3 && !content?.activated && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{ACT_MSGS[msgIndex % ACT_MSGS.length]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /></div></AbbyCard>}
         {step === 3 && content?.activated && (
-          <NodeSuccessScreen
-            nodeId="BP-06"
-            authorName={authorName}
-            penNameSlug={authorSlug}
-            celebrationMessage={`Your online course is live, ${authorName}! '${content.course_title}' is ready to sell. Your payment link is ready to share with your audience.`}
-            paymentLinks={content.payment_link_url ? [{ label: "Course Payment Link", url: content.payment_link_url, price: `$${priceOverride ?? content.suggested_price_usd ?? 497}` }] : undefined}
-            whatHappensNext={[
-              `Your course "${content.course_title}" has 6 modules ready for students`,
-              "Every purchase automatically grants access to course materials",
-              "Share your payment link on social media, email, or your website",
-            ]}
-            actions={[
-              { label: "Back to Brand Products", variant: "outline", onClick: () => navigate("/brand-products") },
-              { label: "Next: Set Up Coaching", onClick: () => navigate("/node-builder/BP-07") },
-            ]}
-          />
+          <PublishSuccessScreen
+              nodeId="BP-06"
+              authorName={authorName}
+              penNameSlug={authorSlug}
+            />
         )}
       </div>
     </div>
@@ -214,7 +204,7 @@ function ReviewStep({ content, authorName, onActivate, priceOverride, setPriceOv
       </Tabs>
       <div className="flex flex-col sm:flex-row gap-3 pt-2">
         <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon. Activate now and request changes from ABBY later.")}>Edit</Button>
-        <Button className="flex-1" size="lg" onClick={onActivate}>Activate My Course <ArrowRight className="h-4 w-4 ml-2" /></Button>
+        <Button className="flex-1" size="lg" onClick={onActivate}>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></Button>
       </div>
       <p className="text-xs text-center text-muted-foreground">Your course will be set up automatically. You'll receive a payment link to share with your audience.</p>
     </div>

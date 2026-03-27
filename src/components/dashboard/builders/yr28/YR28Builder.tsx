@@ -7,7 +7,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ArrowRight, Handshake, Presentation, Mail, Target } from "lucide-react";
 import { toast } from "sonner";
 import { StepHeader, AbbyCard, LoadingStep, MultiPaymentLinks, SummaryCard, SuccessCheckmark, HighTicketPrice } from "../yr-shared/YRBuilderShared";
-import NodeSuccessScreen from "../shared/NodeSuccessScreen";
+import PublishSuccessScreen from "../shared/PublishSuccessScreen";
+import { publishNodeToSite } from "@/lib/publish-node";
 import { getMicrositeUrl } from "@/lib/node-slug-map";
 
 const GEN_MSGS = ["Designing your sponsorship programme...", "Creating sponsorship packages...", "Building your pitch deck outline...", "Finalising your outreach strategy..."];
@@ -38,7 +39,7 @@ export default function YR28Builder({ authorId }: Props) {
   useEffect(() => { if (step === 1 || (step === 3 && !content?.activated)) { const msgs = step === 1 ? GEN_MSGS : ACT_MSGS; setMsgIndex(0); intervalRef.current = setInterval(() => setMsgIndex(i => (i + 1) % msgs.length), 3000); return () => { if (intervalRef.current) clearInterval(intervalRef.current); }; } }, [step]);
 
   const handleGenerate = async () => { setStep(1); setError(null); try { const { data, error: e } = await supabase.functions.invoke("generate-yr28-sponsors", { body: { author_id: authorId } }); if (e || !data?.success) throw new Error(data?.error || e?.message || "Failed"); setContent(data.content); setStep(2); } catch (e: any) { setError(e.message); setStep(0); } };
-  const handleActivate = async () => { setStep(3); setError(null); try { const { data, error: e } = await supabase.functions.invoke("deploy-yr28-to-ghl", { body: { author_id: authorId } }); if (e || !data?.success) throw new Error(data?.error || e?.message || "Failed"); setContent((p: any) => ({ ...p, activated: true, payment_links: data.payment_links })); } catch (e: any) { console.error(e); setContent((p: any) => ({ ...p, activated: true })); } };
+  const handlePublish = async () => { setStep(3); setError(null); try { await publishNodeToSite(authorId!, "YR-28", authorSlug); setContent((p: any) => ({ ...p, activated: true })); } catch (e: any) { setError(e.message); setStep(2); } };
 
   if (!authorId) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Please set up your author profile first.</p></div>;
 
@@ -101,25 +102,17 @@ export default function YR28Builder({ authorId }: Props) {
             </Tabs>
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon.")}>Edit</Button>
-              <Button className="flex-1" size="lg" onClick={handleActivate}>Activate My Sponsorship Programme <ArrowRight className="h-4 w-4 ml-2" /></Button>
+              <Button className="flex-1" size="lg" onClick={handlePublish}>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></Button>
             </div>
           </div>
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
           <div className="space-y-6">
-            <NodeSuccessScreen
+            <PublishSuccessScreen
               nodeId="YR-28"
               authorName={authorName}
               penNameSlug={authorSlug}
-              celebrationMessage="Your sponsorship programme is live! 4 packages are ready to pitch."
-              paymentLinks={content.payment_links || content.sponsorship_packages?.map((sp: any) => ({ label: sp.tier, url: sp.payment_link_url || "" })) || []}
-              whatHappensNext={["Your sponsorship packages page is live for potential sponsors", "Sponsors can view tiers and enquire directly", "Sponsorship enquiries will appear in your dashboard"]}
-              socialShareText={`Looking for sponsors and exhibitors for my events! View packages: ${getMicrositeUrl(authorSlug, "YR-28") || ""}`}
-              actions={[
-                { label: "Back to Yield Revenue", variant: "outline", onClick: () => navigate("/yield-revenue") },
-                { label: "View All Yield Revenue", onClick: () => navigate("/yield-revenue") },
-              ]}
             />
           </div>
         )}

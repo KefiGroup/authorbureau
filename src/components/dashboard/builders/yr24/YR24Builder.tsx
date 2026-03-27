@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { ArrowRight, Palmtree, CalendarDays, DollarSign, Sparkles as SparklesIcon } from "lucide-react";
 import { toast } from "sonner";
 import { StepHeader, AbbyCard, LoadingStep, MultiPaymentLinks, SummaryCard, SuccessCheckmark, HighTicketPrice } from "../yr-shared/YRBuilderShared";
-import NodeSuccessScreen from "../shared/NodeSuccessScreen";
+import PublishSuccessScreen from "../shared/PublishSuccessScreen";
+import { publishNodeToSite } from "@/lib/publish-node";
 import { getMicrositeUrl } from "@/lib/node-slug-map";
 
 const GEN_MSGS = ["Designing your retreat experience...", "Crafting your itinerary...", "Building retreat packages...", "Finalising your retreat programme..."];
@@ -39,7 +40,7 @@ export default function YR24Builder({ authorId }: Props) {
   useEffect(() => { if (step === 1 || (step === 3 && !content?.activated)) { const msgs = step === 1 ? GEN_MSGS : ACT_MSGS; setMsgIndex(0); intervalRef.current = setInterval(() => setMsgIndex(i => (i + 1) % msgs.length), 3000); return () => { if (intervalRef.current) clearInterval(intervalRef.current); }; } }, [step]);
 
   const handleGenerate = async () => { setStep(1); setError(null); try { const { data, error: e } = await supabase.functions.invoke("generate-yr24-retreats", { body: { author_id: authorId } }); if (e || !data?.success) throw new Error(data?.error || e?.message || "Failed"); setContent(data.content); setStep(2); } catch (e: any) { setError(e.message); setStep(0); } };
-  const handleActivate = async () => { setStep(3); setError(null); try { const { data, error: e } = await supabase.functions.invoke("deploy-yr24-to-ghl", { body: { author_id: authorId } }); if (e || !data?.success) throw new Error(data?.error || e?.message || "Failed"); setContent((p: any) => ({ ...p, activated: true, payment_links: data.payment_links })); } catch (e: any) { console.error(e); setContent((p: any) => ({ ...p, activated: true })); } };
+  const handlePublish = async () => { setStep(3); setError(null); try { await publishNodeToSite(authorId!, "YR-24", authorSlug); setContent((p: any) => ({ ...p, activated: true })); } catch (e: any) { setError(e.message); setStep(2); } };
 
   if (!authorId) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Please set up your author profile first.</p></div>;
 
@@ -101,25 +102,17 @@ export default function YR24Builder({ authorId }: Props) {
             </Tabs>
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon.")}>Edit</Button>
-              <Button className="flex-1" size="lg" onClick={handleActivate}>Activate My Retreat <ArrowRight className="h-4 w-4 ml-2" /></Button>
+              <Button className="flex-1" size="lg" onClick={handlePublish}>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></Button>
             </div>
           </div>
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
           <div className="space-y-6">
-            <NodeSuccessScreen
+            <PublishSuccessScreen
               nodeId="YR-24"
               authorName={authorName}
               penNameSlug={authorSlug}
-              celebrationMessage="Your retreat programme is live! 2 retreat options are ready to book."
-              paymentLinks={content.payment_links || content.retreat_options?.map((o: any) => ({ label: o.format, url: o.payment_link_url || "" })) || []}
-              whatHappensNext={["Your retreat booking pages are live and accepting registrations", "Attendees can view itineraries and book directly", "Retreat bookings will be tracked in your dashboard"]}
-              socialShareText={`I'm hosting transformative retreats! Book your spot: ${getMicrositeUrl(authorSlug, "YR-24") || ""}`}
-              actions={[
-                { label: "Back to Yield Revenue", variant: "outline", onClick: () => navigate("/yield-revenue") },
-                { label: "Next: Certification", onClick: () => navigate("/node-builder/YR-25") },
-              ]}
             />
           </div>
         )}
