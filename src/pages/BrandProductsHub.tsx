@@ -244,6 +244,14 @@ export default function BrandProductsHub() {
                   {NODE_DESCRIPTIONS[node.node_id]}
                 </p>
 
+                {/* Soft warning if BP-04 not live and this node needs a microsite */}
+                {needsWebsiteWarning && (
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                    <Globe className="h-3 w-3 shrink-0" />
+                    Build your website first to give this page a home.
+                  </p>
+                )}
+
                 {/* CTA */}
                 <div className="mt-auto pt-1">
                   <Button
