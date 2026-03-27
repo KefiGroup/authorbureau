@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Users, LayoutList, DollarSign, FileText, Copy } from "lucide-react";
+import NodeSuccessScreen from "@/components/dashboard/builders/shared/NodeSuccessScreen";
 
 const STEPS = ["Introduction", "Generating", "Review", "Activate"];
 const GEN_MSGS = ["Studying your book's transformation framework...", "Designing your coaching programme structure...", "Creating 3 programme phases...", "Writing your sales page copy...", "Finalising your coaching blueprint..."];
