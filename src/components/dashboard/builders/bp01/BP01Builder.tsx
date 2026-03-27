@@ -55,6 +55,7 @@ export default function BP01Builder({ authorId }: Props) {
       setAuthorName(profile?.pen_name || "there");
       setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
 
+      // Check author_context first
       const { data: ctx } = await supabase
         .from("author_context")
         .select("book_title")
@@ -62,8 +63,26 @@ export default function BP01Builder({ authorId }: Props) {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      setBookTitle(ctx?.book_title || "");
-      setHasContext(!!ctx?.book_title);
+      
+      if (ctx?.book_title) {
+        setBookTitle(ctx.book_title);
+        setHasContext(true);
+      } else {
+        // Fallback: check books table
+        const { data: book } = await supabase
+          .from("books")
+          .select("title")
+          .eq("author_id", authorId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (book?.title) {
+          setBookTitle(book.title);
+          setHasContext(true);
+        } else {
+          setHasContext(false);
+        }
+      }
 
       // Check if content already generated
       const { data: node } = await supabase
