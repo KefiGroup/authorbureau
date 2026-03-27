@@ -7,6 +7,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ArrowRight, Building2, LayoutList, DollarSign, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { StepHeader, AbbyCard, LoadingStep, MultiPaymentLinks, SummaryCard, SuccessCheckmark, HighTicketPrice } from "../yr-shared/YRBuilderShared";
+import NodeSuccessScreen from "../shared/NodeSuccessScreen";
+import { getMicrositeUrl } from "@/lib/node-slug-map";
 
 const GEN_MSGS = ["Designing your corporate training programme...", "Building training format options...", "Crafting your proposal template...", "Finalising your corporate offer..."];
 const ACT_MSGS = ["Creating your enquiry pipeline...", "Setting up payment pages...", "Almost ready..."];
