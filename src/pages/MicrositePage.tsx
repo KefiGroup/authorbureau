@@ -152,10 +152,10 @@ export default function MicrositePage() {
   };
 
   return (
-    <div className="min-h-screen" style={{ background: v.background, color: v.bodyText }}>
+    <div className="min-h-screen" style={{ background: bgColor, color: v.bodyText }}>
       {/* Simple nav */}
       <nav className="border-b px-4 py-3 flex items-center justify-between" style={{ borderColor: v.cardBorder }}>
-        <Link to={`/${authorSlug}`} className="font-bold text-lg" style={{ color: v.headingText, fontFamily: v.headingFont }}>
+        <Link to={`/${authorSlug}`} className="font-bold text-lg" style={{ color: v.headingText, fontFamily: hFont }}>
           {authorName}
         </Link>
         {data.book && (
@@ -177,7 +177,7 @@ export default function MicrositePage() {
           )}
           <h1
             className="text-3xl sm:text-4xl font-bold mb-3"
-            style={{ color: v.headingText, fontFamily: v.headingFont }}
+            style={{ color: v.headingText, fontFamily: hFont }}
           >
             {content.headline || pageTitle}
           </h1>
@@ -226,7 +226,7 @@ export default function MicrositePage() {
             {data.node.payment_link && actionType === "purchase" && (
               <Button
                 className="w-full sm:w-auto text-base px-8 py-3 rounded-full"
-                style={{ background: v.accent, color: v.background }}
+                style={{ background: v.accent, color: bgColor }}
                 asChild
               >
                 <a href={data.node.payment_link} target="_blank" rel="noopener noreferrer">
@@ -249,7 +249,7 @@ export default function MicrositePage() {
           <div>
             {(actionType === "optin" || actionType === "enquiry" || actionType === "application") && !submitted ? (
               <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
-                <h3 className="text-lg font-semibold mb-4" style={{ color: v.headingText, fontFamily: v.headingFont }}>
+                <h3 className="text-lg font-semibold mb-4" style={{ color: v.headingText, fontFamily: hFont }}>
                   {actionType === "optin"
                     ? content.form_heading || "Get Your Free Copy"
                     : actionType === "enquiry"
@@ -296,7 +296,7 @@ export default function MicrositePage() {
                   <Button
                     type="submit"
                     className="w-full rounded-full"
-                    style={{ background: v.accent, color: v.background }}
+                    style={{ background: v.accent, color: bgColor }}
                     disabled={submitting}
                   >
                     {submitting ? "Submitting..." : content.cta_text || "Submit"}
