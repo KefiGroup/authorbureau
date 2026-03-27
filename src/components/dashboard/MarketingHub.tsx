@@ -173,6 +173,7 @@ interface Props {
 
 export default function MarketingHub({ onNavigate }: Props) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const highlightId = searchParams.get("highlight");
 
