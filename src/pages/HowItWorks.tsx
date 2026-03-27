@@ -116,7 +116,7 @@ export default function HowItWorks() {
             className="mt-8"
           >
             <Button asChild size="lg" className="bg-[hsl(45,50%,54%)] hover:bg-[hsl(45,50%,46%)] text-[hsl(228,34%,16%)] font-bold text-base px-8 rounded-xl">
-              <Link to="/join">Get Your Free Business Plan <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              <Link to="/auth?redirect=%2Fdashboard%3Fsection%3Dbuild-business">Get Your Free Business Plan <ArrowRight className="ml-2 h-4 w-4" /></Link>
             </Button>
           </motion.div>
         </div>
@@ -292,7 +292,7 @@ export default function HowItWorks() {
             className="mt-8"
           >
             <Button asChild size="lg" className="bg-[hsl(45,50%,54%)] hover:bg-[hsl(45,50%,46%)] text-[hsl(228,34%,16%)] font-bold text-lg px-10 py-6 rounded-xl">
-              <Link to="/join">Get Your Free Business Plan <ArrowRight className="ml-2 h-5 w-5" /></Link>
+              <Link to="/auth?redirect=%2Fdashboard%3Fsection%3Dbuild-business">Get Your Free Business Plan <ArrowRight className="ml-2 h-5 w-5" /></Link>
             </Button>
           </motion.div>
           <motion.p
