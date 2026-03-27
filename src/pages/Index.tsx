@@ -16,8 +16,8 @@ import besuckcessfulCover from "@/assets/besuckcessful-cover.jpg";
 import { getPublishNowAuthUrl } from "@/lib/publishnow-auth";
 import MethodologyTrustBadge from "@/components/MethodologyTrustBadge";
 
-const SIGNUP_URL = getPublishNowAuthUrl("/dashboard?section=build-business");
-const getPlanUrl = (plan: string) => getPublishNowAuthUrl(`/dashboard?plan=${plan}`);
+const SIGNUP_URL = "/auth";
+const getPlanUrl = (_plan: string) => "/pricing";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
