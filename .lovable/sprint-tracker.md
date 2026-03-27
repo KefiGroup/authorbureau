@@ -14,3 +14,7 @@
 | Sprint 10 | ✅ COMPLETE | Yield Revenue Hub + Nodes YR-19 to YR-28: 10 high-ticket builders ($297–$50,000) with Stripe payment links + GHL pipelines (20 edge functions) |
 | Sprint 11 | ✅ COMPLETE | Revenue Dashboard + GHL + Stripe data sync: sync-ghl-metrics, sync-stripe-metrics, generate-daily-insight edge functions, /revenue-dashboard page with ABBY insights, charts, milestones |
 | Sprint 12 | ✅ COMPLETE | ABBY Performance Coach (/abby-coach) + Nudge Engine (9 trigger conditions) + abby-chat & generate-nudges edge functions + real-time notification badge on sidebar |
+| Sprint 13A | ✅ COMPLETE | Publish Layer Foundation: author_nodes schema (microsite_url, third_party_url, payment_link columns), node-slug-map registry, NodeSuccessScreen shared component, MicrositePage public renderer, AuthorSubpageResolver smart router, microsite-action edge function, get-microsite-page edge function, BP-04 prerequisite gate on Brand Products Hub |
+| Sprint 13B | **NEXT** | Brand Products endpoints (BP-01→BP-09): GHL, Stripe, Zoom wiring + microsite pages |
+| Sprint 13C | Pending | Build Authority endpoints (BA-10→BA-18): Thinkific, Transistor, GHL Affiliates, export ZIPs |
+| Sprint 13D | Pending | Yield Revenue endpoints (YR-19→YR-28): high-ticket funnels, Stripe subscriptions, pipelines |

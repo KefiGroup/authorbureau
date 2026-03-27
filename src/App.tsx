@@ -12,6 +12,7 @@ import Directory from "./pages/Directory";
 import AuthorProfile from "./pages/AuthorProfile";
 import { AuthorSlugRedirect } from "./pages/AuthorSlugRedirect";
 import DynamicBookMicrosite from "./pages/DynamicBookMicrosite";
+import AuthorSubpageResolver from "./pages/AuthorSubpageResolver";
 import CreateMicrosite from "./pages/CreateMicrosite";
 import Join from "./pages/Join";
 import Auth from "./pages/Auth";
@@ -126,7 +127,7 @@ const AppRoutes = () => (
       <Route path="/terms" element={<TermsOfService />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route path="/:authorSlug/:bookSlug/:productType" element={<AuthorProductPage />} />
-      <Route path="/:authorSlug/:bookSlug" element={<AuthorBookPage />} />
+      <Route path="/:authorSlug/:bookSlug" element={<AuthorSubpageResolver />} />
       <Route path="/:authorSlug" element={<AuthorSite />} />
       <Route path="*" element={<NotFound />} />
     </Routes>

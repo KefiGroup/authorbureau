@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Sparkles, ArrowRight, Lock, AlertCircle, CheckCircle2, Zap, Clock, Eye } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Sparkles, ArrowRight, Lock, AlertCircle, CheckCircle2, Zap, Clock, Eye, Star, Globe } from "lucide-react";
 
 const NODE_DESCRIPTIONS: Record<string, string> = {
   "BP-01": "Build your email list and send campaigns to your readers",
@@ -115,6 +116,9 @@ export default function BrandProductsHub() {
   const liveCount = nodes.filter(n => n.status === "live").length;
   const progressPercent = (liveCount / 9) * 100;
   const showAbbyWelcome = liveCount === 0;
+  const bp04Node = nodes.find(n => n.node_id === "BP-04");
+  const bp04IsLive = bp04Node?.status === "live";
+  const micrositeNodes = new Set(["BP-02", "BP-05", "BP-06", "BP-07", "BP-08", "BP-09"]);
 
   const handleCardClick = (node: NodeCard) => {
     if (node.status === "locked") {
@@ -152,6 +156,32 @@ export default function BrandProductsHub() {
           </div>
         </div>
 
+        {/* BP-04 Prerequisite Banner */}
+        {!bp04IsLive && (
+          <Card className="p-4 sm:p-5 mb-6 border-amber-200 dark:border-amber-800 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/20">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center shrink-0">
+                <Globe className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-1">
+                  Build your author website first
+                </p>
+                <p className="text-xs text-amber-700 dark:text-amber-300 mb-3">
+                  Your website is the home for everything you create. Start here to give all your pages a home.
+                </p>
+                <Button
+                  size="sm"
+                  className="bg-amber-600 hover:bg-amber-700 text-white"
+                  onClick={() => navigate("/node-builder/BP-04")}
+                >
+                  Build Your Website <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
+
         {/* ABBY Welcome */}
         {showAbbyWelcome && (
           <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 mb-8 flex flex-col sm:flex-row items-start gap-4">
@@ -176,12 +206,21 @@ export default function BrandProductsHub() {
             const statusCfg = STATUS_CONFIG[node.status];
             const cta = ctaForStatus(node.status);
             const StatusIcon = statusCfg.icon;
+            const isBP04 = node.node_id === "BP-04";
+            const needsWebsiteWarning = !bp04IsLive && micrositeNodes.has(node.node_id) && node.status !== "live";
 
             return (
               <div
                 key={node.node_id}
-                className="relative rounded-xl border border-border bg-card p-5 flex flex-col gap-3 hover:shadow-md transition-shadow"
+                className={`relative rounded-xl border bg-card p-5 flex flex-col gap-3 hover:shadow-md transition-shadow ${isBP04 && !bp04IsLive ? "border-amber-300 dark:border-amber-700 ring-1 ring-amber-200 dark:ring-amber-800" : "border-border"}`}
               >
+                {/* Start Here badge for BP-04 */}
+                {isBP04 && !bp04IsLive && (
+                  <span className="absolute -top-2.5 left-4 inline-flex items-center gap-1 rounded-full bg-amber-500 text-white px-3 py-0.5 text-[11px] font-bold shadow-sm">
+                    <Star className="h-3 w-3" /> Start Here
+                  </span>
+                )}
+
                 {/* Node ID badge */}
                 <span className="absolute top-3 right-3 text-[10px] font-mono text-muted-foreground/50">
                   {node.node_id}
@@ -204,6 +243,14 @@ export default function BrandProductsHub() {
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   {NODE_DESCRIPTIONS[node.node_id]}
                 </p>
+
+                {/* Soft warning if BP-04 not live and this node needs a microsite */}
+                {needsWebsiteWarning && (
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                    <Globe className="h-3 w-3 shrink-0" />
+                    Build your website first to give this page a home.
+                  </p>
+                )}
 
                 {/* CTA */}
                 <div className="mt-auto pt-1">

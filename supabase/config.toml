@@ -87,3 +87,7 @@ project_id = "tubpbslfrxyfhldkcyyq"
     verify_jwt = false
   [functions.ghl-deploy-campaign]
     verify_jwt = false
+  [functions.microsite-action]
+    verify_jwt = false
+  [functions.get-microsite-page]
+    verify_jwt = false
