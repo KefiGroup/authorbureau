@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Sparkles, ArrowRight, Lock, AlertCircle, CheckCircle2, Zap, Clock, Eye } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Sparkles, ArrowRight, Lock, AlertCircle, CheckCircle2, Zap, Clock, Eye, Star, Globe } from "lucide-react";
 
 const NODE_DESCRIPTIONS: Record<string, string> = {
   "BP-01": "Build your email list and send campaigns to your readers",
