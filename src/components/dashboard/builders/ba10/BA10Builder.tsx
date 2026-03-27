@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Sparkles, ArrowRight, BookOpen, LayoutList, DollarSign, FileText, ChevronDown, ChevronUp } from "lucide-react";
 import { StepHeader, AbbyCard, LoadingStep, PaymentLinkCard, SummaryCard, SuccessCheckmark } from "../ba-shared/BABuilderShared";
+import NodeSuccessScreen from "@/components/dashboard/builders/shared/NodeSuccessScreen";
 
 const GEN_MSGS = ["Studying your book's key insights and frameworks...", "Designing your professional course structure...", "Creating 8 detailed course modules with lessons...", "Writing your course description...", "Finalising your course blueprint..."];
 const ACT_MSGS = ["Creating your course on the platform...", "Setting up your payment page...", "Generating your checkout link...", "Your course is almost ready..."];
