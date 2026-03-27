@@ -1,49 +1,120 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { useAuth } from "@/hooks/useAuth";
 import { getActiveToken } from "@/lib/get-active-token";
-import { Loader2, Megaphone, CheckCircle2, AlertCircle, Clock, Zap, RefreshCw, ArrowRight } from "lucide-react";
+import {
+  Loader2, Megaphone, CheckCircle2, AlertCircle, Clock, Zap,
+  RefreshCw, ArrowRight, Sparkles,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
+import { NODE_NAMES } from "@/lib/node-slug-map";
 
-interface Deployment {
-  id: string;
-  node_id: string;
-  deployment_status: string;
-  deployed_at: string | null;
-  error_message: string | null;
-}
+/* ─── Campaign / Node mapping ─── */
 
-interface NodeConfig {
+interface CampaignConfig {
   id: string;
   label: string;
   description: string;
   phase: "A" | "B";
+  /** Node IDs that must be 'live' for this campaign to be "Ready to Activate" */
+  nodeIds: string[];
+  /** Edge functions to call when activating */
+  deployFunctions: string[];
+  successMessage: string;
+  checklist: string[];
 }
 
-const NODES: NodeConfig[] = [
-  // Sub-Phase A — Branding & Marketing
-  { id: "website", label: "Website / Microsite", description: "Lead capture form + Author funnel pipeline", phase: "A" },
-  { id: "lead-magnets", label: "Lead Magnets", description: "Opt-in form + 3-email delivery + Lead automation", phase: "A" },
-  { id: "email-marketing", label: "Email Marketing", description: "Welcome (7) + Nurture (14) + Launch (5) sequences + Automation", phase: "A" },
-  { id: "social-media", label: "Social Media", description: "90-day content calendar delivered as daily reminders", phase: "A" },
-  { id: "webinars", label: "Webinars", description: "Registration form + Reminder + Follow-up campaigns + Funnel pipeline", phase: "A" },
-  // Sub-Phase B — Digital Products
-  { id: "workbooks", label: "Workbooks", description: "Email campaign sequence", phase: "B" },
-  { id: "home-study", label: "Home Study", description: "Daily drip campaign", phase: "B" },
-  { id: "special-editions", label: "Special Editions", description: "Launch email campaign", phase: "B" },
-  { id: "book-sales", label: "Book Sales (Events)", description: "Bulk order form + Follow-up campaign", phase: "B" },
+const CAMPAIGNS: CampaignConfig[] = [
+  {
+    id: "email-marketing", label: "Email Marketing", phase: "A",
+    description: "Welcome (7) + Nurture (14) + Launch (5) sequences + Automation",
+    nodeIds: ["BP-01"],
+    deployFunctions: ["deploy-bp01-to-ghl"],
+    successMessage: "Your email marketing is running. New contacts will automatically receive your welcome sequence.",
+    checklist: ["Welcome sequence active", "Nurture sequence queued", "Automation running"],
+  },
+  {
+    id: "lead-magnets", label: "Lead Magnets", phase: "A",
+    description: "Opt-in form + 3-email delivery + Lead automation",
+    nodeIds: ["BP-02"],
+    deployFunctions: ["deploy-bp02-to-ghl"],
+    successMessage: "Your lead magnet funnel is live. Every new subscriber will automatically receive your free gift.",
+    checklist: ["Opt-in funnel live", "Thank-you page active", "Lead automation running"],
+  },
+  {
+    id: "social-media", label: "Social Media", phase: "A",
+    description: "90-day content calendar delivered as daily reminders",
+    nodeIds: ["BP-03"],
+    deployFunctions: ["deploy-bp03-to-ghl"],
+    successMessage: "Your 90-day social media calendar is active. Posts will go out automatically every day.",
+    checklist: ["Content calendar scheduled", "First 7 days posted", "Remaining 83 days queued"],
+  },
+  {
+    id: "website-microsite", label: "Website / Microsite", phase: "A",
+    description: "Lead capture form + Author funnel pipeline",
+    nodeIds: ["BP-04"],
+    deployFunctions: ["deploy-bp04-to-ghl"],
+    successMessage: "Your author website is now live and your lead capture funnel is running.",
+    checklist: ["Website pages created", "Lead capture form active", "Author funnel pipeline live"],
+  },
+  {
+    id: "webinars", label: "Webinars", phase: "A",
+    description: "Registration form + Reminder + Follow-up campaigns + Funnel pipeline",
+    nodeIds: ["BP-05"],
+    deployFunctions: ["deploy-bp05-to-ghl"],
+    successMessage: "Your webinar system is live. Registration is open and follow-up emails will fire automatically.",
+    checklist: ["Registration page live", "Reminder emails scheduled", "Follow-up sequence active"],
+  },
+  {
+    id: "digital-products", label: "Digital Products", phase: "B",
+    description: "Stripe payment links + purchase automations for all published products",
+    nodeIds: ["BP-06", "BP-07", "BP-08", "BP-09"],
+    deployFunctions: ["deploy-bp06-to-ghl", "deploy-bp07-to-ghl", "deploy-bp08-to-ghl", "deploy-bp09-to-ghl"],
+    successMessage: "Your digital products are now for sale. Payment links are live and purchase automations are running.",
+    checklist: ["Payment links created", "Product pipeline active", "Post-purchase automation running"],
+  },
+  {
+    id: "build-authority", label: "Build Authority", phase: "B",
+    description: "Campaigns for courses, memberships, podcasts, and affiliates",
+    nodeIds: ["BA-10", "BA-11", "BA-12", "BA-13", "BA-14", "BA-15", "BA-16", "BA-17", "BA-18"],
+    deployFunctions: [],
+    successMessage: "Your authority-building campaigns are active and promoting your advanced products.",
+    checklist: ["Campaign funnels live", "Audience targeting active", "Follow-up sequences running"],
+  },
+  {
+    id: "yield-revenue", label: "Yield Revenue", phase: "B",
+    description: "High-ticket offer campaigns and premium pipeline",
+    nodeIds: ["YR-19", "YR-20", "YR-21", "YR-22", "YR-23", "YR-24", "YR-25", "YR-26", "YR-27", "YR-28"],
+    deployFunctions: [],
+    successMessage: "Your premium offer campaigns are live and your high-ticket pipeline is running.",
+    checklist: ["Premium funnels active", "High-ticket pipeline live", "Follow-up automation running"],
+  },
 ];
 
-const statusConfig: Record<string, { label: string; color: string; icon: typeof CheckCircle2 }> = {
-  deployed: { label: "Active", color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", icon: CheckCircle2 },
-  deploying: { label: "Activating…", color: "bg-amber-500/10 text-amber-600 border-amber-500/20", icon: Loader2 },
-  failed: { label: "Error", color: "bg-red-500/10 text-red-600 border-red-500/20", icon: AlertCircle },
-  pending: { label: "Not Started", color: "bg-muted text-muted-foreground border-border", icon: Clock },
-  content_ready: { label: "Content Ready", color: "bg-amber-500/10 text-amber-600 border-amber-500/20", icon: Zap },
+/* ─── Status config ─── */
+
+type CampaignStatus = "active" | "ready" | "pending" | "activating" | "failed";
+
+const statusConfig: Record<CampaignStatus, { label: string; className: string; icon: typeof CheckCircle2 }> = {
+  active:     { label: "Active ✓",           className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", icon: CheckCircle2 },
+  ready:      { label: "Ready to Activate",  className: "bg-amber-500/10 text-amber-600 border-amber-500/20 animate-pulse", icon: Zap },
+  pending:    { label: "Not Started",        className: "bg-muted text-muted-foreground border-border", icon: Clock },
+  activating: { label: "Activating…",        className: "bg-amber-500/10 text-amber-600 border-amber-500/20", icon: Loader2 },
+  failed:     { label: "Needs Attention",    className: "bg-red-500/10 text-red-600 border-red-500/20", icon: AlertCircle },
 };
+
+/* ─── Node data from DB ─── */
+
+interface NodeRow {
+  node_id: string;
+  status: string;
+  marketing_activated_at: string | null;
+}
 
 interface Props {
   onNavigate?: (section: string) => void;
@@ -51,113 +122,214 @@ interface Props {
 
 export default function MarketingHub({ onNavigate }: Props) {
   const { user } = useAuth();
-  const [deployments, setDeployments] = useState<Deployment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activatingNode, setActivatingNode] = useState<string | null>(null);
-  const [authorProfileId, setAuthorProfileId] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+  const highlightId = searchParams.get("highlight");
 
-  const fetchDeployments = useCallback(async () => {
+  const [nodeRows, setNodeRows] = useState<NodeRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activatingCampaign, setActivatingCampaign] = useState<string | null>(null);
+  const [authorProfileId, setAuthorProfileId] = useState<string | null>(null);
+  const [activatedCampaigns, setActivatedCampaigns] = useState<Set<string>>(new Set());
+
+  const highlightRef = useRef<HTMLDivElement | null>(null);
+
+  /* ─── Fetch author nodes ─── */
+  const fetchNodes = useCallback(async () => {
     if (!user) return;
     try {
-      // Get author profile id — try Cloud first, then shared backend
       let profileId: string | null = null;
       const { data: profile } = await supabase
         .from("author_profiles")
         .select("id")
         .eq("user_id", user.id)
         .maybeSingle();
-
       if (profile) {
         profileId = profile.id;
       } else {
-        const { data: sharedProfile } = await sharedSupabase
+        const { data: sp } = await sharedSupabase
           .from("author_profiles")
           .select("id")
           .eq("user_id", user.id)
           .maybeSingle();
-        if (sharedProfile) profileId = sharedProfile.id;
+        if (sp) profileId = sp.id;
       }
-      
       if (profileId) setAuthorProfileId(profileId);
 
-      // Fetch deployments via edge function to bypass RLS auth mismatch
-      const token = await getActiveToken();
-      if (profileId && token) {
-        const res = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-deployments`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ author_id: profileId }),
-          }
-        );
-        const result = await res.json();
-        setDeployments((result.deployments as Deployment[]) || []);
-      } else {
-        setDeployments([]);
+      if (profileId) {
+        const { data } = await supabase
+          .from("author_nodes")
+          .select("node_id, status, marketing_activated_at")
+          .eq("author_id", profileId);
+        setNodeRows((data as NodeRow[]) || []);
       }
     } catch (err) {
-      console.error("Failed to fetch deployments:", err);
+      console.error("Failed to fetch nodes:", err);
     } finally {
       setLoading(false);
     }
-  }, [user, authorProfileId]);
+  }, [user]);
 
+  useEffect(() => { fetchNodes(); }, [fetchNodes]);
+
+  /* ─── Scroll to highlighted campaign ─── */
   useEffect(() => {
-    fetchDeployments();
-  }, [fetchDeployments]);
+    if (highlightId && highlightRef.current && !loading) {
+      setTimeout(() => {
+        highlightRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 300);
+    }
+  }, [highlightId, loading]);
 
-  const getNodeStatus = (nodeId: string) => {
-    const dep = deployments.find((d) => d.node_id === nodeId);
-    return dep?.deployment_status || "pending";
+  /* ─── Derive campaign status ─── */
+  const getCampaignStatus = (campaign: CampaignConfig): CampaignStatus => {
+    if (activatingCampaign === campaign.id) return "activating";
+    if (activatedCampaigns.has(campaign.id)) return "active";
+
+    // Check if any node for this campaign has marketing_activated_at set
+    const hasActivated = campaign.nodeIds.some(nid => {
+      const row = nodeRows.find(r => r.node_id === nid);
+      return row?.marketing_activated_at;
+    });
+    if (hasActivated) return "active";
+
+    // Check if any node is live (published) but not yet marketing-activated
+    const hasLive = campaign.nodeIds.some(nid => {
+      const row = nodeRows.find(r => r.node_id === nid);
+      return row?.status === "live" && !row?.marketing_activated_at;
+    });
+    if (hasLive) return "ready";
+
+    return "pending";
   };
 
-  const handleActivate = async (nodeId: string) => {
+  /* ─── Provision GHL if needed ─── */
+  const ensureGhlProvisioned = async (): Promise<boolean> => {
+    if (!authorProfileId) return false;
+    const { data: profile } = await supabase
+      .from("author_profiles")
+      .select("ghl_sub_account_id")
+      .eq("id", authorProfileId)
+      .single();
+
+    if (profile?.ghl_sub_account_id) return true;
+
+    // Need to provision
+    const { data, error } = await supabase.functions.invoke("provision-ghl-subaccount", {
+      body: { author_id: authorProfileId },
+    });
+    if (error || !data?.success) {
+      const msg = data?.error || error?.message || "Unknown error";
+      toast({
+        title: "Could not connect to your marketing account",
+        description: msg,
+        variant: "destructive",
+      });
+      console.error("GHL provision failed:", msg);
+      return false;
+    }
+    return true;
+  };
+
+  /* ─── Activate campaign ─── */
+  const handleActivate = async (campaign: CampaignConfig) => {
     if (!authorProfileId) {
       toast({ title: "Profile not found", description: "Please set up your author profile first.", variant: "destructive" });
       return;
     }
 
-    setActivatingNode(nodeId);
+    setActivatingCampaign(campaign.id);
     try {
-      const token = await getActiveToken();
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ghl-deploy-campaign`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            author_id: authorProfileId,
-            node_id: nodeId,
-            generated_content: {}, // Content comes from existing generated assets
-          }),
-        }
-      );
-
-      const result = await res.json();
-      if (!res.ok || !result.success) {
-        throw new Error(result.error || "Activation failed");
+      // Stage 4: ensure GHL sub-account exists
+      const provisioned = await ensureGhlProvisioned();
+      if (!provisioned) {
+        setActivatingCampaign(null);
+        return;
       }
 
-      toast({ title: "🎉 Campaigns activated!", description: `Your ${NODES.find(n => n.id === nodeId)?.label} campaigns are now running automatically.` });
-      await fetchDeployments();
+      // Determine which deploy functions to call (only for nodes that are live)
+      const liveNodeIds = campaign.nodeIds.filter(nid => {
+        const row = nodeRows.find(r => r.node_id === nid);
+        return row?.status === "live";
+      });
+
+      if (liveNodeIds.length === 0) {
+        toast({ title: "No published content", description: "Please publish your content first in the node builder.", variant: "destructive" });
+        setActivatingCampaign(null);
+        return;
+      }
+
+      // Map live node IDs to their deploy functions
+      const NODE_DEPLOY_MAP: Record<string, string> = {
+        "BP-01": "deploy-bp01-to-ghl", "BP-02": "deploy-bp02-to-ghl",
+        "BP-03": "deploy-bp03-to-ghl", "BP-04": "deploy-bp04-to-ghl",
+        "BP-05": "deploy-bp05-to-ghl", "BP-06": "deploy-bp06-to-ghl",
+        "BP-07": "deploy-bp07-to-ghl", "BP-08": "deploy-bp08-to-ghl",
+        "BP-09": "deploy-bp09-to-ghl", "BA-10": "deploy-ba10-to-thinkific",
+        "BA-11": "deploy-ba11-audiobook", "BA-12": "deploy-ba12-to-ghl",
+        "BA-13": "deploy-ba13-to-ghl", "BA-14": "deploy-ba14-to-transistor",
+        "BA-15": "deploy-ba15-to-ghl", "BA-16": "deploy-ba16-to-ghl",
+        "BA-17": "deploy-ba17-to-ghl", "BA-18": "deploy-ba18-to-ghl",
+        "YR-19": "deploy-yr19-to-ghl", "YR-20": "deploy-yr20-to-ghl",
+        "YR-21": "deploy-yr21-to-ghl", "YR-22": "deploy-yr22-to-ghl",
+        "YR-23": "deploy-yr23-to-ghl", "YR-24": "deploy-yr24-to-ghl",
+        "YR-25": "deploy-yr25-to-thinkific", "YR-26": "deploy-yr26-to-ghl",
+        "YR-27": "deploy-yr27-to-stripe", "YR-28": "deploy-yr28-to-ghl",
+      };
+
+      // Call deploy functions for each live node
+      const results = await Promise.allSettled(
+        liveNodeIds.map(async (nid) => {
+          const fnName = NODE_DEPLOY_MAP[nid];
+          if (!fnName) return;
+          const { data, error } = await supabase.functions.invoke(fnName, {
+            body: { author_id: authorProfileId },
+          });
+          if (error || !data?.success) {
+            throw new Error(data?.error || error?.message || `${fnName} failed`);
+          }
+          // Mark marketing_activated_at
+          await supabase
+            .from("author_nodes")
+            .update({ marketing_activated_at: new Date().toISOString() })
+            .eq("author_id", authorProfileId)
+            .eq("node_id", nid);
+        })
+      );
+
+      const failures = results.filter(r => r.status === "rejected");
+      if (failures.length > 0) {
+        const firstErr = (failures[0] as PromiseRejectedResult).reason?.message || "Activation failed";
+        toast({ title: "Some campaigns failed", description: firstErr, variant: "destructive" });
+      }
+
+      setActivatedCampaigns(prev => new Set([...prev, campaign.id]));
+      toast({
+        title: "🎉 Campaign activated!",
+        description: campaign.successMessage,
+      });
+      await fetchNodes();
     } catch (err: any) {
       toast({ title: "Activation failed", description: err.message, variant: "destructive" });
     } finally {
-      setActivatingNode(null);
+      setActivatingCampaign(null);
     }
   };
 
-  const phaseANodes = NODES.filter((n) => n.phase === "A");
-  const phaseBNodes = NODES.filter((n) => n.phase === "B");
+  /* ─── Counts ─── */
+  const activeCount = CAMPAIGNS.filter(c => getCampaignStatus(c) === "active").length;
 
-  const activeCount = deployments.filter((d) => d.deployment_status === "deployed").length;
+  /* ─── Abby recommendation logic ─── */
+  const getAbbyRecommendation = () => {
+    const emailStatus = getCampaignStatus(CAMPAIGNS[0]);
+    if (emailStatus !== "active") {
+      return "I recommend starting with Email Marketing — it's the foundation that connects all your other campaigns. Once your welcome sequence is active, every new contact will automatically receive it.";
+    }
+    const readyCampaign = CAMPAIGNS.find(c => getCampaignStatus(c) === "ready");
+    if (readyCampaign) {
+      return `Your ${readyCampaign.label} is published and ready to go! Activate it now to start promoting automatically.`;
+    }
+    return `You have ${CAMPAIGNS.length - activeCount} campaigns left. Keep building and publishing to unlock more.`;
+  };
 
   if (loading) {
     return (
@@ -182,130 +354,150 @@ export default function MarketingHub({ onNavigate }: Props) {
         <Megaphone className="h-5 w-5 text-primary" />
         <div className="flex-1">
           <p className="text-sm font-medium">
-            {activeCount} of {NODES.length} campaigns active
+            {activeCount} of {CAMPAIGNS.length} campaigns active
           </p>
           <div className="w-full bg-muted rounded-full h-1.5 mt-1.5">
             <div
               className="bg-primary h-1.5 rounded-full transition-all"
-              style={{ width: `${(activeCount / NODES.length) * 100}%` }}
+              style={{ width: `${(activeCount / CAMPAIGNS.length) * 100}%` }}
             />
           </div>
         </div>
       </div>
 
       {/* Abby's Guidance */}
-      {activeCount < NODES.length && (
+      {activeCount < CAMPAIGNS.length && (
         <div className="p-4 rounded-xl bg-secondary/5 border border-secondary/20">
           <p className="text-sm text-foreground">
-            <span className="font-semibold">Abby says:</span>{" "}
-            {activeCount === 0
-              ? "I recommend starting with Email Marketing — it's the foundation that connects all your other campaigns. Once your welcome sequence is active, every new contact will automatically receive it."
-              : `You have ${NODES.length - activeCount} campaigns ready to activate. Keep going to maximize your reach!`}
+            <span className="font-semibold">Abby says:</span> {getAbbyRecommendation()}
           </p>
-          {activeCount === 0 && (
-            <Button
-              size="sm"
-              className="mt-3"
-              onClick={() => handleActivate("email-marketing")}
-              disabled={!!activatingNode}
-            >
-              Activate Email Marketing Now <ArrowRight className="ml-1 h-3 w-3" />
-            </Button>
-          )}
         </div>
       )}
 
-      {/* Sub-Phase A */}
+      {/* Campaign list */}
       <div className="space-y-3">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-          Branding & Marketing
-        </h2>
-        <div className="space-y-2">
-          {phaseANodes.map((node) => (
-            <NodeRow
-              key={node.id}
-              node={node}
-              status={getNodeStatus(node.id)}
-              activating={activatingNode === node.id}
-              onActivate={() => handleActivate(node.id)}
+        {CAMPAIGNS.map((campaign) => {
+          const status = getCampaignStatus(campaign);
+          const isHighlighted = highlightId === campaign.id;
+          return (
+            <CampaignRow
+              key={campaign.id}
+              ref={isHighlighted ? highlightRef : undefined}
+              campaign={campaign}
+              status={status}
+              isHighlighted={isHighlighted}
+              nodeRows={nodeRows}
+              onActivate={() => handleActivate(campaign)}
             />
-          ))}
-        </div>
-      </div>
-
-      {/* Sub-Phase B */}
-      <div className="space-y-3">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-          Digital Products
-        </h2>
-        <div className="space-y-2">
-          {phaseBNodes.map((node) => (
-            <NodeRow
-              key={node.id}
-              node={node}
-              status={getNodeStatus(node.id)}
-              activating={activatingNode === node.id}
-              onActivate={() => handleActivate(node.id)}
-            />
-          ))}
-        </div>
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function NodeRow({
-  node,
-  status,
-  activating,
-  onActivate,
-}: {
-  node: NodeConfig;
-  status: string;
-  activating: boolean;
+/* ─── Campaign Row ─── */
+
+import { forwardRef } from "react";
+
+const CampaignRow = forwardRef<HTMLDivElement, {
+  campaign: CampaignConfig;
+  status: CampaignStatus;
+  isHighlighted: boolean;
+  nodeRows: NodeRow[];
   onActivate: () => void;
-}) {
-  const config = statusConfig[status] || statusConfig.pending;
+}>(({ campaign, status, isHighlighted, nodeRows, onActivate }, ref) => {
+  const config = statusConfig[status];
   const StatusIcon = config.icon;
 
-  return (
-    <div className="flex items-center gap-4 p-4 rounded-xl bg-card border border-border hover:border-primary/20 transition-colors">
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{node.label}</p>
-        <p className="text-xs text-muted-foreground truncate">{node.description}</p>
+  // Show success panel for recently activated
+  if (status === "active") {
+    return (
+      <div ref={ref} className="p-4 rounded-xl bg-card border border-emerald-500/20">
+        <div className="flex items-center gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-sm font-medium">{campaign.label}</p>
+              <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+                <CheckCircle2 className="h-3 w-3 mr-1" /> Active ✓
+              </Badge>
+            </div>
+            <div className="space-y-1 mt-2">
+              {campaign.checklist.map((item, i) => (
+                <div key={i} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <CheckCircle2 className="h-3 w-3 text-emerald-500" /> {item}
+                </div>
+              ))}
+            </div>
+          </div>
+          <Button size="sm" variant="ghost" className="text-xs shrink-0" onClick={onActivate}>
+            <RefreshCw className="h-3 w-3 mr-1" /> Update
+          </Button>
+        </div>
       </div>
+    );
+  }
 
-      <Badge variant="outline" className={`shrink-0 text-[10px] ${config.color}`}>
-        <StatusIcon className={`h-3 w-3 mr-1 ${status === "deploying" ? "animate-spin" : ""}`} />
-        {config.label}
-      </Badge>
+  // Highlighted "Ready to Activate" with ABBY tip
+  const showAbbyTip = isHighlighted && status === "ready";
+  const liveNodeNames = campaign.nodeIds
+    .filter(nid => nodeRows.find(r => r.node_id === nid)?.status === "live")
+    .map(nid => NODE_NAMES[nid] || nid);
 
-      <div className="shrink-0">
-        {status === "deployed" ? (
-          <Button size="sm" variant="ghost" className="text-xs" onClick={onActivate} disabled={activating}>
-            <RefreshCw className={`h-3 w-3 mr-1 ${activating ? "animate-spin" : ""}`} />
-            Update
-          </Button>
-        ) : status === "failed" ? (
-          <Button size="sm" variant="outline" className="text-xs border-red-500/20 text-red-600" onClick={onActivate} disabled={activating}>
-            <RefreshCw className={`h-3 w-3 mr-1 ${activating ? "animate-spin" : ""}`} />
-            Retry
-          </Button>
-        ) : (
-          <Button size="sm" onClick={onActivate} disabled={activating} className="text-xs">
-            {activating ? (
-              <>
-                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                Activating…
-              </>
-            ) : (
-              <>
-                Activate <ArrowRight className="ml-1 h-3 w-3" />
-              </>
-            )}
-          </Button>
-        )}
+  return (
+    <div
+      ref={ref}
+      className={`rounded-xl border transition-all ${
+        isHighlighted ? "border-amber-400 ring-2 ring-amber-400/30 animate-pulse" :
+        status === "ready" ? "border-amber-300 dark:border-amber-700" :
+        "border-border"
+      } bg-card`}
+    >
+      {/* ABBY tip for highlighted */}
+      {showAbbyTip && (
+        <div className="px-4 pt-3 pb-0">
+          <div className="flex gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 mb-2">
+            <Sparkles className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-700 dark:text-amber-300">
+              Your {liveNodeNames[0] || campaign.label} is published and ready. Click Activate to start promoting it automatically.
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center gap-4 p-4">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium truncate">{campaign.label}</p>
+          <p className="text-xs text-muted-foreground truncate">{campaign.description}</p>
+        </div>
+
+        <Badge variant="outline" className={`shrink-0 text-[10px] ${config.className}`}>
+          <StatusIcon className={`h-3 w-3 mr-1 ${status === "activating" ? "animate-spin" : ""}`} />
+          {config.label}
+        </Badge>
+
+        <div className="shrink-0">
+          {status === "ready" ? (
+            <Button size="sm" onClick={onActivate} className="text-xs bg-amber-600 hover:bg-amber-700 text-white">
+              Activate Now <ArrowRight className="ml-1 h-3 w-3" />
+            </Button>
+          ) : status === "activating" ? (
+            <Button size="sm" disabled className="text-xs">
+              <Loader2 className="h-3 w-3 mr-1 animate-spin" /> Setting up…
+            </Button>
+          ) : status === "failed" ? (
+            <Button size="sm" variant="outline" className="text-xs border-red-500/20 text-red-600" onClick={onActivate}>
+              <RefreshCw className="h-3 w-3 mr-1" /> Retry
+            </Button>
+          ) : (
+            <Button size="sm" variant="ghost" disabled className="text-xs text-muted-foreground">
+              Publish first
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
-}
+});
+
+CampaignRow.displayName = "CampaignRow";
