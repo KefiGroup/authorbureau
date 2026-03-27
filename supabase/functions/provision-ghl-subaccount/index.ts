@@ -76,33 +76,51 @@ serve(async (req) => {
     // Only provision GHL if not already done
     if (!ghlSubaccountId) {
       const GHL_AGENCY_KEY = Deno.env.get("GHL_AGENCY_KEY");
+      console.log("[GHL] Agency key present:", !!GHL_AGENCY_KEY);
+      console.log("[GHL] Agency key length:", GHL_AGENCY_KEY?.length ?? 0);
       if (GHL_AGENCY_KEY) {
         try {
-          const createResponse = await fetch(`${GHL_BASE_URL}/locations/`, {
+          const requestUrl = `${GHL_BASE_URL}/locations/`;
+          const requestBody = {
+            name: `${authorName} - Authors Bureau`,
+            email: authorEmail,
+            phone: "",
+            address: "",
+            city: "",
+            state: "",
+            country: author.location_country || "SG",
+            timezone: "UTC",
+            prospectInfo: {
+              firstName,
+              lastName,
+            },
+          };
+          const requestHeaders = {
+            Authorization: `Bearer ${GHL_AGENCY_KEY.substring(0, 8)}...`,
+            "Content-Type": "application/json",
+            Version: "2021-07-28",
+          };
+
+          console.log("[GHL] Request URL:", requestUrl);
+          console.log("[GHL] Request headers (redacted):", JSON.stringify(requestHeaders));
+          console.log("[GHL] Request body:", JSON.stringify(requestBody));
+
+          const createResponse = await fetch(requestUrl, {
             method: "POST",
             headers: {
               Authorization: `Bearer ${GHL_AGENCY_KEY}`,
               "Content-Type": "application/json",
               Version: "2021-07-28",
             },
-            body: JSON.stringify({
-              name: `${authorName} - Authors Bureau`,
-              email: authorEmail,
-              phone: "",
-              address: "",
-              city: "",
-              state: "",
-              country: author.location_country || "SG",
-              timezone: "UTC",
-              prospectInfo: {
-                firstName,
-                lastName,
-              },
-            }),
+            body: JSON.stringify(requestBody),
           });
 
+          const responseText = await createResponse.text();
+          console.log("[GHL] Response status:", createResponse.status);
+          console.log("[GHL] Response body:", responseText);
+
           if (createResponse.ok) {
-            const locationData = await createResponse.json();
+            const locationData = JSON.parse(responseText);
             ghlSubaccountId = locationData?.location?.id || locationData?.id;
 
             if (ghlSubaccountId) {
@@ -117,20 +135,39 @@ serve(async (req) => {
                 .eq("id", author_id);
             }
           } else {
-            const errText = await createResponse.text();
-            console.error("GHL sub-account creation failed:", errText);
+            console.error("[GHL] Sub-account creation failed:", createResponse.status, responseText);
             await supabase
               .from("author_profiles")
               .update({ ghl_provision_status: "failed" })
               .eq("id", author_id);
+
+            // Return the actual GHL error to the caller
+            return new Response(
+              JSON.stringify({
+                success: false,
+                error: `GHL API error (${createResponse.status}): ${responseText}`,
+                ghl_status: createResponse.status,
+              }),
+              { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
           }
         } catch (ghlErr) {
-          console.error("GHL provisioning error:", ghlErr);
+          console.error("[GHL] Provisioning exception:", ghlErr?.message || ghlErr);
           await supabase
             .from("author_profiles")
             .update({ ghl_provision_status: "failed" })
             .eq("id", author_id);
+
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: `GHL provisioning exception: ${ghlErr?.message || String(ghlErr)}`,
+            }),
+            { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
         }
+      } else {
+        console.warn("[GHL] GHL_AGENCY_KEY is not set — skipping sub-account creation");
       }
     }
 
