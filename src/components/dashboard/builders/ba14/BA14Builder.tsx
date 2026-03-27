@@ -158,16 +158,24 @@ export default function BA14Builder({ authorId }: Props) {
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
-          <div className="space-y-4">
-            <SuccessCheckmark />
-            <AbbyCard><p className="text-muted-foreground">🎉 Your podcast is live, {authorName}! '{content.show_title}' is ready for your first episode.</p></AbbyCard>
-            <PaymentLinkCard link={content.show_url || ""} />
-            <SummaryCard items={[`Show: ${content.show_title}`, "Episodes planned: 10", "Platforms: 6 directories", "Show URL: Ready to share"]} />
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => navigate("/build-authority")}>Back to Build Authority</Button>
-              <Button className="flex-1" onClick={() => navigate("/node-builder/BA-15")}>Next: Build Your Media Profile <ArrowRight className="h-4 w-4 ml-2" /></Button>
-            </div>
-          </div>
+          <NodeSuccessScreen
+            nodeId="BA-14"
+            authorName={authorName}
+            penNameSlug={authorSlug}
+            celebrationMessage={`Your podcast '${content.show_title}' is live! 10 episode ideas are planned and your distribution is set up.`}
+            thirdPartyUrl={content.show_url}
+            thirdPartyLabel="Podcast Platform"
+            whatHappensNext={[
+              "Record your first 3 episodes and upload them to your podcast platform",
+              "Your show is distributed to 6 podcast directories automatically",
+              "Promote episodes on social media to grow your audience",
+            ]}
+            socialShareText={`I just launched my podcast "${content.show_title}" with @AuthorsBureau! 🎙️`}
+            actions={[
+              { label: "Back to Build Authority", variant: "outline", onClick: () => navigate("/build-authority") },
+              { label: "Next: Build Your Media Profile", onClick: () => navigate("/node-builder/BA-15") },
+            ]}
+          />
         )}
       </div>
     </div>

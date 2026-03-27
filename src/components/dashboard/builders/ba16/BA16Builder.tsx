@@ -144,15 +144,22 @@ export default function BA16Builder({ authorId }: Props) {
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
-          <div className="space-y-4">
-            <SuccessCheckmark />
-            <AbbyCard><p className="text-muted-foreground">🎉 Your affiliate programme is live, {authorName}! '{content.programme_title}' is ready to recruit affiliates.</p></AbbyCard>
-            <SummaryCard items={[`Programme: ${content.programme_title}`, "Commission tiers: 2 tiers", "Affiliate resources: 4 ready", "Recruitment strategy: Ready"]} />
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => navigate("/build-authority")}>Back to Build Authority</Button>
-              <Button className="flex-1" onClick={() => navigate("/node-builder/BA-17")}>Next: Create Upsells & Bundles <ArrowRight className="h-4 w-4 ml-2" /></Button>
-            </div>
-          </div>
+          <NodeSuccessScreen
+            nodeId="BA-16"
+            authorName={authorName}
+            penNameSlug={authorSlug}
+            celebrationMessage={`Your affiliate programme '${content.programme_title}' is live and ready to recruit affiliates!`}
+            whatHappensNext={[
+              "Your commission tiers and affiliate resources are ready to share",
+              "Use the recruitment strategy to find your first affiliates",
+              "Track affiliate performance automatically on your dashboard",
+            ]}
+            socialShareText={`I just launched my affiliate programme "${content.programme_title}" with @AuthorsBureau! 🤝`}
+            actions={[
+              { label: "Back to Build Authority", variant: "outline", onClick: () => navigate("/build-authority") },
+              { label: "Next: Create Upsells & Bundles", onClick: () => navigate("/node-builder/BA-17") },
+            ]}
+          />
         )}
       </div>
     </div>

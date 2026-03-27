@@ -148,15 +148,22 @@ export default function BA18Builder({ authorId }: Props) {
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
-          <div className="space-y-4">
-            <SuccessCheckmark />
-            <AbbyCard><p className="text-muted-foreground">🎉 Your JV partnership strategy is ready, {authorName}! Your partner profiles, pitch, and outreach checklist are all set. Time to reach out!</p></AbbyCard>
-            <SummaryCard items={["Partner profiles: 3 types", "Partnership pitch: Ready", "Partnership types: 3 models", "Outreach checklist: 5 steps"]} />
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => navigate("/build-authority")}>Back to Build Authority</Button>
-              <Button className="flex-1" onClick={() => navigate("/build-authority")}>View All Build Authority <ArrowRight className="h-4 w-4 ml-2" /></Button>
-            </div>
-          </div>
+          <NodeSuccessScreen
+            nodeId="BA-18"
+            authorName={authorName}
+            penNameSlug={authorSlug}
+            celebrationMessage={`Your JV partnership strategy is ready! Your partner profiles, pitch, and outreach checklist are all set. Time to reach out!`}
+            whatHappensNext={[
+              "Use your 3 ideal partner profiles to identify strategic allies",
+              "Send the personalised partnership pitch to your first 5 targets",
+              "Follow the outreach checklist to build profitable partnerships",
+            ]}
+            socialShareText={`I just built my JV partnership strategy with @AuthorsBureau! 🤝`}
+            actions={[
+              { label: "Back to Build Authority", variant: "outline", onClick: () => navigate("/build-authority") },
+              { label: "View All Build Authority", onClick: () => navigate("/build-authority") },
+            ]}
+          />
         )}
       </div>
     </div>

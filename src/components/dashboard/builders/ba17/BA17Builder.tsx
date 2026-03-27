@@ -147,16 +147,23 @@ export default function BA17Builder({ authorId }: Props) {
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
-          <div className="space-y-4">
-            <SuccessCheckmark />
-            <AbbyCard><p className="text-muted-foreground">🎉 Your upsell system is live, {authorName}! 3 bundles and 3 upsell sequences are ready to maximise every sale.</p></AbbyCard>
-            {content.payment_links?.map((link: any, i: number) => <PaymentLinkCard key={i} link={typeof link === 'string' ? link : link.url || ""} />)}
-            <SummaryCard items={["Bundles: 3 ready", "Upsell sequences: 3 configured", "Downsell: 1 ready", "Payment links: Ready to share"]} />
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => navigate("/build-authority")}>Back to Build Authority</Button>
-              <Button className="flex-1" onClick={() => navigate("/node-builder/BA-18")}>Next: Build JV Partnerships <ArrowRight className="h-4 w-4 ml-2" /></Button>
-            </div>
-          </div>
+          <NodeSuccessScreen
+            nodeId="BA-17"
+            authorName={authorName}
+            penNameSlug={authorSlug}
+            celebrationMessage={`Your upsell system is live! 3 bundles and 3 upsell sequences are ready to maximise every sale.`}
+            paymentLinks={content.payment_links?.map((link: any) => ({ label: typeof link === 'string' ? "Bundle" : (link.name || "Bundle"), url: typeof link === 'string' ? link : (link.url || ""), })) || []}
+            whatHappensNext={[
+              "Your 3 bundle offers are live with payment links ready to share",
+              "Upsell sequences trigger automatically after purchases",
+              "Downsell offer catches customers who don't buy the premium tier",
+            ]}
+            socialShareText={`I just launched my product bundle system with @AuthorsBureau! 📦`}
+            actions={[
+              { label: "Back to Build Authority", variant: "outline", onClick: () => navigate("/build-authority") },
+              { label: "Next: Build JV Partnerships", onClick: () => navigate("/node-builder/BA-18") },
+            ]}
+          />
         )}
       </div>
     </div>
