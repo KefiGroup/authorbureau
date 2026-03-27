@@ -155,16 +155,23 @@ export default function BA12Builder({ authorId }: Props) {
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
-          <div className="space-y-4">
-            <SuccessCheckmark />
-            <AbbyCard><p className="text-muted-foreground">🎉 Your membership community is live, {authorName}! '{content.membership_title}' is ready to welcome members.</p></AbbyCard>
-            {content.payment_links?.map((link: any, i: number) => <PaymentLinkCard key={i} link={link.url || ""} />)}
-            <SummaryCard items={[`Community: ${content.membership_title}`, "Tiers: 2 tiers ready", "Content calendar: 4 weeks planned", "Welcome sequence: 3 emails ready"]} />
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => navigate("/build-authority")}>Back to Build Authority</Button>
-              <Button className="flex-1" onClick={() => navigate("/node-builder/BA-13")}>Next: Launch Group Coaching <ArrowRight className="h-4 w-4 ml-2" /></Button>
-            </div>
-          </div>
+          <NodeSuccessScreen
+            nodeId="BA-12"
+            authorName={authorName}
+            penNameSlug={authorSlug}
+            celebrationMessage={`Your membership community '${content.membership_title}' is live and ready to welcome members!`}
+            paymentLinks={content.payment_links?.map((link: any) => ({ label: link.tier || "Membership", url: link.url || "", price: link.price ? `$${link.price}` : undefined })) || []}
+            whatHappensNext={[
+              "Members can sign up and access your community immediately",
+              "Your content calendar has 4 weeks of content planned automatically",
+              "Welcome sequence of 3 emails will onboard every new member",
+            ]}
+            socialShareText={`I just launched my membership community "${content.membership_title}" with @AuthorsBureau! 🎯`}
+            actions={[
+              { label: "Back to Build Authority", variant: "outline", onClick: () => navigate("/build-authority") },
+              { label: "Next: Launch Group Coaching", onClick: () => navigate("/node-builder/BA-13") },
+            ]}
+          />
         )}
       </div>
     </div>

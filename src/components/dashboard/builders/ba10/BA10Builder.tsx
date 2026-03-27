@@ -180,16 +180,25 @@ export default function BA10Builder({ authorId }: Props) {
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
-          <div className="space-y-4">
-            <SuccessCheckmark />
-            <AbbyCard><p className="text-muted-foreground">🎉 Your online course is live, {authorName}! '{content.course_title}' is published and ready for students.</p></AbbyCard>
-            <PaymentLinkCard link={content.payment_link_url || ""} />
-            <SummaryCard items={[`Course: ${content.course_title}`, "Modules: 8 modules ready", `Price: $${priceOverride ?? content.suggested_price_usd ?? 497}`, "Course link: Ready to share"]} />
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => navigate("/build-authority")}>Back to Build Authority</Button>
-              <Button className="flex-1" onClick={() => navigate("/node-builder/BA-11")}>Next: Create Your Audiobook <ArrowRight className="h-4 w-4 ml-2" /></Button>
-            </div>
-          </div>
+          <NodeSuccessScreen
+            nodeId="BA-10"
+            authorName={authorName}
+            penNameSlug={authorSlug}
+            celebrationMessage={`Your online course '${content.course_title}' is live and ready for students! Your 8-module course with payment link is set up automatically.`}
+            paymentLinks={content.payment_link_url ? [{ label: content.course_title || "Online Course", url: content.payment_link_url, price: `$${priceOverride ?? content.suggested_price_usd ?? 497}` }] : []}
+            thirdPartyUrl={content.third_party_url}
+            thirdPartyLabel="Course Platform"
+            whatHappensNext={[
+              `${content.course_title} is published with 8 modules and ready to enrol students`,
+              "Students can purchase and access your course immediately",
+              "Your course analytics will update automatically on your dashboard",
+            ]}
+            socialShareText={`I just launched my online course "${content.course_title}" with @AuthorsBureau! 🎓`}
+            actions={[
+              { label: "Back to Build Authority", variant: "outline", onClick: () => navigate("/build-authority") },
+              { label: "Next: Create Your Audiobook", onClick: () => navigate("/node-builder/BA-11") },
+            ]}
+          />
         )}
       </div>
     </div>

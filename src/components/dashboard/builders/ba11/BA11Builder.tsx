@@ -149,23 +149,22 @@ export default function BA11Builder({ authorId }: Props) {
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
-          <div className="space-y-4">
-            <SuccessCheckmark />
-            <AbbyCard><p className="text-muted-foreground">🎉 Your audiobook production package is ready, {authorName}! Your narrator brief, chapter guides, and distribution strategy are all set. Your next step is to submit to ACX.</p></AbbyCard>
-            <Card><CardContent className="pt-6 space-y-3">
-              <p className="font-semibold text-sm mb-2">Next Steps</p>
-              <div className="space-y-2">
-                <p className="text-sm flex items-start gap-2"><span className="text-primary font-bold">1.</span> Submit to ACX (Amazon Audible)</p>
-                <p className="text-sm flex items-start gap-2"><span className="text-primary font-bold">2.</span> Submit to Findaway Voices</p>
-                <p className="text-sm flex items-start gap-2"><span className="text-primary font-bold">3.</span> Submit to Spotify for Podcasters</p>
-              </div>
-            </CardContent></Card>
-            <SummaryCard items={["Narrator brief: Ready", "Chapter guides: 5 chapters", "Distribution: 3 platforms", `Retail price: $${priceOverride ?? content.suggested_retail_price_usd ?? 19.99}`]} />
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => navigate("/build-authority")}>Back to Build Authority</Button>
-              <Button className="flex-1" onClick={() => navigate("/node-builder/BA-12")}>Next: Launch Your Membership <ArrowRight className="h-4 w-4 ml-2" /></Button>
-            </div>
-          </div>
+          <NodeSuccessScreen
+            nodeId="BA-11"
+            authorName={authorName}
+            penNameSlug={authorSlug}
+            celebrationMessage={`Your audiobook production package is ready! Your narrator brief, chapter guides, and distribution strategy are all set.`}
+            whatHappensNext={[
+              "Submit to ACX (Amazon Audible) to reach millions of listeners",
+              "Submit to Findaway Voices for wide distribution",
+              "Submit to Spotify for Podcasters for streaming audiences",
+            ]}
+            socialShareText={`I just created my audiobook production package with @AuthorsBureau! 🎧`}
+            actions={[
+              { label: "Back to Build Authority", variant: "outline", onClick: () => navigate("/build-authority") },
+              { label: "Next: Launch Your Membership", onClick: () => navigate("/node-builder/BA-12") },
+            ]}
+          />
         )}
       </div>
     </div>
