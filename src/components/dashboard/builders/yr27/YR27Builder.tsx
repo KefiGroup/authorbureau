@@ -19,6 +19,7 @@ export default function YR27Builder({ authorId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
+  const [authorSlug, setAuthorSlug] = useState("");
   const [bookTitle, setBookTitle] = useState("");
   const [content, setContent] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -26,8 +27,9 @@ export default function YR27Builder({ authorId }: Props) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => { if (!authorId) return; (async () => {
-    const { data: p } = await supabase.from("author_profiles").select("pen_name").eq("id", authorId).single();
+    const { data: p } = await supabase.from("author_profiles").select("pen_name, author_slug").eq("id", authorId).single();
     setAuthorName(p?.pen_name || "there");
+    setAuthorSlug(p?.author_slug || "");
     const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
     setBookTitle(ctx?.book_title || "");
     const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "YR-27").maybeSingle();
