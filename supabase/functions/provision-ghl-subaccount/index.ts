@@ -57,7 +57,7 @@ serve(async (req) => {
     // Fetch author profile
     const { data: author, error: authorErr } = await supabase
       .from("author_profiles")
-      .select("id, pen_name, user_id, ghl_sub_account_id, location_country")
+      .select("id, pen_name, user_id, ghl_sub_account_id, location_country, ghl_provisioning_attempts")
       .eq("id", author_id)
       .single();
 
