@@ -116,6 +116,9 @@ export default function BrandProductsHub() {
   const liveCount = nodes.filter(n => n.status === "live").length;
   const progressPercent = (liveCount / 9) * 100;
   const showAbbyWelcome = liveCount === 0;
+  const bp04Node = nodes.find(n => n.node_id === "BP-04");
+  const bp04IsLive = bp04Node?.status === "live";
+  const micrositeNodes = new Set(["BP-02", "BP-05", "BP-06", "BP-07", "BP-08", "BP-09"]);
 
   const handleCardClick = (node: NodeCard) => {
     if (node.status === "locked") {
@@ -152,6 +155,32 @@ export default function BrandProductsHub() {
             <Progress value={progressPercent} className="h-2 flex-1 max-w-xs" />
           </div>
         </div>
+
+        {/* BP-04 Prerequisite Banner */}
+        {!bp04IsLive && (
+          <Card className="p-4 sm:p-5 mb-6 border-amber-200 dark:border-amber-800 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/20">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center shrink-0">
+                <Globe className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-1">
+                  Build your author website first
+                </p>
+                <p className="text-xs text-amber-700 dark:text-amber-300 mb-3">
+                  Your website is the home for everything you create. Start here to give all your pages a home.
+                </p>
+                <Button
+                  size="sm"
+                  className="bg-amber-600 hover:bg-amber-700 text-white"
+                  onClick={() => navigate("/node-builder/BP-04")}
+                >
+                  Build Your Website <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
 
         {/* ABBY Welcome */}
         {showAbbyWelcome && (
