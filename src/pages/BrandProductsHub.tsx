@@ -260,18 +260,41 @@ export default function BrandProductsHub() {
                   </div>
                 )}
 
+                {/* Start Here badge for BP-04 (only for subscribed users) */}
+                {isTierUnlocked && isBP04 && !bp04IsLive && (
+                  <span className="absolute -top-2.5 left-4 inline-flex items-center gap-1 rounded-full bg-amber-500 text-white px-3 py-0.5 text-[11px] font-bold shadow-sm">
+                    <Star className="h-3 w-3" /> Start Here
+                  </span>
+                )}
+
+                {/* Node ID badge */}
+                {isTierUnlocked && (
+                  <span className="absolute top-3 right-3 text-[10px] font-mono text-muted-foreground/50">
+                    {node.node_id}
+                  </span>
+                )}
+
                 {/* Name */}
                 <h3 className="font-heading text-base font-semibold text-foreground pr-12 leading-tight">
                   {node.personalised_name || node.node_name}
                 </h3>
 
                 {/* Status badge */}
-                <div className="flex items-center gap-1.5">
-                  <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${statusCfg.color}`}>
-                    <StatusIcon className="h-3 w-3" />
-                    {statusCfg.label}
-                  </span>
-                </div>
+                {isTierUnlocked ? (
+                  <div className="flex items-center gap-1.5">
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${statusCfg.color}`}>
+                      <StatusIcon className="h-3 w-3" />
+                      {statusCfg.label}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium bg-muted text-muted-foreground">
+                      <Lock className="h-3 w-3" />
+                      Locked
+                    </span>
+                  </div>
+                )}
 
                 {/* Description / Revenue estimate */}
                 <p className="text-xs text-muted-foreground leading-relaxed">
