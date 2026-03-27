@@ -206,12 +206,21 @@ export default function BrandProductsHub() {
             const statusCfg = STATUS_CONFIG[node.status];
             const cta = ctaForStatus(node.status);
             const StatusIcon = statusCfg.icon;
+            const isBP04 = node.node_id === "BP-04";
+            const needsWebsiteWarning = !bp04IsLive && micrositeNodes.has(node.node_id) && node.status !== "live";
 
             return (
               <div
                 key={node.node_id}
-                className="relative rounded-xl border border-border bg-card p-5 flex flex-col gap-3 hover:shadow-md transition-shadow"
+                className={`relative rounded-xl border bg-card p-5 flex flex-col gap-3 hover:shadow-md transition-shadow ${isBP04 && !bp04IsLive ? "border-amber-300 dark:border-amber-700 ring-1 ring-amber-200 dark:ring-amber-800" : "border-border"}`}
               >
+                {/* Start Here badge for BP-04 */}
+                {isBP04 && !bp04IsLive && (
+                  <span className="absolute -top-2.5 left-4 inline-flex items-center gap-1 rounded-full bg-amber-500 text-white px-3 py-0.5 text-[11px] font-bold shadow-sm">
+                    <Star className="h-3 w-3" /> Start Here
+                  </span>
+                )}
+
                 {/* Node ID badge */}
                 <span className="absolute top-3 right-3 text-[10px] font-mono text-muted-foreground/50">
                   {node.node_id}
