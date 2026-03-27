@@ -40,6 +40,12 @@ const CAMPAIGNS: CampaignConfig[] = [
     deployFunctions: ["deploy-bp01-to-ghl"],
     successMessage: "Your email marketing is running. New contacts will automatically receive your welcome sequence.",
     checklist: ["Welcome sequence active", "Nurture sequence queued", "Automation running"],
+    howToStart: [
+      { step: "Go to Brand Products and open Email Marketing", link: "/node-builder/BP-01", linkLabel: "Build Email Marketing →" },
+      { step: "Let Abby generate your welcome, nurture, and launch sequences" },
+      { step: "Review the emails and click 'Publish to My Site'" },
+      { step: "Come back here and click 'Activate Now' to start sending" },
+    ],
   },
   {
     id: "lead-magnets", label: "Lead Magnets", phase: "A",
@@ -48,6 +54,12 @@ const CAMPAIGNS: CampaignConfig[] = [
     deployFunctions: ["deploy-bp02-to-ghl"],
     successMessage: "Your lead magnet funnel is live. Every new subscriber will automatically receive your free gift.",
     checklist: ["Opt-in funnel live", "Thank-you page active", "Lead automation running"],
+    howToStart: [
+      { step: "Go to Brand Products and open Lead Magnets", link: "/node-builder/BP-02", linkLabel: "Build Lead Magnets →" },
+      { step: "Abby will design 3 irresistible free resources from your book" },
+      { step: "Review your opt-in page and click 'Publish to My Site'" },
+      { step: "Come back here and click 'Activate Now' to start capturing subscribers" },
+    ],
   },
   {
     id: "social-media", label: "Social Media", phase: "A",
@@ -56,6 +68,12 @@ const CAMPAIGNS: CampaignConfig[] = [
     deployFunctions: ["deploy-bp03-to-ghl"],
     successMessage: "Your 90-day social media calendar is active. Posts will go out automatically every day.",
     checklist: ["Content calendar scheduled", "First 7 days posted", "Remaining 83 days queued"],
+    howToStart: [
+      { step: "Go to Brand Products and open Social Media", link: "/node-builder/BP-03", linkLabel: "Build Social Media →" },
+      { step: "Abby will create a 90-day content calendar from your book" },
+      { step: "Review your posts and click 'Publish'" },
+      { step: "Come back here and click 'Activate Now' to schedule your posts" },
+    ],
   },
   {
     id: "website-microsite", label: "Website / Microsite", phase: "A",
@@ -64,6 +82,12 @@ const CAMPAIGNS: CampaignConfig[] = [
     deployFunctions: ["deploy-bp04-to-ghl"],
     successMessage: "Your author website is now live and your lead capture funnel is running.",
     checklist: ["Website pages created", "Lead capture form active", "Author funnel pipeline live"],
+    howToStart: [
+      { step: "Go to Brand Products and open Website", link: "/node-builder/BP-04", linkLabel: "Build My Website →" },
+      { step: "Abby will design your author website with Home, About, Book, and Contact pages" },
+      { step: "Review your site and click 'Publish to My Site'" },
+      { step: "Come back here and click 'Activate Now' to enable lead capture" },
+    ],
   },
   {
     id: "webinars", label: "Webinars", phase: "A",
@@ -72,6 +96,12 @@ const CAMPAIGNS: CampaignConfig[] = [
     deployFunctions: ["deploy-bp05-to-ghl"],
     successMessage: "Your webinar system is live. Registration is open and follow-up emails will fire automatically.",
     checklist: ["Registration page live", "Reminder emails scheduled", "Follow-up sequence active"],
+    howToStart: [
+      { step: "Go to Brand Products and open Webinars", link: "/node-builder/BP-05", linkLabel: "Build My Webinar →" },
+      { step: "Abby will create your webinar topic, registration page, and follow-up emails" },
+      { step: "Review everything and click 'Publish to My Site'" },
+      { step: "Come back here and click 'Activate Now' to open registration" },
+    ],
   },
   {
     id: "digital-products", label: "Digital Products", phase: "B",
@@ -80,6 +110,12 @@ const CAMPAIGNS: CampaignConfig[] = [
     deployFunctions: ["deploy-bp06-to-ghl", "deploy-bp07-to-ghl", "deploy-bp08-to-ghl", "deploy-bp09-to-ghl"],
     successMessage: "Your digital products are now for sale. Payment links are live and purchase automations are running.",
     checklist: ["Payment links created", "Product pipeline active", "Post-purchase automation running"],
+    howToStart: [
+      { step: "Build at least one digital product: Workbook, Home Study, Special Edition, or Book Sales", link: "/brand-products", linkLabel: "Go to Brand Products →" },
+      { step: "Let Abby generate the product content from your book" },
+      { step: "Review and click 'Publish to My Site' for each product" },
+      { step: "Come back here and click 'Activate Now' to create payment links" },
+    ],
   },
   {
     id: "build-authority", label: "Build Authority", phase: "B",
@@ -88,6 +124,12 @@ const CAMPAIGNS: CampaignConfig[] = [
     deployFunctions: [],
     successMessage: "Your authority-building campaigns are active and promoting your advanced products.",
     checklist: ["Campaign funnels live", "Audience targeting active", "Follow-up sequences running"],
+    howToStart: [
+      { step: "Go to Build Authority and create at least one product (Course, Audiobook, Membership, etc.)", link: "/build-authority", linkLabel: "Go to Build Authority →" },
+      { step: "Let Abby generate the content from your book and expertise" },
+      { step: "Review and click 'Publish to My Site'" },
+      { step: "Come back here and click 'Activate Now' to start promoting" },
+    ],
   },
   {
     id: "yield-revenue", label: "Yield Revenue", phase: "B",
@@ -96,6 +138,12 @@ const CAMPAIGNS: CampaignConfig[] = [
     deployFunctions: [],
     successMessage: "Your premium offer campaigns are live and your high-ticket pipeline is running.",
     checklist: ["Premium funnels active", "High-ticket pipeline live", "Follow-up automation running"],
+    howToStart: [
+      { step: "Go to Yield Revenue and create at least one premium offer (Coaching, Speaking, Mastermind, etc.)", link: "/yield-revenue", linkLabel: "Go to Yield Revenue →" },
+      { step: "Let Abby design your high-ticket packages and pricing" },
+      { step: "Review and click 'Publish to My Site'" },
+      { step: "Come back here and click 'Activate Now' to launch your premium pipeline" },
+    ],
   },
 ];
 
