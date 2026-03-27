@@ -215,7 +215,7 @@ export default function BP02Builder({ authorId }: Props) {
         )}
 
         {/* STEP 2: Review */}
-        {step === 2 && content && <ReviewStep content={content} authorName={authorName} onActivate={handleActivate} />}
+        {step === 2 && content && <ReviewStep content={content} authorName={authorName} onActivate={handlePublish} />}
 
         {/* STEP 3: Activation / Success */}
         {step === 3 && !content?.activated && (
