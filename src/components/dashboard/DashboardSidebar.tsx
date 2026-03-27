@@ -168,7 +168,7 @@ export default function DashboardSidebar({
     },
     {
       id: "authority-builders", label: "Y·Yield Revenue", icon: Award,
-      subtitle: yieldAccessible ? (isSuperAdminProp ? "Dev Access" : "Premium Services")
+      subtitle: yieldAccessible ? "Premium Services"
         : (isSuperAdminProp || yieldCategoryOpen) ? "Requires Yield Package" : "Coming Soon",
       tooltip: yieldAccessible ? "Premium monetization services"
         : !tierAccess("enterprise") ? "Upgrade to Yield Package ($249/mo) to unlock"
