@@ -28,7 +28,7 @@ export default function YR21Builder({ authorId }: Props) {
   const [msgIndex, setMsgIndex] = useState(0);
   const [expandedTalks, setExpandedTalks] = useState<Record<number, boolean>>({});
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook(authorId);
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
 
   useEffect(() => {
     if (!authorId) return;

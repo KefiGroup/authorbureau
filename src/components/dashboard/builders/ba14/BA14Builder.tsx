@@ -29,7 +29,7 @@ export default function BA14Builder({ authorId }: Props) {
   const [expandedEpisodes, setExpandedEpisodes] = useState<Record<number, boolean>>({});
   const [authorSlug, setAuthorSlug] = useState("");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook(authorId);
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
 
   useEffect(() => {
     if (!authorId) return;

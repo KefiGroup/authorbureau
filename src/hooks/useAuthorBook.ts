@@ -14,33 +14,21 @@ export interface AuthorBookResult {
   isLoading: boolean;
 }
 
-export function useAuthorBook(authorProfileId: string | null | undefined): AuthorBookResult {
+export function useAuthorBook(): AuthorBookResult {
   const [hasBook, setHasBook] = useState(false);
   const [bookTitle, setBookTitle] = useState("your book");
   const [book, setBook] = useState<AuthorBook | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!authorProfileId) {
-      setHasBook(false);
-      setBookTitle("your book");
-      setBook(null);
-      setIsLoading(false);
-      return;
-    }
-
     const fetchBook = async () => {
       setIsLoading(true);
       try {
-        // Step 1: Get the auth.users.id from author_profiles
-        const { data: profile, error: profileError } = await supabase
-          .from("author_profiles")
-          .select("user_id")
-          .eq("id", authorProfileId)
-          .single();
+        // Get auth.users.id DIRECTLY from the session — no profile table needed
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-        if (profileError || !profile?.user_id) {
-          console.error("[useAuthorBook] Could not fetch user_id from author_profiles:", profileError);
+        if (userError || !user?.id) {
+          console.error("[useAuthorBook] No authenticated user:", userError);
           setHasBook(false);
           setBookTitle("your book");
           setBook(null);
@@ -48,14 +36,11 @@ export function useAuthorBook(authorProfileId: string | null | undefined): Autho
           return;
         }
 
-        const authUserId = profile.user_id;
-        console.log("[useAuthorBook] author_profile_id:", authorProfileId, "auth_user_id:", authUserId);
+        const authUserId = user.id;
+        const userEmail = user.email?.toLowerCase() || null;
+        console.log("[useAuthorBook] auth.users.id from session:", authUserId);
 
-        // Step 2: Get user email for owner_email fallback
-        const { data: authData } = await supabase.auth.getUser();
-        const userEmail = authData?.user?.email?.toLowerCase() || null;
-
-        // Step 3: Query books using auth.users.id (NOT author_profiles.id)
+        // Query books directly with auth.users.id
         let booksQuery = supabase
           .from("books")
           .select("title, author_name, genre")
@@ -74,16 +59,28 @@ export function useAuthorBook(authorProfileId: string | null | undefined): Autho
           console.error("[useAuthorBook] Error querying books:", bookError);
         }
 
-        // Step 4: Fallback to author_context
-        const { data: contextData } = await supabase
-          .from("author_context")
-          .select("book_title")
-          .eq("author_id", authorProfileId)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        // Fallback: check author_context using author_profiles.id
+        let contextTitle: string | null = null;
+        if (!bookData?.title) {
+          const { data: profile } = await supabase
+            .from("author_profiles")
+            .select("id")
+            .eq("user_id", authUserId)
+            .maybeSingle();
 
-        const detectedTitle = bookData?.title || contextData?.book_title || null;
+          if (profile?.id) {
+            const { data: contextData } = await supabase
+              .from("author_context")
+              .select("book_title")
+              .eq("author_id", profile.id)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            contextTitle = contextData?.book_title || null;
+          }
+        }
+
+        const detectedTitle = bookData?.title || contextTitle || null;
 
         if (detectedTitle) {
           console.log("[useAuthorBook] Book found:", detectedTitle);
@@ -111,7 +108,7 @@ export function useAuthorBook(authorProfileId: string | null | undefined): Autho
     };
 
     fetchBook();
-  }, [authorProfileId]);
+  }, []);
 
   return { hasBook, bookTitle, book, isLoading };
 }
