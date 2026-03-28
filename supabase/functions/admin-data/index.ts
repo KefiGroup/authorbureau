@@ -45,8 +45,26 @@ async function verifyAdmin(token: string) {
     .eq("role", "admin")
     .maybeSingle();
 
-  if (!roleData) return { userId: null, client: null };
-  return { userId, client };
+  if (roleData) return { userId, client };
+
+  // Shared-backend user: resolve email → Cloud user for role check
+  const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
+  const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
+  if (sharedUser?.email) {
+    const { data: { users: cloudUsers } } = await client.auth.admin.listUsers();
+    const cloudMatch = cloudUsers?.find((u: any) => u.email === sharedUser.email);
+    if (cloudMatch) {
+      const { data: cloudRole } = await client
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", cloudMatch.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      if (cloudRole) return { userId: cloudMatch.id, client };
+    }
+  }
+
+  return { userId: null, client: null };
 }
 
 Deno.serve(async (req) => {

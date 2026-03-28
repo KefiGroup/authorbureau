@@ -45,22 +45,52 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check admin role
+    // Check admin role — resolve shared-backend user to Cloud user via email if needed
     const adminClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    let roleUserId = userId;
+    // Check if userId exists in Cloud auth; if not, look up by email
     const { data: roleData } = await adminClient
       .from("user_roles")
       .select("role")
-      .eq("user_id", userId)
+      .eq("user_id", roleUserId)
       .eq("role", "admin")
       .maybeSingle();
 
     if (!roleData) {
-      return new Response(JSON.stringify({ error: "Admin access required" }), {
-        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      // Try to resolve via email: get email from shared backend, find Cloud user
+      const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
+      const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
+      if (sharedUser?.email) {
+        const { data: { users: cloudUsers } } = await adminClient.auth.admin.listUsers();
+        const cloudMatch = cloudUsers?.find((u: any) => u.email === sharedUser.email);
+        if (cloudMatch) {
+          const { data: cloudRole } = await adminClient
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", cloudMatch.id)
+            .eq("role", "admin")
+            .maybeSingle();
+          if (cloudRole) {
+            roleUserId = cloudMatch.id;
+          } else {
+            return new Response(JSON.stringify({ error: "Admin access required" }), {
+              status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        } else {
+          return new Response(JSON.stringify({ error: "Admin access required" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      } else {
+        return new Response(JSON.stringify({ error: "Admin access required" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const { action, bookId, page = 1, filter } = await req.json();
