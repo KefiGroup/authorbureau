@@ -32,7 +32,7 @@ export default function BA10Builder({ authorId }: Props) {
   const [expandedModules, setExpandedModules] = useState<Record<number, boolean>>({});
   const [authorSlug, setAuthorSlug] = useState("");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook(authorId);
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
 
   useEffect(() => {
     if (!authorId) return;

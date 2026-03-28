@@ -26,7 +26,7 @@ export default function YR26Builder({ authorId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { bookTitle: detectedBookTitle } = useAuthorBook(authorId);
+  const { bookTitle: detectedBookTitle } = useAuthorBook();
 
   useEffect(() => { if (!authorId) return; (async () => {
     const { data: p } = await supabase.from("author_profiles").select("pen_name, author_slug, user_id").eq("id", authorId).single();

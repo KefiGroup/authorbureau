@@ -31,7 +31,7 @@ export default function BP09Builder({ authorId }: Props) {
   const [priceOverride, setPriceOverride] = useState<number | null>(null);
   const [expandedTalk, setExpandedTalk] = useState<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook(authorId);
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
 
   useEffect(() => {
     if (!authorId) return;
