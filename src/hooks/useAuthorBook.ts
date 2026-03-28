@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuthReady } from "@/hooks/useAuthReady";
 
 export interface AuthorBook {
   title: string;
@@ -14,35 +15,32 @@ export interface AuthorBookResult {
   isLoading: boolean;
 }
 
-
 export function useAuthorBook(): AuthorBookResult {
+  const { user, isReady } = useAuthReady();
   const [hasBook, setHasBook] = useState(false);
   const [bookTitle, setBookTitle] = useState("your book");
   const [book, setBook] = useState<AuthorBook | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Wait until the auth session has been fully restored
+    if (!isReady) return;
+
+    // No authenticated user — nothing to fetch
+    if (!user) {
+      setHasBook(false);
+      setBookTitle("your book");
+      setBook(null);
+      setIsLoading(false);
+      return;
+    }
+
     const fetchBook = async () => {
       setIsLoading(true);
       try {
-        // Get auth.users.id from the restored auth session (avoids early getUser race)
-        const {
-          data: { session },
-          error: sessionError,
-        } = await supabase.auth.getSession();
-
-        if (sessionError || !session?.user?.id) {
-          console.error("[useAuthorBook] No authenticated session:", sessionError);
-          setHasBook(false);
-          setBookTitle("your book");
-          setBook(null);
-          setIsLoading(false);
-          return;
-        }
-
-        const authUserId = session.user.id;
-        const userEmail = session.user.email?.toLowerCase() || null;
-        console.log("[useAuthorBook] auth.users.id from session:", authUserId);
+        const authUserId = user.id;
+        const userEmail = user.email?.toLowerCase() || null;
+        console.log("[useAuthorBook] auth user ready:", authUserId);
 
         // Query books directly with auth.users.id
         let booksQuery = supabase
@@ -96,7 +94,7 @@ export function useAuthorBook(): AuthorBookResult {
             genre: bookData?.genre || undefined,
           });
         } else {
-          console.log("[useAuthorBook] No book found for auth_user_id:", authUserId);
+          console.log("[useAuthorBook] No book found for user:", authUserId);
           setHasBook(false);
           setBookTitle("your book");
           setBook(null);
@@ -112,7 +110,7 @@ export function useAuthorBook(): AuthorBookResult {
     };
 
     fetchBook();
-  }, []);
+  }, [isReady, user]);
 
   return { hasBook, bookTitle, book, isLoading };
 }
