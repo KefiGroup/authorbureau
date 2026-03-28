@@ -24,6 +24,7 @@ export function useAuthReady(): AuthReadyState {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log("[useAuthReady] event fired:", _event, "user:", session?.user?.id ?? "none");
       setUser(session?.user ?? null);
       setIsReady(true);
     });
