@@ -1,37 +1,36 @@
 
 
-## Plan: Add RLS Policy + Clear Stale Build Errors
+## Diagnosis: Admin Dashboard "Failed to load stats"
 
-### What's happening
+### Root Cause
 
-**Build errors are stale.** I verified all 28 builder files — every one already calls `useAuthorBook()` with zero arguments. The TS2554 errors reference the correct lines but the code is already fixed. This is a cached build artifact issue.
+There is a **user ID mismatch** between the two authentication backends:
 
-**RLS policy is needed.** The `books` table currently lacks a SELECT policy allowing authors to read their own books. This is likely why the hook can't fetch book data — RLS is blocking the query.
+- **Cloud backend** user ID: `5fd84779-8ac5-49f6-9524-0d7f1dcd4f33` (paulinet77@gmail.com) — has `admin` role in `user_roles`
+- **Shared backend** user ID: `50a60e39-3090-487e-aea4-75b86a1cf76a` (same email) — no admin role in Cloud's `user_roles`
 
-### Steps
+When the user is logged in via the shared backend, `getActiveToken()` returns the shared session token. The Cloud edge functions (`admin-books`, `admin-data`) receive this token, resolve it to the shared user ID (`50a60e39`), then look up `user_roles` in the Cloud database — where only `5fd84779` has the admin role. Result: **403 "Admin access required"** on every call, causing the "Failed to load stats" toast.
 
-**Step 1 — Add RLS policy on `books` table**
+### Fix
 
-Run a database migration:
+**Add the shared backend user ID to Cloud's `user_roles` table** so that both IDs are recognized as admin:
 
 ```sql
-CREATE POLICY "Users can read own book"
-ON public.books FOR SELECT
-TO authenticated
-USING (auth.uid() = author_id);
+INSERT INTO user_roles (user_id, role)
+VALUES ('50a60e39-3090-487e-aea4-75b86a1cf76a', 'admin')
+ON CONFLICT (user_id, role) DO NOTHING;
 ```
 
-This allows any authenticated user to SELECT rows from `books` where `author_id` matches their auth UID. This is the missing piece that would cause the `useAuthorBook` hook to return no data even though the record exists.
+This is a single database migration — no code changes needed.
 
-**Step 2 — Trigger a clean rebuild**
+### Why This Is the Right Fix
 
-Make a trivial whitespace change to any file (e.g., add a blank line to `useAuthorBook.ts`) to force a fresh TypeScript compilation and clear the stale error cache.
+- Both edge functions already have dual-auth resolution (`resolveUserId` tries Cloud first, then shared) — this logic is correct
+- The `useAuth` hook and `getActiveToken()` correctly return whichever session is active
+- The only gap is the missing role mapping for the shared-backend user ID
+- Adding the role row means the admin dashboard works regardless of which backend issued the session
 
-### Why this fixes the book detection issue
-
-The hook queries `books` with `.eq("author_id", authUserId)`. Without an RLS SELECT policy, the query returns zero rows even though the data exists. Adding this policy unlocks the data for the authenticated user.
-
-### Files changed
-- **Database migration**: 1 new RLS policy on `books`
-- **Code**: Trivial whitespace-only touch to clear build cache (no logic changes)
+### Files Changed
+- **1 database migration** (single INSERT statement)
+- No code file changes
 
