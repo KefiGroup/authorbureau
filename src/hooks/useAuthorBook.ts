@@ -25,11 +25,14 @@ export function useAuthorBook(): AuthorBookResult {
     const fetchBook = async () => {
       setIsLoading(true);
       try {
-        // Get auth.users.id DIRECTLY from the session — no profile table needed
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        // Get auth.users.id from the restored auth session (avoids early getUser race)
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession();
 
-        if (userError || !user?.id) {
-          console.error("[useAuthorBook] No authenticated user:", userError);
+        if (sessionError || !session?.user?.id) {
+          console.error("[useAuthorBook] No authenticated session:", sessionError);
           setHasBook(false);
           setBookTitle("your book");
           setBook(null);
@@ -37,8 +40,8 @@ export function useAuthorBook(): AuthorBookResult {
           return;
         }
 
-        const authUserId = user.id;
-        const userEmail = user.email?.toLowerCase() || null;
+        const authUserId = session.user.id;
+        const userEmail = session.user.email?.toLowerCase() || null;
         console.log("[useAuthorBook] auth.users.id from session:", authUserId);
 
         // Query books directly with auth.users.id
