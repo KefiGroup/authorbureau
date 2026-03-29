@@ -286,7 +286,7 @@ export default function SubscriptionSalesPitch({
 
       {!isSubscribed && countdown.expired && (
         <div className="rounded-xl mx-4 md:mx-8 mt-4 px-5 py-3 bg-muted text-center text-sm text-muted-foreground border border-border">
-          First-timer promotional pricing has expired. Standard pricing applies.
+          Consultation promotional pricing has expired. Standard pricing applies.
         </div>
       )}
 
