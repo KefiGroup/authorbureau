@@ -400,7 +400,7 @@ export default function SubscriptionSalesPitch({
                           ? "bg-amber-500 hover:bg-amber-600 text-white"
                           : "bg-[hsl(var(--primary))] text-primary-foreground hover:bg-[hsl(var(--primary))]/90"
                       }`}
-                      onClick={() => onSubscribe(plan.id, promoCodes[plan.id]?.trim() || undefined)}
+                      onClick={() => onSubscribe(plan.id, countdown.storedPromos?.[plan.id] || undefined)}
                       disabled={loading}
                     >
                       {loading ? (
