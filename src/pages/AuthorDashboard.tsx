@@ -174,22 +174,29 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
 
   // Onboarding redirect state
   const [onboardingRedirect, setOnboardingRedirect] = useState<"profile" | "my-books" | null>(null);
+  const [checkingOnboarding, setCheckingOnboarding] = useState(true);
 
-  // Onboarding redirect logic: check prerequisites and redirect on first load
+  // Check onboarding_completed and redirect if false
   useEffect(() => {
     if (loading || !user) return;
-    // Only redirect when on the overview/dashboard section
-    if (activeSection !== "overview") return;
-    
-    // Check profile completeness
-    const hasProfile = stats.liveMicrosites > 0 || stats.bookCount > 0; // simplified: they have content
-    
-    // We use stats to determine redirect: no profile data at all
-    if (!stats.bookCount && !stats.liveMicrosites && !stats.analyzedCount) {
-      // Could be brand new user - redirect is handled by dashboard state A already
-      return;
-    }
-  }, [loading, user, stats, activeSection]);
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("author_profiles")
+          .select("onboarding_completed")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (data && !(data as any).onboarding_completed) {
+          dashboardNavigate("/onboarding", { replace: true });
+          return;
+        }
+      } catch (err) {
+        console.error("Onboarding check failed:", err);
+      } finally {
+        setCheckingOnboarding(false);
+      }
+    })();
+  }, [loading, user, dashboardNavigate]);
 
   // Check if journey onboarding should show (first time user has an analyzed book)
   useEffect(() => {
