@@ -113,42 +113,47 @@ const plans = [
 
 const tierOrder = ["free", "starter", "pro", "enterprise"] as const;
 
-/* ─── Countdown Timer Hook ─── */
-function useCountdown() {
-  const PROMO_DURATION_MS = 60 * 60 * 1000; // 60 minutes
-  const STORAGE_KEY = "ab_promo_start";
-
-  const getStartTime = useCallback(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return parseInt(stored, 10);
-    const now = Date.now();
-    localStorage.setItem(STORAGE_KEY, String(now));
-    return now;
-  }, []);
-
-  const [startTime] = useState(getStartTime);
-  const [remaining, setRemaining] = useState(() => {
-    const elapsed = Date.now() - startTime;
-    return Math.max(0, PROMO_DURATION_MS - elapsed);
-  });
+/* ─── Countdown Timer Hook (DB-driven) ─── */
+function useCountdown(userId?: string) {
+  const [remaining, setRemaining] = useState(0);
+  const [expiresAt, setExpiresAt] = useState<Date | null>(null);
+  const [storedPromos, setStoredPromos] = useState<Record<string, string> | null>(null);
 
   useEffect(() => {
-    if (remaining <= 0) return;
+    if (!userId) return;
+    cloudSupabase
+      .from("author_profiles")
+      .select("consultation_promo_codes, consultation_promo_expires_at")
+      .eq("user_id", userId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.consultation_promo_codes && data?.consultation_promo_expires_at) {
+          const expires = new Date(data.consultation_promo_expires_at);
+          if (expires > new Date()) {
+            setExpiresAt(expires);
+            setStoredPromos(data.consultation_promo_codes as Record<string, string>);
+            setRemaining(expires.getTime() - Date.now());
+          }
+        }
+      });
+  }, [userId]);
+
+  useEffect(() => {
+    if (!expiresAt) return;
     const interval = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      const left = Math.max(0, PROMO_DURATION_MS - elapsed);
+      const left = Math.max(0, expiresAt.getTime() - Date.now());
       setRemaining(left);
       if (left <= 0) clearInterval(interval);
     }, 1000);
     return () => clearInterval(interval);
-  }, [startTime, remaining, PROMO_DURATION_MS]);
+  }, [expiresAt]);
 
   const minutes = Math.floor(remaining / 60000);
   const seconds = Math.floor((remaining % 60000) / 1000);
-  const expired = remaining <= 0;
-  const urgent = remaining < 10 * 60 * 1000; // under 10 min
+  const expired = !expiresAt || remaining <= 0;
+  const urgent = remaining > 0 && remaining < 10 * 60 * 1000;
 
-  return { minutes, seconds, expired, urgent, remaining };
+  return { minutes, seconds, expired, urgent, remaining, storedPromos };
 }
 
 /* ─── Helpers ─── */
