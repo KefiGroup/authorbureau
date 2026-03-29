@@ -329,7 +329,7 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
                   ) : (
                     <Icon className="h-4 w-4 mr-2 shrink-0" />
                   )}
-                  {showPromo ? `Get ${plan.name} — ${plan.promoPrice}/mo` : `Get ${plan.name}`}
+                  {showPromo ? `Get ${plan.name} — ${plan.specialPrice}/mo` : `Get ${plan.name}`}
                 </Button>
               </div>
             </motion.div>
