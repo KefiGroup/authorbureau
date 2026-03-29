@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
 import { Loader2, DollarSign, Clock, CheckCircle2, AlertTriangle, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { adminDataFetch } from "@/lib/admin-data-fetch";
 
 interface PurchaseRow {
   id: string;
@@ -57,11 +56,11 @@ export default function AdminPayoutsDashboard() {
   const loadData = async () => {
     try {
       const [purchasesRes, payoutsRes] = await Promise.all([
-        supabase.from("purchases" as any).select("*").order("created_at", { ascending: false }).limit(200),
-        supabase.from("author_payouts" as any).select("*").order("created_at", { ascending: false }).limit(100),
+        adminDataFetch("list-purchases"),
+        adminDataFetch("list-payouts"),
       ]);
-      setPurchases((purchasesRes.data || []) as any);
-      setPayouts((payoutsRes.data || []) as any);
+      setPurchases(purchasesRes.purchases || []);
+      setPayouts(payoutsRes.payouts || []);
     } catch (err) {
       console.error("Failed to load payout data:", err);
     } finally {
@@ -112,18 +111,14 @@ export default function AdminPayoutsDashboard() {
       const author = pendingByAuthor.find(a => a.author_id === authorId);
       if (!author) return;
 
-      // Create payout record
-      const { error } = await supabase.from("author_payouts" as any).insert({
+      await adminDataFetch("initiate-payout", {
         author_id: authorId,
         payout_method: author.payout_method,
         amount: author.total_earnings,
         currency: author.currency,
         purchase_count: author.eligible_count,
-        status: "pending",
-        initiated_at: new Date().toISOString(),
-      } as any);
+      });
 
-      if (error) throw error;
       toast.success(`Payout of $${author.total_earnings.toFixed(2)} queued for ${author.pen_name}`);
       await loadData();
     } catch (err) {
@@ -188,7 +183,6 @@ export default function AdminPayoutsDashboard() {
           <TabsTrigger value="history">Payout History</TabsTrigger>
         </TabsList>
 
-        {/* Pending Payouts */}
         <TabsContent value="pending" className="mt-4 space-y-3">
           {pendingByAuthor.length === 0 ? (
             <Card>
@@ -230,7 +224,6 @@ export default function AdminPayoutsDashboard() {
           )}
         </TabsContent>
 
-        {/* All Purchases */}
         <TabsContent value="purchases" className="mt-4">
           <Card>
             <CardContent className="p-0">
@@ -278,7 +271,6 @@ export default function AdminPayoutsDashboard() {
           </Card>
         </TabsContent>
 
-        {/* Payout History */}
         <TabsContent value="history" className="mt-4">
           <Card>
             <CardContent className="p-0">

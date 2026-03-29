@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Loader2, Search, MessageSquare, RefreshCw, Mail, Clock, CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
-import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
+import { adminDataFetch } from "@/lib/admin-data-fetch";
 
 interface ContactMessage {
   id: string;
@@ -29,21 +29,6 @@ const statusConfig: Record<Status, { label: string; icon: typeof Mail; color: st
   closed: { label: "Closed", icon: CheckCircle2, color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300" },
 };
 
-async function adminDataFetch(action: string, body: Record<string, unknown> = {}) {
-  const token = await getActiveToken();
-  if (!token) throw new Error("Not authenticated");
-  const res = await fetchWithTimeout(
-    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-data`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ action, ...body }),
-    }
-  );
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
-  return data;
-}
 
 export default function AdminMessagesTab() {
   const { toast } = useToast();
@@ -156,8 +141,8 @@ export default function AdminMessagesTab() {
                   const cfg = statusConfig[msg.status as Status] || statusConfig.open;
                   const isExpanded = expandedId === msg.id;
                   return (
-                    <>
-                      <tr key={msg.id} className="border-t border-border hover:bg-muted/30 cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : msg.id)}>
+                    <React.Fragment key={msg.id}>
+                      <tr className="border-t border-border hover:bg-muted/30 cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : msg.id)}>
                         <td className="px-4 py-3 font-medium">{msg.sender_name}</td>
                         <td className="px-4 py-3 text-muted-foreground">{msg.sender_email}</td>
                         <td className="px-4 py-3 text-muted-foreground">{msg.author_name || msg.author_id.slice(0, 8)}</td>
@@ -188,7 +173,7 @@ export default function AdminMessagesTab() {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </React.Fragment>
                   );
                 })}
               </tbody>

@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { RefreshCw, Bug, MessageSquare, MessagesSquare, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
-import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
+import { adminDataFetch } from "@/lib/admin-data-fetch";
 
 type BugReport = {
   id: string;
@@ -71,21 +71,6 @@ const importanceColors: Record<string, string> = {
   just_a_thought: "bg-gray-100 text-gray-600 border-gray-200",
 };
 
-async function adminDataFetch(action: string, body: Record<string, unknown> = {}) {
-  const token = await getActiveToken();
-  if (!token) throw new Error("Not authenticated");
-  const res = await fetchWithTimeout(
-    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-data`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ action, ...body }),
-    }
-  );
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
-  return data;
-}
 
 export default function SupportTab() {
   const { toast } = useToast();
