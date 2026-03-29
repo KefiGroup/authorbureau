@@ -651,7 +651,7 @@ function ROICalculator({
           {!countdown.expired && (
             <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
               <Clock className="h-3 w-3" />
-              First-timer rate expires in{" "}
+              Consultation rate expires in{" "}
               <span className="font-mono font-bold">
                 {String(countdown.minutes).padStart(2, "0")}:{String(countdown.seconds).padStart(2, "0")}
               </span>
