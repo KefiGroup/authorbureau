@@ -318,7 +318,7 @@ serve(async (req) => {
         entry_mode: entryMode,
         ai_enriched: false,
         published_at: autoPublish ? new Date().toISOString() : null,
-        owner_email: isPlatformPush ? body.email : null,
+        owner_email: isPlatformPush ? body.email : (body._resolvedEmail || null),
       })
       .select("id")
       .single();
