@@ -5,6 +5,7 @@ import {
   TrendingUp, Star, Lock, X, Clock, AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import type { SubscriptionTier } from "@/hooks/useAuth";
 
