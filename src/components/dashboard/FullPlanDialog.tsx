@@ -43,9 +43,9 @@ function extractSections(fullContent: string): PlanSection[] {
     { key: "unlock", label: "Unlock Your Plan", icon: <Rocket className="h-4 w-4" />, accent: "from-pink-500 to-rose-400", regex: /(?:#{1,3}.*?(?:UNLOCK YOUR PLAN|SECTION 6).*?\n)([\s\S]*?)(?=\n#{1,3}\s*(?:SECTION|---)\s|$)/i },
     { key: "nextsteps", label: "Next Steps", icon: <Rocket className="h-4 w-4" />, accent: "from-secondary to-amber-500", regex: /(?:#{1,3}.*?(?:NEXT STEPS|SECTION 7).*?\n)([\s\S]*?)$/i },
     // Legacy format fallbacks
-    { key: "brand", label: "Starter Package", icon: <Package className="h-4 w-4" />, accent: "from-emerald-500 to-green-400", regex: /(?:#{1,3}.*?STARTER PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?PRO PACKAGE|$)/i },
-    { key: "build", label: "Pro Package", icon: <TrendingUp className="h-4 w-4" />, accent: "from-blue-500 to-cyan-400", regex: /(?:#{1,3}.*?PRO PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?ENTERPRISE PACKAGE|$)/i },
-    { key: "yield", label: "Enterprise Package", icon: <Target className="h-4 w-4" />, accent: "from-purple-500 to-violet-400", regex: /(?:#{1,3}.*?ENTERPRISE PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?MONETIZATION MAP|$)/i },
+    { key: "brand", label: "Brand Plan", icon: <Package className="h-4 w-4" />, accent: "from-emerald-500 to-green-400", regex: /(?:#{1,3}.*?STARTER PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?PRO PACKAGE|$)/i },
+    { key: "build", label: "Build Plan", icon: <TrendingUp className="h-4 w-4" />, accent: "from-blue-500 to-cyan-400", regex: /(?:#{1,3}.*?PRO PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?ENTERPRISE PACKAGE|$)/i },
+    { key: "yield", label: "Yield Plan", icon: <Target className="h-4 w-4" />, accent: "from-purple-500 to-violet-400", regex: /(?:#{1,3}.*?ENTERPRISE PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?MONETIZATION MAP|$)/i },
   ];
 
   for (const p of patterns) {
