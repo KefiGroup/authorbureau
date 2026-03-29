@@ -8,12 +8,12 @@ const ADMIN_AUTH_KEY = "ab_admin_auth";
 
 // Stripe tier config — 3-tier ABBY subscription model
 export const TIERS = {
-  starter: {
+  brand: {
     price_id: "price_1TGHTECk4r0emyO8ihPfmV2S",        // $69/mo usual
     special_price_id: "price_1TCjzFCk4r0emyO8LdzhvM9V", // $49/mo special
     annual_price_id: "price_1TF01ZCk4r0emyO8xHrc9Vc8",
     product_id: "prod_UB6BxxNnqv6UpV",
-    label: "Brand Package",
+    label: "Brand Plan",
     monthlyPrice: 69,
     specialPrice: 49,
     annualPrice: 488,
@@ -21,12 +21,12 @@ export const TIERS = {
     payment_link_monthly: "https://buy.stripe.com/00w5kC0TYeqvfyF7etao800",
     payment_link_annual: "https://buy.stripe.com/eVqbJ05aedmrcmtcyNao801",
   },
-  pro: {
+  build: {
     price_id: "price_1TGHTmCk4r0emyO8OWUPrVRk",        // $199/mo usual
     special_price_id: "price_1TCjzGCk4r0emyO8jkYgPpmL", // $99/mo special
     annual_price_id: "price_1TF01aCk4r0emyO8Whkqo6gz",
     product_id: "prod_UB6BfcKCAYrgp0",
-    label: "Build Package",
+    label: "Build Plan",
     monthlyPrice: 199,
     specialPrice: 99,
     annualPrice: 988,
@@ -34,12 +34,12 @@ export const TIERS = {
     payment_link_monthly: "https://buy.stripe.com/5kQcN4fOS1DJgCJbuJao802",
     payment_link_annual: "https://buy.stripe.com/4gMeVc7imdmrfyFfKZao803",
   },
-  enterprise: {
+  yield: {
     price_id: "price_1TGHUFCk4r0emyO87YrgqXJH",         // $499/mo usual
     special_price_id: "price_1TCjzHCk4r0emyO82PblWqRl",  // $249/mo special
     annual_price_id: "price_1TF01bCk4r0emyO8WOX1NhtB",
     product_id: "prod_UB6BVLnks6JWoJ",
-    label: "Yield Package",
+    label: "Yield Plan",
     monthlyPrice: 499,
     specialPrice: 249,
     annualPrice: 2488,
@@ -49,18 +49,25 @@ export const TIERS = {
   },
 } as const;
 
-export type SubscriptionTier = "free" | "starter" | "pro" | "enterprise";
+// Legacy aliases for backward compatibility during migration
+export const LEGACY_TIER_MAP: Record<string, SubscriptionTier> = {
+  starter: "brand",
+  pro: "build",
+  enterprise: "yield",
+};
+
+export type SubscriptionTier = "free" | "brand" | "build" | "yield";
 
 export function getTierFromProductId(productId: string | null): SubscriptionTier {
   if (!productId) return "free";
-  if (productId === TIERS.enterprise.product_id) return "enterprise";
-  if (productId === TIERS.pro.product_id) return "pro";
-  if (productId === TIERS.starter.product_id) return "starter";
+  if (productId === TIERS.yield.product_id) return "yield";
+  if (productId === TIERS.build.product_id) return "build";
+  if (productId === TIERS.brand.product_id) return "brand";
   return "free";
 }
 
 export function hasTierAccess(userTier: SubscriptionTier, requiredTier: SubscriptionTier): boolean {
-  const tierOrder: SubscriptionTier[] = ["free", "starter", "pro", "enterprise"];
+  const tierOrder: SubscriptionTier[] = ["free", "brand", "build", "yield"];
   return tierOrder.indexOf(userTier) >= tierOrder.indexOf(requiredTier);
 }
 
