@@ -134,7 +134,7 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
         <div className="text-center space-y-4">
           <div className="inline-flex items-center gap-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full px-4 py-2 text-sm font-bold">
             <Shield className="h-4 w-4" />
-            ✅ You're on the {currentPlan.name.toUpperCase()} ({currentPlan.promoPrice}/month)
+            ✅ You're on the {currentPlan.name.toUpperCase()} ({currentPlan.usualPrice}/month)
           </div>
           <div className="flex flex-wrap justify-center gap-2 max-w-md mx-auto">
             {currentPlan.unlockedCategories.map(cat => (
