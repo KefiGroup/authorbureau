@@ -46,7 +46,7 @@ const plans = [
     tagline: "Test the waters.",
     description: "Start building with all 9 Brand Products",
     popular: false,
-    promoCode: "BRAND-FIRSTTIMER",
+    promoCode: "BP100",
     features: [
       "Abby AI Unlimited",
       "All 9 B·Brand Product builders",

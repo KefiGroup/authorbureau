@@ -12,9 +12,9 @@ interface Props {
 }
 
 const PROMO_CODES: Record<string, string> = {
-  starter: "BRAND-FIRSTTIMER",
-  pro: "BUILD-FIRSTTIMER",
-  enterprise: "YIELD-FIRSTTIMER",
+  starter: "BP100",
+  pro: "BA100",
+  enterprise: "YR100",
 };
 
 const TIMER_KEY = "ab_promo_start";

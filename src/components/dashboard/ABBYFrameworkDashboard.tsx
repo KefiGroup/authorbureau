@@ -148,19 +148,17 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
     setCheckoutLoading(true);
     try {
       // Check if promo timer is still active
-      const promoStart = localStorage.getItem("ab_promo_start");
-      const promoActive = promoStart && (Date.now() - parseInt(promoStart, 10)) < 60 * 60 * 1000;
       const promoCodes: Record<string, string> = {
-        starter: "BRAND-FIRSTTIMER",
-        pro: "BUILD-FIRSTTIMER",
-        enterprise: "YIELD-FIRSTTIMER",
+        starter: "BP100",
+        pro: "BA100",
+        enterprise: "YR100",
       };
 
       const { data, error } = await cloudSupabase.functions.invoke("create-checkout", {
         body: {
           priceId: TIERS[planTier].price_id,
           source_platform: "authorsbureau",
-          ...(promoActive ? { promoCode: promoCodes[planTier] } : {}),
+          promoCode: promoCodes[planTier],
         },
       });
       if (error) throw error;
