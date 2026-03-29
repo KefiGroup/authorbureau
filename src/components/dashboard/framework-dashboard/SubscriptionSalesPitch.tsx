@@ -613,7 +613,7 @@ function ROICalculator({
               <p className="text-xs text-green-600 dark:text-green-400 font-semibold">
                 = ${total}/mo
               </p>
-              <p className="text-[10px] text-muted-foreground">(covers {plan.price} sub)</p>
+              <p className="text-[10px] text-muted-foreground">(covers {plan.usualPrice} sub)</p>
             </div>
           </div>
         ))}
