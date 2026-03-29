@@ -97,7 +97,7 @@ const plans = [
     tagline: "Build an empire.",
     description: "Complete monetization empire — all 28 streams",
     popular: false,
-    promoCode: "YIELD-FIRSTTIMER",
+    promoCode: "YR100",
     features: [
       "Everything in Build",
       "All 10 Y·Yield builders (Retreats, Certification, Masterminds)",
