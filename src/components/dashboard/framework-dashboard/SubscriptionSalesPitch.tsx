@@ -17,7 +17,7 @@ interface PlanAnalysisData {
   revenueStreamsCount?: number;
   revenueLow?: string;
   revenueHigh?: string;
-  recommendedTier?: "starter" | "pro" | "enterprise";
+  recommendedTier?: "brand" | "build" | "yield";
   products?: Array<{
     name: string;
     price: number;
@@ -27,7 +27,7 @@ interface PlanAnalysisData {
 
 interface Props {
   currentTier: SubscriptionTier;
-  onSubscribe: (tier: "starter" | "pro" | "enterprise", promoCode?: string) => void;
+  onSubscribe: (tier: "brand" | "build" | "yield", promoCode?: string) => void;
   onManage: () => void;
   loading: boolean;
   analysisData: PlanAnalysisData;
@@ -37,7 +37,7 @@ interface Props {
 /* ─── Plan definitions ─── */
 const plans = [
   {
-    id: "starter" as const,
+    id: "brand" as const,
     name: "Brand Package",
     specialPrice: "$49",
     usualPrice: "$69",
@@ -60,7 +60,7 @@ const plans = [
     builderCount: 9,
   },
   {
-    id: "pro" as const,
+    id: "build" as const,
     name: "Build Package",
     specialPrice: "$99",
     usualPrice: "$199",
@@ -86,7 +86,7 @@ const plans = [
     builderCount: 18,
   },
   {
-    id: "enterprise" as const,
+    id: "yield" as const,
     name: "Yield Package",
     specialPrice: "$249",
     usualPrice: "$499",
@@ -112,7 +112,7 @@ const plans = [
   },
 ];
 
-const tierOrder = ["free", "starter", "pro", "enterprise"] as const;
+const tierOrder = ["free", "brand", "build", "yield"] as const;
 
 /* ─── Countdown Timer Hook (DB-driven) ─── */
 function useCountdown(userId?: string) {
@@ -172,9 +172,9 @@ function getBreakEven(planPrice: number, products: PlanAnalysisData["products"])
 
 function getRevenueHookText(tier: SubscriptionTier): string {
   switch (tier) {
-    case "starter": return "You've unlocked all 9 Brand Products. Upgrade to Build to access 18 builders and scale your authority.";
-    case "pro": return "You've unlocked 18 builders. Upgrade to Yield for retreats, certification, and a 1-on-1 session with Pauline Teo.";
-    case "enterprise": return "You have full access to all 28 builders. Start building!";
+    case "brand": return "You've unlocked all 9 Brand Products. Upgrade to Build to access 18 builders and scale your authority.";
+    case "build": return "You've unlocked 18 builders. Upgrade to Yield for retreats, certification, and a 1-on-1 session with Pauline Teo.";
+    case "yield": return "You have full access to all 28 builders. Start building!";
     default: return "";
   }
 }
@@ -208,7 +208,7 @@ export default function SubscriptionSalesPitch({
   };
 
   // Always recommend Build Package (pro) as most popular
-  const recommended = "pro" as const;
+  const recommended = "build" as const;
   const recommendedPlan = plans.find(p => p.id === recommended)!;
 
   const {
@@ -219,12 +219,12 @@ export default function SubscriptionSalesPitch({
   } = analysisData;
 
   // Enterprise subscriber → show build CTA instead
-  if (currentTier === "enterprise") {
+  if (currentTier === "yield") {
     return (
       <div className="space-y-6 mt-8">
         <RevenueHookBanner bookTitle={bookTitle} revenueStreamsCount={revenueStreamsCount}
           revenueLow={revenueLow} revenueHigh={revenueHigh}
-          customText={getRevenueHookText("enterprise")} isSubscribed />
+          customText={getRevenueHookText("yield")} isSubscribed />
         <div className="text-center py-8">
           <div className="inline-flex items-center gap-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full px-5 py-2.5 text-sm font-bold mb-6">
             <Shield className="h-4 w-4" />
@@ -444,13 +444,13 @@ export default function SubscriptionSalesPitch({
             You're already earning with {plans.find(p => p.id === currentTier)?.name}.
           </p>
           <p className="text-xs text-muted-foreground max-w-md mx-auto">
-            {currentTier === "starter"
+            {currentTier === "brand"
               ? "Upgrade to Build to unlock coaching, courses, and webinars."
               : "Upgrade to Yield for retreats, certification, and a 1-on-1 session with Pauline Teo."}
           </p>
-          <Button onClick={() => onSubscribe(currentTier === "starter" ? "pro" : "enterprise")} disabled={loading}>
+          <Button onClick={() => onSubscribe(currentTier === "brand" ? "build" : "yield")} disabled={loading}>
             <ArrowUpRight className="h-4 w-4 mr-2" />
-            Upgrade to {currentTier === "starter" ? "Build" : "Yield"}
+            Upgrade to {currentTier === "brand" ? "Build" : "Yield"}
           </Button>
         </div>
       )}
@@ -569,8 +569,8 @@ function ROICalculator({
   bookTitle, products, recommendedTier, onSubscribe, loading, countdown,
 }: {
   bookTitle: string; products?: PlanAnalysisData["products"];
-  recommendedTier: "starter" | "pro" | "enterprise";
-  onSubscribe: (tier: "starter" | "pro" | "enterprise", promoCode?: string) => void; loading: boolean;
+  recommendedTier: "brand" | "build" | "yield";
+  onSubscribe: (tier: "brand" | "build" | "yield", promoCode?: string) => void; loading: boolean;
   countdown: { minutes: number; seconds: number; expired: boolean; urgent: boolean };
 }) {
   const breakEvens = useMemo(() => plans.map(plan => ({

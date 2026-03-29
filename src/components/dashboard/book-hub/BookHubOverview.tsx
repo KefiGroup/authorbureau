@@ -37,13 +37,13 @@ function extractSections(fullContent: string): PlanSection[] {
     { key: "unlock", label: "Unlock Your Plan", emoji: "🔓", regex: /(?:#{1,3}.*?(?:UNLOCK YOUR PLAN|SECTION 6).*?\n)([\s\S]*?)(?=\n#{1,3}\s*(?:SECTION|---)\s|$)/i },
     { key: "nextsteps", label: "Next Steps", emoji: "🚀", regex: /(?:#{1,3}.*?(?:NEXT STEPS|SECTION 7).*?\n)([\s\S]*?)$/i },
     // Legacy format fallbacks
-    { key: "starter", label: "Starter Package", emoji: "🟢", regex: /(?:#{1,3}.*?STARTER PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?PRO PACKAGE|$)/i },
-    { key: "pro", label: "Pro Package", emoji: "🔵", regex: /(?:#{1,3}.*?PRO PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?ENTERPRISE PACKAGE|$)/i },
-    { key: "enterprise", label: "Enterprise Package", emoji: "🟣", regex: /(?:#{1,3}.*?ENTERPRISE PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?MONETIZATION MAP|$)/i },
+    { key: "brand", label: "Starter Package", emoji: "🟢", regex: /(?:#{1,3}.*?STARTER PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?PRO PACKAGE|$)/i },
+    { key: "build", label: "Pro Package", emoji: "🔵", regex: /(?:#{1,3}.*?PRO PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?ENTERPRISE PACKAGE|$)/i },
+    { key: "yield", label: "Enterprise Package", emoji: "🟣", regex: /(?:#{1,3}.*?ENTERPRISE PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?MONETIZATION MAP|$)/i },
   ];
   for (const p of patterns) {
     // Skip legacy patterns if we already found new-format sections
-    if (["starter", "pro", "enterprise"].includes(p.key) && sections.some(s => ["brand", "build", "yield"].includes(s.key))) continue;
+    if (["brand", "build", "yield"].includes(p.key) && sections.some(s => ["brand", "build", "yield"].includes(s.key))) continue;
     const match = fullContent.match(p.regex);
     if (match?.[1]?.trim()) {
       sections.push({ key: p.key, label: p.label, emoji: p.emoji, content: match[1].trim() });
@@ -93,15 +93,15 @@ type ProductStatus = "not-started" | "in-progress" | "completed";
 
 function getRecommendationsFromPlan(planContent: string | null): Recommendation[] {
   return [
-    { name: "Author Website & Microsite", nodeId: "website", category: "build", revenue: "Your branding foundation — start here", requiredTier: "starter", sequence: 1 },
-    { name: "Lead Magnet & Email Opt-in", nodeId: "lead-magnets", category: "build", revenue: "Start building your audience list", requiredTier: "starter", sequence: 2 },
-    { name: "Email Marketing Flows", nodeId: "email-marketing", category: "build", revenue: "Nurture readers into buyers", requiredTier: "starter", sequence: 3 },
-    { name: "Social Media Calendar", nodeId: "social-media", category: "build", revenue: "90-day content plan for visibility", requiredTier: "starter", sequence: 4 },
-    { name: "Quick-Start Workbook", nodeId: "workbooks", category: "build", revenue: "Potentially Generating: $270 - $1,500/mo", requiredTier: "starter", sequence: 5 },
-    { name: "Home Study Course", nodeId: "home-study", category: "build", revenue: "Potentially Generating: $400 - $2,000/mo", requiredTier: "starter", sequence: 6 },
-    { name: "Online Course", nodeId: "courses", category: "bridge", revenue: "Potentially Generating: $500 - $3,000/mo", requiredTier: "pro", sequence: 7 },
-    { name: "Audiobook", nodeId: "audiobooks", category: "bridge", revenue: "Potentially Generating: $300 - $1,500/mo", requiredTier: "pro", sequence: 8 },
-    { name: "1-on-1 Coaching Program", nodeId: "coaching-1on1", category: "yield", revenue: "Potentially Generating: $1,000 - $5,000/mo", requiredTier: "enterprise", sequence: 9 },
+    { name: "Author Website & Microsite", nodeId: "website", category: "build", revenue: "Your branding foundation — start here", requiredTier: "brand", sequence: 1 },
+    { name: "Lead Magnet & Email Opt-in", nodeId: "lead-magnets", category: "build", revenue: "Start building your audience list", requiredTier: "brand", sequence: 2 },
+    { name: "Email Marketing Flows", nodeId: "email-marketing", category: "build", revenue: "Nurture readers into buyers", requiredTier: "brand", sequence: 3 },
+    { name: "Social Media Calendar", nodeId: "social-media", category: "build", revenue: "90-day content plan for visibility", requiredTier: "brand", sequence: 4 },
+    { name: "Quick-Start Workbook", nodeId: "workbooks", category: "build", revenue: "Potentially Generating: $270 - $1,500/mo", requiredTier: "brand", sequence: 5 },
+    { name: "Home Study Course", nodeId: "home-study", category: "build", revenue: "Potentially Generating: $400 - $2,000/mo", requiredTier: "brand", sequence: 6 },
+    { name: "Online Course", nodeId: "courses", category: "bridge", revenue: "Potentially Generating: $500 - $3,000/mo", requiredTier: "build", sequence: 7 },
+    { name: "Audiobook", nodeId: "audiobooks", category: "bridge", revenue: "Potentially Generating: $300 - $1,500/mo", requiredTier: "build", sequence: 8 },
+    { name: "1-on-1 Coaching Program", nodeId: "coaching-1on1", category: "yield", revenue: "Potentially Generating: $1,000 - $5,000/mo", requiredTier: "yield", sequence: 9 },
   ];
 }
 
@@ -354,13 +354,13 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
           {tier === "free" && (
             <>I've analyzed <strong>"{book.title}"</strong> and mapped revenue streams with projected potential. Here's your top 3 recommendations:</>
           )}
-          {tier === "starter" && (
+          {tier === "brand" && (
             <>Your plan for <strong>"{book.title}"</strong> is ready. On your Starter plan, you can build 3 products right now. Here's what I recommend starting with:</>
           )}
-          {tier === "pro" && (
+          {tier === "build" && (
             <>Your plan for <strong>"{book.title}"</strong> is ready with projected revenue potential. On Pro, you have access to 18 builders (Brand + Build). Let's make it happen!</>
           )}
-          {tier === "enterprise" && (
+          {tier === "yield" && (
             <>Your plan for <strong>"{book.title}"</strong> is ready. All 28 builders are unlocked on your Enterprise plan — let's build your author empire!</>
           )}
         </p>
@@ -448,7 +448,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
                   ) : (
                     <span className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Lock className="h-3 w-3" />
-                      {rec.requiredTier === "pro" ? "Build Package" : rec.requiredTier === "enterprise" ? "Yield Package" : "Brand Package"}
+                      {rec.requiredTier === "build" ? "Build Package" : rec.requiredTier === "yield" ? "Yield Package" : "Brand Package"}
                     </span>
                   )}
                 </div>
@@ -480,7 +480,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
           </div>
         )}
 
-        {tier === "starter" && builtCount >= 2 && (
+        {tier === "brand" && builtCount >= 2 && (
           <div className="mt-4 rounded-lg bg-violet-50 border border-violet-200 p-3">
             <p className="text-sm text-violet-800">
               <strong>Ready to scale?</strong> You've built {builtCount} Brand products. Upgrade to Build Package ($99/mo) to unlock courses, coaching, webinars, and more.{" "}
@@ -489,7 +489,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
           </div>
         )}
 
-        {tier === "pro" && (
+        {tier === "build" && (
           <div className="mt-4 rounded-lg border border-secondary/30 bg-secondary/5 p-3">
             <p className="text-sm text-foreground">
               <strong>Ready for premium services?</strong> Yield Package ($249/mo) unlocks retreats, certification, masterminds, corporate training, and a 1-on-1 strategy session with Pauline Teo.{" "}
@@ -498,7 +498,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
           </div>
         )}
 
-        {tier === "enterprise" && (
+        {tier === "yield" && (
           <div className="mt-4 rounded-lg bg-emerald-50 border border-emerald-200 p-3">
             <p className="text-sm text-emerald-800">
               <CheckCircle2 className="h-4 w-4 inline mr-1" />

@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 interface Props {
   currentTier: string;
-  onSubscribe: (tier: "starter" | "pro" | "enterprise", promoCode?: string) => void;
+  onSubscribe: (tier: "brand" | "build" | "yield", promoCode?: string) => void;
   onManage: () => void;
   loading: boolean;
   abbyRecommendedTier?: string;
@@ -23,7 +23,7 @@ function formatTime(ms: number): string {
 
 const plans = [
   {
-    id: "starter" as const,
+    id: "brand" as const,
     name: "Brand Package",
     specialPrice: "$49",
     usualPrice: "$69",
@@ -43,7 +43,7 @@ const plans = [
     unlockedCategories: ["B·Brand (9)"],
   },
   {
-    id: "pro" as const,
+    id: "build" as const,
     name: "Build Package",
     specialPrice: "$99",
     usualPrice: "$199",
@@ -66,7 +66,7 @@ const plans = [
     unlockedCategories: ["B·Brand (9)", "B·Build (9)"],
   },
   {
-    id: "enterprise" as const,
+    id: "yield" as const,
     name: "Yield Package",
     specialPrice: "$249",
     usualPrice: "$499",
@@ -151,17 +151,17 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
                 ✓ {cat}
               </span>
             ))}
-            {currentTier !== "enterprise" && (
+            {currentTier !== "yield" && (
               <span className="rounded-full bg-muted text-muted-foreground text-xs font-medium px-3 py-1 border border-border">
-                🔒 {currentTier === "starter" ? "B·Build + Y·Yield locked" : "Y·Yield locked"}
+                🔒 {currentTier === "brand" ? "B·Build + Y·Yield locked" : "Y·Yield locked"}
               </span>
             )}
           </div>
           <div className="flex justify-center gap-3">
-            {currentTier !== "enterprise" && (
-              <Button onClick={() => onSubscribe(currentTier === "starter" ? "pro" : "enterprise")} disabled={loading}>
+            {currentTier !== "yield" && (
+              <Button onClick={() => onSubscribe(currentTier === "brand" ? "build" : "yield")} disabled={loading}>
                 <ArrowUpRight className="h-4 w-4 mr-2" />
-                Upgrade to {currentTier === "starter" ? "Build Package" : "Yield Package"}
+                Upgrade to {currentTier === "brand" ? "Build Package" : "Yield Package"}
               </Button>
             )}
             <Button variant="outline" onClick={onManage} disabled={loading}>

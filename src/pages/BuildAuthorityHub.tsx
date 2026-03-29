@@ -79,7 +79,7 @@ function StarRating({ count }: { count: number }) {
 
 export default function BuildAuthorityHub() {
   const { user, loading: authLoading, tier } = useAuth();
-  const isTierUnlocked = hasTierAccess(tier, "pro");
+  const isTierUnlocked = hasTierAccess(tier, "build");
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const devUnlock = searchParams.get("unlock") === "true";

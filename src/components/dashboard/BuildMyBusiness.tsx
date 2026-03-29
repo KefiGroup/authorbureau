@@ -400,7 +400,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
   };
 
   // ─── Subscription handlers ───
-  const handleSubscribeTier = async (tierKey: "starter" | "pro" | "enterprise", promoCode?: string) => {
+  const handleSubscribeTier = async (tierKey: "brand" | "build" | "yield", promoCode?: string) => {
     setCheckoutLoading(true);
     try {
       const token = await getActiveToken();
@@ -418,7 +418,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
     } finally { setCheckoutLoading(false); }
   };
 
-  const handleSubscribe = () => handleSubscribeTier("starter");
+  const handleSubscribe = () => handleSubscribeTier("brand");
 
   const handleManageSubscription = async () => {
     setPortalLoading(true);

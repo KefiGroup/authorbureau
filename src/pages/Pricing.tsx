@@ -9,7 +9,7 @@ import Footer from "@/components/Footer";
 
 const PLANS = [
   {
-    key: "starter" as const,
+    key: "brand" as const,
     name: "Brand Package",
     price: TIERS.starter.monthlyPrice,
     annualPrice: TIERS.starter.annualPrice,
@@ -31,7 +31,7 @@ const PLANS = [
     ],
   },
   {
-    key: "pro" as const,
+    key: "build" as const,
     name: "Build Package",
     price: TIERS.pro.monthlyPrice,
     annualPrice: TIERS.pro.annualPrice,
@@ -53,7 +53,7 @@ const PLANS = [
     ],
   },
   {
-    key: "enterprise" as const,
+    key: "yield" as const,
     name: "Yield Package",
     price: TIERS.enterprise.monthlyPrice,
     annualPrice: TIERS.enterprise.annualPrice,

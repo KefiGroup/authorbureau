@@ -274,8 +274,8 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
   }
   if (!user) return <Navigate to="/auth" replace />;
 
-  const gate = (featureName: string, children: React.ReactNode, requiredTier: "starter" | "pro" | "enterprise" = "starter") => (
-    <PremiumGate isPremium={isPremium || isAdmin || userIsSuperAdmin} featureName={featureName} requiredTier={requiredTier} currentTier={userIsSuperAdmin ? "enterprise" : tier}>{children}</PremiumGate>
+  const gate = (featureName: string, children: React.ReactNode, requiredTier: "brand" | "build" | "yield" = "brand") => (
+    <PremiumGate isPremium={isPremium || isAdmin || userIsSuperAdmin} featureName={featureName} requiredTier={requiredTier} currentTier={userIsSuperAdmin ? "yield" : tier}>{children}</PremiumGate>
   );
 
   const handleNavigate = (s: string) => setActiveSection(s as DashboardSection);
@@ -353,48 +353,48 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "microsite-manager":
         return <MicrositeManager onNavigate={handleNavigate} />;
       case "courses":
-        return gate("Course Builder", <CourseBuilder />, "pro");
+        return gate("Course Builder", <CourseBuilder />, "build");
       case "home-study":
         return gate("Home Study Course", 
           <UniversalBuilderStudio 
             nodeConfig={BUILDER_NODE_MAP["home-study-course"]} 
             onNavigate={handleNavigate} 
-          />, "starter");
+          />, "brand");
       case "workbooks":
         return gate("Workbooks", <WorkbooksManager onNavigate={handleNavigate} />);
       case "webinars":
-        return gate("Webinars", <WebinarsManager onNavigate={handleNavigate} />, "pro");
+        return gate("Webinars", <WebinarsManager onNavigate={handleNavigate} />, "build");
       case "social-media":
         return gate("Social Media", <SocialMediaManager />);
       case "audiobook-studio": {
         const bookIdParam = searchParams.get("bookId") || "";
         const bookTitleParam = searchParams.get("bookTitle") || "";
-        return gate("Audiobook Studio", <AudiobookStudio bookId={bookIdParam} bookTitle={bookTitleParam} userId={user.id} />, "pro");
+        return gate("Audiobook Studio", <AudiobookStudio bookId={bookIdParam} bookTitle={bookTitleParam} userId={user.id} />, "build");
       }
       case "podcast":
-        return gate("Podcast Studio", <PodcastManager />, "pro");
+        return gate("Podcast Studio", <PodcastManager />, "build");
       case "speaking":
-        return gate("Speaking Profile", <SpeakingProfile />, "enterprise");
+        return gate("Speaking Profile", <SpeakingProfile />, "yield");
       case "coaching":
-        return gate("Coaching CRM", <CoachingCRM />, "pro");
+        return gate("Coaching CRM", <CoachingCRM />, "build");
       case "group-coaching":
         return gate("Group Coaching", 
           <UniversalBuilderStudio 
             nodeConfig={BUILDER_NODE_MAP["group-coaching"]} 
             onNavigate={handleNavigate} 
-          />, "pro");
+          />, "build");
       case "memberships":
         return gate("Monthly Membership", 
           <UniversalBuilderStudio 
             nodeConfig={BUILDER_NODE_MAP["membership"]} 
             onNavigate={handleNavigate} 
-          />, "pro");
+          />, "build");
       case "email-marketing":
         return gate("Email Marketing", 
           <UniversalBuilderStudio 
             nodeConfig={BUILDER_NODE_MAP["email-flows"]} 
             onNavigate={handleNavigate} 
-          />, "starter");
+          />, "brand");
       case "subscribers":
       case "email-templates":
         return gate("Email Marketing", <EmailMarketing activeTab={activeSection} onTabChange={(s) => setActiveSection(s as DashboardSection)} />);
@@ -435,7 +435,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "review-products":
         return <ReviewProductsPage onNavigate={handleNavigate} />;
       case "author-crm":
-        return gate("My Contacts", <AuthorCRMPage onNavigate={handleNavigate} />, "pro");
+        return gate("My Contacts", <AuthorCRMPage onNavigate={handleNavigate} />, "build");
       case "messages":
         return <AuthorMessagesPage />;
       case "marketing-hub":
@@ -477,7 +477,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
               onNavigate={handleNavigate} 
             />
           ) : <ComingSoonPlaceholder sectionId="big-ticket" />
-        , "pro");
+        , "build");
       case "connect-stripe":
         return <ConnectStripePage />;
       case "payout-settings":

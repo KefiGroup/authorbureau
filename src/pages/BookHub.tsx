@@ -64,7 +64,7 @@ export default function BookHub() {
   const [activeTab, setActiveTab] = useState<BookHubTab>(initialTab);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  const effectiveTier: SubscriptionTier = isAdmin ? "enterprise" : tier;
+  const effectiveTier: SubscriptionTier = isAdmin ? "yield" : tier;
 
   const fetchBook = useCallback(async () => {
     if (!user || !bookId) return;

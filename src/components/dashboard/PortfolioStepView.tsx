@@ -137,7 +137,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
 
   if (!category) return null;
 
-  const tierOrder = ["free", "starter", "pro", "enterprise"];
+  const tierOrder = ["free", "brand", "build", "yield"];
   const hasTierAccess = (required?: string) => {
     if (!required) return true;
     return tierOrder.indexOf(tier) >= tierOrder.indexOf(required.toLowerCase());

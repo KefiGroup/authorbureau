@@ -28,7 +28,7 @@ export interface AnalysisData {
   revenueStreamsCount?: number;
   revenueLow?: string;
   revenueHigh?: string;
-  recommendedTier?: "starter" | "pro" | "enterprise";
+  recommendedTier?: "brand" | "build" | "yield";
   products?: Array<{ name: string; price: number; type: string }>;
 }
 
@@ -77,10 +77,10 @@ export const parseAnalysisData = (content: string, bookTitle: string): AnalysisD
   }
 
   const normalized = content.toLowerCase();
-  if (normalized.includes("recommend") && normalized.includes("starter")) data.recommendedTier = "starter";
-  else if (normalized.includes("recommend") && normalized.includes("enterprise")) data.recommendedTier = "enterprise";
-  else if (normalized.includes("recommend") && normalized.includes("pro")) data.recommendedTier = "pro";
-  else data.recommendedTier = "starter";
+  if (normalized.includes("recommend") && normalized.includes("brand")) data.recommendedTier = "brand";
+  else if (normalized.includes("recommend") && normalized.includes("yield")) data.recommendedTier = "yield";
+  else if (normalized.includes("recommend") && normalized.includes("build")) data.recommendedTier = "build";
+  else data.recommendedTier = "brand";
 
   const products: Array<{ name: string; price: number; type: string }> = [];
   const pricePatterns = [

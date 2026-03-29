@@ -17,9 +17,9 @@ export default function BuildMyBusinessSection({
   bookTitle, recommendedCount, tier, brandBuilt, buildAuthorityBuilt, yieldBuilt, onBuild,
 }: BuildMyBusinessSectionProps) {
   const categories = [
-    { label: "B·Brand Products", total: 9, built: brandBuilt, requiredTier: "starter" as const },
-    { label: "B·Build Authority", total: 9, built: buildAuthorityBuilt, requiredTier: "pro" as const },
-    { label: "Y·Yield Revenue", total: 10, built: yieldBuilt, requiredTier: "enterprise" as const },
+    { label: "B·Brand Products", total: 9, built: brandBuilt, requiredTier: "brand" as const },
+    { label: "B·Build Authority", total: 9, built: buildAuthorityBuilt, requiredTier: "build" as const },
+    { label: "Y·Yield Revenue", total: 10, built: yieldBuilt, requiredTier: "yield" as const },
   ];
 
   const totalBuilt = brandBuilt + buildAuthorityBuilt + yieldBuilt;
@@ -55,7 +55,7 @@ export default function BuildMyBusinessSection({
                 </p>
               ) : (
                 <p className="text-[11px] text-white/40 flex items-center justify-center gap-1">
-                  <Lock className="h-3 w-3" /> {cat.requiredTier === "starter" ? "Brand" : cat.requiredTier === "pro" ? "Build" : "Yield"}
+                  <Lock className="h-3 w-3" /> {cat.requiredTier === "brand" ? "Brand" : cat.requiredTier === "build" ? "Build" : "Yield"}
                 </p>
               )}
             </div>

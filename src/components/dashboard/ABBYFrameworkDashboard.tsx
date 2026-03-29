@@ -144,7 +144,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
-  const handleSubscribe = async (planTier: "starter" | "pro" | "enterprise", promoCode?: string) => {
+  const handleSubscribe = async (planTier: "brand" | "build" | "yield", promoCode?: string) => {
     setCheckoutLoading(true);
     try {
       const { data, error } = await cloudSupabase.functions.invoke("create-checkout", {
@@ -345,7 +345,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
         onSubscribe={handleSubscribe}
         onManage={handleManage}
         loading={checkoutLoading || portalLoading}
-        abbyRecommendedTier={planSummary?.streamsMapped > 19 ? "enterprise" : planSummary?.streamsMapped > 11 ? "pro" : "starter"}
+        abbyRecommendedTier={planSummary?.streamsMapped > 19 ? "yield" : planSummary?.streamsMapped > 11 ? "build" : "brand"}
       />
 
       {/* Section 5: Compact Microsite Card */}

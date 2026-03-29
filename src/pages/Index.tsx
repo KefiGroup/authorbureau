@@ -51,7 +51,7 @@ const pricingPaths = [
     cta: "Start Building →",
     badge: null,
     accent: false,
-    planKey: "starter",
+    planKey: "brand",
   },
   {
     name: "Build Package",
@@ -65,7 +65,7 @@ const pricingPaths = [
     cta: "Build My Authority →",
     badge: "MOST POPULAR",
     accent: true,
-    planKey: "pro",
+    planKey: "build",
   },
   {
     name: "Yield Package",
@@ -79,7 +79,7 @@ const pricingPaths = [
     cta: "Unlock Full Platform →",
     badge: "BEST VALUE",
     accent: false,
-    planKey: "enterprise",
+    planKey: "yield",
   },
 ];
 

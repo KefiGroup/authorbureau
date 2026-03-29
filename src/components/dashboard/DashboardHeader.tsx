@@ -53,7 +53,7 @@ export default function DashboardHeader({ user, isPremium, isAdmin, tier, subscr
   }, [user.id]);
 
   const displayName = penName || user.email;
-  const effectiveTier = isAdmin ? "enterprise" : tier;
+  const effectiveTier = isAdmin ? "yield" : tier;
 
   return (
     <header className="flex h-16 items-center justify-between border-b border-border bg-card px-4 lg:px-8">

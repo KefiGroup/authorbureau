@@ -44,9 +44,9 @@ export interface AbbyPlan {
 }
 
 const tierConfig = [
-  { key: "starter" as const, emoji: "🟢", color: "border-green-500/30 bg-green-500/5", badge: "bg-green-500/15 text-green-700" },
-  { key: "pro" as const, emoji: "🔵", color: "border-blue-500/30 bg-blue-500/5", badge: "bg-blue-500/15 text-blue-700" },
-  { key: "enterprise" as const, emoji: "🟣", color: "border-violet-500/30 bg-violet-500/5", badge: "bg-violet-500/15 text-violet-700" },
+  { key: "brand" as const, emoji: "🟢", color: "border-green-500/30 bg-green-500/5", badge: "bg-green-500/15 text-green-700" },
+  { key: "build" as const, emoji: "🔵", color: "border-blue-500/30 bg-blue-500/5", badge: "bg-blue-500/15 text-blue-700" },
+  { key: "yield" as const, emoji: "🟣", color: "border-violet-500/30 bg-violet-500/5", badge: "bg-violet-500/15 text-violet-700" },
 ];
 
 function generatePlanHTML(plan: AbbyPlan): string {

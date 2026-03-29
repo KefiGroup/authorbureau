@@ -37,7 +37,7 @@ export default function SubscriptionSuccess() {
 
   // Determine tier from query param or current state
   const tierParam = searchParams.get("tier") as keyof typeof TIER_UNLOCKS | null;
-  const resolvedTier = tierParam && TIER_UNLOCKS[tierParam] ? tierParam : (tier !== "free" ? tier as keyof typeof TIER_UNLOCKS : "starter");
+  const resolvedTier = tierParam && TIER_UNLOCKS[tierParam] ? tierParam : (tier !== "free" ? tier as keyof typeof TIER_UNLOCKS : "brand");
   const info = TIER_UNLOCKS[resolvedTier] || TIER_UNLOCKS.starter;
 
   return (
