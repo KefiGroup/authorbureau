@@ -362,6 +362,19 @@ export default function SubscriptionSalesPitch({
                     ))}
                   </ul>
 
+                  {/* Promo Code Input */}
+                  {!isCurrent && !isLower && (
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Promo code</label>
+                      <Input
+                        placeholder="Enter code"
+                        value={promoCodes[plan.id] || ""}
+                        onChange={(e) => setPromoCodes(prev => ({ ...prev, [plan.id]: e.target.value.toUpperCase() }))}
+                        className="h-8 text-xs font-mono"
+                      />
+                    </div>
+                  )}
+
                   {/* CTA Button */}
                   {isCurrent ? (
                     <Button className="w-full mt-auto bg-green-500 hover:bg-green-600 text-white cursor-default" disabled>
@@ -378,7 +391,7 @@ export default function SubscriptionSalesPitch({
                           ? "bg-amber-500 hover:bg-amber-600 text-white"
                           : "bg-[hsl(var(--primary))] text-primary-foreground hover:bg-[hsl(var(--primary))]/90"
                       }`}
-                      onClick={() => onSubscribe(plan.id)}
+                      onClick={() => onSubscribe(plan.id, promoCodes[plan.id]?.trim() || undefined)}
                       disabled={loading}
                     >
                       {loading ? (
