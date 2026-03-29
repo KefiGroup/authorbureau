@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import { Check, Crown, Loader2, ExternalLink, ArrowUpRight, Shield, Clock, Zap, Sparkles, Gift, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { supabase as cloudSupabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Props {
   currentTier: string;
@@ -12,19 +14,6 @@ interface Props {
   abbyRecommendedTier?: string;
 }
 
-
-const TIMER_KEY = "ab_promo_start";
-const PROMO_DURATION_MS = 60 * 60 * 1000; // 60 minutes
-
-function getTimeRemaining(): number {
-  const stored = localStorage.getItem(TIMER_KEY);
-  if (!stored) {
-    localStorage.setItem(TIMER_KEY, Date.now().toString());
-    return PROMO_DURATION_MS;
-  }
-  const elapsed = Date.now() - parseInt(stored, 10);
-  return Math.max(0, PROMO_DURATION_MS - elapsed);
-}
 
 function formatTime(ms: number): string {
   const totalSeconds = Math.floor(ms / 1000);
@@ -37,7 +26,7 @@ const plans = [
   {
     id: "starter" as const,
     name: "Brand Package",
-    promoPrice: "$49",
+    specialPrice: "$49",
     usualPrice: "$69",
     savings: "$20",
     period: "/mo",
@@ -57,7 +46,7 @@ const plans = [
   {
     id: "pro" as const,
     name: "Build Package",
-    promoPrice: "$99",
+    specialPrice: "$99",
     usualPrice: "$199",
     savings: "$100",
     period: "/mo",
@@ -80,7 +69,7 @@ const plans = [
   {
     id: "enterprise" as const,
     name: "Yield Package",
-    promoPrice: "$249",
+    specialPrice: "$249",
     usualPrice: "$499",
     savings: "$250",
     period: "/mo",
@@ -103,18 +92,47 @@ const plans = [
 
 export default function SubscriptionPricing({ currentTier, onSubscribe, onManage, loading, abbyRecommendedTier }: Props) {
   const isSubscribed = currentTier !== "free";
-  const [timeLeft, setTimeLeft] = useState(getTimeRemaining);
+  const { user } = useAuth();
+  const [timeLeft, setTimeLeft] = useState(0);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [promoCodes, setPromoCodes] = useState<Record<string, string>>({});
+  const [storedPromos, setStoredPromos] = useState<Record<string, string> | null>(null);
+  const [promoExpiresAt, setPromoExpiresAt] = useState<Date | null>(null);
 
+  // Load stored consultation promo codes from DB
   useEffect(() => {
+    if (!user?.id) return;
+    cloudSupabase
+      .from("author_profiles")
+      .select("consultation_promo_codes, consultation_promo_expires_at")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.consultation_promo_codes && data?.consultation_promo_expires_at) {
+          const expires = new Date(data.consultation_promo_expires_at);
+          if (expires > new Date()) {
+            setStoredPromos(data.consultation_promo_codes as Record<string, string>);
+            setPromoExpiresAt(expires);
+            // Pre-fill promo codes
+            setPromoCodes(data.consultation_promo_codes as Record<string, string>);
+            setTimeLeft(expires.getTime() - Date.now());
+          }
+        }
+      });
+  }, [user?.id]);
+
+  // Countdown timer based on DB expiry
+  useEffect(() => {
+    if (!promoExpiresAt) return;
     const interval = setInterval(() => {
-      setTimeLeft(getTimeRemaining());
+      const remaining = Math.max(0, promoExpiresAt.getTime() - Date.now());
+      setTimeLeft(remaining);
+      if (remaining <= 0) clearInterval(interval);
     }, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [promoExpiresAt]);
 
-  const promoExpired = timeLeft <= 0;
+  const promoExpired = !promoExpiresAt || timeLeft <= 0;
 
   const handleCopyCode = useCallback((code: string) => {
     navigator.clipboard.writeText(code);
@@ -134,7 +152,7 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
         <div className="text-center space-y-4">
           <div className="inline-flex items-center gap-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full px-4 py-2 text-sm font-bold">
             <Shield className="h-4 w-4" />
-            ✅ You're on the {currentPlan.name.toUpperCase()} ({currentPlan.promoPrice}/month)
+            ✅ You're on the {currentPlan.name.toUpperCase()} ({currentPlan.usualPrice}/month)
           </div>
           <div className="flex flex-wrap justify-center gap-2 max-w-md mx-auto">
             {currentPlan.unlockedCategories.map(cat => (
@@ -194,7 +212,7 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
             <div className="flex items-center gap-2">
               <Gift className="h-5 w-5 text-amber-500 shrink-0" />
               <span className="text-sm font-bold text-foreground">
-                🎉 First-Timer Promo — Exclusive pricing just for you!
+                🎉 Special Consultation Rate — Exclusive pricing just for you!
               </span>
             </div>
             <div className="flex items-center gap-2 rounded-lg bg-foreground/5 px-3 py-1.5">
@@ -213,7 +231,7 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
       {promoExpired && (
         <div className="mx-auto max-w-2xl mb-8 rounded-xl border border-muted bg-muted/30 p-4 text-center">
           <p className="text-sm text-muted-foreground">
-            ⏰ The first-timer promo has expired. Standard pricing now applies.
+            ⏰ Standard pricing applies. Complete a consultation with Abby to unlock special rates.
           </p>
         </div>
       )}
@@ -269,7 +287,7 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
                   {showPromo ? (
                     <>
                       <div className="flex items-baseline gap-2">
-                        <span className="text-4xl font-bold text-foreground">{plan.promoPrice}</span>
+                        <span className="text-4xl font-bold text-foreground">{plan.specialPrice}</span>
                         <span className="text-muted-foreground text-sm">{plan.period}</span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -329,7 +347,7 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
                   ) : (
                     <Icon className="h-4 w-4 mr-2 shrink-0" />
                   )}
-                  {showPromo ? `Get ${plan.name} — ${plan.promoPrice}/mo` : `Get ${plan.name}`}
+                  {showPromo ? `Get ${plan.name} — ${plan.specialPrice}/mo` : `Get ${plan.name}`}
                 </Button>
               </div>
             </motion.div>

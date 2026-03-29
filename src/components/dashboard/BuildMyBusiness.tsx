@@ -233,10 +233,15 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
       if (accumulated && isBusinessPlanMessage(allAssistantContent) && selectedBook && user) {
         try {
           const saveToken = await getActiveToken();
+          // Save the business plan
           await fetch(CONSULTANT_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${saveToken || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
             body: JSON.stringify({ action: "save-plan", bookId: selectedBook.id, content: allAssistantContent }),
+          });
+          // Generate unique consultation promo codes (fire-and-forget)
+          cloudSupabase.functions.invoke("generate-consultation-promos").catch(err => {
+            console.error("Failed to generate consultation promos:", err);
           });
         } catch (error) { console.error(error); }
       }

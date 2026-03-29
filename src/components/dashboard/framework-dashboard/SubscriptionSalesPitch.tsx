@@ -7,6 +7,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { supabase as cloudSupabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import type { SubscriptionTier } from "@/hooks/useAuth";
 
 /* ─── Types ─── */
@@ -37,17 +39,16 @@ const plans = [
   {
     id: "starter" as const,
     name: "Brand Package",
-    price: "$49",
+    specialPrice: "$49",
     usualPrice: "$69",
-    priceNum: 49,
-    usualPriceNum: 69,
+    priceNum: 69,
+    specialPriceNum: 49,
     savings: "$20",
     annualSavings: "$240",
     period: "/mo",
     tagline: "Test the waters.",
     description: "Start building with all 9 Brand Products",
     popular: false,
-    promoCode: "BP100",
     features: [
       "Abby AI Unlimited",
       "All 9 B·Brand Product builders",
@@ -61,17 +62,16 @@ const plans = [
   {
     id: "pro" as const,
     name: "Build Package",
-    price: "$99",
+    specialPrice: "$99",
     usualPrice: "$199",
-    priceNum: 99,
-    usualPriceNum: 199,
+    priceNum: 199,
+    specialPriceNum: 99,
     savings: "$100",
     annualSavings: "$1,200",
     period: "/mo",
     tagline: "Build a real business.",
     description: "Full Brand + Build Authority — everything to monetize",
     popular: true,
-    promoCode: "BA100",
     features: [
       "Everything in Brand",
       "All 9 B·Build Authority builders (Courses, Audiobooks, Memberships, Podcasts)",
@@ -88,17 +88,16 @@ const plans = [
   {
     id: "enterprise" as const,
     name: "Yield Package",
-    price: "$249",
+    specialPrice: "$249",
     usualPrice: "$499",
-    priceNum: 249,
-    usualPriceNum: 499,
+    priceNum: 499,
+    specialPriceNum: 249,
     savings: "$250",
     annualSavings: "$3,000",
     period: "/mo",
     tagline: "Build an empire.",
     description: "Complete monetization empire — all 28 streams",
     popular: false,
-    promoCode: "YR100",
     features: [
       "Everything in Build",
       "All 10 Y·Yield builders (Retreats, Certification, Masterminds)",
@@ -115,42 +114,47 @@ const plans = [
 
 const tierOrder = ["free", "starter", "pro", "enterprise"] as const;
 
-/* ─── Countdown Timer Hook ─── */
-function useCountdown() {
-  const PROMO_DURATION_MS = 60 * 60 * 1000; // 60 minutes
-  const STORAGE_KEY = "ab_promo_start";
-
-  const getStartTime = useCallback(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return parseInt(stored, 10);
-    const now = Date.now();
-    localStorage.setItem(STORAGE_KEY, String(now));
-    return now;
-  }, []);
-
-  const [startTime] = useState(getStartTime);
-  const [remaining, setRemaining] = useState(() => {
-    const elapsed = Date.now() - startTime;
-    return Math.max(0, PROMO_DURATION_MS - elapsed);
-  });
+/* ─── Countdown Timer Hook (DB-driven) ─── */
+function useCountdown(userId?: string) {
+  const [remaining, setRemaining] = useState(0);
+  const [expiresAt, setExpiresAt] = useState<Date | null>(null);
+  const [storedPromos, setStoredPromos] = useState<Record<string, string> | null>(null);
 
   useEffect(() => {
-    if (remaining <= 0) return;
+    if (!userId) return;
+    cloudSupabase
+      .from("author_profiles")
+      .select("consultation_promo_codes, consultation_promo_expires_at")
+      .eq("user_id", userId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.consultation_promo_codes && data?.consultation_promo_expires_at) {
+          const expires = new Date(data.consultation_promo_expires_at);
+          if (expires > new Date()) {
+            setExpiresAt(expires);
+            setStoredPromos(data.consultation_promo_codes as Record<string, string>);
+            setRemaining(expires.getTime() - Date.now());
+          }
+        }
+      });
+  }, [userId]);
+
+  useEffect(() => {
+    if (!expiresAt) return;
     const interval = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      const left = Math.max(0, PROMO_DURATION_MS - elapsed);
+      const left = Math.max(0, expiresAt.getTime() - Date.now());
       setRemaining(left);
       if (left <= 0) clearInterval(interval);
     }, 1000);
     return () => clearInterval(interval);
-  }, [startTime, remaining, PROMO_DURATION_MS]);
+  }, [expiresAt]);
 
   const minutes = Math.floor(remaining / 60000);
   const seconds = Math.floor((remaining % 60000) / 1000);
-  const expired = remaining <= 0;
-  const urgent = remaining < 10 * 60 * 1000; // under 10 min
+  const expired = !expiresAt || remaining <= 0;
+  const urgent = remaining > 0 && remaining < 10 * 60 * 1000;
 
-  return { minutes, seconds, expired, urgent, remaining };
+  return { minutes, seconds, expired, urgent, remaining, storedPromos };
 }
 
 /* ─── Helpers ─── */
@@ -179,12 +183,20 @@ function getRevenueHookText(tier: SubscriptionTier): string {
 export default function SubscriptionSalesPitch({
   currentTier, onSubscribe, onManage, loading, analysisData, onBuildBusiness,
 }: Props) {
+  const { user } = useAuth();
   const isSubscribed = currentTier !== "free";
   const pricingRef = useRef<HTMLDivElement>(null);
   const [promoCodes, setPromoCodes] = useState<Record<string, string>>({});
   const [stickyDismissed, setStickyDismissed] = useState(false);
   const [showSticky, setShowSticky] = useState(false);
-  const countdown = useCountdown();
+  const countdown = useCountdown(user?.id);
+
+  // Auto-fill stored promo codes
+  useEffect(() => {
+    if (countdown.storedPromos) {
+      setPromoCodes(countdown.storedPromos);
+    }
+  }, [countdown.storedPromos]);
 
   // Observe pricing cards visibility for sticky banner
   useEffect(() => {
@@ -262,7 +274,7 @@ export default function SubscriptionSalesPitch({
         >
           <Clock className={`h-4 w-4 ${countdown.urgent ? "animate-pulse" : ""}`} />
           <span>
-            Special: Build Package is usually <span className="line-through">$199/mo</span>, now <strong>$99/mo</strong> for the next{" "}
+            Consultation Special: Build Package is usually <span className="line-through">$199/mo</span>, now <strong>$99/mo</strong> for the next{" "}
             <span className="font-mono font-bold text-base">
               {String(countdown.minutes).padStart(2, "0")}:{String(countdown.seconds).padStart(2, "0")}
             </span>
@@ -274,7 +286,7 @@ export default function SubscriptionSalesPitch({
 
       {!isSubscribed && countdown.expired && (
         <div className="rounded-xl mx-4 md:mx-8 mt-4 px-5 py-3 bg-muted text-center text-sm text-muted-foreground border border-border">
-          First-timer promotional pricing has expired. Standard pricing applies.
+          Consultation promotional pricing has expired. Standard pricing applies.
         </div>
       )}
 
@@ -334,7 +346,7 @@ export default function SubscriptionSalesPitch({
                           <span className="text-sm text-muted-foreground line-through">{plan.usualPrice}/mo</span>
                         </div>
                         <div className="flex items-baseline gap-1">
-                          <span className="text-4xl font-bold">{plan.price}</span>
+                          <span className="text-4xl font-bold">{plan.specialPrice}</span>
                           <span className="text-muted-foreground text-sm">{plan.period}</span>
                         </div>
                         <p className="text-[11px] text-green-600 dark:text-green-400 font-semibold mt-1">
@@ -601,7 +613,7 @@ function ROICalculator({
           <div key={plan.id} className={`rounded-xl border p-5 text-center space-y-2 ${
             plan.id === recommendedTier ? "border-amber-400 bg-amber-500/5" : "border-border"
           }`}>
-            <p className="text-sm font-bold">{plan.name} {plan.price}</p>
+            <p className="text-sm font-bold">{plan.name} {plan.usualPrice}</p>
             <p className="text-[10px] text-muted-foreground line-through">Usually {plan.usualPrice}/mo</p>
             <div className="text-xs text-muted-foreground space-y-1">
               <p>Break even:</p>
@@ -616,7 +628,7 @@ function ROICalculator({
               <p className="text-xs text-green-600 dark:text-green-400 font-semibold">
                 = ${total}/mo
               </p>
-              <p className="text-[10px] text-muted-foreground">(covers {plan.price} sub)</p>
+              <p className="text-[10px] text-muted-foreground">(covers {plan.usualPrice} sub)</p>
             </div>
           </div>
         ))}
@@ -639,7 +651,7 @@ function ROICalculator({
           {!countdown.expired && (
             <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
               <Clock className="h-3 w-3" />
-              First-timer rate expires in{" "}
+              Consultation rate expires in{" "}
               <span className="font-mono font-bold">
                 {String(countdown.minutes).padStart(2, "0")}:{String(countdown.seconds).padStart(2, "0")}
               </span>
