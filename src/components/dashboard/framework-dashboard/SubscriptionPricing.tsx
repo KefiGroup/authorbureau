@@ -269,7 +269,7 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
                   {showPromo ? (
                     <>
                       <div className="flex items-baseline gap-2">
-                        <span className="text-4xl font-bold text-foreground">{plan.promoPrice}</span>
+                        <span className="text-4xl font-bold text-foreground">{plan.specialPrice}</span>
                         <span className="text-muted-foreground text-sm">{plan.period}</span>
                       </div>
                       <div className="flex items-center gap-2">
