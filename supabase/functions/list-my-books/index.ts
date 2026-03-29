@@ -218,6 +218,20 @@ Deno.serve(async (req) => {
       return true;
     });
 
+    // Self-healing: backfill owner_email on books that match by author_id but lack it
+    if (userEmail) {
+      const missingEmail = uniqueBooks.filter(b => !b.owner_email);
+      if (missingEmail.length > 0) {
+        const missingIds = missingEmail.map(b => b.id);
+        await cloudAdmin
+          .from("books")
+          .update({ owner_email: userEmail })
+          .in("id", missingIds)
+          .is("owner_email", null);
+        console.log("[list-my-books] Backfilled owner_email on", missingIds.length, "books");
+      }
+    }
+
     const bookIds = uniqueBooks.map(b => b.id);
 
     // Fetch generated_assets for these books (business plans + manuscripts)
