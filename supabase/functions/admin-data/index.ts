@@ -440,6 +440,43 @@ Deno.serve(async (req) => {
       return json({ success: true });
     }
 
+    // ─── Payouts: list purchases ───
+    if (action === "list-purchases") {
+      const { data: purchases } = await client
+        .from("purchases")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      return json({ purchases: purchases || [] });
+    }
+
+    // ─── Payouts: list payouts ───
+    if (action === "list-payouts") {
+      const { data: payouts } = await client
+        .from("author_payouts")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      return json({ payouts: payouts || [] });
+    }
+
+    // ─── Payouts: initiate payout ───
+    if (action === "initiate-payout") {
+      const { author_id, payout_method, amount, currency, purchase_count } = params;
+      if (!author_id || !amount) return json({ error: "Missing fields" }, 400);
+      const { error } = await client.from("author_payouts").insert({
+        author_id,
+        payout_method: payout_method || "stripe",
+        amount,
+        currency: currency || "USD",
+        purchase_count: purchase_count || 0,
+        status: "pending",
+        initiated_at: new Date().toISOString(),
+      });
+      if (error) throw error;
+      return json({ success: true });
+    }
+
     return json({ error: "Unknown action" }, 400);
   } catch (err) {
     return json({ error: (err as Error).message }, 500);
