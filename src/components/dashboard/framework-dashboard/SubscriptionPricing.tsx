@@ -93,8 +93,6 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
   const isSubscribed = currentTier !== "free";
   const { user } = useAuth();
   const [timeLeft, setTimeLeft] = useState(0);
-  const [copiedCode, setCopiedCode] = useState<string | null>(null);
-  const [promoCodes, setPromoCodes] = useState<Record<string, string>>({});
   const [storedPromos, setStoredPromos] = useState<Record<string, string> | null>(null);
   const [promoExpiresAt, setPromoExpiresAt] = useState<Date | null>(null);
 
