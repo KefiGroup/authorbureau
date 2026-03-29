@@ -149,10 +149,13 @@ serve(async (req) => {
         });
       }
 
+      let resolvedEmail: string | null = null;
+
       const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
       const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
       if (sharedUser) {
         userId = sharedUser.id;
+        resolvedEmail = sharedUser.email ?? null;
       } else {
         const { data: { user: cloudUser } } = await cloudAdmin.auth.getUser(token);
         if (!cloudUser) {
@@ -162,6 +165,7 @@ serve(async (req) => {
           });
         }
         userId = cloudUser.id;
+        resolvedEmail = cloudUser.email ?? null;
         const { data: profileForCloudUser } = await cloudAdmin
           .from("author_profiles")
           .select("user_id")
@@ -187,6 +191,8 @@ serve(async (req) => {
         }
       }
 
+      // Store resolved email so we can always set owner_email
+      body._resolvedEmail = resolvedEmail;
       bookData = body;
     }
 
@@ -312,7 +318,7 @@ serve(async (req) => {
         entry_mode: entryMode,
         ai_enriched: false,
         published_at: autoPublish ? new Date().toISOString() : null,
-        owner_email: isPlatformPush ? body.email : null,
+        owner_email: isPlatformPush ? body.email : (body._resolvedEmail || null),
       })
       .select("id")
       .single();
