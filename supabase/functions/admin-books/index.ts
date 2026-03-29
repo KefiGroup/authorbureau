@@ -10,18 +10,60 @@ const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
 const SHARED_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnRkcG5la3NjcnNnaHF0c3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MDYzODksImV4cCI6MjA4NDQ4MjM4OX0.o2qA4tLao4UtxPGxSnavXIYKUmVZvS99pHtnL220L-s";
 
-async function resolveUserId(token: string): Promise<{ userId: string | null; error?: string }> {
-  const cloudAdmin = createClient(
+const SUPERADMIN_EMAILS = ["paulinet77@gmail.com", "mitchcarson@rocketmail.com"];
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+async function verifyAdmin(token: string) {
+  const client = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
-  const { data: { user: cloudUser } } = await cloudAdmin.auth.getUser(token);
-  if (cloudUser) return { userId: cloudUser.id };
 
+  // Try Cloud auth first
+  const { data: { user: cloudUser } } = await client.auth.getUser(token);
+  if (cloudUser) {
+    const { data: roleData } = await client
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", cloudUser.id)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (roleData) return { userId: cloudUser.id, client };
+    if (cloudUser.email && SUPERADMIN_EMAILS.includes(cloudUser.email.toLowerCase())) {
+      return { userId: cloudUser.id, client };
+    }
+    return { userId: null, client: null };
+  }
+
+  // Fallback: shared backend token
   const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
-  const { data: { user: sharedUser }, error } = await sharedClient.auth.getUser(token);
-  if (error || !sharedUser) return { userId: null, error: "Invalid session" };
-  return { userId: sharedUser.id };
+  const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
+  if (!sharedUser) return { userId: null, client: null };
+
+  if (sharedUser.email && SUPERADMIN_EMAILS.includes(sharedUser.email.toLowerCase())) {
+    const { data: profile } = await client
+      .from("author_profiles")
+      .select("user_id")
+      .eq("user_id", sharedUser.id)
+      .maybeSingle();
+    return { userId: profile?.user_id || sharedUser.id, client };
+  }
+
+  const { data: roleData } = await client
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", sharedUser.id)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (roleData) return { userId: sharedUser.id, client };
+
+  return { userId: null, client: null };
 }
 
 Deno.serve(async (req) => {
@@ -32,65 +74,13 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization") || req.headers.get("authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Missing authorization" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ error: "Missing authorization" }, 401);
     }
 
     const token = authHeader.replace("Bearer ", "");
-    const { userId, error: authErr } = await resolveUserId(token);
-    if (!userId) {
-      return new Response(JSON.stringify({ error: authErr }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Check admin role — resolve shared-backend user to Cloud user via email if needed
-    const adminClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
-    let roleUserId = userId;
-    // Check if userId exists in Cloud auth; if not, look up by email
-    const { data: roleData } = await adminClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", roleUserId)
-      .eq("role", "admin")
-      .maybeSingle();
-
-    if (!roleData) {
-      // Try to resolve via email: get email from shared backend, find Cloud user
-      const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
-      const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
-      if (sharedUser?.email) {
-        const { data: { users: cloudUsers } } = await adminClient.auth.admin.listUsers();
-        const cloudMatch = cloudUsers?.find((u: any) => u.email === sharedUser.email);
-        if (cloudMatch) {
-          const { data: cloudRole } = await adminClient
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", cloudMatch.id)
-            .eq("role", "admin")
-            .maybeSingle();
-          if (cloudRole) {
-            roleUserId = cloudMatch.id;
-          } else {
-            return new Response(JSON.stringify({ error: "Admin access required" }), {
-              status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
-          }
-        } else {
-          return new Response(JSON.stringify({ error: "Admin access required" }), {
-            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-      } else {
-        return new Response(JSON.stringify({ error: "Admin access required" }), {
-          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    const { userId, client: adminClient } = await verifyAdmin(token);
+    if (!userId || !adminClient) {
+      return json({ error: "Admin access required" }, 403);
     }
 
     const { action, bookId, page = 1, filter } = await req.json();
