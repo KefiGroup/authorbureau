@@ -1,8 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Check, Crown, Loader2, ExternalLink, ArrowUpRight, Shield, Clock, Zap, Sparkles, Gift, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -94,8 +93,6 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
   const isSubscribed = currentTier !== "free";
   const { user } = useAuth();
   const [timeLeft, setTimeLeft] = useState(0);
-  const [copiedCode, setCopiedCode] = useState<string | null>(null);
-  const [promoCodes, setPromoCodes] = useState<Record<string, string>>({});
   const [storedPromos, setStoredPromos] = useState<Record<string, string> | null>(null);
   const [promoExpiresAt, setPromoExpiresAt] = useState<Date | null>(null);
 
@@ -113,8 +110,7 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
           if (expires > new Date()) {
             setStoredPromos(data.consultation_promo_codes as Record<string, string>);
             setPromoExpiresAt(expires);
-            // Pre-fill promo codes
-            setPromoCodes(data.consultation_promo_codes as Record<string, string>);
+            setTimeLeft(expires.getTime() - Date.now());
             setTimeLeft(expires.getTime() - Date.now());
           }
         }
@@ -134,11 +130,6 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
 
   const promoExpired = !promoExpiresAt || timeLeft <= 0;
 
-  const handleCopyCode = useCallback((code: string) => {
-    navigator.clipboard.writeText(code);
-    setCopiedCode(code);
-    setTimeout(() => setCopiedCode(null), 2000);
-  }, []);
 
   if (isSubscribed) {
     const currentPlan = plans.find(p => p.id === currentTier) || plans[0];
@@ -305,16 +296,15 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
                   )}
                 </div>
 
-                {/* Promo Code Input */}
-                <div className="space-y-1">
-                  <label className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Promo code</label>
-                  <Input
-                    placeholder="Enter code"
-                    value={promoCodes[plan.id] || ""}
-                    onChange={(e) => setPromoCodes(prev => ({ ...prev, [plan.id]: e.target.value.toUpperCase() }))}
-                    className="h-8 text-xs font-mono"
-                  />
-                </div>
+                {/* Auto-applied promo indicator */}
+                {showPromo && storedPromos?.[plan.id] && (
+                  <div className="flex items-center gap-1.5 rounded-lg bg-green-500/10 border border-green-500/20 px-3 py-1.5">
+                    <Gift className="h-3.5 w-3.5 text-green-600 dark:text-green-400 shrink-0" />
+                    <span className="text-[11px] font-medium text-green-700 dark:text-green-400">
+                      Consultation discount auto-applied ✓
+                    </span>
+                  </div>
+                )}
 
                 {/* Tagline */}
                 <p className="text-xs font-semibold italic text-amber-600 dark:text-amber-400">
@@ -338,7 +328,7 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
                       ? "bg-amber-500 hover:bg-amber-600 text-white shadow-md shadow-amber-500/20"
                       : ""
                   }`}
-                  onClick={() => onSubscribe(plan.id, promoCodes[plan.id]?.trim() || undefined)}
+                  onClick={() => onSubscribe(plan.id, storedPromos?.[plan.id] || undefined)}
                   disabled={loading}
                   size="lg"
                 >
