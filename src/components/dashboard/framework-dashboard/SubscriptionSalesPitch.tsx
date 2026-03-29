@@ -274,7 +274,7 @@ export default function SubscriptionSalesPitch({
         >
           <Clock className={`h-4 w-4 ${countdown.urgent ? "animate-pulse" : ""}`} />
           <span>
-            Special: Build Package is usually <span className="line-through">$199/mo</span>, now <strong>$99/mo</strong> for the next{" "}
+            Consultation Special: Build Package is usually <span className="line-through">$199/mo</span>, now <strong>$99/mo</strong> for the next{" "}
             <span className="font-mono font-bold text-base">
               {String(countdown.minutes).padStart(2, "0")}:{String(countdown.seconds).padStart(2, "0")}
             </span>
