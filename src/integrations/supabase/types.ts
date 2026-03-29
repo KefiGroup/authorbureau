@@ -567,6 +567,8 @@ export type Database = {
           bio_long: string | null
           bio_short: string | null
           business_plan_json: Json | null
+          consultation_promo_codes: Json | null
+          consultation_promo_expires_at: string | null
           cover_photo_url: string | null
           created_at: string
           credentials: Json | null
@@ -615,6 +617,8 @@ export type Database = {
           bio_long?: string | null
           bio_short?: string | null
           business_plan_json?: Json | null
+          consultation_promo_codes?: Json | null
+          consultation_promo_expires_at?: string | null
           cover_photo_url?: string | null
           created_at?: string
           credentials?: Json | null
@@ -663,6 +667,8 @@ export type Database = {
           bio_long?: string | null
           bio_short?: string | null
           business_plan_json?: Json | null
+          consultation_promo_codes?: Json | null
+          consultation_promo_expires_at?: string | null
           cover_photo_url?: string | null
           created_at?: string
           credentials?: Json | null
