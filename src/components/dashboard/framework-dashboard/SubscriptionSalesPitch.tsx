@@ -183,12 +183,20 @@ function getRevenueHookText(tier: SubscriptionTier): string {
 export default function SubscriptionSalesPitch({
   currentTier, onSubscribe, onManage, loading, analysisData, onBuildBusiness,
 }: Props) {
+  const { user } = useAuth();
   const isSubscribed = currentTier !== "free";
   const pricingRef = useRef<HTMLDivElement>(null);
   const [promoCodes, setPromoCodes] = useState<Record<string, string>>({});
   const [stickyDismissed, setStickyDismissed] = useState(false);
   const [showSticky, setShowSticky] = useState(false);
-  const countdown = useCountdown();
+  const countdown = useCountdown(user?.id);
+
+  // Auto-fill stored promo codes
+  useEffect(() => {
+    if (countdown.storedPromos) {
+      setPromoCodes(countdown.storedPromos);
+    }
+  }, [countdown.storedPromos]);
 
   // Observe pricing cards visibility for sticky banner
   useEffect(() => {
