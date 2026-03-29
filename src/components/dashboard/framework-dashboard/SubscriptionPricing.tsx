@@ -15,19 +15,6 @@ interface Props {
 }
 
 
-const TIMER_KEY = "ab_promo_start";
-const PROMO_DURATION_MS = 60 * 60 * 1000; // 60 minutes
-
-function getTimeRemaining(): number {
-  const stored = localStorage.getItem(TIMER_KEY);
-  if (!stored) {
-    localStorage.setItem(TIMER_KEY, Date.now().toString());
-    return PROMO_DURATION_MS;
-  }
-  const elapsed = Date.now() - parseInt(stored, 10);
-  return Math.max(0, PROMO_DURATION_MS - elapsed);
-}
-
 function formatTime(ms: number): string {
   const totalSeconds = Math.floor(ms / 1000);
   const minutes = Math.floor(totalSeconds / 60);
