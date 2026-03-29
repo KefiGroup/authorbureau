@@ -554,7 +554,7 @@ function ROICalculator({
 }: {
   bookTitle: string; products?: PlanAnalysisData["products"];
   recommendedTier: "starter" | "pro" | "enterprise";
-  onSubscribe: (tier: "starter" | "pro" | "enterprise") => void; loading: boolean;
+  onSubscribe: (tier: "starter" | "pro" | "enterprise", promoCode?: string) => void; loading: boolean;
   countdown: { minutes: number; seconds: number; expired: boolean; urgent: boolean };
 }) {
   const breakEvens = useMemo(() => plans.map(plan => ({
