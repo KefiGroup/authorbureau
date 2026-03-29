@@ -12,11 +12,6 @@ interface Props {
   abbyRecommendedTier?: string;
 }
 
-const PROMO_CODES: Record<string, string> = {
-  starter: "BP100",
-  pro: "BA100",
-  enterprise: "YR100",
-};
 
 const TIMER_KEY = "ab_promo_start";
 const PROMO_DURATION_MS = 60 * 60 * 1000; // 60 minutes
