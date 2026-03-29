@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Check, Crown, Loader2, ArrowUpRight, Shield, Sparkles,
-  TrendingUp, Star, Lock, X, Clock, AlertTriangle,
+  TrendingUp, Star, Lock, X, Clock, AlertTriangle, Gift,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
