@@ -110,6 +110,7 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
   const isSubscribed = currentTier !== "free";
   const [timeLeft, setTimeLeft] = useState(getTimeRemaining);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [promoCodes, setPromoCodes] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const interval = setInterval(() => {
