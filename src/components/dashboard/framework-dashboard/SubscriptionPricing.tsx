@@ -110,8 +110,7 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
           if (expires > new Date()) {
             setStoredPromos(data.consultation_promo_codes as Record<string, string>);
             setPromoExpiresAt(expires);
-            // Pre-fill promo codes
-            setPromoCodes(data.consultation_promo_codes as Record<string, string>);
+            setTimeLeft(expires.getTime() - Date.now());
             setTimeLeft(expires.getTime() - Date.now());
           }
         }
