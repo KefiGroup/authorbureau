@@ -188,7 +188,7 @@ export default function AdminMessagesTab() {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </React.Fragment>
                   );
                 })}
               </tbody>
