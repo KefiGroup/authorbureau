@@ -105,18 +105,47 @@ const plans = [
 
 export default function SubscriptionPricing({ currentTier, onSubscribe, onManage, loading, abbyRecommendedTier }: Props) {
   const isSubscribed = currentTier !== "free";
-  const [timeLeft, setTimeLeft] = useState(getTimeRemaining);
+  const { user } = useAuth();
+  const [timeLeft, setTimeLeft] = useState(0);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [promoCodes, setPromoCodes] = useState<Record<string, string>>({});
+  const [storedPromos, setStoredPromos] = useState<Record<string, string> | null>(null);
+  const [promoExpiresAt, setPromoExpiresAt] = useState<Date | null>(null);
 
+  // Load stored consultation promo codes from DB
   useEffect(() => {
+    if (!user?.id) return;
+    cloudSupabase
+      .from("author_profiles")
+      .select("consultation_promo_codes, consultation_promo_expires_at")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.consultation_promo_codes && data?.consultation_promo_expires_at) {
+          const expires = new Date(data.consultation_promo_expires_at);
+          if (expires > new Date()) {
+            setStoredPromos(data.consultation_promo_codes as Record<string, string>);
+            setPromoExpiresAt(expires);
+            // Pre-fill promo codes
+            setPromoCodes(data.consultation_promo_codes as Record<string, string>);
+            setTimeLeft(expires.getTime() - Date.now());
+          }
+        }
+      });
+  }, [user?.id]);
+
+  // Countdown timer based on DB expiry
+  useEffect(() => {
+    if (!promoExpiresAt) return;
     const interval = setInterval(() => {
-      setTimeLeft(getTimeRemaining());
+      const remaining = Math.max(0, promoExpiresAt.getTime() - Date.now());
+      setTimeLeft(remaining);
+      if (remaining <= 0) clearInterval(interval);
     }, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [promoExpiresAt]);
 
-  const promoExpired = timeLeft <= 0;
+  const promoExpired = !promoExpiresAt || timeLeft <= 0;
 
   const handleCopyCode = useCallback((code: string) => {
     navigator.clipboard.writeText(code);
