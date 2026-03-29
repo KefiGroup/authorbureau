@@ -181,6 +181,7 @@ export default function SubscriptionSalesPitch({
 }: Props) {
   const isSubscribed = currentTier !== "free";
   const pricingRef = useRef<HTMLDivElement>(null);
+  const [promoCodes, setPromoCodes] = useState<Record<string, string>>({});
   const [stickyDismissed, setStickyDismissed] = useState(false);
   const [showSticky, setShowSticky] = useState(false);
   const countdown = useCountdown();
