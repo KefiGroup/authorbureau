@@ -70,7 +70,7 @@ const plans = [
     tagline: "Build a real business.",
     description: "Full Brand + Build Authority — everything to monetize",
     popular: true,
-    promoCode: "BUILD-FIRSTTIMER",
+    promoCode: "BA100",
     features: [
       "Everything in Brand",
       "All 9 B·Build Authority builders (Courses, Audiobooks, Memberships, Podcasts)",
