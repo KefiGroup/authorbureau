@@ -293,23 +293,16 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
                   )}
                 </div>
 
-                {/* Promo Code */}
-                {showPromo && promoCode && (
-                  <div
-                    className="rounded-lg border border-dashed border-amber-400/50 bg-amber-500/5 px-3 py-2 cursor-pointer group"
-                    onClick={() => handleCopyCode(promoCode)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Your promo code</p>
-                        <p className="font-mono text-sm font-bold text-amber-600 dark:text-amber-400">{promoCode}</p>
-                      </div>
-                      <span className="text-[10px] text-muted-foreground group-hover:text-foreground transition-colors">
-                        {copiedCode === promoCode ? "✓ Copied!" : "Click to copy"}
-                      </span>
-                    </div>
-                  </div>
-                )}
+                {/* Promo Code Input */}
+                <div className="space-y-1">
+                  <label className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Promo code</label>
+                  <Input
+                    placeholder="Enter code"
+                    value={promoCodes[plan.id] || ""}
+                    onChange={(e) => setPromoCodes(prev => ({ ...prev, [plan.id]: e.target.value.toUpperCase() }))}
+                    className="h-8 text-xs font-mono"
+                  />
+                </div>
 
                 {/* Tagline */}
                 <p className="text-xs font-semibold italic text-amber-600 dark:text-amber-400">
