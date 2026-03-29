@@ -326,7 +326,7 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
                       ? "bg-amber-500 hover:bg-amber-600 text-white shadow-md shadow-amber-500/20"
                       : ""
                   }`}
-                  onClick={() => onSubscribe(plan.id)}
+                  onClick={() => onSubscribe(plan.id, promoCodes[plan.id]?.trim() || undefined)}
                   disabled={loading}
                   size="lg"
                 >
