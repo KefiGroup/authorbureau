@@ -55,7 +55,7 @@ const STEP_PREVIEWS: Record<string, string[]> = {
 export default function BuilderUpgradeGate({ nodeConfig, currentTier, planData, onNavigate }: Props) {
   const [loading, setLoading] = useState(false);
 
-  const reqTier = nodeConfig.requiredTier as "starter" | "pro" | "enterprise";
+  const reqTier = nodeConfig.requiredTier as "brand" | "build" | "yield";
   const tierInfo = TIERS[reqTier];
   const benchmark = getRevenueBenchmark(nodeConfig.id);
   const position = getDefaultPosition(nodeConfig.id);

@@ -7,7 +7,7 @@ const SETUP_FIELDS: SetupField[] = [
   { key: "licenseType", label: "License Type", type: "pills", cols: 3, options: [
     { value: "individual", label: "Individual ($297/yr)" },
     { value: "team", label: "Team ($997/yr)" },
-    { value: "enterprise", label: "Enterprise ($4,997/yr)" },
+    { value: "yield", label: "Enterprise ($4,997/yr)" },
   ]},
   { key: "content", label: "Licensable Content", type: "pills", cols: 3, options: [
     { value: "frameworks", label: "Frameworks" },
@@ -41,7 +41,7 @@ export default function LicensingStepRenderer({ stepId, stepData, setStepData, o
         { label: "License packages created", check: d => !!d.licensingPackages },
         { label: "License terms defined", check: d => !!d.licensingTerms },
         { label: "Sales materials ready", check: d => !!d.licensingSales },
-      ]} revenue={{ calculate: (d) => ({ amount: d.licensingConfig?.licenseType === "enterprise" ? 4997 : 997, description: "Each license generates recurring annual revenue with zero additional effort" })}} previewContent={(d) => (
+      ]} revenue={{ calculate: (d) => ({ amount: d.licensingConfig?.licenseType === "yield" ? 4997 : 997, description: "Each license generates recurring annual revenue with zero additional effort" })}} previewContent={(d) => (
         <div className="p-6 text-center">
           <FileKey className="h-8 w-8 text-violet-500 mx-auto mb-3" />
           <h2 className="font-heading text-xl font-bold mb-1">{d.licensingConfig?.title || "Content License"}</h2>

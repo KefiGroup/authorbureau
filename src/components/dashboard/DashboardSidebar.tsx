@@ -1,8 +1,8 @@
 import {
   LayoutDashboard, User, BookOpen, Sparkles,
-  ChevronLeft, ChevronRight, Crown, ExternalLink, PenLine, BookMarked,
+  ChevronLeft, ChevronRight, ExternalLink, PenLine, BookMarked,
   Lock, Globe, BarChart3, Contact, DollarSign, Radio, Award, CreditCard, Package, Wallet,
-  BookHeart, HelpCircle, ChevronDown, ChevronUp, MessageSquare, Megaphone,
+  BookHeart, ChevronDown, ChevronUp, MessageSquare, Megaphone,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,7 +20,7 @@ interface Props {
   isPremium: boolean;
   isAdmin?: boolean;
   isSuperAdmin?: boolean;
-  tier?: "free" | "starter" | "pro" | "enterprise";
+  tier?: "free" | "brand" | "build" | "yield";
   hasBooks?: boolean;
   hasAnalysis?: boolean;
   hasMicrosite?: boolean;
@@ -46,11 +46,6 @@ interface NavItem {
   notificationCount?: number;
 }
 
-const sisterLinks = [
-  { label: "AI Writing Studio", icon: PenLine, path: "/writing" },
-  { label: "AI Publishing Studio", icon: BookMarked, path: "/publishing" },
-];
-
 export default function DashboardSidebar({
   activeSection, onSectionChange, collapsed, onToggleCollapse,
   isPremium, isAdmin = false, isSuperAdmin: isSuperAdminProp = false, tier = "free", hasBooks = true, hasAnalysis = true, hasMicrosite = true,
@@ -61,19 +56,17 @@ export default function DashboardSidebar({
 
   const bypassLocks = isPremium || isAdmin;
 
-  const tierAccess = (required: "starter" | "pro" | "enterprise") => {
+  const tierAccess = (required: "brand" | "build" | "yield") => {
     if (bypassLocks) return true;
-    const order = ["free", "starter", "pro", "enterprise"];
+    const order: string[] = ["free", "brand", "build", "yield"];
     return order.indexOf(tier) >= order.indexOf(required);
   };
 
-  // Collapse BUILD YOUR BUSINESS if no analysis and no products
   const [businessExpanded, setBusinessExpanded] = useState(true);
 
-  // Unread nudge count for ABBY Coach badge
+  // Unread nudge count for Ask ABBY badge
   const [unreadNudges, setUnreadNudges] = useState(0);
 
-  // Fetch unread nudges count
   useEffect(() => {
     let channel: any;
     const fetchCount = async () => {
@@ -92,11 +85,9 @@ export default function DashboardSidebar({
         .eq("is_read", false);
       setUnreadNudges(count || 0);
 
-      // Realtime subscription
       channel = supabase
         .channel("nudge-badge")
         .on("postgres_changes", { event: "*", schema: "public", table: "abby_nudges", filter: `author_id=eq.${authorId}` }, () => {
-          // Re-fetch count on any change
           supabase
             .from("abby_nudges")
             .select("id", { count: "exact", head: true })
@@ -110,74 +101,69 @@ export default function DashboardSidebar({
     return () => { if (channel) supabase.removeChannel(channel); };
   }, []);
 
-  // HOME
+  // ── HOME ──
   const homeItems: NavItem[] = [
-    { id: "abby-coach" as DashboardSection, label: "ABBY Coach", icon: Sparkles,
+    { id: "overview", label: "Dashboard", icon: LayoutDashboard },
+    {
+      id: "abby-coach" as DashboardSection, label: "Ask ABBY", icon: Sparkles,
       subtitle: "Your AI Business Coach",
       tooltip: "Ask ABBY anything about your author business.",
       color: "text-secondary",
       notificationCount: unreadNudges > 0 ? unreadNudges : undefined,
     },
-    { id: "overview", label: "Dashboard", icon: LayoutDashboard },
-    { id: "brand-products-hub" as DashboardSection, label: "Brand Products", icon: Package,
-      subtitle: "9 Revenue Streams",
-      tooltip: "View and build your 9 Brand Product nodes.",
-      color: "text-emerald-500",
-    },
   ];
 
-  // GET STARTED
+  // ── GET STARTED ──
   const getStartedItems: NavItem[] = [
-    { id: "build-business", label: "Analyze with Abby", icon: Sparkles },
     { id: "my-books", label: "My Books Hub", icon: BookOpen, notificationCount: pendingReviewCount },
+    { id: "build-business", label: "My Business Plan", icon: Sparkles },
   ];
 
-  // BUILD YOUR BUSINESS
-  // Determine lock state for each B-B-Y category
+  // ── BUILD YOUR BUSINESS ──
   const brandAccessible = hasAnalysis || bypassLocks;
-  const buildAccessible = isSuperAdminProp || (buildAuthorityCategoryOpen && tierAccess("pro"));
-  const yieldAccessible = isSuperAdminProp || (yieldCategoryOpen && tierAccess("enterprise"));
+  const buildAccessible = isSuperAdminProp || (buildAuthorityCategoryOpen && tierAccess("build"));
+  const yieldAccessible = isSuperAdminProp || (yieldCategoryOpen && tierAccess("yield"));
 
   const businessItems: NavItem[] = [
     {
-      id: "revenue-streams", label: "B·Brand Products", icon: DollarSign,
+      id: "revenue-streams", label: "Brand Products", icon: DollarSign,
       subtitle: "Create Your Products",
       tooltip: "Turn your book into 9 digital products your audience can buy.",
       color: "text-emerald-500",
       badge: brandAccessible ? `${buildUnlocked} built` : undefined,
       lockMessage: !brandAccessible
         ? "Analyze a book first"
-        : !tierAccess("starter")
-        ? "Upgrade to Brand Package ($49/mo)"
+        : !tierAccess("brand")
+        ? "Upgrade to Brand Plan ($49/mo)"
         : undefined,
     },
     {
-      id: "marketing-channels", label: "B·Build Authority", icon: Radio,
+      id: "marketing-channels", label: "Build Authority", icon: Radio,
       subtitle: buildAccessible ? "Scale Your Audience"
-        : (isSuperAdminProp || buildAuthorityCategoryOpen) ? "Requires Build Package" : "Coming Soon",
+        : (isSuperAdminProp || buildAuthorityCategoryOpen) ? "Requires Build Plan" : "Coming Soon",
       tooltip: buildAccessible ? "Scale audience and recurring revenue"
-        : !tierAccess("pro") ? "Upgrade to Build Package ($99/mo) to unlock"
+        : !tierAccess("build") ? "Upgrade to Build Plan ($99/mo) to unlock"
         : "Build Authority is coming soon. Stay tuned!",
       color: "text-violet-500",
       badge: buildAccessible ? `${buildAuthorityUnlocked} built` : undefined,
       lockMessage: !buildAccessible
-        ? (!tierAccess("pro") && (isSuperAdminProp || buildAuthorityCategoryOpen)
-          ? "Upgrade to Build Package ($99/mo)"
+        ? (!tierAccess("build") && (isSuperAdminProp || buildAuthorityCategoryOpen)
+          ? "Upgrade to Build Plan ($99/mo)"
           : (isSuperAdminProp || buildAuthorityCategoryOpen) ? undefined : "Build Authority is coming soon")
         : undefined,
     },
     {
-      id: "authority-builders", label: "Y·Yield Revenue", icon: Award,
+      id: "authority-builders", label: "Yield Revenue", icon: Award,
       subtitle: yieldAccessible ? "Premium Services"
-        : (isSuperAdminProp || yieldCategoryOpen) ? "Requires Yield Package" : "Coming Soon",
+        : (isSuperAdminProp || yieldCategoryOpen) ? "Requires Yield Plan" : "Coming Soon",
       tooltip: yieldAccessible ? "Premium monetization services"
-        : !tierAccess("enterprise") ? "Upgrade to Yield Package ($249/mo) to unlock"
+        : !tierAccess("yield") ? "Upgrade to Yield Plan ($249/mo) to unlock"
         : "Yield Revenue builders are coming soon. Stay tuned!",
       color: "text-amber-500",
       badge: yieldAccessible ? `${yieldUnlocked} built` : undefined,
       lockMessage: !yieldAccessible
-        ? (!tierAccess("enterprise") && (isSuperAdminProp || yieldCategoryOpen)
-          ? "Upgrade to Yield Package ($249/mo)"
+        ? (!tierAccess("yield") && (isSuperAdminProp || yieldCategoryOpen)
+          ? "Upgrade to Yield Plan ($249/mo)"
           : (isSuperAdminProp || yieldCategoryOpen) ? undefined : "Yield Revenue builders are coming soon")
         : undefined,
     },
@@ -188,25 +174,25 @@ export default function DashboardSidebar({
       tooltip: "Review AI-generated products and publish them to your microsite.",
       notificationCount: pendingReviewCount,
     },
-    {
-      id: "reading-club" as DashboardSection, label: "Reading Club", icon: BookHeart,
-      hidden: true,
-    },
   ];
 
-  // YOUR BRAND
+  // ── YOUR BRAND ──
   const brandItems: NavItem[] = [
     { id: "profile", label: "Author Profile", icon: User },
     { id: "microsite-manager" as DashboardSection, label: "My Website", icon: Globe },
     {
       id: "author-crm" as DashboardSection, label: "My Contacts",
       icon: Contact,
-      lockMessage: !tierAccess("pro") ? "Upgrade to Build Package ($99/mo) to access CRM" : undefined,
+      lockMessage: !tierAccess("build") ? "Upgrade to Build Plan ($99/mo) to access CRM" : undefined,
     },
     {
       id: "messages" as DashboardSection, label: "Messages",
       icon: MessageSquare,
     },
+  ];
+
+  // ── REVENUE & TOOLS ──
+  const revenueToolsItems: NavItem[] = [
     {
       id: "marketing-hub" as DashboardSection, label: "Marketing Hub",
       icon: Megaphone,
@@ -214,10 +200,6 @@ export default function DashboardSidebar({
       tooltip: "View and manage all your automated marketing campaigns.",
       color: "text-rose-500",
     },
-  ];
-
-  // REVENUE
-  const revenueItems: NavItem[] = [
     {
       id: "analytics" as DashboardSection, label: "Revenue Dashboard", icon: BarChart3,
     },
@@ -229,6 +211,12 @@ export default function DashboardSidebar({
       id: "payout-settings" as DashboardSection, label: "Payout Settings",
       icon: Wallet,
     },
+  ];
+
+  // Sister platform links (AI Writing Studio, AI Publishing Studio) — now in REVENUE & TOOLS
+  const sisterLinks = [
+    { label: "AI Writing Studio", icon: PenLine, path: "/writing" },
+    { label: "AI Publishing Studio", icon: BookMarked, path: "/publishing" },
   ];
 
   const renderSection = (title: string, items: NavItem[]) => (
@@ -406,16 +394,70 @@ export default function DashboardSidebar({
           {renderSection("Get Started", getStartedItems)}
           {renderCollapsibleBusinessSection()}
           {renderSection("Your Brand", brandItems)}
-          {renderSection("Revenue", revenueItems)}
-        </TooltipProvider>
 
-        {/* Sister platform links (TOOLS) */}
-        {!collapsed && (
+          {/* REVENUE & TOOLS — includes Marketing Hub, Revenue Dashboard, Stripe, Payouts, and sister links */}
           <div className="space-y-0.5">
-            <p className="px-3 mb-1.5 text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground/40">
-              Tools
-            </p>
-            {sisterLinks.map((link) => (
+            {!collapsed && (
+              <p className="px-3 mb-1.5 text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground/40">
+                Revenue &amp; Tools
+              </p>
+            )}
+            {revenueToolsItems.filter(i => !i.hidden).map((item, idx) => {
+              const isLocked = !!item.lockMessage;
+              const isActive = activeSection === item.id && !isLocked;
+
+              const btn = (
+                <button
+                  key={`${item.id}-${idx}`}
+                  onClick={() => {
+                    if (isLocked) {
+                      toast({ title: "Locked", description: item.lockMessage });
+                      return;
+                    }
+                    onSectionChange(item.id);
+                  }}
+                  className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-medium transition-colors ${
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : isLocked
+                      ? "text-muted-foreground/35 cursor-default"
+                      : "text-foreground hover:bg-muted"
+                  }`}
+                  title={isLocked ? item.lockMessage : item.label}
+                >
+                  <item.icon className={`h-4 w-4 shrink-0 ${!isActive && item.color ? item.color : ""}`} />
+                  {!collapsed && (
+                    <>
+                      <span className="flex-1 text-left whitespace-normal leading-tight">
+                        <span className="block">{item.label}</span>
+                        {item.subtitle && (
+                          <span className="block text-[10px] font-normal text-muted-foreground/50 leading-tight">{item.subtitle}</span>
+                        )}
+                      </span>
+                      {isLocked && <Lock className="h-3 w-3 text-muted-foreground/30" />}
+                      {item.badge && !isLocked && (
+                        <span className="text-[10px] text-muted-foreground/60 font-normal">{item.badge}</span>
+                      )}
+                    </>
+                  )}
+                </button>
+              );
+
+              if (item.tooltip || collapsed) {
+                return (
+                  <Tooltip key={`${item.id}-${idx}`}>
+                    <TooltipTrigger asChild>{btn}</TooltipTrigger>
+                    <TooltipContent side="right" className="max-w-[220px] text-xs">
+                      {collapsed ? item.label : item.tooltip}
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              }
+              return btn;
+            })}
+
+            {/* AI Writing Studio & AI Publishing Studio */}
+            {!collapsed && sisterLinks.map((link) => (
               <button
                 key={link.label}
                 onClick={() => {
@@ -446,34 +488,7 @@ export default function DashboardSidebar({
               </button>
             ))}
           </div>
-        )}
-
-        {/* SUPPORT */}
-        {!collapsed && (
-          <div className="space-y-0.5">
-            <p className="px-3 mb-1.5 text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground/40">
-              Support
-            </p>
-            <button
-              onClick={() => onSectionChange("how-it-works" as DashboardSection)}
-              className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-medium transition-colors ${
-                activeSection === "how-it-works"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
-            >
-              <Crown className="h-4 w-4 shrink-0 text-[hsl(45,50%,54%)]" />
-              <span className="truncate text-[13px]">How It Works</span>
-            </button>
-            <a
-              href="/faq"
-              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-muted-foreground/60 hover:bg-muted hover:text-foreground transition-colors"
-            >
-              <HelpCircle className="h-4 w-4 shrink-0" />
-              <span className="truncate text-[13px]">Help &amp; FAQ</span>
-            </a>
-          </div>
-        )}
+        </TooltipProvider>
       </nav>
 
       {/* Collapse toggle */}

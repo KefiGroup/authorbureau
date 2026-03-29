@@ -39,7 +39,7 @@ interface ChatViewProps {
   onSendMessage: (content: string) => void;
   onReset: (goBack?: boolean) => void;
   onSubscribe: () => void;
-  onSubscribeTier: (tier: "starter" | "pro" | "enterprise") => void;
+  onSubscribeTier: (tier: "brand" | "build" | "yield") => void;
   onManageSubscription: () => void;
   onStartBuild: (req: Record<string, string>) => void;
   onFrameworkConfirm: (frameworks: AuthorFramework[], mode: BuildMode) => void;

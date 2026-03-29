@@ -62,7 +62,7 @@ function StarRating({ count }: { count: number }) {
 
 export default function YieldRevenueHub() {
   const { user, loading: authLoading, tier } = useAuth();
-  const isTierUnlocked = hasTierAccess(tier, "enterprise");
+  const isTierUnlocked = hasTierAccess(tier, "yield");
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const devUnlock = searchParams.get("unlock") === "true";

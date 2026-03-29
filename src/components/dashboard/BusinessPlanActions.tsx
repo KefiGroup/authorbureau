@@ -203,11 +203,11 @@ export default function BusinessPlanActions({
             <Crown className="h-3.5 w-3.5 text-secondary" /> Subscribe to start building now
           </p>
           <div className="flex flex-wrap gap-2">
-            {(["starter", "pro", "enterprise"] as const).map((tierKey) => (
+            {(["brand", "build", "yield"] as const).map((tierKey) => (
               <Button
                 key={tierKey}
                 size="sm"
-                variant={tierKey === "starter" ? "default" : "outline"}
+                variant={tierKey === "brand" ? "default" : "outline"}
                 className="gap-1.5"
                 onClick={() => handleSubscribe(tierKey)}
                 disabled={checkoutTierLoading !== null}

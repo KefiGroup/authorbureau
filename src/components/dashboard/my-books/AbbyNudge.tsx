@@ -56,13 +56,13 @@ export default function AbbyNudge({
     }
 
     // Stage 4+: Analyzed AND subscribed — tier-specific messages
-    if (tier === "starter") {
+    if (tier === "brand") {
       return `Your business plan for "${bookTitle}" recommends ${totalProducts} products. With Starter, you can build workbooks, social media content, and email sequences. ${nextProduct ? `I recommend starting with "${nextProduct}" — your quickest win!` : "Let's start building!"}`;
     }
-    if (tier === "pro") {
+    if (tier === "build") {
       return `Your business plan for "${bookTitle}" has ${totalProducts} products ready to build across Brand + Build. ${nextProduct ? `I recommend starting with "${nextProduct}" — projected at ${revenueRange}/month.` : ""} Let's go!`;
     }
-    if (tier === "enterprise") {
+    if (tier === "yield") {
       return `All 28 builders are unlocked for "${bookTitle}"! Your plan maps ${revenueStreams} revenue streams with projected revenue of ${revenueRange}/month. ${nextProduct ? `I recommend starting with "${nextProduct}" — your highest-ROI move.` : ""} Ready to build?`;
     }
 

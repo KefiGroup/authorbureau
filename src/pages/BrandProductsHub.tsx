@@ -66,7 +66,7 @@ function StarRating({ count }: { count: number }) {
 
 export default function BrandProductsHub() {
   const { user, loading: authLoading, tier } = useAuth();
-  const isTierUnlocked = hasTierAccess(tier, "starter");
+  const isTierUnlocked = hasTierAccess(tier, "brand");
   const navigate = useNavigate();
   const [nodes, setNodes] = useState<NodeCard[]>([]);
   const [authorName, setAuthorName] = useState("");

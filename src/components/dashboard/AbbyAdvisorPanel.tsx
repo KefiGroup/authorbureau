@@ -44,7 +44,7 @@ export default function AbbyAdvisorPanel({ bookId, bookTitle, productNode, produ
     // Find this product in the plan
     let productInfo: any = null;
     let tierName = "";
-    for (const tier of ["starter", "pro", "enterprise"] as const) {
+    for (const tier of ["brand", "build", "yield"] as const) {
       const pkg = planData.packages[tier];
       if (!pkg?.products) continue;
       const match = pkg.products.find(p =>

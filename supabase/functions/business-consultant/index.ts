@@ -3084,17 +3084,17 @@ audience: ${JSON.stringify({
 generation_history: ${JSON.stringify(existingAssets.map((a: any) => a.asset_type))}
 
 subscription: ${JSON.stringify({
-    tier: isPremium ? subscriptionTier || "enterprise" : subscriptionTier || "free",
+    tier: isPremium ? subscriptionTier || "yield" : subscriptionTier || "free",
     status: isPremium ? "active" : subscriptionStatus || "none",
   })}
 
 subscription_note: "${
-    subscriptionTier === "enterprise" 
-      ? "Author has Enterprise — skip the subscription sell entirely and encourage them to start building immediately. They have access to ALL 28 nodes."
-      : subscriptionTier === "pro"
-      ? "Author has Pro — skip the sell for Starter/Pro features. If the plan includes Enterprise-only features, mention they can upgrade when ready."
-      : subscriptionTier === "starter"
-      ? "Author has Starter — skip the sell for Starter features. If the plan includes Pro features, recommend upgrading to Pro."
+    subscriptionTier === "yield" 
+      ? "Author has Yield Plan — skip the subscription sell entirely and encourage them to start building immediately. They have access to ALL 28 nodes."
+      : subscriptionTier === "build"
+      ? "Author has Build Plan — skip the sell for Brand/Build features. If the plan includes Yield-only features, mention they can upgrade when ready."
+      : subscriptionTier === "brand"
+      ? "Author has Brand Plan — skip the sell for Brand features. If the plan includes Build features, recommend upgrading to Build."
       : "Author is on the FREE plan — they MUST subscribe before they can build. Recommend the MINIMUM tier that covers their Month 1-2 quick wins."
   }"
 

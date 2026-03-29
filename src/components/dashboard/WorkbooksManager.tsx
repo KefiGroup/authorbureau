@@ -34,7 +34,7 @@ export default function WorkbooksManager({ onNavigate }: { onNavigate?: (section
   const { user, isPremium, isAdmin, tier } = useAuth();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
-  const handleSubscribeTier = async (tierKey: "starter" | "pro" | "enterprise", promoCode?: string) => {
+  const handleSubscribeTier = async (tierKey: "brand" | "build" | "yield", promoCode?: string) => {
     setCheckoutLoading(true);
     try {
       const { data, error } = await sharedSupabase.functions.invoke("create-checkout", {

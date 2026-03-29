@@ -6,19 +6,19 @@ import { CheckCircle2, Sparkles, ArrowRight, PartyPopper } from "lucide-react";
 
 const TIER_UNLOCKS = {
   starter: {
-    label: TIERS.starter.label,
+    label: TIERS.brand.label,
     nodes: ["Email Marketing", "Lead Magnets", "Social Media", "Website / Microsite", "Webinars", "Workbook", "Home Study Course", "Special Editions", "Book Sales"],
     hub: "/brand-products",
     hubLabel: "Go to Brand Products",
   },
   pro: {
-    label: TIERS.pro.label,
+    label: TIERS.build.label,
     nodes: ["All Brand Products", "Online Course", "Audiobook", "Membership Site", "Group Coaching", "Podcast", "Media & PR", "Affiliate Programme", "Upsells & Bundles", "JV Partnerships"],
     hub: "/build-authority",
     hubLabel: "Go to Build Authority",
   },
   enterprise: {
-    label: TIERS.enterprise.label,
+    label: TIERS.yield.label,
     nodes: ["All Brand Products + Build Authority", "1-on-1 Coaching", "Big Ticket Offers", "Keynote Speaking", "Corporate Training", "Mastermind", "Retreats", "Certification Program", "Conferences", "Fundraising", "Exhibitors & Sponsors"],
     hub: "/yield-revenue",
     hubLabel: "Go to Yield Revenue",
@@ -37,7 +37,7 @@ export default function SubscriptionSuccess() {
 
   // Determine tier from query param or current state
   const tierParam = searchParams.get("tier") as keyof typeof TIER_UNLOCKS | null;
-  const resolvedTier = tierParam && TIER_UNLOCKS[tierParam] ? tierParam : (tier !== "free" ? tier as keyof typeof TIER_UNLOCKS : "starter");
+  const resolvedTier = tierParam && TIER_UNLOCKS[tierParam] ? tierParam : (tier !== "free" ? tier as keyof typeof TIER_UNLOCKS : "brand");
   const info = TIER_UNLOCKS[resolvedTier] || TIER_UNLOCKS.starter;
 
   return (

@@ -35,9 +35,9 @@ function extractSections(fullContent: string): PlanSection[] {
   
   const patterns: Array<{ key: string; label: string; emoji: string; regex: RegExp }> = [
     { key: "transformation", label: "Transformation Promise", emoji: "✨", regex: /(?:#{1,3}.*?TRANSFORMATION PROMISE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?STARTER PACKAGE|$)/i },
-    { key: "starter", label: "Starter Package", emoji: "🟢", regex: /(?:#{1,3}.*?STARTER PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?PRO PACKAGE|$)/i },
-    { key: "pro", label: "Pro Package", emoji: "🔵", regex: /(?:#{1,3}.*?PRO PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?ENTERPRISE PACKAGE|$)/i },
-    { key: "enterprise", label: "Enterprise Package", emoji: "🟣", regex: /(?:#{1,3}.*?ENTERPRISE PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?MONETIZATION MAP|$)/i },
+    { key: "brand", label: "Brand Plan", emoji: "🟢", regex: /(?:#{1,3}.*?STARTER PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?PRO PACKAGE|$)/i },
+    { key: "build", label: "Build Plan", emoji: "🔵", regex: /(?:#{1,3}.*?PRO PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?ENTERPRISE PACKAGE|$)/i },
+    { key: "yield", label: "Yield Plan", emoji: "🟣", regex: /(?:#{1,3}.*?ENTERPRISE PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?MONETIZATION MAP|$)/i },
     { key: "monetization", label: "Monetization Map", emoji: "📊", regex: /(?:#{1,3}.*?MONETIZATION MAP.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?NEXT STEPS|$)/i },
     { key: "nextsteps", label: "Next Steps", emoji: "🚀", regex: /(?:#{1,3}.*?NEXT STEPS.*?\n)([\s\S]*?)$/i },
   ];

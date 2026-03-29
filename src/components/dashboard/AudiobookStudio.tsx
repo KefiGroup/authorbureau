@@ -696,7 +696,7 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
                   Package your audiobook and send it to PublishNow for distribution on Audible, Spotify & Apple Books.
                 </p>
               </div>
-              {hasTierAccess(tier, "enterprise") ? (
+              {hasTierAccess(tier, "yield") ? (
                 <Button onClick={() => setShowDistributeModal(true)} className="gap-1.5 shrink-0">
                   <Send className="h-4 w-4" />
                   Save & Distribute Audiobook

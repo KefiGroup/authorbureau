@@ -8,7 +8,7 @@ interface Props {
 }
 
 export default function BookHubAnalytics({ bookId, tier }: Props) {
-  const hasAccess = hasTierAccess(tier, "pro");
+  const hasAccess = hasTierAccess(tier, "build");
 
   if (!hasAccess) {
     return (
