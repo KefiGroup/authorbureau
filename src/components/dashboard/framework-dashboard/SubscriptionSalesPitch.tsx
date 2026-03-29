@@ -374,16 +374,13 @@ export default function SubscriptionSalesPitch({
                     ))}
                   </ul>
 
-                  {/* Promo Code Input */}
-                  {!isCurrent && !isLower && (
-                    <div className="space-y-1">
-                      <label className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Promo code</label>
-                      <Input
-                        placeholder="Enter code"
-                        value={promoCodes[plan.id] || ""}
-                        onChange={(e) => setPromoCodes(prev => ({ ...prev, [plan.id]: e.target.value.toUpperCase() }))}
-                        className="h-8 text-xs font-mono"
-                      />
+                  {/* Auto-applied promo indicator */}
+                  {!isCurrent && !isLower && !countdown.expired && countdown.storedPromos?.[plan.id] && (
+                    <div className="flex items-center gap-1.5 rounded-lg bg-green-500/10 border border-green-500/20 px-3 py-1.5">
+                      <Gift className="h-3.5 w-3.5 text-green-600 dark:text-green-400 shrink-0" />
+                      <span className="text-[11px] font-medium text-green-700 dark:text-green-400">
+                        Consultation discount auto-applied ✓
+                      </span>
                     </div>
                   )}
 
