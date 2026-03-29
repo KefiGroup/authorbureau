@@ -34,11 +34,11 @@ export default function WorkbooksManager({ onNavigate }: { onNavigate?: (section
   const { user, isPremium, isAdmin, tier } = useAuth();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
-  const handleSubscribeTier = async (tierKey: "starter" | "pro" | "enterprise") => {
+  const handleSubscribeTier = async (tierKey: "starter" | "pro" | "enterprise", promoCode?: string) => {
     setCheckoutLoading(true);
     try {
       const { data, error } = await sharedSupabase.functions.invoke("create-checkout", {
-        body: { priceId: TIERS[tierKey].price_id, source_platform: "authorsbureau" },
+        body: { priceId: TIERS[tierKey].price_id, source_platform: "authorsbureau", ...(promoCode ? { promoCode } : {}) },
       });
       if (error) throw error;
       if (data?.url) window.open(data.url, "_blank");
