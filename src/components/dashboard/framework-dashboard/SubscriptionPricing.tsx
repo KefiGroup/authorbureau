@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 
 interface Props {
   currentTier: string;
-  onSubscribe: (tier: "starter" | "pro" | "enterprise") => void;
+  onSubscribe: (tier: "starter" | "pro" | "enterprise", promoCode?: string) => void;
   onManage: () => void;
   loading: boolean;
   abbyRecommendedTier?: string;
