@@ -10,7 +10,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { RefreshCw, Bug, MessageSquare, MessagesSquare, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
-import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import { adminDataFetch } from "@/lib/admin-data-fetch";
 
 type BugReport = {

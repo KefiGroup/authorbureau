@@ -11,7 +11,6 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, RefreshCw, BookOpen, Globe, ImageIcon, Search, Upload, Pencil, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import { adminDataFetch } from "@/lib/admin-data-fetch";
 
 interface DirectoryAuthor {
