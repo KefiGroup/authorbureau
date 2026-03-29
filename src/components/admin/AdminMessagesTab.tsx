@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Loader2, Search, MessageSquare, RefreshCw, Mail, Clock, CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
+import { adminDataFetch } from "@/lib/admin-data-fetch";
 
 interface ContactMessage {
   id: string;
