@@ -175,7 +175,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (!isAdmin) return;
-    setIsSuperAdmin(true);
+    adminApi.isSuperAdmin().then((data) => setIsSuperAdmin(!!data?.is_super_admin)).catch(() => setIsSuperAdmin(false));
     adminApi.checkPublishNowAdmin().then((data) => setIsPublishNowAdmin(!!data?.is_super_admin)).catch(() => {});
   }, [isAdmin]);
 

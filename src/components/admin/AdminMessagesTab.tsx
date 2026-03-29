@@ -156,8 +156,8 @@ export default function AdminMessagesTab() {
                   const cfg = statusConfig[msg.status as Status] || statusConfig.open;
                   const isExpanded = expandedId === msg.id;
                   return (
-                    <>
-                      <tr key={msg.id} className="border-t border-border hover:bg-muted/30 cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : msg.id)}>
+                    <React.Fragment key={msg.id}>
+                      <tr className="border-t border-border hover:bg-muted/30 cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : msg.id)}>
                         <td className="px-4 py-3 font-medium">{msg.sender_name}</td>
                         <td className="px-4 py-3 text-muted-foreground">{msg.sender_email}</td>
                         <td className="px-4 py-3 text-muted-foreground">{msg.author_name || msg.author_id.slice(0, 8)}</td>
