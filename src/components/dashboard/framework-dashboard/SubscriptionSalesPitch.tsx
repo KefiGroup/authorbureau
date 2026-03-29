@@ -598,7 +598,7 @@ function ROICalculator({
           <div key={plan.id} className={`rounded-xl border p-5 text-center space-y-2 ${
             plan.id === recommendedTier ? "border-amber-400 bg-amber-500/5" : "border-border"
           }`}>
-            <p className="text-sm font-bold">{plan.name} {plan.price}</p>
+            <p className="text-sm font-bold">{plan.name} {plan.usualPrice}</p>
             <p className="text-[10px] text-muted-foreground line-through">Usually {plan.usualPrice}/mo</p>
             <div className="text-xs text-muted-foreground space-y-1">
               <p>Break even:</p>
