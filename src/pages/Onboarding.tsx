@@ -316,7 +316,7 @@ export default function Onboarding() {
       await supabase
         .from("author_profiles")
         .update({
-          business_plan_json: { ...existingPlan, goals },
+          business_plan_json: { ...existingPlan, goals: { ...goals } } as any,
         })
         .eq("id", ap.id);
 
