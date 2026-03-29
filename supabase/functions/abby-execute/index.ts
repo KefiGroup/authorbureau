@@ -362,7 +362,7 @@ function getProductSteps(productNode: string, plan: any): any[] {
 
 function findProductInPlan(node: string, plan: any): any {
   if (!plan?.packages) return null;
-  for (const tier of ["starter", "pro", "enterprise"]) {
+  for (const tier of ["brand", "build", "yield"]) {
     const pkg = plan.packages[tier];
     if (!pkg?.products) continue;
     const match = pkg.products.find((p: any) =>
