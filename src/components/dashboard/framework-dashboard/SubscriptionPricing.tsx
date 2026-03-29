@@ -130,11 +130,6 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
 
   const promoExpired = !promoExpiresAt || timeLeft <= 0;
 
-  const handleCopyCode = useCallback((code: string) => {
-    navigator.clipboard.writeText(code);
-    setCopiedCode(code);
-    setTimeout(() => setCopiedCode(null), 2000);
-  }, []);
 
   if (isSubscribed) {
     const currentPlan = plans.find(p => p.id === currentTier) || plans[0];
