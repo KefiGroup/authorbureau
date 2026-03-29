@@ -27,7 +27,7 @@ export async function getActiveToken(): Promise<string | null> {
 export async function fetchWithTimeout(
   url: string,
   options: RequestInit,
-  timeoutMs = 15000
+  timeoutMs = 25000
 ): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
