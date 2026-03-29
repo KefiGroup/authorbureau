@@ -46,7 +46,7 @@ const plans = [
     tagline: "Test the waters.",
     description: "Start building with all 9 Brand Products",
     popular: false,
-    promoCode: "BRAND-FIRSTTIMER",
+    promoCode: "BP100",
     features: [
       "Abby AI Unlimited",
       "All 9 B·Brand Product builders",
@@ -70,7 +70,7 @@ const plans = [
     tagline: "Build a real business.",
     description: "Full Brand + Build Authority — everything to monetize",
     popular: true,
-    promoCode: "BUILD-FIRSTTIMER",
+    promoCode: "BA100",
     features: [
       "Everything in Brand",
       "All 9 B·Build Authority builders (Courses, Audiobooks, Memberships, Podcasts)",
@@ -97,7 +97,7 @@ const plans = [
     tagline: "Build an empire.",
     description: "Complete monetization empire — all 28 streams",
     popular: false,
-    promoCode: "YIELD-FIRSTTIMER",
+    promoCode: "YR100",
     features: [
       "Everything in Build",
       "All 10 Y·Yield builders (Retreats, Certification, Masterminds)",
