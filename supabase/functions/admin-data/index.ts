@@ -17,52 +17,58 @@ function json(body: unknown, status = 200) {
   });
 }
 
-async function resolveUserId(token: string): Promise<string | null> {
-  const cloudAdmin = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-  );
-  const { data: { user: cloudUser } } = await cloudAdmin.auth.getUser(token);
-  if (cloudUser) return cloudUser.id;
-
-  const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
-  const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
-  return sharedUser?.id ?? null;
-}
+const SUPERADMIN_EMAILS = ["paulinet77@gmail.com", "mitchcarson@rocketmail.com"];
 
 async function verifyAdmin(token: string) {
-  const userId = await resolveUserId(token);
-  if (!userId) return { userId: null, client: null };
-
   const client = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
+
+  // Try Cloud auth first
+  const { data: { user: cloudUser } } = await client.auth.getUser(token);
+  if (cloudUser) {
+    // Check user_roles table
+    const { data: roleData } = await client
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", cloudUser.id)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (roleData) return { userId: cloudUser.id, client };
+
+    // Check superadmin emails
+    if (cloudUser.email && SUPERADMIN_EMAILS.includes(cloudUser.email.toLowerCase())) {
+      return { userId: cloudUser.id, client };
+    }
+    return { userId: null, client: null };
+  }
+
+  // Fallback: shared backend token
+  const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
+  const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
+  if (!sharedUser) return { userId: null, client: null };
+
+  // Check superadmin emails for shared backend users
+  if (sharedUser.email && SUPERADMIN_EMAILS.includes(sharedUser.email.toLowerCase())) {
+    // Find or use the shared user's ID — look up matching Cloud user by email
+    const { data: profile } = await client
+      .from("author_profiles")
+      .select("user_id")
+      .eq("user_id", sharedUser.id)
+      .maybeSingle();
+    const resolvedId = profile?.user_id || sharedUser.id;
+    return { userId: resolvedId, client };
+  }
+
+  // Non-superadmin shared user: check user_roles by shared user ID
   const { data: roleData } = await client
     .from("user_roles")
     .select("role")
-    .eq("user_id", userId)
+    .eq("user_id", sharedUser.id)
     .eq("role", "admin")
     .maybeSingle();
-
-  if (roleData) return { userId, client };
-
-  // Shared-backend user: resolve email → Cloud user for role check
-  const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
-  const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
-  if (sharedUser?.email) {
-    const { data: { users: cloudUsers } } = await client.auth.admin.listUsers();
-    const cloudMatch = cloudUsers?.find((u: any) => u.email === sharedUser.email);
-    if (cloudMatch) {
-      const { data: cloudRole } = await client
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", cloudMatch.id)
-        .eq("role", "admin")
-        .maybeSingle();
-      if (cloudRole) return { userId: cloudMatch.id, client };
-    }
-  }
+  if (roleData) return { userId: sharedUser.id, client };
 
   return { userId: null, client: null };
 }
