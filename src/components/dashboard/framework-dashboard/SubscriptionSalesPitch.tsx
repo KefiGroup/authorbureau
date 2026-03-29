@@ -5,6 +5,7 @@ import {
   TrendingUp, Star, Lock, X, Clock, AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import type { SubscriptionTier } from "@/hooks/useAuth";
 
@@ -24,7 +25,7 @@ interface PlanAnalysisData {
 
 interface Props {
   currentTier: SubscriptionTier;
-  onSubscribe: (tier: "starter" | "pro" | "enterprise") => void;
+  onSubscribe: (tier: "starter" | "pro" | "enterprise", promoCode?: string) => void;
   onManage: () => void;
   loading: boolean;
   analysisData: PlanAnalysisData;
@@ -180,6 +181,7 @@ export default function SubscriptionSalesPitch({
 }: Props) {
   const isSubscribed = currentTier !== "free";
   const pricingRef = useRef<HTMLDivElement>(null);
+  const [promoCodes, setPromoCodes] = useState<Record<string, string>>({});
   const [stickyDismissed, setStickyDismissed] = useState(false);
   const [showSticky, setShowSticky] = useState(false);
   const countdown = useCountdown();
@@ -360,6 +362,19 @@ export default function SubscriptionSalesPitch({
                     ))}
                   </ul>
 
+                  {/* Promo Code Input */}
+                  {!isCurrent && !isLower && (
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Promo code</label>
+                      <Input
+                        placeholder="Enter code"
+                        value={promoCodes[plan.id] || ""}
+                        onChange={(e) => setPromoCodes(prev => ({ ...prev, [plan.id]: e.target.value.toUpperCase() }))}
+                        className="h-8 text-xs font-mono"
+                      />
+                    </div>
+                  )}
+
                   {/* CTA Button */}
                   {isCurrent ? (
                     <Button className="w-full mt-auto bg-green-500 hover:bg-green-600 text-white cursor-default" disabled>
@@ -376,7 +391,7 @@ export default function SubscriptionSalesPitch({
                           ? "bg-amber-500 hover:bg-amber-600 text-white"
                           : "bg-[hsl(var(--primary))] text-primary-foreground hover:bg-[hsl(var(--primary))]/90"
                       }`}
-                      onClick={() => onSubscribe(plan.id)}
+                      onClick={() => onSubscribe(plan.id, promoCodes[plan.id]?.trim() || undefined)}
                       disabled={loading}
                     >
                       {loading ? (
@@ -554,7 +569,7 @@ function ROICalculator({
 }: {
   bookTitle: string; products?: PlanAnalysisData["products"];
   recommendedTier: "starter" | "pro" | "enterprise";
-  onSubscribe: (tier: "starter" | "pro" | "enterprise") => void; loading: boolean;
+  onSubscribe: (tier: "starter" | "pro" | "enterprise", promoCode?: string) => void; loading: boolean;
   countdown: { minutes: number; seconds: number; expired: boolean; urgent: boolean };
 }) {
   const breakEvens = useMemo(() => plans.map(plan => ({

@@ -144,21 +144,14 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
-  const handleSubscribe = async (planTier: "starter" | "pro" | "enterprise") => {
+  const handleSubscribe = async (planTier: "starter" | "pro" | "enterprise", promoCode?: string) => {
     setCheckoutLoading(true);
     try {
-      // Check if promo timer is still active
-      const promoCodes: Record<string, string> = {
-        starter: "BP100",
-        pro: "BA100",
-        enterprise: "YR100",
-      };
-
       const { data, error } = await cloudSupabase.functions.invoke("create-checkout", {
         body: {
           priceId: TIERS[planTier].price_id,
           source_platform: "authorsbureau",
-          promoCode: promoCodes[planTier],
+          ...(promoCode ? { promoCode } : {}),
         },
       });
       if (error) throw error;

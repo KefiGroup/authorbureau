@@ -2,20 +2,16 @@ import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Check, Crown, Loader2, ExternalLink, ArrowUpRight, Shield, Clock, Zap, Sparkles, Gift, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface Props {
   currentTier: string;
-  onSubscribe: (tier: "starter" | "pro" | "enterprise") => void;
+  onSubscribe: (tier: "starter" | "pro" | "enterprise", promoCode?: string) => void;
   onManage: () => void;
   loading: boolean;
   abbyRecommendedTier?: string;
 }
 
-const PROMO_CODES: Record<string, string> = {
-  starter: "BP100",
-  pro: "BA100",
-  enterprise: "YR100",
-};
 
 const TIMER_KEY = "ab_promo_start";
 const PROMO_DURATION_MS = 60 * 60 * 1000; // 60 minutes
@@ -109,6 +105,7 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
   const isSubscribed = currentTier !== "free";
   const [timeLeft, setTimeLeft] = useState(getTimeRemaining);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [promoCodes, setPromoCodes] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -226,7 +223,6 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
         {plans.map((plan, index) => {
           const isRecommended = abbyRecommendedTier === plan.id;
           const Icon = plan.icon;
-          const promoCode = PROMO_CODES[plan.id];
           const showPromo = !promoExpired;
 
           return (
@@ -291,23 +287,16 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
                   )}
                 </div>
 
-                {/* Promo Code */}
-                {showPromo && promoCode && (
-                  <div
-                    className="rounded-lg border border-dashed border-amber-400/50 bg-amber-500/5 px-3 py-2 cursor-pointer group"
-                    onClick={() => handleCopyCode(promoCode)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Your promo code</p>
-                        <p className="font-mono text-sm font-bold text-amber-600 dark:text-amber-400">{promoCode}</p>
-                      </div>
-                      <span className="text-[10px] text-muted-foreground group-hover:text-foreground transition-colors">
-                        {copiedCode === promoCode ? "✓ Copied!" : "Click to copy"}
-                      </span>
-                    </div>
-                  </div>
-                )}
+                {/* Promo Code Input */}
+                <div className="space-y-1">
+                  <label className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Promo code</label>
+                  <Input
+                    placeholder="Enter code"
+                    value={promoCodes[plan.id] || ""}
+                    onChange={(e) => setPromoCodes(prev => ({ ...prev, [plan.id]: e.target.value.toUpperCase() }))}
+                    className="h-8 text-xs font-mono"
+                  />
+                </div>
 
                 {/* Tagline */}
                 <p className="text-xs font-semibold italic text-amber-600 dark:text-amber-400">
@@ -331,7 +320,7 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
                       ? "bg-amber-500 hover:bg-amber-600 text-white shadow-md shadow-amber-500/20"
                       : ""
                   }`}
-                  onClick={() => onSubscribe(plan.id)}
+                  onClick={() => onSubscribe(plan.id, promoCodes[plan.id]?.trim() || undefined)}
                   disabled={loading}
                   size="lg"
                 >

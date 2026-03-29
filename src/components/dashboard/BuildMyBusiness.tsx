@@ -395,14 +395,14 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
   };
 
   // ─── Subscription handlers ───
-  const handleSubscribeTier = async (tierKey: "starter" | "pro" | "enterprise") => {
+  const handleSubscribeTier = async (tierKey: "starter" | "pro" | "enterprise", promoCode?: string) => {
     setCheckoutLoading(true);
     try {
       const token = await getActiveToken();
       const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-        body: JSON.stringify({ priceId: TIERS[tierKey].price_id, source_platform: "authorsbureau" }),
+        body: JSON.stringify({ priceId: TIERS[tierKey].price_id, source_platform: "authorsbureau", ...(promoCode ? { promoCode } : {}) }),
       });
       const result = await resp.json();
       if (!resp.ok) throw new Error(result.error);
