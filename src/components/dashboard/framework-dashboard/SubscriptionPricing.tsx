@@ -231,7 +231,7 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
       {promoExpired && (
         <div className="mx-auto max-w-2xl mb-8 rounded-xl border border-muted bg-muted/30 p-4 text-center">
           <p className="text-sm text-muted-foreground">
-            ⏰ The first-timer promo has expired. Standard pricing now applies.
+            ⏰ Standard pricing applies. Complete a consultation with Abby to unlock special rates.
           </p>
         </div>
       )}
