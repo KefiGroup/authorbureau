@@ -37,7 +37,7 @@ const plans = [
   {
     id: "starter" as const,
     name: "Brand Package",
-    promoPrice: "$49",
+    specialPrice: "$49",
     usualPrice: "$69",
     savings: "$20",
     period: "/mo",
@@ -57,7 +57,7 @@ const plans = [
   {
     id: "pro" as const,
     name: "Build Package",
-    promoPrice: "$99",
+    specialPrice: "$99",
     usualPrice: "$199",
     savings: "$100",
     period: "/mo",
@@ -80,7 +80,7 @@ const plans = [
   {
     id: "enterprise" as const,
     name: "Yield Package",
-    promoPrice: "$249",
+    specialPrice: "$249",
     usualPrice: "$499",
     savings: "$250",
     period: "/mo",
