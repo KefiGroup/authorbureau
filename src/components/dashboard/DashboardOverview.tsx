@@ -194,7 +194,7 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
     setCheckoutLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { priceId: TIERS.starter.price_id, source_platform: "authorsbureau" },
+        body: { priceId: TIERS.brand.price_id, source_platform: "authorsbureau" },
       });
       if (error) throw error;
       if (data?.url) window.open(data.url, "_blank");

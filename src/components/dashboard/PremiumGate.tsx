@@ -79,9 +79,9 @@ export default function PremiumGate({
   };
 
   const tiers = [
-    { key: "brand" as const, tier: TIERS.starter, icon: Sparkles },
-    { key: "build" as const, tier: TIERS.pro, icon: Zap },
-    { key: "yield" as const, tier: TIERS.enterprise, icon: Crown },
+    { key: "brand" as const, tier: TIERS.brand, icon: Sparkles },
+    { key: "build" as const, tier: TIERS.build, icon: Zap },
+    { key: "yield" as const, tier: TIERS.yield, icon: Crown },
   ];
 
   return (

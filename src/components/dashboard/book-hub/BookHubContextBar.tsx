@@ -21,9 +21,9 @@ interface Props {
 
 const tierBadgeConfig: Record<SubscriptionTier, { label: string; bg: string; text: string; icon?: boolean }> = {
   free: { label: "Free", bg: "bg-[hsl(220,13%,95%)]", text: "text-[hsl(220,9%,46%)]" },
-  starter: { label: "Starter", bg: "bg-[hsl(152,76%,96%)]", text: "text-[hsl(160,84%,39%)]" },
+  starter: { label: "Brand", bg: "bg-[hsl(152,76%,96%)]", text: "text-[hsl(160,84%,39%)]" },
   pro: { label: "Pro", bg: "bg-[hsl(214,95%,93%)]", text: "text-[hsl(217,91%,60%)]" },
-  enterprise: { label: "Enterprise", bg: "bg-[hsl(48,96%,89%)]", text: "text-secondary", icon: true },
+  enterprise: { label: "Yield", bg: "bg-[hsl(48,96%,89%)]", text: "text-secondary", icon: true },
 };
 
 export default function BookHubContextBar({ book, tier, onBack }: Props) {
