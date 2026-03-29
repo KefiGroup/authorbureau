@@ -223,7 +223,6 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
         {plans.map((plan, index) => {
           const isRecommended = abbyRecommendedTier === plan.id;
           const Icon = plan.icon;
-          const promoCode = PROMO_CODES[plan.id];
           const showPromo = !promoExpired;
 
           return (
