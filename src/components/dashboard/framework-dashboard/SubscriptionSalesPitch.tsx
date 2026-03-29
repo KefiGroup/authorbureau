@@ -24,7 +24,7 @@ interface PlanAnalysisData {
 
 interface Props {
   currentTier: SubscriptionTier;
-  onSubscribe: (tier: "starter" | "pro" | "enterprise") => void;
+  onSubscribe: (tier: "starter" | "pro" | "enterprise", promoCode?: string) => void;
   onManage: () => void;
   loading: boolean;
   analysisData: PlanAnalysisData;
