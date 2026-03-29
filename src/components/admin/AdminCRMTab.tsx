@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Loader2, Search, Users, RefreshCw } from "lucide-react";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
+import { adminDataFetch } from "@/lib/admin-data-fetch";
 
 interface CRMContact {
   id: string;
