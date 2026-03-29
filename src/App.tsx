@@ -95,6 +95,7 @@ const AppRoutes = () => (
       <Route path="/create-microsite" element={<CreateMicrosite />} />
       <Route path="/join" element={<Join />} />
       <Route path="/auth" element={<Auth />} />
+      <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
       <Route path="/admin-login" element={<AdminAuth />} />
       <Route path="/admin" element={<AdminDashboard />} />
       <Route path="/dashboard" element={<AuthorDashboard />} />
