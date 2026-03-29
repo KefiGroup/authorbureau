@@ -331,7 +331,7 @@ export default function SubscriptionSalesPitch({
                           <span className="text-sm text-muted-foreground line-through">{plan.usualPrice}/mo</span>
                         </div>
                         <div className="flex items-baseline gap-1">
-                          <span className="text-4xl font-bold">{plan.price}</span>
+                          <span className="text-4xl font-bold">{plan.specialPrice}</span>
                           <span className="text-muted-foreground text-sm">{plan.period}</span>
                         </div>
                         <p className="text-[11px] text-green-600 dark:text-green-400 font-semibold mt-1">
