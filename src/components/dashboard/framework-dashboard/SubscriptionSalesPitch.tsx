@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import type { SubscriptionTier } from "@/hooks/useAuth";
 
 /* ─── Types ─── */
