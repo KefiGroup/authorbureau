@@ -212,7 +212,7 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
             <div className="flex items-center gap-2">
               <Gift className="h-5 w-5 text-amber-500 shrink-0" />
               <span className="text-sm font-bold text-foreground">
-                🎉 First-Timer Promo — Exclusive pricing just for you!
+                🎉 Special Consultation Rate — Exclusive pricing just for you!
               </span>
             </div>
             <div className="flex items-center gap-2 rounded-lg bg-foreground/5 px-3 py-1.5">
