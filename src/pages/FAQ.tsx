@@ -218,16 +218,16 @@ export default function FAQ() {
           <h2 className="text-3xl font-bold text-white">Still Have Questions?</h2>
           <p className="mt-2 text-white/80 text-base">Our AI assistant Abby is here to help 24/7</p>
 
-          <div className="flex flex-wrap justify-center gap-4 mt-8">
-            <button onClick={() => openChatbot()} className="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-base font-medium transition-transform hover:scale-105" style={{ color: "#D4A843" }}>
+           <div className="flex flex-wrap justify-center gap-4 mt-8">
+            <button onClick={() => openChatbot("help")} className="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-base font-medium transition-transform hover:scale-105" style={{ color: "#D4A843" }}>
               <Sparkles size={18} /> Ask Abby
             </button>
-            <a href="mailto:support@authorsbureau.com?subject=Bug%20Report" className="inline-flex items-center gap-2 rounded-lg border border-white/40 px-6 py-3 text-base font-medium text-white transition-transform hover:scale-105" style={{ background: "rgba(255,255,255,0.2)" }}>
+            <button onClick={() => openChatbot("bug")} className="inline-flex items-center gap-2 rounded-lg border border-white/40 px-6 py-3 text-base font-medium text-white transition-transform hover:scale-105" style={{ background: "rgba(255,255,255,0.2)" }}>
               <Bug size={18} /> Report a Bug
-            </a>
-            <a href="mailto:support@authorsbureau.com?subject=Feedback" className="inline-flex items-center gap-2 rounded-lg border border-white/40 px-6 py-3 text-base font-medium text-white transition-transform hover:scale-105" style={{ background: "rgba(255,255,255,0.2)" }}>
+            </button>
+            <button onClick={() => openChatbot("feedback")} className="inline-flex items-center gap-2 rounded-lg border border-white/40 px-6 py-3 text-base font-medium text-white transition-transform hover:scale-105" style={{ background: "rgba(255,255,255,0.2)" }}>
               <MessageSquare size={18} /> Give Feedback
-            </a>
+            </button>
           </div>
 
           <p className="mt-6 text-white/60 text-sm">
