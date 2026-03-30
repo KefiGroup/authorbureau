@@ -92,6 +92,9 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
 
       if (booksData.books) {
         setBookCovers(booksData.books.filter((b: any) => b.cover_image_url).map((b: any) => b.cover_image_url).slice(0, 3));
+        // Check if any book is approved (has published_at)
+        const anyApproved = booksData.books.some((b: any) => !!b.published_at);
+        setBookApproved(anyApproved);
 
         if (booksData.books.length > 0) {
           const firstBook = booksData.books[0];
