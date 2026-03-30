@@ -145,10 +145,7 @@ export default function AbbyHelpChatbot() {
 
       const resp = await fetch(url, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
         body: JSON.stringify({ messages: userMessages }),
       });
 
