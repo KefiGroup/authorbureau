@@ -93,7 +93,11 @@ export default function FAQ() {
 
   const openChatbot = () => {
     const btn = document.querySelector("[data-abby-trigger]") as HTMLButtonElement;
-    if (btn) btn.click();
+    if (btn) {
+      btn.click();
+    } else {
+      window.location.href = "/auth?redirect=" + encodeURIComponent("/dashboard");
+    }
   };
 
   const lq = searchQuery.toLowerCase();
