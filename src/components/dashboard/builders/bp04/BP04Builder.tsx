@@ -157,7 +157,7 @@ export default function BP04Builder({ authorId }: Props) {
           </Button>
           <div className="flex-1">
             <h1 className="text-lg font-semibold">Author Website</h1>
-            <p className="text-xs text-muted-foreground">BP-04</p>
+            
           </div>
         </div>
       </div>
