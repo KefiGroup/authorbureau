@@ -164,13 +164,20 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
     if (skipLoadRef.current) { skipLoadRef.current = false; setSessionLoaded(true); return; }
     setSessionLoaded(false);
     (async () => {
-      const existing = await loadExistingSession(selectedBook.id);
-      if (existing && existing.length > 0) {
-        setMessages(existing);
-        setAbbyReading(false);
-        toast({ title: "Session restored", description: "Your previous conversation with Abby has been loaded." });
+      try {
+        console.log("[BuildMyBusiness] Loading session for book:", selectedBook.id);
+        const existing = await loadExistingSession(selectedBook.id);
+        console.log("[BuildMyBusiness] Session load result:", existing?.length ?? "null");
+        if (existing && existing.length > 0) {
+          setMessages(existing);
+          setAbbyReading(false);
+          toast({ title: "Session restored", description: "Your previous conversation with Abby has been loaded." });
+        }
+      } catch (err) {
+        console.error("[BuildMyBusiness] Session load error:", err);
+      } finally {
+        setSessionLoaded(true);
       }
-      setSessionLoaded(true);
     })();
   }, [selectedBook, loadExistingSession, toast]);
 
@@ -262,7 +269,9 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
 
   // Auto-start consultation
   useEffect(() => {
+    console.log("[BuildMyBusiness] Auto-start check:", { shouldAutoStart, sessionLoaded, hasBook: !!selectedBook, isStreaming, abbyReading, msgLen: messages.length });
     if (shouldAutoStart && sessionLoaded && selectedBook && !isStreaming && !abbyReading && messages.length === 0) {
+      console.log("[BuildMyBusiness] AUTO-START firing for book:", selectedBook.id);
       setShouldAutoStart(false);
       sendMessage("Start a brand new consultation. Begin with TURN 1 — GREETING & OPPORTUNITY REVEAL exactly as specified in your consultation sequence. Do not skip any turns or assume previous context.");
     }
