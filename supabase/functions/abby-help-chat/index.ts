@@ -165,26 +165,18 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Create client with user's auth for getClaims
+    // Service role client for DB ops
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+    // Try to authenticate (optional for chat, required for actions)
     const authHeader = req.headers.get("Authorization") || "";
     const supabaseUser = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-
-    // Authenticate
     const authResult = await requireAuth(req, supabaseUser);
-    if ("error" in authResult) {
-      return new Response(JSON.stringify({ error: authResult.error }), {
-        status: authResult.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const userId = authResult.user.id as string;
-    const userEmail = (authResult.user.email as string) || "unknown";
-
-    // Service role client for DB ops
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const isAuthenticated = !("error" in authResult);
+    const userId = isAuthenticated ? (authResult.user.id as string) : null;
+    const userEmail = isAuthenticated ? ((authResult.user.email as string) || "unknown") : "anonymous";
 
     // Parse body
     const body = await req.json();
@@ -195,8 +187,13 @@ serve(async (req) => {
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
     const rateLimitKey = `${userEmail}:${ip}`;
 
-    // ── Handle bug report submission ──────────────────────────────
+    // ── Handle bug report submission (auth required) ────────────
     if (action === "submit_bug_report") {
+      if (!isAuthenticated) {
+        return new Response(JSON.stringify({ error: "Please sign in to submit a bug report." }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const allowed = await checkRateLimit(supabase, `escalation:${rateLimitKey}`, 3, 60);
       if (!allowed) {
         console.warn(`Rate limit hit (escalation): ${rateLimitKey}`);
@@ -219,8 +216,13 @@ serve(async (req) => {
       });
     }
 
-    // ── Handle feedback submission ────────────────────────────────
+    // ── Handle feedback submission (auth required) ─────────────
     if (action === "submit_feedback") {
+      if (!isAuthenticated) {
+        return new Response(JSON.stringify({ error: "Please sign in to submit feedback." }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const allowed = await checkRateLimit(supabase, `escalation:${rateLimitKey}`, 3, 60);
       if (!allowed) {
         console.warn(`Rate limit hit (escalation): ${rateLimitKey}`);
@@ -242,8 +244,13 @@ serve(async (req) => {
       });
     }
 
-    // ── Handle save chat session ──────────────────────────────────
+    // ── Handle save chat session (auth required) ───────────────
     if (action === "save_session") {
+      if (!isAuthenticated) {
+        return new Response(JSON.stringify({ error: "Please sign in to save sessions." }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const sessionAllowed = await checkRateLimit(supabase, `session:${rateLimitKey}`, 3, 60);
       if (!sessionAllowed) {
         console.warn(`Rate limit hit (save_session): ${rateLimitKey}`);

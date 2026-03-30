@@ -135,19 +135,17 @@ export default function AbbyHelpChatbot() {
 
     try {
       const token = await getAuthToken();
-      if (!token) {
-        setSessionExpired(true);
-        addMessage("assistant", "Your session has expired. Please sign in again to continue chatting.");
-        setIsStreaming(false);
-        return;
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      } else {
+        // Use anon key for unauthenticated requests
+        headers["apikey"] = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
       }
 
       const resp = await fetch(url, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
         body: JSON.stringify({ messages: userMessages }),
       });
 
@@ -221,13 +219,6 @@ export default function AbbyHelpChatbot() {
     const text = input.trim().slice(0, MAX_INPUT_LENGTH);
     if (!text || isStreaming || sessionExpired) return;
 
-    // If not logged in, redirect to sign in
-    if (!user) {
-      addMessage("assistant", "To chat with me, you'll need to sign in first. Redirecting you now...");
-      setTimeout(() => { window.location.href = "/auth?redirect=" + encodeURIComponent(window.location.pathname); }, 1500);
-      return;
-    }
-
     // Session message cap
     if (messages.length >= MAX_SESSION_MESSAGES) {
       addMessage("assistant", "We've reached the conversation limit. Please start a new conversation to continue.");
@@ -259,7 +250,7 @@ export default function AbbyHelpChatbot() {
       .map(m => ({ role: m.role, content: m.content }));
 
     streamResponse(chatHistory);
-  }, [input, isStreaming, sessionExpired, messages, mode, location.pathname, addMessage, streamResponse, user]);
+  }, [input, isStreaming, sessionExpired, messages, mode, location.pathname, addMessage, streamResponse]);
 
   // Submit actions for structured flows
   const submitAction = async (action: string, data: any): Promise<boolean> => {
