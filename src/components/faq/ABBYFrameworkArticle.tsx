@@ -59,7 +59,6 @@ const tocItems = [
 ];
 
 export default function ABBYFrameworkArticle() {
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
