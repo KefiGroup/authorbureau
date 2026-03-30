@@ -1,6 +1,5 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronDown, ChevronUp, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CopyrightCaption } from "@/components/ui/copyright-caption";
 import frameworkImg from "@/assets/abby_journey_framework_v13_bby.webp";
@@ -50,14 +49,6 @@ const yieldStreams: Stream[] = [
   { code: "YR-28", name: "Exhibitors / JV", desc: "Create strategic event and partnership revenue beyond direct product sales." },
 ];
 
-const faqItems = [
-  { q: "Do I need to build all 28 at once?", a: "No. Abby sequences the journey for you. Most authors start with the Brand foundation, then expand into Build Authority, and only layer on Yield Revenue when the timing and audience fit are right." },
-  { q: "Does Abby really build the first draft for me?", a: "Yes. Abby uses your book and business context to draft the structure, positioning, and content for each revenue stream. You review, edit, and approve before anything is published." },
-  { q: "What gets built first?", a: "The usual starting point is your Brand foundation: Email Marketing, Lead Magnets, Social Media, Website / Microsite, and Webinars. That base makes later products and premium services much easier to launch." },
-  { q: "Can I change the order later?", a: "Yes. Abby recommends the sequence, but you can revisit earlier streams, improve published offers, and expand into new categories as your business evolves." },
-  { q: "Are the revenue projections guaranteed?", a: "No. They are directional estimates based on the platform's current revenue architecture. Actual results vary by niche, positioning, audience size, consistency, and execution." },
-];
-
 const tocItems = [
   "What is the ABBY Framework?",
   "The 4 Stages: Analyse → Brand → Build → Yield",
@@ -65,11 +56,9 @@ const tocItems = [
   "How the Revenue Streams Connect",
   "How Abby Builds Your Plan",
   "Revenue Potential",
-  "FAQ",
 ];
 
 export default function ABBYFrameworkArticle() {
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -206,36 +195,6 @@ export default function ABBYFrameworkArticle() {
           These are directional estimates based on the current platform revenue architecture. Actual results vary by niche, audience size, positioning, consistency, and execution.
         </p>
       </section>
-
-      <section id="abby-article-7" style={{ scrollMarginTop: 80 }}>
-        <h2 className="text-xl font-bold text-foreground mb-4">7. Frequently Asked Questions</h2>
-        <div className="space-y-2">
-          {faqItems.map((faq, i) => (
-            <div key={i} className="rounded-xl border border-border overflow-hidden">
-              <button
-                onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                className="flex w-full items-center justify-between px-4 py-3 text-sm font-semibold text-foreground hover:bg-muted/50 transition-colors"
-              >
-                <span>{faq.q}</span>
-                {openFaq === i ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
-              </button>
-              {openFaq === i && (
-                <div className="px-4 pb-4 text-sm text-muted-foreground">
-                  {faq.a}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <div className="rounded-2xl p-8 text-center" style={{ background: "linear-gradient(135deg, hsl(228,34%,16%), hsl(228,34%,22%))" }}>
-        <h3 className="text-xl font-bold text-white">Your Book Deserves More Than Royalties</h3>
-        <p className="text-white/60 text-sm mt-2">No credit card required. Upload your book and let Abby show you what's possible.</p>
-        <Button asChild size="lg" className="mt-5 bg-[hsl(45,50%,54%)] hover:bg-[hsl(45,50%,46%)] text-[hsl(228,34%,16%)] font-bold rounded-xl">
-          <Link to="/auth?redirect=%2Fdashboard%3Fsection%3Dbuild-business">Get Started Free <ArrowRight className="ml-2 h-4 w-4" /></Link>
-        </Button>
-      </div>
     </div>
   );
 }
