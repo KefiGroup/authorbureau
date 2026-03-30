@@ -12,8 +12,8 @@ interface PremiumGateProps {
   currentTier?: SubscriptionTier;
 }
 
-const tierFeatures = {
-  starter: [
+const tierFeatures: Record<string, string[]> = {
+  brand: [
     "Abby AI Consultation",
     "Workbook Builder",
     "Social Media Calendar",
@@ -21,19 +21,23 @@ const tierFeatures = {
     "Author Website",
     "Book Sales (Events)",
     "Home Study Courses",
+    "Special Editions",
+    "Lead Magnets",
+    "Webinars",
   ],
-  pro: [
-    "Everything in Brand Package, plus:",
+  build: [
+    "Everything in Brand Plan, plus:",
     "Online Course Builder",
     "Audiobook Studio",
     "Podcast Scripts",
     "Webinar Builder",
-    "1-on-1 Coaching Setup",
     "Group Coaching Programs",
     "CRM + Subscriber Management",
+    "Memberships",
   ],
-  enterprise: [
-    "Everything in Build Package, plus:",
+  yield: [
+    "Everything in Build Plan, plus:",
+    "1-on-1 Coaching Setup",
     "Keynote Speech Builder",
     "Corporate Training Programs",
     "Retreats & Bootcamps",
@@ -45,10 +49,10 @@ const tierFeatures = {
   ],
 };
 
-const tierColors = {
-  starter: { gradient: "from-emerald-500 to-emerald-600", badge: "bg-emerald-500/15 text-emerald-700" },
-  pro: { gradient: "from-violet-500 to-violet-600", badge: "bg-violet-500/15 text-violet-700" },
-  enterprise: { gradient: "from-amber-500 to-amber-600", badge: "bg-amber-500/15 text-amber-700" },
+const tierColors: Record<string, { gradient: string; badge: string }> = {
+  brand: { gradient: "from-emerald-500 to-emerald-600", badge: "bg-emerald-500/15 text-emerald-700" },
+  build: { gradient: "from-violet-500 to-violet-600", badge: "bg-violet-500/15 text-violet-700" },
+  yield: { gradient: "from-amber-500 to-amber-600", badge: "bg-amber-500/15 text-amber-700" },
 };
 
 export default function PremiumGate({
