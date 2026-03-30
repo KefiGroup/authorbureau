@@ -160,8 +160,9 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
 
   // Load existing session when book selected
   useEffect(() => {
-    if (!selectedBook) return;
-    if (skipLoadRef.current) { skipLoadRef.current = false; return; }
+    if (!selectedBook) { setSessionLoaded(false); return; }
+    if (skipLoadRef.current) { skipLoadRef.current = false; setSessionLoaded(true); return; }
+    setSessionLoaded(false);
     (async () => {
       const existing = await loadExistingSession(selectedBook.id);
       if (existing && existing.length > 0) {
@@ -169,6 +170,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
         setAbbyReading(false);
         toast({ title: "Session restored", description: "Your previous conversation with Abby has been loaded." });
       }
+      setSessionLoaded(true);
     })();
   }, [selectedBook, loadExistingSession, toast]);
 
