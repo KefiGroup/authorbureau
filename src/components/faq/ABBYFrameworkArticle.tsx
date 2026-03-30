@@ -112,7 +112,8 @@ export default function ABBYFrameworkArticle() {
       {/* Section 2 */}
       <section id="abby-article-2" style={{ scrollMarginTop: 80 }}>
         <h2 className="text-xl font-bold text-foreground mb-3">2. The 4 Stages: FREE → BUILD → BRIDGE → YIELD</h2>
-        <img src={STAIRCASE} alt="The 4 stages of the ABBY Framework" className="w-full rounded-xl border border-border mb-6" loading="lazy" />
+        <img src={STAIRCASE} alt="The 4 stages of the ABBY Framework" className="w-full rounded-xl border border-border mb-1" loading="lazy" />
+        <CopyrightCaption className="mb-6" />
         <div className="space-y-4 text-sm">
           <div className="rounded-lg border border-border p-4">
             <h4 className="font-bold text-foreground">FREE</h4>
