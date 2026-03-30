@@ -50,6 +50,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
   const [abbyReading, setAbbyReading] = useState(false);
   const [readingProgress, setReadingProgress] = useState(0);
   const [shouldAutoStart, setShouldAutoStart] = useState(false);
+  const [sessionLoaded, setSessionLoaded] = useState(false);
 
   // Session state
   const [sessionId, setSessionId] = useState<string | null>(null);
