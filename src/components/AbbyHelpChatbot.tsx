@@ -135,11 +135,12 @@ export default function AbbyHelpChatbot() {
 
     try {
       const token = await getAuthToken();
-      if (!token) {
-        setSessionExpired(true);
-        addMessage("assistant", "Your session has expired. Please sign in again to continue chatting.");
-        setIsStreaming(false);
-        return;
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      } else {
+        // Use anon key for unauthenticated requests
+        headers["apikey"] = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
       }
 
       const resp = await fetch(url, {
