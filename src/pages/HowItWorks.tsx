@@ -167,10 +167,10 @@ export default function HowItWorks() {
         </div>
       </section>
 
-      {/* The Ecosystem */}
+      {/* Everything Connects + Frameworks */}
       <section className="py-20 md:py-28 bg-[hsl(38,60%,96%)]">
         <div className="container max-w-5xl mx-auto">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-12">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-6">
             <motion.h2 variants={fadeUp} custom={0} className="font-heading text-3xl md:text-4xl font-bold text-foreground">
               Everything Connects. Everything Flows.
             </motion.h2>
@@ -178,54 +178,49 @@ export default function HowItWorks() {
               When you build a course, Abby automatically creates the email sequence to sell it, the social media posts to promote it, and the sales page to convert visitors. Every product feeds into the next.
             </motion.p>
           </motion.div>
-        </div>
-      </section>
 
-      {/* The Frameworks Behind Abby */}
-      <section className="py-20 md:py-28 bg-[hsl(38,60%,96%)]">
-        <div className="container max-w-5xl mx-auto">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-12">
-            <motion.h2 variants={fadeUp} custom={0} className="font-heading text-3xl md:text-4xl font-bold text-foreground">
+          <motion.div
+            initial="hidden" whileInView="visible" viewport={{ once: true }}
+            className="mt-14 rounded-2xl border border-border bg-card p-8 md:p-10 shadow-lg"
+          >
+            <motion.h3 variants={fadeUp} custom={0} className="font-heading text-2xl md:text-3xl font-bold text-foreground text-center">
               The Frameworks Behind Abby
-            </motion.h2>
-            <motion.p variants={fadeUp} custom={1} className="text-muted-foreground mt-3 max-w-2xl mx-auto">
-              Every recommendation is built on proven methodology.
-            </motion.p>
-            <motion.p variants={fadeUp} custom={2} className="text-sm text-muted-foreground mt-2 max-w-xl mx-auto">
+            </motion.h3>
+            <motion.p variants={fadeUp} custom={1} className="text-muted-foreground mt-3 max-w-2xl mx-auto text-center text-sm">
               Abby's recommendations are not AI guesswork. They are grounded in frameworks from McKinsey, Harvard, the International Coaching Federation, and the world's leading pricing and marketing strategists.
             </motion.p>
+
+            <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5 mt-8">
+              {[
+                { icon: "💼", title: "Business Strategy", frameworks: ["McKinsey SCQ", "Lean Startup", "Business Maturity Model"] },
+                { icon: "🎓", title: "Learning Design", frameworks: ["Bloom's Taxonomy", "Kolb's Cycle", "ADDIE Model"] },
+                { icon: "📊", title: "Pricing", frameworks: ["Value Ladder", "Market Benchmarks", "Price Psychology"] },
+                { icon: "📣", title: "Marketing", frameworks: ["Know-Like-Trust-Buy", "Content Pillars", "Webinar Model"] },
+                { icon: "🎤", title: "Coaching & Speaking", frameworks: ["GROW Model (ICF)", "Signature Talk", "Mastermind Principle"] },
+              ].map((card, i) => (
+                <motion.div
+                  key={card.title}
+                  initial="hidden" whileInView="visible" viewport={{ once: true }}
+                  variants={fadeUp} custom={i}
+                  className="rounded-xl border border-border bg-background p-5 shadow-sm hover:shadow-md transition-shadow text-center"
+                >
+                  <span className="text-2xl">{card.icon}</span>
+                  <h4 className="font-heading font-semibold text-sm text-foreground mt-2 mb-2">{card.title}</h4>
+                  <ul className="space-y-1">
+                    {card.frameworks.map(fw => (
+                      <li key={fw} className="text-xs text-muted-foreground">{fw}</li>
+                    ))}
+                  </ul>
+                </motion.div>
+              ))}
+            </div>
+
+            <div className="text-center mt-6">
+              <Link to="/methodology" className="text-sm font-medium text-[hsl(45,50%,40%)] hover:underline">
+                Read the full methodology →
+              </Link>
+            </div>
           </motion.div>
-
-          <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
-            {[
-              { icon: "💼", title: "Business Strategy", frameworks: ["McKinsey SCQ", "Lean Startup", "Business Maturity Model"] },
-              { icon: "🎓", title: "Learning Design", frameworks: ["Bloom's Taxonomy", "Kolb's Cycle", "ADDIE Model"] },
-              { icon: "📊", title: "Pricing", frameworks: ["Value Ladder", "Market Benchmarks", "Price Psychology"] },
-              { icon: "📣", title: "Marketing", frameworks: ["Know-Like-Trust-Buy", "Content Pillars", "Webinar Model"] },
-              { icon: "🎤", title: "Coaching & Speaking", frameworks: ["GROW Model (ICF)", "Signature Talk", "Mastermind Principle"] },
-            ].map((card, i) => (
-              <motion.div
-                key={card.title}
-                initial="hidden" whileInView="visible" viewport={{ once: true }}
-                variants={fadeUp} custom={i}
-                className="rounded-xl border border-border bg-card p-5 shadow-sm hover:shadow-md transition-shadow text-center"
-              >
-                <span className="text-2xl">{card.icon}</span>
-                <h3 className="font-heading font-semibold text-sm text-foreground mt-2 mb-2">{card.title}</h3>
-                <ul className="space-y-1">
-                  {card.frameworks.map(fw => (
-                    <li key={fw} className="text-xs text-muted-foreground">{fw}</li>
-                  ))}
-                </ul>
-              </motion.div>
-            ))}
-          </div>
-
-          <div className="text-center mt-8">
-            <Link to="/methodology" className="text-sm font-medium text-amber-700 dark:text-amber-300 hover:underline">
-              Read the full methodology →
-            </Link>
-          </div>
         </div>
       </section>
 
