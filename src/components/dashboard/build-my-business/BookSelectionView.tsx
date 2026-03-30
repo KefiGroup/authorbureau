@@ -56,7 +56,7 @@ export default function BookSelectionView({
       <div className="max-w-5xl space-y-8">
         {!hasAnalyzed ? (
           <>
-            {/* Abby Greeting */}
+            {/* Simplified ABBY Introduction */}
             <div className="text-center max-w-xl mx-auto pt-4">
               <div className="relative w-20 h-20 mx-auto mb-4">
                 <motion.div
@@ -75,38 +75,14 @@ export default function BookSelectionView({
                 </motion.div>
               </div>
               <h2 className="font-heading text-2xl font-bold mb-1">
-                Hi{authorName ? ` ${authorName}` : ""}!
+                Hi{authorName ? ` ${authorName}` : ""}! 👋
               </h2>
-              <p className="text-sm text-secondary font-semibold mb-2">Your AI Business Consultant</p>
-              <p className="text-muted-foreground text-sm leading-relaxed max-w-md mx-auto">
-                Empowering thousands of authors to turn their books into thriving businesses. Let me show you what's possible with yours.
+              <p className="text-sm text-secondary font-semibold mb-3">I'm ABBY — your AI Business Consultant.</p>
+              <p className="text-muted-foreground text-sm leading-relaxed max-w-md mx-auto mb-2">
+                I've read your book. Now let me show you exactly how to turn it into a business that earns <strong className="text-foreground">$50K–$200K/year</strong>.
               </p>
-            </div>
-
-            {/* What You'll Get */}
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/60 text-center mb-3">
-                What You'll Get (FREE)
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-3xl mx-auto">
-                {[
-                  { emoji: "📄", title: "Personalized Business Plan", desc: "Up to 28 revenue streams mapped from your book content" },
-                  { emoji: "📊", title: "Market-Aware Business Plan", desc: "Product recommendations, pricing, and positioning based on Abby's real-time market research and live genre analysis.", highlight: true },
-                  { emoji: "📈", title: "Revenue Projections", desc: "Monthly and yearly estimates based on your genre and audience" },
-                ].map((card) => (
-                  <Card key={card.title} className={`p-4 text-center ${card.highlight ? "ring-1 ring-secondary/30 bg-secondary/5" : ""}`}>
-                    <span className="text-2xl mb-2 block">{card.emoji}</span>
-                    {card.highlight && <span className="text-[9px] font-bold uppercase tracking-wider text-secondary mb-1 block">Most Valuable</span>}
-                    <h4 className="font-heading font-semibold text-sm mb-1">{card.title}</h4>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{card.desc}</p>
-                  </Card>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground text-center mt-3">
-                ⏱️ Takes about 5 minutes · 💬 Interactive chat · 📄 Saved forever
-              </p>
-              <p className="text-xs text-secondary font-medium text-center mt-2 flex items-center justify-center gap-1.5">
-                📊 Backed by Abby's real-time market research
+              <p className="text-xs text-muted-foreground">
+                This takes about 5 minutes. Your plan is saved forever and it's completely free.
               </p>
             </div>
 
