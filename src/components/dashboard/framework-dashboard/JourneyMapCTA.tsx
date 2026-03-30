@@ -66,7 +66,7 @@ export default function JourneyMapCTA({ currentJourneyStep, bookApproved, onActi
             "Your book is not the business. Your book is the <span className="text-amber-600">HOOK</span>."
           </p>
           <div className="flex flex-col items-center gap-2">
-            <Button onClick={() => onAction(cta.primary.action)} size="lg" className="bg-amber-600 hover:bg-amber-700 text-white shadow-lg">
+            <Button onClick={() => !isAnalyzeGated && onAction(cta.primary.action)} size="lg" className={isAnalyzeGated ? "bg-muted text-muted-foreground cursor-not-allowed" : "bg-amber-600 hover:bg-amber-700 text-white shadow-lg"} disabled={isAnalyzeGated}>
               <Sparkles className="h-4 w-4 mr-2" />
               {cta.primary.label}
             </Button>
