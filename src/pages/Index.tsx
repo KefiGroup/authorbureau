@@ -523,19 +523,19 @@ export default function Index() {
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0} variants={fadeUp} className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               {
-                quote: "I went from earning $200/month in royalties to $4,500/month in course sales — all because Abby built my course from my manuscript in 2 hours.",
-                name: "Sarah Chen",
-                title: 'Author of "The Mindful Leader"',
+                quote: "Authors Bureau gave me a complete framework to monetise my healthcare expertise. Abby mapped out my entire business model, from courses to coaching, in one consultation. Incredibly strategic.",
+                name: "Bob Battista",
+                title: "Healthcare AI & Life Sciences Strategist",
               },
               {
-                quote: "Within 3 weeks of joining, I had a full coaching programme, a lead magnet, and a webinar funnel. Abby did all the heavy lifting — I just reviewed and published.",
-                name: "David Okonkwo",
-                title: 'Author of "Resilient Teams"',
+                quote: "As a HealthTech strategist, I know what scalable systems look like. Authors Bureau is exactly that. Abby built my content strategy, lead magnets, and revenue streams faster than any team I've worked with.",
+                name: "Fasa Husain",
+                title: "HealthTech Business & Revenue Growth Strategist",
               },
               {
-                quote: "I've been sitting on my manuscript for years not knowing how to monetise it. Authors Bureau showed me 28 ways and built half of them for me automatically.",
-                name: "Maria Gonzalez",
-                title: 'Author of "The Empathy Advantage"',
+                quote: "I had three books but no business behind them. Abby turned my motherhood trilogy into a complete author platform with coaching packages, email sequences, and a speaking kit, all in one sitting.",
+                name: "Felicia Tan",
+                title: 'Author of "To Baby With Love"',
               },
             ].map((t, i) => (
               <div key={i} className="rounded-xl border border-primary-foreground/10 bg-primary-foreground/5 p-6">
@@ -553,66 +553,11 @@ export default function Index() {
             ))}
           </motion.div>
 
-          <p className="text-center text-xs text-primary-foreground/30 mt-6">* Placeholder testimonials — real stories coming soon</p>
+          {/* testimonials disclaimer removed */}
         </div>
       </section>
 
-      {/* ===== SECTION 11b: PRICING PREVIEW ===== */}
-      <section id="pricing" className="py-24 bg-muted/50 border-y border-border">
-        <div className="container">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} className="text-center mb-12">
-            <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
-              Simple Pricing
-            </motion.p>
-            <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-5xl mb-4">
-              Choose Your <span className="text-gradient-gold">Growth Path</span>
-            </motion.h2>
-            <motion.p variants={fadeUp} custom={2} className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Start free with your ABBY consultation, then pick the plan that matches your ambition.
-            </motion.p>
-          </motion.div>
-
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0} variants={fadeUp} className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {pricingPaths.map((plan, i) => (
-              <div
-                key={plan.planKey}
-                className={`relative rounded-2xl border p-6 bg-card flex flex-col ${
-                  plan.accent ? "border-secondary shadow-lg ring-1 ring-secondary/20" : "border-border"
-                }`}
-              >
-                {plan.badge && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[11px] font-bold uppercase tracking-widest bg-secondary text-secondary-foreground px-4 py-1 rounded-full">
-                    {plan.badge}
-                  </span>
-                )}
-                <h3 className="font-heading text-lg font-bold mb-1">{plan.name}</h3>
-                <p className="text-xs text-muted-foreground mb-4">{plan.tagline}</p>
-                <div className="mb-4">
-                  <span className="text-3xl font-bold">{plan.price}</span>
-                  <span className="text-muted-foreground text-sm">/mo</span>
-                </div>
-                <div className="space-y-2 mb-6 flex-1">
-                  <p className="text-xs text-muted-foreground"><strong>{plan.streams}</strong> revenue streams</p>
-                  <p className="text-xs text-muted-foreground">Year 1 potential: <strong className="text-foreground">{plan.year1}</strong></p>
-                  <p className="text-xs text-secondary font-medium">{plan.roi}</p>
-                </div>
-                <Button
-                  asChild
-                  className={`w-full rounded-full ${plan.accent ? "bg-secondary text-secondary-foreground hover:bg-secondary/90" : ""}`}
-                >
-                  <Link to="/pricing">{plan.cta}</Link>
-                </Button>
-              </div>
-            ))}
-          </motion.div>
-
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={1} variants={fadeUp} className="text-center mt-8">
-            <Button asChild variant="link" className="text-sm">
-              <Link to="/pricing">Compare all features →</Link>
-            </Button>
-          </motion.div>
-        </div>
-      </section>
+      {/* PRICING SECTION HIDDEN */}
 
       {/* ===== SECTION 12: FINAL CTA ===== */}
       <section className="relative py-24 overflow-hidden" style={{ background: "var(--gradient-hero)" }}>
@@ -632,7 +577,7 @@ export default function Index() {
                 <Link to="/auth">Start for Free <ArrowRight className="ml-2 h-4 w-4" /></Link>
               </Button>
               <Button asChild size="lg" className="border-2 border-secondary/60 bg-transparent text-secondary hover:bg-secondary hover:text-secondary-foreground text-base font-semibold rounded-full px-8">
-                <Link to="/pricing">See Pricing Plans →</Link>
+                <Link to="/how-it-works">See How It Works →</Link>
               </Button>
             </motion.div>
           </motion.div>
