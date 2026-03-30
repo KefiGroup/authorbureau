@@ -3388,16 +3388,6 @@ REFINEMENT MODE — EXISTING PLAN DETECTED:
       const isSubTurn4 = conversationTurn >= 4 && conversationTurn <= 9;
       const maxWords = isSubTurn4 ? 400 : 150;
 
-      // Expected NEXT button labels per sub-turn (backend fallback)
-      const nextButtonMap: Record<string, string> = {
-        "3": "Show My Revenue Headline",
-        "4A": "Go ahead to show me the full plan",
-        "4B": "Go ahead to show me the full plan",
-        "4C": "Show Yield Revenue",
-        "4D": "Show My Monetisation Map",
-        "4E": "Show Me How to Unlock It",
-      };
-
       progressionBlock = `
 CONVERSATION PROGRESSION:
 CURRENT TURN: ${turnLabel}. Follow Turn ${turnLabel} instructions ONLY. End at the [STOP] marker. Maximum ${maxWords} words.
