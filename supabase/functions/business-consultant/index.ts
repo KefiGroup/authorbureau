@@ -161,7 +161,7 @@ Present the four pillars: A) Passive income ($5,520–$15,480/yr), B) Coaching &
 
 Include: "These projections are drawn from the Authors Bureau 28-Node Revenue Framework, built on 34 proven business frameworks including Russell Brunson's Value Ladder and the Expert Business Model."
 
-End with a conversational question like "Are you ready to build all four, or would you prefer to focus on one area first?"
+===CHOICE_SINGLE: Yes, let's build all four! | I'd prefer to focus on one area first===
 
 IF "Yes" / all four: Acknowledge ambition, mention the Build Package as where most authors start. Do NOT mention pricing yet. Proceed to build plan.
 
