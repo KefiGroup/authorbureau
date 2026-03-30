@@ -38,8 +38,9 @@ const ctaConfig: Record<string, { primary: { label: string; action: string }; se
   },
 };
 
-export default function JourneyMapCTA({ currentJourneyStep, onAction }: Props) {
+export default function JourneyMapCTA({ currentJourneyStep, bookApproved, onAction }: Props) {
   const cta = ctaConfig[currentJourneyStep];
+  const isAnalyzeGated = !bookApproved && (currentJourneyStep === "microsite" || currentJourneyStep === "analyze");
 
   return (
     <motion.section
