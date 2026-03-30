@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useMemo } from "react";
-import { Search, Sparkles, Bug, MessageSquare, Rocket, Globe, CreditCard, Hammer, BookOpen, HelpCircle, ChevronRight, ChevronDown, ThumbsUp, ThumbsDown, ArrowRight } from "lucide-react";
+import { Search, Sparkles, Bug, MessageSquare, Rocket, Globe, Hammer, BookOpen, HelpCircle, ChevronRight, ChevronDown, ThumbsUp, ThumbsDown, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
