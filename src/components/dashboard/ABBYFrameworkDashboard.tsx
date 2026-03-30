@@ -257,6 +257,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
           buildState={buildStep}
           sellState={sellStep}
           currentJourneyStep={currentJourneyStep}
+          bookApproved={bookApproved}
           onAction={handleJourneyAction}
         />
 
