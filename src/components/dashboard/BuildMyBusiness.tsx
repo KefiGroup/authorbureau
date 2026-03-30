@@ -269,7 +269,9 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
 
   // Auto-start consultation
   useEffect(() => {
+    console.log("[BuildMyBusiness] Auto-start check:", { shouldAutoStart, sessionLoaded, hasBook: !!selectedBook, isStreaming, abbyReading, msgLen: messages.length });
     if (shouldAutoStart && sessionLoaded && selectedBook && !isStreaming && !abbyReading && messages.length === 0) {
+      console.log("[BuildMyBusiness] AUTO-START firing for book:", selectedBook.id);
       setShouldAutoStart(false);
       sendMessage("Start a brand new consultation. Begin with TURN 1 — GREETING & OPPORTUNITY REVEAL exactly as specified in your consultation sequence. Do not skip any turns or assume previous context.");
     }
