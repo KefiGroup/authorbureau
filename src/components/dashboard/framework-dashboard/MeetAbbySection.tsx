@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Sparkles, MessageCircleHeart, TrendingUp, BarChart3 } from "lucide-react";
+import { Sparkles, MessageCircleHeart, TrendingUp, BarChart3, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import NewUserOnboarding from "./NewUserOnboarding";
 
@@ -14,6 +14,7 @@ interface Props {
   hasPlan: boolean;
   planSummary?: PlanSummary;
   hasBook: boolean;
+  bookApproved?: boolean;
   profileComplete?: boolean;
   onStartConsultation: () => void;
   onViewPlan?: () => void;
@@ -22,7 +23,7 @@ interface Props {
   onAddBook?: () => void;
 }
 
-export default function MeetAbbySection({ hasPlan, planSummary, hasBook, profileComplete, onStartConsultation, onViewPlan, onChatAbby, onSetupProfile, onAddBook }: Props) {
+export default function MeetAbbySection({ hasPlan, planSummary, hasBook, bookApproved, profileComplete, onStartConsultation, onViewPlan, onChatAbby, onSetupProfile, onAddBook }: Props) {
   if (hasPlan && planSummary) {
     return (
       <motion.section
