@@ -8,7 +8,7 @@ import Footer from "@/components/Footer";
 import { CopyrightCaption } from "@/components/ui/copyright-caption";
 
 import staircaseImg from "@/assets/abby_journey_staircase_v6.webp";
-import frameworkImg from "@/assets/abby_journey_framework_v14_bby.webp";
+import frameworkImg from "@/assets/how_28_revenue_streams_connect_v2.png";
 
 const FLOW_DIAGRAM_IMAGE = "/images/journey-flow-diagram.webp";
 const COMPARISON_IMAGE = "/images/journey-comparison.webp";
