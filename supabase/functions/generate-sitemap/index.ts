@@ -26,10 +26,13 @@ serve(async (req) => {
   let urls = `
   <url><loc>${origin}/</loc><priority>1.0</priority></url>
   <url><loc>${origin}/how-it-works</loc><priority>0.9</priority></url>
-  <url><loc>${origin}/methodology</loc><priority>0.7</priority></url>
   <url><loc>${origin}/directory</loc><priority>0.8</priority></url>
-  <url><loc>${origin}/join</loc><priority>0.6</priority></url>
-  <url><loc>${origin}/contact</loc><priority>0.5</priority></url>`;
+  <url><loc>${origin}/methodology</loc><priority>0.7</priority></url>
+  <url><loc>${origin}/faq</loc><priority>0.6</priority></url>
+  <url><loc>${origin}/readers-bureau</loc><priority>0.6</priority></url>
+  <url><loc>${origin}/contact</loc><priority>0.5</priority></url>
+  <url><loc>${origin}/terms</loc><priority>0.3</priority></url>
+  <url><loc>${origin}/privacy</loc><priority>0.3</priority></url>`;
 
   for (const book of books || []) {
     urls += `\n  <url><loc>${origin}/books/${book.slug}</loc><lastmod>${book.updated_at?.split("T")[0]}</lastmod><priority>0.7</priority></url>`;
