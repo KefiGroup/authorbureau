@@ -338,8 +338,7 @@ export default function AbbyHelpChatbot() {
     return `${Math.floor(diff / 3600)}h ago`;
   };
 
-  // Auth gate: only render for authenticated users
-  if (!user) return null;
+  // No auth gate — chatbot is visible on all pages
 
   return (
     <>
