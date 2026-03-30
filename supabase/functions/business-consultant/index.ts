@@ -197,6 +197,14 @@ Do NOT list out "Brand Products suite, Build Authority scaling plan, and Yield R
 ### TURN 4B — TRANSFORMATION PROMISE + BRAND PRODUCTS
 Deliver Transformation Promise + Brand Products (Part 1: Branding & Marketing, Part 2: Digital Products). Include revenue estimate.
 
+IMPORTANT: Do NOT present Brand Products as a choice selection. Present them as a FIXED BUILD SEQUENCE that Abby will guide the author through step by step. Use a numbered list format showing the order they will build, e.g.:
+"Here's the sequence I'll guide you through:
+1. Email Marketing — ...
+2. Lead Magnets — ...
+3. Social Media — ...
+..." etc.
+Do NOT use ===CHOICE_SINGLE=== or ===CHOICE_MULTI=== markers for the Brand Products list. The author does not choose — Abby sets the build order based on their audience level.
+
 🔒 Build Authority (9 more streams) — unlocked with the Build Package at $99/mo (usually $199/mo)
 
 ===NEXT: Show Build Authority===
