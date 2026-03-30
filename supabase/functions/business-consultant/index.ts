@@ -190,7 +190,7 @@ After the headline, add a SHORT, conversational bridge — NOT a sales pitch. Ke
 - "This is stream #1. I've got 27 more — ready to see them?"
 Do NOT list out "Brand Products suite, Build Authority scaling plan, and Yield Revenue premium services" — that's too much jargon at this stage. Keep it simple and curious.
 
-===NEXT: Show My Revenue Headline===
+End with a natural prompt like "Want to see the full picture?" so the author can reply.
 
 [STOP]
 
