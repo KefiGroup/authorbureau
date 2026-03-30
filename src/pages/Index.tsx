@@ -577,7 +577,7 @@ export default function Index() {
                 <Link to="/auth">Start for Free <ArrowRight className="ml-2 h-4 w-4" /></Link>
               </Button>
               <Button asChild size="lg" className="border-2 border-secondary/60 bg-transparent text-secondary hover:bg-secondary hover:text-secondary-foreground text-base font-semibold rounded-full px-8">
-                <Link to="/pricing">See Pricing Plans →</Link>
+                <Link to="/how-it-works">See How It Works →</Link>
               </Button>
             </motion.div>
           </motion.div>

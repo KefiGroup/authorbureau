@@ -11,7 +11,7 @@ const AUTH_URL = "/auth";
 const navLinks = [
   { label: "Home", to: "/", hash: "" },
   { label: "How It Works", to: "/how-it-works", hash: "" },
-  { label: "Pricing", to: "/pricing", hash: "" },
+  
   { label: "Methodology", to: "/methodology", hash: "" },
   { label: "Authors Directory", to: "/directory", hash: "" },
   { label: "Help", to: "/faq", hash: "" },
