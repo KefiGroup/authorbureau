@@ -35,9 +35,9 @@ const steps = [
   },
   {
     icon: Sparkles,
-    title: "Analyze with Abby",
-    description: "Abby reads your book, maps 28 revenue streams, and builds your personalized business plan.",
-    actionLabel: "Start Analysis",
+    title: "Build My Business Plan",
+    description: "ABBY reads your book and maps 28 revenue streams into your personalised plan — free, 5 minutes.",
+    actionLabel: "Start with ABBY →",
     doneLabel: "Plan Created",
     color: "text-secondary",
     bg: "bg-secondary/10",
