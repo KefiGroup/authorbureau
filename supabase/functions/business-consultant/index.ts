@@ -178,7 +178,7 @@ Acknowledge audience level. Give 3–4 line strategy preview. FOR LEVEL 0–1: M
 
 Plant seed: "All of these tools are available on the Build Package — the package most authors choose. I'll show you the full breakdown at the end."
 
-End with a natural question like "Ready to see your revenue headline?" so the author can reply in the chat.
+===NEXT: Show My Revenue Headline===
 
 [STOP]
 
