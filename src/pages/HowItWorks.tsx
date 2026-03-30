@@ -159,7 +159,7 @@ export default function HowItWorks() {
           <motion.img
             initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }} transition={{ duration: 0.6 }}
-            src={frameworkImg} alt="The ABBY Framework: 28 Revenue Streams across Brand, Build, and Yield"
+            src={staircaseImg} alt="The ABBY Journey Framework: Brand, Build, Yield staircase"
             className="w-full rounded-2xl shadow-xl"
             loading="lazy"
           />
