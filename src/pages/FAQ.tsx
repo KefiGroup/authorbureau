@@ -5,12 +5,12 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { cn } from "@/lib/utils";
-import ABBYFrameworkArticle from "@/components/faq/ABBYFrameworkArticle";
+
 
 const categories = [
   { id: "getting-started", title: "Getting Started", icon: Rocket, iconBg: "#EFF6FF", iconColor: "#3B82F6", description: "Setting up your account, profile, and first book" },
   { id: "your-microsite", title: "Your Directory Profile", icon: Globe, iconBg: "#F0FDF4", iconColor: "#22C55E", description: "Managing your public author page and published offers" },
-  { id: "understanding-abby", title: "The ABBY Framework & Revenue Streams", icon: Sparkles, iconBg: "#FFFBEB", iconColor: "#D4A843", description: "How Abby works, the Analyse → Brand → Build → Yield journey, and all 28 revenue streams", isArticle: true },
+  { id: "understanding-abby", title: "The ABBY Framework & Revenue Streams", icon: Sparkles, iconBg: "#FFFBEB", iconColor: "#D4A843", description: "How Abby works, the Analyse → Brand → Build → Yield journey, and all 28 revenue streams" },
   { id: "building-products", title: "Building & Publishing", icon: Hammer, iconBg: "#FFF7ED", iconColor: "#F97316", description: "Using guided builders to create, review, and launch your offers" },
   { id: "readers-bureau", title: "Readers Bureau", icon: BookOpen, iconBg: "#F0FDFA", iconColor: "#14B8A6", description: "How readers discover your books, offers, and author content" },
 ];
@@ -29,6 +29,15 @@ const faqData: Record<string, { q: string; a: string }[]> = {
     { q: "Can I customize my directory profile?", a: "You control the content on your page — your bio, photos, book descriptions, credentials, links, and published offers. The page design stays consistent across Authors Bureau so every author has a clean, professional presentation." },
     { q: "How do I add services and offers to my page?", a: "Use your dashboard to build and publish your revenue streams. Depending on what you create, your page can show products, services, speaking offers, courses, consultations, and lead-generation assets. Each published item appears with its own description and action button." },
     { q: "Can readers buy from my directory profile?", a: "Yes. When you publish revenue streams, readers can click through to the relevant product or offer page from your public profile. Some offers are direct purchases, while others may be bookings, applications, or contact-based enquiries depending on the type of revenue stream." },
+  ],
+  "understanding-abby": [
+    { q: "What is the ABBY Framework?", a: "ABBY stands for Analyse, Brand, Build, Yield. It is the methodology Authors Bureau uses to turn a published book into a business. Abby starts by analyzing your book and positioning, then maps your opportunities across 28 revenue streams grouped into Brand Products, Build Authority, and Yield Revenue." },
+    { q: "What are the 4 stages?", a: "Analyse: Abby studies your book, positioning, and opportunities. Brand: Build your foundation with the first 9 revenue streams (Email Marketing, Lead Magnets, Social Media, Website, Webinars, Workbook, Home Study, Special Editions, Book Sales). Build: Expand authority with the next 9 streams (Online Courses, Audiobook, Memberships, Group Coaching, Podcast Tour, Media Outreach, Affiliates, Upsells/Downsells, Revenue Sharing). Yield: Activate 10 premium streams (Coaching, Consulting, Keynotes, Training Programs, Masterminds, Retreats, Certification, Conferences, Fund Raising, Exhibitors/JV)." },
+    { q: "Do I need to build all 28 at once?", a: "No. Abby sequences the journey for you. Most authors start with the Brand foundation, then expand into Build Authority, and only layer on Yield Revenue when the timing and audience fit are right." },
+    { q: "How does Abby build my plan?", a: "Abby identifies your strongest opportunities, your audience fit, and the frameworks inside your book. She recommends the right order — usually starting with Brand foundations — then each builder turns the strategy into actual pages, content, and offers you can review and launch." },
+    { q: "Is the Abby consultation free?", a: "Yes. Abby's initial consultation is free and helps you understand the biggest opportunities inside your book before you start building anything." },
+    { q: "What revenue can I expect?", a: "Directional estimates based on the platform architecture: Brand Products $5,520–$15,480/year, Build Authority $13,500–$39,480/year, Yield Revenue $68,400–$215,520/year. Actual results vary by niche, audience size, positioning, and execution." },
+    { q: "Can I change the order later?", a: "Yes. Abby recommends the sequence, but you can revisit earlier streams, improve published offers, and expand into new categories as your business evolves." },
   ],
   "building-products": [
     { q: "How do the builders work?", a: "Each builder is focused on one specific revenue stream. Abby uses your book and business plan context to draft the structure, copy, and supporting content for that offer. You then review, edit, and approve everything before it is published or activated." },
@@ -149,26 +158,6 @@ export default function FAQ() {
       {filteredCategories.map((cat, catIdx) => {
         const Icon = cat.icon;
 
-        if ((cat as any).isArticle) {
-          if (lq) return null;
-          return (
-            <section
-              key={cat.id}
-              id={cat.id}
-              ref={(el) => { sectionRefs.current[cat.id] = el; }}
-              className={cn("py-12", catIdx % 2 === 0 ? "bg-background" : "bg-muted/30")}
-              style={{ scrollMarginTop: 80 }}
-            >
-              <div className="container max-w-[800px]">
-                <div className="flex items-center gap-3 mb-6">
-                  <Icon size={24} style={{ color: cat.iconColor }} />
-                  <h2 className="text-2xl font-semibold" style={{ color: "#1B2A4A" }}>{cat.title}</h2>
-                </div>
-                <ABBYFrameworkArticle />
-              </div>
-            </section>
-          );
-        }
 
         const items = faqData[cat.id] || [];
         const filteredItems = lq ? items.filter((f) => f.q.toLowerCase().includes(lq) || f.a.toLowerCase().includes(lq)) : items;
