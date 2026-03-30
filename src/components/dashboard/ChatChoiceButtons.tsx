@@ -55,6 +55,13 @@ export function parseChoices(content: string): { choices: Choice[]; multiSelect:
   const markerResult = parseMarkerChoices(content);
   if (markerResult) return markerResult;
 
+  // Guardrail: don't convert proposal/plan content into clickable choices.
+  // In Abby plan turns, numbered lists are content, not user options.
+  const lower = content.toLowerCase();
+  const looksLikeProposal = /(transformation promise|brand products|build authority|yield revenue|monetisation map|we(?:'|’)ll build in this order|part\s+\d+\s*[—-]|weeks?\s*\d)/i.test(content);
+  const asksForSelection = /(pick one|choose one|select one|which option|which one|your choice|what do you want to choose|click to select)/i.test(lower);
+  if (looksLikeProposal && !asksForSelection) return null;
+
   // Try lettered patterns: A) text, A. text, - A) text, • A) text
   const letterRegex = /(?:^|\n)\s*(?:[-•*]\s*)?([A-Z])\s*[).]\s*(.+)/g;
   const choices: Choice[] = [];
