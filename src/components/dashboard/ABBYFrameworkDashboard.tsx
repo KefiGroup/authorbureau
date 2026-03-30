@@ -241,6 +241,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
           hasPlan={false}
           planSummary={undefined}
           hasBook={bookCount > 0}
+          bookApproved={bookApproved}
           profileComplete={profileState === "live" || profileState === "incomplete"}
           onStartConsultation={() => onNavigate("build-business")}
           onViewPlan={() => onNavigate("build-business")}
