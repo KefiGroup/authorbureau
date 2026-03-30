@@ -178,14 +178,6 @@ export default function HowItWorks() {
               When you build a course, Abby automatically creates the email sequence to sell it, the social media posts to promote it, and the sales page to convert visitors. Every product feeds into the next.
             </motion.p>
           </motion.div>
-          <motion.img
-            initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }} transition={{ duration: 0.6 }}
-            src={FLOW_DIAGRAM_IMAGE} alt="28 Revenue Streams Ecosystem"
-            className="w-full rounded-2xl shadow-xl"
-            loading="lazy"
-          />
-          <CopyrightCaption />
         </div>
       </section>
 
