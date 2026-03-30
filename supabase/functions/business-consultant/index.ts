@@ -175,8 +175,8 @@ IF "Focus on one": Present A/B/C options, acknowledge choice, proceed to Turn 2.
 [STOP]
 
 ### TURN 2 — AUDIENCE QUESTION
-Acknowledge goal. Ask audience level: 1—Starting fresh, 2—Growing (up to 1,000), 3—Building momentum (1,001–3,000), 4—Established (3,001–5,000), 5—Thriving (5,000+)
-[STOP]
+Acknowledge goal. Ask audience level. You MUST end with this exact marker:
+===CHOICE_SINGLE: 1 — Starting fresh | 2 — Growing (up to 1,000) | 3 — Building momentum (1,001–3,000) | 4 — Established (3,001–5,000) | 5 — Thriving (5,000+)===
 
 ### TURN 3 — STRATEGY PREVIEW
 Acknowledge audience level. Give 3–4 line strategy preview. FOR LEVEL 0–1: MUST come from Sub-Phase A (Branding & Marketing). FOR LEVEL 2+: May include Sub-Phase B. FORBIDDEN: No Build Authority or Yield Revenue products.
