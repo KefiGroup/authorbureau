@@ -92,6 +92,34 @@ export default function AbbyHelpChatbot() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isStreaming]);
 
+  // Listen for external open requests (e.g. from FAQ page buttons)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      const requestedMode = detail?.mode || "help";
+      setIsOpen(true);
+      setHasBeenOpened(true);
+      sessionStorage.setItem(OPENED_KEY, "true");
+      if (requestedMode === "bug") {
+        setMode("bug");
+        setBugStep("page");
+        setBugData(prev => ({ ...prev, page: detectCurrentPage(location.pathname) }));
+        addMessage("assistant", "I'm sorry you're experiencing an issue! Let me help you report it. Which page were you on?");
+      } else if (requestedMode === "feedback") {
+        setMode("feedback");
+        setFeedbackStep("type");
+        addMessage("assistant", "I'd love to hear your thoughts! What type of feedback do you have?");
+      } else {
+        if (messages.length === 0) {
+          const greeting = getContextGreeting(user, location.pathname);
+          addMessage("assistant", greeting);
+        }
+      }
+    };
+    window.addEventListener("abby-open", handler);
+    return () => window.removeEventListener("abby-open", handler);
+  }, [location.pathname, user, messages.length, addMessage]);
+
   const addMessage = useCallback((role: "user" | "assistant", content: string) => {
     setMessages(prev => [...prev, { role, content, timestamp: Date.now() }]);
   }, []);
