@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ChevronDown, ChevronUp, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { CopyrightCaption } from "@/components/ui/copyright-caption";
 
 const STAIRCASE = "/images/journey-staircase.webp";
 const FLOW_DIAGRAM = "/images/journey-flow-diagram.webp";

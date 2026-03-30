@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { CopyrightCaption } from "@/components/ui/copyright-caption";
 
 import staircaseImg from "@/assets/abby_journey_staircase_v6.webp";
 import frameworkImg from "@/assets/abby_journey_framework_v14_bby.webp";

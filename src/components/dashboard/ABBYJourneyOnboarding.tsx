@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, X, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { CopyrightCaption } from "@/components/ui/copyright-caption";
 
 interface Props {
   userId: string;
