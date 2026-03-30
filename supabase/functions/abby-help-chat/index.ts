@@ -165,26 +165,18 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Create client with user's auth for getClaims
+    // Service role client for DB ops
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+    // Try to authenticate (optional for chat, required for actions)
     const authHeader = req.headers.get("Authorization") || "";
     const supabaseUser = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-
-    // Authenticate
     const authResult = await requireAuth(req, supabaseUser);
-    if ("error" in authResult) {
-      return new Response(JSON.stringify({ error: authResult.error }), {
-        status: authResult.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const userId = authResult.user.id as string;
-    const userEmail = (authResult.user.email as string) || "unknown";
-
-    // Service role client for DB ops
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const isAuthenticated = !("error" in authResult);
+    const userId = isAuthenticated ? (authResult.user.id as string) : null;
+    const userEmail = isAuthenticated ? ((authResult.user.email as string) || "unknown") : "anonymous";
 
     // Parse body
     const body = await req.json();
