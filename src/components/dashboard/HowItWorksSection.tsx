@@ -79,6 +79,7 @@ export default function HowItWorksSection() {
               loading="lazy"
             />
           </button>
+          <p className="text-[10px] text-muted-foreground text-right mt-1">© Authors Bureau. All rights reserved.</p>
 
           {/* Accordion for "Know Your Products" section */}
           {i === 2 && (
