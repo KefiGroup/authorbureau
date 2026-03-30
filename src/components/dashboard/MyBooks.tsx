@@ -198,6 +198,14 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
   const getPrimaryCTA = (book: Book) => {
     const stage = getStage(book);
     const isAnalyzed = analyzedBooks.has(book.id);
+    const isApproved = !!book.published_at;
+
+    // Book not yet approved by admin — no actions available
+    if (!isApproved) return {
+      label: "Pending Approval", icon: Sparkles, bg: "bg-muted text-muted-foreground cursor-not-allowed",
+      action: () => {},
+      disabled: true,
+    };
 
     if (!isAnalyzed) return {
       label: "Analyze with Abby — Free", icon: Sparkles, bg: "bg-[#C4973B] hover:bg-[#D4A843]",
@@ -222,7 +230,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
     const hasAnalyzedNotSubscribed = books.some(b => analyzedBooks.has(b.id)) && !isSubscribed;
     if (hasAnalyzedNotSubscribed) return { priority: 1 };
     if (isSubscribed && !stripeConnected) return { priority: 2 };
-    const unanalyzedBook = books.find(b => !analyzedBooks.has(b.id));
+    const unanalyzedBook = books.find(b => !analyzedBooks.has(b.id) && !!b.published_at);
     if (unanalyzedBook) return { priority: 3, bookTitle: unanalyzedBook.title };
     // Default progress banner
     if (books.length > 0) return { priority: 5 };
@@ -505,8 +513,9 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
                     {/* G. Action Section */}
                     <div className="flex items-center gap-2 pt-1">
                       <Button
-                        className={`flex-1 text-sm h-10 text-white ${cta.bg}`}
+                        className={`flex-1 text-sm h-10 ${(cta as any).disabled ? '' : 'text-white'} ${cta.bg}`}
                         onClick={cta.action}
+                        disabled={(cta as any).disabled}
                       >
                         <CTAIcon className="h-4 w-4 mr-1.5" />
                         {cta.label}
