@@ -23,15 +23,15 @@ serve(async (req) => {
     if (!node?.content_json) throw new Error("BP-08 content not found");
 
     const content = node.content_json as any;
-    const price = price_override || content.suggested_price_usd || 9997;
-    const title = content.mastermind_title || "Mastermind";
+    const price = price_override || content.suggested_price_usd || 49;
+    const title = content.edition_title || "Special Edition";
     let paymentLinkUrl = `https://buy.stripe.com/mock_BP-08_${author_id.slice(0, 8)}`;
 
     const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY");
     if (STRIPE_SECRET_KEY) {
       try {
         const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: "2025-08-27.basil" });
-        const product = await stripe.products.create({ name: title, description: content.transformation_promise || content.tagline || "", metadata: { author_id, node_id: "BP-08" } });
+        const product = await stripe.products.create({ name: title, description: content.tagline || "", metadata: { author_id, node_id: "BP-08" } });
         const stripePrice = await stripe.prices.create({ product: product.id, unit_amount: Math.round(price * 100), currency: "usd" });
         const paymentLink = await stripe.paymentLinks.create({ line_items: [{ price: stripePrice.id, quantity: 1 }] });
         paymentLinkUrl = paymentLink.url;

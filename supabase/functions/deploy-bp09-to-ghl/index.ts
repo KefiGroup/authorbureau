@@ -23,8 +23,8 @@ serve(async (req) => {
     if (!node?.content_json) throw new Error("BP-09 content not found");
 
     const content = node.content_json as any;
-    const price = price_override || content.fee_structure?.keynote_fee_usd || 5000;
-    const title = content.speaker_title || "Keynote Speaking";
+    const price = price_override || content.suggested_price_usd || 19.99;
+    const title = content.sales_kit_title || "Book Sales";
     let paymentLinkUrl = `https://buy.stripe.com/mock_BP-09_${author_id.slice(0, 8)}`;
 
     const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY");
@@ -46,7 +46,7 @@ serve(async (req) => {
     if (locationId && GHL_AGENCY_KEY) { try { await fetch(`${GHL_BASE_URL}/opportunities/`, { method: "POST", headers: { Authorization: `Bearer ${GHL_AGENCY_KEY}`, "Content-Type": "application/json", Version: "2021-07-28" }, body: JSON.stringify({ locationId, name: title, pipelineId: "digital-products", status: "open", monetaryValue: price }) }); } catch (e) { console.error("GHL opp:", e); } }
 
     content.payment_link_url = paymentLinkUrl;
-    const micrositeUrl = `https://authorsbureau.com/${penSlug}/book`;
+    const micrositeUrl = `https://authorsbureau.com/${penSlug}/book-sales`;
     await supabase.from("author_nodes").update({ status: "live", ghl_resource_id: paymentLinkUrl, content_json: content, activated_at: new Date().toISOString(), microsite_url: micrositeUrl, payment_link: paymentLinkUrl }).eq("author_id", author_id).eq("node_id", "BP-09");
 
     return new Response(JSON.stringify({ success: true, payment_link_url: paymentLinkUrl }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });

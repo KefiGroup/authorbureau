@@ -23,8 +23,8 @@ serve(async (req) => {
     if (!node?.content_json) throw new Error("BP-07 content not found");
 
     const content = node.content_json as any;
-    const price = price_override || content.suggested_price_usd || 2997;
-    const title = content.programme_title || "Coaching Programme";
+    const price = price_override || content.suggested_price_usd || 47;
+    const title = content.programme_title || "Home Study Course";
     let paymentLinkUrl = `https://buy.stripe.com/mock_BP-07_${author_id.slice(0, 8)}`;
 
     const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY");
