@@ -228,7 +228,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
     const lowerContent = content.toLowerCase();
     const lastAssistantMsg = messages.filter(m => m.role === "assistant").pop()?.content?.toLowerCase() || "";
     const isPlanTrigger = (lowerContent.includes("yes") || lowerContent.includes("let's go") || lowerContent.includes("ready") || lowerContent.includes("go ahead") || lowerContent.includes("🚀") || lowerContent.includes("show my revenue headline") || lowerContent.includes("show my foundation") || lowerContent.includes("show build authority") || lowerContent.includes("show yield revenue") || lowerContent.includes("show my monetisation") || lowerContent.includes("show me how to unlock"))
-      && (lastAssistantMsg.includes("ready for me to build") || lastAssistantMsg.includes("ready to build") || lastAssistantMsg.includes("business plan") || lastAssistantMsg.includes("full picture") || lastAssistantMsg.includes("revenue headline") || lastAssistantMsg.includes("monetisation map") || lastAssistantMsg.includes("how to unlock"));
+      && (lastAssistantMsg.includes("ready for me to build") || lastAssistantMsg.includes("ready to build") || lastAssistantMsg.includes("business plan") || lastAssistantMsg.includes("===next:") || lastAssistantMsg.includes("full picture") || lastAssistantMsg.includes("revenue headline") || lastAssistantMsg.includes("monetisation map") || lastAssistantMsg.includes("how to unlock"));
     if (isPlanTrigger) setIsBuildingPlan(true);
 
     const abort = new AbortController();
