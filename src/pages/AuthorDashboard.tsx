@@ -174,29 +174,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
 
   // Onboarding redirect state
   const [onboardingRedirect, setOnboardingRedirect] = useState<"profile" | "my-books" | null>(null);
-  const [checkingOnboarding, setCheckingOnboarding] = useState(true);
-
-  // Check onboarding_completed and redirect if false
-  useEffect(() => {
-    if (loading || !user) return;
-    (async () => {
-      try {
-        const { data } = await supabase
-          .from("author_profiles")
-          .select("onboarding_completed")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        if (data && !(data as any).onboarding_completed) {
-          dashboardNavigate("/onboarding", { replace: true });
-          return;
-        }
-      } catch (err) {
-        console.error("Onboarding check failed:", err);
-      } finally {
-        setCheckingOnboarding(false);
-      }
-    })();
-  }, [loading, user, dashboardNavigate]);
+  const checkingOnboarding = false;
 
   // Check if journey onboarding should show (first time user has an analyzed book)
   useEffect(() => {

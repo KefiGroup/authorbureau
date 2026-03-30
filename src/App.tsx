@@ -49,7 +49,7 @@ import NodeBuilder from "./pages/NodeBuilder";
 import AbbyCoachPage from "./pages/AbbyCoachPage";
 import Pricing from "./pages/Pricing";
 import SubscriptionSuccess from "./pages/SubscriptionSuccess";
-import Onboarding from "./pages/Onboarding";
+
 
 const queryClient = new QueryClient();
 
@@ -95,7 +95,7 @@ const AppRoutes = () => (
       <Route path="/create-microsite" element={<CreateMicrosite />} />
       <Route path="/join" element={<Join />} />
       <Route path="/auth" element={<Auth />} />
-      <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+      {/* /onboarding removed — using dashboard widget instead */}
       <Route path="/admin-login" element={<AdminAuth />} />
       <Route path="/admin" element={<AdminDashboard />} />
       <Route path="/dashboard" element={<AuthorDashboard />} />
