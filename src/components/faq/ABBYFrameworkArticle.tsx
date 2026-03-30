@@ -50,14 +50,6 @@ const yieldStreams: Stream[] = [
   { code: "YR-28", name: "Exhibitors / JV", desc: "Create strategic event and partnership revenue beyond direct product sales." },
 ];
 
-const faqItems = [
-  { q: "Do I need to build all 28 at once?", a: "No. Abby sequences the journey for you. Most authors start with the Brand foundation, then expand into Build Authority, and only layer on Yield Revenue when the timing and audience fit are right." },
-  { q: "Does Abby really build the first draft for me?", a: "Yes. Abby uses your book and business context to draft the structure, positioning, and content for each revenue stream. You review, edit, and approve before anything is published." },
-  { q: "What gets built first?", a: "The usual starting point is your Brand foundation: Email Marketing, Lead Magnets, Social Media, Website / Microsite, and Webinars. That base makes later products and premium services much easier to launch." },
-  { q: "Can I change the order later?", a: "Yes. Abby recommends the sequence, but you can revisit earlier streams, improve published offers, and expand into new categories as your business evolves." },
-  { q: "Are the revenue projections guaranteed?", a: "No. They are directional estimates based on the platform's current revenue architecture. Actual results vary by niche, positioning, audience size, consistency, and execution." },
-];
-
 const tocItems = [
   "What is the ABBY Framework?",
   "The 4 Stages: Analyse → Brand → Build → Yield",
@@ -65,7 +57,6 @@ const tocItems = [
   "How the Revenue Streams Connect",
   "How Abby Builds Your Plan",
   "Revenue Potential",
-  "FAQ",
 ];
 
 export default function ABBYFrameworkArticle() {
