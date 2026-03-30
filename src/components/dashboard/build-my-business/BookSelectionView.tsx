@@ -218,13 +218,13 @@ export default function BookSelectionView({
                       </span>
                     )}
                     <div className="flex items-center gap-2 pt-1">
-                      <Button size="sm" className="flex-1 text-xs bg-secondary text-secondary-foreground hover:bg-secondary/90 gap-1.5">
-                        <Sparkles className="h-3.5 w-3.5" />
-                        {hasManuscript ? "Analyze This Book →" : "Upload Manuscript First"}
+                      <Button size="lg" className="flex-1 text-sm bg-secondary text-secondary-foreground hover:bg-secondary/90 gap-1.5 font-semibold shadow-md">
+                        <Sparkles className="h-4 w-4" />
+                        {hasManuscript ? "Start My Business Plan with ABBY →" : "Upload Manuscript First"}
                       </Button>
                     </div>
                     <p className="text-[10px] text-muted-foreground italic text-center">
-                      Abby will read your book and create a custom business plan
+                      Free · 5 minutes · Saved forever
                     </p>
                   </CardContent>
                 </Card>
