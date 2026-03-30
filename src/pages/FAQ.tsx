@@ -230,15 +230,15 @@ export default function FAQ() {
           <p className="mt-2 text-white/80 text-base">Our AI assistant Abby is here to help 24/7</p>
 
           <div className="flex flex-wrap justify-center gap-4 mt-8">
-            <button onClick={() => openChatbot()} className="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-base font-medium transition-transform hover:scale-105" style={{ color: "#D4A843" }}>
+            <Link to="/auth?redirect=%2Fdashboard" className="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-base font-medium transition-transform hover:scale-105" style={{ color: "#D4A843" }}>
               <Sparkles size={18} /> Ask Abby
-            </button>
-            <button onClick={() => openChatbot()} className="inline-flex items-center gap-2 rounded-lg border border-white/40 px-6 py-3 text-base font-medium text-white transition-transform hover:scale-105" style={{ background: "rgba(255,255,255,0.2)" }}>
+            </Link>
+            <a href="mailto:support@authorsbureau.com?subject=Bug%20Report" className="inline-flex items-center gap-2 rounded-lg border border-white/40 px-6 py-3 text-base font-medium text-white transition-transform hover:scale-105" style={{ background: "rgba(255,255,255,0.2)" }}>
               <Bug size={18} /> Report a Bug
-            </button>
-            <button onClick={() => openChatbot()} className="inline-flex items-center gap-2 rounded-lg border border-white/40 px-6 py-3 text-base font-medium text-white transition-transform hover:scale-105" style={{ background: "rgba(255,255,255,0.2)" }}>
+            </a>
+            <a href="mailto:support@authorsbureau.com?subject=Feedback" className="inline-flex items-center gap-2 rounded-lg border border-white/40 px-6 py-3 text-base font-medium text-white transition-transform hover:scale-105" style={{ background: "rgba(255,255,255,0.2)" }}>
               <MessageSquare size={18} /> Give Feedback
-            </button>
+            </a>
           </div>
 
           <p className="mt-6 text-white/60 text-sm">
