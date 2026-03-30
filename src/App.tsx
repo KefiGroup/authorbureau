@@ -49,7 +49,7 @@ import NodeBuilder from "./pages/NodeBuilder";
 import AbbyCoachPage from "./pages/AbbyCoachPage";
 import Pricing from "./pages/Pricing";
 import SubscriptionSuccess from "./pages/SubscriptionSuccess";
-import Onboarding from "./pages/Onboarding";
+
 
 const queryClient = new QueryClient();
 
