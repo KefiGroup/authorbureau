@@ -221,6 +221,13 @@ export default function AbbyHelpChatbot() {
     const text = input.trim().slice(0, MAX_INPUT_LENGTH);
     if (!text || isStreaming || sessionExpired) return;
 
+    // If not logged in, redirect to sign in
+    if (!user) {
+      addMessage("assistant", "To chat with me, you'll need to sign in first. Redirecting you now...");
+      setTimeout(() => { window.location.href = "/auth?redirect=" + encodeURIComponent(window.location.pathname); }, 1500);
+      return;
+    }
+
     // Session message cap
     if (messages.length >= MAX_SESSION_MESSAGES) {
       addMessage("assistant", "We've reached the conversation limit. Please start a new conversation to continue.");
