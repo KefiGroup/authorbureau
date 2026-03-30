@@ -1,6 +1,5 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronDown, ChevronUp, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CopyrightCaption } from "@/components/ui/copyright-caption";
 import frameworkImg from "@/assets/abby_journey_framework_v13_bby.webp";
