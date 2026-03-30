@@ -3365,37 +3365,41 @@ serve(async (req) => {
       progressionBlock = `
 REFINEMENT MODE — EXISTING PLAN DETECTED:
 - This author already has a saved ABBY Business Plan (see business_plan in author_context).
-- DO NOT run the 6-turn diagnostic sequence. DO NOT regenerate from scratch.
+- DO NOT run the consultation sequence. DO NOT regenerate from scratch.
 - Greet them warmly BY NAME and acknowledge their existing plan.
 - Ask: "Welcome back, [NAME] — your business plan for [book] is saved and ready. Would you like to refine any section, add new products, or discuss next steps?"
 - Review progress_log to acknowledge what they've already built.
 - Keep response under 150 words.`;
     } else if (assistantTurns > 0) {
       // Map conversation turns to the prompt's turn labels
-      // Turn 1 is greeting + audience question. Turn 2+ maps to 2A-2F plan reveal.
+      // Turn 1: Greeting & choice. Turn 2: Audience question. Turn 3: Strategy preview.
+      // Turns 4-9 map to 4A-4F (plan reveal). Turn 10: Next steps. Turn 11+: Ongoing.
       const turnLabelMap: Record<number, string> = {
-        2: "2A", 3: "2B", 4: "2C", 5: "2D", 6: "2E", 7: "2F",
+        2: "2", 3: "3", 4: "4A", 5: "4B", 6: "4C", 7: "4D", 8: "4E", 9: "4F",
       };
-      const turnLabel = turnLabelMap[conversationTurn] || (conversationTurn > 7 ? "POST-PLAN" : String(conversationTurn));
-      const isSubTurn2 = conversationTurn >= 2 && conversationTurn <= 7;
-      const maxWords = isSubTurn2 ? 400 : 150;
+      const turnLabel = turnLabelMap[conversationTurn] || (conversationTurn === 10 ? "5" : conversationTurn > 10 ? "POST-PLAN" : String(conversationTurn));
+      const isSubTurn4 = conversationTurn >= 4 && conversationTurn <= 9;
+      const maxWords = isSubTurn4 ? 400 : 150;
 
       progressionBlock = `
 CONVERSATION PROGRESSION:
 CURRENT TURN: ${turnLabel}. Follow Turn ${turnLabel} instructions ONLY. End at the [STOP] marker. Maximum ${maxWords} words.
 
 ${hasSavedPlan ? "- Reference existing business plan. Only update specific sections they request." : ""}
-${!hasSavedPlan && isSubTurn2 ? `- You are on Turn ${turnLabel} of the multi-part plan reveal. Deliver ONLY this section. Do NOT skip ahead or combine multiple turns. Do NOT ask additional questions — go straight to the proposal content.` : ""}
-${!hasSavedPlan && conversationTurn === 2 ? `- Turn 2A: Deliver the Revenue Headline ONLY. End with ===NEXT: Show me the full plan===` : ""}
-${!hasSavedPlan && conversationTurn === 3 ? `- Turn 2B: Deliver the Transformation Promise + Brand Products section. End with ===NEXT: Show Build Authority===` : ""}
-${!hasSavedPlan && conversationTurn > 7 && !hasSavedPlan ? "- ONGOING: Under 150 words. Reference the business plan. Tie to manuscript content." : ""}`;
+${!hasSavedPlan && conversationTurn === 2 ? `- Turn 2: Acknowledge their choice. Ask the audience level question using ===CHOICE_SINGLE===. STOP after the marker.` : ""}
+${!hasSavedPlan && conversationTurn === 3 ? `- Turn 3: Strategy Preview. Acknowledge audience level, give 3-4 line strategy preview. Plant the Build Package seed. STOP.` : ""}
+${!hasSavedPlan && isSubTurn4 ? `- You are on Turn ${turnLabel} of the multi-part plan reveal. Deliver ONLY this section. Do NOT skip ahead or combine multiple turns.` : ""}
+${!hasSavedPlan && conversationTurn === 4 ? `- Turn 4A: Deliver the Revenue Headline ONLY. End with ===NEXT: Show My Foundation===` : ""}
+${!hasSavedPlan && conversationTurn === 5 ? `- Turn 4B: Deliver the Transformation Promise + Brand Products section. End with ===NEXT: Show Build Authority===` : ""}
+${!hasSavedPlan && conversationTurn === 10 ? `- Turn 5: Give 3 specific next steps. First step MUST be Branding & Marketing. Use ===NAV:=== markers.` : ""}
+${!hasSavedPlan && conversationTurn > 10 ? "- ONGOING: Under 150 words. Reference the business plan. Tie to manuscript content." : ""}`;
     } else {
       progressionBlock = `
 CONVERSATION START:
 CURRENT TURN: 1. Follow Turn 1 instructions EXACTLY. Maximum 150 words.
 - Address the author by their name from author_profile.name. NEVER use email.
-- Greet warmly BY NAME, show ONE brief insight about their book, reveal the four income pillars with revenue numbers, then ask the audience level question using ===CHOICE_SINGLE=== and STOP.
-- This is the ONLY question turn. After they answer, go straight to the proposal.
+- Greet warmly BY NAME, show ONE brief insight about their book, reveal the four income pillars with revenue numbers.
+- End with ===CHOICE_SINGLE: Yes, let's build all four! | I'd prefer to focus on one area first===
 - Do NOT skip ahead. Do NOT provide the business plan yet.`;
     }
 
