@@ -25,6 +25,8 @@ serve(async (req) => {
 
   let urls = `
   <url><loc>${origin}/</loc><priority>1.0</priority></url>
+  <url><loc>${origin}/how-it-works</loc><priority>0.9</priority></url>
+  <url><loc>${origin}/methodology</loc><priority>0.7</priority></url>
   <url><loc>${origin}/directory</loc><priority>0.8</priority></url>
   <url><loc>${origin}/join</loc><priority>0.6</priority></url>
   <url><loc>${origin}/contact</loc><priority>0.5</priority></url>`;
