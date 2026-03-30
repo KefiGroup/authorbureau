@@ -3379,15 +3379,35 @@ REFINEMENT MODE — EXISTING PLAN DETECTED:
 - Review progress_log to acknowledge what they've already built.
 - Keep response under 150 words.`;
     } else if (assistantTurns > 0) {
+      // Map conversation turns to the prompt's turn labels
+      // Turns 1-3 are simple. Turn 4+ maps to 4A, 4B, 4C, 4D, 4E, 4F
+      const turnLabelMap: Record<number, string> = {
+        2: "2", 3: "3", 4: "4A", 5: "4B", 6: "4C", 7: "4D", 8: "4E", 9: "4F",
+      };
+      const turnLabel = turnLabelMap[conversationTurn] || (conversationTurn > 9 ? "POST-PLAN" : String(conversationTurn));
+      const isSubTurn4 = conversationTurn >= 4 && conversationTurn <= 9;
+      const maxWords = isSubTurn4 ? 400 : 150;
+
+      // Expected NEXT button labels per sub-turn (backend fallback)
+      const nextButtonMap: Record<string, string> = {
+        "3": "Show My Revenue Headline",
+        "4A": "Go ahead to show me the full plan",
+        "4B": "Go ahead to show me the full plan",
+        "4C": "Show Yield Revenue",
+        "4D": "Show My Monetisation Map",
+        "4E": "Show Me How to Unlock It",
+      };
+
       progressionBlock = `
 CONVERSATION PROGRESSION:
-CURRENT TURN: ${conversationTurn}. Follow Turn ${conversationTurn} instructions ONLY. End at the [STOP] marker. Maximum ${conversationTurn === 4 ? 2000 : 150} words.
+CURRENT TURN: ${turnLabel}. Follow Turn ${turnLabel} instructions ONLY. End at the [STOP] marker. Maximum ${maxWords} words.
 
 ${hasSavedPlan ? "- Reference existing business plan. Only update specific sections they request." : ""}
-${!hasSavedPlan && conversationTurn <= 3 ? `- PACING: Turn ${conversationTurn}. Under 150 words. Ask ONE question and STOP. Do NOT generate the business plan yet.` : ""}
-${!hasSavedPlan && conversationTurn === 4 ? `- BUSINESS PLAN TIME: Generate the FULL ABBY Business Plan now. Start with: "Great — I have everything I need. Let me generate your personalised ABBY Business Plan now."` : ""}
-${!hasSavedPlan && conversationTurn === 5 ? "- POST-PLAN: Give 3 next steps. End with: 'Would you like to start building [first product]?'" : ""}
-${!hasSavedPlan && conversationTurn > 5 ? "- ONGOING: Under 150 words. Reference the business plan. Tie to manuscript content." : ""}`;
+${!hasSavedPlan && conversationTurn <= 3 ? `- PACING: Turn ${turnLabel}. Under 150 words. Ask ONE question and STOP. Do NOT generate the business plan yet.` : ""}
+${!hasSavedPlan && isSubTurn4 ? `- You are on Turn ${turnLabel} of the multi-part plan reveal. Deliver ONLY this section. Do NOT skip ahead or combine multiple turns.` : ""}
+${!hasSavedPlan && conversationTurn === 4 ? `- Turn 4A: Deliver the Revenue Headline ONLY. End with ===NEXT: Go ahead to show me the full plan===` : ""}
+${!hasSavedPlan && conversationTurn === 5 ? `- Turn 4B: Deliver the Transformation Promise + Brand Products section. End with ===NEXT: Go ahead to show me the full plan===` : ""}
+${!hasSavedPlan && conversationTurn > 9 && !hasSavedPlan ? "- ONGOING: Under 150 words. Reference the business plan. Tie to manuscript content." : ""}`;
     } else {
       progressionBlock = `
 CONVERSATION START:
