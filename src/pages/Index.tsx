@@ -472,7 +472,7 @@ export default function Index() {
               },
               {
                 step: "3",
-                title: "SCALE Your Authority",
+                title: "BUILD Your Authority",
                 tag: "BUILD AUTHORITY",
                 desc: "Expand into audience-building channels: audiobooks, podcast tours, group coaching, affiliate programs, and media outreach. Abby creates everything including scripts, pitch kits, and follow-up sequences.",
               },
