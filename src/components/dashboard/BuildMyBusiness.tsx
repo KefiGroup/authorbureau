@@ -262,11 +262,11 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
 
   // Auto-start consultation
   useEffect(() => {
-    if (shouldAutoStart && selectedBook && !isStreaming && !abbyReading && messages.length === 0) {
+    if (shouldAutoStart && sessionLoaded && selectedBook && !isStreaming && !abbyReading && messages.length === 0) {
       setShouldAutoStart(false);
       sendMessage("Start a brand new consultation. Begin with TURN 1 — GREETING & OPPORTUNITY REVEAL exactly as specified in your consultation sequence. Do not skip any turns or assume previous context.");
     }
-  }, [shouldAutoStart, abbyReading, selectedBook, messages.length, isStreaming, sendMessage]);
+  }, [shouldAutoStart, sessionLoaded, abbyReading, selectedBook, messages.length, isStreaming, sendMessage]);
 
   // ─── Build handlers ───
   const getProductLink = (productType: string): { label: string; path: string } | null => {
