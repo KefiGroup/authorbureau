@@ -198,6 +198,14 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
   const getPrimaryCTA = (book: Book) => {
     const stage = getStage(book);
     const isAnalyzed = analyzedBooks.has(book.id);
+    const isApproved = !!book.published_at;
+
+    // Book not yet approved by admin — no actions available
+    if (!isApproved) return {
+      label: "Pending Approval", icon: Sparkles, bg: "bg-muted text-muted-foreground cursor-not-allowed",
+      action: () => {},
+      disabled: true,
+    };
 
     if (!isAnalyzed) return {
       label: "Analyze with Abby — Free", icon: Sparkles, bg: "bg-[#C4973B] hover:bg-[#D4A843]",
