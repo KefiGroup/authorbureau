@@ -513,8 +513,9 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
                     {/* G. Action Section */}
                     <div className="flex items-center gap-2 pt-1">
                       <Button
-                        className={`flex-1 text-sm h-10 text-white ${cta.bg}`}
+                        className={`flex-1 text-sm h-10 ${(cta as any).disabled ? '' : 'text-white'} ${cta.bg}`}
                         onClick={cta.action}
+                        disabled={(cta as any).disabled}
                       >
                         <CTAIcon className="h-4 w-4 mr-1.5" />
                         {cta.label}
