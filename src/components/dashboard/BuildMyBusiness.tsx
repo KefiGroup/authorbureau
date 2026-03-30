@@ -50,6 +50,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
   const [abbyReading, setAbbyReading] = useState(false);
   const [readingProgress, setReadingProgress] = useState(0);
   const [shouldAutoStart, setShouldAutoStart] = useState(false);
+  const [sessionLoaded, setSessionLoaded] = useState(false);
 
   // Session state
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -159,8 +160,9 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
 
   // Load existing session when book selected
   useEffect(() => {
-    if (!selectedBook) return;
-    if (skipLoadRef.current) { skipLoadRef.current = false; return; }
+    if (!selectedBook) { setSessionLoaded(false); return; }
+    if (skipLoadRef.current) { skipLoadRef.current = false; setSessionLoaded(true); return; }
+    setSessionLoaded(false);
     (async () => {
       const existing = await loadExistingSession(selectedBook.id);
       if (existing && existing.length > 0) {
@@ -168,6 +170,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
         setAbbyReading(false);
         toast({ title: "Session restored", description: "Your previous conversation with Abby has been loaded." });
       }
+      setSessionLoaded(true);
     })();
   }, [selectedBook, loadExistingSession, toast]);
 
@@ -259,11 +262,11 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
 
   // Auto-start consultation
   useEffect(() => {
-    if (shouldAutoStart && selectedBook && !isStreaming && !abbyReading && messages.length === 0) {
+    if (shouldAutoStart && sessionLoaded && selectedBook && !isStreaming && !abbyReading && messages.length === 0) {
       setShouldAutoStart(false);
       sendMessage("Start a brand new consultation. Begin with TURN 1 — GREETING & OPPORTUNITY REVEAL exactly as specified in your consultation sequence. Do not skip any turns or assume previous context.");
     }
-  }, [shouldAutoStart, abbyReading, selectedBook, messages.length, isStreaming, sendMessage]);
+  }, [shouldAutoStart, sessionLoaded, abbyReading, selectedBook, messages.length, isStreaming, sendMessage]);
 
   // ─── Build handlers ───
   const getProductLink = (productType: string): { label: string; path: string } | null => {
