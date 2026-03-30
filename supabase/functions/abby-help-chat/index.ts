@@ -187,8 +187,13 @@ serve(async (req) => {
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
     const rateLimitKey = `${userEmail}:${ip}`;
 
-    // ── Handle bug report submission ──────────────────────────────
+    // ── Handle bug report submission (auth required) ────────────
     if (action === "submit_bug_report") {
+      if (!isAuthenticated) {
+        return new Response(JSON.stringify({ error: "Please sign in to submit a bug report." }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const allowed = await checkRateLimit(supabase, `escalation:${rateLimitKey}`, 3, 60);
       if (!allowed) {
         console.warn(`Rate limit hit (escalation): ${rateLimitKey}`);
