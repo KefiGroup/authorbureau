@@ -242,7 +242,7 @@ RIGHT: put "TIER TOTAL — Brand Products" in NODE, leave PRICE POINT blank, put
 
 Do this for all three tier totals (Brand Products, Build Authority, Yield Revenue).
 
-===NEXT: Show Me How to Unlock It===
+End with a prompt like "Want to see how to unlock all of this?"
 
 [STOP]
 
