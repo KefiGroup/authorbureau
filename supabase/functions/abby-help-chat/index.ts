@@ -244,8 +244,13 @@ serve(async (req) => {
       });
     }
 
-    // ── Handle save chat session ──────────────────────────────────
+    // ── Handle save chat session (auth required) ───────────────
     if (action === "save_session") {
+      if (!isAuthenticated) {
+        return new Response(JSON.stringify({ error: "Please sign in to save sessions." }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const sessionAllowed = await checkRateLimit(supabase, `session:${rateLimitKey}`, 3, 60);
       if (!sessionAllowed) {
         console.warn(`Rate limit hit (save_session): ${rateLimitKey}`);
