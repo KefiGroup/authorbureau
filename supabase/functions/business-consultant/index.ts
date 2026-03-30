@@ -223,7 +223,7 @@ End with a prompt like "Want to see the Yield Revenue streams?"
 ### TURN 4D — YIELD REVENUE
 Deliver Yield Revenue section. 2–4 premium products. Mention 1-on-1 with Pauline Teo as Yield Package bonus.
 
-===NEXT: Show My Monetisation Map===
+End with a prompt like "Ready to see your full monetisation map?"
 
 [STOP]
 
