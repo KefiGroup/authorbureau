@@ -92,6 +92,10 @@ export default function AbbyHelpChatbot() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isStreaming]);
 
+  const addMessage = useCallback((role: "user" | "assistant", content: string) => {
+    setMessages(prev => [...prev, { role, content, timestamp: Date.now() }]);
+  }, []);
+
   // Listen for external open requests (e.g. from FAQ page buttons)
   useEffect(() => {
     const handler = (e: Event) => {
@@ -119,10 +123,6 @@ export default function AbbyHelpChatbot() {
     window.addEventListener("abby-open", handler);
     return () => window.removeEventListener("abby-open", handler);
   }, [location.pathname, user, messages.length, addMessage]);
-
-  const addMessage = useCallback((role: "user" | "assistant", content: string) => {
-    setMessages(prev => [...prev, { role, content, timestamp: Date.now() }]);
-  }, []);
 
   const openChat = useCallback(() => {
     setIsOpen(true);
