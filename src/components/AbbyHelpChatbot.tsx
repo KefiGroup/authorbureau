@@ -259,7 +259,7 @@ export default function AbbyHelpChatbot() {
       .map(m => ({ role: m.role, content: m.content }));
 
     streamResponse(chatHistory);
-  }, [input, isStreaming, sessionExpired, messages, mode, location.pathname, addMessage, streamResponse]);
+  }, [input, isStreaming, sessionExpired, messages, mode, location.pathname, addMessage, streamResponse, user]);
 
   // Submit actions for structured flows
   const submitAction = async (action: string, data: any): Promise<boolean> => {
