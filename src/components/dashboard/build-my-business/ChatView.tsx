@@ -226,41 +226,6 @@ export default function ChatView({
                   </div>
                 )}
 
-                {/* Choice buttons */}
-                {msg.role === "assistant" && !isStreaming && (() => {
-                  const parsed = parseChoices(msg.content);
-                  const isLastAssistant = idx === messages.length - 1;
-                  if (parsed) {
-                    return (
-                      <ChatChoiceButtons
-                        choices={parsed.choices}
-                        multiSelect={parsed.multiSelect}
-                        onSubmit={(text) => onSendMessage(text)}
-                        disabled={isStreaming || !isLastAssistant}
-                      />
-                    );
-                  }
-                  const confirmOpts = parseConfirmation(msg.content);
-                  if (confirmOpts) {
-                    return (
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {confirmOpts.map((opt) => (
-                          <Button
-                            key={opt}
-                            variant={opt.toLowerCase().startsWith("yes") ? "default" : "outline"}
-                            size="sm"
-                            className="rounded-full px-5"
-                            disabled={isStreaming || !isLastAssistant}
-                            onClick={() => onSendMessage(opt)}
-                          >
-                            {opt}
-                          </Button>
-                        ))}
-                      </div>
-                    );
-                  }
-                  return null;
-                })()}
               </div>
               {msg.role === "user" && (
                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1"><User className="h-4 w-4 text-primary" /></div>
