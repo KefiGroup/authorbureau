@@ -42,6 +42,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
   const [recommendedByAbby, setRecommendedByAbby] = useState<string[]>([]);
   const [isFirstPostAnalysis, setIsFirstPostAnalysis] = useState(false);
   const [hasBootstrapped, setHasBootstrapped] = useState(false);
+  const [bookApproved, setBookApproved] = useState(false);
   const isFetchingRef = useRef(false);
 
   const loadDashboard = async () => {
