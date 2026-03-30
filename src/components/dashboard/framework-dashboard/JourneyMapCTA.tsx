@@ -11,6 +11,7 @@ interface Props {
   buildState: StepState;
   sellState: StepState;
   currentJourneyStep: "microsite" | "analyze" | "payments" | "build" | "earn";
+  bookApproved?: boolean;
   onAction: (action: string) => void;
 }
 
@@ -37,8 +38,9 @@ const ctaConfig: Record<string, { primary: { label: string; action: string }; se
   },
 };
 
-export default function JourneyMapCTA({ currentJourneyStep, onAction }: Props) {
+export default function JourneyMapCTA({ currentJourneyStep, bookApproved, onAction }: Props) {
   const cta = ctaConfig[currentJourneyStep];
+  const isAnalyzeGated = !bookApproved && (currentJourneyStep === "microsite" || currentJourneyStep === "analyze");
 
   return (
     <motion.section
@@ -64,7 +66,7 @@ export default function JourneyMapCTA({ currentJourneyStep, onAction }: Props) {
             "Your book is not the business. Your book is the <span className="text-amber-600">HOOK</span>."
           </p>
           <div className="flex flex-col items-center gap-2">
-            <Button onClick={() => onAction(cta.primary.action)} size="lg" className="bg-amber-600 hover:bg-amber-700 text-white shadow-lg">
+            <Button onClick={() => !isAnalyzeGated && onAction(cta.primary.action)} size="lg" className={isAnalyzeGated ? "bg-muted text-muted-foreground cursor-not-allowed" : "bg-amber-600 hover:bg-amber-700 text-white shadow-lg"} disabled={isAnalyzeGated}>
               <Sparkles className="h-4 w-4 mr-2" />
               {cta.primary.label}
             </Button>

@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Sparkles, MessageCircleHeart, TrendingUp, BarChart3 } from "lucide-react";
+import { Sparkles, MessageCircleHeart, TrendingUp, BarChart3, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import NewUserOnboarding from "./NewUserOnboarding";
 
@@ -14,6 +14,7 @@ interface Props {
   hasPlan: boolean;
   planSummary?: PlanSummary;
   hasBook: boolean;
+  bookApproved?: boolean;
   profileComplete?: boolean;
   onStartConsultation: () => void;
   onViewPlan?: () => void;
@@ -22,7 +23,7 @@ interface Props {
   onAddBook?: () => void;
 }
 
-export default function MeetAbbySection({ hasPlan, planSummary, hasBook, profileComplete, onStartConsultation, onViewPlan, onChatAbby, onSetupProfile, onAddBook }: Props) {
+export default function MeetAbbySection({ hasPlan, planSummary, hasBook, bookApproved, profileComplete, onStartConsultation, onViewPlan, onChatAbby, onSetupProfile, onAddBook }: Props) {
   if (hasPlan && planSummary) {
     return (
       <motion.section
@@ -109,11 +110,23 @@ export default function MeetAbbySection({ hasPlan, planSummary, hasBook, profile
 
         {hasBook ? (
           <div className="space-y-2">
-            <Button onClick={onStartConsultation} size="lg" className="w-fit bg-amber-600 hover:bg-amber-700 text-white shadow-lg">
-              <Sparkles className="h-4 w-4 mr-2" />
-              Analyze Your Book with Abby →
-            </Button>
-            <p className="text-[10px] text-muted-foreground">Takes 5 minutes. Your business plan is saved forever.</p>
+            {bookApproved ? (
+              <>
+                <Button onClick={onStartConsultation} size="lg" className="w-fit bg-amber-600 hover:bg-amber-700 text-white shadow-lg">
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Analyze Your Book with Abby →
+                </Button>
+                <p className="text-[10px] text-muted-foreground">Takes 5 minutes. Your business plan is saved forever.</p>
+              </>
+            ) : (
+              <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 px-5 py-4">
+                <Clock className="h-5 w-5 text-amber-600 shrink-0 animate-pulse" />
+                <div>
+                  <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">Your book is pending admin approval</p>
+                  <p className="text-xs text-amber-700/80 dark:text-amber-300/60">Our team is reviewing your book. Once approved, Abby will be ready to analyze it and create your business plan.</p>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <NewUserOnboarding

@@ -42,6 +42,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
   const [recommendedByAbby, setRecommendedByAbby] = useState<string[]>([]);
   const [isFirstPostAnalysis, setIsFirstPostAnalysis] = useState(false);
   const [hasBootstrapped, setHasBootstrapped] = useState(false);
+  const [bookApproved, setBookApproved] = useState(false);
   const isFetchingRef = useRef(false);
 
   const loadDashboard = async () => {
@@ -91,6 +92,9 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
 
       if (booksData.books) {
         setBookCovers(booksData.books.filter((b: any) => b.cover_image_url).map((b: any) => b.cover_image_url).slice(0, 3));
+        // Check if any book is approved (has published_at)
+        const anyApproved = booksData.books.some((b: any) => !!b.published_at);
+        setBookApproved(anyApproved);
 
         if (booksData.books.length > 0) {
           const firstBook = booksData.books[0];
@@ -237,6 +241,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
           hasPlan={false}
           planSummary={undefined}
           hasBook={bookCount > 0}
+          bookApproved={bookApproved}
           profileComplete={profileState === "live" || profileState === "incomplete"}
           onStartConsultation={() => onNavigate("build-business")}
           onViewPlan={() => onNavigate("build-business")}
@@ -252,6 +257,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
           buildState={buildStep}
           sellState={sellStep}
           currentJourneyStep={currentJourneyStep}
+          bookApproved={bookApproved}
           onAction={handleJourneyAction}
         />
 
