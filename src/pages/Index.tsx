@@ -525,7 +525,7 @@ export default function Index() {
               {
                 quote: "Authors Bureau gave me a complete framework to monetise my healthcare expertise. Abby mapped out my entire business model, from courses to coaching, in one consultation. Incredibly strategic.",
                 name: "Bob Battista",
-                title: "Healthcare AI & Life Sciences Strategist",
+                title: 'Author of "Hemispheric Intelligence"',
               },
               {
                 quote: "As a HealthTech strategist, I know what scalable systems look like. Authors Bureau is exactly that. Abby built my content strategy, lead magnets, and revenue streams faster than any team I've worked with.",
