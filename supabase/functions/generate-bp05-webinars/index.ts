@@ -114,7 +114,7 @@ Generate the following as a JSON object with these exact keys:
 The webinar_topics array must have exactly 3 items, each covering a different angle of the book's content.
 Make everything specific to this author's book, niche, and audience. Never use generic placeholder text.`;
 
-    const aiRes = await fetch("https://ai-gateway.lovable.dev/v1/chat/completions", {
+    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
