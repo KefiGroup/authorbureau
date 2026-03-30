@@ -17,6 +17,19 @@ const POPULATE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/populate
 const AI_TOOLS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-author-tools`;
 const CONSULTATION_SESSION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/consultation-session`;
 
+const BOOTSTRAP_PROMPTS = [
+  "start a brand new consultation",
+  "i'd like to build a business around my book",
+];
+
+const isBootstrapOnlySession = (msgs: ChatMessage[] | null): boolean => {
+  if (!msgs || msgs.length !== 1) return false;
+  const [only] = msgs;
+  if (only.role !== "user") return false;
+  const content = only.content.toLowerCase();
+  return BOOTSTRAP_PROMPTS.some((prompt) => content.includes(prompt));
+};
+
 async function getActiveToken(): Promise<string | null> {
   const { data: cloudSession } = await cloudSupabase.auth.getSession();
   if (cloudSession?.session?.access_token) return cloudSession.session.access_token;
@@ -169,9 +182,31 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
         const existing = await loadExistingSession(selectedBook.id);
         console.log("[BuildMyBusiness] Session load result:", existing?.length ?? "null");
         if (existing && existing.length > 0) {
-          setMessages(existing);
-          setAbbyReading(false);
-          toast({ title: "Session restored", description: "Your previous conversation with Abby has been loaded." });
+          if (isBootstrapOnlySession(existing)) {
+            console.warn("[BuildMyBusiness] Ignoring bootstrap-only stale session and restarting consultation");
+            const staleSessionId = sessionIdRef.current;
+            if (staleSessionId) {
+              try {
+                const headers = await getSessionHeaders();
+                await fetch(CONSULTATION_SESSION_URL, {
+                  method: "POST",
+                  headers,
+                  body: JSON.stringify({ action: "reset", session_id: staleSessionId }),
+                });
+              } catch (resetErr) {
+                console.error("[BuildMyBusiness] Failed to reset stale session:", resetErr);
+              }
+            }
+            updateSessionId(null);
+            setMessages([]);
+            setShouldAutoStart(true);
+            setAbbyReading(false);
+          } else {
+            setMessages(existing);
+            setAbbyReading(false);
+            setShouldAutoStart(false);
+            toast({ title: "Session restored", description: "Your previous conversation with Abby has been loaded." });
+          }
         }
       } catch (err) {
         console.error("[BuildMyBusiness] Session load error:", err);
@@ -179,7 +214,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
         setSessionLoaded(true);
       }
     })();
-  }, [selectedBook, loadExistingSession, toast]);
+  }, [selectedBook, loadExistingSession, toast, getSessionHeaders]);
 
   // ─── Send message ───
   const sendMessage = useCallback(async (content: string) => {
