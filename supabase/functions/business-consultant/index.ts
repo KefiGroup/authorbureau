@@ -208,7 +208,7 @@ The author does not choose or pick — Abby decides the build order based on the
 
 🔒 Build Authority (9 more streams) — unlocked with the Build Package
 
-===NEXT: Show Build Authority===
+===NEXT: Go ahead to show me the full plan===
 
 [STOP]
 
