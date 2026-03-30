@@ -450,9 +450,10 @@ export default function Index() {
             transition={{ duration: 0.6 }}
             src="/images/journey-staircase.webp"
             alt="The ABBY Journey Framework — FREE to BRAND to BUILD to YIELD"
-            className="w-full max-w-5xl mx-auto rounded-2xl shadow-xl mb-12"
+            className="w-full max-w-5xl mx-auto rounded-2xl shadow-xl mb-2"
             loading="lazy"
           />
+          <CopyrightCaption className="max-w-5xl mx-auto mb-12" />
 
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
             {[

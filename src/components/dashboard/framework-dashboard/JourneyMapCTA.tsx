@@ -58,6 +58,7 @@ export default function JourneyMapCTA({ currentJourneyStep, bookApproved, onActi
             alt="The ABBY Journey Framework - One Book. 28 Revenue Streams. Your Empire."
             className="w-full h-auto"
           />
+          <CopyrightCaption />
         </div>
 
         {/* Dynamic CTA */}

@@ -167,7 +167,8 @@ export default function ABBYFrameworkArticle() {
       {/* Section 5 */}
       <section id="abby-article-5" style={{ scrollMarginTop: 80 }}>
         <h2 className="text-xl font-bold text-foreground mb-3">5. Choosing Your Path</h2>
-        <img src={THREE_PATHS} alt="Three paths for authors" className="w-full rounded-xl border border-border mb-6" loading="lazy" />
+        <img src={THREE_PATHS} alt="Three paths for authors" className="w-full rounded-xl border border-border mb-1" loading="lazy" />
+        <CopyrightCaption className="mb-6" />
 
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="rounded-xl border-2 border-emerald-500 p-4 space-y-2">

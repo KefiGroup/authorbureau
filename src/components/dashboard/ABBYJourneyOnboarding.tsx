@@ -252,6 +252,7 @@ export default function ABBYJourneyOnboarding({ userId, onComplete }: Props) {
                     </p>
                   </div>
                   <img src="/images/journey-comparison.webp" alt="Product Comparison Guide" className="w-full rounded-lg" loading="lazy" />
+                  <CopyrightCaption />
                   <ComparisonAccordion />
                 </div>
               )}

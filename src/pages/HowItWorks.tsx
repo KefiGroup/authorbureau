@@ -249,9 +249,10 @@ export default function HowItWorks() {
             initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }} transition={{ duration: 0.6 }}
             src={COMPARISON_IMAGE} alt="Product comparison guide"
-            className="w-full rounded-2xl shadow-xl mb-10"
+            className="w-full rounded-2xl shadow-xl mb-2"
             loading="lazy"
           />
+          <CopyrightCaption className="mb-10" />
 
           <div className="space-y-3 max-w-3xl mx-auto">
             {accordionData.map((acc, ai) => (
