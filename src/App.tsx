@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate, usePa
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import AccountSettings from "./pages/AccountSettings";
-import GetFeatured from "./pages/GetFeatured";
+
 import Directory from "./pages/Directory";
 import AuthorProfile from "./pages/AuthorProfile";
 import { AuthorSlugRedirect } from "./pages/AuthorSlugRedirect";
