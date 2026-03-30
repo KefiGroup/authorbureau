@@ -10,7 +10,7 @@ import ABBYFrameworkArticle from "@/components/faq/ABBYFrameworkArticle";
 const categories = [
   { id: "getting-started", title: "Getting Started", icon: Rocket, iconBg: "#EFF6FF", iconColor: "#3B82F6", description: "Setting up your account, profile, and first book" },
   { id: "your-microsite", title: "Your Directory Profile", icon: Globe, iconBg: "#F0FDF4", iconColor: "#22C55E", description: "Managing your public author page and published offers" },
-  { id: "understanding-abby", title: "The ABBY Framework & Revenue Streams", icon: Sparkles, iconBg: "#FFFBEB", iconColor: "#D4A843", description: "How Abby works, the Analyse → Brand → Build → Yield journey, and all 28 revenue streams", isArticle: true },
+  { id: "understanding-abby", title: "The ABBY Framework & Revenue Streams", icon: Sparkles, iconBg: "#FFFBEB", iconColor: "#D4A843", description: "How Abby works, the Analyse → Brand → Build → Yield journey, and all 28 revenue streams" },
   { id: "building-products", title: "Building & Publishing", icon: Hammer, iconBg: "#FFF7ED", iconColor: "#F97316", description: "Using guided builders to create, review, and launch your offers" },
   { id: "readers-bureau", title: "Readers Bureau", icon: BookOpen, iconBg: "#F0FDFA", iconColor: "#14B8A6", description: "How readers discover your books, offers, and author content" },
 ];
