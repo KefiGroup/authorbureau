@@ -91,13 +91,8 @@ export default function FAQ() {
     sectionRefs.current[id]?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const openChatbot = () => {
-    const btn = document.querySelector("[data-abby-trigger]") as HTMLButtonElement;
-    if (btn) {
-      btn.click();
-    } else {
-      window.location.href = "/auth?redirect=" + encodeURIComponent("/dashboard");
-    }
+  const openChatbot = (mode?: "help" | "bug" | "feedback") => {
+    window.dispatchEvent(new CustomEvent("abby-open", { detail: { mode: mode || "help" } }));
   };
 
   const lq = searchQuery.toLowerCase();
