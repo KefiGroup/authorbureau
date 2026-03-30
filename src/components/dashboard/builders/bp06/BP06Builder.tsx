@@ -8,23 +8,22 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Sparkles, ArrowLeft, ArrowRight, Check, BookOpen, LayoutList, DollarSign, FileText, Copy } from "lucide-react";
+import { Sparkles, ArrowLeft, ArrowRight, Check, FileText, LayoutList, DollarSign, Copy } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 import { publishNodeToSite } from "@/lib/publish-node";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = [
-  "Studying your book's key insights and frameworks...",
-  "Designing your online course structure...",
-  "Creating 6 detailed course modules...",
-  "Writing your sales page copy...",
-  "Finalising your course blueprint...",
+  "Reading your book's key insights and frameworks...",
+  "Designing your companion workbook structure...",
+  "Creating 5 workbook sections with exercises...",
+  "Writing reflection prompts and action items...",
+  "Finalising your workbook blueprint...",
 ];
 const ACT_MSGS = [
-  "Creating your course product...",
-  "Setting up your payment page...",
-  "Generating your checkout link...",
-  "Your course is almost ready...",
+  "Setting up your workbook landing page...",
+  "Configuring your lead magnet delivery...",
+  "Your workbook is almost ready...",
 ];
 
 interface Props { authorId: string | null; }
@@ -92,7 +91,7 @@ export default function BP06Builder({ authorId }: Props) {
       const { data, error: fnErr } = await supabase.functions.invoke("generate-bp06-online-course", { body: { author_id: authorId } });
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       setContent(data.content);
-      setPriceOverride(data.content?.suggested_price_usd || null);
+      setPriceOverride(data.content?.suggested_price_usd ?? 0);
       setStep(2);
     } catch (e: any) { setError(e.message); setStep(0); }
   };
@@ -116,7 +115,7 @@ export default function BP06Builder({ authorId }: Props) {
       <div className="border-b border-border bg-card px-4 py-3">
         <div className="max-w-3xl mx-auto flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate("/brand-products")}><ArrowLeft className="h-4 w-4" /></Button>
-          <div className="flex-1"><h1 className="text-lg font-semibold">Online Course</h1><p className="text-xs text-muted-foreground">BP-06</p></div>
+          <div className="flex-1"><h1 className="text-lg font-semibold">Workbook</h1><p className="text-xs text-muted-foreground">BP-06</p></div>
         </div>
       </div>
       <div className="max-w-3xl mx-auto px-4 pt-6 pb-2">
@@ -135,12 +134,12 @@ export default function BP06Builder({ authorId }: Props) {
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         {step === 0 && (
           <AbbyCard>
-            <h2 className="text-xl font-bold mb-3">Let's build your Online Course</h2>
+            <h2 className="text-xl font-bold mb-3">Let's build your Workbook</h2>
             {!isBookLoading && !hasBook ? (
-              <><p className="text-muted-foreground mb-4">Hi {authorName}! Before I can build your course, I need to know about your book. Please complete your book profile first.</p><Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-06")}>Complete Book Profile</Button></>
+              <><p className="text-muted-foreground mb-4">Hi {authorName}! Before I can build your workbook, I need to know about your book. Please complete your book profile first.</p><Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-06")}>Complete Book Profile</Button></>
             ) : (
-              <><p className="text-muted-foreground mb-4">Hi {authorName}! Your book is the perfect foundation for an online course. I'm going to design a complete online course based on '{detectedBookTitle || "your book"}' — with a course title, module structure, learning outcomes, and a sales page. Your students will get the transformation your book promises, delivered in a structured learning experience. Ready to build your course?</p>
-                <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Build My Course</Button></>
+              <><p className="text-muted-foreground mb-4">Hi {authorName}! A companion workbook is the perfect free lead magnet — it builds your email list and gives readers a practical way to apply your ideas. I'm going to design a complete workbook based on '{detectedBookTitle || "your book"}' — with sections, exercises, reflection prompts, and action items. Ready?</p>
+                <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Build My Workbook</Button></>
             )}
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">I hit a snag generating your content. {error}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>
@@ -149,11 +148,7 @@ export default function BP06Builder({ authorId }: Props) {
         {step === 2 && content && <ReviewStep content={content} authorName={authorName} onActivate={handlePublish} priceOverride={priceOverride} setPriceOverride={setPriceOverride} />}
         {step === 3 && !content?.activated && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{ACT_MSGS[msgIndex % ACT_MSGS.length]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /></div></AbbyCard>}
         {step === 3 && content?.activated && (
-          <PublishSuccessScreen
-              nodeId="BP-06"
-              authorName={authorName}
-              penNameSlug={authorSlug}
-            />
+          <PublishSuccessScreen nodeId="BP-06" authorName={authorName} penNameSlug={authorSlug} />
         )}
       </div>
     </div>
@@ -169,20 +164,20 @@ function ReviewStep({ content, authorName, onActivate, priceOverride, setPriceOv
     <div className="space-y-4">
       <AbbyCard><p className="text-muted-foreground">{content.abby_summary}</p></AbbyCard>
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="w-full grid grid-cols-4 h-auto">
-          <TabsTrigger value="overview" className="text-xs py-2"><BookOpen className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Overview</TabsTrigger>
-          <TabsTrigger value="curriculum" className="text-xs py-2"><LayoutList className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Curriculum</TabsTrigger>
-          <TabsTrigger value="pricing" className="text-xs py-2"><DollarSign className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Pricing</TabsTrigger>
-          <TabsTrigger value="sales" className="text-xs py-2"><FileText className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Sales Page</TabsTrigger>
+        <TabsList className="w-full grid grid-cols-3 h-auto">
+          <TabsTrigger value="overview" className="text-xs py-2"><FileText className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Overview</TabsTrigger>
+          <TabsTrigger value="sections" className="text-xs py-2"><LayoutList className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Sections</TabsTrigger>
+          <TabsTrigger value="sales" className="text-xs py-2"><DollarSign className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Sales Page</TabsTrigger>
         </TabsList>
         <TabsContent value="overview" className="space-y-4 mt-4">
           <Card><CardContent className="pt-6 space-y-3">
-            <h3 className="text-xl font-bold">{content.course_title}</h3>
-            {content.course_subtitle && <p className="text-muted-foreground">{content.course_subtitle}</p>}
+            <h3 className="text-xl font-bold">{content.workbook_title}</h3>
+            {content.workbook_subtitle && <p className="text-muted-foreground">{content.workbook_subtitle}</p>}
             {content.tagline && <p className="text-sm font-semibold text-primary italic">"{content.tagline}"</p>}
             <div className="flex gap-2 flex-wrap">
-              <span className="text-xs bg-muted px-2.5 py-1 rounded-full">{content.duration}</span>
+              <span className="text-xs bg-muted px-2.5 py-1 rounded-full">{content.page_count}</span>
               <span className="text-xs bg-muted px-2.5 py-1 rounded-full">{content.format}</span>
+              <span className="text-xs bg-emerald-500/10 text-emerald-600 px-2.5 py-1 rounded-full font-semibold">{(content.suggested_price_usd || 0) === 0 ? "FREE Lead Magnet" : `$${content.suggested_price_usd}`}</span>
             </div>
             <div><p className="text-xs font-semibold text-muted-foreground mb-1">Transformation Promise</p><p className="text-sm">{content.transformation_promise}</p></div>
             <div><p className="text-xs font-semibold text-muted-foreground mb-1">Who It's For</p><p className="text-sm">{content.who_its_for}</p></div>
@@ -191,22 +186,15 @@ function ReviewStep({ content, authorName, onActivate, priceOverride, setPriceOv
             </div>
           </CardContent></Card>
         </TabsContent>
-        <TabsContent value="curriculum" className="space-y-4 mt-4">
-          {content.modules?.map((m: any, i: number) => (
+        <TabsContent value="sections" className="space-y-4 mt-4">
+          {content.sections?.map((s: any, i: number) => (
             <Card key={i}><CardContent className="pt-6 space-y-3">
-              <div className="flex items-center gap-2"><span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">{m.number}</span><h4 className="font-bold">{m.title}</h4></div>
-              <p className="text-sm text-muted-foreground">{m.description}</p>
-              <div><p className="text-xs font-semibold text-muted-foreground mb-1">Lessons</p><ul className="space-y-1">{m.lessons?.map((l: string, j: number) => <li key={j} className="text-sm flex items-start gap-2"><span className="text-muted-foreground">{j + 1}.</span>{l}</li>)}</ul></div>
-              <Card className="bg-muted/30"><CardContent className="pt-3 pb-3"><p className="text-xs font-semibold text-muted-foreground mb-1">After this module, you can:</p><p className="text-sm">{m.outcome}</p></CardContent></Card>
+              <div className="flex items-center gap-2"><span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">{s.number}</span><h4 className="font-bold">{s.title}</h4></div>
+              <p className="text-sm text-muted-foreground">{s.description}</p>
+              <div><p className="text-xs font-semibold text-muted-foreground mb-1">Exercises</p><ul className="space-y-1">{s.exercises?.map((e: string, j: number) => <li key={j} className="text-sm flex items-start gap-2"><span className="text-muted-foreground">{j + 1}.</span>{e}</li>)}</ul></div>
+              <Card className="bg-muted/30"><CardContent className="pt-3 pb-3"><p className="text-xs font-semibold text-muted-foreground mb-1">After this section, you can:</p><p className="text-sm">{s.outcome}</p></CardContent></Card>
             </CardContent></Card>
           ))}
-        </TabsContent>
-        <TabsContent value="pricing" className="space-y-4 mt-4">
-          <Card><CardContent className="pt-6 space-y-4 text-center">
-            <p className="text-xs font-semibold text-muted-foreground">Your price (USD)</p>
-            <div className="flex items-center justify-center gap-2"><span className="text-3xl font-bold">$</span><Input type="number" className="w-32 text-3xl font-bold text-center" value={priceOverride ?? content.suggested_price_usd ?? 497} onChange={(e) => setPriceOverride(Number(e.target.value))} /></div>
-            <p className="text-sm text-muted-foreground">{content.pricing_rationale}</p>
-          </CardContent></Card>
         </TabsContent>
         <TabsContent value="sales" className="space-y-4 mt-4">
           <Card><CardContent className="pt-6 space-y-4">
@@ -215,7 +203,7 @@ function ReviewStep({ content, authorName, onActivate, priceOverride, setPriceOv
               <p className="text-muted-foreground">{content.sales_page?.subheadline}</p>
               <p className="text-sm">{content.sales_page?.pain_point}</p>
               <p className="text-sm">{content.sales_page?.solution_statement}</p>
-              <span className="inline-flex items-center justify-center px-6 py-3 rounded-md bg-primary text-primary-foreground text-sm font-medium mt-3">{content.sales_page?.cta_button_text || "Enrol Now"}</span>
+              <span className="inline-flex items-center justify-center px-6 py-3 rounded-md bg-primary text-primary-foreground text-sm font-medium mt-3">{content.sales_page?.cta_button_text || "Download Free Workbook"}</span>
             </div>
           </CardContent></Card>
         </TabsContent>
@@ -224,9 +212,7 @@ function ReviewStep({ content, authorName, onActivate, priceOverride, setPriceOv
         <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon. Activate now and request changes from ABBY later.")}>Edit</Button>
         <Button className="flex-1" size="lg" onClick={onActivate}>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></Button>
       </div>
-      <p className="text-xs text-center text-muted-foreground">Your course will be set up automatically. You'll receive a payment link to share with your audience.</p>
+      <p className="text-xs text-center text-muted-foreground">Your workbook will be published as a free lead magnet on your author site.</p>
     </div>
   );
 }
-
-// SuccessStep replaced by NodeSuccessScreen
