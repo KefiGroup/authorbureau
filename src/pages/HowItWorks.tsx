@@ -164,6 +164,83 @@ export default function HowItWorks() {
             loading="lazy"
           />
           <CopyrightCaption />
+
+          {/* 28 Revenue Streams Explained */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.2 }}
+            className="mt-16 space-y-10"
+          >
+            <div>
+              <h3 className="font-heading text-xl md:text-2xl font-bold text-foreground mb-1">Brand Products — 9 revenue streams</h3>
+              <p className="text-sm text-muted-foreground mb-4">Build your foundation with products that attract, nurture, and monetize readers.</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[
+                  { name: "Email Marketing", desc: "Build and nurture your audience with welcome sequences, campaigns, and follow-up automation." },
+                  { name: "Lead Magnets", desc: "Turn reader interest into subscribers with free, valuable downloads tied to your book." },
+                  { name: "Social Media", desc: "Create consistent content that keeps your ideas visible and brings readers into your world." },
+                  { name: "Website / Microsite", desc: "Give every reader a clear home base for your profile, books, and published offers." },
+                  { name: "Webinars", desc: "Use presentations and live sessions to educate your audience and invite the next step." },
+                  { name: "Workbook", desc: "Package your core ideas into a practical companion readers can use and share." },
+                  { name: "Home Study Course", desc: "Expand your book into a guided self-paced learning experience." },
+                  { name: "Special Editions", desc: "Offer premium versions of your book for committed readers and collectors." },
+                  { name: "Book Sales", desc: "Create direct sales opportunities through events, campaigns, and your public pages." },
+                ].map((s) => (
+                  <div key={s.name} className="rounded-lg border border-border bg-card p-4 text-sm">
+                    <span className="font-semibold text-foreground">{s.name}</span>
+                    <p className="text-muted-foreground mt-1 text-xs leading-relaxed">{s.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="font-heading text-xl md:text-2xl font-bold text-foreground mb-1">Build Authority — 9 revenue streams</h3>
+              <p className="text-sm text-muted-foreground mb-4">Scale your reach with premium content, partnerships, and audience growth tools.</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[
+                  { name: "Online Courses", desc: "Turn your expertise into a structured teaching product with modules and outcomes." },
+                  { name: "Audiobook", desc: "Extend your reach and accessibility with an audio edition of your ideas." },
+                  { name: "Memberships", desc: "Create recurring value through ongoing content, community, and access." },
+                  { name: "Group Coaching", desc: "Lead readers through a shared transformation in a scalable live format." },
+                  { name: "Podcast Tour", desc: "Build authority by getting your message in front of aligned audiences." },
+                  { name: "Media Outreach", desc: "Increase visibility with interviews, press angles, and media positioning." },
+                  { name: "Affiliates", desc: "Let partners and advocates help distribute your products and offers." },
+                  { name: "Upsells / Downsells", desc: "Increase customer value by guiding readers to the next best offer." },
+                  { name: "Revenue Sharing", desc: "Create aligned partnerships where growth and outcomes are shared." },
+                ].map((s) => (
+                  <div key={s.name} className="rounded-lg border border-border bg-card p-4 text-sm">
+                    <span className="font-semibold text-foreground">{s.name}</span>
+                    <p className="text-muted-foreground mt-1 text-xs leading-relaxed">{s.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="font-heading text-xl md:text-2xl font-bold text-foreground mb-1">Yield Revenue — 10 revenue streams</h3>
+              <p className="text-sm text-muted-foreground mb-4">Unlock premium high-ticket services, events, and long-term business growth.</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[
+                  { name: "Coaching", desc: "Offer personalized transformation through one-on-one client work." },
+                  { name: "Consulting", desc: "Solve higher-level business or leadership problems using your expertise." },
+                  { name: "Keynotes", desc: "Turn your ideas into talks that open doors to stages and partnerships." },
+                  { name: "Training Programs", desc: "Deliver structured programs for organizations that want implementation." },
+                  { name: "Masterminds", desc: "Create premium peer groups around your methodology and guidance." },
+                  { name: "Retreats & Bootcamps", desc: "Design immersive experiences that deepen trust and create transformation." },
+                  { name: "Certification", desc: "License your framework so others can teach or use it." },
+                  { name: "Conventions / Conferences", desc: "Host larger events that expand your authority and create income layers." },
+                  { name: "Fund Raising", desc: "Use your message to mobilize mission-aligned supporters." },
+                  { name: "Exhibitors / JV", desc: "Create strategic event and partnership revenue beyond direct sales." },
+                ].map((s) => (
+                  <div key={s.name} className="rounded-lg border border-border bg-card p-4 text-sm">
+                    <span className="font-semibold text-foreground">{s.name}</span>
+                    <p className="text-muted-foreground mt-1 text-xs leading-relaxed">{s.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
         </div>
       </section>
 
