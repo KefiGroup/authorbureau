@@ -216,6 +216,7 @@ export default function ABBYJourneyOnboarding({ userId, onComplete }: Props) {
                     </p>
                   </div>
                   <img src="/images/journey-staircase.webp" alt="ABBY Journey Staircase" className="w-full rounded-lg" loading="lazy" />
+                  <CopyrightCaption />
                 </div>
               )}
 
