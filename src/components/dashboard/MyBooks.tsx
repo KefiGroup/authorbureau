@@ -443,10 +443,15 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
 
                     {/* Status indicators */}
                     <div className="flex flex-col gap-1">
-                      {book.published_at && (
+                      {book.published_at ? (
                         <div className="flex items-center gap-1.5">
                           <div className="h-1.5 w-1.5 rounded-full bg-[#059669]" />
                           <span className="text-[11px] text-muted-foreground">Book Page Live</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          <div className="h-1.5 w-1.5 rounded-full bg-[#F59E0B] animate-pulse" />
+                          <span className="text-[11px] text-amber-600 font-medium">Pending Admin Approval</span>
                         </div>
                       )}
                       {isAnalyzed && (
