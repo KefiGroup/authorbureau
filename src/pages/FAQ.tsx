@@ -158,26 +158,6 @@ export default function FAQ() {
       {filteredCategories.map((cat, catIdx) => {
         const Icon = cat.icon;
 
-        if ((cat as any).isArticle) {
-          if (lq) return null;
-          return (
-            <section
-              key={cat.id}
-              id={cat.id}
-              ref={(el) => { sectionRefs.current[cat.id] = el; }}
-              className={cn("py-12", catIdx % 2 === 0 ? "bg-background" : "bg-muted/30")}
-              style={{ scrollMarginTop: 80 }}
-            >
-              <div className="container max-w-[800px]">
-                <div className="flex items-center gap-3 mb-6">
-                  <Icon size={24} style={{ color: cat.iconColor }} />
-                  <h2 className="text-2xl font-semibold" style={{ color: "#1B2A4A" }}>{cat.title}</h2>
-                </div>
-                <ABBYFrameworkArticle />
-              </div>
-            </section>
-          );
-        }
 
         const items = faqData[cat.id] || [];
         const filteredItems = lq ? items.filter((f) => f.q.toLowerCase().includes(lq) || f.a.toLowerCase().includes(lq)) : items;
