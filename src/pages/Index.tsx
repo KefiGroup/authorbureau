@@ -553,7 +553,7 @@ export default function Index() {
             ))}
           </motion.div>
 
-          <p className="text-center text-xs text-primary-foreground/30 mt-6">* Placeholder testimonials — real stories coming soon</p>
+          {/* testimonials disclaimer removed */}
         </div>
       </section>
 
