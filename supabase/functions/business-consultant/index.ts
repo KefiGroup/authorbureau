@@ -3495,8 +3495,8 @@ request_meta: ${JSON.stringify({
         assistant_turns: assistantTurns,
       })}`;
 
-      const isEarlyTurn = !hasSavedPlan && conversationTurn <= 3;
-      const isPostPlan = !hasSavedPlan && conversationTurn >= 5;
+      const isEarlyTurn = !hasSavedPlan && conversationTurn <= 4;
+      const isPostPlan = !hasSavedPlan && conversationTurn >= 10;
       const isRefinementGreeting = hasSavedPlan && assistantTurns === 0;
       maxTokens = (isEarlyTurn || isRefinementGreeting || isPostPlan) ? 300 : 4096;
     }
