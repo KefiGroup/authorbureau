@@ -104,19 +104,24 @@ export default function DashboardSidebar({
   // ── HOME ──
   const homeItems: NavItem[] = [
     { id: "overview", label: "Dashboard", icon: LayoutDashboard },
-    {
+    // Only show "Ask ABBY" coaching chat if the author has completed the business plan consultation
+    ...(hasAnalysis ? [{
       id: "abby-coach" as DashboardSection, label: "Ask ABBY", icon: Sparkles,
       subtitle: "Your AI Business Coach",
       tooltip: "Ask ABBY anything about your author business.",
       color: "text-secondary",
       notificationCount: unreadNudges > 0 ? unreadNudges : undefined,
-    },
+    }] : []),
   ];
 
   // ── GET STARTED ──
   const getStartedItems: NavItem[] = [
     { id: "my-books", label: "My Books Hub", icon: BookOpen, notificationCount: pendingReviewCount },
-    { id: "build-business", label: "My Business Plan", icon: Sparkles },
+    {
+      id: "build-business", label: hasAnalysis ? "My Business Plan" : "Build My Business Plan", icon: Sparkles,
+      badge: !hasAnalysis ? "Start Here →" : undefined,
+      color: !hasAnalysis ? "text-secondary" : undefined,
+    },
   ];
 
   // ── BUILD YOUR BUSINESS ──
