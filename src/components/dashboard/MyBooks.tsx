@@ -230,7 +230,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
     const hasAnalyzedNotSubscribed = books.some(b => analyzedBooks.has(b.id)) && !isSubscribed;
     if (hasAnalyzedNotSubscribed) return { priority: 1 };
     if (isSubscribed && !stripeConnected) return { priority: 2 };
-    const unanalyzedBook = books.find(b => !analyzedBooks.has(b.id));
+    const unanalyzedBook = books.find(b => !analyzedBooks.has(b.id) && !!b.published_at);
     if (unanalyzedBook) return { priority: 3, bookTitle: unanalyzedBook.title };
     // Default progress banner
     if (books.length > 0) return { priority: 5 };

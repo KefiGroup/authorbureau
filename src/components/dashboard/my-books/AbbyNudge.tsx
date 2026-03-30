@@ -40,9 +40,9 @@ export default function AbbyNudge({
   const style = getStyleForState(stage, tier);
 
   const getMessage = (): string => {
-    // Stage 1: Microsite only — needs analysis
+    // Stage 1: Book added but not yet approved
     if (stage === 1) {
-      return `Your microsite for "${bookTitle}" is live! Now let me analyze your book and map up to 28 revenue streams. It's free and takes about 5 minutes.`;
+      return `"${bookTitle}" has been submitted and is pending approval by our team. Once approved, your book page will go live and I can analyze it to map up to 28 revenue streams.`;
     }
 
     // Stage 2: Needs analysis (book page live but not analyzed)
