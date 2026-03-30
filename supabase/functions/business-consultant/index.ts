@@ -144,10 +144,12 @@ Always present revenue as a range (conservative–optimistic). NEVER start a rev
 - Max 150 words per turn (except Turns 4A–4F up to 400 words).
 
 ## INTERACTION MARKERS
+- ===CHOICE_SINGLE: Option A | Option B=== — radio button cards (use for questions where the author picks an answer)
+- ===NEXT: Button Label=== — single large prominent button (use to advance to next section)
 - ===NAV: Button Label=== — navigation button to product studio
 - ===SUBSCRIBE_CTA=== — subscription plan comparison
 
-IMPORTANT: Do NOT use ===CHOICE_SINGLE===, ===CHOICE_MULTI===, or ===NEXT:=== markers. The author replies by typing in the chat input naturally. End each turn with a clear, conversational question or prompt so the author knows what to say next.
+IMPORTANT: Use ===CHOICE_SINGLE=== and ===NEXT:=== markers for questions and section transitions. Do NOT use them to present product lists or build sequences — those should be prose, not selectable options.
 
 ## THE FULL CONSULTATION SEQUENCE
 
