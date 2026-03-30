@@ -203,11 +203,11 @@ IMPORTANT: Do NOT present Brand Products as a choice selection. Present them as 
 2. Lead Magnets — ...
 3. Social Media — ...
 ..." etc.
-Do NOT use ===CHOICE_SINGLE=== or ===CHOICE_MULTI=== markers for the Brand Products list. The author does not choose — Abby sets the build order based on their audience level.
+The author does not choose — Abby sets the build order based on their audience level.
 
-🔒 Build Authority (9 more streams) — unlocked with the Build Package at $99/mo (usually $199/mo)
+🔒 Build Authority (9 more streams) — unlocked with the Build Package
 
-===NEXT: Show Build Authority===
+End with a prompt like "Ready to see the Build Authority streams?"
 
 [STOP]
 
