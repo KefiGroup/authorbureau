@@ -100,9 +100,13 @@ export async function redirectToPublishNow(
       }
     }
 
-    // 3. Success — open in new tab
+    // 3. Success — open in the pre-opened window (avoids popup blocker)
     const url = `${PUBLISHNOW_SSO_URL}?token=${token}&from=authorsbureau&redirect=${encodeURIComponent(targetPath)}`;
-    window.open(url, "_blank");
+    if (popup && !popup.closed) {
+      popup.location.href = url;
+    } else {
+      window.open(url, "_blank");
+    }
     return {};
   } catch (err) {
     return {
