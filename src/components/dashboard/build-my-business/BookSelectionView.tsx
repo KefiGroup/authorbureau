@@ -218,9 +218,9 @@ export default function BookSelectionView({
                       </span>
                     )}
                     <div className="flex items-center gap-2 pt-1">
-                      <Button size="lg" className="flex-1 text-sm bg-secondary text-secondary-foreground hover:bg-secondary/90 gap-1.5 font-semibold shadow-md">
-                        <Sparkles className="h-4 w-4" />
-                        {hasManuscript ? "Start My Business Plan with ABBY →" : "Upload Manuscript First"}
+                      <Button size="lg" className="flex-1 text-xs sm:text-sm bg-secondary text-secondary-foreground hover:bg-secondary/90 gap-1.5 font-semibold shadow-md whitespace-nowrap">
+                        <Sparkles className="h-4 w-4 shrink-0" />
+                        {hasManuscript ? "Start Business Plan →" : "Upload Manuscript First"}
                       </Button>
                     </div>
                     <p className="text-[10px] text-muted-foreground italic text-center">
