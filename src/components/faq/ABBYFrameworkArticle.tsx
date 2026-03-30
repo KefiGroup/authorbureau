@@ -157,7 +157,8 @@ export default function ABBYFrameworkArticle() {
       {/* Section 4 */}
       <section id="abby-article-4" style={{ scrollMarginTop: 80 }}>
         <h2 className="text-xl font-bold text-foreground mb-3">4. How the Revenue Streams Connect</h2>
-        <img src={FLOW_DIAGRAM} alt="How 28 revenue streams connect" className="w-full rounded-xl border border-border mb-4" loading="lazy" />
+        <img src={FLOW_DIAGRAM} alt="How 28 revenue streams connect" className="w-full rounded-xl border border-border mb-1" loading="lazy" />
+        <CopyrightCaption className="mb-4" />
         <p className="text-sm leading-relaxed text-muted-foreground">
           Email Marketing feeds all products. Your Website is the hub that connects everything. Affiliates bridge BUILD products to YIELD services. When you build a course, Abby automatically creates the email sequence to sell it, the social media posts to promote it, and the sales page to convert visitors. Every product feeds into the next.
         </p>
