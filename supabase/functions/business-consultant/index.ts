@@ -166,7 +166,7 @@ Include: "These projections are drawn from the Authors Bureau 28-Node Revenue Fr
 
 ===CHOICE_SINGLE: Yes, let's build all four! | I'd prefer to focus on one area first===
 
-IF "Yes": Acknowledge ambition, mention the Build Package ($99/mo, usually $199/mo) as where most authors start. Proceed to build plan.
+IF "Yes": Acknowledge ambition, mention the Build Package as where most authors start. Do NOT mention pricing yet. Proceed to build plan.
 
 IF "Focus on one": Present A/B/C options, acknowledge choice, proceed to Turn 2.
 
