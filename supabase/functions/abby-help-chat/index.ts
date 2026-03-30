@@ -216,8 +216,13 @@ serve(async (req) => {
       });
     }
 
-    // ── Handle feedback submission ────────────────────────────────
+    // ── Handle feedback submission (auth required) ─────────────
     if (action === "submit_feedback") {
+      if (!isAuthenticated) {
+        return new Response(JSON.stringify({ error: "Please sign in to submit feedback." }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const allowed = await checkRateLimit(supabase, `escalation:${rateLimitKey}`, 3, 60);
       if (!allowed) {
         console.warn(`Rate limit hit (escalation): ${rateLimitKey}`);
