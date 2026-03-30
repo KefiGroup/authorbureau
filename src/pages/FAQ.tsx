@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { Search, Sparkles, Bug, MessageSquare, Rocket, Globe, Hammer, BookOpen, ChevronRight, ChevronDown, ThumbsUp, ThumbsDown } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
