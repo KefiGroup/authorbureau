@@ -460,7 +460,7 @@ export default function Index() {
             {[
               {
                 step: "1",
-                title: "Upload Your Book",
+                title: "ANALYSE Your Book",
                 tag: "ABBY AI ANALYSIS",
                 desc: "Upload your manuscript and Abby analyzes your book, identifies your frameworks, and creates a personalized business plan showing which of the 28 revenue streams are the best fit for your topic and audience.",
               },
