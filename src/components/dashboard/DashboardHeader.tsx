@@ -55,6 +55,12 @@ export default function DashboardHeader({ user, isPremium, isAdmin, tier, subscr
   const displayName = penName || user.email;
   const effectiveTier = isAdmin ? "yield" : tier;
 
+  const TIER_DISPLAY: Record<string, string> = {
+    starter: "Brand", pro: "Build", enterprise: "Yield",
+    brand: "Brand", build: "Build", yield: "Yield",
+  };
+  const tierDisplay = effectiveTier ? (TIER_DISPLAY[effectiveTier] || effectiveTier.charAt(0).toUpperCase() + effectiveTier.slice(1)) : null;
+
   return (
     <header className="flex h-16 items-center justify-between border-b border-border bg-card px-4 lg:px-8">
       <div className="flex items-center gap-3">
@@ -67,7 +73,7 @@ export default function DashboardHeader({ user, isPremium, isAdmin, tier, subscr
             {displayName}
             {effectiveTier && effectiveTier !== "free" ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-secondary/15 px-2 py-0.5 text-[10px] font-semibold text-secondary">
-                <Crown className="h-2.5 w-2.5" /> {effectiveTier.charAt(0).toUpperCase() + effectiveTier.slice(1)}
+                <Crown className="h-2.5 w-2.5" /> {tierDisplay}
               </span>
             ) : !subscription.loading ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">

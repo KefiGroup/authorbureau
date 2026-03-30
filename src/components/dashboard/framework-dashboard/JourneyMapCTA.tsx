@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Globe, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import staircaseImg from "@/assets/abby_journey_staircase_v6.webp";
+import staircaseImg from "@/assets/abby_journey_staircase_v7.webp";
 
 type StepState = "done" | "current" | "upcoming";
 

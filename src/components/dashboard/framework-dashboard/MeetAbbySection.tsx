@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Sparkles, MessageCircleHeart, TrendingUp, BarChart3, Clock } from "lucide-react";
+import { Sparkles, MessageCircleHeart, TrendingUp, BarChart3, Clock, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import NewUserOnboarding from "./NewUserOnboarding";
 
@@ -112,6 +112,13 @@ export default function MeetAbbySection({ hasPlan, planSummary, hasBook, bookApp
           <div className="space-y-2">
             {bookApproved ? (
               <>
+                <div className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-800 px-5 py-4 mb-3">
+                  <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-green-800 dark:text-green-200">Your book is now live on Authors Bureau! 🎉</p>
+                    <p className="text-xs text-green-700/80 dark:text-green-300/60">Your book page is published and visible to readers. Now let Abby analyze it to map up to 28 revenue streams into a personalized business plan — it's free and takes about 5 minutes.</p>
+                  </div>
+                </div>
                 <Button onClick={onStartConsultation} size="lg" className="w-fit bg-amber-600 hover:bg-amber-700 text-white shadow-lg">
                   <Sparkles className="h-4 w-4 mr-2" />
                   Analyze Your Book with Abby →
@@ -122,8 +129,8 @@ export default function MeetAbbySection({ hasPlan, planSummary, hasBook, bookApp
               <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 px-5 py-4">
                 <Clock className="h-5 w-5 text-amber-600 shrink-0 animate-pulse" />
                 <div>
-                  <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">Your book is pending admin approval</p>
-                  <p className="text-xs text-amber-700/80 dark:text-amber-300/60">Our team is reviewing your book. Once approved, Abby will be ready to analyze it and create your business plan.</p>
+                  <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">🎉 Congratulations! Your book has been submitted to Authors Bureau!</p>
+                  <p className="text-xs text-amber-700/80 dark:text-amber-300/60">Our team is reviewing it now. Once approved, your book page will go live on the Authors Bureau directory and Abby will be ready to analyze it.</p>
                 </div>
               </div>
             )}
