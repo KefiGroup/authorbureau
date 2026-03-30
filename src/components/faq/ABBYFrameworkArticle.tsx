@@ -197,36 +197,6 @@ export default function ABBYFrameworkArticle() {
           These are directional estimates based on the current platform revenue architecture. Actual results vary by niche, audience size, positioning, consistency, and execution.
         </p>
       </section>
-
-      <section id="abby-article-7" style={{ scrollMarginTop: 80 }}>
-        <h2 className="text-xl font-bold text-foreground mb-4">7. Frequently Asked Questions</h2>
-        <div className="space-y-2">
-          {faqItems.map((faq, i) => (
-            <div key={i} className="rounded-xl border border-border overflow-hidden">
-              <button
-                onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                className="flex w-full items-center justify-between px-4 py-3 text-sm font-semibold text-foreground hover:bg-muted/50 transition-colors"
-              >
-                <span>{faq.q}</span>
-                {openFaq === i ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
-              </button>
-              {openFaq === i && (
-                <div className="px-4 pb-4 text-sm text-muted-foreground">
-                  {faq.a}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <div className="rounded-2xl p-8 text-center" style={{ background: "linear-gradient(135deg, hsl(228,34%,16%), hsl(228,34%,22%))" }}>
-        <h3 className="text-xl font-bold text-white">Your Book Deserves More Than Royalties</h3>
-        <p className="text-white/60 text-sm mt-2">No credit card required. Upload your book and let Abby show you what's possible.</p>
-        <Button asChild size="lg" className="mt-5 bg-[hsl(45,50%,54%)] hover:bg-[hsl(45,50%,46%)] text-[hsl(228,34%,16%)] font-bold rounded-xl">
-          <Link to="/auth?redirect=%2Fdashboard%3Fsection%3Dbuild-business">Get Started Free <ArrowRight className="ml-2 h-4 w-4" /></Link>
-        </Button>
-      </div>
     </div>
   );
 }
