@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Sparkles, MessageCircleHeart, TrendingUp, BarChart3, Clock } from "lucide-react";
+import { Sparkles, MessageCircleHeart, TrendingUp, BarChart3, Clock, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import NewUserOnboarding from "./NewUserOnboarding";
 
