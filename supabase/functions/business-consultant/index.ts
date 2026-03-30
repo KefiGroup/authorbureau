@@ -3362,31 +3362,31 @@ REFINEMENT MODE — EXISTING PLAN DETECTED:
 - Keep response under 150 words.`;
     } else if (assistantTurns > 0) {
       // Map conversation turns to the prompt's turn labels
-      // Turns 1-3 are simple. Turn 4+ maps to 4A, 4B, 4C, 4D, 4E, 4F
+      // Turn 1 is greeting + audience question. Turn 2+ maps to 2A-2F plan reveal.
       const turnLabelMap: Record<number, string> = {
-        2: "2", 3: "3", 4: "4A", 5: "4B", 6: "4C", 7: "4D", 8: "4E", 9: "4F",
+        2: "2A", 3: "2B", 4: "2C", 5: "2D", 6: "2E", 7: "2F",
       };
-      const turnLabel = turnLabelMap[conversationTurn] || (conversationTurn > 9 ? "POST-PLAN" : String(conversationTurn));
-      const isSubTurn4 = conversationTurn >= 4 && conversationTurn <= 9;
-      const maxWords = isSubTurn4 ? 400 : 150;
+      const turnLabel = turnLabelMap[conversationTurn] || (conversationTurn > 7 ? "POST-PLAN" : String(conversationTurn));
+      const isSubTurn2 = conversationTurn >= 2 && conversationTurn <= 7;
+      const maxWords = isSubTurn2 ? 400 : 150;
 
       progressionBlock = `
 CONVERSATION PROGRESSION:
 CURRENT TURN: ${turnLabel}. Follow Turn ${turnLabel} instructions ONLY. End at the [STOP] marker. Maximum ${maxWords} words.
 
 ${hasSavedPlan ? "- Reference existing business plan. Only update specific sections they request." : ""}
-${!hasSavedPlan && conversationTurn <= 3 ? `- PACING: Turn ${turnLabel}. Under 150 words. Ask ONE question and STOP. Do NOT generate the business plan yet.` : ""}
-${!hasSavedPlan && isSubTurn4 ? `- You are on Turn ${turnLabel} of the multi-part plan reveal. Deliver ONLY this section. Do NOT skip ahead or combine multiple turns.` : ""}
-${!hasSavedPlan && conversationTurn === 4 ? `- Turn 4A: Deliver the Revenue Headline ONLY. End with ===NEXT: Go ahead to show me the full plan===` : ""}
-${!hasSavedPlan && conversationTurn === 5 ? `- Turn 4B: Deliver the Transformation Promise + Brand Products section. End with ===NEXT: Go ahead to show me the full plan===` : ""}
-${!hasSavedPlan && conversationTurn > 9 && !hasSavedPlan ? "- ONGOING: Under 150 words. Reference the business plan. Tie to manuscript content." : ""}`;
+${!hasSavedPlan && isSubTurn2 ? `- You are on Turn ${turnLabel} of the multi-part plan reveal. Deliver ONLY this section. Do NOT skip ahead or combine multiple turns. Do NOT ask additional questions — go straight to the proposal content.` : ""}
+${!hasSavedPlan && conversationTurn === 2 ? `- Turn 2A: Deliver the Revenue Headline ONLY. End with ===NEXT: Show me the full plan===` : ""}
+${!hasSavedPlan && conversationTurn === 3 ? `- Turn 2B: Deliver the Transformation Promise + Brand Products section. End with ===NEXT: Show Build Authority===` : ""}
+${!hasSavedPlan && conversationTurn > 7 && !hasSavedPlan ? "- ONGOING: Under 150 words. Reference the business plan. Tie to manuscript content." : ""}`;
     } else {
       progressionBlock = `
 CONVERSATION START:
 CURRENT TURN: 1. Follow Turn 1 instructions EXACTLY. Maximum 150 words.
 - Address the author by their name from author_profile.name. NEVER use email.
-- Greet warmly BY NAME, show ONE brief insight about their book, ask the A/B/C/D priority question, then STOP.
-- Do NOT skip ahead. Do NOT provide strategic analysis yet.`;
+- Greet warmly BY NAME, show ONE brief insight about their book, reveal the four income pillars with revenue numbers, then ask the audience level question using ===CHOICE_SINGLE=== and STOP.
+- This is the ONLY question turn. After they answer, go straight to the proposal.
+- Do NOT skip ahead. Do NOT provide the business plan yet.`;
     }
 
     let fullSystemPrompt: string;
