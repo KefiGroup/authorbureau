@@ -2,66 +2,69 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown, ChevronUp, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { CopyrightCaption } from "@/components/ui/copyright-caption";
+import frameworkImg from "@/assets/abby_journey_framework_v13_bby.webp";
+import staircaseImg from "@/assets/abby_journey_staircase_v7.webp";
+import connectImg from "@/assets/how_28_revenue_streams_connect_v2.webp";
 
-const STAIRCASE = "/images/journey-staircase.webp";
-const FLOW_DIAGRAM = "/images/journey-flow-diagram.webp";
-const COMPARISON = "/images/journey-comparison.webp";
-const THREE_PATHS = "/images/journey-three-paths.webp";
+type Stream = {
+  code: string;
+  name: string;
+  desc: string;
+};
 
-const buildStreams = [
-  { n: 1, name: "Workbooks", desc: "Downloadable PDF exercise books ($19–$47). Like a homework packet for your readers." },
-  { n: 2, name: "Home Study Courses", desc: "Self-paced multimedia kits with videos + worksheets ($97–$497). Like a box set." },
-  { n: 3, name: "Online Courses", desc: "Structured learning with modules, quizzes, community ($97–$997). Like a semester." },
-  { n: 4, name: "Book Sales", desc: "Direct sales of your book through your platform and events." },
-  { n: 5, name: "Special Editions", desc: "Premium versions: signed, annotated, collector's ($29–$79)." },
-  { n: 6, name: "Social Media Calendar", desc: "90-day AI-generated content calendar for all platforms." },
-  { n: 7, name: "Email Marketing", desc: "AI nurture sequences and drip campaigns to sell your products." },
-  { n: 8, name: "Website/Microsite", desc: "Your author hub and book landing page." },
+const brandStreams: Stream[] = [
+  { code: "BP-01", name: "Email Marketing", desc: "Build and nurture your audience with welcome sequences, campaigns, and follow-up automation." },
+  { code: "BP-02", name: "Lead Magnets", desc: "Turn reader interest into subscribers with free, valuable downloads tied to your book." },
+  { code: "BP-03", name: "Social Media", desc: "Create consistent content that keeps your ideas visible and brings readers into your world." },
+  { code: "BP-04", name: "Website / Microsite", desc: "Give every reader a clear home base for your profile, books, and published offers." },
+  { code: "BP-05", name: "Webinars", desc: "Use presentations, trainings, and live sessions to educate your audience and invite the next step." },
+  { code: "BP-06", name: "Workbook", desc: "Package your core ideas into a practical companion readers can use and share." },
+  { code: "BP-07", name: "Home Study Course", desc: "Expand your book into a guided self-paced learning experience." },
+  { code: "BP-08", name: "Special Editions", desc: "Offer premium versions of your book for committed readers, fans, and collectors." },
+  { code: "BP-09", name: "Book Sales", desc: "Create direct sales opportunities through events, campaigns, and your public pages." },
 ];
 
-const bridgeStreams = [
-  { n: 9, name: "Audiobook", desc: "Audio version of your book for Audible/Findaway." },
-  { n: 10, name: "Podcast Tour", desc: "Pitch kit to get booked as a guest on relevant podcasts." },
-  { n: 11, name: "Webinars", desc: "Live and recorded presentations that sell your products." },
-  { n: 12, name: "Lead Magnet Funnel", desc: "Free downloads that build your email list." },
-  { n: 13, name: "Media Outreach", desc: "Press releases and media pitch templates." },
-  { n: 14, name: "Affiliates", desc: "Tracking links and commission setup so others sell for you." },
-  { n: 15, name: "Upsells/Downsells", desc: "Strategic offers at checkout to increase order value." },
-  { n: 16, name: "Revenue Sharing", desc: "Joint venture partnerships with complementary authors." },
+const buildStreams: Stream[] = [
+  { code: "BA-10", name: "Online Courses", desc: "Turn your expertise into a structured teaching product with lessons, modules, and outcomes." },
+  { code: "BA-11", name: "Audiobook", desc: "Extend your reach and accessibility with an audio edition of your ideas." },
+  { code: "BA-12", name: "Memberships", desc: "Create recurring value for your audience through ongoing content, community, and access." },
+  { code: "BA-13", name: "Group Coaching", desc: "Lead readers through a shared transformation in a scalable live format." },
+  { code: "BA-14", name: "Podcast Tour", desc: "Build authority by getting your message in front of aligned audiences." },
+  { code: "BA-15", name: "Media Outreach", desc: "Increase visibility with interviews, press angles, and media positioning." },
+  { code: "BA-16", name: "Affiliates", desc: "Let partners and advocates help distribute your products and offers." },
+  { code: "BA-17", name: "Upsells / Downsells", desc: "Increase customer value by guiding readers to the next best offer." },
+  { code: "BA-18", name: "Revenue Sharing", desc: "Create aligned partnerships where growth and outcomes are shared." },
 ];
 
-const yieldStreams = [
-  { n: 17, name: "1-on-1 Coaching", desc: "Private sessions with individual clients ($150–$500/hr)." },
-  { n: 18, name: "Group Coaching", desc: "One coach, 10–30 students in live group calls ($97–$497/mo)." },
-  { n: 19, name: "Monthly Memberships", desc: "Recurring subscription community ($27–$97/mo)." },
-  { n: 20, name: "Big Ticket Consulting", desc: "High-value consulting engagements ($2,500–$10,000+)." },
-  { n: 21, name: "Keynotes", desc: "Inspirational talks at conferences ($5K–$25K per talk)." },
-  { n: 22, name: "Training Programs", desc: "Multi-session skills programs for organizations ($5K–$50K)." },
-  { n: 23, name: "Masterminds", desc: "Peer advisory groups of 5–12 high-achievers ($5K–$25K/yr)." },
-  { n: 24, name: "Retreats & Bootcamps", desc: "Immersive multi-day experiences ($997–$4,997/ticket)." },
-  { n: 25, name: "Certification", desc: "License your methodology to others ($1,997–$9,997)." },
-  { n: 26, name: "Conventions/Conferences", desc: "Host your own events with ticket sales + sponsors." },
-  { n: 27, name: "Fund Raising", desc: "Cause-based campaigns tied to your book's mission." },
-  { n: 28, name: "Exhibitors/JV", desc: "Booth fees and joint venture revenue at events." },
+const yieldStreams: Stream[] = [
+  { code: "YR-19", name: "Coaching", desc: "Offer personalized transformation through one-on-one client work." },
+  { code: "YR-20", name: "Consulting", desc: "Solve higher-level business or leadership problems using the expertise behind your book." },
+  { code: "YR-21", name: "Keynotes", desc: "Turn your ideas into talks that open doors to stages, audiences, and partnerships." },
+  { code: "YR-22", name: "Training Programs", desc: "Deliver structured programs for organizations that want implementation, not just inspiration." },
+  { code: "YR-23", name: "Masterminds", desc: "Create premium peer groups around your methodology, network, and guidance." },
+  { code: "YR-24", name: "Retreats & Bootcamps", desc: "Design immersive experiences that deepen trust and create transformation." },
+  { code: "YR-25", name: "Certification", desc: "License your framework so others can teach or use it in a structured way." },
+  { code: "YR-26", name: "Conventions / Conferences", desc: "Host larger events that expand your authority and create multiple income layers." },
+  { code: "YR-27", name: "Fund Raising", desc: "Use your message to mobilize mission-aligned supporters and partners." },
+  { code: "YR-28", name: "Exhibitors / JV", desc: "Create strategic event and partnership revenue beyond direct product sales." },
 ];
 
 const faqItems = [
-  { q: "Do I need to build all 28 at once?", a: "No. Start with Path 1 (8 streams) and upgrade when you're ready. Abby will recommend which to build first based on your book and audience." },
-  { q: "Does Abby really build everything for me?", a: "Yes. Abby reads your manuscript, researches your market, and generates the complete product — title, content, pricing, sales page, email sequence. You just review and approve." },
-  { q: "What if I don't know anything about courses/coaching/webinars?", a: "That's exactly why Abby exists. She's trained on best practices from Russell Brunson, Amy Porterfield, and other industry leaders. She designs everything so you don't have to." },
-  { q: "Can I switch paths later?", a: "Yes. You can upgrade or downgrade at any time. Your existing products are never deleted." },
-  { q: "Are the revenue projections guaranteed?", a: "No. They are based on industry benchmarks from the Authors Guild, Teachable, ICF, and National Speakers Association. Individual results vary based on your niche, audience size, and effort." },
+  { q: "Do I need to build all 28 at once?", a: "No. Abby sequences the journey for you. Most authors start with the Brand foundation, then expand into Build Authority, and only layer on Yield Revenue when the timing and audience fit are right." },
+  { q: "Does Abby really build the first draft for me?", a: "Yes. Abby uses your book and business context to draft the structure, positioning, and content for each revenue stream. You review, edit, and approve before anything is published." },
+  { q: "What gets built first?", a: "The usual starting point is your Brand foundation: Email Marketing, Lead Magnets, Social Media, Website / Microsite, and Webinars. That base makes later products and premium services much easier to launch." },
+  { q: "Can I change the order later?", a: "Yes. Abby recommends the sequence, but you can revisit earlier streams, improve published offers, and expand into new categories as your business evolves." },
+  { q: "Are the revenue projections guaranteed?", a: "No. They are directional estimates based on the platform's current revenue architecture. Actual results vary by niche, positioning, audience size, consistency, and execution." },
 ];
 
 const tocItems = [
   "What is the ABBY Framework?",
-  "The 4 Stages: FREE → BUILD → BRIDGE → YIELD",
+  "The 4 Stages: Analyse → Brand → Build → Yield",
   "All 28 Revenue Streams Explained",
   "How the Revenue Streams Connect",
-  "Choosing Your Path",
-  "Projected Revenue",
+  "How Abby Builds Your Plan",
+  "Revenue Potential",
   "FAQ",
 ];
 
@@ -72,11 +75,12 @@ export default function ABBYFrameworkArticle() {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const StreamList = ({ items, color }: { items: typeof buildStreams; color: string }) => (
+  const StreamList = ({ items, label }: { items: Stream[]; label: string }) => (
     <div className="space-y-2">
-      {items.map(s => (
-        <div key={s.n} className="flex gap-3 text-sm">
-          <span className={cn("font-bold shrink-0 w-6 text-right", color)}>{s.n}.</span>
+      <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
+      {items.map((s) => (
+        <div key={s.code} className="flex gap-3 text-sm">
+          <span className="font-bold shrink-0 min-w-14 text-right text-foreground">{s.code}</span>
           <span><span className="font-semibold text-foreground">{s.name}</span> — <span className="text-muted-foreground">{s.desc}</span></span>
         </div>
       ))}
@@ -85,7 +89,6 @@ export default function ABBYFrameworkArticle() {
 
   return (
     <div className="max-w-[800px] mx-auto space-y-10">
-      {/* Table of Contents */}
       <nav className="rounded-xl border border-border bg-muted/30 p-5">
         <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3">Table of Contents</h3>
         <ol className="space-y-1.5">
@@ -102,140 +105,109 @@ export default function ABBYFrameworkArticle() {
         </ol>
       </nav>
 
-      {/* Section 1 */}
       <section id="abby-article-1" style={{ scrollMarginTop: 80 }}>
         <h2 className="text-xl font-bold text-foreground mb-3">1. What is the ABBY Framework?</h2>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          ABBY stands for the <strong className="text-foreground">Authors Bureau Business Yield</strong> framework. It's a systematic approach to turning your published book into a complete business with up to 28 revenue streams. Abby, your AI business advisor, does the heavy lifting — analyzing your book, researching your market, and building each product for you.
+          ABBY stands for <strong className="text-foreground">Analyse, Brand, Build, Yield</strong>. It is the methodology Authors Bureau uses to turn a published book into a business. Abby starts by analyzing your book and positioning, then maps your opportunities across <strong className="text-foreground">28 revenue streams</strong> grouped into Brand Products, Build Authority, and Yield Revenue.
         </p>
       </section>
 
-      {/* Section 2 */}
       <section id="abby-article-2" style={{ scrollMarginTop: 80 }}>
-        <h2 className="text-xl font-bold text-foreground mb-3">2. The 4 Stages: FREE → BUILD → BRIDGE → YIELD</h2>
-        <img src={STAIRCASE} alt="The 4 stages of the ABBY Framework" className="w-full rounded-xl border border-border mb-1" loading="lazy" />
+        <h2 className="text-xl font-bold text-foreground mb-3">2. The 4 Stages: Analyse → Brand → Build → Yield</h2>
+        <img src={frameworkImg} alt="The Analyse Brand Build Yield framework" className="w-full rounded-xl border border-border mb-1" loading="lazy" />
         <CopyrightCaption className="mb-6" />
         <div className="space-y-4 text-sm">
           <div className="rounded-lg border border-border p-4">
-            <h4 className="font-bold text-foreground">FREE</h4>
-            <p className="text-muted-foreground mt-1">Your book is published. You earn royalties. This is where most authors stop.</p>
+            <h4 className="font-bold text-foreground">Analyse</h4>
+            <p className="text-muted-foreground mt-1">Abby studies your book, author positioning, and business opportunity to identify what should be built first.</p>
           </div>
-          <div className="rounded-lg border-2 border-emerald-500/40 bg-emerald-500/5 p-4">
-            <h4 className="font-bold text-foreground">BUILD · $49/mo</h4>
-            <p className="text-muted-foreground mt-1">Create 8 digital products that sell on autopilot — courses, workbooks, email marketing, and more. Perfect as a side hustle (4–8 hrs/week).</p>
+          <div className="rounded-lg border border-border bg-muted/30 p-4">
+            <h4 className="font-bold text-foreground">Brand</h4>
+            <p className="text-muted-foreground mt-1">Build your foundation with the first 9 revenue streams that help readers discover, follow, and buy from you.</p>
           </div>
-          <div className="rounded-lg border-2 border-orange-500/40 bg-orange-500/5 p-4">
-            <h4 className="font-bold text-foreground">BRIDGE · $199/mo</h4>
-            <p className="text-muted-foreground mt-1">Add 8 audience channels — webinars, podcasts, affiliates, media outreach. Build your audience and partnerships (15–25 hrs/week).</p>
+          <div className="rounded-lg border border-border bg-muted/30 p-4">
+            <h4 className="font-bold text-foreground">Build</h4>
+            <p className="text-muted-foreground mt-1">Expand your authority with the next 9 revenue streams that deepen trust, scale audience growth, and increase reach.</p>
           </div>
-          <div className="rounded-lg border-2 border-[hsl(45,50%,54%)]/40 bg-[hsl(45,50%,54%)]/5 p-4">
-            <h4 className="font-bold text-foreground">YIELD · $499/mo</h4>
-            <p className="text-muted-foreground mt-1">Unlock 12 premium and scalable streams — coaching, masterminds, keynotes, certification, conferences. Full business empire.</p>
+          <div className="rounded-lg border border-border bg-muted/30 p-4">
+            <h4 className="font-bold text-foreground">Yield</h4>
+            <p className="text-muted-foreground mt-1">Activate the final 10 premium revenue streams for higher-value services, events, partnerships, and long-term business growth.</p>
           </div>
         </div>
       </section>
 
-      {/* Section 3 */}
       <section id="abby-article-3" style={{ scrollMarginTop: 80 }}>
         <h2 className="text-xl font-bold text-foreground mb-4">3. All 28 Revenue Streams Explained</h2>
-
         <div className="space-y-6">
           <div>
-            <h3 className="text-base font-bold text-emerald-600 mb-3">BUILD — 8 Digital Assets</h3>
-            <StreamList items={buildStreams} color="text-emerald-600" />
+            <h3 className="text-base font-bold text-foreground mb-3">Brand Products — 9 revenue streams</h3>
+            <StreamList items={brandStreams} label="Brand" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-orange-500 mb-3">BRIDGE — 8 Audience Channels</h3>
-            <StreamList items={bridgeStreams} color="text-orange-500" />
+            <h3 className="text-base font-bold text-foreground mb-3">Build Authority — 9 revenue streams</h3>
+            <StreamList items={buildStreams} label="Build" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-[hsl(45,50%,54%)] mb-3">YIELD — 12 Premium &amp; Scale</h3>
-            <StreamList items={yieldStreams} color="text-[hsl(45,50%,54%)]" />
+            <h3 className="text-base font-bold text-foreground mb-3">Yield Revenue — 10 revenue streams</h3>
+            <StreamList items={yieldStreams} label="Yield" />
           </div>
         </div>
       </section>
 
-      {/* Section 4 */}
       <section id="abby-article-4" style={{ scrollMarginTop: 80 }}>
         <h2 className="text-xl font-bold text-foreground mb-3">4. How the Revenue Streams Connect</h2>
-        <img src={FLOW_DIAGRAM} alt="How 28 revenue streams connect" className="w-full rounded-xl border border-border mb-1" loading="lazy" />
+        <img src={connectImg} alt="How your 28 revenue streams connect" className="w-full rounded-xl border border-border mb-1" loading="lazy" />
         <CopyrightCaption className="mb-4" />
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Email Marketing feeds all products. Your Website is the hub that connects everything. Affiliates bridge BUILD products to YIELD services. When you build a course, Abby automatically creates the email sequence to sell it, the social media posts to promote it, and the sales page to convert visitors. Every product feeds into the next.
+          The 28 revenue streams are not separate ideas — they work as one connected system. Your Brand foundation creates visibility and trust. Your Build streams deepen authority and audience growth. Your Yield streams turn that trust into premium services, experiences, and partnerships. Abby recommends them in sequence so each new stream strengthens the next one.
         </p>
       </section>
 
-      {/* Section 5 */}
       <section id="abby-article-5" style={{ scrollMarginTop: 80 }}>
-        <h2 className="text-xl font-bold text-foreground mb-3">5. Choosing Your Path</h2>
-        <img src={THREE_PATHS} alt="Three paths for authors" className="w-full rounded-xl border border-border mb-1" loading="lazy" />
+        <h2 className="text-xl font-bold text-foreground mb-3">5. How Abby Builds Your Plan</h2>
+        <img src={staircaseImg} alt="From published author to business owner" className="w-full rounded-xl border border-border mb-1" loading="lazy" />
         <CopyrightCaption className="mb-6" />
 
         <div className="grid gap-4 sm:grid-cols-3">
-          <div className="rounded-xl border-2 border-emerald-500 p-4 space-y-2">
-            <h4 className="font-bold text-foreground">The Side Hustler</h4>
-            <p className="text-xs text-muted-foreground">BUILD Only · 8 nodes · $49/mo</p>
-            <p className="text-xs text-muted-foreground">4–8 hours/week</p>
-            <p className="text-xs font-medium text-foreground">Projected: $5,500–$15,500/yr</p>
+          <div className="rounded-xl border border-border p-4 space-y-2 bg-muted/20">
+            <h4 className="font-bold text-foreground">Step 1 · Analyze</h4>
+            <p className="text-xs text-muted-foreground">Abby identifies your strongest opportunities, your audience fit, and the frameworks inside your book.</p>
           </div>
-          <div className="relative rounded-xl border-2 border-orange-500 p-4 space-y-2">
-            <span className="absolute -top-2.5 left-3 bg-orange-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase">Most Popular</span>
-            <h4 className="font-bold text-foreground">The Serious Business</h4>
-            <p className="text-xs text-muted-foreground">BUILD + BRIDGE · 16 nodes · $199/mo</p>
-            <p className="text-xs text-muted-foreground">15–25 hours/week</p>
-            <p className="text-xs font-medium text-foreground">Projected: $13,500–$39,500/yr</p>
+          <div className="rounded-xl border border-border p-4 space-y-2 bg-muted/20">
+            <h4 className="font-bold text-foreground">Step 2 · Sequence</h4>
+            <p className="text-xs text-muted-foreground">She recommends the right order, usually starting with Brand foundations before expanding into Build and Yield.</p>
           </div>
-          <div className="relative rounded-xl border-2 border-[hsl(45,50%,54%)] p-4 space-y-2">
-            <span className="absolute -top-2.5 left-3 bg-[hsl(45,50%,54%)] text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase">Best Value</span>
-            <h4 className="font-bold text-foreground">The Enterprise Builder</h4>
-            <p className="text-xs text-muted-foreground">All 28 nodes · $499/mo</p>
-            <p className="text-xs text-muted-foreground">Full-time (leveraged)</p>
-            <p className="text-xs font-medium text-foreground">Projected: $68,500–$215,500/yr</p>
+          <div className="rounded-xl border border-border p-4 space-y-2 bg-muted/20">
+            <h4 className="font-bold text-foreground">Step 3 · Build</h4>
+            <p className="text-xs text-muted-foreground">Each builder turns the strategy into actual pages, content, and offers you can review and launch.</p>
           </div>
         </div>
       </section>
 
-      {/* Section 6 */}
       <section id="abby-article-6" style={{ scrollMarginTop: 80 }}>
-        <h2 className="text-xl font-bold text-foreground mb-3">6. Projected Revenue</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm border border-border rounded-lg overflow-hidden">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="text-left p-3 font-semibold text-foreground">Path</th>
-                <th className="text-left p-3 font-semibold text-foreground">Monthly Cost</th>
-                <th className="text-left p-3 font-semibold text-foreground">Year 1 Revenue</th>
-                <th className="text-left p-3 font-semibold text-foreground">Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-t border-border">
-                <td className="p-3 text-foreground font-medium">Side Hustler</td>
-                <td className="p-3 text-muted-foreground">$49/mo</td>
-                <td className="p-3 text-muted-foreground">$5,500–$15,500</td>
-                <td className="p-3 text-muted-foreground">4–8 hrs/week</td>
-              </tr>
-              <tr className="border-t border-border bg-muted/20">
-                <td className="p-3 text-foreground font-medium">Serious Business</td>
-                <td className="p-3 text-muted-foreground">$199/mo</td>
-                <td className="p-3 text-muted-foreground">$13,500–$39,500</td>
-                <td className="p-3 text-muted-foreground">15–25 hrs/week</td>
-              </tr>
-              <tr className="border-t border-border">
-                <td className="p-3 text-foreground font-medium">Enterprise Builder</td>
-                <td className="p-3 text-muted-foreground">$499/mo</td>
-                <td className="p-3 text-muted-foreground">$68,500–$215,500</td>
-                <td className="p-3 text-muted-foreground">Full-time</td>
-              </tr>
-            </tbody>
-          </table>
+        <h2 className="text-xl font-bold text-foreground mb-3">6. Revenue Potential</h2>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="rounded-xl border border-border bg-muted/20 p-4">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Brand Products</p>
+            <p className="mt-2 text-xl font-bold text-foreground">$5,520–$15,480</p>
+            <p className="mt-1 text-sm text-muted-foreground">Typical annual range for a strong Brand foundation.</p>
+          </div>
+          <div className="rounded-xl border border-border bg-muted/20 p-4">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Build Authority</p>
+            <p className="mt-2 text-xl font-bold text-foreground">$13,500–$39,480</p>
+            <p className="mt-1 text-sm text-muted-foreground">Typical annual range as authority and audience channels expand.</p>
+          </div>
+          <div className="rounded-xl border border-border bg-muted/20 p-4">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Yield Revenue</p>
+            <p className="mt-2 text-xl font-bold text-foreground">$68,400–$215,520</p>
+            <p className="mt-1 text-sm text-muted-foreground">Typical annual range for premium services, events, and higher-ticket offers.</p>
+          </div>
         </div>
         <p className="text-xs text-muted-foreground/70 mt-3">
-          Projected revenue based on industry surveys from the Authors Guild (2024), Teachable Creator Earnings Report, International Coaching Federation (ICF), and National Speakers Association (NSA). Individual results vary based on niche, audience size, and effort.
+          These are directional estimates based on the current platform revenue architecture. Actual results vary by niche, audience size, positioning, consistency, and execution.
         </p>
       </section>
 
-      {/* Section 7 — FAQ */}
       <section id="abby-article-7" style={{ scrollMarginTop: 80 }}>
         <h2 className="text-xl font-bold text-foreground mb-4">7. Frequently Asked Questions</h2>
         <div className="space-y-2">
@@ -258,7 +230,6 @@ export default function ABBYFrameworkArticle() {
         </div>
       </section>
 
-      {/* CTA */}
       <div className="rounded-2xl p-8 text-center" style={{ background: "linear-gradient(135deg, hsl(228,34%,16%), hsl(228,34%,22%))" }}>
         <h3 className="text-xl font-bold text-white">Your Book Deserves More Than Royalties</h3>
         <p className="text-white/60 text-sm mt-2">No credit card required. Upload your book and let Abby show you what's possible.</p>
