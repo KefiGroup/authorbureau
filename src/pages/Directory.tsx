@@ -284,6 +284,27 @@ export default function Directory() {
         </div>
       </section>
 
+      {/* Get Featured CTA */}
+      <section className="py-16 md:py-20 bg-[hsl(228,34%,16%)] text-white">
+        <div className="container text-center max-w-2xl mx-auto">
+          <h2 className="font-heading text-2xl md:text-3xl font-bold">
+            Want to Be Featured?
+          </h2>
+          <p className="mt-4 text-white/70 text-sm md:text-base">
+            Published authors can apply to join our directory. Get listed in 2-3 business days and unlock 28 revenue streams from your book.
+          </p>
+          <div className="mt-6">
+            <Link
+              to="/auth?redirect=%2Fdashboard"
+              className="inline-flex items-center gap-2 rounded-xl bg-[hsl(45,50%,54%)] px-8 py-3 font-bold text-[hsl(228,34%,16%)] hover:bg-[hsl(45,50%,46%)] transition-colors"
+            >
+              Apply Now
+            </Link>
+          </div>
+          <p className="mt-3 text-xs text-white/50">Free to apply. No credit card required.</p>
+        </div>
+      </section>
+
       <Footer />
     </div>
   );

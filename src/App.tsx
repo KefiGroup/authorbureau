@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate, usePa
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import AccountSettings from "./pages/AccountSettings";
-import GetFeatured from "./pages/GetFeatured";
+
 import Directory from "./pages/Directory";
 import AuthorProfile from "./pages/AuthorProfile";
 import { AuthorSlugRedirect } from "./pages/AuthorSlugRedirect";
@@ -89,7 +89,7 @@ const AppRoutes = () => (
       <Route path="/" element={<Index />} />
       <Route path="/directory" element={<Directory />} />
       <Route path="/authors" element={<Navigate to="/directory" replace />} />
-      <Route path="/get-featured" element={<GetFeatured />} />
+      <Route path="/get-featured" element={<Navigate to="/directory" replace />} />
       <Route path="/authors/:slug" element={<AuthorSlugRedirect />} />
       <Route path="/books/:slug" element={<BookSlugRedirect />} />
       <Route path="/create-microsite" element={<CreateMicrosite />} />
