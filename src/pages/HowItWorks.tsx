@@ -162,6 +162,7 @@ export default function HowItWorks() {
             className="w-full rounded-2xl shadow-xl"
             loading="lazy"
           />
+          <CopyrightCaption />
         </div>
       </section>
 
