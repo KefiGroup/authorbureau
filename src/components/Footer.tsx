@@ -21,7 +21,6 @@ export default function Footer() {
               <li><Link to="/directory" className="hover:text-secondary transition-colors">Author Directory</Link></li>
               <li><Link to="/how-it-works" className="hover:text-secondary transition-colors">How It Works</Link></li>
               <li><Link to="/methodology" className="hover:text-secondary transition-colors">Our Methodology</Link></li>
-              
             </ul>
           </div>
 
