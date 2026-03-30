@@ -29,8 +29,8 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "openai/gpt-5",
         messages: [
-          { role: "system", content: "You are ABBY, the AI business agent for Authors Bureau. You help authors turn their books into complete business empires. You are warm, expert, and encouraging. You always personalise everything to the author's specific book, audience, and niche. Never be generic. Always respond with valid JSON only — no markdown, no code fences." },
-          { role: "user", content: `Create a complete online course for ${author.pen_name}'s book '${ctx.book_title}'.
+          { role: "system", content: "You are ABBY, the AI business agent for Authors Bureau. You help authors turn their books into complete business empires. You are warm, expert, and encouraging. Always personalise everything. Always respond with valid JSON only — no markdown, no code fences." },
+          { role: "user", content: `Create a companion workbook for ${author.pen_name}'s book '${ctx.book_title}'.
 
 Author details:
 - Author name: ${author.pen_name}
@@ -44,36 +44,36 @@ Author details:
 
 Generate the following as a JSON object with these exact keys:
 {
-  "course_title": "Compelling course title (specific, transformation-focused)",
-  "course_subtitle": "One-line subtitle",
+  "workbook_title": "Compelling workbook title (e.g., 'The [Book Title] Workbook')",
+  "workbook_subtitle": "One-line subtitle",
   "tagline": "A short punchy tagline (under 10 words)",
-  "duration": "e.g., 6 weeks, 8 modules",
-  "format": "e.g., Video + Workbook, Self-paced",
-  "transformation_promise": "One sentence: the core transformation students will experience",
-  "modules": [
+  "page_count": "e.g., 45 pages",
+  "format": "e.g., PDF + Printable, Digital Only",
+  "transformation_promise": "One sentence: the core transformation readers will experience by completing this workbook",
+  "sections": [
     {
       "number": 1,
-      "title": "Module title",
-      "description": "2-3 sentences describing what students learn",
-      "lessons": ["Lesson 1", "Lesson 2", "Lesson 3"],
-      "outcome": "One sentence: what students can DO after this module"
+      "title": "Section title",
+      "description": "2-3 sentences describing what this section covers",
+      "exercises": ["Exercise 1", "Exercise 2", "Exercise 3"],
+      "outcome": "One sentence: what readers can DO after this section"
     }
   ],
-  "who_its_for": "2-3 sentences describing the ideal student",
+  "who_its_for": "2-3 sentences describing the ideal reader",
   "what_youll_get": ["Deliverable 1", "Deliverable 2", "Deliverable 3", "Deliverable 4"],
-  "suggested_price_usd": 497,
-  "pricing_rationale": "One sentence explaining the price",
+  "suggested_price_usd": 0,
+  "pricing_rationale": "Free lead magnet — captures email addresses and drives readers to your paid products",
   "sales_page": {
     "headline": "Sales page headline",
     "subheadline": "Supporting subheadline",
     "pain_point": "2-3 sentences describing the problem",
-    "solution_statement": "2-3 sentences positioning the course as the solution",
-    "cta_button_text": "e.g., Enrol Now"
+    "solution_statement": "2-3 sentences positioning the workbook as the solution",
+    "cta_button_text": "e.g., Download Free Workbook"
   },
   "abby_summary": "2-3 sentence summary from ABBY"
 }
 
-The modules array must have exactly 6 items. Make everything specific to this author's book.` }
+The sections array must have exactly 5 items mapped to the book's chapters/themes. Position this workbook as a FREE lead magnet to build the author's email list. Make everything specific to this author's book.` }
         ],
         temperature: 0.7,
       }),
@@ -88,7 +88,7 @@ The modules array must have exactly 6 items. Make everything specific to this au
     await supabase.from("author_nodes").update({
       status: "content_ready",
       content_json: content,
-      personalised_name: content.course_title,
+      personalised_name: content.workbook_title,
     }).eq("author_id", author_id).eq("node_id", "BP-06");
 
     return new Response(JSON.stringify({ success: true, content }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });

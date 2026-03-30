@@ -8,13 +8,13 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Sparkles, ArrowLeft, ArrowRight, Check, Crown, LayoutList, DollarSign, FileText, Copy } from "lucide-react";
+import { Sparkles, ArrowLeft, ArrowRight, Check, BookOpen, LayoutList, DollarSign, FileText, Gift } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 import { publishNodeToSite } from "@/lib/publish-node";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
-const GEN_MSGS = ["Studying your book's core principles...", "Designing your mastermind programme...", "Creating 3 programme pillars...", "Writing your high-ticket sales page...", "Finalising your mastermind blueprint..."];
-const ACT_MSGS = ["Creating your mastermind product...", "Setting up your payment page...", "Generating your checkout link...", "Your mastermind is almost ready..."];
+const GEN_MSGS = ["Studying your book's unique qualities...", "Designing special edition concepts...", "Creating 3 premium edition tiers...", "Writing your exclusivity sales page...", "Finalising your special editions blueprint..."];
+const ACT_MSGS = ["Creating your special edition product...", "Setting up your payment page...", "Generating your checkout link...", "Your editions are almost ready..."];
 
 interface Props { authorId: string | null; }
 
@@ -39,23 +39,9 @@ export default function BP08Builder({ authorId }: Props) {
       setAuthorName(profile?.pen_name || "there");
       setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
       const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
-      if (ctx?.book_title) {
-        setBookTitle(ctx.book_title);
-        setHasContext(true);
-      } else {
-        const { data: book } = await supabase
-          .from("books")
-          .select("title")
-          .eq("author_id", profile?.user_id || authorId)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (book?.title) {
-          setBookTitle(book.title);
-          setHasContext(true);
-        } else {
-          setHasContext(false);
-        }
+      if (ctx?.book_title) { setBookTitle(ctx.book_title); setHasContext(true); } else {
+        const { data: book } = await supabase.from("books").select("title").eq("author_id", profile?.user_id || authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+        if (book?.title) { setBookTitle(book.title); setHasContext(true); } else { setHasContext(false); }
       }
       const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "BP-08").maybeSingle();
       if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
@@ -88,27 +74,23 @@ export default function BP08Builder({ authorId }: Props) {
   };
 
   const handlePublish = async () => {
-    setStep(3);
-    setError(null);
+    setStep(3); setError(null);
     try {
       await publishNodeToSite(authorId!, "BP-08", authorSlug);
       setContent((prev: any) => ({ ...prev, activated: true }));
-    } catch (e: any) {
-      setError(e.message);
-      setStep(2);
-    }
+    } catch (e: any) { setError(e.message); setStep(2); }
   };
 
   if (!authorId) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Please set up your author profile first.</p></div>;
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="border-b border-border bg-card px-4 py-3"><div className="max-w-3xl mx-auto flex items-center gap-3"><Button variant="ghost" size="icon" onClick={() => navigate("/brand-products")}><ArrowLeft className="h-4 w-4" /></Button><div className="flex-1"><h1 className="text-lg font-semibold">Mastermind</h1><p className="text-xs text-muted-foreground">BP-08</p></div></div></div>
+      <div className="border-b border-border bg-card px-4 py-3"><div className="max-w-3xl mx-auto flex items-center gap-3"><Button variant="ghost" size="icon" onClick={() => navigate("/brand-products")}><ArrowLeft className="h-4 w-4" /></Button><div className="flex-1"><h1 className="text-lg font-semibold">Special Editions</h1><p className="text-xs text-muted-foreground">BP-08</p></div></div></div>
       <div className="max-w-3xl mx-auto px-4 pt-6 pb-2"><div className="flex items-center gap-1">{STEPS.map((label, i) => (<div key={label} className="flex items-center gap-1 flex-1"><div className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold shrink-0 ${i < step ? "bg-primary text-primary-foreground" : i === step ? "bg-primary text-primary-foreground ring-2 ring-primary/30" : "bg-muted text-muted-foreground"}`}>{i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}</div><span className="text-xs text-muted-foreground hidden sm:inline truncate">{label}</span>{i < STEPS.length - 1 && <div className="flex-1 h-px bg-border" />}</div>))}</div></div>
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         {step === 0 && (
-          <AbbyCard><h2 className="text-xl font-bold mb-3">Let's build your Mastermind</h2>
-            {!isBookLoading && !hasBook ? (<><p className="text-muted-foreground mb-4">Hi {authorName}! Before I can build your mastermind, I need to know about your book. Please complete your book profile first.</p><Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-08")}>Complete Book Profile</Button></>) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! A mastermind is the most exclusive and highest-value product you can offer. I'm going to design a premium mastermind programme based on '{detectedBookTitle || "your book"}' — with a group structure, meeting cadence, member benefits, and a high-ticket sales page. Ready to build your inner circle?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Design My Mastermind</Button></>)}
+          <AbbyCard><h2 className="text-xl font-bold mb-3">Let's create your Special Editions</h2>
+            {!isBookLoading && !hasBook ? (<><p className="text-muted-foreground mb-4">Hi {authorName}! Before I can design your special editions, I need to know about your book. Please complete your book profile first.</p><Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-08")}>Complete Book Profile</Button></>) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! Special editions turn your book into a premium collectible experience. I'm going to design 3 special edition tiers for '{detectedBookTitle || "your book"}' — from a signed copy to a VIP collector's package. These create premium pricing opportunities and make perfect gifts. Ready?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Design My Special Editions</Button></>)}
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">I hit a snag. {error}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>
         )}
@@ -116,59 +98,62 @@ export default function BP08Builder({ authorId }: Props) {
         {step === 2 && content && (
           <div className="space-y-4">
             <AbbyCard><p className="text-muted-foreground">{content.abby_summary}</p></AbbyCard>
-            <Tabs defaultValue="overview" className="w-full">
+            <Tabs defaultValue="editions" className="w-full">
               <TabsList className="w-full grid grid-cols-4 h-auto">
-                <TabsTrigger value="overview" className="text-xs py-2"><Crown className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Overview</TabsTrigger>
-                <TabsTrigger value="pillars" className="text-xs py-2"><LayoutList className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Pillars</TabsTrigger>
+                <TabsTrigger value="editions" className="text-xs py-2"><Gift className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Editions</TabsTrigger>
+                <TabsTrigger value="bundle" className="text-xs py-2"><BookOpen className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Bundle</TabsTrigger>
                 <TabsTrigger value="pricing" className="text-xs py-2"><DollarSign className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Pricing</TabsTrigger>
                 <TabsTrigger value="sales" className="text-xs py-2"><FileText className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Sales Page</TabsTrigger>
               </TabsList>
-              <TabsContent value="overview" className="space-y-4 mt-4">
-                <Card><CardContent className="pt-6 space-y-3">
-                  <h3 className="text-xl font-bold">{content.mastermind_title}</h3>
-                  {content.mastermind_subtitle && <p className="text-muted-foreground">{content.mastermind_subtitle}</p>}
+              <TabsContent value="editions" className="space-y-4 mt-4">
+                <Card><CardContent className="pt-6 space-y-2">
+                  <h3 className="text-xl font-bold">{content.edition_title}</h3>
+                  {content.edition_subtitle && <p className="text-muted-foreground">{content.edition_subtitle}</p>}
                   {content.tagline && <p className="text-sm font-semibold text-primary italic">"{content.tagline}"</p>}
-                  <div className="flex gap-2 flex-wrap"><span className="text-xs bg-muted px-2.5 py-1 rounded-full">{content.duration}</span><span className="text-xs bg-muted px-2.5 py-1 rounded-full">{content.group_size}</span><span className="text-xs bg-muted px-2.5 py-1 rounded-full">{content.meeting_cadence}</span></div>
-                  <div><p className="text-xs font-semibold text-muted-foreground mb-1">Transformation Promise</p><p className="text-sm">{content.transformation_promise}</p></div>
-                  <div><p className="text-xs font-semibold text-muted-foreground mb-1">Who It's For</p><p className="text-sm">{content.who_its_for}</p></div>
                 </CardContent></Card>
-              </TabsContent>
-              <TabsContent value="pillars" className="space-y-4 mt-4">
-                {content.pillars?.map((p: any, i: number) => (
+                {content.editions?.map((ed: any, i: number) => (
                   <Card key={i}><CardContent className="pt-6 space-y-3">
-                    <div className="flex items-center gap-2"><span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">{p.number}</span><h4 className="font-bold">{p.title}</h4></div>
-                    <p className="text-sm text-muted-foreground">{p.description}</p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2"><span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">{ed.number}</span><h4 className="font-bold">{ed.name}</h4></div>
+                      <span className="text-lg font-bold text-primary">${ed.suggested_price_usd}</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{ed.description}</p>
+                    <p className="text-xs text-muted-foreground italic">{ed.print_specs}</p>
+                    <ul className="space-y-1">{ed.includes?.map((item: string, j: number) => <li key={j} className="flex items-start gap-2 text-sm"><Check className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />{item}</li>)}</ul>
                   </CardContent></Card>
                 ))}
-                <Card><CardContent className="pt-6"><p className="text-xs font-semibold text-muted-foreground mb-2">Member Benefits</p><ul className="space-y-1">{content.member_benefits?.map((b: string, i: number) => <li key={i} className="flex items-start gap-2 text-sm"><Check className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />{b}</li>)}</ul></CardContent></Card>
+              </TabsContent>
+              <TabsContent value="bundle" className="space-y-4 mt-4">
+                {content.bundle_offer && (
+                  <Card className="border-primary/30 bg-primary/5"><CardContent className="pt-6 space-y-3">
+                    <h3 className="text-xl font-bold">{content.bundle_offer.name}</h3>
+                    <p className="text-sm text-muted-foreground">{content.bundle_offer.description}</p>
+                    <div className="text-center py-4"><p className="text-3xl font-bold text-primary">${content.bundle_offer.suggested_price_usd}</p><p className="text-xs text-green-600 font-semibold mt-1">{content.bundle_offer.savings_note}</p></div>
+                  </CardContent></Card>
+                )}
+                <div><p className="text-xs font-semibold text-muted-foreground mb-1">Who It's For</p><p className="text-sm">{content.who_its_for}</p></div>
+                <div><p className="text-xs font-semibold text-muted-foreground mb-1">Marketing Angle</p><p className="text-sm">{content.marketing_angle}</p></div>
               </TabsContent>
               <TabsContent value="pricing" className="space-y-4 mt-4">
                 <Card><CardContent className="pt-6 space-y-4 text-center">
-                  <p className="text-xs font-semibold text-muted-foreground">Your price (USD)</p>
-                  <div className="flex items-center justify-center gap-2"><span className="text-3xl font-bold">$</span><Input type="number" className="w-36 text-3xl font-bold text-center" value={priceOverride ?? content.suggested_price_usd ?? 9997} onChange={(e) => setPriceOverride(Number(e.target.value))} /></div>
+                  <p className="text-xs font-semibold text-muted-foreground">Base edition price (USD)</p>
+                  <div className="flex items-center justify-center gap-2"><span className="text-3xl font-bold">$</span><Input type="number" className="w-32 text-3xl font-bold text-center" value={priceOverride ?? content.suggested_price_usd ?? 49} onChange={(e) => setPriceOverride(Number(e.target.value))} /></div>
                   <p className="text-sm text-muted-foreground">{content.pricing_rationale}</p>
-                  <p className="text-xs text-primary font-medium">Premium pricing reflects the exclusivity and high-touch nature of your mastermind.</p>
                 </CardContent></Card>
               </TabsContent>
               <TabsContent value="sales" className="space-y-4 mt-4">
-                <Card><CardContent className="pt-6 space-y-4"><div className="rounded-lg bg-muted/50 p-6 text-center space-y-3"><h2 className="text-2xl font-bold">{content.sales_page?.headline}</h2><p className="text-muted-foreground">{content.sales_page?.subheadline}</p><p className="text-sm">{content.sales_page?.exclusivity_statement}</p><span className="inline-flex items-center justify-center px-6 py-3 rounded-md bg-primary text-primary-foreground text-sm font-medium mt-3">{content.sales_page?.cta_button_text || "Apply for Membership"}</span></div></CardContent></Card>
+                <Card><CardContent className="pt-6 space-y-4"><div className="rounded-lg bg-muted/50 p-6 text-center space-y-3"><h2 className="text-2xl font-bold">{content.sales_page?.headline}</h2><p className="text-muted-foreground">{content.sales_page?.subheadline}</p><p className="text-sm">{content.sales_page?.exclusivity_statement}</p><span className="inline-flex items-center justify-center px-6 py-3 rounded-md bg-primary text-primary-foreground text-sm font-medium mt-3">{content.sales_page?.cta_button_text || "Order Special Edition"}</span></div></CardContent></Card>
               </TabsContent>
             </Tabs>
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon. Activate now and request changes from ABBY later.")}>Edit</Button>
               <Button className="flex-1" size="lg" onClick={handlePublish}>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></Button>
             </div>
-            <p className="text-xs text-center text-muted-foreground">Your mastermind will be set up automatically with a payment link.</p>
+            <p className="text-xs text-center text-muted-foreground">Your special editions will be set up automatically with a payment link.</p>
           </div>
         )}
         {step === 3 && !content?.activated && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{ACT_MSGS[msgIndex % ACT_MSGS.length]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /></div></AbbyCard>}
-        {step === 3 && content?.activated && (
-          <PublishSuccessScreen
-              nodeId="BP-08"
-              authorName={authorName}
-              penNameSlug={authorSlug}
-            />
-        )}
+        {step === 3 && content?.activated && <PublishSuccessScreen nodeId="BP-08" authorName={authorName} penNameSlug={authorSlug} />}
       </div>
     </div>
   );

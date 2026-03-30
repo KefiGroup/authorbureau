@@ -29,8 +29,8 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "openai/gpt-5",
         messages: [
-          { role: "system", content: "You are ABBY, the AI business agent for Authors Bureau. You help authors turn their books into complete business empires. You are warm, expert, and encouraging. Always personalise everything. Always respond with valid JSON only — no markdown, no code fences." },
-          { role: "user", content: `Create a complete coaching programme for ${author.pen_name}'s book '${ctx.book_title}'.
+          { role: "system", content: "You are ABBY, the AI business agent for Authors Bureau. Always personalise everything. Always respond with valid JSON only — no markdown, no code fences." },
+          { role: "user", content: `Create a self-paced home study course for ${author.pen_name}'s book '${ctx.book_title}'.
 
 Author details:
 - Author name: ${author.pen_name}
@@ -44,27 +44,34 @@ Author details:
 
 Generate as JSON with these exact keys:
 {
-  "programme_title": "Compelling coaching programme title",
+  "programme_title": "Compelling home study programme title",
   "programme_subtitle": "One-line subtitle",
   "tagline": "Short punchy tagline",
-  "duration": "e.g., 12 weeks",
-  "format": "e.g., Weekly 1-on-1 calls, Group coaching",
-  "session_count": 12,
+  "duration": "e.g., 21 days",
+  "format": "e.g., Daily reading + exercises, 15-30 min/day",
   "transformation_promise": "Core transformation",
-  "programme_phases": [
-    { "phase": 1, "title": "Phase title", "weeks": "e.g., Weeks 1-3", "description": "2-3 sentences", "focus_areas": ["Area 1", "Area 2", "Area 3"] }
+  "study_weeks": [
+    {
+      "week": 1,
+      "title": "Week title",
+      "theme": "One-line theme",
+      "days": [
+        { "day": 1, "reading": "Chapter/section to read", "exercise": "Practical exercise", "reflection": "Reflection prompt", "action": "One concrete action item" }
+      ]
+    }
   ],
   "who_its_for": "2-3 sentences",
   "what_youll_get": ["Deliverable 1", "Deliverable 2", "Deliverable 3"],
-  "suggested_price_usd": 2997,
+  "suggested_price_usd": 47,
   "pricing_rationale": "One sentence",
-  "sales_page": { "headline": "...", "subheadline": "...", "pain_point": "...", "solution_statement": "...", "cta_button_text": "Apply Now" },
+  "sales_page": { "headline": "...", "subheadline": "...", "pain_point": "2-3 sentences", "solution_statement": "2-3 sentences", "cta_button_text": "Start Your Journey" },
   "abby_summary": "2-3 sentence summary"
 }
 
-programme_phases must have exactly 3 items. Make everything specific.` }
+study_weeks must have exactly 3 items (Week 1, Week 2, Week 3). Each week must have exactly 7 days. Make everything specific to this author's book content.` }
         ],
         temperature: 0.7,
+        max_tokens: 8192,
       }),
     });
 

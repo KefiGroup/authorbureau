@@ -8,13 +8,13 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Sparkles, ArrowLeft, ArrowRight, Check, Mic, LayoutList, DollarSign, FileText, Copy, Star, ChevronDown, ChevronUp } from "lucide-react";
+import { Sparkles, ArrowLeft, ArrowRight, Check, ShoppingBag, LayoutList, DollarSign, FileText, TrendingUp } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 import { publishNodeToSite } from "@/lib/publish-node";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
-const GEN_MSGS = ["Studying your book's key themes...", "Designing your signature talks...", "Writing your speaker bio...", "Building your fee structure...", "Finalising your speaking business..."];
-const ACT_MSGS = ["Creating your speaker product...", "Setting up your booking page...", "Generating your payment link...", "Your speaking business is almost ready..."];
+const GEN_MSGS = ["Studying your book's target audience and events...", "Designing your event sales strategy...", "Creating pricing tiers and materials list...", "Building your post-event follow-up sequence...", "Finalising your Book Sales Kit..."];
+const ACT_MSGS = ["Creating your book sales product...", "Setting up your payment page...", "Generating your checkout link...", "Your sales kit is almost ready..."];
 
 interface Props { authorId: string | null; }
 
@@ -29,7 +29,6 @@ export default function BP09Builder({ authorId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
   const [priceOverride, setPriceOverride] = useState<number | null>(null);
-  const [expandedTalk, setExpandedTalk] = useState<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
 
@@ -40,28 +39,14 @@ export default function BP09Builder({ authorId }: Props) {
       setAuthorName(profile?.pen_name || "there");
       setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
       const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
-      if (ctx?.book_title) {
-        setBookTitle(ctx.book_title);
-        setHasContext(true);
-      } else {
-        const { data: book } = await supabase
-          .from("books")
-          .select("title")
-          .eq("author_id", profile?.user_id || authorId)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (book?.title) {
-          setBookTitle(book.title);
-          setHasContext(true);
-        } else {
-          setHasContext(false);
-        }
+      if (ctx?.book_title) { setBookTitle(ctx.book_title); setHasContext(true); } else {
+        const { data: book } = await supabase.from("books").select("title").eq("author_id", profile?.user_id || authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+        if (book?.title) { setBookTitle(book.title); setHasContext(true); } else { setHasContext(false); }
       }
       const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "BP-09").maybeSingle();
       if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
         setContent(node.content_json);
-        setPriceOverride((node.content_json as any)?.fee_structure?.keynote_fee_usd || null);
+        setPriceOverride((node.content_json as any)?.suggested_price_usd || null);
         setStep(node.status === "live" ? 3 : 2);
         if (node.status === "live") setContent((p: any) => ({ ...p, activated: true }));
       }
@@ -83,35 +68,29 @@ export default function BP09Builder({ authorId }: Props) {
       const { data, error: fnErr } = await supabase.functions.invoke("generate-bp09-speaking", { body: { author_id: authorId } });
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       setContent(data.content);
-      setPriceOverride(data.content?.fee_structure?.keynote_fee_usd || null);
+      setPriceOverride(data.content?.suggested_price_usd || null);
       setStep(2);
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 
   const handlePublish = async () => {
-    setStep(3);
-    setError(null);
+    setStep(3); setError(null);
     try {
       await publishNodeToSite(authorId!, "BP-09", authorSlug);
       setContent((prev: any) => ({ ...prev, activated: true }));
-    } catch (e: any) {
-      setError(e.message);
-      setStep(2);
-    }
+    } catch (e: any) { setError(e.message); setStep(2); }
   };
 
   if (!authorId) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Please set up your author profile first.</p></div>;
 
-  const recIdx = (content?.recommended_talk || 1) - 1;
-
   return (
     <div className="min-h-screen bg-background">
-      <div className="border-b border-border bg-card px-4 py-3"><div className="max-w-3xl mx-auto flex items-center gap-3"><Button variant="ghost" size="icon" onClick={() => navigate("/brand-products")}><ArrowLeft className="h-4 w-4" /></Button><div className="flex-1"><h1 className="text-lg font-semibold">Speaking & Events</h1><p className="text-xs text-muted-foreground">BP-09</p></div></div></div>
+      <div className="border-b border-border bg-card px-4 py-3"><div className="max-w-3xl mx-auto flex items-center gap-3"><Button variant="ghost" size="icon" onClick={() => navigate("/brand-products")}><ArrowLeft className="h-4 w-4" /></Button><div className="flex-1"><h1 className="text-lg font-semibold">Book Sales (Events)</h1><p className="text-xs text-muted-foreground">BP-09</p></div></div></div>
       <div className="max-w-3xl mx-auto px-4 pt-6 pb-2"><div className="flex items-center gap-1">{STEPS.map((label, i) => (<div key={label} className="flex items-center gap-1 flex-1"><div className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold shrink-0 ${i < step ? "bg-primary text-primary-foreground" : i === step ? "bg-primary text-primary-foreground ring-2 ring-primary/30" : "bg-muted text-muted-foreground"}`}>{i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}</div><span className="text-xs text-muted-foreground hidden sm:inline truncate">{label}</span>{i < STEPS.length - 1 && <div className="flex-1 h-px bg-border" />}</div>))}</div></div>
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         {step === 0 && (
-          <AbbyCard><h2 className="text-xl font-bold mb-3">Let's build your Speaking Business</h2>
-            {!isBookLoading && !hasBook ? (<><p className="text-muted-foreground mb-4">Hi {authorName}! Before I can set up your speaking business, I need to know about your book. Please complete your book profile first.</p><Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-09")}>Complete Book Profile</Button></>) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! Speaking is one of the most powerful ways to build your authority and grow your audience. I'm going to design your complete speaking business — with signature talk topics, a speaker bio, a speaking fee structure, and a booking page. Ready to take the stage?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Design My Speaking Business</Button></>)}
+          <AbbyCard><h2 className="text-xl font-bold mb-3">Let's set up your Book Sales</h2>
+            {!isBookLoading && !hasBook ? (<><p className="text-muted-foreground mb-4">Hi {authorName}! Before I can set up your book sales, I need to know about your book. Please complete your book profile first.</p><Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-09")}>Complete Book Profile</Button></>) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! Selling books at events can be highly profitable with the right setup. I'm going to design your complete event sales kit for '{detectedBookTitle || "your book"}' — with event strategies, pricing tiers, sales materials, and a post-event follow-up sequence. Ready?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Build My Sales Kit</Button></>)}
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">I hit a snag. {error}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>
         )}
@@ -119,79 +98,76 @@ export default function BP09Builder({ authorId }: Props) {
         {step === 2 && content && (
           <div className="space-y-4">
             <AbbyCard><p className="text-muted-foreground">{content.abby_summary}</p></AbbyCard>
-            <Tabs defaultValue="profile" className="w-full">
+            <Tabs defaultValue="events" className="w-full">
               <TabsList className="w-full grid grid-cols-4 h-auto">
-                <TabsTrigger value="profile" className="text-xs py-2"><Mic className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Profile</TabsTrigger>
-                <TabsTrigger value="talks" className="text-xs py-2"><LayoutList className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Talks</TabsTrigger>
-                <TabsTrigger value="fees" className="text-xs py-2"><DollarSign className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Fees</TabsTrigger>
-                <TabsTrigger value="booking" className="text-xs py-2"><FileText className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Booking</TabsTrigger>
+                <TabsTrigger value="events" className="text-xs py-2"><ShoppingBag className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Events</TabsTrigger>
+                <TabsTrigger value="pricing" className="text-xs py-2"><DollarSign className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Pricing</TabsTrigger>
+                <TabsTrigger value="materials" className="text-xs py-2"><LayoutList className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Materials</TabsTrigger>
+                <TabsTrigger value="projection" className="text-xs py-2"><TrendingUp className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Projection</TabsTrigger>
               </TabsList>
-              <TabsContent value="profile" className="space-y-4 mt-4">
-                <Card><CardContent className="pt-6 space-y-3">
-                  <h3 className="text-xl font-bold">{content.speaker_title}</h3>
+              <TabsContent value="events" className="space-y-4 mt-4">
+                <Card><CardContent className="pt-6 space-y-2">
+                  <h3 className="text-xl font-bold">{content.sales_kit_title}</h3>
                   {content.tagline && <p className="text-sm font-semibold text-primary italic">"{content.tagline}"</p>}
-                  <Card className="bg-muted/30"><CardContent className="pt-4"><p className="text-xs font-semibold text-muted-foreground mb-1">Short Bio — for event programmes</p><p className="text-sm">{content.speaker_bio_short}</p></CardContent></Card>
-                  <div><p className="text-xs font-semibold text-muted-foreground mb-1">Full Speaker Bio</p><p className="text-sm whitespace-pre-line">{content.speaker_bio_long}</p></div>
-                  <div><p className="text-xs font-semibold text-muted-foreground mb-2">Speaking Topics</p><div className="flex flex-wrap gap-1.5">{content.speaking_topics?.map((t: string, i: number) => <span key={i} className="text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-full font-medium">{t}</span>)}</div></div>
+                  <div><p className="text-xs font-semibold text-muted-foreground mb-1">Who It's For</p><p className="text-sm">{content.who_its_for}</p></div>
                 </CardContent></Card>
-              </TabsContent>
-              <TabsContent value="talks" className="space-y-4 mt-4">
-                {content.signature_talks?.map((talk: any, i: number) => (
-                  <Card key={i} className={i === recIdx ? "border-primary/40 ring-1 ring-primary/20" : ""}>
-                    <CardContent className="pt-6 space-y-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="space-y-1 flex-1">
-                          {i === recIdx && <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full mb-1"><Star className="h-3 w-3" /> ABBY's Top Pick</span>}
-                          <h4 className="font-bold">{talk.title}</h4>
-                          <p className="text-sm text-muted-foreground">{talk.subtitle}</p>
-                        </div>
-                        <div className="flex gap-1.5 shrink-0"><span className="text-xs bg-muted px-2 py-0.5 rounded-full">{talk.duration_options?.join(" / ")}</span></div>
-                      </div>
-                      <p className="text-sm">{talk.description}</p>
-                      <Button variant="ghost" size="sm" className="text-xs" onClick={() => setExpandedTalk(expandedTalk === i ? null : i)}>
-                        {expandedTalk === i ? <ChevronUp className="h-3 w-3 mr-1" /> : <ChevronDown className="h-3 w-3 mr-1" />}{expandedTalk === i ? "Less" : "More details"}
-                      </Button>
-                      {expandedTalk === i && (
-                        <div className="space-y-3 pt-1">
-                          <div><p className="text-xs font-semibold text-muted-foreground mb-1">Key Takeaways</p><ul className="space-y-1">{talk.key_takeaways?.map((t: string, j: number) => <li key={j} className="flex items-start gap-2 text-sm"><Check className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />{t}</li>)}</ul></div>
-                          <Card className="bg-muted/30"><CardContent className="pt-3 pb-3"><p className="text-xs font-semibold text-muted-foreground mb-1">Ideal Audience</p><p className="text-sm">{talk.ideal_audience}</p></CardContent></Card>
-                          <Card className="bg-primary/5 border-primary/20"><CardContent className="pt-3 pb-3"><p className="text-xs font-semibold text-primary mb-1">Opening Hook</p><p className="text-sm italic">"{talk.opening_hook}"</p></CardContent></Card>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                {content.event_types?.map((ev: any, i: number) => (
+                  <Card key={i}><CardContent className="pt-6 space-y-3">
+                    <div className="flex items-center gap-2"><span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">{ev.number}</span><h4 className="font-bold">{ev.type}</h4></div>
+                    <p className="text-sm text-muted-foreground">{ev.description}</p>
+                    <div className="flex gap-2 flex-wrap"><span className="text-xs bg-muted px-2.5 py-1 rounded-full">Audience: {ev.ideal_audience_size}</span><span className="text-xs bg-emerald-500/10 text-emerald-600 px-2.5 py-1 rounded-full">Conversion: {ev.expected_conversion_rate}</span></div>
+                    <ul className="space-y-1">{ev.materials_needed?.map((m: string, j: number) => <li key={j} className="flex items-start gap-2 text-sm"><Check className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />{m}</li>)}</ul>
+                    <Card className="bg-primary/5 border-primary/20"><CardContent className="pt-3 pb-3"><p className="text-xs font-semibold text-primary mb-1">Pro Tip</p><p className="text-sm italic">{ev.tip}</p></CardContent></Card>
+                  </CardContent></Card>
                 ))}
               </TabsContent>
-              <TabsContent value="fees" className="space-y-4 mt-4">
-                <Card><CardContent className="pt-6 space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-                    <div className="p-4 rounded-lg bg-muted/30 space-y-2"><p className="text-xs font-semibold text-muted-foreground">Keynote</p><p className="text-2xl font-bold">${content.fee_structure?.keynote_fee_usd?.toLocaleString()}</p></div>
-                    <div className="p-4 rounded-lg bg-muted/30 space-y-2"><p className="text-xs font-semibold text-muted-foreground">Half-Day</p><p className="text-2xl font-bold">${content.fee_structure?.half_day_fee_usd?.toLocaleString()}</p></div>
-                    <div className="p-4 rounded-lg bg-muted/30 space-y-2"><p className="text-xs font-semibold text-muted-foreground">Virtual</p><p className="text-2xl font-bold">${content.fee_structure?.virtual_fee_usd?.toLocaleString()}</p></div>
-                  </div>
-                  <p className="text-sm text-muted-foreground text-center">{content.fee_structure?.fee_note}</p>
-                  <div className="text-center pt-2"><p className="text-xs font-semibold text-muted-foreground mb-2">Edit your keynote fee (USD)</p><div className="flex items-center justify-center gap-2"><span className="text-2xl font-bold">$</span><Input type="number" className="w-32 text-2xl font-bold text-center" value={priceOverride ?? content.fee_structure?.keynote_fee_usd ?? 5000} onChange={(e) => setPriceOverride(Number(e.target.value))} /></div></div>
+              <TabsContent value="pricing" className="space-y-4 mt-4">
+                {content.pricing_tiers?.map((tier: any, i: number) => (
+                  <Card key={i}><CardContent className="pt-6">
+                    <div className="flex items-center justify-between"><h4 className="font-bold">{tier.name}</h4><span className="text-lg font-bold text-primary">${tier.price_usd}</span></div>
+                    <p className="text-sm text-muted-foreground mt-1">{tier.description}</p>
+                  </CardContent></Card>
+                ))}
+                <Card><CardContent className="pt-6 space-y-4 text-center">
+                  <p className="text-xs font-semibold text-muted-foreground">Edit base book price (USD)</p>
+                  <div className="flex items-center justify-center gap-2"><span className="text-3xl font-bold">$</span><Input type="number" className="w-32 text-3xl font-bold text-center" value={priceOverride ?? content.suggested_price_usd ?? 19.99} onChange={(e) => setPriceOverride(Number(e.target.value))} /></div>
+                  <p className="text-sm text-muted-foreground">{content.pricing_rationale}</p>
                 </CardContent></Card>
               </TabsContent>
-              <TabsContent value="booking" className="space-y-4 mt-4">
-                <Card><CardContent className="pt-6"><div className="rounded-lg bg-muted/50 p-6 text-center space-y-3"><h2 className="text-2xl font-bold">{content.booking_page?.headline}</h2><p className="text-muted-foreground">{content.booking_page?.subheadline}</p><span className="inline-flex items-center justify-center px-6 py-3 rounded-md bg-primary text-primary-foreground text-sm font-medium mt-3">{content.booking_page?.cta_button_text || "Book to Speak"}</span></div></CardContent></Card>
+              <TabsContent value="materials" className="space-y-4 mt-4">
+                <Card><CardContent className="pt-6 space-y-3">
+                  <h4 className="font-bold">Sales Materials Checklist</h4>
+                  <ul className="space-y-2">{content.sales_materials?.map((m: string, i: number) => <li key={i} className="flex items-start gap-2 text-sm"><Check className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />{m}</li>)}</ul>
+                </CardContent></Card>
+                <Card><CardContent className="pt-6 space-y-3">
+                  <h4 className="font-bold">Post-Event Follow-Up Sequence</h4>
+                  <ol className="space-y-2">{content.post_event_sequence?.map((s: string, i: number) => <li key={i} className="flex items-start gap-2 text-sm"><span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">{i + 1}</span>{s}</li>)}</ol>
+                </CardContent></Card>
+              </TabsContent>
+              <TabsContent value="projection" className="space-y-4 mt-4">
+                {content.revenue_projection && (
+                  <Card><CardContent className="pt-6 space-y-4">
+                    <h4 className="font-bold text-center">Revenue Projection</h4>
+                    <div className="grid grid-cols-2 gap-4 text-center">
+                      <div className="p-4 rounded-lg bg-muted/30"><p className="text-xs font-semibold text-muted-foreground">Events/Month</p><p className="text-2xl font-bold">{content.revenue_projection.events_per_month}</p></div>
+                      <div className="p-4 rounded-lg bg-muted/30"><p className="text-xs font-semibold text-muted-foreground">Avg Books Sold</p><p className="text-2xl font-bold">{content.revenue_projection.avg_books_sold}</p></div>
+                      <div className="p-4 rounded-lg bg-muted/30"><p className="text-xs font-semibold text-muted-foreground">Per Event</p><p className="text-2xl font-bold">${content.revenue_projection.avg_revenue_per_event}</p></div>
+                      <div className="p-4 rounded-lg bg-primary/10"><p className="text-xs font-semibold text-primary">Monthly Total</p><p className="text-2xl font-bold text-primary">${content.revenue_projection.monthly_projection}</p></div>
+                    </div>
+                  </CardContent></Card>
+                )}
+                <Card><CardContent className="pt-6 space-y-4"><div className="rounded-lg bg-muted/50 p-6 text-center space-y-3"><h2 className="text-2xl font-bold">{content.sales_page?.headline}</h2><p className="text-muted-foreground">{content.sales_page?.subheadline}</p><p className="text-sm">{content.sales_page?.pain_point}</p><p className="text-sm">{content.sales_page?.solution_statement}</p><span className="inline-flex items-center justify-center px-6 py-3 rounded-md bg-primary text-primary-foreground text-sm font-medium mt-3">{content.sales_page?.cta_button_text || "Buy Now"}</span></div></CardContent></Card>
               </TabsContent>
             </Tabs>
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon. Activate now and request changes from ABBY later.")}>Edit</Button>
               <Button className="flex-1" size="lg" onClick={handlePublish}>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></Button>
             </div>
-            <p className="text-xs text-center text-muted-foreground">Your booking page and payment link will be set up automatically.</p>
+            <p className="text-xs text-center text-muted-foreground">Your book sales page and payment link will be set up automatically.</p>
           </div>
         )}
         {step === 3 && !content?.activated && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{ACT_MSGS[msgIndex % ACT_MSGS.length]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /></div></AbbyCard>}
-        {step === 3 && content?.activated && (
-          <PublishSuccessScreen
-              nodeId="BP-09"
-              authorName={authorName}
-              penNameSlug={authorSlug}
-            />
-        )}
+        {step === 3 && content?.activated && <PublishSuccessScreen nodeId="BP-09" authorName={authorName} penNameSlug={authorSlug} />}
       </div>
     </div>
   );

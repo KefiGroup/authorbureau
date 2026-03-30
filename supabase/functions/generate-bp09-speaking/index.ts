@@ -30,7 +30,7 @@ serve(async (req) => {
         model: "openai/gpt-5",
         messages: [
           { role: "system", content: "You are ABBY, the AI business agent for Authors Bureau. Always personalise everything. Always respond with valid JSON only — no markdown, no code fences." },
-          { role: "user", content: `Create a complete speaking business for ${author.pen_name}'s book '${ctx.book_title}'.
+          { role: "user", content: `Create a book sales and events strategy for ${author.pen_name}'s book '${ctx.book_title}'.
 
 Author details:
 - Author name: ${author.pen_name}
@@ -44,35 +44,46 @@ Author details:
 
 Generate as JSON with these exact keys:
 {
-  "speaker_title": "e.g., Author Name — Keynote Speaker & Author",
-  "tagline": "Short punchy speaker tagline",
-  "signature_talks": [
+  "sales_kit_title": "e.g., ${ctx.book_title} — Event Sales Kit",
+  "tagline": "Short punchy tagline for the sales kit",
+  "event_types": [
     {
       "number": 1,
-      "title": "Talk title",
-      "subtitle": "One-line subtitle",
-      "duration_options": ["30 minutes", "45 minutes", "60 minutes"],
+      "type": "Event type (e.g., 'Book Signing', 'Conference Booth', 'Workshop Back-of-Room')",
       "description": "2-3 sentences",
-      "key_takeaways": ["Takeaway 1", "Takeaway 2", "Takeaway 3"],
-      "ideal_audience": "One sentence",
-      "opening_hook": "Compelling one-sentence hook"
+      "ideal_audience_size": "e.g., 50-200 attendees",
+      "expected_conversion_rate": "e.g., 30-50%",
+      "materials_needed": ["Material 1", "Material 2", "Material 3"],
+      "tip": "One practical tip"
     }
   ],
-  "recommended_talk": 1,
-  "speaker_bio_short": "2-3 sentence speaker bio",
-  "speaker_bio_long": "5-6 sentence full speaker bio",
-  "speaking_topics": ["Topic 1", "Topic 2", "Topic 3", "Topic 4"],
-  "fee_structure": {
-    "keynote_fee_usd": 5000,
-    "half_day_fee_usd": 3000,
-    "virtual_fee_usd": 1500,
-    "fee_note": "One sentence about what's included"
+  "pricing_tiers": [
+    { "name": "Standard Paperback", "price_usd": 19.99, "description": "Regular edition" },
+    { "name": "Signed Copy", "price_usd": 29.99, "description": "Personally signed by the author" },
+    { "name": "Bundle (Book + Workbook)", "price_usd": 39.99, "description": "Book plus companion workbook" }
+  ],
+  "sales_materials": ["One-page sell sheet", "QR code card linking to online store", "Business cards with book cover", "Email capture sign-up sheet", "Table/booth display banner"],
+  "post_event_sequence": ["Send thank-you email within 24 hours", "Add to email list with event tag", "Offer exclusive 48-hour bundle deal", "Invite to webinar or next event"],
+  "revenue_projection": {
+    "events_per_month": 2,
+    "avg_books_sold": 40,
+    "avg_revenue_per_event": 800,
+    "monthly_projection": 1600
   },
-  "booking_page": { "headline": "...", "subheadline": "...", "cta_button_text": "Book to Speak" },
+  "who_its_for": "2-3 sentences",
+  "suggested_price_usd": 19.99,
+  "pricing_rationale": "Base book price for standard edition",
+  "sales_page": {
+    "headline": "Get your copy of ${ctx.book_title}",
+    "subheadline": "Supporting subheadline",
+    "pain_point": "2-3 sentences",
+    "solution_statement": "2-3 sentences",
+    "cta_button_text": "Buy Now"
+  },
   "abby_summary": "2-3 sentence summary"
 }
 
-signature_talks must have exactly 3 items. Make everything specific.` }
+event_types must have exactly 3 items. pricing_tiers must have exactly 3 items. Make everything specific.` }
         ],
         temperature: 0.7,
       }),
@@ -84,8 +95,7 @@ signature_talks must have exactly 3 items. Make everything specific.` }
     raw = raw.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
     const content = JSON.parse(raw);
 
-    const recIdx = (content.recommended_talk || 1) - 1;
-    await supabase.from("author_nodes").update({ status: "content_ready", content_json: content, personalised_name: content.signature_talks?.[recIdx]?.title || content.speaker_title }).eq("author_id", author_id).eq("node_id", "BP-09");
+    await supabase.from("author_nodes").update({ status: "content_ready", content_json: content, personalised_name: content.sales_kit_title }).eq("author_id", author_id).eq("node_id", "BP-09");
 
     return new Response(JSON.stringify({ success: true, content }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err) {

@@ -30,7 +30,7 @@ serve(async (req) => {
         model: "openai/gpt-5",
         messages: [
           { role: "system", content: "You are ABBY, the AI business agent for Authors Bureau. Always personalise everything. Always respond with valid JSON only — no markdown, no code fences." },
-          { role: "user", content: `Create a premium mastermind programme for ${author.pen_name}'s book '${ctx.book_title}'.
+          { role: "user", content: `Create special edition book concepts for ${author.pen_name}'s book '${ctx.book_title}'.
 
 Author details:
 - Author name: ${author.pen_name}
@@ -44,25 +44,40 @@ Author details:
 
 Generate as JSON with these exact keys:
 {
-  "mastermind_title": "Compelling mastermind title",
-  "mastermind_subtitle": "One-line subtitle",
+  "edition_title": "Special Edition collection title",
+  "edition_subtitle": "One-line subtitle",
   "tagline": "Short punchy tagline",
-  "duration": "e.g., 12 months",
-  "group_size": "e.g., 10-15 members",
-  "meeting_cadence": "e.g., Monthly 2-hour group calls + weekly check-ins",
-  "transformation_promise": "Core transformation",
-  "pillars": [
-    { "number": 1, "title": "Pillar title", "description": "2-3 sentences" }
+  "editions": [
+    {
+      "number": 1,
+      "name": "Edition name (e.g., 'Signed Collector's Edition')",
+      "description": "2-3 sentences describing this edition",
+      "includes": ["Item 1", "Item 2", "Item 3"],
+      "print_specs": "e.g., Hardcover, gold foil, ribbon bookmark",
+      "suggested_price_usd": 49
+    }
   ],
-  "member_benefits": ["Benefit 1", "Benefit 2", "Benefit 3", "Benefit 4", "Benefit 5"],
+  "bundle_offer": {
+    "name": "Complete Collection Bundle",
+    "description": "2-3 sentences",
+    "includes_editions": [1, 2, 3],
+    "suggested_price_usd": 129,
+    "savings_note": "Save $X vs buying separately"
+  },
   "who_its_for": "2-3 sentences",
-  "suggested_price_usd": 9997,
+  "marketing_angle": "2-3 sentences on positioning",
+  "suggested_price_usd": 49,
   "pricing_rationale": "One sentence",
-  "sales_page": { "headline": "...", "subheadline": "...", "exclusivity_statement": "2-3 sentences", "cta_button_text": "Apply for Membership" },
+  "sales_page": {
+    "headline": "Sales page headline",
+    "subheadline": "Supporting subheadline",
+    "exclusivity_statement": "2-3 sentences about limited availability",
+    "cta_button_text": "e.g., Order Special Edition"
+  },
   "abby_summary": "2-3 sentence summary"
 }
 
-pillars must have exactly 3 items. Make everything specific.` }
+editions must have exactly 3 items (e.g., Signed Edition, Gift Box Edition, VIP Edition). Make everything specific.` }
         ],
         temperature: 0.7,
       }),
@@ -74,7 +89,7 @@ pillars must have exactly 3 items. Make everything specific.` }
     raw = raw.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
     const content = JSON.parse(raw);
 
-    await supabase.from("author_nodes").update({ status: "content_ready", content_json: content, personalised_name: content.mastermind_title }).eq("author_id", author_id).eq("node_id", "BP-08");
+    await supabase.from("author_nodes").update({ status: "content_ready", content_json: content, personalised_name: content.edition_title }).eq("author_id", author_id).eq("node_id", "BP-08");
 
     return new Response(JSON.stringify({ success: true, content }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err) {
