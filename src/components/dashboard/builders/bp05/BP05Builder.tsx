@@ -155,7 +155,7 @@ export default function BP05Builder({ authorId }: Props) {
           </Button>
           <div className="flex-1">
             <h1 className="text-lg font-semibold">Webinars</h1>
-            <p className="text-xs text-muted-foreground">BP-05</p>
+            
           </div>
         </div>
       </div>

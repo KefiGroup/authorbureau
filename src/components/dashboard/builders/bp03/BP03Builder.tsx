@@ -157,7 +157,7 @@ export default function BP03Builder({ authorId }: Props) {
           </Button>
           <div className="flex-1">
             <h1 className="text-lg font-semibold">Social Media</h1>
-            <p className="text-xs text-muted-foreground">BP-03</p>
+            
           </div>
         </div>
       </div>

@@ -79,9 +79,8 @@ export default function ABBYFrameworkArticle() {
     <div className="space-y-2">
       <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
       {items.map((s) => (
-        <div key={s.code} className="flex gap-3 text-sm">
-          <span className="font-bold shrink-0 min-w-14 text-right text-foreground">{s.code}</span>
-          <span><span className="font-semibold text-foreground">{s.name}</span> — <span className="text-muted-foreground">{s.desc}</span></span>
+        <div key={s.code} className="text-sm">
+          <span className="font-semibold text-foreground">{s.name}</span> — <span className="text-muted-foreground">{s.desc}</span>
         </div>
       ))}
     </div>
