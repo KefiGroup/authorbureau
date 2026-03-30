@@ -79,7 +79,7 @@ export default function BookSelectionView({
               </h2>
               <p className="text-sm text-secondary font-semibold mb-3">I'm ABBY — your AI Business Consultant.</p>
               <p className="text-muted-foreground text-sm leading-relaxed max-w-md mx-auto mb-2">
-                I've read your book. Now let me show you exactly how to turn it into a business that earns <strong className="text-foreground">$50K–$200K/year</strong>.
+                Upload your manuscript and I'll show you exactly how to turn your book into a business that earns <strong className="text-foreground">$50K–$200K/year</strong>.
               </p>
               <p className="text-xs text-muted-foreground">
                 This takes about 5 minutes. Your plan is saved forever and it's completely free.
