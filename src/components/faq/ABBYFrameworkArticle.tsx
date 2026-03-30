@@ -165,7 +165,7 @@ export default function ABBYFrameworkArticle() {
 
       <section id="abby-article-5" style={{ scrollMarginTop: 80 }}>
         <h2 className="text-xl font-bold text-foreground mb-3">5. How Abby Builds Your Plan</h2>
-        <img src={staircaseImg} alt="From published author to business owner" className="w-full rounded-xl border border-border mb-1" loading="lazy" />
+        <img src={frameworkImg} alt="The ABBY Journey Framework" className="w-full rounded-xl border border-border mb-1" loading="lazy" />
         <CopyrightCaption className="mb-6" />
 
         <div className="grid gap-4 sm:grid-cols-3">
