@@ -523,19 +523,19 @@ export default function Index() {
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0} variants={fadeUp} className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               {
-                quote: "I went from earning $200/month in royalties to $4,500/month in course sales — all because Abby built my course from my manuscript in 2 hours.",
-                name: "Sarah Chen",
-                title: 'Author of "The Mindful Leader"',
+                quote: "Authors Bureau gave me a complete framework to monetise my healthcare expertise. Abby mapped out my entire business model, from courses to coaching, in one consultation. Incredibly strategic.",
+                name: "Bob Battista",
+                title: "Healthcare AI & Life Sciences Strategist",
               },
               {
-                quote: "Within 3 weeks of joining, I had a full coaching programme, a lead magnet, and a webinar funnel. Abby did all the heavy lifting — I just reviewed and published.",
-                name: "David Okonkwo",
-                title: 'Author of "Resilient Teams"',
+                quote: "As a HealthTech strategist, I know what scalable systems look like. Authors Bureau is exactly that. Abby built my content strategy, lead magnets, and revenue streams faster than any team I've worked with.",
+                name: "Fasa Husain",
+                title: "HealthTech Business & Revenue Growth Strategist",
               },
               {
-                quote: "I've been sitting on my manuscript for years not knowing how to monetise it. Authors Bureau showed me 28 ways and built half of them for me automatically.",
-                name: "Maria Gonzalez",
-                title: 'Author of "The Empathy Advantage"',
+                quote: "I had three books but no business behind them. Abby turned my motherhood trilogy into a complete author platform with coaching packages, email sequences, and a speaking kit, all in one sitting.",
+                name: "Felicia Tan",
+                title: 'Author of "To Baby With Love"',
               },
             ].map((t, i) => (
               <div key={i} className="rounded-xl border border-primary-foreground/10 bg-primary-foreground/5 p-6">
