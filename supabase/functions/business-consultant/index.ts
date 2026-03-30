@@ -214,7 +214,7 @@ Deliver Build Authority section. 2–4 products with branded names and connectio
 
 🔒 Yield Revenue (10 premium streams) — unlocked with the Yield Package at $249/mo (usually $499/mo)
 
-End with a prompt like "Want to see the Yield Revenue streams?"
+===NEXT: Show Yield Revenue===
 
 [STOP]
 
