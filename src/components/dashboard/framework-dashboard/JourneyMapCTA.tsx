@@ -11,6 +11,7 @@ interface Props {
   buildState: StepState;
   sellState: StepState;
   currentJourneyStep: "microsite" | "analyze" | "payments" | "build" | "earn";
+  bookApproved?: boolean;
   onAction: (action: string) => void;
 }
 
