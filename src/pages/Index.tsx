@@ -460,19 +460,19 @@ export default function Index() {
             {[
               {
                 step: "1",
-                title: "Upload Your Book",
+                title: "ANALYSE Your Book",
                 tag: "ABBY AI ANALYSIS",
                 desc: "Upload your manuscript and Abby analyzes your book, identifies your frameworks, and creates a personalized business plan showing which of the 28 revenue streams are the best fit for your topic and audience.",
               },
               {
                 step: "2",
-                title: "BUILD Your Products",
+                title: "BRAND Your Products",
                 tag: "BRAND PRODUCTS",
                 desc: "Abby uses AI to create your first digital products: workbooks, online courses, email sequences, social media calendars, and your author website. All generated from your book content. You just review and approve.",
               },
               {
                 step: "3",
-                title: "SCALE Your Authority",
+                title: "BUILD Your Authority",
                 tag: "BUILD AUTHORITY",
                 desc: "Expand into audience-building channels: audiobooks, podcast tours, group coaching, affiliate programs, and media outreach. Abby creates everything including scripts, pitch kits, and follow-up sequences.",
               },
