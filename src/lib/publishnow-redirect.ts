@@ -67,10 +67,14 @@ export async function redirectToPublishNow(
 ): Promise<RedirectResult> {
   const fallbackUrl = `${PUBLISHNOW_BASE}/#${targetPath}`;
 
+  // Open a blank window synchronously so browsers don't block the popup
+  const popup = window.open("about:blank", "_blank");
+
   try {
     // 1. Check auth
     const session = (await supabase.auth.getSession()).data?.session ?? null;
     if (!session?.access_token) {
+      if (popup && !popup.closed) popup.close();
       return { error: "Not authenticated — please sign in first." };
     }
 
@@ -80,6 +84,7 @@ export async function redirectToPublishNow(
       token = await attemptHandoff(session.access_token, session.refresh_token!, targetPath);
     } catch (firstErr) {
       if (!isNetworkError(firstErr)) {
+        if (popup && !popup.closed) popup.close();
         return {
           error: `SSO token generation failed: ${(firstErr as Error).message}`,
           fallbackUrl,
@@ -91,6 +96,7 @@ export async function redirectToPublishNow(
       try {
         token = await attemptHandoff(session.access_token, session.refresh_token!, targetPath);
       } catch (retryErr) {
+        if (popup && !popup.closed) popup.close();
         return {
           error: isNetworkError(retryErr)
             ? "Could not reach the authentication server. Please check your connection and try again."
@@ -100,7 +106,7 @@ export async function redirectToPublishNow(
       }
     }
 
-    // 3. Success — open in the pre-opened window (avoids popup blocker)
+    // 3. Navigate the pre-opened window to the SSO URL
     const url = `${PUBLISHNOW_SSO_URL}?token=${token}&from=authorsbureau&redirect=${encodeURIComponent(targetPath)}`;
     if (popup && !popup.closed) {
       popup.location.href = url;
@@ -108,7 +114,8 @@ export async function redirectToPublishNow(
       window.open(url, "_blank");
     }
     return {};
-  } catch (err) {
+  } catch (err: any) {
+    if (popup && !popup.closed) popup.close();
     return {
       error: err.message || "SSO redirect failed. Please try again.",
       fallbackUrl,
