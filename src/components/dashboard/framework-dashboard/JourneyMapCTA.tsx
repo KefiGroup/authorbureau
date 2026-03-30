@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Globe, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import staircaseImg from "@/assets/abby_journey_staircase_v7.webp";
+import { CopyrightCaption } from "@/components/ui/copyright-caption";
 
 type StepState = "done" | "current" | "upcoming";
 
@@ -58,6 +59,7 @@ export default function JourneyMapCTA({ currentJourneyStep, bookApproved, onActi
             alt="The ABBY Journey Framework - One Book. 28 Revenue Streams. Your Empire."
             className="w-full h-auto"
           />
+          <CopyrightCaption />
         </div>
 
         {/* Dynamic CTA */}

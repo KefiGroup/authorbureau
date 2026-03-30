@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import DynamicMeetOurAuthors from "@/components/DynamicMeetOurAuthors";
+import { CopyrightCaption } from "@/components/ui/copyright-caption";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import heroBg from "@/assets/hero-bg.jpg";
@@ -265,9 +266,10 @@ export default function Index() {
             transition={{ duration: 0.6 }}
             src="/images/journey-flow-diagram.webp"
             alt="How your 28 revenue streams connect — BRAND, BUILD, YIELD ecosystem"
-            className="w-full max-w-4xl mx-auto rounded-2xl shadow-xl mb-10"
+            className="w-full max-w-4xl mx-auto rounded-2xl shadow-xl mb-2"
             loading="lazy"
           />
+          <CopyrightCaption className="max-w-4xl mx-auto mb-10" />
 
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0} variants={fadeUp} className="text-center">
             <Button asChild variant="outline" size="lg" className="rounded-full border-secondary text-secondary hover:bg-secondary hover:text-secondary-foreground">
@@ -449,9 +451,10 @@ export default function Index() {
             transition={{ duration: 0.6 }}
             src="/images/journey-staircase.webp"
             alt="The ABBY Journey Framework — FREE to BRAND to BUILD to YIELD"
-            className="w-full max-w-5xl mx-auto rounded-2xl shadow-xl mb-12"
+            className="w-full max-w-5xl mx-auto rounded-2xl shadow-xl mb-2"
             loading="lazy"
           />
+          <CopyrightCaption className="max-w-5xl mx-auto mb-12" />
 
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
             {[

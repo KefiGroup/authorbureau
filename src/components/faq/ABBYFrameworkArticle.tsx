@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ChevronDown, ChevronUp, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { CopyrightCaption } from "@/components/ui/copyright-caption";
 
 const STAIRCASE = "/images/journey-staircase.webp";
 const FLOW_DIAGRAM = "/images/journey-flow-diagram.webp";
@@ -112,7 +113,8 @@ export default function ABBYFrameworkArticle() {
       {/* Section 2 */}
       <section id="abby-article-2" style={{ scrollMarginTop: 80 }}>
         <h2 className="text-xl font-bold text-foreground mb-3">2. The 4 Stages: FREE → BUILD → BRIDGE → YIELD</h2>
-        <img src={STAIRCASE} alt="The 4 stages of the ABBY Framework" className="w-full rounded-xl border border-border mb-6" loading="lazy" />
+        <img src={STAIRCASE} alt="The 4 stages of the ABBY Framework" className="w-full rounded-xl border border-border mb-1" loading="lazy" />
+        <CopyrightCaption className="mb-6" />
         <div className="space-y-4 text-sm">
           <div className="rounded-lg border border-border p-4">
             <h4 className="font-bold text-foreground">FREE</h4>
@@ -156,7 +158,8 @@ export default function ABBYFrameworkArticle() {
       {/* Section 4 */}
       <section id="abby-article-4" style={{ scrollMarginTop: 80 }}>
         <h2 className="text-xl font-bold text-foreground mb-3">4. How the Revenue Streams Connect</h2>
-        <img src={FLOW_DIAGRAM} alt="How 28 revenue streams connect" className="w-full rounded-xl border border-border mb-4" loading="lazy" />
+        <img src={FLOW_DIAGRAM} alt="How 28 revenue streams connect" className="w-full rounded-xl border border-border mb-1" loading="lazy" />
+        <CopyrightCaption className="mb-4" />
         <p className="text-sm leading-relaxed text-muted-foreground">
           Email Marketing feeds all products. Your Website is the hub that connects everything. Affiliates bridge BUILD products to YIELD services. When you build a course, Abby automatically creates the email sequence to sell it, the social media posts to promote it, and the sales page to convert visitors. Every product feeds into the next.
         </p>
@@ -165,7 +168,8 @@ export default function ABBYFrameworkArticle() {
       {/* Section 5 */}
       <section id="abby-article-5" style={{ scrollMarginTop: 80 }}>
         <h2 className="text-xl font-bold text-foreground mb-3">5. Choosing Your Path</h2>
-        <img src={THREE_PATHS} alt="Three paths for authors" className="w-full rounded-xl border border-border mb-6" loading="lazy" />
+        <img src={THREE_PATHS} alt="Three paths for authors" className="w-full rounded-xl border border-border mb-1" loading="lazy" />
+        <CopyrightCaption className="mb-6" />
 
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="rounded-xl border-2 border-emerald-500 p-4 space-y-2">

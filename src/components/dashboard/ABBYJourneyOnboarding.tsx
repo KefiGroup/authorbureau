@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, X, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { CopyrightCaption } from "@/components/ui/copyright-caption";
 
 interface Props {
   userId: string;
@@ -216,6 +217,7 @@ export default function ABBYJourneyOnboarding({ userId, onComplete }: Props) {
                     </p>
                   </div>
                   <img src="/images/journey-staircase.webp" alt="ABBY Journey Staircase" className="w-full rounded-lg" loading="lazy" />
+                  <CopyrightCaption />
                 </div>
               )}
 
@@ -230,6 +232,7 @@ export default function ABBYJourneyOnboarding({ userId, onComplete }: Props) {
                     </p>
                   </div>
                   <ZoomableImage src="/images/journey-flow-diagram.webp" alt="28 Revenue Streams Flow Diagram" />
+                  <CopyrightCaption />
                   <div className="rounded-lg bg-[#FAF3E0] border border-[#E8D5A8]/40 p-4 text-center">
                     <p className="text-sm text-[#1A1F36]/70 leading-relaxed">
                       Don't worry — you don't need to understand all 28 right now.<br />
@@ -250,6 +253,7 @@ export default function ABBYJourneyOnboarding({ userId, onComplete }: Props) {
                     </p>
                   </div>
                   <img src="/images/journey-comparison.webp" alt="Product Comparison Guide" className="w-full rounded-lg" loading="lazy" />
+                  <CopyrightCaption />
                   <ComparisonAccordion />
                 </div>
               )}
