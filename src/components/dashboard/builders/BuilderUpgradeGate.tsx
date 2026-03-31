@@ -70,13 +70,19 @@ export default function BuilderUpgradeGate({ nodeConfig, currentTier, planData, 
 
   const handleUpgrade = async () => {
     setLoading(true);
+    const popup = window.open("about:blank", "_blank");
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: { priceId: tierInfo.price_id },
       });
       if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
+      if (data?.url && popup) {
+        popup.location.href = data.url;
+      } else if (data?.url) {
+        window.location.href = data.url;
+      }
     } catch (err) {
+      popup?.close();
       console.error("Checkout error:", err);
     } finally {
       setLoading(false);

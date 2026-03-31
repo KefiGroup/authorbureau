@@ -150,6 +150,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
 
   const handleSubscribe = async (planTier: "brand" | "build" | "yield", promoCode?: string) => {
     setCheckoutLoading(true);
+    const popup = window.open("about:blank", "_blank");
     try {
       const { data, error } = await cloudSupabase.functions.invoke("create-checkout", {
         body: {
@@ -159,8 +160,13 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
         },
       });
       if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
+      if (data?.url && popup) {
+        popup.location.href = data.url;
+      } else if (data?.url) {
+        window.location.href = data.url;
+      }
     } catch (err) {
+      popup?.close();
       toast({ title: "Checkout error", description: err.message, variant: "destructive" });
     }
     setCheckoutLoading(false);
