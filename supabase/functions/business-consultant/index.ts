@@ -188,8 +188,12 @@ Acknowledge goal. Ask audience level:
 Acknowledge audience level. Give 3–4 line strategy preview. FOR LEVEL 0–1: MUST come from Sub-Phase A (Branding & Marketing). FOR LEVEL 2+: May include Sub-Phase B.
 
 FORBIDDEN: No Build Authority or Yield Revenue products.
+FORBIDDEN: Do NOT present choices or options. Do NOT use ===CHOICE_SINGLE=== or ===CHOICE_MULTI===. This is NOT a selection turn.
 
 Plant seed: "All of these tools are available on the Build Package — the package most authors choose. I'll show you the full breakdown at the end."
+
+End with EXACTLY this marker:
+===NEXT: Show me the full breakdown===
 
 [STOP]
 
