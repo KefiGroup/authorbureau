@@ -248,29 +248,63 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
       const decoder = new TextDecoder();
       let textBuffer = "";
       let accumulated = "";
+      let streamDone = false;
       setMessages(prev => [...prev, { role: "assistant", content: "" }]);
 
-      while (true) {
+      const applyDelta = (delta?: string) => {
+        if (!delta) return;
+        accumulated += delta;
+        setMessages(prev => {
+          const copy = [...prev];
+          copy[copy.length - 1] = { role: "assistant", content: accumulated };
+          return copy;
+        });
+      };
+
+      const processSseLine = (rawLine: string): boolean => {
+        let line = rawLine;
+        if (line.endsWith("\r")) line = line.slice(0, -1);
+        if (line.startsWith(":") || line.trim() === "") return false;
+        if (!line.startsWith("data: ")) return false;
+
+        const jsonStr = line.slice(6).trim();
+        if (jsonStr === "[DONE]") {
+          streamDone = true;
+          return true;
+        }
+
+        try {
+          const parsed = JSON.parse(jsonStr);
+          applyDelta(parsed.choices?.[0]?.delta?.content as string | undefined);
+        } catch {
+          textBuffer = `${line}\n${textBuffer}`;
+          return true;
+        }
+
+        return false;
+      };
+
+      while (!streamDone) {
         const { done, value } = await reader.read();
         if (done) break;
         textBuffer += decoder.decode(value, { stream: true });
+
         let newlineIndex: number;
         while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
-          let line = textBuffer.slice(0, newlineIndex);
+          const line = textBuffer.slice(0, newlineIndex);
           textBuffer = textBuffer.slice(newlineIndex + 1);
-          if (line.endsWith("\r")) line = line.slice(0, -1);
-          if (line.startsWith(":") || line.trim() === "") continue;
-          if (!line.startsWith("data: ")) continue;
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") break;
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const delta = parsed.choices?.[0]?.delta?.content as string | undefined;
-            if (delta) {
-              accumulated += delta;
-              setMessages(prev => { const copy = [...prev]; copy[copy.length - 1] = { role: "assistant", content: accumulated }; return copy; });
-            }
-          } catch (error) { textBuffer = line + "\n" + textBuffer; break; }
+          const shouldPause = processSseLine(line);
+          if (shouldPause) break;
+        }
+      }
+
+      textBuffer += decoder.decode();
+
+      if (!streamDone && textBuffer.trim()) {
+        for (const rawLine of textBuffer.split("\n")) {
+          if (!rawLine.trim()) continue;
+          const shouldPause = processSseLine(rawLine);
+          if (shouldPause) break;
         }
       }
 
