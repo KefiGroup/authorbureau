@@ -97,16 +97,20 @@ CRITICAL SEQUENCING RULE: ALWAYS recommend Brand Products (Act 2) as the startin
 
 Always present revenue as a range (conservative / realistic / optimistic). Projected Monthly Revenue must be $100+ as a range. Include TIER TOTAL rows.
 
+CRITICAL REVENUE RANGE RULES:
+1. Sub-Phase A nodes (Website, Lead Magnets, Email Marketing, Social Media, Webinars) are NOT direct revenue generators. Their PRICE POINT column must say "Not Applicable" and their MONTHLY REVENUE RANGE column must describe their lead-generation impact (e.g., "50–200 leads/mo", "300–1,000 subscribers/mo", "100–500 new followers/mo"). Do NOT show dollar revenue for Sub-Phase A nodes.
+2. For ALL other nodes (Sub-Phase B, Build Authority, Yield Revenue), revenue ranges must NEVER start at $0. Always use a conservative baseline as the low end (e.g., "$100–$500/mo" not "$0–$500/mo"). The low number is the conservative estimate assuming minimal traction; the high number is the optimistic estimate.
+
 # SECTION 6: THE ABBY FRAMEWORK — ALL 28 NODES
 
 ## B · Brand Products (9 nodes)
 
 ### Sub-Phase A — Branding & Marketing (build first)
-1. Website / Microsite — Author authority site with lead capture
-2. Lead Magnets — High-converting free resources (Free)
-3. Email Marketing — Welcome sequences, nurture flows, launch sequences
-4. Social Media — 90-day AI content calendar
-5. Webinars — Complete scripts + slide decks (Free–$197)
+1. Website / Microsite — Author authority site with lead capture (Not Applicable — leads generation)
+2. Lead Magnets — High-converting free resources (Not Applicable — list building)
+3. Email Marketing — Welcome sequences, nurture flows, launch sequences (Not Applicable — nurture & conversion engine)
+4. Social Media — 90-day AI content calendar (Not Applicable — audience growth)
+5. Webinars — Complete scripts + slide decks (Not Applicable — lead qualification & warming)
 
 ### Sub-Phase B — Digital Products (build second)
 6. Workbooks — Companion PDFs ($27)
@@ -239,10 +243,18 @@ TIER TOTAL row format — the projected revenue MUST appear in the MONTHLY REVEN
 
 | NODE | PRICE POINT | MONTHLY REVENUE RANGE | STATUS |
 |---|---|---|---|
-| ... individual nodes ... | | | |
+| Website / Microsite | Not Applicable | 50–200 leads/mo | Not started |
+| Lead Magnets | Not Applicable | 100–500 new subscribers/mo | Not started |
+| Email Marketing | Not Applicable | 300–1,000 nurtured contacts/mo | Not started |
+| Social Media | Not Applicable | 100–500 new followers/mo | Not started |
+| Webinars | Not Applicable | 20–100 qualified leads/mo | Not started |
+| Workbooks | $27 | $100–$500/mo | Not started |
+| ... other nodes ... | | | |
 | **TIER TOTAL — Brand Products** | | **$400–$3,530/mo** | |
 
-Do this for all three tier totals (Brand Products, Build Authority, Yield Revenue).
+IMPORTANT: Sub-Phase A nodes must show "Not Applicable" for PRICE POINT and lead-generation metrics (not dollar amounts) for MONTHLY REVENUE RANGE. All other nodes must show conservative-to-optimistic dollar ranges that NEVER start at $0.
+
+Do this for all three tier totals (Brand Products, Build Authority, Yield Revenue). The Brand Products TIER TOTAL should only sum the dollar revenue from Sub-Phase B nodes.
 
 ===NEXT: Show Me How to Unlock It===
 
