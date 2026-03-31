@@ -192,13 +192,19 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
 
   const handleUpgrade = async () => {
     setCheckoutLoading(true);
+    const popup = window.open("about:blank", "_blank");
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: { priceId: TIERS.brand.price_id, source_platform: "authorsbureau" },
       });
       if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
+      if (data?.url && popup) {
+        popup.location.href = data.url;
+      } else if (data?.url) {
+        window.location.href = data.url;
+      }
     } catch (err) {
+      popup?.close();
       toast({ title: "Could not start checkout", description: err.message, variant: "destructive" });
     }
     setCheckoutLoading(false);
@@ -206,13 +212,19 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
 
   const handleManage = async () => {
     setPortalLoading(true);
+    const popup = window.open("about:blank", "_blank");
     try {
       const { data, error } = await supabase.functions.invoke("customer-portal", {
         body: { source_platform: "authorsbureau" },
       });
       if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
+      if (data?.url && popup) {
+        popup.location.href = data.url;
+      } else if (data?.url) {
+        window.location.href = data.url;
+      }
     } catch (err) {
+      popup?.close();
       toast({ title: "Could not open portal", description: err.message, variant: "destructive" });
     }
     setPortalLoading(false);

@@ -449,6 +449,8 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
   // ─── Subscription handlers ───
   const handleSubscribeTier = async (tierKey: "brand" | "build" | "yield", promoCode?: string) => {
     setCheckoutLoading(true);
+    // Pre-open window synchronously to avoid popup blocker
+    const popup = window.open("about:blank", "_blank");
     try {
       const token = await getActiveToken();
       const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout`, {
@@ -458,8 +460,13 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
       });
       const result = await resp.json();
       if (!resp.ok) throw new Error(result.error);
-      if (result.url) window.open(result.url, "_blank");
+      if (result.url && popup) {
+        popup.location.href = result.url;
+      } else if (result.url) {
+        window.location.href = result.url;
+      }
     } catch (err: unknown) {
+      popup?.close();
       const message = err instanceof Error ? err.message : "Checkout failed";
       toast({ title: "Checkout failed", description: message, variant: "destructive" });
     } finally { setCheckoutLoading(false); }
@@ -469,11 +476,17 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
 
   const handleManageSubscription = async () => {
     setPortalLoading(true);
+    const popup = window.open("about:blank", "_blank");
     try {
       const { data, error } = await cloudSupabase.functions.invoke("customer-portal", { body: { source_platform: "authorsbureau" } });
       if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
+      if (data?.url && popup) {
+        popup.location.href = data.url;
+      } else if (data?.url) {
+        window.location.href = data.url;
+      }
     } catch (err: unknown) {
+      popup?.close();
       const message = err instanceof Error ? err.message : "Portal error";
       toast({ title: "Portal error", description: message, variant: "destructive" });
     }
