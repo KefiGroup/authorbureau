@@ -525,7 +525,9 @@ export default function SubscriptionSalesPitch({
             initial={{ y: 80, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 80, opacity: 0 }}
-            className="fixed bottom-0 left-0 right-0 z-50 bg-[hsl(220,40%,18%)] text-white px-4 py-3 shadow-2xl"
+            className={`fixed bottom-0 left-0 right-0 z-50 text-white px-4 py-3 shadow-2xl ${
+              countdown.urgent ? "bg-red-700" : "bg-[hsl(220,40%,18%)]"
+            }`}
           >
             <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
               <div className="flex-1 min-w-0">
@@ -535,12 +537,15 @@ export default function SubscriptionSalesPitch({
                 <p className="text-xs text-white/70 flex items-center gap-1">
                   {!countdown.expired && (
                     <>
-                      <Clock className="h-3 w-3" />
-                      {String(countdown.minutes).padStart(2, "0")}:{String(countdown.seconds).padStart(2, "0")} remaining
+                      <Clock className={`h-3 w-3 ${countdown.urgent ? "animate-pulse" : ""}`} />
+                      <span className="font-mono font-bold text-white">
+                        {String(countdown.minutes).padStart(2, "0")}:{String(countdown.seconds).padStart(2, "0")}
+                      </span>{" "}
+                      remaining
                       <span className="mx-1">·</span>
                     </>
                   )}
-                  14-day money-back guarantee
+                  <Shield className="h-3 w-3" /> 14-day money-back guarantee · No questions asked
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
