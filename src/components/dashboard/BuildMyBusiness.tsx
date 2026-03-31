@@ -476,11 +476,17 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
 
   const handleManageSubscription = async () => {
     setPortalLoading(true);
+    const popup = window.open("about:blank", "_blank");
     try {
       const { data, error } = await cloudSupabase.functions.invoke("customer-portal", { body: { source_platform: "authorsbureau" } });
       if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
+      if (data?.url && popup) {
+        popup.location.href = data.url;
+      } else if (data?.url) {
+        window.location.href = data.url;
+      }
     } catch (err: unknown) {
+      popup?.close();
       const message = err instanceof Error ? err.message : "Portal error";
       toast({ title: "Portal error", description: message, variant: "destructive" });
     }
