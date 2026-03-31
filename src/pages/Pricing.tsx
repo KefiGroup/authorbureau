@@ -88,14 +88,20 @@ export default function Pricing() {
       return;
     }
     setLoading(plan.key);
+    const popup = window.open("about:blank", "_blank");
     try {
       const priceId = billingCycle === "annual" ? plan.annualPriceId : plan.priceId;
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: { priceId },
       });
       if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
+      if (data?.url && popup) {
+        popup.location.href = data.url;
+      } else if (data?.url) {
+        window.location.href = data.url;
+      }
     } catch (err: any) {
+      popup?.close();
       console.error("Checkout error:", err);
     } finally {
       setLoading(null);
