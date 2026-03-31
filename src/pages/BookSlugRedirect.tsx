@@ -28,7 +28,7 @@ export default function BookSlugRedirect() {
       const { data: profile } = await supabase
         .from("author_profiles")
         .select("author_slug")
-        .eq("id", book.author_id)
+        .eq("user_id", book.author_id)
         .maybeSingle();
 
       if (!profile?.author_slug) { setNotFound(true); return; }
