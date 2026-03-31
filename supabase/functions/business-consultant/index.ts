@@ -3391,7 +3391,7 @@ CURRENT TURN: ${turnLabel}. Follow Turn ${turnLabel} instructions ONLY. End at t
 
 ${hasSavedPlan ? "- Reference existing business plan. Only update specific sections they request." : ""}
 ${!hasSavedPlan && conversationTurn === 2 ? `- Turn 2: Acknowledge their choice. Ask the audience level question using ===CHOICE_SINGLE===. STOP after the marker.` : ""}
-${!hasSavedPlan && conversationTurn === 3 ? `- Turn 3: Strategy Preview. Acknowledge audience level, give 3-4 line strategy preview. Plant the Build Package seed. STOP.` : ""}
+${!hasSavedPlan && conversationTurn === 3 ? `- Turn 3: Strategy Preview. Acknowledge audience level, give 3-4 line strategy preview. Plant the Build Package seed. Do NOT present any choices or clickable options. End with ===NEXT: Show me the full breakdown===` : ""}
 ${!hasSavedPlan && isSubTurn4 ? `- You are on Turn ${turnLabel} of the multi-part plan reveal. Deliver ONLY this section. Do NOT skip ahead or combine multiple turns.` : ""}
 ${!hasSavedPlan && conversationTurn === 4 ? `- Turn 4A: Deliver the Revenue Headline ONLY. End with ===NEXT: Show My Foundation===` : ""}
 ${!hasSavedPlan && conversationTurn === 5 ? `- Turn 4B: Deliver the Transformation Promise + Brand Products section. End with ===NEXT: Show Build Authority===` : ""}
