@@ -174,13 +174,19 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
 
   const handleManage = async () => {
     setPortalLoading(true);
+    const popup = window.open("about:blank", "_blank");
     try {
       const { data, error } = await cloudSupabase.functions.invoke("customer-portal", {
         body: { source_platform: "authorsbureau" },
       });
       if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
+      if (data?.url && popup) {
+        popup.location.href = data.url;
+      } else if (data?.url) {
+        window.location.href = data.url;
+      }
     } catch (err) {
+      popup?.close();
       toast({ title: "Portal error", description: err.message, variant: "destructive" });
     }
     setPortalLoading(false);
