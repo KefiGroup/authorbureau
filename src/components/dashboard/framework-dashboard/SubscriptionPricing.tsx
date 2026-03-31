@@ -95,6 +95,7 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
   const [timeLeft, setTimeLeft] = useState(0);
   const [storedPromos, setStoredPromos] = useState<Record<string, string> | null>(null);
   const [promoExpiresAt, setPromoExpiresAt] = useState<Date | null>(null);
+  const [recentlyExpired, setRecentlyExpired] = useState(false);
 
   // Load stored consultation promo codes from DB
   useEffect(() => {
@@ -111,7 +112,10 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
             setStoredPromos(data.consultation_promo_codes as Record<string, string>);
             setPromoExpiresAt(expires);
             setTimeLeft(expires.getTime() - Date.now());
-            setTimeLeft(expires.getTime() - Date.now());
+          } else {
+            // Only show "expired" banner if it expired within the last 2 hours
+            const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+            setRecentlyExpired(expires > twoHoursAgo);
           }
         }
       });
@@ -123,12 +127,16 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
     const interval = setInterval(() => {
       const remaining = Math.max(0, promoExpiresAt.getTime() - Date.now());
       setTimeLeft(remaining);
-      if (remaining <= 0) clearInterval(interval);
+      if (remaining <= 0) {
+        setRecentlyExpired(true);
+        clearInterval(interval);
+      }
     }, 1000);
     return () => clearInterval(interval);
   }, [promoExpiresAt]);
 
-  const promoExpired = !promoExpiresAt || timeLeft <= 0;
+  const promoActive = !!promoExpiresAt && timeLeft > 0;
+  const promoExpired = !promoActive && recentlyExpired;
 
 
   if (isSubscribed) {
