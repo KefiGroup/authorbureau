@@ -288,23 +288,41 @@ export default function SubscriptionSalesPitch({
       {/* ─── Countdown Timer Banner ─── */}
       {!isSubscribed && !countdown.expired && (
         <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`rounded-xl mx-4 md:mx-8 mt-4 px-5 py-3 flex items-center justify-center gap-3 text-sm font-semibold ${
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className={`rounded-2xl mx-4 md:mx-8 mt-6 overflow-hidden border-2 ${
             countdown.urgent
-              ? "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800"
-              : "bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
+              ? "border-red-500 bg-gradient-to-r from-red-50 to-red-100 dark:from-red-950/40 dark:to-red-900/30"
+              : "border-amber-400 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-950/40 dark:to-yellow-900/30"
           }`}
         >
-          <Clock className={`h-4 w-4 ${countdown.urgent ? "animate-pulse" : ""}`} />
-          <span>
-            Consultation Special: Build Package is usually <span className="line-through">$199/mo</span>, now <strong>$99/mo</strong> for the next{" "}
-            <span className="font-mono font-bold text-base">
+          {/* Timer strip */}
+          <div className={`px-5 py-3 text-center font-bold text-white ${
+            countdown.urgent ? "bg-red-600" : "bg-amber-500"
+          }`}>
+            <div className="flex items-center justify-center gap-2 text-base">
+              <Clock className={`h-5 w-5 ${countdown.urgent ? "animate-pulse" : "animate-bounce"}`} />
+              <span>⏳ YOUR EXCLUSIVE RATE EXPIRES IN</span>
+              {countdown.urgent && <AlertTriangle className="h-5 w-5 animate-pulse" />}
+            </div>
+            <div className="font-mono text-3xl tracking-wider mt-1">
               {String(countdown.minutes).padStart(2, "0")}:{String(countdown.seconds).padStart(2, "0")}
-            </span>
-            . Save $100/mo.
-          </span>
-          {countdown.urgent && <AlertTriangle className="h-4 w-4 animate-pulse" />}
+            </div>
+          </div>
+
+          {/* Details */}
+          <div className="px-6 py-4 text-center space-y-2">
+            <p className={`text-base font-semibold ${countdown.urgent ? "text-red-700 dark:text-red-400" : "text-amber-800 dark:text-amber-300"}`}>
+              Consultation Special: Build Package <span className="line-through opacity-70">$199/mo</span> → <strong className="text-lg">$99/mo</strong> — Save $1,200/year
+            </p>
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Shield className="h-4 w-4 text-green-600" />
+              <span><strong>14-day money-back guarantee</strong> — no questions asked. Cancel anytime.</span>
+            </div>
+            <p className="text-xs text-muted-foreground italic">
+              This one-time rate was unlocked by your consultation. Once the timer runs out, standard pricing applies.
+            </p>
+          </div>
         </motion.div>
       )}
 
@@ -507,7 +525,9 @@ export default function SubscriptionSalesPitch({
             initial={{ y: 80, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 80, opacity: 0 }}
-            className="fixed bottom-0 left-0 right-0 z-50 bg-[hsl(220,40%,18%)] text-white px-4 py-3 shadow-2xl"
+            className={`fixed bottom-0 left-0 right-0 z-50 text-white px-4 py-3 shadow-2xl ${
+              countdown.urgent ? "bg-red-700" : "bg-[hsl(220,40%,18%)]"
+            }`}
           >
             <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
               <div className="flex-1 min-w-0">
@@ -517,12 +537,15 @@ export default function SubscriptionSalesPitch({
                 <p className="text-xs text-white/70 flex items-center gap-1">
                   {!countdown.expired && (
                     <>
-                      <Clock className="h-3 w-3" />
-                      {String(countdown.minutes).padStart(2, "0")}:{String(countdown.seconds).padStart(2, "0")} remaining
+                      <Clock className={`h-3 w-3 ${countdown.urgent ? "animate-pulse" : ""}`} />
+                      <span className="font-mono font-bold text-white">
+                        {String(countdown.minutes).padStart(2, "0")}:{String(countdown.seconds).padStart(2, "0")}
+                      </span>{" "}
+                      remaining
                       <span className="mx-1">·</span>
                     </>
                   )}
-                  14-day money-back guarantee
+                  <Shield className="h-3 w-3" /> 14-day money-back guarantee · No questions asked
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
