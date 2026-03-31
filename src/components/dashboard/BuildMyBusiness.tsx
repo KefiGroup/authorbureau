@@ -284,10 +284,7 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${saveToken || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
             body: JSON.stringify({ action: "save-plan", bookId: selectedBook.id, content: allAssistantContent }),
           });
-          // Generate unique consultation promo codes (fire-and-forget)
-          cloudSupabase.functions.invoke("generate-consultation-promos").catch(err => {
-            console.error("Failed to generate consultation promos:", err);
-          });
+          // Promo codes are now generated when the pricing section renders (SubscriptionSalesPitch)
         } catch (error) { console.error(error); }
       }
     } catch (err: unknown) {
