@@ -120,28 +120,51 @@ function useCountdown(userId?: string) {
   const [expiresAt, setExpiresAt] = useState<Date | null>(null);
   const [storedPromos, setStoredPromos] = useState<Record<string, string> | null>(null);
   const [recentlyExpired, setRecentlyExpired] = useState(false);
+  const promoGeneratedRef = useRef(false);
 
   useEffect(() => {
     if (!userId) return;
-    cloudSupabase
-      .from("author_profiles")
-      .select("consultation_promo_codes, consultation_promo_expires_at")
-      .eq("user_id", userId)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data?.consultation_promo_codes && data?.consultation_promo_expires_at) {
-          const expires = new Date(data.consultation_promo_expires_at);
-          if (expires > new Date()) {
-            setExpiresAt(expires);
-            setStoredPromos(data.consultation_promo_codes as Record<string, string>);
-            setRemaining(expires.getTime() - Date.now());
-          } else {
-            // Only show "expired" banner if it expired within the last 2 hours
-            const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
-            setRecentlyExpired(expires > twoHoursAgo);
-          }
+
+    const loadOrGeneratePromos = async () => {
+      // First check if promos already exist
+      const { data } = await cloudSupabase
+        .from("author_profiles")
+        .select("consultation_promo_codes, consultation_promo_expires_at")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (data?.consultation_promo_codes && data?.consultation_promo_expires_at) {
+        const expires = new Date(data.consultation_promo_expires_at);
+        if (expires > new Date()) {
+          setExpiresAt(expires);
+          setStoredPromos(data.consultation_promo_codes as Record<string, string>);
+          setRemaining(expires.getTime() - Date.now());
+          return;
+        } else {
+          const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+          setRecentlyExpired(expires > twoHoursAgo);
         }
-      });
+      }
+
+      // No active promos — generate them now (first time pricing section is shown)
+      if (!promoGeneratedRef.current) {
+        promoGeneratedRef.current = true;
+        try {
+          const { data: promoData } = await cloudSupabase.functions.invoke("generate-consultation-promos");
+          if (promoData?.success && promoData?.expires_at) {
+            const expires = new Date(promoData.expires_at);
+            setExpiresAt(expires);
+            setStoredPromos(promoData.promo_codes as Record<string, string>);
+            setRemaining(expires.getTime() - Date.now());
+            setRecentlyExpired(false);
+          }
+        } catch (err) {
+          console.error("Failed to generate consultation promos:", err);
+        }
+      }
+    };
+
+    loadOrGeneratePromos();
   }, [userId]);
 
   useEffect(() => {
