@@ -3514,7 +3514,7 @@ request_meta: ${JSON.stringify({
       const isEarlyTurn = !hasSavedPlan && conversationTurn <= 4;
       const isPostPlan = !hasSavedPlan && conversationTurn >= 10;
       const isRefinementGreeting = hasSavedPlan && assistantTurns === 0;
-      maxTokens = (isEarlyTurn || isRefinementGreeting || isPostPlan) ? 300 : 4096;
+      maxTokens = (isEarlyTurn || isRefinementGreeting || isPostPlan) ? 420 : 4096;
     }
 
     const aiMessages = [
