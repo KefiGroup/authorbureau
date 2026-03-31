@@ -3523,7 +3523,7 @@ request_meta: ${JSON.stringify({
     ];
 
     // Use faster model for consultation chat, premium model for builder generation
-    const model = builderMode ? "openai/gpt-5.2" : "google/gemini-2.5-flash";
+    const model = builderMode ? "openai/gpt-5.2" : "google/gemini-3-flash-preview";
 
     const aiRequestBody = JSON.stringify({
       model,
