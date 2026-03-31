@@ -243,10 +243,18 @@ TIER TOTAL row format — the projected revenue MUST appear in the MONTHLY REVEN
 
 | NODE | PRICE POINT | MONTHLY REVENUE RANGE | STATUS |
 |---|---|---|---|
-| ... individual nodes ... | | | |
+| Website / Microsite | Not Applicable | 50–200 leads/mo | Not started |
+| Lead Magnets | Not Applicable | 100–500 new subscribers/mo | Not started |
+| Email Marketing | Not Applicable | 300–1,000 nurtured contacts/mo | Not started |
+| Social Media | Not Applicable | 100–500 new followers/mo | Not started |
+| Webinars | Not Applicable | 20–100 qualified leads/mo | Not started |
+| Workbooks | $27 | $100–$500/mo | Not started |
+| ... other nodes ... | | | |
 | **TIER TOTAL — Brand Products** | | **$400–$3,530/mo** | |
 
-Do this for all three tier totals (Brand Products, Build Authority, Yield Revenue).
+IMPORTANT: Sub-Phase A nodes must show "Not Applicable" for PRICE POINT and lead-generation metrics (not dollar amounts) for MONTHLY REVENUE RANGE. All other nodes must show conservative-to-optimistic dollar ranges that NEVER start at $0.
+
+Do this for all three tier totals (Brand Products, Build Authority, Yield Revenue). The Brand Products TIER TOTAL should only sum the dollar revenue from Sub-Phase B nodes.
 
 ===NEXT: Show Me How to Unlock It===
 
