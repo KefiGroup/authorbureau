@@ -119,6 +119,7 @@ function useCountdown(userId?: string) {
   const [remaining, setRemaining] = useState(0);
   const [expiresAt, setExpiresAt] = useState<Date | null>(null);
   const [storedPromos, setStoredPromos] = useState<Record<string, string> | null>(null);
+  const [recentlyExpired, setRecentlyExpired] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -134,6 +135,10 @@ function useCountdown(userId?: string) {
             setExpiresAt(expires);
             setStoredPromos(data.consultation_promo_codes as Record<string, string>);
             setRemaining(expires.getTime() - Date.now());
+          } else {
+            // Only show "expired" banner if it expired within the last 2 hours
+            const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+            setRecentlyExpired(expires > twoHoursAgo);
           }
         }
       });
@@ -144,14 +149,18 @@ function useCountdown(userId?: string) {
     const interval = setInterval(() => {
       const left = Math.max(0, expiresAt.getTime() - Date.now());
       setRemaining(left);
-      if (left <= 0) clearInterval(interval);
+      if (left <= 0) {
+        setRecentlyExpired(true);
+        clearInterval(interval);
+      }
     }, 1000);
     return () => clearInterval(interval);
   }, [expiresAt]);
 
   const minutes = Math.floor(remaining / 60000);
   const seconds = Math.floor((remaining % 60000) / 1000);
-  const expired = !expiresAt || remaining <= 0;
+  const promoActive = !!expiresAt && remaining > 0;
+  const expired = !promoActive && recentlyExpired;
   const urgent = remaining > 0 && remaining < 10 * 60 * 1000;
 
   return { minutes, seconds, expired, urgent, remaining, storedPromos };
