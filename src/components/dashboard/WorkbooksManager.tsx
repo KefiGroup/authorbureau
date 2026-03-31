@@ -36,13 +36,19 @@ export default function WorkbooksManager({ onNavigate }: { onNavigate?: (section
 
   const handleSubscribeTier = async (tierKey: "brand" | "build" | "yield", promoCode?: string) => {
     setCheckoutLoading(true);
+    const popup = window.open("about:blank", "_blank");
     try {
       const { data, error } = await sharedSupabase.functions.invoke("create-checkout", {
         body: { priceId: TIERS[tierKey].price_id, source_platform: "authorsbureau", ...(promoCode ? { promoCode } : {}) },
       });
       if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
+      if (data?.url && popup) {
+        popup.location.href = data.url;
+      } else if (data?.url) {
+        window.location.href = data.url;
+      }
     } catch (err) {
+      popup?.close();
       toast.error(err?.message || "Could not start checkout");
     } finally {
       setCheckoutLoading(false);
