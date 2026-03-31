@@ -328,7 +328,7 @@ export default function Index() {
 
               <motion.div variants={fadeUp} custom={8}>
                 <Button asChild size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold shadow-none rounded-full">
-                  <Link to="/authors/pauline-teo">View Full Profile</Link>
+                  <a href="https://paulineteo.com/" target="_blank" rel="noopener noreferrer">View Full Profile</a>
                 </Button>
               </motion.div>
             </motion.div>

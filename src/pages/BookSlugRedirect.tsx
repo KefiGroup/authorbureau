@@ -17,7 +17,7 @@ export default function BookSlugRedirect() {
     (async () => {
       // Find book by slug
       const { data: book } = await supabase
-        .from("books")
+        .from("books_public")
         .select("author_id, slug")
         .eq("slug", slug)
         .maybeSingle();
@@ -26,7 +26,7 @@ export default function BookSlugRedirect() {
 
       // Find author slug
       const { data: profile } = await supabase
-        .from("author_profiles")
+        .from("author_profiles_public")
         .select("author_slug")
         .eq("user_id", book.author_id)
         .maybeSingle();
