@@ -3522,8 +3522,11 @@ request_meta: ${JSON.stringify({
       ...(messages || []).filter((m: any) => m?.role !== "system").map((m: any) => ({ role: m.role, content: m.content })),
     ];
 
+    // Use faster model for consultation chat, premium model for builder generation
+    const model = builderMode ? "openai/gpt-5.2" : "google/gemini-2.5-flash";
+
     const aiRequestBody = JSON.stringify({
-      model: "openai/gpt-5.2",
+      model,
       messages: aiMessages,
       temperature,
       max_completion_tokens: maxTokens,
