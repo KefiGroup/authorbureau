@@ -136,6 +136,7 @@ export default function ChatView({
           if (idx === 0 && msg.role === "user" && (msg.content.includes("I'd like to build a business") || msg.content.includes("Start a brand new consultation"))) return null;
           const buildRequests = msg.role === "assistant" ? parseBuildRequests(msg.content) : [];
           const hasSubscribeCta = msg.role === "assistant" && msg.content.includes("===SUBSCRIBE_CTA===");
+          const hasShowFullPlan = msg.role === "assistant" && msg.content.includes("===SHOW_FULL_PLAN===");
           const navMarkers = msg.role === "assistant" ? parseNavMarkers(msg.content) : [];
           const displayContent = msg.content
             .replace(/===BUILD_REQUEST===[\s\S]*?===END_BUILD_REQUEST===/g, "")
