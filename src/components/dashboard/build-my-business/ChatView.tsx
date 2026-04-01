@@ -15,7 +15,7 @@ import ChatChoiceButtons, { parseChoices, parseConfirmation } from "@/components
 import type { AuthorFramework } from "@/components/dashboard/FrameworksEditor";
 import {
   Loader2, Send, ArrowLeft, Sparkles, User, RotateCcw,
-  Wrench, Crown, Rocket,
+  Wrench, Crown, Rocket, BarChart3,
 } from "lucide-react";
 import type { SubscriptionTier } from "@/hooks/useAuth";
 import type { Book, ChatMessage } from "./types";
