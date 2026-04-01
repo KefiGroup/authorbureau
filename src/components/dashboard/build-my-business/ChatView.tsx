@@ -59,6 +59,7 @@ export default function ChatView({
   const lastAssistantRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const [showFullPlan, setShowFullPlan] = useState(false);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
