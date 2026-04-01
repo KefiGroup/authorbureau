@@ -3472,10 +3472,18 @@ request_meta: ${JSON.stringify({
         assistant_turns: assistantTurns,
       })}`;
 
-      const isEarlyTurn = !hasSavedPlan && conversationTurn <= 4;
+      // v2.5: Turn 3 (the full plan) needs more tokens; Turns 1-2 are short
+      const isTurn3Plan = !hasSavedPlan && conversationTurn >= 4 && conversationTurn <= 6;
+      const isEarlyTurn = !hasSavedPlan && conversationTurn <= 3;
       const isPostPlan = !hasSavedPlan && conversationTurn >= 10;
       const isRefinementGreeting = hasSavedPlan && assistantTurns === 0;
-      maxTokens = (isEarlyTurn || isRefinementGreeting || isPostPlan) ? 420 : 4096;
+      if (isTurn3Plan) {
+        maxTokens = 4096; // Full plan needs space
+      } else if (isEarlyTurn || isRefinementGreeting || isPostPlan) {
+        maxTokens = 420;
+      } else {
+        maxTokens = 4096;
+      }
     }
 
     const aiMessages = [
