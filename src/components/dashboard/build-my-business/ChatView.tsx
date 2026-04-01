@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import BusinessPlanActions, { isBusinessPlanMessage } from "@/components/dashboard/BusinessPlanActions";
+import FullPlanDialog from "@/components/dashboard/FullPlanDialog";
 import SavedBusinessPlan from "@/components/dashboard/SavedBusinessPlan";
 import FrameworkInterviewModal, { type BuildMode } from "@/components/dashboard/FrameworkInterviewModal";
 import SubscriptionSalesPitch from "@/components/dashboard/framework-dashboard/SubscriptionSalesPitch";
