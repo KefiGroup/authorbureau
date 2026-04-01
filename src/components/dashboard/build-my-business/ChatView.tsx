@@ -358,6 +358,14 @@ export default function ChatView({
 
       <FrameworkInterviewModal open={showFrameworkModal} onClose={onCloseFrameworkModal}
         onConfirm={onFrameworkConfirm} productType={pendingBuildReq?.product_type || "product"} bookTitle={selectedBook?.title || ""} bookId={selectedBook?.id} />
+
+      {/* Full Plan Dialog — triggered by ===SHOW_FULL_PLAN=== marker */}
+      <FullPlanDialog
+        open={showFullPlan}
+        onOpenChange={setShowFullPlan}
+        bookId={selectedBook.id}
+        bookTitle={selectedBook.title}
+      />
     </div>
   );
 }
