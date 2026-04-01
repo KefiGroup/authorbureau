@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import BusinessPlanActions, { isBusinessPlanMessage } from "@/components/dashboard/BusinessPlanActions";
+import FullPlanDialog from "@/components/dashboard/FullPlanDialog";
 import SavedBusinessPlan from "@/components/dashboard/SavedBusinessPlan";
 import FrameworkInterviewModal, { type BuildMode } from "@/components/dashboard/FrameworkInterviewModal";
 import SubscriptionSalesPitch from "@/components/dashboard/framework-dashboard/SubscriptionSalesPitch";
@@ -14,7 +15,7 @@ import ChatChoiceButtons, { parseChoices, parseConfirmation } from "@/components
 import type { AuthorFramework } from "@/components/dashboard/FrameworksEditor";
 import {
   Loader2, Send, ArrowLeft, Sparkles, User, RotateCcw,
-  Wrench, Crown, Rocket,
+  Wrench, Crown, Rocket, BarChart3,
 } from "lucide-react";
 import type { SubscriptionTier } from "@/hooks/useAuth";
 import type { Book, ChatMessage } from "./types";
@@ -58,6 +59,7 @@ export default function ChatView({
   const lastAssistantRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const [showFullPlan, setShowFullPlan] = useState(false);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -126,7 +128,7 @@ export default function ChatView({
         <div className="rounded-lg border border-secondary/15 bg-secondary/5 px-4 py-3 flex items-start gap-2.5 text-xs text-muted-foreground">
           <span className="text-base leading-none mt-0.5">⏱</span>
           <p>
-            This consultation takes <span className="font-medium text-foreground">5–10 minutes</span>. Abby cross-references your book against 34 proven frameworks — including Russell Brunson's Value Ladder, McKinsey SCQ, Bloom's Taxonomy, and the Expert Business Model — to build your personalised strategy.
+            This consultation takes <span className="font-medium text-foreground">3–5 minutes</span>. Abby cross-references your book against 34 proven frameworks — including Russell Brunson's Value Ladder, McKinsey SCQ, Bloom's Taxonomy, and the Expert Business Model — to build your personalised strategy.
           </p>
         </div>
 
@@ -134,10 +136,12 @@ export default function ChatView({
           if (idx === 0 && msg.role === "user" && (msg.content.includes("I'd like to build a business") || msg.content.includes("Start a brand new consultation"))) return null;
           const buildRequests = msg.role === "assistant" ? parseBuildRequests(msg.content) : [];
           const hasSubscribeCta = msg.role === "assistant" && msg.content.includes("===SUBSCRIBE_CTA===");
+          const hasShowFullPlan = msg.role === "assistant" && msg.content.includes("===SHOW_FULL_PLAN===");
           const navMarkers = msg.role === "assistant" ? parseNavMarkers(msg.content) : [];
           const displayContent = msg.content
             .replace(/===BUILD_REQUEST===[\s\S]*?===END_BUILD_REQUEST===/g, "")
             .replace(/===SUBSCRIBE_CTA===/g, "")
+            .replace(/===SHOW_FULL_PLAN===/g, "")
             .replace(/===CHOICE_SINGLE:\s*.*?===/g, "")
             .replace(/===CHOICE_MULTI:\s*.*?===/g, "")
             .replace(/===NEXT:\s*.*?===/g, "")
@@ -190,6 +194,20 @@ export default function ChatView({
                         </Card>
                       );
                     })}
+                  </div>
+                )}
+
+                {/* View Full Revenue Map button */}
+                {hasShowFullPlan && !isStreaming && (
+                  <div className="mt-4">
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2 border-secondary/40 text-secondary hover:bg-secondary/10 font-semibold"
+                      onClick={() => setShowFullPlan(true)}
+                    >
+                      <BarChart3 className="h-4 w-4" />
+                      View Your Full 28-Node Revenue Map
+                    </Button>
                   </div>
                 )}
 
@@ -340,6 +358,14 @@ export default function ChatView({
 
       <FrameworkInterviewModal open={showFrameworkModal} onClose={onCloseFrameworkModal}
         onConfirm={onFrameworkConfirm} productType={pendingBuildReq?.product_type || "product"} bookTitle={selectedBook?.title || ""} bookId={selectedBook?.id} />
+
+      {/* Full Plan Dialog — triggered by ===SHOW_FULL_PLAN=== marker */}
+      <FullPlanDialog
+        open={showFullPlan}
+        onOpenChange={setShowFullPlan}
+        bookId={selectedBook.id}
+        bookTitle={selectedBook.title}
+      />
     </div>
   );
 }
