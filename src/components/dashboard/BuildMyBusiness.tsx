@@ -532,6 +532,20 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
         await fetch(CONSULTATION_SESSION_URL, { method: "POST", headers, body: JSON.stringify({ action: "reset", session_id: sessionId }) });
       } catch (error) { console.error(error); }
     }
+    // Clear promo codes so the timer restarts fresh on next consultation close
+    if (user?.id) {
+      try {
+        const { createClient } = await import("@supabase/supabase-js");
+        const cloudSupabase = createClient(
+          import.meta.env.VITE_SUPABASE_URL,
+          import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+        );
+        await cloudSupabase
+          .from("author_profiles")
+          .update({ consultation_promo_codes: null, consultation_promo_expires_at: null })
+          .eq("user_id", user.id);
+      } catch (err) { console.error("Failed to clear promo codes:", err); }
+    }
     setMessages([]); updateSessionId(null); setInput(""); setAbbyReading(false); setReadingProgress(0);
     if (goBackToBookSelect) setSelectedBook(null);
     else if (selectedBook) { skipLoadRef.current = true; setShouldAutoStart(true); }
