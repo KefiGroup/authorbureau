@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 // ╔══════════════════════════════════════════════════════════════════╗
-// ║           ABBY MASTER SYSTEM PROMPT — VERSION 2.4               ║
+// ║           ABBY MASTER SYSTEM PROMPT — VERSION 2.5               ║
 // ║           Authors Bureau · AI Business Advisor                  ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
