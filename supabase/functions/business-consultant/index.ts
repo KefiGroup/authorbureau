@@ -3348,28 +3348,26 @@ REFINEMENT MODE — EXISTING PLAN DETECTED:
 - Review progress_log to acknowledge what they've already built.
 - Keep response under 150 words.`;
     } else if (assistantTurns > 0) {
-      // Map conversation turns to the prompt's turn labels
-      // Turn 1: Greeting & choice. Turn 2: Audience question. Turn 3: Strategy preview.
-      // Turns 4-9 map to 4A-4F (plan reveal). Turn 10: Next steps. Turn 11+: Ongoing.
-      const turnLabelMap: Record<number, string> = {
-        2: "2", 3: "3", 4: "4A", 5: "4B", 6: "4C", 7: "4D", 8: "4E", 9: "4F",
-      };
-      const turnLabel = turnLabelMap[conversationTurn] || (conversationTurn === 10 ? "5" : conversationTurn > 10 ? "POST-PLAN" : String(conversationTurn));
-      const isSubTurn4 = conversationTurn >= 4 && conversationTurn <= 9;
-      const maxWords = isSubTurn4 ? 400 : 150;
+      // v2.5 STREAMLINED: 5 turns total
+      // Turn 1 (conversationTurn=1): Greeting & choice — handled in CONVERSATION START
+      // Turn 2 (conversationTurn=2): Audience question
+      // Turn 3 (conversationTurn=3): Full business plan + SHOW_FULL_PLAN + NEXT
+      // Turn 4 (conversationTurn=4): The Close — ROI + plan comparison + SUBSCRIBE_CTA
+      // Turn 5 (conversationTurn=5): Next steps with NAV markers
+      // Turn 6+: Ongoing conversation
+      const turnLabel = String(conversationTurn);
+      const maxWords = conversationTurn === 3 ? 600 : conversationTurn === 4 ? 400 : 150;
 
       progressionBlock = `
 CONVERSATION PROGRESSION:
-CURRENT TURN: ${turnLabel}. Follow Turn ${turnLabel} instructions ONLY. End at the [STOP] marker. Maximum ${maxWords} words.
+CURRENT TURN: ${turnLabel}. Follow Turn ${turnLabel} instructions from SECTION 7 ONLY. End at the [STOP] marker. Maximum ${maxWords} words.
 
 ${hasSavedPlan ? "- Reference existing business plan. Only update specific sections they request." : ""}
-${!hasSavedPlan && conversationTurn === 2 ? `- Turn 2: Acknowledge their choice. Ask the audience level question using ===CHOICE_SINGLE===. STOP after the marker.` : ""}
-${!hasSavedPlan && conversationTurn === 3 ? `- Turn 3: Strategy Preview. Acknowledge audience level, give 3-4 line strategy preview. Plant the Build Package seed. Do NOT present any choices or clickable options. End with ===NEXT: Show me the full breakdown===` : ""}
-${!hasSavedPlan && isSubTurn4 ? `- You are on Turn ${turnLabel} of the multi-part plan reveal. Deliver ONLY this section. Do NOT skip ahead or combine multiple turns.` : ""}
-${!hasSavedPlan && conversationTurn === 4 ? `- Turn 4A: Deliver the Revenue Headline ONLY. End with ===NEXT: Show My Foundation===` : ""}
-${!hasSavedPlan && conversationTurn === 5 ? `- Turn 4B: Deliver the Transformation Promise + Brand Products section. End with ===NEXT: Show Build Authority===` : ""}
-${!hasSavedPlan && conversationTurn === 10 ? `- Turn 5: Give 3 specific next steps. First step MUST be Branding & Marketing. Use ===NAV:=== markers.` : ""}
-${!hasSavedPlan && conversationTurn > 10 ? "- ONGOING: Under 150 words. Reference the business plan. Tie to manuscript content." : ""}`;
+${!hasSavedPlan && conversationTurn === 2 ? `- Turn 2: Acknowledge their choice. Ask the audience level question using ===CHOICE_SINGLE: Starting fresh (0 contacts) | Growing (up to 1,000) | Building momentum (1,001–3,000) | Established (3,001–5,000) | Thriving (5,000+)===. STOP after the marker.` : ""}
+${!hasSavedPlan && conversationTurn === 3 ? `- Turn 3: YOUR COMPLETE BUSINESS PLAN. Acknowledge audience level, then deliver the FULL personalised plan (Parts 1-4 as defined in SECTION 7). End with ===SHOW_FULL_PLAN=== then ===NEXT: Show Me How to Unlock It===. Do NOT use ===CHOICE_SINGLE=== or ===CHOICE_MULTI=== in this turn. Maximum 600 words.` : ""}
+${!hasSavedPlan && conversationTurn === 4 ? `- Turn 4: UNLOCK YOUR PLAN (The Close). Open with ROI calculation, then plan comparison table, then ===SUBSCRIBE_CTA===. Mention 14-day money-back guarantee. Maximum 400 words. Do NOT combine with Turn 3.` : ""}
+${!hasSavedPlan && conversationTurn === 5 ? `- Turn 5: Give 3 specific next steps. First step MUST be Branding & Marketing. Use ===NAV:=== markers. STOP after.` : ""}
+${!hasSavedPlan && conversationTurn > 5 ? "- ONGOING: Under 150 words. Reference the business plan. Tie to manuscript content." : ""}`;
     } else {
       progressionBlock = `
 CONVERSATION START:
