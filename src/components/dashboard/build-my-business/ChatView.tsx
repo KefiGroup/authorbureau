@@ -128,7 +128,7 @@ export default function ChatView({
         <div className="rounded-lg border border-secondary/15 bg-secondary/5 px-4 py-3 flex items-start gap-2.5 text-xs text-muted-foreground">
           <span className="text-base leading-none mt-0.5">⏱</span>
           <p>
-            This consultation takes <span className="font-medium text-foreground">5–10 minutes</span>. Abby cross-references your book against 34 proven frameworks — including Russell Brunson's Value Ladder, McKinsey SCQ, Bloom's Taxonomy, and the Expert Business Model — to build your personalised strategy.
+            This consultation takes <span className="font-medium text-foreground">3–5 minutes</span>. Abby cross-references your book against 34 proven frameworks — including Russell Brunson's Value Ladder, McKinsey SCQ, Bloom's Taxonomy, and the Expert Business Model — to build your personalised strategy.
           </p>
         </div>
 
