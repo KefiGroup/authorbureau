@@ -3470,17 +3470,20 @@ request_meta: ${JSON.stringify({
         assistant_turns: assistantTurns,
       })}`;
 
-      // v2.5: Turn 3 (the full plan) needs more tokens; Turns 1-2 are short
-      const isTurn3Plan = !hasSavedPlan && conversationTurn >= 4 && conversationTurn <= 6;
-      const isEarlyTurn = !hasSavedPlan && conversationTurn <= 3;
-      const isPostPlan = !hasSavedPlan && conversationTurn >= 10;
+      // v2.5 token allocation:
+      // Turn 1-2: Short turns (greeting, audience question) — 600 tokens to avoid truncating markers
+      // Turn 3: Full business plan — 4096 tokens
+      // Turn 4: The Close (ROI + table + CTA) — 4096 tokens
+      // Turn 5: Next steps — 600 tokens
+      // Turn 6+: Ongoing — 600 tokens
       const isRefinementGreeting = hasSavedPlan && assistantTurns === 0;
-      if (isTurn3Plan) {
-        maxTokens = 4096; // Full plan needs space
-      } else if (isEarlyTurn || isRefinementGreeting || isPostPlan) {
-        maxTokens = 420;
-      } else {
+      const isPlanOrClose = !hasSavedPlan && (conversationTurn === 3 || conversationTurn === 4);
+      if (isPlanOrClose) {
         maxTokens = 4096;
+      } else if (isRefinementGreeting) {
+        maxTokens = 600;
+      } else {
+        maxTokens = 600; // Turns 1, 2, 5, 6+ — enough for markers without truncation
       }
     }
 
