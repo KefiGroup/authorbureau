@@ -141,6 +141,7 @@ export default function ChatView({
           const displayContent = msg.content
             .replace(/===BUILD_REQUEST===[\s\S]*?===END_BUILD_REQUEST===/g, "")
             .replace(/===SUBSCRIBE_CTA===/g, "")
+            .replace(/===SHOW_FULL_PLAN===/g, "")
             .replace(/===CHOICE_SINGLE:\s*.*?===/g, "")
             .replace(/===CHOICE_MULTI:\s*.*?===/g, "")
             .replace(/===NEXT:\s*.*?===/g, "")
