@@ -197,6 +197,20 @@ export default function ChatView({
                   </div>
                 )}
 
+                {/* View Full Revenue Map button */}
+                {hasShowFullPlan && !isStreaming && (
+                  <div className="mt-4">
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2 border-secondary/40 text-secondary hover:bg-secondary/10 font-semibold"
+                      onClick={() => setShowFullPlan(true)}
+                    >
+                      <BarChart3 className="h-4 w-4" />
+                      View Your Full 28-Node Revenue Map
+                    </Button>
+                  </div>
+                )}
+
                 {/* Subscription sales pitch */}
                 {((hasSubscribeCta || (msg.role === "assistant" && !isStreaming && isBusinessPlanMessage(displayContent)))) && (
                   <div className="mt-5">
