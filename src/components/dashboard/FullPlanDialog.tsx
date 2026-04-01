@@ -27,6 +27,7 @@ function stripMarkers(text: string): string {
     .replace(/===NAV:[\w-]+===/g, "")
     .replace(/===BUILD_REQUEST===[\s\S]*?===END_BUILD_REQUEST===/g, "")
     .replace(/===SUBSCRIBE_CTA===/g, "")
+    .replace(/===SHOW_FULL_PLAN===/g, "")
     .replace(/\[STOP\]/g, "")
     .trim();
 }
