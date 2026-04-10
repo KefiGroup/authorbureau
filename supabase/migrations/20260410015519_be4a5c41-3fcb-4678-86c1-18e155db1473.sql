@@ -1,0 +1,1 @@
+UPDATE books SET owner_email = 'paulinet77@gmail.com' WHERE author_id = '50a60e39-3090-487e-aea4-75b86a1cf76a' AND owner_email IS NULL;
