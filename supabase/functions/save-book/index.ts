@@ -75,6 +75,9 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      userEmail = body.email;
+        });
+      }
 
       // Resolve user via pull-shared-profile endpoint
       const resolved = await resolveUserViaSharedProfile(body.platform_secret, body.email);
