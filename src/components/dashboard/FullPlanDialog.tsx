@@ -37,6 +37,36 @@ function stripMarkers(text: string): string {
 function extractSections(fullContent: string): PlanSection[] {
   const sections: PlanSection[] = [];
 
+  // --- Strategy 1: New v2.5 "PART N:" format (from chat) ---
+  const partRegex = /PART\s*(\d+)\s*:\s*[🎯📦🏗📈💰🔓✨🎉]*\s*(.+?)(?:\n|$)([\s\S]*?)(?=PART\s*\d+\s*:|$)/gi;
+  const partConfigs: Record<number, { key: string; icon: React.ReactNode; accent: string }> = {
+    1: { key: "analyse", icon: <Sparkles className="h-4 w-4" />, accent: "from-amber-500 to-yellow-400" },
+    2: { key: "brand", icon: <Package className="h-4 w-4" />, accent: "from-emerald-500 to-green-400" },
+    3: { key: "build", icon: <TrendingUp className="h-4 w-4" />, accent: "from-blue-500 to-cyan-400" },
+    4: { key: "yield", icon: <Target className="h-4 w-4" />, accent: "from-purple-500 to-violet-400" },
+  };
+
+  let partMatch;
+  while ((partMatch = partRegex.exec(fullContent)) !== null) {
+    const partNum = parseInt(partMatch[1]);
+    const partTitle = partMatch[2].trim();
+    const partContent = partMatch[3].trim();
+    const cfg = partConfigs[partNum] || { key: `part${partNum}`, icon: <FileText className="h-4 w-4" />, accent: "from-secondary to-amber-500" };
+    if (partContent) {
+      sections.push({ key: cfg.key, label: partTitle.slice(0, 40), icon: cfg.icon, accent: cfg.accent, content: stripMarkers(partContent) });
+    }
+  }
+
+  if (sections.length >= 2) {
+    // Also extract revenue summary and total if present
+    const revenueMatch = fullContent.match(/(Your total projected revenue[\s\S]*?)(?=Want to see|Click below|$)/i);
+    if (revenueMatch?.[1]?.trim()) {
+      sections.push({ key: "revenue", label: "Revenue Projection", icon: <BarChart3 className="h-4 w-4" />, accent: "from-orange-500 to-red-400", content: stripMarkers(revenueMatch[1].trim()) });
+    }
+    return sections;
+  }
+
+  // --- Strategy 2: Structured SECTION format ---
   const patterns: Array<{ key: string; label: string; icon: React.ReactNode; accent: string; regex: RegExp }> = [
     { key: "transformation", label: "Transformation Promise", icon: <Sparkles className="h-4 w-4" />, accent: "from-amber-500 to-yellow-400", regex: /(?:#{1,3}.*?(?:TRANSFORMATION PROMISE|SECTION 1).*?\n)([\s\S]*?)(?=\n#{1,3}\s*(?:SECTION|---)|$)/i },
     { key: "brand", label: "B·Brand Products", icon: <Package className="h-4 w-4" />, accent: "from-emerald-500 to-green-400", regex: /(?:#{1,3}.*?(?:B[·.]?BRAND PRODUCTS|SECTION 2).*?\n)([\s\S]*?)(?=\n#{1,3}\s*(?:SECTION|---)\s|$)/i },
@@ -52,7 +82,6 @@ function extractSections(fullContent: string): PlanSection[] {
   ];
 
   for (const p of patterns) {
-    // Skip legacy patterns if we already found new-format sections
     if (["brand", "build", "yield"].includes(p.key) && sections.some(s => ["brand", "build", "yield"].includes(s.key))) continue;
     const match = fullContent.match(p.regex);
     if (match?.[1]?.trim()) {
