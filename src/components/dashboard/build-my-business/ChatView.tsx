@@ -266,9 +266,14 @@ export default function ChatView({
                   }
                   const confirmOpts = parseConfirmation(msg.content);
                   if (confirmOpts) {
+                    // Filter out unlock/subscribe buttons for premium/admin users
+                    const filteredOpts = (isPremium || isAdmin)
+                      ? confirmOpts.filter(opt => !opt.toLowerCase().includes("unlock") && !opt.toLowerCase().includes("subscribe"))
+                      : confirmOpts;
+                    if (filteredOpts.length === 0) return null;
                     return (
                       <div className="mt-4 flex flex-wrap gap-2">
-                        {confirmOpts.map((opt) => (
+                        {filteredOpts.map((opt) => (
                           <Button
                             key={opt}
                             variant={opt.toLowerCase().startsWith("yes") ? "default" : "outline"}
