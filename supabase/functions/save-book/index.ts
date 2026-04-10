@@ -53,6 +53,7 @@ serve(async (req) => {
     const body = await req.json();
 
     let userId: string;
+    let userEmail: string | null = null;
     let bookData: any;
     let isPlatformPush = false;
     let sharedProfile: any = null; // profile data from pull-shared-profile
@@ -72,6 +73,9 @@ serve(async (req) => {
         return new Response(JSON.stringify({ error: "Email required for cross-platform push" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      userEmail = body.email;
         });
       }
 
@@ -192,6 +196,7 @@ serve(async (req) => {
       }
 
       // Store resolved email so we can always set owner_email
+      userEmail = resolvedEmail;
       body._resolvedEmail = resolvedEmail;
       bookData = body;
     }
@@ -251,12 +256,19 @@ serve(async (req) => {
     // ─── Duplicate slug handling ───
     const { data: existing } = await cloudAdmin
       .from("books")
-      .select("id, author_id")
+      .select("id, author_id, owner_email")
       .eq("slug", slug)
       .maybeSingle();
 
+    // Check if the existing book belongs to the same user (by author_id OR owner_email)
+    const isOwnBook = existing && (
+      existing.author_id === userId ||
+      (userEmail && existing.owner_email?.toLowerCase() === userEmail.toLowerCase())
+    );
+
     if (existing) {
-      if (isPlatformPush && existing.author_id === userId) {
+      if (isOwnBook) {
+        // Same user's book — return existing record
         return new Response(
           JSON.stringify({ id: existing.id, slug, existing: true }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
