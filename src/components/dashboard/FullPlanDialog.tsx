@@ -12,6 +12,8 @@ interface FullPlanDialogProps {
   onOpenChange: (open: boolean) => void;
   bookId: string;
   bookTitle: string;
+  /** Fallback: all assistant messages joined, used if no saved plan exists */
+  chatContent?: string;
 }
 
 interface PlanSection {
