@@ -196,6 +196,7 @@ serve(async (req) => {
       }
 
       // Store resolved email so we can always set owner_email
+      userEmail = resolvedEmail;
       body._resolvedEmail = resolvedEmail;
       bookData = body;
     }
