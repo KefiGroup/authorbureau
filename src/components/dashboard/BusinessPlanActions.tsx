@@ -25,11 +25,25 @@ export function isBusinessPlanMessage(content: string): boolean {
     "pro package",
     "enterprise package",
     "monetization map",
+    "monetisation map",
     "unlock your plan",
     "section 6 — next steps",
     "section 6 - next steps",
     "subscribe to the recommended plan",
     "roi:",
+    // New v2.5 format markers
+    "brand products",
+    "build authority",
+    "yield revenue",
+    "total projected revenue",
+    "28-node revenue",
+    "28 node revenue",
+    "estimated revenue",
+    "sub-phase a",
+    "sub-phase b",
+    "===show_full_plan===",
+    "view your full 28-node",
+    "show me how to unlock",
   ];
 
   const matchCount = markers.filter((m) => normalized.includes(m)).length;

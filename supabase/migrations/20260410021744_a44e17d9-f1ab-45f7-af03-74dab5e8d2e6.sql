@@ -1,0 +1,2 @@
+DELETE FROM generated_assets WHERE book_id IN ('e26fd3db-b172-4ba4-a31e-a3a6d98e9583', '12905dad-f061-4f26-867f-2e2b92d7d7c7');
+DELETE FROM books WHERE id IN ('e26fd3db-b172-4ba4-a31e-a3a6d98e9583', '12905dad-f061-4f26-867f-2e2b92d7d7c7');
