@@ -1,4 +1,5 @@
 import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from "react";
+import { isSuperAdmin } from "@/lib/superadmin";
 import { supabase } from "@/lib/shared-backend";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
@@ -213,8 +214,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(interval);
   }, [user, checkSubscription]);
 
-  const tier: SubscriptionTier = getTierFromProductId(subscription.productId);
-  const isPremium = tier !== "free";
+  const superAdmin = isSuperAdmin(user?.email);
+  const tier: SubscriptionTier = superAdmin ? "yield" : getTierFromProductId(subscription.productId);
+  const isPremium = superAdmin || tier !== "free";
 
   const signOut = async () => {
     sessionStorage.removeItem(ADMIN_AUTH_KEY);
