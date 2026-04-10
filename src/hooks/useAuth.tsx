@@ -1,4 +1,5 @@
 import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from "react";
+import { isSuperAdmin } from "@/lib/superadmin";
 import { supabase } from "@/lib/shared-backend";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
