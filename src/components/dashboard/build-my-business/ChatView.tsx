@@ -365,6 +365,7 @@ export default function ChatView({
         onOpenChange={setShowFullPlan}
         bookId={selectedBook.id}
         bookTitle={selectedBook.title}
+        chatContent={messages.filter(m => m.role === "assistant").map(m => m.content).join("\n\n")}
       />
     </div>
   );
