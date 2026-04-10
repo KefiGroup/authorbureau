@@ -138,7 +138,7 @@ ${html}
 </div></body></html>`;
 }
 
-export default function FullPlanDialog({ open, onOpenChange, bookId, bookTitle }: FullPlanDialogProps) {
+export default function FullPlanDialog({ open, onOpenChange, bookId, bookTitle, chatContent }: FullPlanDialogProps) {
   const [plan, setPlan] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -163,14 +163,32 @@ export default function FullPlanDialog({ open, onOpenChange, bookId, bookTitle }
         });
         if (resp.ok) {
           const result = await resp.json();
-          setPlan(result.content || null);
+          if (result.content) {
+            setPlan(result.content);
+          } else if (chatContent) {
+            // Fallback: use chat content and save it for future use
+            setPlan(chatContent);
+            try {
+              await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/business-consultant`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+                },
+                body: JSON.stringify({ action: "save-plan", bookId, content: chatContent }),
+              });
+            } catch (_) { /* non-blocking save */ }
+          }
+        } else if (chatContent) {
+          setPlan(chatContent);
         }
       } catch (err) {
         console.error("Failed to load plan:", err);
+        if (chatContent) setPlan(chatContent);
       }
       setLoading(false);
     })();
-  }, [open, bookId]);
+  }, [open, bookId, chatContent]);
 
   const sections = useMemo(() => plan ? extractSections(plan) : [], [plan]);
 
