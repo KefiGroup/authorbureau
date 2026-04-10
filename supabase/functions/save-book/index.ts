@@ -53,6 +53,7 @@ serve(async (req) => {
     const body = await req.json();
 
     let userId: string;
+    let userEmail: string | null = null;
     let bookData: any;
     let isPlatformPush = false;
     let sharedProfile: any = null; // profile data from pull-shared-profile
