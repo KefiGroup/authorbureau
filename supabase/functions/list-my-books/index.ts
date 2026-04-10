@@ -195,6 +195,47 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Handle delete action
+    if (action === "delete" && bookId) {
+      const { data: owned } = await cloudAdmin
+        .from("books")
+        .select("id")
+        .eq("id", bookId)
+        .or(ownershipFilter)
+        .maybeSingle();
+
+      if (!owned) {
+        return new Response(JSON.stringify({ error: "Book not found or not owned" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Delete related generated_assets first
+      await cloudAdmin
+        .from("generated_assets")
+        .delete()
+        .eq("book_id", bookId);
+
+      // Delete the book
+      const { error: deleteError } = await cloudAdmin
+        .from("books")
+        .delete()
+        .eq("id", bookId);
+
+      if (deleteError) {
+        return new Response(JSON.stringify({ error: deleteError.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(
+        JSON.stringify({ success: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Default: list books
     const { data: books, error: queryError } = await cloudAdmin
       .from("books")
