@@ -239,9 +239,19 @@ export default function FullPlanDialog({ open, onOpenChange, bookId, bookTitle, 
   const [plan, setPlan] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [activeSection, setActiveSection] = useState<string>("");
   const contentRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  const getAuthHeaders = useCallback(async () => {
+    const { data: { session } } = await sharedSupabase.auth.getSession();
+    const token = session?.access_token;
+    return {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+    };
+  }, []);
 
   useEffect(() => {
     if (!open || !bookId) return;
