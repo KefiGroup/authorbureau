@@ -515,19 +515,20 @@ export default function SubscriptionSalesPitch({
       )}
 
       {isSubscribed && (
-        <div className="rounded-2xl border border-border bg-card p-6 text-center space-y-3">
-          <p className="text-sm font-medium flex items-center justify-center gap-2">
-            <TrendingUp className="h-4 w-4 text-green-500" />
-            You're already earning with {plans.find(p => p.id === currentTier)?.name}.
-          </p>
-          <p className="text-xs text-muted-foreground max-w-md mx-auto">
-            {currentTier === "brand"
-              ? "Upgrade to Build to unlock coaching, courses, and webinars."
-              : "Upgrade to Yield for retreats, certification, and a 1-on-1 session with Pauline Teo."}
-          </p>
-          <Button onClick={() => onSubscribe(currentTier === "brand" ? "build" : "yield")} disabled={loading}>
-            <ArrowUpRight className="h-4 w-4 mr-2" />
-            Upgrade to {currentTier === "brand" ? "Build" : "Yield"}
+        <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
+          <div className="text-center space-y-3">
+            <p className="text-sm font-medium flex items-center justify-center gap-2">
+              <TrendingUp className="h-4 w-4 text-green-500" />
+              You're already earning with {plans.find(p => p.id === currentTier)?.name}.
+            </p>
+            <p className="text-xs text-muted-foreground max-w-md mx-auto">
+              {currentTier === "brand"
+                ? "Upgrade to Build to unlock coaching, courses, and webinars."
+                : "Upgrade to Yield for retreats, certification, and a 1-on-1 session with Pauline Teo."}
+            </p>
+            <Button onClick={() => onSubscribe(currentTier === "brand" ? "build" : "yield")} disabled={loading}>
+              <ArrowUpRight className="h-4 w-4 mr-2" />
+              Upgrade to {currentTier === "brand" ? "Build" : "Yield"}
           </Button>
         </div>
       )}
