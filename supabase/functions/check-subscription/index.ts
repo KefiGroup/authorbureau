@@ -9,21 +9,32 @@ const corsHeaders = {
 
 const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
 
+// Product-to-tier mapping
+const TIER_MAP: Record<string, string> = {
+  "prod_UB6BxxNnqv6UpV": "brand",
+  "prod_UB6BfcKCAYrgp0": "build",
+  "prod_UB6BVLnks6JWoJ": "yield",
+};
+
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
 };
 
-async function resolveUserEmail(token: string): Promise<string> {
-  const localClient = createClient(
+function getAdminClient() {
+  return createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     { auth: { persistSession: false } }
   );
-  const { data: localUser } = await localClient.auth.getUser(token);
+}
+
+async function resolveUser(token: string): Promise<{ email: string; userId?: string }> {
+  const adminClient = getAdminClient();
+  const { data: localUser } = await adminClient.auth.getUser(token);
   if (localUser?.user?.email) {
     logStep("Resolved via local auth", { email: localUser.user.email });
-    return localUser.user.email;
+    return { email: localUser.user.email, userId: localUser.user.id };
   }
 
   const sharedKey = Deno.env.get("SHARED_BACKEND_SERVICE_ROLE_KEY");
@@ -32,15 +43,15 @@ async function resolveUserEmail(token: string): Promise<string> {
     const { data: sharedUser } = await sharedClient.auth.getUser(token);
     if (sharedUser?.user?.email) {
       logStep("Resolved via shared backend", { email: sharedUser.user.email });
-      return sharedUser.user.email;
+      return { email: sharedUser.user.email, userId: sharedUser.user.id };
     }
   }
 
   try {
     const payload = JSON.parse(atob(token.split(".")[1]));
     if (payload.email) {
-      logStep("Resolved via JWT decode", { email: payload.email });
-      return payload.email;
+      logStep("Resolved via JWT decode", { email: payload.email, sub: payload.sub });
+      return { email: payload.email, userId: payload.sub };
     }
   } catch { /* ignore */ }
 
@@ -62,8 +73,8 @@ serve(async (req) => {
     if (!authHeader) throw new Error("No authorization header provided");
 
     const token = authHeader.replace("Bearer ", "");
-    const email = await resolveUserEmail(token);
-    logStep("User resolved", { email });
+    const { email, userId } = await resolveUser(token);
+    logStep("User resolved", { email, userId });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     const customers = await stripe.customers.list({ email, limit: 1 });
@@ -90,13 +101,6 @@ serve(async (req) => {
     let subscriptionEnd = null;
     let tier = "free";
 
-    // Product-to-tier mapping
-    const TIER_MAP: Record<string, string> = {
-      "prod_UB6BxxNnqv6UpV": "brand",
-      "prod_UB6BfcKCAYrgp0": "build",
-      "prod_UB6BVLnks6JWoJ": "yield",
-    };
-
     if (hasActiveSub) {
       const subscription = subscriptions.data[0];
       try {
@@ -111,46 +115,22 @@ serve(async (req) => {
       tier = TIER_MAP[productId as string] || "free";
       logStep("Active subscription found", { subscriptionId: subscription.id, productId, tier, endDate: subscriptionEnd });
 
-      // Sync tier to author_profiles so DB stays in sync
-      try {
-        const adminClient = createClient(
-          Deno.env.get("SUPABASE_URL") ?? "",
-          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-          { auth: { persistSession: false } }
-        );
-        const { error: updateErr } = await adminClient
-          .from("author_profiles")
-          .update({ subscription_tier: tier })
-          .eq("user_id", email)  // author_profiles doesn't have user_id by email; find by stripe customer
-          ;
-        // Try matching by the user email via a join approach
-        // Actually, we need to find the author by their account email
-        const { data: profiles } = await adminClient
-          .from("author_profiles")
-          .select("id, subscription_tier")
-          .or(`user_id.eq.${email}`)
-          .limit(1);
-        
-        // Better approach: look up user_id from auth, then update
-        const localClient = createClient(
-          Deno.env.get("SUPABASE_URL") ?? "",
-          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-          { auth: { persistSession: false } }
-        );
-        const { data: authUser } = await localClient.auth.getUser(token);
-        if (authUser?.user?.id) {
-          const { error: syncErr } = await localClient
+      // Sync tier to author_profiles so DB stays consistent
+      if (userId && tier !== "free") {
+        try {
+          const adminClient = getAdminClient();
+          const { error: syncErr } = await adminClient
             .from("author_profiles")
             .update({ subscription_tier: tier })
-            .eq("user_id", authUser.user.id);
+            .eq("user_id", userId);
           if (syncErr) {
             logStep("Failed to sync tier to DB", { error: syncErr.message });
           } else {
-            logStep("Synced tier to author_profiles", { tier });
+            logStep("Synced tier to author_profiles", { tier, userId });
           }
+        } catch (syncError) {
+          logStep("Tier sync error (non-fatal)", { error: String(syncError) });
         }
-      } catch (syncError) {
-        logStep("Tier sync error (non-fatal)", { error: String(syncError) });
       }
     } else {
       logStep("No active subscription found");
