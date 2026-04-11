@@ -410,6 +410,26 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Send notification email
+    try {
+      const isNewProfile = !localProfile;
+      const templateName = isNewProfile ? 'profile-created' : 'profile-synced';
+      await cloudAdmin.functions.invoke('send-transactional-email', {
+        body: {
+          templateName,
+          recipientEmail: userEmail,
+          idempotencyKey: `${templateName}-${userId}-${new Date().toISOString().slice(0, 10)}`,
+          templateData: {
+            authorName: penName,
+            ...(templateName === 'profile-synced' ? { fieldsUpdated, booksImported, booksUpdated } : {}),
+          },
+        },
+      });
+      console.log(`${templateName} email queued for`, userEmail);
+    } catch (emailErr) {
+      console.error("Notification email failed (non-fatal):", emailErr);
+    }
+
     return new Response(
       JSON.stringify({
         synced: true,
