@@ -1,34 +1,60 @@
 
 
-## Issues Found
+## Issues and Status
 
-### 1. Onboarding modal shows at the wrong time
-The condition on line 181 of `AuthorDashboard.tsx` is `if (!user || !stats.analyzedCount) return;` — meaning the modal only appears **after** the user has already completed their ABBY analysis. This is backwards. The onboarding should show when the user has books but has **not yet** analyzed them.
+### 1. Dead Links from Author Profile — Partially Fixed
+The previous fix corrected the URL pattern (from `/authors/:slug` to `/:slug`). However, there is a remaining gap:
 
-### 2. "Start My ABBY Analysis" button not clickable
-The `AbbyHelpChatbot` floating button sits at `z-[9999]` (line 373 of `AbbyHelpChatbot.tsx`). The modal is at `z-[10000]`. While the modal overlay itself is above the chatbot, the chatbot's expanded panel (also `z-[9999]`) or the floating button can intercept pointer events in the bottom-right corner where the "Start My ABBY Analysis" button may overlap. The fix is to ensure the chatbot is hidden when the onboarding modal is open.
+**The `author_profiles_public` view is missing columns** that the public pages need. Currently it only includes: `id, user_id, pen_name, bio_short, bio_long, tagline, photo_url, cover_photo_url, photo_zoom, photo_crop_y, location_city, location_country, genres, is_speaker, speaker_fee_range, availability_notes, directory_status, author_slug, site_theme, credentials, frameworks, created_at, updated_at`.
+
+Missing columns used by `AuthorSite.tsx` and `AuthorBookPage.tsx`:
+- `website_url`
+- `linkedin_url`
+- `twitter_url`
+- `instagram_url`
+- `youtube_url`
+- `amazon_author_profile_url`
+
+Without these, public pages render with blank social links and broken SEO `sameAs` data. This won't cause a 404 but degrades the page.
+
+### 2. Theme Cannot Be Changed — Root Cause
+The save logic in `SiteThemePicker.tsx` is correct — the code, RLS policies, and column all exist. The likely reason the user reported it as broken is that:
+- The public page was failing to load (due to the routing/link issues), so they couldn't see the theme change reflected.
+- OR there was a transient issue now resolved.
+
+The DB currently shows all authors on `classic-elegant`, and there are zero `site_theme` update queries in the Postgres logs, suggesting the user may not have retried since the routing fixes.
 
 ## Plan
 
-### Step 1: Fix the trigger condition
-In `AuthorDashboard.tsx` line 181, change the condition from:
-```
-if (!user || !stats.analyzedCount) return;
-```
-to:
-```
-if (!user || !stats.bookCount || stats.analyzedCount > 0) return;
-```
-This shows the onboarding when the user has at least one book but has not yet analyzed any. Once they complete analysis, it won't show again (and `has_seen_journey_onboarding` will also be set to true).
+### Step 1: Update `author_profiles_public` view (Database Migration)
+Add the missing social URL columns to the view so public pages render completely:
 
-### Step 2: Hide chatbot when onboarding modal is open
-Pass `showJourneyOnboarding` state down or use a simple approach: in `AbbyHelpChatbot.tsx`, add a check — if the onboarding modal is open, don't render the floating button. The cleanest approach is to add a prop or check for the modal's presence in the DOM. Alternatively, add `pointer-events-none` to the chatbot container when the modal is visible by passing a prop from `AuthorDashboard.tsx`.
+```sql
+CREATE OR REPLACE VIEW public.author_profiles_public
+WITH (security_invoker = on) AS
+SELECT
+  id, user_id, pen_name, bio_short, bio_long, tagline,
+  photo_url, cover_photo_url, photo_zoom, photo_crop_y,
+  location_city, location_country,
+  genres, is_speaker, speaker_fee_range, availability_notes,
+  directory_status, author_slug, site_theme,
+  credentials, frameworks,
+  website_url, linkedin_url, twitter_url,
+  instagram_url, youtube_url, amazon_author_profile_url,
+  created_at, updated_at
+FROM public.author_profiles
+WHERE directory_status IN ('listed', 'featured', 'verified');
+```
 
-### Step 3: Ensure button has proper z-index inside modal
-Add `relative z-10` to the "Start My ABBY Analysis" button container (the golden card at line 271) to ensure it stays above any other layers within the modal.
+### Step 2: Remove unnecessary `as any` cast in SiteThemePicker
+The `site_theme` column exists in the generated types. Remove the `as any` to get proper type checking and ensure no silent failures.
 
-## Files to modify
-- `src/pages/AuthorDashboard.tsx` — fix trigger condition, pass hide prop to chatbot
-- `src/components/AbbyHelpChatbot.tsx` — accept and respect a `hidden` prop
-- `src/components/dashboard/ABBYJourneyOnboarding.tsx` — add relative z-index to the CTA button area
+### Step 3: Verify theme picker works end-to-end
+After deploying, confirm the save produces no error and the value persists in the database.
+
+## Technical Details
+- The view update is safe — it only adds columns, no data changes
+- RLS is already correct: anon users can SELECT listed/verified/featured profiles
+- The theme update RLS policy (`auth.uid() = user_id`) is correct for authenticated authors
+- No sensitive columns (API keys, stripe IDs, etc.) are exposed by adding social URLs
 
