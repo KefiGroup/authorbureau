@@ -352,6 +352,7 @@ export default function FullPlanDialog({ open, onOpenChange, bookId, bookTitle, 
 
   const isFullPlan = plan ? (plan.match(/^-\s/gm)?.length || 0) >= 10 : false;
 
+  const scrollToSection = (key: string) => {
     setActiveSection(key);
     const el = document.getElementById(`plan-section-${key}`);
     if (el) {
