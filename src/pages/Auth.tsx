@@ -39,9 +39,7 @@ async function authFetch(body: Record<string, unknown>) {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    // If backend returns a redirect URL even on error responses, follow it
     if (data?.authUrl) {
-      console.debug("[Auth] authFetch: error response contained authUrl, redirecting:", data.authUrl);
       window.location.href = data.authUrl;
       return data;
     }
@@ -51,7 +49,7 @@ async function authFetch(body: Record<string, unknown>) {
 }
 
 type SignInMode = "code" | "password";
-type FlowState = "email" | "otp" | "password-login" | "forgot-email" | "forgot-reset";
+type FlowState = "email" | "otp" | "password-enter" | "forgot-email" | "forgot-reset";
 
 export default function Auth() {
   const { user, loading } = useAuth();
@@ -59,8 +57,8 @@ export default function Auth() {
   const { toast } = useToast();
   const redirectTo = new URLSearchParams(location.search).get("redirect") || "/dashboard";
 
-  const [mode, setMode] = useState<SignInMode>("password");
-  const [flow, setFlow] = useState<FlowState>("password-login");
+  const [mode, setMode] = useState<SignInMode>("code");
+  const [flow, setFlow] = useState<FlowState>("email");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -99,7 +97,7 @@ export default function Auth() {
           throw new Error("No session returned from magic link.");
         }
         window.history.replaceState(null, "", location.pathname);
-      } catch (err) {
+      } catch (err: any) {
         toast({ title: err.message || "Magic link sign-in failed", variant: "destructive" });
       } finally {
         setMagicLinkProcessing(false);
@@ -107,12 +105,9 @@ export default function Auth() {
     })();
   }, [location.hash, location.pathname, toast]);
 
-  // Fail-safe: if auth context loading gets stuck, still show the sign-in form
+  // Fail-safe
   useEffect(() => {
-    if (!loading) {
-      setAuthLoadingFallback(false);
-      return;
-    }
+    if (!loading) { setAuthLoadingFallback(false); return; }
     const timeout = setTimeout(() => setAuthLoadingFallback(true), 2500);
     return () => clearTimeout(timeout);
   }, [loading]);
@@ -133,10 +128,18 @@ export default function Auth() {
   }
   if (user) return <Navigate to={redirectTo} replace />;
 
-  // ─── Handlers ───
-  const handleRequestCode = async (e: React.FormEvent) => {
+  // ─── Continue: step 1 → step 2 based on mode ───
+  const handleContinue = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
+
+    if (mode === "password") {
+      // Just show the password field
+      setFlow("password-enter");
+      return;
+    }
+
+    // Email Code mode: send OTP
     setSubmitting(true);
     try {
       await supabase.auth.signOut({ scope: "local" }).catch(() => {});
@@ -147,14 +150,12 @@ export default function Auth() {
       } catch (networkErr: any) {
         const msg = (networkErr?.message || "").toLowerCase();
         if (msg.includes("failed to fetch") || msg.includes("no account") || msg.includes("sign up") || msg.includes("invalid action")) {
-          // For new users, use signUp with OTP so they still get a 6-digit code
           const { error: signUpError } = await supabase.auth.signUp({
             email: email.trim(),
             password: crypto.randomUUID(),
             options: { emailRedirectTo: `${window.location.origin}/auth` },
           });
           if (signUpError) {
-            // If user already exists, fall back to magic link
             const { error } = await supabase.auth.signInWithOtp({
               email: email.trim(),
               options: { emailRedirectTo: `${window.location.origin}/auth` },
@@ -169,7 +170,7 @@ export default function Auth() {
           throw networkErr;
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       toast({ title: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
@@ -183,7 +184,7 @@ export default function Auth() {
       await authFetch({ action: "request_code", email: email.trim() });
       setResendCooldown(60);
       toast({ title: "New code sent to your email." });
-    } catch (err) {
+    } catch (err: any) {
       toast({ title: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
@@ -197,7 +198,6 @@ export default function Auth() {
     try {
       try {
         const data = await authFetch({ action: "verify", email: email.trim(), code });
-        console.debug("[Auth] verify response:", JSON.stringify(data));
         if (data && data.success === false) {
           throw new Error(data.error || "Verification failed. Please try again.");
         }
@@ -211,30 +211,24 @@ export default function Auth() {
         }
       } catch (primaryErr: any) {
         const msg = primaryErr?.message || "";
-        // Fallback: try local Supabase OTP verification (works if code was sent via local fallback)
-        console.debug("[Auth] Primary OTP verify failed, trying local fallback...", msg);
         const { data: localAuth, error: localErr } = await supabase.auth.verifyOtp({
           email: email.trim(),
           token: code,
           type: "email",
         });
         if (localErr || !localAuth?.session) {
-          // Neither path worked — surface the original error and reset OTP
           setOtp("");
           throw new Error(msg.includes("failed to fetch")
             ? "Verification service is temporarily unavailable. Please click the magic link in your email instead."
             : msg || "Invalid or expired code. Please request a new one.");
         }
-        // Local verification succeeded
-        console.debug("[Auth] Local OTP fallback succeeded");
       }
-    } catch (err) {
+    } catch (err: any) {
       toast({ title: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
   };
-
 
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -243,7 +237,6 @@ export default function Auth() {
     try {
       try {
         const data = await authFetch({ action: "password_login", email: email.trim(), password });
-        console.debug("[Auth] password_login response:", JSON.stringify(data));
         if (data && data.success === false) {
           throw new Error(data.error || "Sign-in failed. Please try again.");
         }
@@ -253,7 +246,7 @@ export default function Auth() {
           window.location.href = data.authUrl;
           return;
         } else {
-          throw new Error("Sign-in verified but no session was returned. Please try the magic link in your email instead.");
+          throw new Error("Sign-in verified but no session was returned.");
         }
       } catch (networkErr: any) {
         if ((networkErr?.message || "").toLowerCase().includes("failed to fetch")) {
@@ -263,12 +256,11 @@ export default function Auth() {
           });
           if (directAuthError) throw directAuthError;
           if (!directAuth?.session) throw new Error("Sign-in failed. Please try again.");
-          toast({ title: "Signed in via fallback auth." });
         } else {
           throw networkErr;
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       toast({ title: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
@@ -282,7 +274,7 @@ export default function Auth() {
     try {
       await authFetch({ action: "forgot_password", email: email.trim() });
       setFlow("forgot-reset");
-    } catch (err) {
+    } catch (err: any) {
       toast({ title: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
@@ -298,13 +290,12 @@ export default function Auth() {
     }
     setSubmitting(true);
     try {
-    const data = await authFetch({
+      const data = await authFetch({
         action: "reset_password",
         email: email.trim(),
         code: otp,
         password,
       });
-      console.debug("[Auth] reset_password response:", JSON.stringify(data));
       if (data && data.success === false) {
         throw new Error(data.error || "Password reset failed. Please try again.");
       }
@@ -315,9 +306,9 @@ export default function Auth() {
         window.location.href = data.authUrl;
         return;
       } else {
-        throw new Error("Sign-in verified but no session was returned. Please try the magic link in your email instead.");
+        throw new Error("Password reset succeeded but no session was returned.");
       }
-    } catch (err) {
+    } catch (err: any) {
       toast({ title: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
@@ -325,7 +316,7 @@ export default function Auth() {
   };
 
   const resetFlow = () => {
-    setFlow(mode === "code" ? "email" : "password-login");
+    setFlow("email");
     setOtp("");
     setPassword("");
     setConfirmPassword("");
@@ -333,7 +324,7 @@ export default function Auth() {
 
   const switchMode = (newMode: SignInMode) => {
     setMode(newMode);
-    setFlow(newMode === "code" ? "email" : "password-login");
+    setFlow("email");
     setOtp("");
     setPassword("");
     setConfirmPassword("");
@@ -347,12 +338,12 @@ export default function Auth() {
         <div className="container max-w-md">
           <div className="rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-card)] space-y-6">
             <div className="text-center">
-              <h1 className="font-heading text-2xl font-bold">Sign In to Authors Bureau</h1>
-              <p className="text-sm text-muted-foreground mt-1">New here? Just enter your email — we'll create your account automatically.</p>
+              <h1 className="font-heading text-2xl font-bold">Sign In</h1>
+              <p className="text-sm text-muted-foreground mt-1">Enter your email to continue</p>
             </div>
 
-            {/* Mode toggle — only show when not in a sub-flow */}
-            {(flow === "email" || flow === "password-login") && (
+            {/* Mode toggle — only show on initial email step */}
+            {flow === "email" && (
               <Tabs value={mode} onValueChange={(v) => switchMode(v as SignInMode)} className="w-full">
                 <TabsList className="w-full grid grid-cols-2">
                   <TabsTrigger value="code" className="gap-1.5">
@@ -365,9 +356,9 @@ export default function Auth() {
               </Tabs>
             )}
 
-            {/* ─── Email Code: enter email ─── */}
+            {/* ─── Step 1: Email + Continue (both modes) ─── */}
             {flow === "email" && (
-              <form onSubmit={handleRequestCode} className="space-y-4">
+              <form onSubmit={handleContinue} className="space-y-4">
                 <div>
                   <Label htmlFor="email">Email address</Label>
                   <Input
@@ -388,12 +379,12 @@ export default function Auth() {
                   size="lg"
                 >
                   {submitting && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
-                  {submitting ? "Sending…" : "Send Sign-In Code"}
+                  {submitting ? "Continuing…" : "Continue"}
                 </Button>
               </form>
             )}
 
-            {/* ─── Email Code: verify OTP ─── */}
+            {/* ─── Step 2a: Email Code → OTP ─── */}
             {flow === "otp" && (
               <div className="space-y-5">
                 <div>
@@ -445,22 +436,18 @@ export default function Auth() {
               </div>
             )}
 
-            {/* ─── Password: login ─── */}
-            {flow === "password-login" && (
+            {/* ─── Step 2b: Password → enter password ─── */}
+            {flow === "password-enter" && (
               <form onSubmit={handlePasswordLogin} className="space-y-4">
                 <div>
-                  <Label htmlFor="pw-email">Email address</Label>
-                  <Input
-                    id="pw-email"
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="your@email.com"
-                    autoFocus
-                    className="mt-1.5"
-                  />
+                  <h2 className="font-heading text-lg font-bold">Enter Password</h2>
+                  <p className="text-sm text-muted-foreground mt-1">Sign in as <strong>{email}</strong></p>
                 </div>
+
+                <button type="button" onClick={resetFlow} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <ArrowLeft className="h-4 w-4" /> Back
+                </button>
+
                 <div>
                   <Label htmlFor="pw-password">Password</Label>
                   <Input
@@ -470,6 +457,7 @@ export default function Auth() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter your password"
+                    autoFocus
                     className="mt-1.5"
                   />
                   <button
@@ -592,10 +580,11 @@ export default function Auth() {
               </form>
             )}
 
-            {/* Sign up link */}
+            {/* Bottom link */}
             <div className="text-center pt-2 border-t border-border/50">
               <p className="text-sm text-muted-foreground">
-                New here? Just enter your email — we'll create your account automatically.
+                Don't have an account?{" "}
+                <span className="text-secondary font-medium">Sign up — just enter your email above.</span>
               </p>
             </div>
           </div>
