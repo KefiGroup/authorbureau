@@ -226,7 +226,7 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
           As you publish products through the builders, they'll automatically appear on your site — no extra work needed.
         </p>
         <p className="text-xs text-muted-foreground mt-2">
-          Focus on completing your <a href="/dashboard/profile" className="font-bold text-secondary underline underline-offset-2 hover:text-secondary/80 transition-colors">Author Profile</a> and publishing at least one book page before sharing your site publicly.
+          Focus on completing your <button onClick={() => onNavigate?.("profile")} className="font-bold text-secondary underline underline-offset-2 hover:text-secondary/80 transition-colors">Author Profile</button> and publishing at least one book page before sharing your site publicly.
         </p>
       </AbbyRecommendationCard>
 
