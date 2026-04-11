@@ -37,7 +37,7 @@ export default function SiteThemePicker({ compact = false, onThemeChange }: Prop
     setSaving(true);
     const { error } = await supabase
       .from("author_profiles")
-      .update({ site_theme: themeId } as any)
+      .update({ site_theme: themeId })
       .eq("user_id", user!.id);
     setSaving(false);
     if (error) {
