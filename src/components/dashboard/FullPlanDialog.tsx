@@ -413,13 +413,15 @@ export default function FullPlanDialog({ open, onOpenChange, bookId, bookTitle, 
 
         {/* Body */}
         <div className="flex-1 flex overflow-hidden bg-muted/30">
-          {loading ? (
+          {(loading || generating) ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-4">
               <div className="relative">
                 <div className="h-16 w-16 rounded-full border-4 border-secondary/20 border-t-secondary animate-spin" />
                 <Sparkles className="h-6 w-6 text-secondary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
               </div>
-              <p className="text-sm text-muted-foreground font-medium">Loading your business plan…</p>
+              <p className="text-sm text-muted-foreground font-medium">
+                {generating ? "Generating your full 28-node plan… This may take a moment." : "Loading your business plan…"}
+              </p>
             </div>
           ) : !plan || sections.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-8">
