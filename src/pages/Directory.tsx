@@ -212,7 +212,7 @@ export default function Directory() {
                 custom={i}
                 variants={fadeUp}
               >
-                <Link to={`/authors/${author.slug}`} className="block h-full">
+                <Link to={`/${author.slug}`} className="block h-full">
                   <Card className="group overflow-hidden border border-border/60 bg-card rounded-xl hover:shadow-md hover:border-secondary/30 transition-all duration-300 cursor-pointer h-full">
                     <CardContent className="p-4 flex flex-col h-full">
                       <div className="flex items-start gap-3">

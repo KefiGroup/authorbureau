@@ -270,7 +270,7 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
       const result = await res.json();
 
       if (res.status === 409) {
-        toast({ title: "Slug already taken", description: `The URL "authorsbureau.com/authors/${slug}" is already in use. Please choose a different one.`, variant: "destructive" });
+        toast({ title: "Slug already taken", description: `The URL "authorsbureau.com/${slug}" is already in use. Please choose a different one.`, variant: "destructive" });
         setSaving(false);
         return;
       }
@@ -494,7 +494,7 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
             <div>
               <Label className="text-xs">Profile URL Slug</Label>
               <div className="flex items-center gap-1">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">authorsbureau.com/authors/</span>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">authorsbureau.com/</span>
                 <Input
                   value={profile.author_slug}
                   onChange={e => {

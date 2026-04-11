@@ -235,7 +235,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
       case "profile": onNavigate("profile"); break;
       case "analyze": onNavigate("build-business"); break;
       case "view-microsite":
-        if (authorSlug) window.open(`/authors/${authorSlug}`, "_blank");
+        if (authorSlug) window.open(`/${authorSlug}`, "_blank");
         else onNavigate("profile");
         break;
       case "connect-stripe": onNavigate("connect-stripe"); break;
@@ -280,7 +280,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
           authorName={authorName}
           onSetupProfile={() => onNavigate("profile")}
           onViewMicrosite={() => {
-            if (authorSlug) window.open(`/authors/${authorSlug}`, "_blank");
+            if (authorSlug) window.open(`/${authorSlug}`, "_blank");
             else onNavigate("profile");
           }}
         />
@@ -373,7 +373,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
         authorName={authorName}
         onSetupProfile={() => onNavigate("profile")}
         onViewMicrosite={() => {
-          if (authorSlug) window.open(`/authors/${authorSlug}`, "_blank");
+          if (authorSlug) window.open(`/${authorSlug}`, "_blank");
           else onNavigate("profile");
         }}
       />

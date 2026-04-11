@@ -217,7 +217,7 @@ export default function DynamicMeetOurAuthors() {
                   className="min-w-0 flex-[0_0_100%] sm:flex-[0_0_50%] lg:flex-[0_0_33.333%] pl-5"
                 >
                   <Link
-                    to={`/authors/${author.slug}`}
+                    to={`/${author.slug}`}
                     className="group block overflow-hidden rounded-2xl bg-card shadow-lg hover:shadow-xl transition-all duration-300 h-full flex flex-col border-b-4 border-secondary/60"
                   >
                     {/* Photo */}
