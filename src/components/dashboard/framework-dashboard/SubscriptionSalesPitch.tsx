@@ -529,7 +529,29 @@ export default function SubscriptionSalesPitch({
             <Button onClick={() => onSubscribe(currentTier === "brand" ? "build" : "yield")} disabled={loading}>
               <ArrowUpRight className="h-4 w-4 mr-2" />
               Upgrade to {currentTier === "brand" ? "Build" : "Yield"}
-          </Button>
+            </Button>
+          </div>
+
+          {/* Step 1 — Next steps guidance */}
+          <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-950/20 p-5 space-y-3">
+            <p className="text-xs font-bold uppercase tracking-widest text-amber-700 dark:text-amber-400">What's Next?</p>
+            <div className="flex items-start gap-3">
+              <div className="w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0 text-sm font-bold">1</div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Go to your Books Hub</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Open your book, then use the Brand · Build · Yield tabs to start building products from your plan.
+                </p>
+              </div>
+            </div>
+            <Button
+              onClick={() => navigate("/dashboard?section=my-books")}
+              className="w-full bg-amber-500 hover:bg-amber-600 text-white"
+              size="sm"
+            >
+              <BookOpen className="h-4 w-4 mr-2" /> Go to My Books Hub →
+            </Button>
+          </div>
         </div>
       )}
 
