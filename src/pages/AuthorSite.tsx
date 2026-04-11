@@ -85,7 +85,7 @@ export default function AuthorSite() {
       if (data) isOwner = true;
     }
     if (!profile) {
-      const { data } = await supabase.from("author_profiles").select("*").eq("author_slug", authorSlug).in("directory_status", ["listed", "verified", "featured"]).maybeSingle();
+      const { data } = await supabase.from("author_profiles_public" as any).select("*").eq("author_slug", authorSlug).in("directory_status", ["listed", "verified", "featured"]).maybeSingle();
       profile = data as unknown as AuthorData;
     }
     if (!profile) { setNotFound(true); setLoading(false); return; }
@@ -138,7 +138,7 @@ export default function AuthorSite() {
     // Related Authors
     const authorGenres = profile.genres || [];
     if (authorGenres.length > 0) {
-      const { data: related } = await supabase.from("author_profiles")
+      const { data: related } = await supabase.from("author_profiles_public" as any)
         .select("author_slug, pen_name, photo_url, genres")
         .in("directory_status", ["listed", "verified", "featured"])
         .neq("user_id", profile.user_id).limit(20);

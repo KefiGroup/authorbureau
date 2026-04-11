@@ -138,7 +138,7 @@ export default function ReadersBureau() {
     const authorIds = [...new Set(data.purchases.map((p: Purchase) => p.author_id))] as string[];
     if (authorIds.length > 0) {
       const { data: profiles } = await supabase
-        .from("author_profiles")
+        .from("author_profiles_public" as any)
         .select("user_id, pen_name, author_slug, photo_url")
         .in("user_id", authorIds);
       if (profiles) {

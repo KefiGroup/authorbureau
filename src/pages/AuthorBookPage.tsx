@@ -207,7 +207,7 @@ export default function AuthorBookPage() {
     }
     if (!profile) {
       const { data } = await supabase
-        .from("author_profiles")
+        .from("author_profiles_public" as any)
         .select("user_id, pen_name, bio_short, bio_long, photo_url, site_theme, author_slug, tagline, credentials, website_url, linkedin_url, twitter_url, instagram_url, youtube_url, genres")
         .eq("author_slug", authorSlug)
         .in("directory_status", ["listed", "verified", "featured"])
@@ -224,7 +224,7 @@ export default function AuthorBookPage() {
         .maybeSingle();
       if (bookBySlug) {
         const { data: correctProfile } = await supabase
-          .from("author_profiles")
+          .from("author_profiles_public" as any)
           .select("author_slug")
           .eq("user_id", bookBySlug.author_id)
           .maybeSingle();
