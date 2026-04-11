@@ -1,59 +1,34 @@
 
 
-## What's Not Updated
+## Issues Found
 
-The fallback on line 62 of `WebsiteBlueprintPage.tsx` still shows `"your-slug"` when `author_slug` is null and `pen_name` is also null. But more importantly, even when `pen_name` exists, the slug shown in the UI is only a **derived display value** — it's never actually saved to the database unless the user manually edits it or goes through `save-book`. So the preview iframe and URL display keep showing the fallback.
+### 1. Onboarding modal shows at the wrong time
+The condition on line 181 of `AuthorDashboard.tsx` is `if (!user || !stats.analyzedCount) return;` — meaning the modal only appears **after** the user has already completed their ABBY analysis. This is backwards. The onboarding should show when the user has books but has **not yet** analyzed them.
 
-## Common Name Problem
-
-If two authors are both named "Pauline Teo", both would get `pauline-teo` as their slug. The `author_slug` column has a UNIQUE constraint, so the second one would fail silently. This needs a suffix strategy (e.g., `pauline-teo-2`).
+### 2. "Start My ABBY Analysis" button not clickable
+The `AbbyHelpChatbot` floating button sits at `z-[9999]` (line 373 of `AbbyHelpChatbot.tsx`). The modal is at `z-[10000]`. While the modal overlay itself is above the chatbot, the chatbot's expanded panel (also `z-[9999]`) or the floating button can intercept pointer events in the bottom-right corner where the "Start My ABBY Analysis" button may overlap. The fix is to ensure the chatbot is hidden when the onboarding modal is open.
 
 ## Plan
 
-### 1. Auto-generate and persist slug on profile creation/update
-
-In the edge function or a database trigger, when `author_slug` is null but `pen_name` is set:
-- Generate slug from `pen_name` (lowercase, hyphenated)
-- Check for collisions: if `pauline-teo` exists, try `pauline-teo-2`, `pauline-teo-3`, etc.
-- Save the unique slug to `author_slug`
-
-This will be done via a **database trigger** (`before insert or update`) on `author_profiles` so it works regardless of how the profile is created.
-
-### 2. Update `save-book` edge function
-
-Apply the same collision-aware logic when generating `author_slug` during profile upsert (line 128-132). Query for existing slugs with the same base and append a numeric suffix if needed.
-
-### 3. Backfill existing profiles
-
-Run a one-time migration that generates slugs for any `author_profiles` rows where `author_slug IS NULL` but `pen_name IS NOT NULL`, using the same collision-aware logic.
-
-### 4. Remove "your-slug" fallback in UI
-
-In `WebsiteBlueprintPage.tsx` line 62, change the fallback from `"your-slug"` to show a prompt like "Set up your author URL" instead, since the slug should now always be auto-generated.
-
-## Technical Details
-
-**Database trigger function:**
-```sql
-CREATE OR REPLACE FUNCTION generate_unique_author_slug()
-RETURNS trigger LANGUAGE plpgsql AS $$
-DECLARE base_slug text; candidate text; counter int := 1;
-BEGIN
-  IF NEW.author_slug IS NOT NULL AND NEW.author_slug != '' THEN RETURN NEW; END IF;
-  IF NEW.pen_name IS NULL OR NEW.pen_name = '' THEN RETURN NEW; END IF;
-  base_slug := regexp_replace(lower(trim(NEW.pen_name)), '[^a-z0-9]+', '-', 'g');
-  base_slug := trim(both '-' from base_slug);
-  candidate := base_slug;
-  WHILE EXISTS (SELECT 1 FROM author_profiles WHERE author_slug = candidate AND user_id != NEW.user_id) LOOP
-    counter := counter + 1;
-    candidate := base_slug || '-' || counter;
-  END LOOP;
-  NEW.author_slug := candidate;
-  RETURN NEW;
-END; $$;
+### Step 1: Fix the trigger condition
+In `AuthorDashboard.tsx` line 181, change the condition from:
 ```
+if (!user || !stats.analyzedCount) return;
+```
+to:
+```
+if (!user || !stats.bookCount || stats.analyzedCount > 0) return;
+```
+This shows the onboarding when the user has at least one book but has not yet analyzed any. Once they complete analysis, it won't show again (and `has_seen_journey_onboarding` will also be set to true).
 
-**Backfill migration** runs a PL/pgSQL block that loops through null-slug profiles and assigns unique slugs.
+### Step 2: Hide chatbot when onboarding modal is open
+Pass `showJourneyOnboarding` state down or use a simple approach: in `AbbyHelpChatbot.tsx`, add a check — if the onboarding modal is open, don't render the floating button. The cleanest approach is to add a prop or check for the modal's presence in the DOM. Alternatively, add `pointer-events-none` to the chatbot container when the modal is visible by passing a prop from `AuthorDashboard.tsx`.
 
-**Frontend change**: Replace `"your-slug"` with empty string and show "Set your author URL" message when no slug exists.
+### Step 3: Ensure button has proper z-index inside modal
+Add `relative z-10` to the "Start My ABBY Analysis" button container (the golden card at line 271) to ensure it stays above any other layers within the modal.
+
+## Files to modify
+- `src/pages/AuthorDashboard.tsx` — fix trigger condition, pass hide prop to chatbot
+- `src/components/AbbyHelpChatbot.tsx` — accept and respect a `hidden` prop
+- `src/components/dashboard/ABBYJourneyOnboarding.tsx` — add relative z-index to the CTA button area
 
