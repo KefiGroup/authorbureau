@@ -138,17 +138,15 @@ Deno.serve(async (req) => {
         .eq("id", bookId);
       if (approveError) throw approveError;
 
-      // Send "Book Page Live" email notification
+      // Send "Book Page Live" email notification via transactional email system
       try {
-        // Get book details for the email
         const { data: approvedBook } = await adminClient
           .from("books")
-          .select("title, slug, author_id, owner_email")
+          .select("title, slug, author_id, owner_email, author_name")
           .eq("id", bookId)
           .single();
 
         if (approvedBook) {
-          // Resolve author email
           let authorEmail = approvedBook.owner_email || null;
           if (!authorEmail) {
             const { data: { user: authorUser } } = await adminClient.auth.admin.getUserById(approvedBook.author_id);
@@ -156,56 +154,23 @@ Deno.serve(async (req) => {
           }
 
           if (authorEmail) {
-            const resendKey = Deno.env.get("RESEND_API_KEY");
-            if (resendKey) {
-              const bookPageUrl = `https://authorbureau.lovable.app/books/${approvedBook.slug}`;
-              await fetch("https://api.resend.com/emails", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${resendKey}`,
+            const bookPageUrl = `https://authorsbureau.com/books/${approvedBook.slug}`;
+            const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+            const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+            const emailClient = createClient(supabaseUrl, supabaseServiceKey);
+            await emailClient.functions.invoke('send-transactional-email', {
+              body: {
+                templateName: 'book-approved',
+                recipientEmail: authorEmail,
+                idempotencyKey: `book-approved-${bookId}`,
+                templateData: {
+                  authorName: approvedBook.author_name || '',
+                  bookTitle: approvedBook.title,
+                  bookPageUrl,
                 },
-                body: JSON.stringify({
-                  from: "Authors Bureau <notify@notify.authorsbureau.com>",
-                  to: [authorEmail],
-                  subject: `🎉 Your book page for "${approvedBook.title}" is now live!`,
-                  html: `
-                    <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 32px 24px; background: #ffffff;">
-                      <div style="text-align: center; margin-bottom: 24px;">
-                        <h1 style="font-size: 24px; color: #1a1a2e; margin: 0;">Authors Bureau</h1>
-                        <p style="color: #c8a55a; font-size: 14px; margin: 4px 0 0;">AI Marketing Studio</p>
-                      </div>
-                      <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 16px 0;" />
-                      <h2 style="font-size: 20px; color: #1a1a2e;">Your book page is live! 🎉</h2>
-                      <p style="color: #333; font-size: 15px; line-height: 1.6;">
-                        Great news! Your book <strong>"${approvedBook.title}"</strong> has been approved by our admin team.
-                      </p>
-                      <p style="color: #333; font-size: 15px; line-height: 1.6;">
-                        Your professional book page is now live and accessible to readers worldwide.
-                      </p>
-                      <div style="text-align: center; margin: 28px 0;">
-                        <a href="${bookPageUrl}" style="background: #c8a55a; color: #ffffff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 15px; display: inline-block;">
-                          View Your Live Book Page →
-                        </a>
-                      </div>
-                      <div style="background: #f0faf0; border: 1px solid #b8e6b8; border-radius: 8px; padding: 16px; margin: 20px 0;">
-                        <p style="color: #2d6a2d; font-size: 13px; margin: 0;">
-                          ✅ <strong>What's next?</strong><br/>
-                          Share your book page link with your audience, upload your manuscript, and let Abby analyze your book to unlock revenue streams.
-                        </p>
-                      </div>
-                      <p style="color: #888; font-size: 12px; text-align: center; margin-top: 16px; word-break: break-all;">
-                        ${bookPageUrl}
-                      </p>
-                      <p style="color: #888; font-size: 13px; margin-top: 32px; text-align: center;">
-                        — The Authors Bureau Team
-                      </p>
-                    </div>
-                  `,
-                }),
-              });
-              console.log("[admin-books] Approval email sent to", authorEmail);
-            }
+              },
+            });
+            console.log("[admin-books] Approval email queued for", authorEmail);
           }
         }
       } catch (emailErr) {
