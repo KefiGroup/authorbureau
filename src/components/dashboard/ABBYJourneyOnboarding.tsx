@@ -268,7 +268,7 @@ export default function ABBYJourneyOnboarding({ userId, onComplete }: Props) {
                       Before choosing a path, let Abby read your manuscript, build your free microsite, and create a personalized business plan. Then you'll know exactly which revenue streams are right for you.
                     </p>
                   </div>
-                  <div className="rounded-xl border-2 border-[#C9A84C] bg-[#FAF3E0]/50 p-6 text-center space-y-4">
+                  <div className="rounded-xl border-2 border-[#C9A84C] bg-[#FAF3E0]/50 p-6 text-center space-y-4 relative z-10">
                     <div className="w-16 h-16 rounded-full bg-[#C9A84C]/10 flex items-center justify-center mx-auto">
                       <span className="text-3xl">🧠</span>
                     </div>
