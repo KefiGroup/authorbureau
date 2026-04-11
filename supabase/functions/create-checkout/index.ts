@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SHARED_BACKEND_URL = "https://aulvkuadmrfnlsaabpfk.supabase.co";
+const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
 
 async function resolveUserEmail(token: string): Promise<string> {
   const localClient = createClient(
