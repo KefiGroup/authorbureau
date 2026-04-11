@@ -127,9 +127,10 @@ function extractSections(fullContent: string): PlanSection[] {
 
   if (sections.length >= 2) {
     // Also extract revenue summary and total if present
-    const revenueMatch = fullContent.match(/(Your total projected revenue[\s\S]*?)(?=Want to see|Click below|$)/i);
-    if (revenueMatch?.[1]?.trim()) {
-      sections.push({ key: "revenue", label: "Revenue Projection", icon: <BarChart3 className="h-4 w-4" />, accent: "from-orange-500 to-red-400", content: improveContentFormatting(stripMarkers(revenueMatch[1].trim())) });
+    const revenueMatch = fullContent.match(/(?:#{1,3}\s*Revenue Summary|Your total projected revenue)([\s\S]*?)(?=Want to see|Click below|$)/i);
+    if (revenueMatch?.[0]?.trim()) {
+      const revContent = revenueMatch[0].replace(/^#{1,3}\s*Revenue Summary\s*/i, "").trim();
+      sections.push({ key: "revenue", label: "Revenue Summary", icon: <BarChart3 className="h-4 w-4" />, accent: "from-orange-500 to-red-400", content: improveContentFormatting(stripMarkers(revContent)) });
     }
     return sections;
   }
