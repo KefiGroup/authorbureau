@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, Download, FileText, Target, Package, BarChart3, Rocket, X, Sparkles, TrendingUp } from "lucide-react";
+import { Loader2, Download, FileText, Target, Package, BarChart3, Rocket, X, Sparkles, TrendingUp, Wand2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { printExportHtml } from "@/lib/print-export";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
@@ -41,9 +41,10 @@ function cleanLabel(label: string): string {
 
 /**
  * Improve content formatting:
- * - Strip stray ** markers that aren't wrapping text
- * - Convert comma-separated lists into bullet points where appropriate
- * - Ensure Sub-Phase items become bullet lists
+ * - Strip stray ** markers
+ * - Convert comma-separated product listings into bullet points
+ * - Highlight revenue estimates
+ * - Convert "Total projected revenue" into a callout
  */
 function improveContentFormatting(content: string): string {
   let improved = content;
@@ -51,36 +52,61 @@ function improveContentFormatting(content: string): string {
   // Fix stray lone ** that aren't part of bold syntax
   improved = improved.replace(/^\*\*\s*$/gm, "");
 
-  // Convert "Sub-Phase A: item1, item2, item3." patterns into bullet lists
-  improved = improved.replace(
-    /Sub-Phase ([AB]):\s*(.+?)(?=Sub-Phase [AB]:|Estimated Revenue:|$)/gis,
-    (_, phase, items) => {
-      const itemList = items
-        .replace(/\.\s*$/, "")
-        .split(/,\s*/)
-        .map((item: string) => item.trim())
-        .filter((item: string) => item.length > 0);
-      if (itemList.length > 1) {
-        return `**Sub-Phase ${phase}:**\n${itemList.map((item: string) => `- ${item}`).join("\n")}\n\n`;
-      }
-      return `**Sub-Phase ${phase}:** ${items}`;
+  // Split into lines and process
+  const lines = improved.split("\n");
+  const result: string[] = [];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    // Skip empty lines
+    if (!trimmed) { result.push(""); continue; }
+
+    // Handle "Sub-Phase X:" lines — convert items to bullets
+    const subPhaseMatch = trimmed.match(/^Sub-Phase\s+([AB]):\s*(.+)/i);
+    if (subPhaseMatch) {
+      const [, phase, items] = subPhaseMatch;
+      const itemList = items.replace(/\.\s*$/, "").split(/,\s+/).map(s => s.trim()).filter(Boolean);
+      result.push(`**Sub-Phase ${phase}:**`);
+      itemList.forEach(item => result.push(`- ${item}`));
+      result.push("");
+      continue;
     }
-  );
 
-  // Convert "Estimated Revenue: $X/month" into a highlighted line
-  improved = improved.replace(
-    /Estimated Revenue:\s*(.+?)(?:\.|$)/gi,
-    (_, rev) => `\n> **Estimated Revenue:** ${rev.trim()}\n`
-  );
+    // Handle "Estimated Revenue:" lines — make them blockquotes
+    if (/^Estimated Revenue:/i.test(trimmed)) {
+      result.push(`> **${trimmed.replace(/\.\s*$/, "")}**`);
+      result.push("");
+      continue;
+    }
 
-  return improved;
+    // Handle "Total projected revenue:" lines — make them callouts
+    if (/^Total projected revenue:/i.test(trimmed)) {
+      result.push(`> 📊 **${trimmed.replace(/\.\s*$/, "")}**`);
+      result.push("");
+      continue;
+    }
+
+    // Lines with multiple products separated by commas (containing $ or parentheses) — convert to bullets
+    const hasProducts = /\$[\d,]+/.test(trimmed) || /\(.*?\$.*?\)/.test(trimmed);
+    const commaSegments = trimmed.replace(/\.\s*$/, "").split(/,\s+(?=[A-Z])/);
+    if (hasProducts && commaSegments.length >= 2 && !trimmed.startsWith(">") && !trimmed.startsWith("-") && !trimmed.startsWith("*")) {
+      commaSegments.forEach(seg => result.push(`- ${seg.trim()}`));
+      result.push("");
+      continue;
+    }
+
+    result.push(line);
+  }
+
+  return result.join("\n");
 }
 
 function extractSections(fullContent: string): PlanSection[] {
   const sections: PlanSection[] = [];
 
   // --- Strategy 1: New v2.5 "PART N:" format (from chat) ---
-  const partRegex = /PART\s*(\d+)\s*:\s*[🎯📦🏗📈💰🔓✨🎉]*\s*(.+?)(?:\n|$)([\s\S]*?)(?=PART\s*\d+\s*:|$)/gi;
+  const partRegex = /#{0,3}\s*PART\s*(\d+)\s*:\s*[🎯📦🏗📈💰🔓✨🎉]*\s*(.+?)(?:\n|$)([\s\S]*?)(?=#{0,3}\s*PART\s*\d+\s*:|#{1,3}\s*Revenue Summary|$)/gi;
   const partConfigs: Record<number, { key: string; icon: React.ReactNode; accent: string }> = {
     1: { key: "analyse", icon: <Sparkles className="h-4 w-4" />, accent: "from-amber-500 to-yellow-400" },
     2: { key: "brand", icon: <Package className="h-4 w-4" />, accent: "from-emerald-500 to-green-400" },
@@ -101,9 +127,10 @@ function extractSections(fullContent: string): PlanSection[] {
 
   if (sections.length >= 2) {
     // Also extract revenue summary and total if present
-    const revenueMatch = fullContent.match(/(Your total projected revenue[\s\S]*?)(?=Want to see|Click below|$)/i);
-    if (revenueMatch?.[1]?.trim()) {
-      sections.push({ key: "revenue", label: "Revenue Projection", icon: <BarChart3 className="h-4 w-4" />, accent: "from-orange-500 to-red-400", content: improveContentFormatting(stripMarkers(revenueMatch[1].trim())) });
+    const revenueMatch = fullContent.match(/(?:#{1,3}\s*Revenue Summary|Your total projected revenue)([\s\S]*?)(?=Want to see|Click below|$)/i);
+    if (revenueMatch?.[0]?.trim()) {
+      const revContent = revenueMatch[0].replace(/^#{1,3}\s*Revenue Summary\s*/i, "").trim();
+      sections.push({ key: "revenue", label: "Revenue Summary", icon: <BarChart3 className="h-4 w-4" />, accent: "from-orange-500 to-red-400", content: improveContentFormatting(stripMarkers(revContent)) });
     }
     return sections;
   }
@@ -213,9 +240,19 @@ export default function FullPlanDialog({ open, onOpenChange, bookId, bookTitle, 
   const [plan, setPlan] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [activeSection, setActiveSection] = useState<string>("");
   const contentRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  const getAuthHeaders = useCallback(async () => {
+    const { data: { session } } = await sharedSupabase.auth.getSession();
+    const token = session?.access_token;
+    return {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+    };
+  }, []);
 
   useEffect(() => {
     if (!open || !bookId) return;
@@ -282,6 +319,40 @@ export default function FullPlanDialog({ open, onOpenChange, bookId, bookTitle, 
     setDownloading(false);
   };
 
+  const handleGenerateFullPlan = async () => {
+    if (!plan) return;
+    setGenerating(true);
+    try {
+      const headers = await getAuthHeaders();
+      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/business-consultant`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ action: "expand-plan", bookId, summaryPlan: plan }),
+      });
+      if (!resp.ok) throw new Error("Failed to generate full plan");
+      const result = await resp.json();
+      if (result.content) {
+        setPlan(result.content);
+        setActiveSection("");
+        // Save the expanded plan
+        try {
+          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/business-consultant`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ action: "save-plan", bookId, content: result.content }),
+          });
+        } catch (_) { /* non-blocking */ }
+        toast({ title: "Full plan generated!", description: "Your complete 28-node revenue map is ready." });
+      }
+    } catch (err) {
+      console.error("Failed to generate full plan:", err);
+      toast({ title: "Generation failed", description: "Please try again.", variant: "destructive" });
+    }
+    setGenerating(false);
+  };
+
+  const isFullPlan = plan ? (plan.match(/^-\s/gm)?.length || 0) >= 10 : false;
+
   const scrollToSection = (key: string) => {
     setActiveSection(key);
     const el = document.getElementById(`plan-section-${key}`);
@@ -306,7 +377,18 @@ export default function FullPlanDialog({ open, onOpenChange, bookId, bookTitle, 
                 <p className="text-sm text-white/60 mt-0.5">{bookTitle}</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              {!isFullPlan && plan && (
+                <Button
+                  size="sm"
+                  className="gap-2 text-xs h-9 bg-gradient-to-r from-secondary to-amber-400 text-white border-0 hover:from-secondary/90 hover:to-amber-400/90 shadow-lg"
+                  onClick={handleGenerateFullPlan}
+                  disabled={generating}
+                >
+                  {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
+                  {generating ? "Expanding…" : "Generate Full 28-Node Plan"}
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -331,13 +413,15 @@ export default function FullPlanDialog({ open, onOpenChange, bookId, bookTitle, 
 
         {/* Body */}
         <div className="flex-1 flex overflow-hidden bg-muted/30">
-          {loading ? (
+          {(loading || generating) ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-4">
               <div className="relative">
                 <div className="h-16 w-16 rounded-full border-4 border-secondary/20 border-t-secondary animate-spin" />
                 <Sparkles className="h-6 w-6 text-secondary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
               </div>
-              <p className="text-sm text-muted-foreground font-medium">Loading your business plan…</p>
+              <p className="text-sm text-muted-foreground font-medium">
+                {generating ? "Generating your full 28-node plan… This may take a moment." : "Loading your business plan…"}
+              </p>
             </div>
           ) : !plan || sections.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-8">

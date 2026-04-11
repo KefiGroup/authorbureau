@@ -3172,7 +3172,162 @@ serve(async (req) => {
       });
     }
 
-    // --- CONSULTATION ACTION (streaming) ---
+    // --- EXPAND-PLAN ACTION (non-streaming, AI-powered) ---
+    if (action === "expand-plan") {
+      const { bookId: expandBookId, summaryPlan } = body;
+      if (!expandBookId || !summaryPlan) {
+        return new Response(JSON.stringify({ error: "bookId and summaryPlan required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const user = await resolveUser(req);
+      if (!user) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+      // Get book context
+      const adminClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      const { data: bookData } = await adminClient
+        .from("books")
+        .select("title, description, genre, author_name")
+        .eq("id", expandBookId)
+        .maybeSingle();
+
+      const bookContext = bookData ? `Book: "${bookData.title}" by ${bookData.author_name || "the author"}. Genre: ${bookData.genre || "Non-fiction"}. ${bookData.description ? `Description: ${bookData.description}` : ""}` : "";
+
+      const expandPrompt = `You are Abby, the AI Business Consultant at Authors Bureau. You have a summary business plan for an author. Your task is to EXPAND this into a COMPLETE, DETAILED 28-node revenue map.
+
+Here is the author's current summary plan:
+${summaryPlan}
+
+${bookContext}
+
+Now generate the FULL 28-node business plan. Use this EXACT structure with bullet points for each node:
+
+## PART 1: Transformation Promise
+State the author's core transformation promise clearly.
+
+## PART 2: Brand Products (9 nodes)
+
+### Sub-Phase A: Branding & Marketing Foundation
+- **BP-01 Email Marketing** — [specific recommendation with pricing]
+- **BP-02 Lead Magnets** — [specific recommendation]
+- **BP-03 Social Media** — [specific 90-day plan recommendation]
+- **BP-04 Author Website & Microsite** — [specific recommendation]
+- **BP-05 Webinars** — [specific recommendation with pricing]
+
+### Sub-Phase B: Digital Products
+- **BP-06 Workbook** — [specific recommendation with pricing]
+- **BP-07 Home Study Course** — [specific recommendation with pricing]
+- **BP-08 Special Editions** — [specific recommendation with pricing]
+- **BP-09 Book Sales Strategy** — [specific recommendation]
+
+> **Estimated Revenue:** $X–$Y/month
+
+## PART 3: Build Authority (9 nodes)
+- **BA-10 Online Course** — [specific recommendation with pricing]
+- **BA-11 Audiobook** — [specific recommendation with pricing]
+- **BA-12 Memberships** — [specific recommendation with pricing]
+- **BA-13 Group Coaching** — [specific recommendation with pricing]
+- **BA-14 Podcast** — [specific recommendation]
+- **BA-15 Affiliates & Partnerships** — [specific recommendation]
+- **BA-16 Speaking Engagements** — [specific recommendation with fee range]
+- **BA-17 Upsells & Downsells** — [specific recommendation]
+- **BA-18 Revenue Sharing** — [specific recommendation]
+
+> **Estimated Revenue:** $X–$Y/month
+
+## PART 4: Yield Revenue (10 nodes)
+- **YR-19 1-on-1 Coaching** — [specific recommendation with pricing]
+- **YR-20 Consulting** — [specific recommendation with pricing]
+- **YR-21 Keynote Speaking** — [specific recommendation with fee range]
+- **YR-22 Corporate Training** — [specific recommendation with pricing]
+- **YR-23 Masterminds** — [specific recommendation with pricing]
+- **YR-24 Retreats** — [specific recommendation with pricing]
+- **YR-25 Licensing & IP** — [specific recommendation]
+- **YR-26 Conferences & Events** — [specific recommendation with pricing]
+- **YR-27 Media & Publishing** — [specific recommendation]
+- **YR-28 Legacy & Philanthropy** — [specific recommendation]
+
+> **Estimated Revenue:** $X–$Y/month
+
+## Revenue Summary
+- **Brand Products (Act 2):** $X–$Y/month
+- **Build Authority (Act 3):** $X–$Y/month
+- **Yield Revenue (Act 4):** $X–$Y/month
+- **Total Projected Revenue:** $X–$Y/month by Month 12
+
+IMPORTANT RULES:
+- Every single node MUST have a specific, personalised recommendation based on the author's book and niche
+- Use bullet points with bold node names
+- Include specific pricing suggestions for each node
+- Each recommendation should be 1-2 sentences explaining what the product/service is and why it fits this author
+- Revenue estimates must be realistic and consistent with the summary plan
+- Do NOT include any subscription CTAs or marketing language — this is a pure business plan document`;
+
+      try {
+        const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [
+              { role: "system", content: "You are Abby, a world-class business consultant for authors. Generate detailed, specific, actionable business plans. Always use bullet points and clear formatting." },
+              { role: "user", content: expandPrompt },
+            ],
+            max_tokens: 6000,
+          }),
+        });
+
+        if (!aiResp.ok) {
+          const errText = await aiResp.text();
+          console.error("AI gateway error:", aiResp.status, errText);
+          return new Response(JSON.stringify({ error: "AI generation failed" }), {
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const aiResult = await aiResp.json();
+        const expandedContent = aiResult.choices?.[0]?.message?.content || "";
+
+        if (!expandedContent) {
+          return new Response(JSON.stringify({ error: "No content generated" }), {
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Save to DB
+        await adminClient.from("generated_assets").upsert(
+          {
+            book_id: expandBookId,
+            author_id: user.id,
+            asset_type: "business_plan",
+            content: expandedContent,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "book_id,asset_type" }
+        );
+
+        return new Response(JSON.stringify({ content: expandedContent }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (err) {
+        console.error("Expand plan error:", err);
+        return new Response(JSON.stringify({ error: "Failed to expand plan" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     const { messages, bookId, isPremium, subscriptionTier, subscriptionStatus, builderMode, builderId, builderLabel, builderStep } = body;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
