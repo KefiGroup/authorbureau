@@ -386,8 +386,8 @@ export default function AbbyHelpChatbot() {
 
   return (
     <>
-      {/* Floating trigger button — hidden inside builder studios or when journey onboarding is open */}
-      {!isOpen && !journeyModalOpen && !(location.search.includes("builder=") || ["workbook","course","home-study","training-program","social-media","email-marketing","audiobook","podcast","coaching","group-coaching","memberships","book-sales","special-editions","lead-magnet","big-ticket"].some(s => location.search.includes(`section=${s}`))) && (
+      {/* Floating trigger button — hidden inside builder studios or when any modal is open */}
+      {!isOpen && !modalOpen && !(location.search.includes("builder=") || ["workbook","course","home-study","training-program","social-media","email-marketing","audiobook","podcast","coaching","group-coaching","memberships","book-sales","special-editions","lead-magnet","big-ticket"].some(s => location.search.includes(`section=${s}`))) && (
         <div className="fixed z-[9999] group" style={{ bottom: isMobile ? 16 : 24, right: isMobile ? 16 : 24 }}>
           {/* Tooltip */}
           <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
