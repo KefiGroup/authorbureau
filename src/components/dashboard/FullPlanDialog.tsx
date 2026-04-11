@@ -242,6 +242,14 @@ th { background: #f8f6f0; padding: 10px 14px; text-align: left; font-weight: 600
 td { padding: 10px 14px; border-bottom: 1px solid #eee; color: #444; }
 tr:hover td { background: #fafaf8; }
 
+/* Blockquotes */
+blockquote { border-left: 3px solid #B8860B; padding: 10px 16px; margin: 16px 0; background: #faf8f2; font-style: italic; color: #555; }
+
+/* Disclaimer */
+.disclaimer { margin-top: 48px; padding: 24px 28px; border: 1px solid #e0d6c0; border-radius: 8px; background: #fffbf0; text-align: center; }
+.disclaimer-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: #B8860B; margin-bottom: 10px; }
+.disclaimer p { font-size: 12px; color: #666; margin-bottom: 8px; line-height: 1.6; }
+
 /* Footer */
 .footer { margin-top: 60px; padding-top: 24px; border-top: 2px solid #e8e8e8; text-align: center; }
 .footer p { font-size: 11px; color: #999; margin-bottom: 4px; }
