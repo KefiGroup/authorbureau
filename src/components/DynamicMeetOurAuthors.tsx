@@ -297,9 +297,8 @@ export default function DynamicMeetOurAuthors() {
                       {/* Books */}
                       <div className="mt-4 flex items-center gap-3 pb-4 border-b border-border/50">
                         {author.books.slice(0, 3).map((book) => (
-                          <Link
+                          <div
                             key={book.id}
-                            to={`/${author.slug}/${book.slug}`}
                             className="group/book relative"
                           >
                             {book.cover_image_url ? (
@@ -318,7 +317,7 @@ export default function DynamicMeetOurAuthors() {
                                 {book.rating}★
                               </div>
                             )}
-                          </Link>
+                          </div>
                         ))}
                       </div>
 
