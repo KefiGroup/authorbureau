@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Check, Crown, Loader2, ArrowUpRight, Shield, Sparkles,
   TrendingUp, Star, Lock, X, Clock, AlertTriangle, Gift,
+  Download, BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -251,17 +253,42 @@ export default function SubscriptionSalesPitch({
   } = analysisData;
 
   // Enterprise subscriber → show build CTA instead
+  const navigate = useNavigate();
+
   if (currentTier === "yield") {
     return (
       <div className="space-y-6 mt-8">
         <RevenueHookBanner bookTitle={bookTitle} revenueStreamsCount={revenueStreamsCount}
           revenueLow={revenueLow} revenueHigh={revenueHigh}
           customText={getRevenueHookText("yield")} isSubscribed />
-        <div className="text-center py-8">
-          <div className="inline-flex items-center gap-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full px-5 py-2.5 text-sm font-bold mb-6">
+        <div className="text-center py-8 space-y-6">
+          <div className="inline-flex items-center gap-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full px-5 py-2.5 text-sm font-bold">
             <Shield className="h-4 w-4" />
             ✅ YIELD PACKAGE — Full Access to All 28 Builders
           </div>
+
+          {/* Step 1 — Next steps guidance */}
+          <div className="max-w-lg mx-auto rounded-2xl border border-amber-200 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-950/20 p-6 space-y-4 text-left">
+            <p className="text-xs font-bold uppercase tracking-widest text-amber-700 dark:text-amber-400">
+              What's Next?
+            </p>
+            <div className="flex items-start gap-3">
+              <div className="w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0 text-sm font-bold">1</div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Go to your Books Hub</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Open your book, then use the Brand · Build · Yield tabs to start building products from your plan.
+                </p>
+              </div>
+            </div>
+            <Button
+              onClick={() => navigate("/dashboard?section=my-books")}
+              className="w-full bg-amber-500 hover:bg-amber-600 text-white"
+            >
+              <BookOpen className="h-4 w-4 mr-2" /> Go to My Books Hub →
+            </Button>
+          </div>
+
           {onBuildBusiness && (
             <Button size="lg" onClick={onBuildBusiness} className="bg-amber-500 hover:bg-amber-600 text-white text-lg px-10 py-6 rounded-xl shadow-lg">
               <Sparkles className="h-5 w-5 mr-2" />
@@ -488,20 +515,43 @@ export default function SubscriptionSalesPitch({
       )}
 
       {isSubscribed && (
-        <div className="rounded-2xl border border-border bg-card p-6 text-center space-y-3">
-          <p className="text-sm font-medium flex items-center justify-center gap-2">
-            <TrendingUp className="h-4 w-4 text-green-500" />
-            You're already earning with {plans.find(p => p.id === currentTier)?.name}.
-          </p>
-          <p className="text-xs text-muted-foreground max-w-md mx-auto">
-            {currentTier === "brand"
-              ? "Upgrade to Build to unlock coaching, courses, and webinars."
-              : "Upgrade to Yield for retreats, certification, and a 1-on-1 session with Pauline Teo."}
-          </p>
-          <Button onClick={() => onSubscribe(currentTier === "brand" ? "build" : "yield")} disabled={loading}>
-            <ArrowUpRight className="h-4 w-4 mr-2" />
-            Upgrade to {currentTier === "brand" ? "Build" : "Yield"}
-          </Button>
+        <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
+          <div className="text-center space-y-3">
+            <p className="text-sm font-medium flex items-center justify-center gap-2">
+              <TrendingUp className="h-4 w-4 text-green-500" />
+              You're already earning with {plans.find(p => p.id === currentTier)?.name}.
+            </p>
+            <p className="text-xs text-muted-foreground max-w-md mx-auto">
+              {currentTier === "brand"
+                ? "Upgrade to Build to unlock coaching, courses, and webinars."
+                : "Upgrade to Yield for retreats, certification, and a 1-on-1 session with Pauline Teo."}
+            </p>
+            <Button onClick={() => onSubscribe(currentTier === "brand" ? "build" : "yield")} disabled={loading}>
+              <ArrowUpRight className="h-4 w-4 mr-2" />
+              Upgrade to {currentTier === "brand" ? "Build" : "Yield"}
+            </Button>
+          </div>
+
+          {/* Step 1 — Next steps guidance */}
+          <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-950/20 p-5 space-y-3">
+            <p className="text-xs font-bold uppercase tracking-widest text-amber-700 dark:text-amber-400">What's Next?</p>
+            <div className="flex items-start gap-3">
+              <div className="w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0 text-sm font-bold">1</div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Go to your Books Hub</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Open your book, then use the Brand · Build · Yield tabs to start building products from your plan.
+                </p>
+              </div>
+            </div>
+            <Button
+              onClick={() => navigate("/dashboard?section=my-books")}
+              className="w-full bg-amber-500 hover:bg-amber-600 text-white"
+              size="sm"
+            >
+              <BookOpen className="h-4 w-4 mr-2" /> Go to My Books Hub →
+            </Button>
+          </div>
         </div>
       )}
 

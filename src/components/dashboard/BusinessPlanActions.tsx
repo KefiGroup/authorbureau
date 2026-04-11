@@ -176,7 +176,7 @@ export default function BusinessPlanActions({
       printExportHtml(html, `ABBY Business Plan - ${bookTitle}`);
       toast({
         title: "Downloaded!",
-        description: "Your ABBY Business Plan has been saved as a Word document.",
+        description: "Your ABBY Business Plan is ready to save as PDF.",
       });
     } catch (err) {
       console.error("Download failed:", err);
@@ -206,7 +206,7 @@ export default function BusinessPlanActions({
             </>
           ) : (
             <>
-              <Download className="h-3.5 w-3.5" /> Download .docx
+              <Download className="h-3.5 w-3.5" /> Download PDF
             </>
           )}
         </Button>
