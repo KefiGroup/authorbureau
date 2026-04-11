@@ -60,7 +60,7 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
   }, []);
 
   const authorSlug = profileData?.author_slug || "";
-  const siteUrl = `https://authorsbureau.com/${authorSlug}`;
+  const siteUrl = authorSlug ? `https://authorsbureau.com/${authorSlug}` : "";
 
   useEffect(() => {
     if (!user?.id) return;
