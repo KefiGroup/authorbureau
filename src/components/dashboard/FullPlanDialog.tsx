@@ -34,6 +34,48 @@ function stripMarkers(text: string): string {
     .trim();
 }
 
+/** Clean a label: strip markdown bold markers and trailing punctuation */
+function cleanLabel(label: string): string {
+  return label.replace(/\*+/g, "").replace(/[:#]+$/, "").trim();
+}
+
+/**
+ * Improve content formatting:
+ * - Strip stray ** markers that aren't wrapping text
+ * - Convert comma-separated lists into bullet points where appropriate
+ * - Ensure Sub-Phase items become bullet lists
+ */
+function improveContentFormatting(content: string): string {
+  let improved = content;
+
+  // Fix stray lone ** that aren't part of bold syntax
+  improved = improved.replace(/^\*\*\s*$/gm, "");
+
+  // Convert "Sub-Phase A: item1, item2, item3." patterns into bullet lists
+  improved = improved.replace(
+    /Sub-Phase ([AB]):\s*(.+?)(?=Sub-Phase [AB]:|Estimated Revenue:|$)/gis,
+    (_, phase, items) => {
+      const itemList = items
+        .replace(/\.\s*$/, "")
+        .split(/,\s*/)
+        .map((item: string) => item.trim())
+        .filter((item: string) => item.length > 0);
+      if (itemList.length > 1) {
+        return `**Sub-Phase ${phase}:**\n${itemList.map((item: string) => `- ${item}`).join("\n")}\n\n`;
+      }
+      return `**Sub-Phase ${phase}:** ${items}`;
+    }
+  );
+
+  // Convert "Estimated Revenue: $X/month" into a highlighted line
+  improved = improved.replace(
+    /Estimated Revenue:\s*(.+?)(?:\.|$)/gi,
+    (_, rev) => `\n> **Estimated Revenue:** ${rev.trim()}\n`
+  );
+
+  return improved;
+}
+
 function extractSections(fullContent: string): PlanSection[] {
   const sections: PlanSection[] = [];
 
