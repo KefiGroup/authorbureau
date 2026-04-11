@@ -127,7 +127,7 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
         },
       }}
     >
-      {content}
+      {content.replace(/^[—–]\s+/gm, "- ")}
     </ReactMarkdown>
   );
 }
