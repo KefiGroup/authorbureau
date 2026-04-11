@@ -178,7 +178,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
 
   // Check if journey onboarding should show (first time user has an analyzed book)
   useEffect(() => {
-    if (!user || !stats.analyzedCount) return;
+    if (!user || !stats.bookCount || stats.analyzedCount > 0) return;
     (async () => {
       const { data } = await supabase
         .from("author_profiles")
