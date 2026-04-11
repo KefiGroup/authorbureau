@@ -10,7 +10,8 @@ interface Props {
 }
 
 export default function CompactMicrositeCard({ profileState, authorSlug, authorName, onSetupProfile, onViewMicrosite }: Props) {
-  const micrositeUrl = authorSlug ? `authorsbureau.com/authors/${authorSlug}` : "authorsbureau.com/authors/your-name";
+  const micrositePath = authorSlug ? `/${authorSlug}` : "/your-name";
+  const micrositeUrl = authorSlug ? `authorsbureau.com/${authorSlug}` : "authorsbureau.com/your-name";
 
   return (
     <div className="rounded-xl border border-border bg-card p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -19,7 +20,7 @@ export default function CompactMicrositeCard({ profileState, authorSlug, authorN
         {profileState === "live" && authorSlug ? (
           <div className="w-full h-full overflow-hidden pointer-events-none">
             <iframe
-              src={`${window.location.origin}/authors/${authorSlug}`}
+              src={`${window.location.origin}${micrositePath}`}
               title="Your Website Preview"
               className="border-0 origin-top-left"
               style={{
