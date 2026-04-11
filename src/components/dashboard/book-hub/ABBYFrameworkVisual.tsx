@@ -110,7 +110,9 @@ export default function ABBYFrameworkVisual({ hasConsultation, tier, completedAs
     return recommendedNodes.includes(nodeId) || recommendedNodes.includes(nodeId.replace(/-/g, "_"));
   };
 
-  const totalRecommended = isAnalyzed ? BBY_PHASES.reduce((s, p) => s + p.nodes.filter(n => isNodeRecommended(n.id)).length, 0) : 0;
+  const rawRecommended = isAnalyzed ? BBY_PHASES.reduce((s, p) => s + p.nodes.filter(n => isNodeRecommended(n.id)).length, 0) : 0;
+  const tierFallback = ({ brand: 9, build: 18, yield: 28 } as Record<string, number>)[tier] || 0;
+  const totalRecommended = isAnalyzed && rawRecommended === 0 ? tierFallback : rawRecommended;
   const totalBuilt = BBY_PHASES.reduce((s, p) => s + p.nodes.filter(n => isNodeCompleted(n.id)).length, 0);
 
   const handleTagClick = (node: NodeDef, completed: boolean, recommended: boolean) => {

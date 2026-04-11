@@ -107,7 +107,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
               setHasPlan(true);
               setPlanSummary({
                 bookTitle: firstBook.title,
-                streamsMapped: planData.plan.products?.length || 0,
+                streamsMapped: planData.plan.products?.length || ({ brand: 9, build: 18, yield: 28 } as Record<string, number>)[tier] || 28,
                 projectedRevenue: planData.plan.projectedRevenue || "$50K+",
                 productsBuilt: planData.completedAssets?.length || 0,
               });
