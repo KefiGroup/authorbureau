@@ -95,7 +95,7 @@ function extractSections(fullContent: string): PlanSection[] {
     const partContent = partMatch[3].trim();
     const cfg = partConfigs[partNum] || { key: `part${partNum}`, icon: <FileText className="h-4 w-4" />, accent: "from-secondary to-amber-500" };
     if (partContent) {
-      sections.push({ key: cfg.key, label: partTitle.slice(0, 40), icon: cfg.icon, accent: cfg.accent, content: stripMarkers(partContent) });
+      sections.push({ key: cfg.key, label: cleanLabel(partTitle).slice(0, 40), icon: cfg.icon, accent: cfg.accent, content: improveContentFormatting(stripMarkers(partContent)) });
     }
   }
 
@@ -103,7 +103,7 @@ function extractSections(fullContent: string): PlanSection[] {
     // Also extract revenue summary and total if present
     const revenueMatch = fullContent.match(/(Your total projected revenue[\s\S]*?)(?=Want to see|Click below|$)/i);
     if (revenueMatch?.[1]?.trim()) {
-      sections.push({ key: "revenue", label: "Revenue Projection", icon: <BarChart3 className="h-4 w-4" />, accent: "from-orange-500 to-red-400", content: stripMarkers(revenueMatch[1].trim()) });
+      sections.push({ key: "revenue", label: "Revenue Projection", icon: <BarChart3 className="h-4 w-4" />, accent: "from-orange-500 to-red-400", content: improveContentFormatting(stripMarkers(revenueMatch[1].trim())) });
     }
     return sections;
   }
@@ -127,12 +127,12 @@ function extractSections(fullContent: string): PlanSection[] {
     if (["brand", "build", "yield"].includes(p.key) && sections.some(s => ["brand", "build", "yield"].includes(s.key))) continue;
     const match = fullContent.match(p.regex);
     if (match?.[1]?.trim()) {
-      sections.push({ key: p.key, label: p.label, icon: p.icon, accent: p.accent, content: stripMarkers(match[1].trim()) });
+      sections.push({ key: p.key, label: cleanLabel(p.label), icon: p.icon, accent: p.accent, content: improveContentFormatting(stripMarkers(match[1].trim())) });
     }
   }
 
   if (sections.length === 0 && fullContent.trim()) {
-    sections.push({ key: "full", label: "Full Plan", icon: <FileText className="h-4 w-4" />, accent: "from-secondary to-amber-500", content: stripMarkers(fullContent) });
+    sections.push({ key: "full", label: "Full Plan", icon: <FileText className="h-4 w-4" />, accent: "from-secondary to-amber-500", content: improveContentFormatting(stripMarkers(fullContent)) });
   }
 
   return sections;
