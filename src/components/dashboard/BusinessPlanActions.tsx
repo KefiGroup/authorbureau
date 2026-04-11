@@ -206,7 +206,7 @@ export default function BusinessPlanActions({
             </>
           ) : (
             <>
-              <Download className="h-3.5 w-3.5" /> Download .docx
+              <Download className="h-3.5 w-3.5" /> Download PDF
             </>
           )}
         </Button>
