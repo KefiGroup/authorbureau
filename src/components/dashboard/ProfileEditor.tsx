@@ -702,13 +702,13 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
           {profile.bio_short && (
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Short Bio</p>
-              <p className="text-sm">{profile.bio_short}</p>
+              <p className="text-sm">{profile.bio_short.replace(/<[^>]+>/g, "")}</p>
             </div>
           )}
           {profile.bio_long && (
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Full Bio</p>
-              <p className="text-sm whitespace-pre-line">{profile.bio_long}</p>
+              <p className="text-sm whitespace-pre-line">{profile.bio_long.replace(/<[^>]+>/g, "")}</p>
             </div>
           )}
         </section>

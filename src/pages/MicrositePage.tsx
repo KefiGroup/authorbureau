@@ -319,7 +319,7 @@ function AuthorWebsitePage({ data, content, v, hFont, bgColor, onSubmit, email, 
         <div className="max-w-3xl mx-auto">
           <h2 className="text-2xl font-bold mb-4" style={{ color: v.headingText, fontFamily: hFont }}>About {data.author.pen_name}</h2>
           <p className="text-base leading-relaxed mb-4" style={{ color: v.bodyText }}>
-            {data.author.bio_long || data.author.bio || ""}
+            {(data.author.bio_long || data.author.bio || "").replace(/<[^>]+>/g, "")}
           </p>
           {data.author.credentials && Array.isArray(data.author.credentials) && data.author.credentials.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-4">

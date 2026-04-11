@@ -318,12 +318,12 @@ function ReviewStep({ content, authorName, onActivate }: { content: any; authorN
               <Card className="bg-primary/5 border-primary/20">
                 <CardContent className="pt-4">
                   <p className="text-xs font-semibold text-primary mb-1">Short Bio — for social profiles</p>
-                  <p className="text-sm">{content.about_page?.bio_short}</p>
+                  <p className="text-sm">{(content.about_page?.bio_short || "").replace(/<[^>]+>/g, "")}</p>
                 </CardContent>
               </Card>
               <div className="space-y-2">
                 <p className="text-xs font-semibold text-muted-foreground">Full Bio</p>
-                <p className="text-sm text-muted-foreground whitespace-pre-line">{content.about_page?.bio_long}</p>
+                <p className="text-sm text-muted-foreground whitespace-pre-line">{(content.about_page?.bio_long || "").replace(/<[^>]+>/g, "")}</p>
               </div>
               {content.about_page?.credentials?.length > 0 && (
                 <div>
