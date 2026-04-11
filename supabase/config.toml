@@ -91,3 +91,5 @@ project_id = "tubpbslfrxyfhldkcyyq"
     verify_jwt = false
   [functions.get-microsite-page]
     verify_jwt = false
+  [functions.process-email-queue]
+    verify_jwt = true
