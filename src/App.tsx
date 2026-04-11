@@ -49,6 +49,7 @@ import NodeBuilder from "./pages/NodeBuilder";
 import AbbyCoachPage from "./pages/AbbyCoachPage";
 import Pricing from "./pages/Pricing";
 import SubscriptionSuccess from "./pages/SubscriptionSuccess";
+import UnsubscribePage from "./pages/UnsubscribePage";
 
 
 const queryClient = new QueryClient();
@@ -133,6 +134,7 @@ const AppRoutes = () => (
       <Route path="/purchase-success" element={<PurchaseSuccess />} />
       <Route path="/terms" element={<TermsOfService />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route path="/unsubscribe" element={<UnsubscribePage />} />
       <Route path="/:authorSlug/:bookSlug/:productType" element={<AuthorProductPage />} />
       <Route path="/:authorSlug/:bookSlug" element={<AuthorSubpageResolver />} />
       <Route path="/:authorSlug" element={<AuthorSite />} />
