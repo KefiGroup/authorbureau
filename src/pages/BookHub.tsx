@@ -190,7 +190,7 @@ export default function BookHub() {
             </div>
           ) : (
             <div className="transition-opacity duration-300 animate-in fade-in">
-              <BookHubContextBar book={book} tier={effectiveTier} onBack={() => navigate("/dashboard?section=my-books")} />
+              <BookHubContextBar book={book} tier={effectiveTier} authorSlug={authorSlug} onBack={() => navigate("/dashboard?section=my-books")} />
 
               {/* Tab Navigation */}
               <div className="flex items-center gap-1 border-b border-border overflow-x-auto mt-6">

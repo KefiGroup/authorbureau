@@ -16,6 +16,7 @@ interface Book {
 interface Props {
   book: Book;
   tier: SubscriptionTier;
+  authorSlug?: string | null;
   onBack: () => void;
 }
 
@@ -26,7 +27,7 @@ const tierBadgeConfig: Record<SubscriptionTier, { label: string; bg: string; tex
   yield: { label: "Yield", bg: "bg-[hsl(48,96%,89%)]", text: "text-secondary", icon: true },
 };
 
-export default function BookHubContextBar({ book, tier, onBack }: Props) {
+export default function BookHubContextBar({ book, tier, authorSlug, onBack }: Props) {
   const badge = tierBadgeConfig[tier];
 
   return (
@@ -76,7 +77,7 @@ export default function BookHubContextBar({ book, tier, onBack }: Props) {
       {/* View microsite */}
       {book.published_at && (
         <a
-          href={`/books/${book.slug}`}
+          href={authorSlug ? `/${authorSlug}/${book.slug}` : `/books/${book.slug}`}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 text-xs font-medium text-secondary hover:text-secondary/80 transition-colors shrink-0"
