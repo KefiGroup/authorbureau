@@ -376,7 +376,18 @@ export default function FullPlanDialog({ open, onOpenChange, bookId, bookTitle, 
                 <p className="text-sm text-white/60 mt-0.5">{bookTitle}</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              {!isFullPlan && plan && (
+                <Button
+                  size="sm"
+                  className="gap-2 text-xs h-9 bg-gradient-to-r from-secondary to-amber-400 text-white border-0 hover:from-secondary/90 hover:to-amber-400/90 shadow-lg"
+                  onClick={handleGenerateFullPlan}
+                  disabled={generating}
+                >
+                  {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
+                  {generating ? "Expanding…" : "Generate Full 28-Node Plan"}
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
