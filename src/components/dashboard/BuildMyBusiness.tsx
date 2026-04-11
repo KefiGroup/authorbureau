@@ -309,7 +309,9 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
       }
 
       const allAssistantContent = [...messages.filter(m => m.role === "assistant").map(m => m.content), accumulated].join("\n\n");
-      if (accumulated && isBusinessPlanMessage(allAssistantContent) && selectedBook && user) {
+      // Always persist the plan after streaming completes — don't gate on isBusinessPlanMessage
+      // which can miss new plan formats and leave the asset unsaved
+      if (accumulated && selectedBook && user) {
         try {
           const saveToken = await getActiveToken();
           // Save the business plan
