@@ -25,7 +25,7 @@ async function resolveUserEmail(req: Request): Promise<string> {
   }
 
   // Fallback: shared backend
-  const sharedUrl = "https://aulvkuadmrfnlsaabpfk.supabase.co";
+  const sharedUrl = "https://wuftdpnekscrsghqtssd.supabase.co";
   const sharedKey = Deno.env.get("SHARED_BACKEND_SERVICE_ROLE_KEY");
   if (sharedKey) {
     const sharedClient = createClient(sharedUrl, sharedKey, { auth: { persistSession: false } });
