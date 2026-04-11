@@ -63,6 +63,7 @@ export default function BookHub() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<BookHubTab>(initialTab);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [authorSlug, setAuthorSlug] = useState<string | null>(null);
 
   const effectiveTier: SubscriptionTier = isAdmin ? "yield" : tier;
 
