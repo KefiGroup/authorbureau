@@ -380,9 +380,8 @@ serve(async (req) => {
       console.error("[save-book] Push to shared backend failed (non-fatal):", pushErr);
     }
 
-    // ─── Send "Under Review" email notification ───
+    // ─── Send "Under Review" email notification via transactional email system ───
     try {
-      // Resolve author email
       let authorEmail: string | null = isPlatformPush ? body.email : null;
       if (!authorEmail) {
         const { data: { user: authorUser } } = await cloudAdmin.auth.admin.getUserById(userId);
@@ -390,49 +389,18 @@ serve(async (req) => {
       }
 
       if (authorEmail) {
-        const resendKey = Deno.env.get("RESEND_API_KEY");
-        if (resendKey) {
-          const bookTitle = bookData.title;
-          await fetch("https://api.resend.com/emails", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${resendKey}`,
+        await cloudAdmin.functions.invoke('send-transactional-email', {
+          body: {
+            templateName: 'book-submitted',
+            recipientEmail: authorEmail,
+            idempotencyKey: `book-submitted-${newBook.id}`,
+            templateData: {
+              authorName: authorName || '',
+              bookTitle: bookData.title,
             },
-            body: JSON.stringify({
-              from: "Authors Bureau <notify@notify.authorsbureau.com>",
-              to: [authorEmail],
-              subject: `Your book "${bookTitle}" is under review`,
-              html: `
-                <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 32px 24px; background: #ffffff;">
-                  <div style="text-align: center; margin-bottom: 24px;">
-                    <h1 style="font-size: 24px; color: #1a1a2e; margin: 0;">Authors Bureau</h1>
-                    <p style="color: #c8a55a; font-size: 14px; margin: 4px 0 0;">AI Marketing Studio</p>
-                  </div>
-                  <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 16px 0;" />
-                  <h2 style="font-size: 20px; color: #1a1a2e;">Your book is under review 📚</h2>
-                  <p style="color: #333; font-size: 15px; line-height: 1.6;">
-                    Thank you for submitting <strong>"${bookTitle}"</strong> to Authors Bureau.
-                  </p>
-                  <p style="color: #333; font-size: 15px; line-height: 1.6;">
-                    Our admin team will review your book within <strong>48 hours</strong>. 
-                    You'll receive another email once your book page is approved and live.
-                  </p>
-                  <div style="background: #fef9e7; border: 1px solid #f0d77b; border-radius: 8px; padding: 16px; margin: 20px 0;">
-                    <p style="color: #8a6d0b; font-size: 13px; margin: 0;">
-                      ⏳ <strong>What happens next?</strong><br/>
-                      An admin will review your book details, cover image, and description. Once approved, your book page will go live and you'll be notified.
-                    </p>
-                  </div>
-                  <p style="color: #888; font-size: 13px; margin-top: 32px; text-align: center;">
-                    — The Authors Bureau Team
-                  </p>
-                </div>
-              `,
-            }),
-          });
-          console.log("[save-book] Under-review email sent to", authorEmail);
-        }
+          },
+        });
+        console.log("[save-book] Under-review email queued for", authorEmail);
       }
     } catch (emailErr) {
       console.error("[save-book] Email notification failed (non-fatal):", emailErr);
