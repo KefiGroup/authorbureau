@@ -366,20 +366,28 @@ export default function AbbyHelpChatbot() {
 
   // No auth gate — chatbot is visible on all pages
 
-  // Reactively hide chatbot when journey onboarding modal is open
-  const [journeyModalOpen, setJourneyModalOpen] = useState(false);
+  // Reactively hide chatbot trigger when any modal/overlay is open (journey onboarding, dialogs, sheets, drawers)
+  const [modalOpen, setModalOpen] = useState(false);
   useEffect(() => {
-    const check = () => setJourneyModalOpen(!!document.querySelector('[data-journey-onboarding]'));
+    const check = () => {
+      const hasOverlay = !!(
+        document.querySelector('[data-journey-onboarding]') ||
+        document.querySelector('[data-state="open"][role="dialog"]') ||
+        document.querySelector('[data-state="open"].fixed') ||
+        document.querySelector('.fixed.inset-0.z-\\[200\\]')
+      );
+      setModalOpen(hasOverlay);
+    };
     check();
     const observer = new MutationObserver(check);
-    observer.observe(document.body, { childList: true, subtree: true });
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-state'] });
     return () => observer.disconnect();
   }, []);
 
   return (
     <>
-      {/* Floating trigger button — hidden inside builder studios or when journey onboarding is open */}
-      {!isOpen && !journeyModalOpen && !(location.search.includes("builder=") || ["workbook","course","home-study","training-program","social-media","email-marketing","audiobook","podcast","coaching","group-coaching","memberships","book-sales","special-editions","lead-magnet","big-ticket"].some(s => location.search.includes(`section=${s}`))) && (
+      {/* Floating trigger button — hidden inside builder studios or when any modal is open */}
+      {!isOpen && !modalOpen && !(location.search.includes("builder=") || ["workbook","course","home-study","training-program","social-media","email-marketing","audiobook","podcast","coaching","group-coaching","memberships","book-sales","special-editions","lead-magnet","big-ticket"].some(s => location.search.includes(`section=${s}`))) && (
         <div className="fixed z-[9999] group" style={{ bottom: isMobile ? 16 : 24, right: isMobile ? 16 : 24 }}>
           {/* Tooltip */}
           <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
