@@ -4,6 +4,7 @@ import { ChevronDown } from "lucide-react";
 import type { AuthorData, ThemeVars } from "./types";
 import { fadeUp } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
+import { stripHtml } from "@/lib/stripHtml";
 
 interface Props {
   author: AuthorData;
@@ -14,7 +15,7 @@ interface Props {
 
 export default function AuthorAboutSection({ author, displayName, theme, v }: Props) {
   const [bioExpanded, setBioExpanded] = useState(false);
-  const bioText = author.bio_long || author.bio_short || "";
+  const bioText = stripHtml(author.bio_long || author.bio_short || "");
   if (!bioText) return null;
 
   const bioParagraphs = bioText.split(/\n\n+/).filter(Boolean);
@@ -30,7 +31,7 @@ export default function AuthorAboutSection({ author, displayName, theme, v }: Pr
           </h2>
           <div className="text-base space-y-4" style={{ color: v.bodyText, lineHeight: 1.7 }}>
             {!bioExpanded && author.bio_short ? (
-              <p>{author.bio_short}</p>
+              <p>{stripHtml(author.bio_short)}</p>
             ) : (
               displayBioParagraphs.map((p, i) => <p key={i}>{p}</p>)
             )}

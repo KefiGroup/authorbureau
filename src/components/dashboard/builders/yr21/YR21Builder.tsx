@@ -154,7 +154,7 @@ export default function YR21Builder({ authorId }: Props) {
               <TabsContent value="onesheet" className="space-y-4 mt-4">
                 <Card><CardContent className="pt-6 space-y-4">
                   <h3 className="text-lg font-bold">{content.speaker_one_sheet?.headline}</h3>
-                  <p className="text-sm">{content.speaker_one_sheet?.bio_short}</p>
+                  <p className="text-sm">{(content.speaker_one_sheet?.bio_short || "").replace(/<[^>]+>/g, "")}</p>
                   <div className="flex gap-2 flex-wrap">{content.speaker_one_sheet?.topics?.map((t: string, i: number) => <span key={i} className="text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-full">{t}</span>)}</div>
                   <div className="border-t pt-3"><p className="text-xs font-semibold text-muted-foreground mb-1">Full Bio</p><p className="text-sm">{content.speaker_one_sheet?.bio_long}</p></div>
                   <div className="flex gap-2 flex-wrap">{content.speaker_one_sheet?.past_clients_placeholder?.map((c: string, i: number) => <span key={i} className="text-xs bg-muted px-2.5 py-1 rounded-full">{c}</span>)}</div>
