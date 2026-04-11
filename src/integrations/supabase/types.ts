@@ -4112,6 +4112,7 @@ export type Database = {
     Views: {
       author_profiles_public: {
         Row: {
+          amazon_author_profile_url: string | null
           author_slug: string | null
           availability_notes: string | null
           bio_long: string | null
@@ -4123,7 +4124,9 @@ export type Database = {
           frameworks: Json | null
           genres: string[] | null
           id: string | null
+          instagram_url: string | null
           is_speaker: boolean | null
+          linkedin_url: string | null
           location_city: string | null
           location_country: string | null
           pen_name: string | null
@@ -4133,10 +4136,14 @@ export type Database = {
           site_theme: string | null
           speaker_fee_range: string | null
           tagline: string | null
+          twitter_url: string | null
           updated_at: string | null
           user_id: string | null
+          website_url: string | null
+          youtube_url: string | null
         }
         Insert: {
+          amazon_author_profile_url?: string | null
           author_slug?: string | null
           availability_notes?: string | null
           bio_long?: string | null
@@ -4148,7 +4155,9 @@ export type Database = {
           frameworks?: Json | null
           genres?: string[] | null
           id?: string | null
+          instagram_url?: string | null
           is_speaker?: boolean | null
+          linkedin_url?: string | null
           location_city?: string | null
           location_country?: string | null
           pen_name?: string | null
@@ -4158,10 +4167,14 @@ export type Database = {
           site_theme?: string | null
           speaker_fee_range?: string | null
           tagline?: string | null
+          twitter_url?: string | null
           updated_at?: string | null
           user_id?: string | null
+          website_url?: string | null
+          youtube_url?: string | null
         }
         Update: {
+          amazon_author_profile_url?: string | null
           author_slug?: string | null
           availability_notes?: string | null
           bio_long?: string | null
@@ -4173,7 +4186,9 @@ export type Database = {
           frameworks?: Json | null
           genres?: string[] | null
           id?: string | null
+          instagram_url?: string | null
           is_speaker?: boolean | null
+          linkedin_url?: string | null
           location_city?: string | null
           location_country?: string | null
           pen_name?: string | null
@@ -4183,8 +4198,11 @@ export type Database = {
           site_theme?: string | null
           speaker_fee_range?: string | null
           tagline?: string | null
+          twitter_url?: string | null
           updated_at?: string | null
           user_id?: string | null
+          website_url?: string | null
+          youtube_url?: string | null
         }
         Relationships: []
       }
