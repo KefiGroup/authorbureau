@@ -318,7 +318,40 @@ export default function FullPlanDialog({ open, onOpenChange, bookId, bookTitle, 
     setDownloading(false);
   };
 
-  const scrollToSection = (key: string) => {
+  const handleGenerateFullPlan = async () => {
+    if (!plan) return;
+    setGenerating(true);
+    try {
+      const headers = await getAuthHeaders();
+      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/business-consultant`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ action: "expand-plan", bookId, summaryPlan: plan }),
+      });
+      if (!resp.ok) throw new Error("Failed to generate full plan");
+      const result = await resp.json();
+      if (result.content) {
+        setPlan(result.content);
+        setActiveSection("");
+        // Save the expanded plan
+        try {
+          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/business-consultant`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ action: "save-plan", bookId, content: result.content }),
+          });
+        } catch (_) { /* non-blocking */ }
+        toast({ title: "Full plan generated!", description: "Your complete 28-node revenue map is ready." });
+      }
+    } catch (err) {
+      console.error("Failed to generate full plan:", err);
+      toast({ title: "Generation failed", description: "Please try again.", variant: "destructive" });
+    }
+    setGenerating(false);
+  };
+
+  const isFullPlan = plan ? (plan.match(/^-\s/gm)?.length || 0) >= 10 : false;
+
     setActiveSection(key);
     const el = document.getElementById(`plan-section-${key}`);
     if (el) {
