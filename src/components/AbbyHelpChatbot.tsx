@@ -366,8 +366,15 @@ export default function AbbyHelpChatbot() {
 
   // No auth gate — chatbot is visible on all pages
 
-  // Hide chatbot when journey onboarding modal is open
-  const journeyModalOpen = typeof document !== 'undefined' && !!document.querySelector('[data-journey-onboarding]');
+  // Reactively hide chatbot when journey onboarding modal is open
+  const [journeyModalOpen, setJourneyModalOpen] = useState(false);
+  useEffect(() => {
+    const check = () => setJourneyModalOpen(!!document.querySelector('[data-journey-onboarding]'));
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <>
