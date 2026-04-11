@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, Download, FileText, Target, Package, BarChart3, Rocket, X, Sparkles, TrendingUp } from "lucide-react";
+import { Loader2, Download, FileText, Target, Package, BarChart3, Rocket, X, Sparkles, TrendingUp, Wand2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { printExportHtml } from "@/lib/print-export";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
