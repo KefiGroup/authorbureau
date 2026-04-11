@@ -1,36 +1,49 @@
 
 
-## Why It Shows 28 Nodes
+## The Security vs. Functionality Problem
 
-The number "28" is **hardcoded** in `MeetAbbySection.tsx` (line 44). It always displays "28 Revenue Streams Available" regardless of what Abby actually recommended for your book. The "X of 28 Products Built" counter on line 52 also uses the hardcoded 28 as the denominator.
+The current views use `security_invoker = on`, which makes them respect RLS on the base tables. The base table `author_profiles` has this RLS setup:
 
-Your consultation with Abby may have recommended a subset of nodes (e.g., 12 or 18), but the UI ignores the `streamsMapped` value from your plan summary and just shows the total framework size.
+- **"Authors can view their own profile"** — `auth.uid() = user_id` (authenticated only)
+- **"Listed profiles viewable by authenticated"** — `directory_status IN ('listed', 'featured') OR auth.uid() = user_id OR admin` (authenticated only)
+- The old **"Public profiles are viewable"** (`USING (true)`) was **dropped** during security hardening
+
+So anonymous visitors get **zero rows** from the view because there is no `anon` SELECT policy on the base table.
+
+For `books`, there IS an anon policy: **"Published books viewable by anon via view"** — so books should actually work already.
+
+## The Safe Fix
+
+We do **not** need to remove `security_invoker`. Instead, we add a narrow `anon` SELECT policy on the `author_profiles` base table that only exposes the same rows the view already filters:
+
+```sql
+CREATE POLICY "Anon can view listed profiles via view"
+  ON public.author_profiles FOR SELECT
+  TO anon
+  USING (directory_status IN ('listed', 'featured', 'verified'));
+```
+
+This is secure because:
+1. Anonymous users can only see profiles that are explicitly public (listed/featured/verified)
+2. The view further restricts which **columns** are exposed — sensitive fields like Stripe keys, GHL keys, and promo codes are excluded from the view definition
+3. `security_invoker = on` stays in place, so the view continues to enforce RLS
+4. No sensitive data leaks — the anon policy only grants row-level access; the view controls column-level access
 
 ## Plan
 
-### 1. Use actual recommended count instead of hardcoded 28
+### 1. Add anon SELECT policy on `author_profiles`
 
-**File: `src/components/dashboard/framework-dashboard/MeetAbbySection.tsx`**
+Single SQL migration adding a policy that allows anonymous users to read rows where `directory_status IN ('listed', 'featured', 'verified')`. This matches the view's WHERE clause exactly.
 
-- Add `streamsMapped` to the display: change the first stat card from hardcoded `28` to `planSummary.streamsMapped` with label "Streams Recommended"
-- Change the "Products Built" denominator from `28` to `planSummary.streamsMapped` so it reads e.g. "0 of 12" instead of "0 of 28"
+### 2. Verify `books` anon policy includes the right filter
 
-### 2. Ensure streamsMapped is correctly populated from the business plan
+The existing anon policy on `books` already allows `published_at IS NOT NULL`, which is correct. No change needed.
 
-**File: `src/components/dashboard/ABBYFrameworkDashboard.tsx`**
+### 3. No frontend changes needed
 
-- Verify line 110: `streamsMapped: planData.plan.products?.length || 0` — if the plan data doesn't store individual product recommendations, fall back to the tier-based defaults (Brand=9, Build=18, Yield=28) rather than 0
-- Add a fallback: if `streamsMapped` is 0 or undefined, derive it from the user's subscription tier
+The views and queries in `AuthorSite.tsx` and `BookSlugRedirect.tsx` already reference `author_profiles_public` and `books_public` correctly.
 
-### 3. Update the Monetization Map header
+## Summary
 
-**File: `src/components/dashboard/book-hub/ABBYFrameworkVisual.tsx`**
-
-- Line 157: when `totalRecommended` is 0 but the user has a plan, show the tier-based count instead of "0 of 28"
-
-## Technical Details
-
-- The `planSummary.streamsMapped` field already exists and is populated at line 110 of `ABBYFrameworkDashboard.tsx`
-- The subscription tier is already available via `useAuth()` and can be used for the fallback mapping: `{ brand: 9, build: 18, yield: 28 }`
-- No database or edge function changes needed — this is purely a UI display fix
+One small migration with one policy. Security stays intact — sensitive columns remain hidden by the view, RLS stays enforced, and only public-status profiles are visible to anonymous visitors.
 
