@@ -165,19 +165,50 @@ function extractSections(fullContent: string): PlanSection[] {
   return sections;
 }
 
+function markdownToCleanHtml(md: string): string {
+  let text = md;
+  // Headers (must go before inline bold)
+  text = text.replace(/^#### (.+)$/gm, "<h4>$1</h4>");
+  text = text.replace(/^### (.+)$/gm, "<h3>$1</h3>");
+  text = text.replace(/^## (.+)$/gm, "<h2>$1</h2>");
+  text = text.replace(/^# (.+)$/gm, "<h1>$1</h1>");
+  // Bold & italic (non-greedy, multi-line safe)
+  text = text.replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>");
+  text = text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  text = text.replace(/(?<!\w)\*([^*\n]+?)\*(?!\w)/g, "<em>$1</em>");
+  // Blockquotes
+  text = text.replace(/^>\s+(.+)$/gm, '<blockquote>$1</blockquote>');
+  // Horizontal rules
+  text = text.replace(/^---+$/gm, "<hr/>");
+  // Split into lines for list processing
+  const lines = text.split("\n");
+  const result: string[] = [];
+  let inList: "ul" | "ol" | null = null;
+  for (const line of lines) {
+    const trimmed = line.trim();
+    const bulletMatch = trimmed.match(/^[-•]\s+(.+)/);
+    const numMatch = trimmed.match(/^\d+\.\s+(.+)/);
+    if (bulletMatch) {
+      if (inList !== "ul") { if (inList) result.push(`</${inList}>`); result.push("<ul>"); inList = "ul"; }
+      result.push(`<li>${bulletMatch[1]}</li>`);
+    } else if (numMatch) {
+      if (inList !== "ol") { if (inList) result.push(`</${inList}>`); result.push("<ol>"); inList = "ol"; }
+      result.push(`<li>${numMatch[1]}</li>`);
+    } else {
+      if (inList) { result.push(`</${inList}>`); inList = null; }
+      if (!trimmed) { result.push(""); }
+      else if (/^<[hbuo]/.test(trimmed) || /^<hr/.test(trimmed)) { result.push(trimmed); }
+      else { result.push(`<p>${trimmed}</p>`); }
+    }
+  }
+  if (inList) result.push(`</${inList}>`);
+  // Clean empty paragraphs
+  return result.join("\n").replace(/<p>\s*<\/p>/g, "");
+}
+
 function generateExportHtml(plan: string, bookTitle: string): string {
   const cleaned = stripMarkers(plan);
-  let html = cleaned
-    .replace(/^### (.+)$/gm, "<h3>$1</h3>")
-    .replace(/^## (.+)$/gm, "<h2>$1</h2>")
-    .replace(/^# (.+)$/gm, "<h1>$1</h1>")
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\*(.+?)\*/g, "<em>$1</em>")
-    .replace(/^\d+\.\s+(.+)$/gm, "<li>$1</li>")
-    .replace(/^[-•]\s+(.+)$/gm, "<li>$1</li>")
-    .replace(/((?:<li>.*<\/li>\n?)+)/g, "<ul>$1</ul>")
-    .replace(/^(?!<[hulo])((?!<).+)$/gm, "<p>$1</p>")
-    .replace(/\n\n/g, "");
+  const html = markdownToCleanHtml(cleaned);
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>ABBY Business Plan - ${bookTitle}</title>
 <style>
