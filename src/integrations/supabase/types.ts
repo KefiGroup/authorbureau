@@ -51,6 +51,13 @@ export type Database = {
             referencedRelation: "author_profiles_public"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "abby_conversations_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       abby_nudges: {
@@ -100,6 +107,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "author_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "abby_nudges_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -346,6 +360,13 @@ export type Database = {
             referencedRelation: "author_profiles_public"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "author_context_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       author_email_settings: {
@@ -452,6 +473,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "author_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_nodes_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -761,6 +789,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "author_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_revenue_snapshots_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -2062,6 +2097,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "author_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ghl_deployments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -4032,6 +4074,114 @@ export type Database = {
           tagline?: string | null
           updated_at?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      author_profiles_safe: {
+        Row: {
+          account_id: string | null
+          amazon_author_profile_url: string | null
+          author_slug: string | null
+          availability_notes: string | null
+          bio_long: string | null
+          bio_short: string | null
+          cover_photo_url: string | null
+          created_at: string | null
+          credentials: Json | null
+          directory_status: string | null
+          frameworks: Json | null
+          genres: string[] | null
+          has_seen_journey_onboarding: boolean | null
+          id: string | null
+          instagram_url: string | null
+          is_speaker: boolean | null
+          linkedin_url: string | null
+          location_city: string | null
+          location_country: string | null
+          onboarding_completed: boolean | null
+          pen_name: string | null
+          photo_crop_y: string | null
+          photo_url: string | null
+          photo_zoom: number | null
+          site_theme: string | null
+          speaker_fee_range: string | null
+          subscription_tier: string | null
+          tagline: string | null
+          twitter_url: string | null
+          updated_at: string | null
+          user_id: string | null
+          website_url: string | null
+          youtube_url: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          amazon_author_profile_url?: string | null
+          author_slug?: string | null
+          availability_notes?: string | null
+          bio_long?: string | null
+          bio_short?: string | null
+          cover_photo_url?: string | null
+          created_at?: string | null
+          credentials?: Json | null
+          directory_status?: string | null
+          frameworks?: Json | null
+          genres?: string[] | null
+          has_seen_journey_onboarding?: boolean | null
+          id?: string | null
+          instagram_url?: string | null
+          is_speaker?: boolean | null
+          linkedin_url?: string | null
+          location_city?: string | null
+          location_country?: string | null
+          onboarding_completed?: boolean | null
+          pen_name?: string | null
+          photo_crop_y?: string | null
+          photo_url?: string | null
+          photo_zoom?: number | null
+          site_theme?: string | null
+          speaker_fee_range?: string | null
+          subscription_tier?: string | null
+          tagline?: string | null
+          twitter_url?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          website_url?: string | null
+          youtube_url?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          amazon_author_profile_url?: string | null
+          author_slug?: string | null
+          availability_notes?: string | null
+          bio_long?: string | null
+          bio_short?: string | null
+          cover_photo_url?: string | null
+          created_at?: string | null
+          credentials?: Json | null
+          directory_status?: string | null
+          frameworks?: Json | null
+          genres?: string[] | null
+          has_seen_journey_onboarding?: boolean | null
+          id?: string | null
+          instagram_url?: string | null
+          is_speaker?: boolean | null
+          linkedin_url?: string | null
+          location_city?: string | null
+          location_country?: string | null
+          onboarding_completed?: boolean | null
+          pen_name?: string | null
+          photo_crop_y?: string | null
+          photo_url?: string | null
+          photo_zoom?: number | null
+          site_theme?: string | null
+          speaker_fee_range?: string | null
+          subscription_tier?: string | null
+          tagline?: string | null
+          twitter_url?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          website_url?: string | null
+          youtube_url?: string | null
         }
         Relationships: []
       }
