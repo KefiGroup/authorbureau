@@ -230,9 +230,9 @@ ROI CALCULATION FIRST:
 
 "The Build Package gives you everything you need to build, grow, and monetise your author business. Here's how fast it pays for itself:
 
-— Sell 4 Workbooks at $27 = $108. Plan paid for.
-— Sell 2 Home Study Courses at $77 = $154. Plan paid for.
-— Get 1 student into your Online Course at $97 = $97. Almost there.
+- ✅ Sell 4 **Workbooks** at $27 = **$108** → Plan paid for.
+- ✅ Sell 2 **Home Study Courses** at $77 = **$154** → Plan paid for.
+- 🎯 Get 1 student into your **Online Course** at $97 = **$97** → Almost there.
 
 That's 4 sales. As a startup business cost, it's less than a daily coffee habit."
 
