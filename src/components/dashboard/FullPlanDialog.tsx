@@ -34,6 +34,48 @@ function stripMarkers(text: string): string {
     .trim();
 }
 
+/** Clean a label: strip markdown bold markers and trailing punctuation */
+function cleanLabel(label: string): string {
+  return label.replace(/\*+/g, "").replace(/[:#]+$/, "").trim();
+}
+
+/**
+ * Improve content formatting:
+ * - Strip stray ** markers that aren't wrapping text
+ * - Convert comma-separated lists into bullet points where appropriate
+ * - Ensure Sub-Phase items become bullet lists
+ */
+function improveContentFormatting(content: string): string {
+  let improved = content;
+
+  // Fix stray lone ** that aren't part of bold syntax
+  improved = improved.replace(/^\*\*\s*$/gm, "");
+
+  // Convert "Sub-Phase A: item1, item2, item3." patterns into bullet lists
+  improved = improved.replace(
+    /Sub-Phase ([AB]):\s*(.+?)(?=Sub-Phase [AB]:|Estimated Revenue:|$)/gis,
+    (_, phase, items) => {
+      const itemList = items
+        .replace(/\.\s*$/, "")
+        .split(/,\s*/)
+        .map((item: string) => item.trim())
+        .filter((item: string) => item.length > 0);
+      if (itemList.length > 1) {
+        return `**Sub-Phase ${phase}:**\n${itemList.map((item: string) => `- ${item}`).join("\n")}\n\n`;
+      }
+      return `**Sub-Phase ${phase}:** ${items}`;
+    }
+  );
+
+  // Convert "Estimated Revenue: $X/month" into a highlighted line
+  improved = improved.replace(
+    /Estimated Revenue:\s*(.+?)(?:\.|$)/gi,
+    (_, rev) => `\n> **Estimated Revenue:** ${rev.trim()}\n`
+  );
+
+  return improved;
+}
+
 function extractSections(fullContent: string): PlanSection[] {
   const sections: PlanSection[] = [];
 
@@ -53,7 +95,7 @@ function extractSections(fullContent: string): PlanSection[] {
     const partContent = partMatch[3].trim();
     const cfg = partConfigs[partNum] || { key: `part${partNum}`, icon: <FileText className="h-4 w-4" />, accent: "from-secondary to-amber-500" };
     if (partContent) {
-      sections.push({ key: cfg.key, label: partTitle.slice(0, 40), icon: cfg.icon, accent: cfg.accent, content: stripMarkers(partContent) });
+      sections.push({ key: cfg.key, label: cleanLabel(partTitle).slice(0, 40), icon: cfg.icon, accent: cfg.accent, content: improveContentFormatting(stripMarkers(partContent)) });
     }
   }
 
@@ -61,7 +103,7 @@ function extractSections(fullContent: string): PlanSection[] {
     // Also extract revenue summary and total if present
     const revenueMatch = fullContent.match(/(Your total projected revenue[\s\S]*?)(?=Want to see|Click below|$)/i);
     if (revenueMatch?.[1]?.trim()) {
-      sections.push({ key: "revenue", label: "Revenue Projection", icon: <BarChart3 className="h-4 w-4" />, accent: "from-orange-500 to-red-400", content: stripMarkers(revenueMatch[1].trim()) });
+      sections.push({ key: "revenue", label: "Revenue Projection", icon: <BarChart3 className="h-4 w-4" />, accent: "from-orange-500 to-red-400", content: improveContentFormatting(stripMarkers(revenueMatch[1].trim())) });
     }
     return sections;
   }
@@ -85,12 +127,12 @@ function extractSections(fullContent: string): PlanSection[] {
     if (["brand", "build", "yield"].includes(p.key) && sections.some(s => ["brand", "build", "yield"].includes(s.key))) continue;
     const match = fullContent.match(p.regex);
     if (match?.[1]?.trim()) {
-      sections.push({ key: p.key, label: p.label, icon: p.icon, accent: p.accent, content: stripMarkers(match[1].trim()) });
+      sections.push({ key: p.key, label: cleanLabel(p.label), icon: p.icon, accent: p.accent, content: improveContentFormatting(stripMarkers(match[1].trim())) });
     }
   }
 
   if (sections.length === 0 && fullContent.trim()) {
-    sections.push({ key: "full", label: "Full Plan", icon: <FileText className="h-4 w-4" />, accent: "from-secondary to-amber-500", content: stripMarkers(fullContent) });
+    sections.push({ key: "full", label: "Full Plan", icon: <FileText className="h-4 w-4" />, accent: "from-secondary to-amber-500", content: improveContentFormatting(stripMarkers(fullContent)) });
   }
 
   return sections;
