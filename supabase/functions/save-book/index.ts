@@ -125,9 +125,11 @@ serve(async (req) => {
             console.log("[save-book] Generated new local author_id:", userId);
 
             const authorName = body.book?.author_name || body.author_name || body.email?.split("@")[0];
+            const generatedSlug = (authorName || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || null;
             await cloudAdmin.from("author_profiles").upsert({
               user_id: userId,
               pen_name: authorName,
+              author_slug: generatedSlug,
               bio_short: body.book?.author_bio || body.author_bio || null,
               photo_url: body.book?.author_photo_url || body.author_photo_url || null,
               directory_status: "unlisted",
