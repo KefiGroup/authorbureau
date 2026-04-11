@@ -88,12 +88,19 @@ serve(async (req) => {
     const hasActiveSub = subscriptions.data.length > 0;
     let productId = null;
     let subscriptionEnd = null;
+    let tier = "free";
+
+    // Product-to-tier mapping
+    const TIER_MAP: Record<string, string> = {
+      "prod_UB6BxxNnqv6UpV": "brand",
+      "prod_UB6BfcKCAYrgp0": "build",
+      "prod_UB6BVLnks6JWoJ": "yield",
+    };
 
     if (hasActiveSub) {
       const subscription = subscriptions.data[0];
       try {
         const endVal = subscription.current_period_end;
-        // Handle both unix timestamp (number) and ISO string formats
         subscriptionEnd = typeof endVal === "number"
           ? new Date(endVal * 1000).toISOString()
           : typeof endVal === "string"
@@ -101,7 +108,50 @@ serve(async (req) => {
           : null;
       } catch { subscriptionEnd = null; }
       productId = subscription.items.data[0].price.product;
-      logStep("Active subscription found", { subscriptionId: subscription.id, productId, endDate: subscriptionEnd });
+      tier = TIER_MAP[productId as string] || "free";
+      logStep("Active subscription found", { subscriptionId: subscription.id, productId, tier, endDate: subscriptionEnd });
+
+      // Sync tier to author_profiles so DB stays in sync
+      try {
+        const adminClient = createClient(
+          Deno.env.get("SUPABASE_URL") ?? "",
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+          { auth: { persistSession: false } }
+        );
+        const { error: updateErr } = await adminClient
+          .from("author_profiles")
+          .update({ subscription_tier: tier })
+          .eq("user_id", email)  // author_profiles doesn't have user_id by email; find by stripe customer
+          ;
+        // Try matching by the user email via a join approach
+        // Actually, we need to find the author by their account email
+        const { data: profiles } = await adminClient
+          .from("author_profiles")
+          .select("id, subscription_tier")
+          .or(`user_id.eq.${email}`)
+          .limit(1);
+        
+        // Better approach: look up user_id from auth, then update
+        const localClient = createClient(
+          Deno.env.get("SUPABASE_URL") ?? "",
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+          { auth: { persistSession: false } }
+        );
+        const { data: authUser } = await localClient.auth.getUser(token);
+        if (authUser?.user?.id) {
+          const { error: syncErr } = await localClient
+            .from("author_profiles")
+            .update({ subscription_tier: tier })
+            .eq("user_id", authUser.user.id);
+          if (syncErr) {
+            logStep("Failed to sync tier to DB", { error: syncErr.message });
+          } else {
+            logStep("Synced tier to author_profiles", { tier });
+          }
+        }
+      } catch (syncError) {
+        logStep("Tier sync error (non-fatal)", { error: String(syncError) });
+      }
     } else {
       logStep("No active subscription found");
     }
