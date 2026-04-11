@@ -629,8 +629,11 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
             {syncing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
             {syncing ? "Syncing..." : "Sync"}
           </Button>
+          <Button variant="outline" size="sm" onClick={() => setEditMode(true)}>
+            <Pencil className="h-4 w-4 mr-1" /> Edit Profile
+          </Button>
           <Button size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90" onClick={handleEditOnPublishNow}>
-              <Pencil className="h-4 w-4 mr-1" /> Edit on PublishNow
+            <ExternalLink className="h-4 w-4 mr-1" /> Edit on PublishNow
           </Button>
         </div>
       </div>
