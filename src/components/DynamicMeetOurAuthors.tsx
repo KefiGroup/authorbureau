@@ -70,7 +70,7 @@ export default function DynamicMeetOurAuthors() {
       try {
         // Fetch author profiles from Cloud DB (already synced)
         const { data: authorsData, error: authError } = await cloudSupabase
-          .from("author_profiles")
+          .from("author_profiles_public" as any)
           .select("user_id, pen_name, bio_short, genres, photo_url, author_slug, directory_status, photo_crop_y, photo_zoom")
           .in("directory_status", ["listed", "verified", "featured"]);
 

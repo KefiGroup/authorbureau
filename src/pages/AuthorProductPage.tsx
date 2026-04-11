@@ -236,7 +236,7 @@ export default function AuthorProductPage() {
       if (data) isOwner = true;
     }
     if (!profile) {
-      const { data } = await supabase.from("author_profiles").select("*").eq("author_slug", authorSlug).in("directory_status", ["listed", "verified", "featured"]).maybeSingle();
+      const { data } = await supabase.from("author_profiles_public" as any).select("*").eq("author_slug", authorSlug).in("directory_status", ["listed", "verified", "featured"]).maybeSingle();
       profile = data;
     }
     if (!profile) { setNotFound(true); setLoading(false); return; }
