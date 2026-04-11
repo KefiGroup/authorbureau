@@ -41,9 +41,10 @@ function cleanLabel(label: string): string {
 
 /**
  * Improve content formatting:
- * - Strip stray ** markers that aren't wrapping text
- * - Convert comma-separated lists into bullet points where appropriate
- * - Ensure Sub-Phase items become bullet lists
+ * - Strip stray ** markers
+ * - Convert comma-separated product listings into bullet points
+ * - Highlight revenue estimates
+ * - Convert "Total projected revenue" into a callout
  */
 function improveContentFormatting(content: string): string {
   let improved = content;
@@ -51,29 +52,54 @@ function improveContentFormatting(content: string): string {
   // Fix stray lone ** that aren't part of bold syntax
   improved = improved.replace(/^\*\*\s*$/gm, "");
 
-  // Convert "Sub-Phase A: item1, item2, item3." patterns into bullet lists
-  improved = improved.replace(
-    /Sub-Phase ([AB]):\s*(.+?)(?=Sub-Phase [AB]:|Estimated Revenue:|$)/gis,
-    (_, phase, items) => {
-      const itemList = items
-        .replace(/\.\s*$/, "")
-        .split(/,\s*/)
-        .map((item: string) => item.trim())
-        .filter((item: string) => item.length > 0);
-      if (itemList.length > 1) {
-        return `**Sub-Phase ${phase}:**\n${itemList.map((item: string) => `- ${item}`).join("\n")}\n\n`;
-      }
-      return `**Sub-Phase ${phase}:** ${items}`;
+  // Split into lines and process
+  const lines = improved.split("\n");
+  const result: string[] = [];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    // Skip empty lines
+    if (!trimmed) { result.push(""); continue; }
+
+    // Handle "Sub-Phase X:" lines — convert items to bullets
+    const subPhaseMatch = trimmed.match(/^Sub-Phase\s+([AB]):\s*(.+)/i);
+    if (subPhaseMatch) {
+      const [, phase, items] = subPhaseMatch;
+      const itemList = items.replace(/\.\s*$/, "").split(/,\s+/).map(s => s.trim()).filter(Boolean);
+      result.push(`**Sub-Phase ${phase}:**`);
+      itemList.forEach(item => result.push(`- ${item}`));
+      result.push("");
+      continue;
     }
-  );
 
-  // Convert "Estimated Revenue: $X/month" into a highlighted line
-  improved = improved.replace(
-    /Estimated Revenue:\s*(.+?)(?:\.|$)/gi,
-    (_, rev) => `\n> **Estimated Revenue:** ${rev.trim()}\n`
-  );
+    // Handle "Estimated Revenue:" lines — make them blockquotes
+    if (/^Estimated Revenue:/i.test(trimmed)) {
+      result.push(`> **${trimmed.replace(/\.\s*$/, "")}**`);
+      result.push("");
+      continue;
+    }
 
-  return improved;
+    // Handle "Total projected revenue:" lines — make them callouts
+    if (/^Total projected revenue:/i.test(trimmed)) {
+      result.push(`> 📊 **${trimmed.replace(/\.\s*$/, "")}**`);
+      result.push("");
+      continue;
+    }
+
+    // Lines with multiple products separated by commas (containing $ or parentheses) — convert to bullets
+    const hasProducts = /\$[\d,]+/.test(trimmed) || /\(.*?\$.*?\)/.test(trimmed);
+    const commaSegments = trimmed.replace(/\.\s*$/, "").split(/,\s+(?=[A-Z])/);
+    if (hasProducts && commaSegments.length >= 2 && !trimmed.startsWith(">") && !trimmed.startsWith("-") && !trimmed.startsWith("*")) {
+      commaSegments.forEach(seg => result.push(`- ${seg.trim()}`));
+      result.push("");
+      continue;
+    }
+
+    result.push(line);
+  }
+
+  return result.join("\n");
 }
 
 function extractSections(fullContent: string): PlanSection[] {
