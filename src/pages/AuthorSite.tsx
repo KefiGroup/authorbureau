@@ -141,10 +141,10 @@ export default function AuthorSite() {
       const { data: related } = await supabase.from("author_profiles_public" as any)
         .select("author_slug, pen_name, photo_url, genres")
         .in("directory_status", ["listed", "verified", "featured"])
-        .neq("user_id", profile.user_id).limit(20);
+        .neq("user_id", profile.user_id).limit(20) as { data: any[] | null };
 
       if (related) {
-        const matches = related
+        const matches = (related as any[])
           .filter((r: Record<string, unknown>) => {
             const rGenres = (r.genres || []) as string[];
             return rGenres.some((g: string) => authorGenres.includes(g));

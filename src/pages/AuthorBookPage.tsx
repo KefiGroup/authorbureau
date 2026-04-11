@@ -227,7 +227,7 @@ export default function AuthorBookPage() {
           .from("author_profiles_public" as any)
           .select("author_slug")
           .eq("user_id", bookBySlug.author_id)
-          .maybeSingle();
+          .maybeSingle() as { data: any };
         if (correctProfile?.author_slug && correctProfile.author_slug !== authorSlug) {
           navigate(`/${correctProfile.author_slug}/${bookBySlug.slug}`, { replace: true });
           return;
