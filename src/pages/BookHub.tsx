@@ -102,6 +102,12 @@ export default function BookHub() {
     fetchBook();
   }, [fetchBook]);
 
+  useEffect(() => {
+    if (!user) return;
+    cloudSupabase.from("author_profiles").select("author_slug").eq("user_id", user.id).maybeSingle()
+      .then(({ data }) => { if (data?.author_slug) setAuthorSlug(data.author_slug); });
+  }, [user]);
+
   if (!authLoading && !user) {
     navigate("/auth", { replace: true });
     return null;
