@@ -41,15 +41,15 @@ export default function MeetAbbySection({ hasPlan, planSummary, hasBook, bookApp
           </h2>
           <div className="grid grid-cols-3 gap-3 max-w-lg">
             <div className="rounded-xl bg-muted/50 border border-border p-3 text-center">
-              <p className="text-2xl font-bold text-foreground">28</p>
-              <p className="text-[10px] text-muted-foreground font-medium">Revenue Streams Available</p>
+              <p className="text-2xl font-bold text-foreground">{planSummary.streamsMapped}</p>
+              <p className="text-[10px] text-muted-foreground font-medium">Streams Recommended</p>
             </div>
             <div className="rounded-xl bg-muted/50 border border-border p-3 text-center">
               <p className="text-2xl font-bold text-green-600">{planSummary.projectedRevenue}</p>
               <p className="text-[10px] text-muted-foreground font-medium">Projected/yr</p>
             </div>
             <div className="rounded-xl bg-muted/50 border border-border p-3 text-center">
-              <p className="text-2xl font-bold text-foreground">{planSummary.productsBuilt} of 28</p>
+              <p className="text-2xl font-bold text-foreground">{planSummary.productsBuilt} of {planSummary.streamsMapped}</p>
               <p className="text-[10px] text-muted-foreground font-medium">Products Built</p>
             </div>
           </div>
