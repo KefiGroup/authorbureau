@@ -106,7 +106,7 @@ function extractSections(fullContent: string): PlanSection[] {
   const sections: PlanSection[] = [];
 
   // --- Strategy 1: New v2.5 "PART N:" format (from chat) ---
-  const partRegex = /PART\s*(\d+)\s*:\s*[🎯📦🏗📈💰🔓✨🎉]*\s*(.+?)(?:\n|$)([\s\S]*?)(?=PART\s*\d+\s*:|$)/gi;
+  const partRegex = /#{0,3}\s*PART\s*(\d+)\s*:\s*[🎯📦🏗📈💰🔓✨🎉]*\s*(.+?)(?:\n|$)([\s\S]*?)(?=#{0,3}\s*PART\s*\d+\s*:|#{1,3}\s*Revenue Summary|$)/gi;
   const partConfigs: Record<number, { key: string; icon: React.ReactNode; accent: string }> = {
     1: { key: "analyse", icon: <Sparkles className="h-4 w-4" />, accent: "from-amber-500 to-yellow-400" },
     2: { key: "brand", icon: <Package className="h-4 w-4" />, accent: "from-emerald-500 to-green-400" },
