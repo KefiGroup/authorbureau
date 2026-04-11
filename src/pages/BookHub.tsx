@@ -63,6 +63,7 @@ export default function BookHub() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<BookHubTab>(initialTab);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [authorSlug, setAuthorSlug] = useState<string | null>(null);
 
   const effectiveTier: SubscriptionTier = isAdmin ? "yield" : tier;
 
@@ -100,6 +101,12 @@ export default function BookHub() {
   useEffect(() => {
     fetchBook();
   }, [fetchBook]);
+
+  useEffect(() => {
+    if (!user) return;
+    cloudSupabase.from("author_profiles").select("author_slug").eq("user_id", user.id).maybeSingle()
+      .then(({ data }) => { if (data?.author_slug) setAuthorSlug(data.author_slug); });
+  }, [user]);
 
   if (!authLoading && !user) {
     navigate("/auth", { replace: true });
@@ -183,7 +190,7 @@ export default function BookHub() {
             </div>
           ) : (
             <div className="transition-opacity duration-300 animate-in fade-in">
-              <BookHubContextBar book={book} tier={effectiveTier} onBack={() => navigate("/dashboard?section=my-books")} />
+              <BookHubContextBar book={book} tier={effectiveTier} authorSlug={authorSlug} onBack={() => navigate("/dashboard?section=my-books")} />
 
               {/* Tab Navigation */}
               <div className="flex items-center gap-1 border-b border-border overflow-x-auto mt-6">
