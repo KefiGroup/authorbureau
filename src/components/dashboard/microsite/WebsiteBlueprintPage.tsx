@@ -59,7 +59,7 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
     setIframeKey((k) => k + 1);
   }, []);
 
-  const authorSlug = profileData?.author_slug || (profileData?.pen_name ? profileData.pen_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") : "your-slug");
+  const authorSlug = profileData?.author_slug || "";
   const siteUrl = `https://authorsbureau.com/${authorSlug}`;
 
   useEffect(() => {
