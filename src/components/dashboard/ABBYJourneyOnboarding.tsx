@@ -181,6 +181,7 @@ export default function ABBYJourneyOnboarding({ userId, onComplete }: Props) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
+      data-journey-onboarding
       className="fixed inset-0 z-[10000] bg-[#1A1F36]/60 backdrop-blur-sm flex items-center justify-center p-4"
     >
       <motion.div
