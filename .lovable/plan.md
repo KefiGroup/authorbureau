@@ -1,34 +1,42 @@
 
 
-## Fix: "Author Profile" Dead Link in Website Blueprint
+## Fix: Add In-Dashboard Editing to Author Profile
 
 ### Problem
-Line 229 of `WebsiteBlueprintPage.tsx` has a hardcoded `<a href="/dashboard/profile">` link. Since `/dashboard/profile` is not a defined route, it falls through to the catch-all `/:authorSlug` route, which interprets "dashboard" as an author slug and shows an error page.
+When a user clicks "Author Profile" in the sidebar, the `ProfileEditor` component renders in **view mode**. The only edit action available is "Edit on PublishNow" which opens an external site via SSO. There is no button to edit the profile directly within the dashboard, even though the full edit form already exists in the code (behind `editMode` state).
 
-### Scope of Change
-**One line in one file.** No other links are affected.
+### Solution
+Add an "Edit Profile" button alongside the existing "Edit on PublishNow" button in the ProfileEditor's view mode header. This gives users two clear options:
+1. **Edit Profile** — opens the inline editor (already built, just unreachable)
+2. **Edit on PublishNow** — keeps the existing SSO redirect for users who prefer that flow
 
-- The hardcoded `<a href="/dashboard/profile">` is the **only** instance of this bad path (confirmed by search).
-- All other "profile" navigation in the dashboard already uses the correct `onNavigate("profile")` callback pattern (confirmed in `ABBYFrameworkDashboard.tsx`, `BusinessFramework.tsx`, etc.).
-- No routes, components, or other navigation logic will be touched.
+### Changes
 
-### Fix
-In `src/components/dashboard/microsite/WebsiteBlueprintPage.tsx`, line 229:
+**File: `src/components/dashboard/ProfileEditor.tsx`**
 
-**Before:**
-```html
-<a href="/dashboard/profile" className="font-bold text-secondary ...">Author Profile</a>
+In the view mode header (around line 627-635), add an "Edit Profile" button that sets `editMode(true)`:
+
+```
+Before:
+  <Button size="sm" ... onClick={handleEditOnPublishNow}>
+    <Pencil .../> Edit on PublishNow
+  </Button>
+
+After:
+  <Button variant="outline" size="sm" onClick={() => setEditMode(true)}>
+    <Pencil .../> Edit Profile
+  </Button>
+  <Button size="sm" ... onClick={handleEditOnPublishNow}>
+    <ExternalLink .../> Edit on PublishNow
+  </Button>
 ```
 
-**After:**
-```html
-<button onClick={() => onNavigate?.("profile")} className="font-bold text-secondary ...">Author Profile</button>
-```
+This is a single-file, ~3-line change. The edit form, save logic, and cancel button already exist and work correctly.
 
-This uses the same `onNavigate` prop already passed into the component and used everywhere else in the dashboard. The visual appearance stays identical — only the underlying element changes from an anchor to a button to avoid page navigation.
-
-### Why This Won't Affect Other Links
-- No routes are added, removed, or reordered in `App.tsx`.
-- No other file references `/dashboard/profile`.
-- The `onNavigate("profile")` pattern is already the standard used across 10+ places in the dashboard.
+### What Won't Change
+- No routing changes
+- No database changes
+- The PublishNow SSO flow remains intact
+- The "Sync" button stays as-is
+- The new-profile setup flow (Route 1 / Route 2 cards) is untouched
 
