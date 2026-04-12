@@ -31,6 +31,14 @@ export interface CrossBuilderOutputMap {
  * Source: ABBY 27-Node Ecosystem document §1.3
  */
 export const CROSS_BUILDER_REGISTRY: CrossBuilderOutputMap = {
+  // ─── LEAD MAGNETS (BP-02) ─────────────────────────────────────────
+  "lead-magnet": [
+    { destinationBuilder: "social-media", pushType: "quiz-promo-posts", label: "Quiz Promotion Posts", description: "Posts promoting the quiz/lead magnet with teaser questions and CTA to take the quiz" },
+    { destinationBuilder: "social-media", pushType: "quiz-insight-posts", label: "Quiz Insight Posts", description: "Standalone posts sharing insights from quiz content to drive engagement" },
+    { destinationBuilder: "email-marketing", pushType: "lead-nurture", label: "Lead Nurture Sequence", description: "Post-quiz email nurture sequence based on quiz results", destinationTable: "email_flows" },
+    { destinationBuilder: "website", pushType: "quiz-page", label: "Quiz Landing Page", description: "Embeddable quiz page on author microsite" },
+  ],
+
   // ─── BUILDER 1: ONLINE COURSES (Self-Paced) ────────────────────────
   "online-course": [
     { destinationBuilder: "email-marketing", pushType: "nurture-sequence", label: "7-Email Nurture Sequence", description: "Full sequence with subject lines, body, timing — appears as a ready-to-activate campaign", destinationTable: "email_flows" },
