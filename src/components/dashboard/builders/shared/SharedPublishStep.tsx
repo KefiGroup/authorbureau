@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Monitor, Smartphone, Download, Rocket, TrendingUp, Sparkles } from "lucide-react";
+import { Check, Monitor, Smartphone, Download, Rocket, TrendingUp, Sparkles, ArrowRight, Settings, BarChart3 } from "lucide-react";
 
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,6 +46,7 @@ export default function SharedPublishStep({
   const { toast } = useToast();
   const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop");
   const [publishing, setPublishing] = useState(false);
+  const [publishResult, setPublishResult] = useState<PublishResult | null>(null);
 
   const checks = checklist.map(c => ({ label: c.label, done: c.check(stepData) }));
   const allReady = checks.every(c => c.done);
@@ -54,14 +55,20 @@ export default function SharedPublishStep({
   const handlePublish = async () => {
     setPublishing(true);
     try {
+      let result: PublishResult | void;
       if (publishFn) {
-        await publishFn(stepData, userId);
+        result = await publishFn(stepData, userId);
       }
       onMarkEdited(stepId);
-      setStepData(prev => ({ ...prev, published: true, publishedAt: new Date().toISOString() }));
-      toast({ title: `${builderLabel} published!`, description: "Redirecting to Review & Publish…" });
-      // Redirect to review-products after a short delay
-      setTimeout(() => onNavigate?.("review-products"), 800);
+      const status = result?.status || "live";
+      setStepData(prev => ({ ...prev, published: true, publishedAt: new Date().toISOString(), publishStatus: status }));
+      setPublishResult(result || { status });
+
+      if (status === "published_pending_ghl") {
+        toast({ title: `${builderLabel} saved! ✅`, description: "Connect GoHighLevel in Settings to activate your live opt-in page." });
+      } else {
+        toast({ title: `${builderLabel} is live! 🎉`, description: "Head to the Marketing Hub to distribute it across social media." });
+      }
     } catch (err) {
       console.error(err);
       toast({ title: "Publish failed", variant: "destructive" });
