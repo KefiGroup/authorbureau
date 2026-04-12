@@ -72,7 +72,31 @@ serve(async (req) => {
       };
 
       try {
-        // Create funnel
+        // ── Step 1: Create Custom Fields for lead capture data ──
+        const customFields = [
+          { name: "lead_magnet_source", dataType: "TEXT" },
+          { name: "quiz_score", dataType: "NUMERICAL" },
+          { name: "result_tier", dataType: "TEXT" },
+        ];
+
+        for (const field of customFields) {
+          try {
+            await fetch(`https://services.leadconnectorhq.com/locations/${subAccountId}/customFields`, {
+              method: "POST",
+              headers: ghlHeaders,
+              body: JSON.stringify({
+                name: field.name,
+                dataType: field.dataType,
+                position: 0,
+              }),
+            });
+            await new Promise(r => setTimeout(r, 200));
+          } catch (e) {
+            console.error(`GHL custom field '${field.name}' creation failed:`, e.message);
+          }
+        }
+
+        // ── Step 2: Create funnel ──
         const funnelResp = await fetch("https://services.leadconnectorhq.com/funnels/funnel", {
           method: "POST",
           headers: ghlHeaders,
@@ -122,6 +146,38 @@ serve(async (req) => {
           const errText = await funnelResp.text();
           console.error("GHL funnel creation failed:", funnelResp.status, errText);
         }
+
+        // ── Step 3: Create workflow for lead capture automation ──
+        await new Promise(r => setTimeout(r, 300));
+        try {
+          const leadMagnetTitle = contentJson.lead_magnets?.[0]?.title || contentJson.funnel_name || "Lead Magnet";
+          await fetch(`https://services.leadconnectorhq.com/workflows/`, {
+            method: "POST",
+            headers: ghlHeaders,
+            body: JSON.stringify({
+              locationId: subAccountId,
+              name: `${leadMagnetTitle} - Lead Capture Workflow`,
+            }),
+          });
+        } catch (e) {
+          console.error("GHL workflow creation failed (non-blocking):", e.message);
+        }
+
+        // ── Step 4: Create tag for lead magnet leads ──
+        await new Promise(r => setTimeout(r, 200));
+        try {
+          const tagName = contentJson.funnel_name
+            ? `Lead: ${contentJson.funnel_name}`
+            : "Lead: Lead Magnet";
+          await fetch(`https://services.leadconnectorhq.com/locations/${subAccountId}/tags`, {
+            method: "POST",
+            headers: ghlHeaders,
+            body: JSON.stringify({ name: tagName }),
+          });
+        } catch (e) {
+          console.error("GHL tag creation failed (non-blocking):", e.message);
+        }
+
       } catch (e) {
         console.error("GHL deployment error (non-blocking):", e.message);
       }

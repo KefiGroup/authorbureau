@@ -42,9 +42,18 @@ serve(async (req) => {
     const keyFrameworks = context?.key_frameworks ? JSON.stringify(context.key_frameworks) : "N/A";
     const audiencePersona = context?.target_audience_persona ? JSON.stringify(context.target_audience_persona) : "readers interested in personal growth";
     const uniqueInsights = context?.unique_insights ? JSON.stringify(context.unique_insights) : "N/A";
+    const commercialAngles = context?.commercial_angles ? JSON.stringify(context.commercial_angles) : "N/A";
     const authorName = author.pen_name || "Author";
 
-    const systemPrompt = `You are ABBY, the AI business agent for Authors Bureau. You help authors turn their books into complete business empires. You are warm, expert, and encouraging. You always personalise everything to the author's specific book, audience, and niche. Never be generic. Always respond with valid JSON only — no markdown, no code fences.`;
+    const systemPrompt = `You are ABBY, the AI business agent for Authors Bureau. You help authors turn their books into complete business empires. You are warm, expert, and encouraging. You always personalise everything to the author's specific book, audience, and niche. Never be generic. Always respond with valid JSON only — no markdown, no code fences.
+
+CRITICAL GENERATION CONSTRAINTS:
+- All lead magnets must be designed as SIMPLE 2-3 MINUTE actions focused on ASSESSMENT and SELF-DIAGNOSIS only.
+- Quizzes: tick-what's-true items only. Self-scoring. Results are gated behind a contact form.
+- Do NOT include "Next-step plans", action items, or exercises.
+- Content must acknowledge that the reader is STUCK and provide exactly 3 specific product recommendations (Workbook, Home Study, Online Course) per scoring tier.
+- FORBIDDEN PHRASES: "Next step", "pick 1", "action step", "your task", "try this", "exercise", "I will ___ for".
+- All lead magnets must collect: First Name, Email, and Phone Number before delivering value.`;
 
     const userPrompt = `Create a complete lead magnet system for ${authorName}'s book '${bookTitle}'.
 
@@ -55,21 +64,62 @@ Book details:
 - Target audience: ${audiencePersona}
 - Key frameworks: ${keyFrameworks}
 - Unique insights: ${uniqueInsights}
+- Commercial angles: ${commercialAngles}
 
 Generate the following as a JSON object with these exact keys:
+
 {
   "lead_magnets": [
     {
       "number": 1,
-      "type": "Type of lead magnet (e.g., PDF Guide, Checklist, Mini-Course, Toolkit, Cheat Sheet, Quiz)",
+      "type": "Type of lead magnet (e.g., PDF Guide, Checklist, Mini-Course, Toolkit, Cheat Sheet, Quiz/Assessment)",
       "title": "Compelling title for this lead magnet",
       "description": "One sentence describing what readers get and the transformation it delivers",
       "why_it_works": "One sentence explaining why this specific lead magnet will attract this author's audience",
-      "pages_or_length": "Estimated length (e.g., 12-page PDF, 5-day email course, 1-page checklist)"
+      "pages_or_length": "Estimated length (e.g., 12-page PDF, 5-day email course, 1-page checklist, 10-question quiz)",
+      "best_channel": "The single best marketing channel to promote this lead magnet (e.g., Instagram Reels, LinkedIn Posts, Email Newsletter, Facebook Groups, Pinterest, YouTube Shorts, TikTok, Blog/SEO, Twitter/X Threads)",
+      "channel_reason": "One sentence explaining why this channel is ideal for this specific lead magnet and this author's audience demographics",
+      "contact_gate": {
+        "fields": ["first_name", "email", "phone"],
+        "gate_moment": "Where the gate appears (e.g., 'before_download' for PDFs, 'after_completion' for quizzes)",
+        "gate_headline": "Compelling headline for the contact form (e.g., 'Get Your Personalized Report')",
+        "gate_subheadline": "Supporting text explaining why they should enter their details"
+      }
     }
   ],
   "recommended_lead_magnet": 1,
-  "recommended_reason": "One sentence explaining why lead magnet #1 is the strongest choice for this author",
+  "recommended_reason": "One sentence explaining why this lead magnet is the strongest choice for this author",
+
+  "quiz_structure": {
+    "quiz_title": "Title of the interactive self-assessment quiz",
+    "quiz_description": "One sentence describing the quiz purpose",
+    "questions": [
+      {
+        "number": 1,
+        "text": "The question text (tick-what's-true, self-diagnosis style)",
+        "options": [
+          { "label": "Option A text", "points": 1 },
+          { "label": "Option B text", "points": 2 },
+          { "label": "Option C text", "points": 3 },
+          { "label": "Option D text", "points": 4 }
+        ]
+      }
+    ],
+    "scoring_tiers": [
+      {
+        "min": 0,
+        "max": 10,
+        "label": "Tier label (e.g., Beginner, Emerging, Advanced)",
+        "description": "2-3 sentences describing what this score means for the reader. Acknowledge they are STUCK.",
+        "product_recommendations": [
+          { "type": "Workbook", "title": "Specific workbook recommendation", "reason": "Why this helps" },
+          { "type": "Home Study", "title": "Specific home study recommendation", "reason": "Why this helps" },
+          { "type": "Online Course", "title": "Specific course recommendation", "reason": "Why this helps" }
+        ]
+      }
+    ]
+  },
+
   "optin_page": {
     "headline": "Main headline for the opt-in page (compelling, benefit-driven)",
     "subheadline": "Supporting subheadline (clarifies the offer)",
@@ -77,17 +127,74 @@ Generate the following as a JSON object with these exact keys:
     "cta_button_text": "Button text (e.g., Send Me the Free Guide)",
     "privacy_note": "Short privacy reassurance (e.g., No spam. Unsubscribe anytime.)"
   },
+
   "thankyou_page": {
     "headline": "Thank you page headline",
     "message": "Short message (2-3 sentences) thanking them and telling them what to expect",
     "next_step": "What to do next (e.g., Check your inbox for your free guide)"
   },
+
+  "marketing_strategy": {
+    "primary_platform": "The single best overall marketing platform for this author's audience (e.g., Instagram, LinkedIn, Email, Facebook, TikTok, Pinterest, Blog/SEO)",
+    "primary_reason": "Why this platform suits this author's niche and audience demographics",
+    "secondary_platform": "A complementary platform that adds reach",
+    "secondary_reason": "Why this adds reach to a different segment",
+    "promotion_tips": [
+      "Specific actionable tip 1 for promoting these lead magnets",
+      "Specific actionable tip 2",
+      "Specific actionable tip 3"
+    ]
+  },
+
+  "social_media_posts": [
+    {
+      "platform": "instagram",
+      "caption": "Ready-to-post caption promoting the quiz/lead magnet with a teaser question",
+      "hashtags": ["relevant", "hashtags"],
+      "cta": "Take the free quiz → link"
+    },
+    {
+      "platform": "linkedin",
+      "caption": "Professional post promoting the lead magnet",
+      "hashtags": ["relevant", "hashtags"],
+      "cta": "Get your free guide → link"
+    },
+    {
+      "platform": "facebook",
+      "caption": "Engaging post for Facebook audience",
+      "hashtags": ["relevant", "hashtags"],
+      "cta": "Download free → link"
+    },
+    {
+      "platform": "x",
+      "caption": "Short, punchy tweet/thread promoting the lead magnet",
+      "hashtags": ["relevant", "hashtags"],
+      "cta": "Grab it free → link"
+    }
+  ],
+
+  "quiz_insights_for_social": [
+    "Interesting stat or insight derived from quiz content suitable for a standalone social post",
+    "Second insight that could spark engagement and shares",
+    "Third insight that positions the author as an expert"
+  ],
+
   "funnel_name": "Name for this lead magnet funnel (e.g., ${authorName} Free Guide Funnel)",
   "abby_summary": "A 2-3 sentence summary from ABBY explaining what she created and why these lead magnets will grow this author's list"
 }
 
-The lead_magnets array must have exactly 3 items, each a different type.
-Make everything specific to this author's book and audience. Never use generic placeholder text.`;
+IMPORTANT RULES:
+1. The lead_magnets array must have exactly 3 items, each a different type. At least one MUST be a Quiz/Assessment type.
+2. The quiz_structure must have exactly 8-10 questions. Each question has exactly 4 options with ascending point values (1-4).
+3. The scoring_tiers must have exactly 3 tiers covering the full point range. Each tier has exactly 3 product recommendations.
+4. For each lead magnet, recommend the BEST marketing channel based on the author's target audience demographics, the lead magnet format, and where that audience is most active.
+5. The social_media_posts array must have exactly 4 posts (instagram, linkedin, facebook, x).
+6. The quiz_insights_for_social array must have exactly 3 insights.
+7. All lead magnets must include a contact_gate collecting first_name, email, and phone.
+8. For quizzes: the contact gate appears AFTER completion, BEFORE showing results. The reader completes the quiz, sees "Enter your details to get your personalized report."
+9. For PDFs/checklists: the contact gate appears BEFORE the download.
+10. Make everything specific to this author's book and audience. Never use generic placeholder text.
+11. Quiz must be self-scoring — no manual addition needed. Points auto-tally.`;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -105,7 +212,7 @@ Make everything specific to this author's book and audience. Never use generic p
           { role: "user", content: userPrompt },
         ],
         temperature: 0.7,
-        max_tokens: 4000,
+        max_tokens: 6000,
       }),
     });
 
