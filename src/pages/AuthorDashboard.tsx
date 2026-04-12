@@ -104,6 +104,14 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
     sectionParam || initialSection || (location.pathname === "/my-books" ? "my-books" : "overview")
   );
 
+  // Keep dashboard state in sync when URL params change (e.g. internal links)
+  useEffect(() => {
+    const urlSection = searchParams.get("section") as DashboardSection | null;
+    if (urlSection && urlSection !== activeSection) {
+      setActiveSectionState(urlSection);
+    }
+  }, [searchParams]);
+
   // Sync section to URL so refresh preserves the active section
   const setActiveSection = (section: DashboardSection) => {
     // Intercept standalone page navigations
@@ -132,16 +140,17 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       return;
     }
     setActiveSectionState(section);
+    const next = new URLSearchParams(searchParams);
     if (section === "overview") {
-      searchParams.delete("section");
+      next.delete("section");
     } else {
-      searchParams.set("section", section);
+      next.set("section", section);
     }
     // Clear builder param when navigating to a non-builder section
     if (section !== "builder") {
-      searchParams.delete("builder");
+      next.delete("builder");
     }
-    setSearchParams(searchParams, { replace: true });
+    setSearchParams(next, { replace: true });
   };
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 

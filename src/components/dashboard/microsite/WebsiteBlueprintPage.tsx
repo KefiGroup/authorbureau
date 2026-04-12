@@ -403,7 +403,7 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
               <div className="relative w-full" style={{ height: "320px", overflow: "hidden" }}>
                 <iframe
                   key={iframeKey}
-                  src={`/${profileData.author_slug}`}
+                  src={`/${profileData.author_slug}?_v=${iframeKey}`}
                   className="absolute top-0 left-0 border-0 pointer-events-none"
                   style={{
                     width: "1200px",

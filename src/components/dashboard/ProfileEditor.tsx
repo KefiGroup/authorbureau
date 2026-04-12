@@ -175,12 +175,13 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
 
   // Auto-enter edit mode when navigated with ?mode=edit
   useEffect(() => {
-    if (searchParams.get("mode") === "edit" && profileExists && !loading) {
+    if (searchParams.get("mode") === "edit" && !loading) {
       setEditMode(true);
-      searchParams.delete("mode");
-      setSearchParams(searchParams, { replace: true });
+      const next = new URLSearchParams(searchParams);
+      next.delete("mode");
+      setSearchParams(next, { replace: true });
     }
-  }, [searchParams, profileExists, loading]);
+  }, [searchParams, loading]);
 
   const getAuthToken = async (): Promise<string | null> => {
     const { data: sharedSession } = await sharedSupabase.auth.getSession();
