@@ -220,6 +220,39 @@ ${fullText}`;
         setStepData(prev => ({ ...prev, [contentKey]: stripMarkdown(fullText) }));
         onMarkEdited(stepId);
         setConversation([]);
+
+        // Cross-builder push for lead-magnet content
+        if (builderId === "lead-magnet" || contentKey === "leadMagnetContent") {
+          try {
+            let parsedJson: any = null;
+            try { parsedJson = JSON.parse(fullText); } catch { /* not JSON, skip push */ }
+            if (parsedJson && parsedJson.social_media_posts) {
+              const outputs: Record<string, { title: string; description?: string; content: Record<string, any> }> = {};
+              if (parsedJson.social_media_posts) {
+                outputs["quiz-promo-posts"] = {
+                  title: "Quiz Promotion Posts",
+                  description: "Social media posts promoting the lead magnet quiz",
+                  content: { posts: parsedJson.social_media_posts },
+                };
+              }
+              if (parsedJson.quiz_insights_for_social) {
+                outputs["quiz-insight-posts"] = {
+                  title: "Quiz Insight Posts",
+                  description: "Standalone insight posts from quiz content",
+                  content: { insights: parsedJson.quiz_insights_for_social },
+                };
+              }
+              await executeCrossBuilderPushes({
+                sourceBuilder: "lead-magnet",
+                authorId: bookId, // author context from bookId
+                bookId,
+                outputs,
+              });
+            }
+          } catch (pushErr) {
+            console.error("Cross-builder push failed (non-blocking):", pushErr);
+          }
+        }
       }
       toast({ title: `${title} generated!` });
     } catch (err) {
