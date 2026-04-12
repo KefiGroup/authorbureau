@@ -499,7 +499,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
   const isBuilderActive = !!searchParams.get("builder") || BUILDER_SECTIONS.has(activeSection);
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex h-screen overflow-hidden bg-background">
       {/* Mobile sidebar overlay */}
       {!sidebarCollapsed && (
         <div className="fixed inset-0 z-40 bg-foreground/30 lg:hidden" onClick={() => setSidebarCollapsed(true)} />
@@ -507,6 +507,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       <div className={`
         fixed inset-y-0 left-0 z-50 lg:static lg:z-auto
         transition-transform duration-200 lg:translate-x-0
+        lg:h-screen lg:overflow-hidden
         ${sidebarCollapsed ? "-translate-x-full" : "translate-x-0"}
       `}>
         <DashboardSidebar
@@ -542,7 +543,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           yieldCategoryOpen={!isCategoryFullyClosed("authority-builders")}
         />
       </div>
-      <div className="flex flex-1 flex-col min-w-0 min-h-0">
+      <div className="flex flex-1 flex-col min-w-0 h-screen overflow-hidden">
         <DashboardHeader
           user={user}
           isPremium={isPremium}
