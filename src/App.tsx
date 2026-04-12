@@ -56,7 +56,34 @@ const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
-  if (loading) return null;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="mx-auto max-w-6xl px-4 py-8">
+          <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
+            <div className="hidden lg:block space-y-3">
+              <div className="h-16 rounded-xl bg-muted animate-pulse" />
+              {Array.from({ length: 7 }).map((_, i) => (
+                <div key={i} className="h-10 rounded-lg bg-muted animate-pulse" />
+              ))}
+            </div>
+            <div className="space-y-4">
+              <div className="h-16 rounded-xl bg-muted animate-pulse" />
+              <div className="h-10 w-2/3 rounded-lg bg-muted animate-pulse" />
+              <div className="grid gap-4 md:grid-cols-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="h-32 rounded-xl bg-muted animate-pulse" />
+                ))}
+              </div>
+              <div className="h-64 rounded-xl bg-muted animate-pulse" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!user) return <Navigate to="/auth" replace />;
   return <>{children}</>;
 }
