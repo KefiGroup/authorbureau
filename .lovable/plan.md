@@ -1,42 +1,42 @@
 
+Fix the “Author Profile” CTA so it behaves like a true “update my profile” link, not a public-page link or external redirect.
 
-## Fix: Add In-Dashboard Editing to Author Profile
+What I found
+- The exact CTA in your screenshot comes from `src/components/dashboard/microsite/WebsiteBlueprintPage.tsx`.
+- The current source already removed the old `/dashboard/profile` path, so the remaining problem is that this CTA still isn’t acting like a guaranteed direct route into the profile updater.
+- Right now the experience is still too indirect for what you expect: clicking “Author Profile” should take you straight to editing, not to a broken/public path or an external flow.
 
-### Problem
-When a user clicks "Author Profile" in the sidebar, the `ProfileEditor` component renders in **view mode**. The only edit action available is "Edit on PublishNow" which opens an external site via SSO. There is no button to edit the profile directly within the dashboard, even though the full edit form already exists in the code (behind `editMode` state).
+Implementation
+1. Make the CTA a real dashboard route
+   - Update the “Author Profile” action in `WebsiteBlueprintPage.tsx` to navigate to:
+     `/dashboard?section=profile&mode=edit`
+   - Use router navigation as the primary behavior so it always lands on the dashboard profile screen.
 
-### Solution
-Add an "Edit Profile" button alongside the existing "Edit on PublishNow" button in the ProfileEditor's view mode header. This gives users two clear options:
-1. **Edit Profile** — opens the inline editor (already built, just unreachable)
-2. **Edit on PublishNow** — keeps the existing SSO redirect for users who prefer that flow
+2. Open the editor immediately
+   - Update `src/components/dashboard/ProfileEditor.tsx` to read the `mode=edit` flag.
+   - When that flag is present, open the inline editor automatically instead of showing the read-only profile view first.
 
-### Changes
+3. Keep both edit paths, but separate them clearly
+   - The microsite CTA becomes “go update my profile now” and opens the in-app editor.
+   - The existing “Edit on PublishNow” button stays available inside the profile page as a separate optional path.
 
-**File: `src/components/dashboard/ProfileEditor.tsx`**
+4. Clean up the edit-state URL
+   - After save/cancel, remove the `mode=edit` flag so the profile page goes back to its normal URL/state.
 
-In the view mode header (around line 627-635), add an "Edit Profile" button that sets `editMode(true)`:
+5. Verify without touching unrelated navigation
+   - Confirm the CTA opens the inline editor in the same app.
+   - Confirm no 404 page, no mistaken public author route, and no automatic PublishNow tab.
+   - Confirm sidebar “Author Profile,” public author pages, and other dashboard links still behave the same.
 
-```
-Before:
-  <Button size="sm" ... onClick={handleEditOnPublishNow}>
-    <Pencil .../> Edit on PublishNow
-  </Button>
+Why this won’t affect other links
+- Scope stays limited to the single CTA in `WebsiteBlueprintPage.tsx` plus edit-mode handling in `ProfileEditor.tsx`.
+- No route order changes in `src/App.tsx`.
+- No changes to public author URLs (`/:authorSlug`), book URLs, or the explicit PublishNow button.
 
-After:
-  <Button variant="outline" size="sm" onClick={() => setEditMode(true)}>
-    <Pencil .../> Edit Profile
-  </Button>
-  <Button size="sm" ... onClick={handleEditOnPublishNow}>
-    <ExternalLink .../> Edit on PublishNow
-  </Button>
-```
-
-This is a single-file, ~3-line change. The edit form, save logic, and cancel button already exist and work correctly.
-
-### What Won't Change
-- No routing changes
-- No database changes
-- The PublishNow SSO flow remains intact
-- The "Sync" button stays as-is
-- The new-profile setup flow (Route 1 / Route 2 cards) is untouched
-
+Technical details
+- Files:
+  - `src/components/dashboard/microsite/WebsiteBlueprintPage.tsx`
+  - `src/components/dashboard/ProfileEditor.tsx`
+- Target route:
+  - `/dashboard?section=profile&mode=edit`
+- No backend or database changes needed.
