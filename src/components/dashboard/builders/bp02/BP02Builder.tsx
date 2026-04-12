@@ -139,12 +139,28 @@ export default function BP02Builder({ authorId }: Props) {
       const { data, error: fnErr } = await supabase.functions.invoke("deploy-bp02-to-ghl", {
         body: { author_id: authorId },
       });
-      if (fnErr || !data?.success) {
-        throw new Error(data?.error || fnErr?.message || "Publish failed");
+
+      // Edge function now always returns 200 — check structured status
+      if (fnErr) {
+        throw new Error(fnErr.message || "Publish failed");
       }
+
+      if (!data?.success) {
+        throw new Error(data?.message || data?.error || "Publish failed");
+      }
+
+      if (data.status === "published_pending_ghl") {
+        // Saved but GHL not connected — show success toast, stay on review
+        toast.success(data.message || "Lead magnet saved. Connect GoHighLevel in Settings to activate your live opt-in page.");
+        setStep(2);
+        return;
+      }
+
+      // Live path
       setLiveUrl(data.live_url || data.microsite_url || null);
       setContent((prev: any) => ({ ...prev, activated: true }));
     } catch (e: any) {
+      toast.error(e.message || "Something went wrong during publishing.");
       setError(e.message);
       setStep(2);
     }
