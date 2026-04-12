@@ -11,6 +11,7 @@ interface OptInPageData {
   bullet_points?: string[];
   cta_button_text?: string;
   privacy_note?: string;
+  social_proof?: string;
   color_palette?: {
     primary?: string;
     secondary?: string;
@@ -74,8 +75,9 @@ function generateOptInHtml(data: OptInPageData, authorName?: string, authorPhoto
     <div class="form-wrap">
       <input type="text" placeholder="First Name" readonly />
       <input type="email" placeholder="Email Address" readonly />
-      <button type="button" data-field="cta_button_text">${data.cta_button_text || "Get It Free"}</button>
+      <button type="button" data-field="cta_button_text">${data.cta_button_text || "Discover My Stage →"}</button>
       <p class="privacy" data-field="privacy_note">${data.privacy_note || "No spam. Unsubscribe anytime."}</p>
+      <p style="font-size:13px;color:#6b7280;margin-top:12px;text-align:center;" data-field="social_proof">${data.social_proof || "Be among the first to discover your stage"}</p>
     </div>
   </div>
   ${authorName || authorPhotoUrl ? `
@@ -211,7 +213,7 @@ export default function OptInPageBuilder({ data, authorName, authorPhotoUrl, boo
 
       {/* Editable fields quick buttons */}
       <div className="flex flex-wrap gap-1">
-        {["headline", "subheadline", "bullet_points", "cta_button_text", "privacy_note"].map(field => (
+        {["headline", "subheadline", "bullet_points", "cta_button_text", "privacy_note", "social_proof"].map(field => (
           <Button
             key={field}
             variant="outline"

@@ -48,7 +48,7 @@ CRITICAL RULES FOR CALL-TO-ACTION SECTION:
 - Do NOT include ANY generic actions, open-ended prompts, or fill-in-the-blank exercises in the CTA.
 - The reader is STUCK — tell them exactly which product solves their problem. No vague suggestions.
 
-If config.type is "quiz": output a scored self-assessment (2-3 minutes). No action plans inside — just diagnosis and scoring. CTA follows the same 3-product recommendation format above.
+If config.type is "quiz": output a scored self-assessment that takes 90 SECONDS (NOT 5-7 minutes). Limit to exactly 8 questions (1 per framework stage). No action plans inside — just diagnosis and scoring. CTA follows the same 3-product recommendation format above.
 If config.type is "cheatsheet": output a cheat-sheet reference format.
 If config.type is "mini-course": output a 3-5 day email mini-course format.
 If config.type is "template": output reusable template pack format.
@@ -76,17 +76,21 @@ export default function LeadMagnetStepRenderer({ stepId, stepData, setStepData, 
         { label: "Add your voice", description: "Include personal stories and adjust the tone." },
         { label: "Polish & finalize", description: "Fix wording and save your changes." },
       ]} />;
-    case "design":
     case "design": {
       const optinData = stepData.leadMagnetDesignData || stepData.leadMagnetConfig || {};
+      const audience = stepData.leadMagnetConfig?.audience || "";
+      const typeLabel = stepData.leadMagnetConfig?.type === "quiz" ? "self-assessment" : stepData.leadMagnetConfig?.type || "resource";
+      const autoSubheadline = audience
+        ? `A 90-second ${typeLabel} for ${audience.toLowerCase().replace(/\.$/, "")}.`
+        : `A 90-second ${typeLabel} that reveals exactly where you stand.`;
       return (
         <div className="space-y-6">
           <OptInPageBuilder
             data={{
               headline: optinData.headline || stepData.leadMagnetConfig?.title || "",
-              subheadline: optinData.subheadline || "",
+              subheadline: optinData.subheadline || autoSubheadline,
               bullet_points: optinData.bullet_points || [],
-              cta_button_text: optinData.cta_button_text || "Get It Free",
+              cta_button_text: optinData.cta_button_text || "Discover My Stage →",
               privacy_note: optinData.privacy_note || "No spam. Unsubscribe anytime.",
               color_palette: optinData.color_palette,
             }}
