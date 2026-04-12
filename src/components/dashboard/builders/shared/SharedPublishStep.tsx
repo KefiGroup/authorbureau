@@ -1,11 +1,14 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Monitor, Smartphone, Download, Rocket, TrendingUp, Sparkles, ArrowRight, Settings, BarChart3 } from "lucide-react";
+import {
+  Check, Monitor, Smartphone, Download, Rocket, TrendingUp, Sparkles,
+  ArrowRight, Settings, BarChart3, Copy, ExternalLink, AlertTriangle, Info,
+} from "lucide-react";
 
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 export interface ChecklistItem {
   label: string;
@@ -34,7 +37,7 @@ interface Props {
   bookTitle: string;
   publishFn?: (stepData: Record<string, any>, userId: string) => Promise<PublishResult | void>;
   userId: string;
-  exportKeys?: string[]; // keys from stepData to include in export
+  exportKeys?: string[];
   onNavigate?: (section: string) => void;
 }
 
@@ -44,16 +47,32 @@ export default function SharedPublishStep({
   publishFn, userId, exportKeys, onNavigate,
 }: Props) {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop");
   const [publishing, setPublishing] = useState(false);
-  const [publishResult, setPublishResult] = useState<PublishResult | null>(null);
+  const [publishError, setPublishError] = useState<string | null>(null);
+
+  // Derive persisted status from stepData
+  const savedStatus = stepData.publishStatus as string | undefined;
+  const savedLiveUrl = stepData.publishLiveUrl as string | undefined;
+  const isLive = savedStatus === "live";
+  const isPendingGhl = savedStatus === "published_pending_ghl";
 
   const checks = checklist.map(c => ({ label: c.label, done: c.check(stepData) }));
   const allReady = checks.every(c => c.done);
   const proj = revenue.calculate(stepData);
 
+  // Determine button label
+  const getButtonLabel = () => {
+    if (publishing) return "Publishing…";
+    if (isLive) return "Update Live Funnel";
+    if (isPendingGhl) return "Retry Publish";
+    return `Publish to Marketing Hub`;
+  };
+
   const handlePublish = async () => {
     setPublishing(true);
+    setPublishError(null);
     try {
       let result: PublishResult | undefined;
       if (publishFn) {
@@ -62,17 +81,27 @@ export default function SharedPublishStep({
       }
       onMarkEdited(stepId);
       const status = result?.status || "live";
-      setStepData(prev => ({ ...prev, published: true, publishedAt: new Date().toISOString(), publishStatus: status }));
-      setPublishResult(result || { status });
+      const liveUrl = result?.liveUrl || undefined;
+
+      // Persist status into stepData so it survives across sessions
+      setStepData(prev => ({
+        ...prev,
+        published: status === "live",
+        publishedAt: new Date().toISOString(),
+        publishStatus: status,
+        publishLiveUrl: liveUrl || prev.publishLiveUrl,
+        publishMessage: result?.message,
+      }));
 
       if (status === "published_pending_ghl") {
-        toast({ title: `${builderLabel} saved! ✅`, description: "Connect GoHighLevel in Settings to activate your live opt-in page." });
+        toast({ title: `${builderLabel} saved ✅`, description: "Content saved — connect your Marketing Hub to go live." });
       } else {
-        toast({ title: `${builderLabel} is live! 🎉`, description: "Head to the Marketing Hub to distribute it across social media." });
+        toast({ title: `${builderLabel} is live! 🎉` });
       }
-    } catch (err) {
-      console.error(err);
-      toast({ title: "Publish failed", variant: "destructive" });
+    } catch (err: any) {
+      const msg = err?.message || "Publish failed. Please try again.";
+      setPublishError(msg);
+      toast({ title: "Publish failed", description: msg, variant: "destructive" });
     }
     setPublishing(false);
   };
@@ -91,8 +120,29 @@ export default function SharedPublishStep({
     URL.revokeObjectURL(url);
   };
 
+  const copyUrl = (url: string) => {
+    navigator.clipboard.writeText(url);
+    toast({ title: "Link copied" });
+  };
+
   return (
     <div className="space-y-6">
+      {/* How publishing works */}
+      <Card className="p-4 border-primary/10 bg-primary/5">
+        <div className="flex gap-3">
+          <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+          <div className="text-sm text-muted-foreground space-y-1">
+            <p className="font-medium text-foreground">How publishing works</p>
+            <ol className="list-decimal list-inside space-y-0.5 text-xs">
+              <li>Click <strong>Publish to Marketing Hub</strong> to save and deploy your {builderLabel.toLowerCase()}</li>
+              <li>If the Marketing Hub is connected, your opt-in page goes live instantly</li>
+              <li>If not yet connected, your content is saved — go to <strong>Connected Accounts</strong> to connect, then Re-deploy</li>
+              <li>Once live, go to the <strong>Marketing Hub</strong> to distribute across social media</li>
+            </ol>
+          </div>
+        </div>
+      </Card>
+
       <Card className="p-5 border-secondary/20 bg-gradient-to-br from-secondary/5 to-transparent">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center shrink-0">
@@ -140,38 +190,59 @@ export default function SharedPublishStep({
         </div>
       </Card>
 
-      {/* Post-publish Abby guidance */}
-      {publishResult && (
-        <Card className="p-5 border-accent/20 bg-gradient-to-br from-accent/5 to-transparent">
+      {/* Persistent status panel */}
+      {(isLive || isPendingGhl) && (
+        <Card className={`p-5 ${isLive ? "border-accent/20 bg-gradient-to-br from-accent/5 to-transparent" : "border-orange-400/20 bg-gradient-to-br from-orange-50/50 to-transparent dark:from-orange-950/20"}`}>
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
-              <Sparkles className="h-5 w-5 text-accent" />
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isLive ? "bg-accent/10" : "bg-orange-100 dark:bg-orange-900/30"}`}>
+              {isLive ? <Check className="h-5 w-5 text-accent" /> : <AlertTriangle className="h-5 w-5 text-orange-500" />}
             </div>
             <div className="flex-1">
-              <p className="text-xs font-semibold text-accent mb-1">Abby's Next Step</p>
-              {publishResult.status === "published_pending_ghl" ? (
+              {isLive ? (
                 <>
+                  <p className="text-sm font-semibold text-accent mb-1">Your {builderLabel.toLowerCase()} is live! 🎉</p>
+                  {savedLiveUrl && (
+                    <div className="flex items-center gap-2 mb-3">
+                      <code className="text-xs bg-muted px-2 py-1 rounded truncate max-w-[300px]">{savedLiveUrl}</code>
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => copyUrl(savedLiveUrl)}>
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" asChild>
+                        <a href={savedLiveUrl} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3.5 w-3.5" /></a>
+                      </Button>
+                    </div>
+                  )}
                   <p className="text-sm text-muted-foreground mb-3">
-                    Your {builderLabel.toLowerCase()} content is saved and ready! Connect GoHighLevel in Settings to activate your live opt-in page and start capturing leads.
-                  </p>
-                  <Button size="sm" variant="outline" asChild>
-                    <a href="/account-settings?tab=connections">
-                      <Settings className="h-3.5 w-3.5 mr-1.5" /> Go to Settings <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                    </a>
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Your {builderLabel.toLowerCase()} is live! 🎉 Now distribute it across social media from the Marketing Hub to start driving traffic.
+                    Distribute it across social media from the Marketing Hub to start driving traffic.
                   </p>
                   <Button size="sm" variant="outline" onClick={() => onNavigate?.("marketing-hub")}>
                     <BarChart3 className="h-3.5 w-3.5 mr-1.5" /> Go to Marketing Hub <ArrowRight className="h-3.5 w-3.5 ml-1" />
                   </Button>
                 </>
+              ) : (
+                <>
+                  <p className="text-sm font-semibold text-orange-600 dark:text-orange-400 mb-1">Content saved — not live yet</p>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Your {builderLabel.toLowerCase()} is saved and ready. To go live:
+                  </p>
+                  <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-1 mb-3">
+                    <li>Go to <strong>Connected Accounts</strong> and click <strong>Connect Now</strong></li>
+                    <li>Once connected, click <strong>Re-deploy</strong> next to your {builderLabel.toLowerCase()}</li>
+                  </ol>
+                  <Button size="sm" variant="outline" onClick={() => navigate("/account-settings?tab=connections")}>
+                    <Settings className="h-3.5 w-3.5 mr-1.5" /> Go to Connected Accounts <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                  </Button>
+                </>
               )}
             </div>
           </div>
+        </Card>
+      )}
+
+      {/* Publish error */}
+      {publishError && (
+        <Card className="p-4 border-destructive/20 bg-destructive/5">
+          <p className="text-sm text-destructive">{publishError}</p>
         </Card>
       )}
 
@@ -186,11 +257,13 @@ export default function SharedPublishStep({
           className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 px-6"
         >
           {publishing ? (
-            <><Sparkles className="h-4 w-4 mr-2 animate-spin" /> Publishing...</>
-          ) : stepData.published ? (
-            <><Check className="h-4 w-4 mr-2" /> Update</>
+            <><Sparkles className="h-4 w-4 mr-2 animate-spin" /> Publishing…</>
+          ) : isLive ? (
+            <><Check className="h-4 w-4 mr-2" /> Update Live Funnel</>
+          ) : isPendingGhl ? (
+            <><Rocket className="h-4 w-4 mr-2" /> Retry Publish</>
           ) : (
-            <><Rocket className="h-4 w-4 mr-2" /> Publish {builderLabel}</>
+            <><Rocket className="h-4 w-4 mr-2" /> Publish to Marketing Hub</>
           )}
         </Button>
       </div>

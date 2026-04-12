@@ -9,6 +9,7 @@ interface BuilderFooterProps {
   isLastStep: boolean;
   isSaving: boolean;
   showAskAbby: boolean;
+  hideNextOnLastStep?: boolean;
 }
 
 export default function BuilderFooter({
