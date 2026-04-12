@@ -134,6 +134,7 @@ export default function BP02Builder({ authorId }: Props) {
   };
 
   const handlePublish = async () => {
+    setIsPublishing(true);
     setStep(3);
     setError(null);
     try {
@@ -164,6 +165,8 @@ export default function BP02Builder({ authorId }: Props) {
       toast.error(e.message || "Something went wrong during publishing.");
       setError(e.message);
       setStep(2);
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -268,7 +271,7 @@ export default function BP02Builder({ authorId }: Props) {
         )}
 
         {/* STEP 2: Review */}
-        {step === 2 && content && <ReviewStep content={content} authorName={authorName} onActivate={handlePublish} error={error} isPublishing={step === 3} />}
+        {step === 2 && content && <ReviewStep content={content} authorName={authorName} onActivate={handlePublish} error={error} isPublishing={isPublishing} />}
 
         {/* STEP 3: Activation / Success */}
         {step === 3 && !content?.activated && (
