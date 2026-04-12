@@ -1,53 +1,50 @@
 
 
-## Problem
+## Current State
 
-Two issues to fix:
+**GHL API keys exist** — `GHL_AGENCY_KEY`, `GHL_SUBACCOUNT_KEY`, and `GHL_API_KEY` are all configured as platform-level secrets. The `ghl-provision-author` edge function auto-creates GHL sub-accounts using the agency key and stores the `ghl_sub_account_id` on `author_profiles`.
 
-**1. RLS Error on Publish ("new row violates row-level security policy for table generated_assets")**
+**The deploy flow works** — `deploy-bp02-to-ghl` correctly checks for a sub-account, creates funnels/workflows/tags in GHL, and marks the node as `live`. If no sub-account exists, it falls back to `published_pending_ghl`.
 
-The footer "Next" button on the last step calls `UniversalBuilderStudio.handlePublish`, which tries to insert into `generated_assets` using the client-side Supabase SDK. The user is authenticated via the shared backend, so `auth.uid()` on the Cloud Supabase is either null or a different ID — causing the RLS INSERT policy to reject the row.
-
-Meanwhile, `SharedPublishStep` (rendered inside the step) has its own publish handler that correctly calls the `deploy-bp02-to-ghl` edge function (which uses the service role key and bypasses RLS). So there are two competing publish paths and the wrong one is being triggered.
-
-**2. Post-Publish Flow: Abby should guide the author to the next step**
-
-After publishing the lead magnet, Abby should advise the author on what to do next — connect GHL in Settings to go live, then distribute via the Marketing Hub to social media.
+**The gap is purely UI** — there is no "Connected Accounts" tab in Account Settings, so:
+- Authors can't see if their GHL sub-account is provisioned
+- Authors can't trigger provisioning manually
+- The "Go to Settings" button after publish leads to a dead end
+- There's no visibility into what's deployed to GHL
 
 ## Plan
 
-### Fix 1: Prevent the footer button from doing a redundant client-side insert for builders with custom publish logic
+### 1. Add "Connected Accounts" tab to Account Settings
 
-In `UniversalBuilderStudio.tsx`, the `handlePublish` function (line 613) runs generic product-table insert logic for ALL builders. But builders like Lead Magnet that have a custom `publishFn` in `SharedPublishStep` already handle publishing via edge functions.
+Add a fourth tab to `AccountSettings.tsx` that shows:
 
-**Change:** In `UniversalBuilderStudio.handlePublish`, skip the client-side `generated_assets` insert when the builder has a `customRenderer` (meaning its publish step handles its own logic). Instead, just save the draft and mark as complete. Specifically:
+- **GoHighLevel Marketing Hub** card showing:
+  - Connection status (reading `ghl_provision_status` and `ghl_sub_account_id` from `author_profiles`)
+  - Green "Connected" badge if provisioned, amber "Not Connected" if not
+  - "Connect Now" button that calls `ghl-provision-author` edge function if not yet provisioned
+  - "Re-provision" button if status is `failed`
+  - Explanation text: "This powers your opt-in pages, email automations, and social media distribution"
 
-- After `handleSaveDraft(true)` at line 617, add a check: if `nodeConfig.customRenderer` is set AND we're on the last step, skip the generic insert block (lines 618-686) — the custom renderer's `SharedPublishStep` already handles the real publish.
-- Show a toast directing users to click the "Publish" button inside the step content instead.
+- **What's Deployed** section showing nodes with status `live` or `published_pending_ghl` from `author_nodes`, so authors can see which products are active in GHL
 
-Alternatively (simpler and safer): change the footer button on the last step to NOT call `handlePublish` at all when the builder has a custom renderer. Instead, make it a no-op or just save draft.
+### 2. Wire the post-publish "Go to Settings" button
 
-### Fix 2: Add Abby next-step guidance after successful publish
+Update `SharedPublishStep.tsx` so the "Go to Settings" button navigates to `/account-settings` with a query param like `?tab=connections`, and update `AccountSettings.tsx` to read this param and default to the connections tab.
 
-In `LeadMagnetStepRenderer.tsx`, after `publishLeadMagnet` succeeds:
+### 3. Auto-provision on connect
 
-- If status is `published_pending_ghl`: Show a toast with "Lead magnet saved! Next step: Connect GoHighLevel in Settings to activate your live opt-in page."
-- If status is `live`: Show a toast with "Your lead magnet is live! Next step: Visit the Marketing Hub to distribute it across social media."
-
-Update `SharedPublishStep.tsx` to:
-- Pass the publish result back so the UI can show contextual next-step advice
-- Show a small Abby tip card after publishing with the recommended next action and a button to navigate there (Settings or Marketing Hub)
+When the author clicks "Connect Now", call `ghl-provision-author` with their `author_id`. On success, re-check any nodes stuck in `published_pending_ghl` and offer to re-deploy them (or auto-deploy).
 
 ### Files to change
 
-1. **`src/components/dashboard/builders/UniversalBuilderStudio.tsx`** — Skip generic DB insert on last step when builder has a custom renderer
-2. **`src/components/dashboard/builders/shared/SharedPublishStep.tsx`** — Show post-publish Abby guidance based on publish result
-3. **`src/components/dashboard/builders/lead-magnet/LeadMagnetStepRenderer.tsx`** — Pass publish result to SharedPublishStep for next-step advice
+1. **`src/pages/AccountSettings.tsx`** — Add "Connected Accounts" tab with GHL status, connect button, and deployed nodes list. Read `?tab=` query param to auto-select tab.
+2. **`src/components/dashboard/builders/shared/SharedPublishStep.tsx`** — Update "Go to Settings" navigation to point to `/account-settings?tab=connections`.
 
 ### Technical details
 
-- No database migration needed
-- No edge function changes needed
-- The `deploy-bp02-to-ghl` edge function already returns `status: "published_pending_ghl"` or `status: "live"` — we just need to surface this in the UI
-- The fix prevents RLS errors by eliminating the redundant client-side insert path
+- Fetch `author_profiles` (ghl_provision_status, ghl_sub_account_id) using the existing Supabase client
+- Fetch `author_nodes` where status is `live` or `published_pending_ghl` to show deployment status
+- Call `supabase.functions.invoke("ghl-provision-author")` on "Connect Now" click
+- No database migration needed — all columns already exist
+- No new edge functions needed
 
