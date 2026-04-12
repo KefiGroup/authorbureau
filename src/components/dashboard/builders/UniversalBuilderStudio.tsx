@@ -611,6 +611,21 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
   };
 
   const handlePublish = async () => {
+    // Builders with a customRenderer handle their own publish via SharedPublishStep.
+    // The footer button should only save the draft — the real publish is inside the step.
+    if (nodeConfig.customRenderer) {
+      setSaving(true);
+      try {
+        await handleSaveDraft(true);
+        toast({ title: "Draft saved", description: "Use the Publish button inside the step to go live." });
+      } catch (err) {
+        console.error("Save draft failed:", err);
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
     setSaving(true);
     let publishSuccess = false;
     try {
