@@ -88,12 +88,18 @@ interface Props {
   stepInstructions?: { label: string; description: string }[];
   /** If contentKey is empty, seed it from this other stepData key on mount */
   seedFromKey?: string;
+  /** Section title keywords to hide from the content cards (case-insensitive match) */
+  hideSections?: string[];
+  /** If true, skip showing the Generate button when seeded content exists */
+  hideGenerateWhenSeeded?: boolean;
+  /** Override the generate button label */
+  generateLabel?: string;
 }
 
 export default function SharedContentStep({
   contentKey, title, description, abbyTip, aiPrompt,
   stepData, setStepData, onMarkEdited, stepId, bookId, bookTitle, configKey,
-  builderId, builderLabel, seedFromKey,
+  builderId, builderLabel, seedFromKey, hideSections, hideGenerateWhenSeeded, generateLabel,
 }: Props) {
   const { toast } = useToast();
   const [generating, setGenerating] = useState(false);
@@ -412,8 +418,8 @@ ${fullText}`;
         </Card>
       )}
 
-      {/* No content yet and no conversation */}
-      {!content && !isInConversation && (
+      {/* No content yet and no conversation — show Generate button (unless seeded content skips it) */}
+      {!content && !isInConversation && !(hideGenerateWhenSeeded && seedFromKey && stepData[seedFromKey]) && (
         <Card className="p-8 text-center border-2 border-secondary/20 bg-gradient-to-b from-secondary/5 to-transparent">
           <Sparkles className="h-10 w-10 text-secondary/40 mx-auto mb-4" />
           <h3 className="font-heading text-lg font-semibold mb-2">✨ Ready to Design</h3>
@@ -422,7 +428,7 @@ ${fullText}`;
           </p>
           <Button onClick={generate} disabled={generating} className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90">
             {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-            {generating ? "Generating..." : `Let Abby Design This →`}
+            {generating ? "Generating..." : generateLabel || `Let Abby Design This →`}
           </Button>
         </Card>
       )}
@@ -449,6 +455,7 @@ ${fullText}`;
               setStepData(prev => ({ ...prev, [contentKey]: val }));
             }}
             stepTitle={title}
+            hideSections={hideSections}
           />
         </div>
       )}

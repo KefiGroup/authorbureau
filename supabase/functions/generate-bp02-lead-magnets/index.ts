@@ -49,9 +49,9 @@ serve(async (req) => {
 
 CRITICAL GENERATION CONSTRAINTS:
 - All lead magnets must be designed as SIMPLE 2-3 MINUTE actions focused on ASSESSMENT and SELF-DIAGNOSIS only.
-- Quizzes: tick-what's-true items only. Self-scoring. Results are gated behind a contact form.
+- Quizzes: 8-10 multiple-choice questions MAXIMUM. Self-scoring. Results gated behind contact form.
 - Do NOT include "Next-step plans", action items, or exercises.
-- Content must acknowledge that the reader is STUCK and provide exactly 3 specific product recommendations (Workbook, Home Study, Online Course) per scoring tier.
+- Content must acknowledge that the reader is STUCK and provide exactly 3 specific product recommendations per scoring tier.
 - FORBIDDEN PHRASES: "Next step", "pick 1", "action step", "your task", "try this", "exercise", "I will ___ for".
 - All lead magnets must collect: First Name, Email, and Phone Number before delivering value.`;
 
@@ -72,129 +72,176 @@ Generate the following as a JSON object with these exact keys:
   "lead_magnets": [
     {
       "number": 1,
-      "type": "Type of lead magnet (e.g., PDF Guide, Checklist, Mini-Course, Toolkit, Cheat Sheet, Quiz/Assessment)",
-      "title": "Compelling title for this lead magnet",
-      "description": "One sentence describing what readers get and the transformation it delivers",
-      "why_it_works": "One sentence explaining why this specific lead magnet will attract this author's audience",
-      "pages_or_length": "Estimated length (e.g., 12-page PDF, 5-day email course, 1-page checklist, 10-question quiz)",
-      "best_channel": "The single best marketing channel to promote this lead magnet (e.g., Instagram Reels, LinkedIn Posts, Email Newsletter, Facebook Groups, Pinterest, YouTube Shorts, TikTok, Blog/SEO, Twitter/X Threads)",
-      "channel_reason": "One sentence explaining why this channel is ideal for this specific lead magnet and this author's audience demographics",
+      "type": "Type (e.g., Quiz/Assessment, Checklist, Cheat Sheet)",
+      "title": "Compelling title",
+      "description": "One sentence describing value and transformation",
+      "why_it_works": "Why this attracts this author's audience",
+      "pages_or_length": "Estimated length (e.g., 10-question quiz, 1-page checklist)",
+      "best_channel": "Best marketing channel (e.g., LinkedIn, Instagram)",
+      "channel_reason": "Why this channel is ideal",
       "contact_gate": {
         "fields": ["first_name", "email", "phone"],
-        "gate_moment": "Where the gate appears (e.g., 'before_download' for PDFs, 'after_completion' for quizzes)",
-        "gate_headline": "Compelling headline for the contact form (e.g., 'Get Your Personalized Report')",
-        "gate_subheadline": "Supporting text explaining why they should enter their details"
+        "gate_moment": "Where the gate appears",
+        "gate_headline": "Compelling headline for the contact form",
+        "gate_subheadline": "Supporting text"
       }
     }
   ],
   "recommended_lead_magnet": 1,
-  "recommended_reason": "One sentence explaining why this lead magnet is the strongest choice for this author",
+  "recommended_reason": "Why this is the strongest choice",
+
+  "headline_variants": [
+    {
+      "type": "identity",
+      "headline": "Identity-based headline (e.g., 'Are You a ____ or a ____?')",
+      "why": "Why this angle works"
+    },
+    {
+      "type": "outcome",
+      "headline": "Outcome-based headline (e.g., 'Discover Your ____ Score')",
+      "why": "Why this angle works"
+    },
+    {
+      "type": "curiosity",
+      "headline": "Curiosity-based headline (e.g., 'The 3-Minute Test That Reveals...')",
+      "why": "Why this angle works"
+    }
+  ],
 
   "quiz_structure": {
-    "quiz_title": "Title of the interactive self-assessment quiz",
-    "quiz_description": "One sentence describing the quiz purpose",
+    "quiz_title": "Title of the quiz",
+    "quiz_description": "One sentence describing purpose",
     "questions": [
       {
         "number": 1,
-        "text": "The question text (tick-what's-true, self-diagnosis style)",
+        "text": "Multiple-choice question (self-diagnosis style)",
         "options": [
-          { "label": "Option A text", "points": 1 },
-          { "label": "Option B text", "points": 2 },
-          { "label": "Option C text", "points": 3 },
-          { "label": "Option D text", "points": 4 }
+          { "label": "Option A", "points": 1 },
+          { "label": "Option B", "points": 2 },
+          { "label": "Option C", "points": 3 },
+          { "label": "Option D", "points": 4 }
         ]
       }
     ],
     "scoring_tiers": [
       {
         "min": 0,
-        "max": 10,
-        "label": "Tier label (e.g., Beginner, Emerging, Advanced)",
-        "description": "2-3 sentences describing what this score means for the reader. Acknowledge they are STUCK.",
+        "max": 8,
+        "label": "Tier label",
+        "description": "3-sentence description acknowledging the reader is STUCK",
+        "tips_from_book": ["Specific tip 1 from the book", "Specific tip 2 from the book"],
+        "cta_text": "CTA linking to book sales page",
         "product_recommendations": [
-          { "type": "Workbook", "title": "Specific workbook recommendation", "reason": "Why this helps" },
-          { "type": "Home Study", "title": "Specific home study recommendation", "reason": "Why this helps" },
-          { "type": "Online Course", "title": "Specific course recommendation", "reason": "Why this helps" }
+          { "type": "Workbook", "title": "Specific recommendation", "reason": "Why this helps" },
+          { "type": "Home Study", "title": "Specific recommendation", "reason": "Why this helps" },
+          { "type": "Online Course", "title": "Specific recommendation", "reason": "Why this helps" }
         ]
       }
     ]
   },
 
   "optin_page": {
-    "headline": "Main headline for the opt-in page (compelling, benefit-driven)",
-    "subheadline": "Supporting subheadline (clarifies the offer)",
-    "bullet_points": ["Benefit 1", "Benefit 2", "Benefit 3"],
-    "cta_button_text": "Button text (e.g., Send Me the Free Guide)",
-    "privacy_note": "Short privacy reassurance (e.g., No spam. Unsubscribe anytime.)"
+    "headline": "Main headline (use the best headline_variant)",
+    "subheadline": "Supporting subheadline",
+    "bullet_points": ["Benefit 1", "Benefit 2", "Benefit 3", "Benefit 4"],
+    "cta_button_text": "First-person CTA with specific outcome (e.g., 'Show Me My Success Blocker')",
+    "privacy_note": "Short privacy reassurance",
+    "color_palette": {
+      "primary": "#hex",
+      "secondary": "#hex",
+      "accent": "#hex",
+      "background": "#hex",
+      "text": "#hex"
+    }
   },
 
   "thankyou_page": {
-    "headline": "Thank you page headline",
-    "message": "Short message (2-3 sentences) thanking them and telling them what to expect",
-    "next_step": "What to do next (e.g., Check your inbox for your free guide)"
+    "headline": "Thank you headline",
+    "message": "2-3 sentences thanking them",
+    "show_result_immediately": true,
+    "result_intro": "Text introducing their quiz result on the thank-you page",
+    "next_step": "What to do next",
+    "book_cta": "CTA to purchase the full book"
   },
 
-  "marketing_strategy": {
-    "primary_platform": "The single best overall marketing platform for this author's audience (e.g., Instagram, LinkedIn, Email, Facebook, TikTok, Pinterest, Blog/SEO)",
-    "primary_reason": "Why this platform suits this author's niche and audience demographics",
-    "secondary_platform": "A complementary platform that adds reach",
-    "secondary_reason": "Why this adds reach to a different segment",
-    "promotion_tips": [
-      "Specific actionable tip 1 for promoting these lead magnets",
-      "Specific actionable tip 2",
-      "Specific actionable tip 3"
-    ]
-  },
-
-  "social_media_posts": [
+  "nurture_sequence": [
     {
-      "platform": "instagram",
-      "caption": "Ready-to-post caption promoting the quiz/lead magnet with a teaser question",
-      "hashtags": ["relevant", "hashtags"],
-      "cta": "Take the free quiz → link"
+      "email_number": 1,
+      "send_delay_days": 0,
+      "subject": "Subject line for immediate result delivery",
+      "purpose": "Deliver personalised result with category name, description, and 2 tips",
+      "body_outline": "3-4 sentence outline of email body"
     },
     {
-      "platform": "linkedin",
-      "caption": "Professional post promoting the lead magnet",
-      "hashtags": ["relevant", "hashtags"],
-      "cta": "Get your free guide → link"
+      "email_number": 2,
+      "send_delay_days": 2,
+      "subject": "Subject line for empathy/story email",
+      "purpose": "Story behind their result — empathy building",
+      "body_outline": "3-4 sentence outline"
     },
     {
-      "platform": "facebook",
-      "caption": "Engaging post for Facebook audience",
-      "hashtags": ["relevant", "hashtags"],
-      "cta": "Download free → link"
+      "email_number": 3,
+      "send_delay_days": 4,
+      "subject": "Subject line for high-value content",
+      "purpose": "One thing people in their category do differently",
+      "body_outline": "3-4 sentence outline"
     },
     {
-      "platform": "x",
-      "caption": "Short, punchy tweet/thread promoting the lead magnet",
-      "hashtags": ["relevant", "hashtags"],
-      "cta": "Grab it free → link"
+      "email_number": 4,
+      "send_delay_days": 6,
+      "subject": "Subject line for book chapter reference",
+      "purpose": "Specific chapter reference that solves their problem — soft book intro",
+      "body_outline": "3-4 sentence outline"
+    },
+    {
+      "email_number": 5,
+      "send_delay_days": 8,
+      "subject": "Subject line for direct offer",
+      "purpose": "Direct offer — book sales page link with time-limited bonus",
+      "body_outline": "3-4 sentence outline"
     }
   ],
 
-  "quiz_insights_for_social": [
-    "Interesting stat or insight derived from quiz content suitable for a standalone social post",
-    "Second insight that could spark engagement and shares",
-    "Third insight that positions the author as an expert"
+  "marketing_strategy": {
+    "primary_platform": "Best overall marketing platform",
+    "primary_reason": "Why this platform suits this author",
+    "secondary_platform": "Complementary platform",
+    "secondary_reason": "Why this adds reach",
+    "promotion_tips": ["Tip 1", "Tip 2", "Tip 3"]
+  },
+
+  "social_media_posts": [
+    { "platform": "instagram", "caption": "Ready-to-post caption", "hashtags": ["relevant"], "cta": "Take the free quiz → link" },
+    { "platform": "linkedin", "caption": "Professional post", "hashtags": ["relevant"], "cta": "Get your free guide → link" },
+    { "platform": "facebook", "caption": "Engaging post", "hashtags": ["relevant"], "cta": "Download free → link" },
+    { "platform": "x", "caption": "Short punchy tweet", "hashtags": ["relevant"], "cta": "Grab it free → link" }
   ],
 
-  "funnel_name": "Name for this lead magnet funnel (e.g., ${authorName} Free Guide Funnel)",
-  "abby_summary": "A 2-3 sentence summary from ABBY explaining what she created and why these lead magnets will grow this author's list"
+  "quiz_insights_for_social": [
+    "Insight 1 suitable for standalone social post",
+    "Insight 2 that sparks engagement",
+    "Insight 3 positioning author as expert"
+  ],
+
+  "funnel_name": "${authorName} Free Guide Funnel",
+  "abby_summary": "2-3 sentence summary explaining what was created and why"
 }
 
 IMPORTANT RULES:
-1. The lead_magnets array must have exactly 3 items, each a different type. At least one MUST be a Quiz/Assessment type.
-2. The quiz_structure must have exactly 8-10 questions. Each question has exactly 4 options with ascending point values (1-4).
-3. The scoring_tiers must have exactly 3 tiers covering the full point range. Each tier has exactly 3 product recommendations.
-4. For each lead magnet, recommend the BEST marketing channel based on the author's target audience demographics, the lead magnet format, and where that audience is most active.
-5. The social_media_posts array must have exactly 4 posts (instagram, linkedin, facebook, x).
-6. The quiz_insights_for_social array must have exactly 3 insights.
-7. All lead magnets must include a contact_gate collecting first_name, email, and phone.
-8. For quizzes: the contact gate appears AFTER completion, BEFORE showing results. The reader completes the quiz, sees "Enter your details to get your personalized report."
-9. For PDFs/checklists: the contact gate appears BEFORE the download.
-10. Make everything specific to this author's book and audience. Never use generic placeholder text.
-11. Quiz must be self-scoring — no manual addition needed. Points auto-tally.`;
+1. lead_magnets array: exactly 3 items, each different type. At least one MUST be Quiz/Assessment.
+2. quiz_structure: exactly 8-10 questions. Each has exactly 4 options with ascending points (1-4).
+3. scoring_tiers: exactly 5 tiers covering the full point range. Each has 3 product recommendations AND 2 specific tips from the book.
+4. headline_variants: exactly 3 (identity, outcome, curiosity). Each must be compelling and specific to this book.
+5. nurture_sequence: exactly 5 emails with the specified purposes and send delays.
+6. optin_page.cta_button_text: MUST be first-person with specific outcome (e.g., "Show Me My Success Blocker" NOT "Submit" or "Get Results").
+7. thankyou_page.show_result_immediately: always true — deliver the quiz result on the page, not just via email.
+8. social_media_posts: exactly 4 posts (instagram, linkedin, facebook, x).
+9. quiz_insights_for_social: exactly 3 insights.
+10. All lead magnets must include contact_gate collecting first_name, email, phone.
+11. For quizzes: contact gate appears AFTER completion, BEFORE showing results.
+12. Make everything specific to this author's book and audience. Never generic.
+13. Quiz must be self-scoring with auto-tally points.
+14. color_palette: suggest brand-appropriate colors based on the book's genre and audience.`;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -202,7 +249,7 @@ IMPORTANT RULES:
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -212,7 +259,7 @@ IMPORTANT RULES:
           { role: "user", content: userPrompt },
         ],
         temperature: 0.7,
-        max_tokens: 6000,
+        max_tokens: 8000,
       }),
     });
 
