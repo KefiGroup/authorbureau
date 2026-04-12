@@ -4,6 +4,7 @@ import SharedPublishStep from "../shared/SharedPublishStep";
 import OptInPageBuilder from "./OptInPageBuilder";
 import { Magnet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
 const SETUP_FIELDS: SetupField[] = [
   { key: "type", label: "Lead Magnet Type", type: "pills", cols: 3, options: [
@@ -60,6 +61,7 @@ const EDIT_PROMPT = `Refine and polish this lead magnet content for "{bookTitle}
 
 export default function LeadMagnetStepRenderer({ stepId, stepData, setStepData, onMarkEdited, bookId, bookTitle, plan, userId }: Props) {
   const publishLeadMagnet = async (): Promise<{ status?: string; liveUrl?: string; message?: string }> => {
+    // Resolve author profile id
     const { data: authorProfile, error: authorError } = await supabase
       .from("author_profiles")
       .select("id")
@@ -67,19 +69,29 @@ export default function LeadMagnetStepRenderer({ stepId, stepData, setStepData, 
       .maybeSingle();
 
     if (authorError || !authorProfile?.id) {
-      throw new Error("Author profile not found");
+      throw new Error("Author profile not found. Please complete your profile first.");
     }
 
-    const { data, error } = await supabase.functions.invoke("deploy-bp02-to-ghl", {
-      body: { author_id: authorProfile.id },
-    });
+    // Use getActiveToken for reliable cross-session auth
+    const token = await getActiveToken();
+    const res = await fetchWithTimeout(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/deploy-bp02-to-ghl`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token || ""}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ author_id: authorProfile.id }),
+      },
+      30000,
+    );
 
-    if (error) {
-      throw new Error(error.message || "Failed to publish lead magnet");
-    }
+    const data = await res.json().catch(() => ({}));
 
-    if (!data?.success) {
-      throw new Error(data?.message || data?.error || "Failed to publish lead magnet");
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || data.message || "Failed to publish lead magnet");
     }
 
     return {
