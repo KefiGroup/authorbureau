@@ -1,6 +1,7 @@
 import SharedSetupStep, { type SetupField } from "../shared/SharedSetupStep";
 import SharedContentStep from "../shared/SharedContentStep";
 import SharedPublishStep from "../shared/SharedPublishStep";
+import OptInPageBuilder from "./OptInPageBuilder";
 import { Magnet } from "lucide-react";
 
 const SETUP_FIELDS: SetupField[] = [
@@ -76,12 +77,33 @@ export default function LeadMagnetStepRenderer({ stepId, stepData, setStepData, 
         { label: "Polish & finalize", description: "Fix wording and save your changes." },
       ]} />;
     case "design":
-      return <SharedContentStep contentKey="leadMagnetDesign" title="Design Brief" description="Generate design specifications and opt-in page copy." abbyTip="Professional design increases perceived value. Use your book's color palette." aiPrompt={`Generate design specifications and opt-in landing page copy for a lead magnet for "{bookTitle}". Config: {config}. Include: 1) DESIGN BRIEF (color palette, font suggestions, layout notes), 2) OPT-IN PAGE HEADLINE, 3) OPT-IN PAGE BULLET POINTS (3-5 benefits), 4) FORM FIELDS needed, 5) THANK-YOU PAGE copy, 6) CONFIRMATION EMAIL copy. Format as markdown.`} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="leadMagnetConfig" stepInstructions={[
-        { label: "Generate design", description: "Abby creates a design brief matching your book's brand." },
-        { label: "Opt-in page copy", description: "Headlines and bullet points for your sign-up page." },
-        { label: "Thank-you page", description: "Copy for the page readers see after subscribing." },
-        { label: "Email template", description: "Confirmation email copy to deliver the lead magnet." },
-      ]} />;
+    case "design": {
+      const optinData = stepData.leadMagnetDesignData || stepData.leadMagnetConfig || {};
+      return (
+        <div className="space-y-6">
+          <OptInPageBuilder
+            data={{
+              headline: optinData.headline || stepData.leadMagnetConfig?.title || "",
+              subheadline: optinData.subheadline || "",
+              bullet_points: optinData.bullet_points || [],
+              cta_button_text: optinData.cta_button_text || "Get It Free",
+              privacy_note: optinData.privacy_note || "No spam. Unsubscribe anytime.",
+              color_palette: optinData.color_palette,
+            }}
+            authorName={stepData._authorName}
+            authorPhotoUrl={stepData._authorPhotoUrl}
+            bookCoverUrl={stepData._bookCoverUrl}
+            onChange={(updated) => {
+              onMarkEdited(stepId);
+              setStepData(prev => ({ ...prev, leadMagnetDesignData: updated }));
+            }}
+            onSaveHtml={(html) => {
+              setStepData(prev => ({ ...prev, leadMagnetPage: html }));
+            }}
+          />
+        </div>
+      );
+    }
     case "preview":
       return <SharedPublishStep builderLabel="Lead Magnet" userId={userId} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookTitle={bookTitle} checklist={[
         { label: "Type and audience configured", check: d => !!d.leadMagnetConfig?.type },
