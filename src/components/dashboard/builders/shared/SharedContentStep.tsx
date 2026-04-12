@@ -9,7 +9,7 @@ import ContentSectionCards from "./ContentSectionCards";
 import { type BuilderCategory } from "./StepInstructions";
 import AbbyRecommendationCard from "./AbbyRecommendationCard";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { getActiveToken } from "@/lib/get-active-token";
 
 /** Strip markdown formatting symbols, keeping plain text */
 function stripMarkdown(md: string): string {
@@ -147,7 +147,7 @@ export default function SharedContentStep({
   }, [isAwaitingReply]);
 
   const callAI = async (messages: { role: string; content: string }[]): Promise<string> => {
-    const token = (await supabase.auth.getSession()).data?.session?.access_token;
+    const token = await getActiveToken();
 
     const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/business-consultant`, {
       method: "POST",
