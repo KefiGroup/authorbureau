@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Gift, FileText, ThumbsUp, Settings, Star, Copy, ExternalLink, Link2, QrCode } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import SocialDistributionPack from "./SocialDistributionPack";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 
@@ -427,14 +428,16 @@ function ReviewStep({ content, authorName, onActivate, error }: { content: any; 
   );
 }
 
-function PublishSuccessStep({ authorName, liveUrl, copied, onCopy }: {
+function PublishSuccessStep({ authorName, authorId, liveUrl, copied, onCopy }: {
   authorName: string;
+  authorId: string;
   liveUrl: string | null;
   copied: boolean;
   onCopy: () => void;
 }) {
   const navigate = useNavigate();
   const [showQR, setShowQR] = useState(false);
+  const [socialPack, setSocialPack] = useState<any>(null);
 
   return (
     <div className="space-y-6">
