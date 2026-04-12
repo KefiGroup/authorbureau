@@ -55,9 +55,10 @@ export default function SharedPublishStep({
   const handlePublish = async () => {
     setPublishing(true);
     try {
-      let result: PublishResult | void;
+      let result: PublishResult | undefined;
       if (publishFn) {
-        result = await publishFn(stepData, userId);
+        const r = await publishFn(stepData, userId);
+        if (r) result = r;
       }
       onMarkEdited(stepId);
       const status = result?.status || "live";
