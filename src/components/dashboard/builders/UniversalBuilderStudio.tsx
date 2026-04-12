@@ -1343,6 +1343,7 @@ export default function UniversalBuilderStudio({ nodeConfig, onNavigate }: Props
           isLastStep={isLastStep}
           isSaving={saving}
           showAskAbby={!abbyOpen}
+          hideNextOnLastStep={!!nodeConfig.customRenderer}
         />
       </div>
 
