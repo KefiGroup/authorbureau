@@ -1,56 +1,45 @@
 
-What’s actually happening
+Fix the theme saver by removing the false-success client write and routing theme changes through the same secure profile-save path already used elsewhere.
 
-- This does not look like a general React rendering failure.
-- It looks like two browser-sensitive frontend state issues:
-  1. The dashboard only reads `?section=` on first render. So when the My Website card sends you to `/dashboard?section=profile&mode=edit`, the URL changes but the visible dashboard panel can stay on “My Website”, which makes the click feel dead.
-  2. The theme picker saves the theme, but the preview iframe reloads with the same URL, so Safari can keep showing the cached author page and the preview appears unchanged.
+1. What I found
+- This does not look like a React or Safari rendering bug.
+- `src/components/dashboard/SiteThemePicker.tsx` reads and writes `author_profiles.site_theme` directly with the browser client.
+- The dashboard auth flow is not using that same direct local write path for protected profile updates.
+- Result: the picker can read the row, but the write can fail as a silent no-op under RLS/auth mismatch, so the UI shows a success toast while the stored value stays `classic-elegant`.
 
-Fix plan
+2. Main fix
+- Update `SiteThemePicker` to stop writing `site_theme` directly to `author_profiles`.
+- Save theme changes through the existing backend profile-save function (`save-author-profile`) using the same token pattern as `ProfileEditor`.
+- Send a partial payload with only `site_theme`, so no other profile fields are touched.
 
-1. Sync dashboard state with the URL
-- File: `src/pages/AuthorDashboard.tsx`
-- Add URL-to-state synchronization so `activeSection` updates whenever `searchParams` change after mount.
-- Replace in-place `searchParams` mutation with a fresh `URLSearchParams` object before calling `setSearchParams(...)` for safer cross-browser behavior.
+3. Make the UI truthful
+- Do not treat the click as a confirmed save.
+- Either:
+  - save first, then set the selected theme from the confirmed response, or
+  - optimistically select, then immediately refetch and roll back if the stored value does not match.
+- Only show the success toast after the saved theme is confirmed.
+- Show a destructive toast if persistence fails.
 
-2. Make “Author Profile” always open the in-page editor
-- Files:
+4. Fix the related microsite settings path
+- `src/components/dashboard/microsite/WebsiteBlueprintPage.tsx` also writes `author_profiles` directly for slug/domain.
+- Refactor those saves to use the same backend profile-save path so this same bug does not keep appearing in nearby website settings.
+
+5. Keep preview refresh behavior
+- The preview iframe cache-busting is already in place.
+- Keep that logic, but trigger preview refresh only after the theme save is confirmed, so Safari is reloading real updated data instead of reloading the old theme.
+
+6. Verification after implementation
+- Change from Classic Elegant to another theme.
+- Confirm the selected theme card stays selected immediately after save.
+- Refresh the dashboard and verify the theme does not jump back to Classic.
+- Verify the right-side site preview changes.
+- Open the public author page and confirm the same theme is live.
+- Recheck slug/domain saves after the shared refactor.
+
+Technical details
+- Files to update:
+  - `src/components/dashboard/SiteThemePicker.tsx`
   - `src/components/dashboard/microsite/WebsiteBlueprintPage.tsx`
-  - `src/components/dashboard/ProfileEditor.tsx`
-- Keep the microsite CTA as an internal dashboard action to `?section=profile&mode=edit`.
-- In `ProfileEditor`, auto-enter edit mode whenever `mode=edit` is present after loading, even if the profile has not been created yet. That way the link always lands in the editable screen, not a passive view.
-- Clear the `mode` param immutably after opening edit mode.
-
-3. Make theme changes visibly refresh in Safari
-- File: `src/components/dashboard/microsite/WebsiteBlueprintPage.tsx`
-- Change the preview iframe URL to use a cache-busting token/version in the `src` whenever theme or slug changes.
-- Use the full preview URL pattern for the author page so the iframe is forced to fetch a fresh public page instead of reusing a cached document.
-
-4. Small safety audit in the same microsite screen
-- While touching `WebsiteBlueprintPage.tsx`, verify nearby dashboard actions use the correct canonical section IDs so there are no other silent no-op links in this panel.
-
-What will stay unchanged
-
-- No route order changes in `src/App.tsx`
-- No backend/database changes
-- Public author/book/product routes stay as they are
-- The separate “Edit on PublishNow” option inside the profile page remains available
-
-Files to update
-
-- `src/pages/AuthorDashboard.tsx`
-- `src/components/dashboard/microsite/WebsiteBlueprintPage.tsx`
-- `src/components/dashboard/ProfileEditor.tsx`
-
-Verification checklist
-
-- In Safari, click “Author Profile” from My Website:
-  - no new tab
-  - no error page
-  - dashboard switches to Author Profile
-  - edit form opens immediately
-- Change the site theme:
-  - selected theme updates
-  - preview iframe visibly refreshes right away
-  - public author page reflects the saved theme
-- Recheck sidebar “Author Profile”, “My Website”, and public author links to confirm other navigation still works
+  - optionally `supabase/functions/save-author-profile/index.ts` to return the updated profile/theme for stronger confirmation
+- Do not loosen database write rules.
+- Preferred design: make the backend profile-save function the single write path for `author_profiles` settings.
