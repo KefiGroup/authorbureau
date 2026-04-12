@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
 import { useAuth, TIERS } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Loader2, ArrowLeft, Crown } from "lucide-react";
 import { Link } from "react-router-dom";
+import ConnectedAccountsTab from "@/components/settings/ConnectedAccountsTab";
 
 export default function AccountSettings() {
   const { user, loading, tier, subscription, isPremium, signOut } = useAuth();
