@@ -6,6 +6,11 @@ export interface AuthorStats {
   liveMicrosites: number;
   analyzedCount: number;
   stripeConnected: boolean;
+  nodesBuilt: {
+    brand: number;
+    buildAuthority: number;
+    yield: number;
+  };
   products: {
     totalBuilt: number;
     totalReadyForReview: number;
@@ -20,6 +25,7 @@ const DEFAULT_STATS: AuthorStats = {
   liveMicrosites: 0,
   analyzedCount: 0,
   stripeConnected: false,
+  nodesBuilt: { brand: 0, buildAuthority: 0, yield: 0 },
   products: {
     totalBuilt: 0,
     totalReadyForReview: 0,
