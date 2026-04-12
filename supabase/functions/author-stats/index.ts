@@ -189,6 +189,7 @@ Deno.serve(async (req) => {
       liveMicrosites,
       analyzedCount,
       stripeConnected: !!(profile as any)?.stripe_onboarding_complete,
+      nodesBuilt,
       products: {
         totalBuilt,
         totalReadyForReview,

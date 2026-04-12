@@ -525,6 +525,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           stripeConnected={stripeConnected}
           pendingReviewCount={pendingReviewCount}
           buildUnlocked={
+            (stats.nodesBuilt?.brand || 0) +
             (stats.products.perTable["workbooks"]?.total || 0) +
             (stats.products.perTable["home_study_courses"]?.total || 0) +
             (stats.products.perTable["courses"]?.total || 0) +
@@ -532,11 +533,13 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
             (stats.products.perTable["email_flows"]?.total || 0)
           }
           buildAuthorityUnlocked={
+            (stats.nodesBuilt?.buildAuthority || 0) +
             (stats.products.perTable["audiobooks"]?.total || 0) +
             (stats.products.perTable["podcasts"]?.total || 0) +
             (stats.products.perTable["courses"]?.total || 0)
           }
           yieldUnlocked={
+            (stats.nodesBuilt?.yield || 0) +
             (stats.products.perTable["coaching_packages"]?.total || 0)
           }
           buildAuthorityCategoryOpen={!isCategoryFullyClosed("marketing-channels")}
