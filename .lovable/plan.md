@@ -1,43 +1,45 @@
 
-Goal
 
-Make BP-02 publish non-silent and non-500: always return readable JSON, always show the author a clear outcome, and never show the live state for a pending/GHL-not-connected save.
+## Problem
 
-Findings
+The sidebar shows "0 built" next to Brand Products because the count only checks product tables (`workbooks`, `courses`, `email_flows`, etc.) but does not check `author_nodes` (where BP-01 through BP-05 nodes like Website, Lead Magnets, Email Marketing are tracked) or other indicators of completed work (like having an `author_slug` set for the website).
 
-- `supabase/functions/deploy-bp02-to-ghl/index.ts` already has a fallback branch, but its outer `catch` still returns HTTP 500.
-- The fallback is reached too late; if anything fails before that branch, the client gets a 500 with no reliable user-facing result.
-- `src/components/dashboard/builders/bp02/BP02Builder.tsx` only treats `success` as a generic pass/fail. It does not handle `status === "published_pending_ghl"`, so pending saves are not surfaced intentionally.
-- The builder already imports `toast` from `sonner`, and the app already mounts `<Sonner />`, so a green success toast can be added locally without broader changes.
-- There are currently no useful runtime logs for `deploy-bp02-to-ghl`, so checkpoint logging needs to be added first.
+Currently, `author_nodes` is empty for this user, meaning none of the builders are writing completion status there. The only product table with data is `workbooks` (1 draft row), which doesn't increment the count because the sidebar only totals rows from specific tables.
 
-Plan
+Additionally, the edge function `deploy-bp02-to-ghl` writes to `author_nodes`, but the website builder (BP-04) and other builders may not be persisting their status there either.
 
-1. Harden the edge function
-   - Add explicit startup logging plus numbered checkpoint logs after body parse, author fetch, node fetch, pending fallback entry, GHL provisioning, GHL deploy steps, node update, and final return.
-   - Keep one top-level try/catch around the full handler, but change the catch response to HTTP 200 with a structured JSON body like `{ success: false, status: "error", message: "..." }`.
-   - Move the missing-key fallback earlier in the flow: after loading the required author/node data, if `GHL_AGENCY_KEY` is absent, update `author_nodes` to `published_pending_ghl` and return immediately with `{ success: true, status: "published_pending_ghl", message: "Lead magnet saved. Connect GoHighLevel in Settings to activate your live opt-in page." }`.
-   - Preserve the existing live-publish behavior when GHL is available, but return an explicit `status: "live"` so the frontend can distinguish it cleanly.
+## Root Cause Chain
 
-2. Fix BP-02 publish result handling
-   - Update `BP02Builder.tsx` so `handlePublish` branches on `data.status`, not just `data.success`.
-   - If the function returns `published_pending_ghl`, show `toast.success(data.message)`, do not send the user to the “Your Lead Magnet is Live!” success screen, and keep the UI in a non-live state.
-   - If the function returns `live`, keep the current success flow: set the live URL, mark the content activated, and show the success screen.
-   - If the function returns `{ success: false }` or invoke throws, show a visible destructive toast and keep the existing inline error state so the button never resets silently.
+1. **`author-stats` edge function** (line 135-160): Only queries 8 product tables. Does not query `author_nodes` at all.
+2. **`AuthorDashboard.tsx`** (line 527-532): `buildUnlocked` sums from `stats.products.perTable[...]` — only product tables, no `author_nodes`.
+3. **Builders not writing to `author_nodes`**: The website builder and other BP builders may not be persisting their completion status, leaving the table empty.
 
-3. Validate after implementation
-   - Publish BP-02 and confirm the request now returns HTTP 200 instead of 500.
-   - Check the new edge-function logs to see the last completed checkpoint if any issue remains.
-   - Verify one of these outcomes always appears to the author:
-     - Live path: success screen with live URL
-     - Pending path: green success toast with the “saved, connect GHL to go live” message
-     - Error path: visible failure toast/message, never silence
+## Plan
 
-Technical details
+### 1. Update `author-stats` edge function to count `author_nodes`
 
-- Files to update:
-  - `supabase/functions/deploy-bp02-to-ghl/index.ts`
-  - `src/components/dashboard/builders/bp02/BP02Builder.tsx`
-- No database migration is needed.
-- No global toast wiring is needed because `sonner` is already mounted in `src/App.tsx`.
-- I will avoid changing any unrelated BP flows, database policies, or subscription logic.
+Add a query for `author_nodes` where `status` is `content_ready`, `live`, or `published_pending_ghl`. Map each `node_id` prefix (BP-01 through BP-09) to the Brand count, BA-10 through BA-18 to Build Authority, and YR-19 through YR-28 to Yield Revenue. Return these counts as new fields: `nodesBuilt.brand`, `nodesBuilt.buildAuthority`, `nodesBuilt.yield`.
+
+Also count the website as "built" if the author has an `author_slug` set (since BP-04 completion is indicated by that).
+
+### 2. Update `useAuthorStats` types
+
+Add the `nodesBuilt` shape to `AuthorStats` so the dashboard can consume it.
+
+### 3. Update `AuthorDashboard.tsx` sidebar props
+
+Change `buildUnlocked` to sum both `stats.products.perTable[...].total` (product tables) AND `stats.nodesBuilt.brand` (author_nodes + website slug). Same for `buildAuthorityUnlocked` and `yieldUnlocked`.
+
+### 4. Deduplicate counts
+
+Ensure nodes that map to the same product table aren't double-counted (e.g., if BP-06 Workbook exists in both `workbooks` table and `author_nodes`, count it once).
+
+### Technical details
+
+Files to update:
+- `supabase/functions/author-stats/index.ts` — add `author_nodes` query and `author_slug` check
+- `src/hooks/useAuthorStats.ts` — extend `AuthorStats` interface
+- `src/pages/AuthorDashboard.tsx` — update `buildUnlocked` / `buildAuthorityUnlocked` / `yieldUnlocked` calculations
+
+No database migration needed. No other functionality changes.
+
