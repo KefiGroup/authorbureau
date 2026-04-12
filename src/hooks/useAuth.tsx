@@ -125,9 +125,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
       
+      // CRITICAL: Do not call check-subscription without the shared backend token.
+      // Without it, the Cloud auth token (different email) would be used, returning
+      // subscribed:false and incorrectly showing the paywall.
+      if (!token) {
+        clearTimeout(timeout);
+        console.warn("[useAuth] Shared backend session not ready yet, retrying in 2s...");
+        setTimeout(() => checkSubscription(), 2000);
+        return;
+      }
+      
       const { data, error } = await cloudSupabase.functions.invoke("check-subscription", {
         body: { source_platform: "authorsbureau" },
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        headers: { Authorization: `Bearer ${token}` },
       });
       clearTimeout(timeout);
       if (error) throw error;
