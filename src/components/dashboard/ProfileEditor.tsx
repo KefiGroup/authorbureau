@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import FrameworksEditor, { type AuthorFramework } from "@/components/dashboard/FrameworksEditor";
 import { useAuth, hasTierAccess } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -161,12 +162,25 @@ interface ProfileEditorProps {
 export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
   const { user, tier } = useAuth();
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [profile, setProfile] = useState<AuthorProfile>(EMPTY_PROFILE);
   const [profileExists, setProfileExists] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [frameworks, setFrameworks] = useState<AuthorFramework[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-enter edit mode when navigated with ?mode=edit
+  useEffect(() => {
+    if (searchParams.get("mode") === "edit" && profileExists && !loading) {
+      setEditMode(true);
+      searchParams.delete("mode");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, profileExists, loading]);
   const [frameworks, setFrameworks] = useState<AuthorFramework[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
