@@ -20,6 +20,7 @@ export default function BuilderFooter({
   isLastStep,
   isSaving,
   showAskAbby,
+  hideNextOnLastStep,
 }: BuilderFooterProps) {
   return (
     <div
@@ -52,26 +53,30 @@ export default function BuilderFooter({
         )}
       </div>
 
-      <Button
-        disabled={isSaving}
-        onClick={onNext}
-        variant="secondary"
-        className="rounded-full font-semibold px-6 shadow-sm"
-      >
-        {isLastStep ? (
-          isSaving ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin mr-1" /> Publishing&hellip;
-            </>
+      {isLastStep && hideNextOnLastStep ? (
+        <div />
+      ) : (
+        <Button
+          disabled={isSaving}
+          onClick={onNext}
+          variant="secondary"
+          className="rounded-full font-semibold px-6 shadow-sm"
+        >
+          {isLastStep ? (
+            isSaving ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-1" /> Publishing&hellip;
+              </>
+            ) : (
+              <>Publish</>
+            )
           ) : (
-            <>Publish</>
-          )
-        ) : (
-          <>
-            Save &amp; Continue <ArrowRight className="h-4 w-4 ml-1" />
-          </>
-        )}
-      </Button>
+            <>
+              Save &amp; Continue <ArrowRight className="h-4 w-4 ml-1" />
+            </>
+          )}
+        </Button>
+      )}
     </div>
   );
 }
