@@ -154,6 +154,10 @@ export default function AccountSettings() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="connections">
+            <ConnectedAccountsTab userId={user.id} />
+          </TabsContent>
+
           <TabsContent value="notifications">
             <Card className="p-6 space-y-6">
               <h3 className="font-heading font-semibold text-lg mb-4">Notification Preferences</h3>
