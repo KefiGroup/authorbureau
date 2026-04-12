@@ -59,7 +59,7 @@ Create: 1) HEADLINE & SUBHEADLINE (benefit-driven), 2) INTRODUCTION (why this ma
 const EDIT_PROMPT = `Refine and polish this lead magnet content for "{bookTitle}". Existing content: {config}. CRITICAL: If the lead magnet type is checklist or quiz/assessment, it MUST remain STRICTLY ASSESSMENT-ONLY. REMOVE any "Next step (pick 1):", "Choose one:", action items, exercises, tasks, open-ended prompts, or fill-in-the-blank exercises from ANYWHERE in the document. FORBIDDEN phrases: "Next step", "pick 1", "choose one", "do this", "try this", "write your", "message one person", "ask for support", "pick one section", "do one action", "I will ___ for". Each section should ONLY have "Tick what's true:" items and end with an interpretive note. The CALL-TO-ACTION must contain exactly 3 SPECIFIC product recommendations (Workbook, Home Study Course, Online Course) that tell the stuck reader exactly which product to get based on their results. No vague or open-ended suggestions. Make the introduction more compelling with storytelling.`;
 
 export default function LeadMagnetStepRenderer({ stepId, stepData, setStepData, onMarkEdited, bookId, bookTitle, plan, userId }: Props) {
-  const publishLeadMagnet = async () => {
+  const publishLeadMagnet = async (): Promise<{ status?: string; liveUrl?: string; message?: string }> => {
     const { data: authorProfile, error: authorError } = await supabase
       .from("author_profiles")
       .select("id")
@@ -81,6 +81,12 @@ export default function LeadMagnetStepRenderer({ stepId, stepData, setStepData, 
     if (!data?.success) {
       throw new Error(data?.message || data?.error || "Failed to publish lead magnet");
     }
+
+    return {
+      status: data.status || "live",
+      liveUrl: data.live_url,
+      message: data.message,
+    };
   };
 
   switch (stepId) {

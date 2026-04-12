@@ -140,6 +140,39 @@ export default function SharedPublishStep({
         </div>
       </Card>
 
+      {/* Post-publish Abby guidance */}
+      {publishResult && (
+        <Card className="p-5 border-accent/20 bg-gradient-to-br from-accent/5 to-transparent">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
+              <Sparkles className="h-5 w-5 text-accent" />
+            </div>
+            <div className="flex-1">
+              <p className="text-xs font-semibold text-accent mb-1">Abby's Next Step</p>
+              {publishResult.status === "published_pending_ghl" ? (
+                <>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Your {builderLabel.toLowerCase()} content is saved and ready! Connect GoHighLevel in Settings to activate your live opt-in page and start capturing leads.
+                  </p>
+                  <Button size="sm" variant="outline" onClick={() => onNavigate?.("settings")}>
+                    <Settings className="h-3.5 w-3.5 mr-1.5" /> Go to Settings <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Your {builderLabel.toLowerCase()} is live! 🎉 Now distribute it across social media from the Marketing Hub to start driving traffic.
+                  </p>
+                  <Button size="sm" variant="outline" onClick={() => onNavigate?.("marketing-hub")}>
+                    <BarChart3 className="h-3.5 w-3.5 mr-1.5" /> Go to Marketing Hub <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Actions */}
       <div className="flex items-center gap-3 justify-end">
         <Button variant="outline" onClick={handleExport}>
