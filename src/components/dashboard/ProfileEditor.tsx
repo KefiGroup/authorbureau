@@ -181,9 +181,6 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
       setSearchParams(searchParams, { replace: true });
     }
   }, [searchParams, profileExists, loading]);
-  const [frameworks, setFrameworks] = useState<AuthorFramework[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const getAuthToken = async (): Promise<string | null> => {
     const { data: sharedSession } = await sharedSupabase.auth.getSession();
