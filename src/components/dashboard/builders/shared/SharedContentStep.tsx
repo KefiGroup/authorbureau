@@ -455,6 +455,7 @@ ${fullText}`;
               setStepData(prev => ({ ...prev, [contentKey]: val }));
             }}
             stepTitle={title}
+            hideSections={hideSections}
           />
         </div>
       )}
