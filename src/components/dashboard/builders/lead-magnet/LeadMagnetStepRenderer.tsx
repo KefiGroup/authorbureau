@@ -70,7 +70,7 @@ export default function LeadMagnetStepRenderer({ stepId, stepData, setStepData, 
         { label: "Edit & refine", description: "Click Edit on any section to customize the text." },
       ]} />;
     case "edit":
-      return <SharedContentStep contentKey="leadMagnetEdited" title="Edit & Polish" description="Customize the generated content. Add personal stories, refine language, adjust structure." abbyTip="Include your photo and a short bio. It builds trust and leads to book sales." aiPrompt={EDIT_PROMPT} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="leadMagnetContent" stepInstructions={[
+      return <SharedContentStep contentKey="leadMagnetEdited" title="Edit & Polish" description="Customize the generated content. Add personal stories, refine language, adjust structure." abbyTip="Include your photo and a short bio. It builds trust and leads to book sales." aiPrompt={EDIT_PROMPT} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="leadMagnetConfig" seedFromKey="leadMagnetContent" stepInstructions={[
         { label: "Review draft", description: "Read through the generated content from Step 2." },
         { label: "Add your voice", description: "Include personal stories and adjust the tone." },
         { label: "Strengthen CTA", description: "Make the call-to-action compelling and clear." },
