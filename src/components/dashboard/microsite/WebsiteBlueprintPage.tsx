@@ -155,14 +155,22 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
   async function saveDomain() {
     if (!customDomain.trim()) return;
     const url = customDomain.trim().startsWith("http") ? customDomain.trim() : `https://${customDomain.trim()}`;
-    const { error } = await supabase
-      .from("author_profiles")
-      .update({ website_url: url })
-      .eq("user_id", user!.id);
-    if (error) {
-      toast({ title: "Error saving domain", variant: "destructive" });
-    } else {
+    try {
+      const token = await getActiveToken();
+      if (!token) throw new Error("Not authenticated");
+      const res = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/save-author-profile`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ action: "save", payload: { website_url: url } }),
+        }
+      );
+      const result = await res.json();
+      if (!res.ok || result.error) throw new Error(result.error || "Save failed");
       toast({ title: "Custom domain saved!" });
+    } catch (err: any) {
+      toast({ title: err.message || "Error saving domain", variant: "destructive" });
     }
   }
 
@@ -179,32 +187,27 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
     setSavingSlug(true);
     setSlugError("");
 
-    // Check uniqueness
-    const { data: existing } = await supabase
-      .from("author_profiles")
-      .select("user_id")
-      .eq("author_slug", clean)
-      .neq("user_id", user!.id)
-      .maybeSingle();
+    try {
+      const token = await getActiveToken();
+      if (!token) throw new Error("Not authenticated");
+      const res = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/save-author-profile`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ action: "save", payload: { author_slug: clean } }),
+        }
+      );
+      const result = await res.json();
+      if (!res.ok || result.error) throw new Error(result.error || "Save failed");
 
-    if (existing) {
-      setSlugError(`"${clean}" is already taken. Try another.`);
-      setSavingSlug(false);
-      return;
-    }
-
-    const { error } = await supabase
-      .from("author_profiles")
-      .update({ author_slug: clean })
-      .eq("user_id", user!.id);
-
-    setSavingSlug(false);
-    if (error) {
-      setSlugError("Failed to save. Try again.");
-    } else {
       setProfileData((prev: any) => ({ ...prev, author_slug: clean }));
       setEditingSlug(false);
       toast({ title: "URL updated!" });
+    } catch (err: any) {
+      setSlugError(err.message || "Failed to save. Try again.");
+    } finally {
+      setSavingSlug(false);
     }
   }
 
