@@ -154,8 +154,10 @@ export default function SharedPublishStep({
                   <p className="text-sm text-muted-foreground mb-3">
                     Your {builderLabel.toLowerCase()} content is saved and ready! Connect GoHighLevel in Settings to activate your live opt-in page and start capturing leads.
                   </p>
-                  <Button size="sm" variant="outline" onClick={() => onNavigate?.("settings")}>
-                    <Settings className="h-3.5 w-3.5 mr-1.5" /> Go to Settings <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                  <Button size="sm" variant="outline" asChild>
+                    <a href="/account-settings?tab=connections">
+                      <Settings className="h-3.5 w-3.5 mr-1.5" /> Go to Settings <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                    </a>
                   </Button>
                 </>
               ) : (
