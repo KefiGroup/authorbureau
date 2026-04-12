@@ -1,31 +1,19 @@
 
 
-## Fix: Lead Magnet Generation 401 — Auth Token Source
+## Fix: Independent Scrolling for Sidebar and Content Panel
 
-### Root Cause
-`SharedContentStep.tsx` gets the auth token from the **local Cloud client only** (line 150). The user is authenticated via the **shared backend**, so the local session is empty. The request sends `Bearer undefined` to the `business-consultant` edge function, which returns 401.
-
-This is the exact same auth mismatch pattern that broke theme saving — direct use of the local client instead of `getActiveToken()`.
+### Problem
+The dashboard root container uses `min-h-screen`, which allows the entire page to scroll as one unit. When you scroll the right content panel, the left sidebar moves with it.
 
 ### Fix
 
-**File: `src/components/dashboard/builders/shared/SharedContentStep.tsx`**
+**File: `src/pages/AuthorDashboard.tsx`**
 
-1. Import `getActiveToken` from `@/lib/get-active-token`
-2. Replace line 150:
-   ```typescript
-   // Before
-   const token = (await supabase.auth.getSession()).data?.session?.access_token;
-   
-   // After
-   const token = await getActiveToken();
-   ```
-3. Remove the unused `supabase` import (line 12) if no longer needed elsewhere in the file.
+1. Change the root `<div>` class from `flex min-h-screen` to `flex h-screen overflow-hidden` — this locks the viewport and prevents the whole-page scroll.
 
-### Scope
-- Single file, single line change
-- No backend/database changes
-- No edge function changes needed (it already has `resolveUser` with dual-auth)
+2. Change the sidebar wrapper `<div>` to include `h-screen overflow-hidden` (on desktop) so the sidebar stays fixed in place while its inner `<nav>` (which already has `overflow-y-auto`) handles its own scrolling.
 
-### Why This Will Work
-The `business-consultant` edge function already checks the shared backend first in its `resolveUser()`. The only issue is the frontend wasn't sending the correct token. `getActiveToken()` checks Cloud first, then shared backend — matching the pattern already used in `ProfileEditor` and `SiteThemePicker`.
+3. Change the main content column from `flex flex-1 flex-col min-w-0 min-h-0` to `flex flex-1 flex-col min-w-0 h-screen overflow-hidden` so the `<main>` inside it becomes the scroll container.
+
+This is a CSS-only change — three class tweaks in the same JSX return block. No logic, routing, or backend changes.
+
