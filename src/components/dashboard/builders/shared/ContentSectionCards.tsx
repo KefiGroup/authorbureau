@@ -762,10 +762,18 @@ interface Props {
   content: string;
   onChange: (newContent: string) => void;
   stepTitle: string;
+  /** Section title keywords to hide (case-insensitive partial match) */
+  hideSections?: string[];
 }
 
-export default function ContentSectionCards({ content, onChange, stepTitle }: Props) {
-  const sections = parseContentSections(content);
+export default function ContentSectionCards({ content, onChange, stepTitle, hideSections }: Props) {
+  let sections = parseContentSections(content);
+  if (hideSections && hideSections.length > 0) {
+    sections = sections.filter(sec => {
+      const titleLower = sec.title.toLowerCase();
+      return !hideSections.some(kw => titleLower.includes(kw.toLowerCase()));
+    });
+  }
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
 
