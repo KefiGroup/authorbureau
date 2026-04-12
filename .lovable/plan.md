@@ -1,113 +1,41 @@
 
 
-## Consolidated Plan: Lead Magnet System Upgrade
+## Analysis: Lead Magnet Builder Step Flow Issues
 
-Three changes across four files. No database migrations needed (all new data lives in the existing `content_json` JSONB column and `cross_builder_pushes` table).
+### What I Found
 
----
+The Lead Magnet Builder has 5 steps: Configure → Let Abby Build → Edit Content → Design → Preview & Publish.
 
-### 1. Rewrite Abby's AI Prompt for Structured, Interactive Lead Magnets
+**The core problem**: Steps 2 ("Let Abby Build") and 3 ("Edit Content") are both using the same `SharedContentStep` component, each with its own `contentKey` and `aiPrompt`. This means:
 
-**File: `supabase/functions/generate-bp02-lead-magnets/index.ts`**
+1. **Step 2** generates content → saves to `stepData.leadMagnetContent`
+2. **Step 3** shows an empty "Ready to Design" card and requires the user to click **another** "Let Abby Design This" button to generate an "edited" version → saves to `stepData.leadMagnetEdited`
+3. The user effectively generates content **twice** — once to create it, once to "edit" it
 
-Replace the current `userPrompt` JSON schema with a richer structure that outputs:
+This is not the intended flow. Step 3 should pre-load Step 2's output and let the author **manually edit** it inline (add personal stories, fix wording, etc.), not trigger a second AI generation.
 
-**Per lead magnet** (3 items, each a different type):
-- `number`, `type`, `title`, `description`, `why_it_works`, `pages_or_length` (existing)
-- **NEW** `best_channel` — single best marketing platform (e.g., "LinkedIn Posts", "Instagram Reels", "Email Newsletter", "Facebook Groups", "TikTok", "Pinterest", "Blog/SEO")
-- **NEW** `channel_reason` — one sentence explaining why this channel suits this lead magnet + audience
+Additionally, the `EDIT_PROMPT` in `LeadMagnetStepRenderer.tsx` passes the Step 2 content via `{config}` — but it's the raw text, not a config object, which could confuse the AI.
 
-**For quiz-type lead magnets**, the AI must output structured interactive JSON instead of prose:
-- `questions[]` — each with `text`, `options[]` (label + points), scored automatically
-- `scoring_tiers[]` — min/max ranges mapped to result labels, descriptions, and 3 product recommendations
-- Quiz results gated behind a contact form (no manual score addition)
+### Proposed Fix
 
-**All lead magnets** must include a `contact_gate`:
-- Fields: `first_name`, `email`, `phone`
-- For quizzes: gate appears after completion, before results
-- For PDFs/checklists: gate appears before download
+**File: `src/components/dashboard/builders/lead-magnet/LeadMagnetStepRenderer.tsx`**
 
-**NEW top-level `marketing_strategy` object:**
-```json
-"marketing_strategy": {
-  "primary_platform": "Best overall platform for this author",
-  "primary_reason": "Why",
-  "secondary_platform": "Complementary platform",
-  "secondary_reason": "Why",
-  "promotion_tips": ["Tip 1", "Tip 2", "Tip 3"]
-}
-```
+Replace the Step 3 (`edit`) case so it:
+- Pre-populates `leadMagnetEdited` from `leadMagnetContent` if the edit key is empty (so the author sees their generated content immediately)
+- Shows the content in editable `ContentSectionCards` by default (not behind a generate button)
+- Keeps the "Regenerate" and "Ask Abby" options available but secondary — the primary action is manual editing
+- Uses `configKey="leadMagnetEdited"` (reading from its own key, not the generate step's key) so edits persist independently
 
-**NEW `social_media_posts` array** (4 posts, one per platform):
-```json
-"social_media_posts": [
-  { "platform": "instagram", "caption": "...", "hashtags": [...], "cta": "Take the free quiz →" }
-]
-```
+**File: `src/components/dashboard/builders/shared/SharedContentStep.tsx`**
 
-**NEW `quiz_insights_for_social`** — 3 standalone insights derived from quiz content, suitable for social posts.
+Add an optional `seedFromKey` prop that, when the component mounts with empty `contentKey`, copies content from `seedFromKey` into `contentKey`. This lets the Edit step auto-populate from the Generate step without a second AI call.
 
-Also increase `max_tokens` from 4000 to 6000 to accommodate the larger output.
-
-Enforce existing generation constraints: simple 2-3 minute assessment, no action items, acknowledge reader is stuck, 3 product recommendations per tier, forbidden phrases list.
-
----
-
-### 2. Register Lead Magnet as a Cross-Builder Source
-
-**File: `src/lib/cross-builder-registry.ts`**
-
-Add a new `"lead-magnet"` entry to `CROSS_BUILDER_REGISTRY`:
-
-```typescript
-"lead-magnet": [
-  { destinationBuilder: "social-media", pushType: "quiz-promo-posts", label: "Quiz Promotion Posts", description: "Posts promoting the quiz/lead magnet with teaser questions and CTA" },
-  { destinationBuilder: "social-media", pushType: "quiz-insight-posts", label: "Quiz Insight Posts", description: "Standalone posts sharing insights from quiz content" },
-  { destinationBuilder: "email-marketing", pushType: "lead-nurture", label: "Lead Nurture Sequence", description: "Post-quiz email nurture based on results", destinationTable: "email_flows" },
-  { destinationBuilder: "website", pushType: "quiz-page", label: "Quiz Landing Page", description: "Embeddable quiz page on author microsite" },
-],
-```
-
----
-
-### 3. Wire Cross-Builder Push After Generation
-
-**File: `src/components/dashboard/builders/shared/SharedContentStep.tsx`** (or the handler that processes the generation response)
-
-After the AI returns successfully and content is saved, call `executeCrossBuilderPushes` with:
-- `sourceBuilder: "lead-magnet"`
-- Map `social_media_posts` → `quiz-promo-posts` output
-- Map `quiz_insights_for_social` → `quiz-insight-posts` output
-
-This makes the social media content appear as "Pending Pushes" in the Social Media builder automatically.
-
----
-
-### 4. Extend GHL Deployment for Full Lead Capture
-
-**File: `supabase/functions/deploy-bp02-to-ghl/index.ts`**
-
-After creating the funnel and pages (existing logic), add:
-
-- **Create GHL Custom Fields** via `POST /locations/{locationId}/customFields`:
-  - `lead_magnet_source` (text)
-  - `quiz_score` (number)
-  - `result_tier` (text)
-
-- **Create GHL Workflow** via `POST /workflows`:
-  - Trigger: form submission
-  - Actions: create contact (name, email, phone), tag by lead magnet title, add to pipeline, send delivery email
-
-All GHL calls remain non-blocking (existing error handling pattern preserved).
-
----
-
-### Summary of Files
+### Changes
 
 | File | Change |
 |------|--------|
-| `supabase/functions/generate-bp02-lead-magnets/index.ts` | Rewrite prompt: structured quiz, contact gate, marketing recommendations, social content |
-| `src/lib/cross-builder-registry.ts` | Add `"lead-magnet"` source with 4 push destinations |
-| `src/components/dashboard/builders/shared/SharedContentStep.tsx` | Call `executeCrossBuilderPushes` after generation |
-| `supabase/functions/deploy-bp02-to-ghl/index.ts` | Add GHL custom fields + workflow creation |
+| `src/components/dashboard/builders/shared/SharedContentStep.tsx` | Add `seedFromKey?: string` prop — if `contentKey` is empty and `seedFromKey` has content, copy it over on mount |
+| `src/components/dashboard/builders/lead-magnet/LeadMagnetStepRenderer.tsx` | Update `edit` case to pass `seedFromKey="leadMagnetContent"` and `configKey="leadMagnetConfig"` so it pre-loads Step 2's output for manual editing |
+
+This is a small, targeted change — two files, no backend or database updates needed.
 
