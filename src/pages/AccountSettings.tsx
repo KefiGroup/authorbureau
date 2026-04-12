@@ -14,6 +14,8 @@ import { Link } from "react-router-dom";
 import ConnectedAccountsTab from "@/components/settings/ConnectedAccountsTab";
 
 export default function AccountSettings() {
+  const [searchParams] = useSearchParams();
+  const defaultTab = searchParams.get("tab") || "profile";
   const { user, loading, tier, subscription, isPremium, signOut } = useAuth();
   const { toast } = useToast();
   const [newPassword, setNewPassword] = useState("");
@@ -77,10 +79,11 @@ export default function AccountSettings() {
           <h1 className="font-heading text-2xl font-bold">Account Settings</h1>
         </div>
 
-        <Tabs defaultValue="profile" className="space-y-6">
+        <Tabs defaultValue={defaultTab} className="space-y-6">
           <TabsList>
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="billing">Billing</TabsTrigger>
+            <TabsTrigger value="connections">Connected Accounts</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
           </TabsList>
 
