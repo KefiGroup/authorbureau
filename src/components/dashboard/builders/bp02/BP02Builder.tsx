@@ -268,6 +268,7 @@ export default function BP02Builder({ authorId }: Props) {
         {step === 3 && content?.activated && (
           <PublishSuccessStep
             authorName={authorName}
+            authorId={authorId!}
             liveUrl={liveUrl}
             copied={copied}
             onCopy={handleCopyUrl}
