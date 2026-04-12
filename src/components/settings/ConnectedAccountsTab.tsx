@@ -138,7 +138,7 @@ export default function ConnectedAccountsTab({ userId }: { userId: string }) {
           <p className="text-sm text-muted-foreground">No products deployed yet. Publish from a builder to see them here.</p>
         ) : (
           <div className="space-y-2">
-            {nodes.map(node => (
+             {nodes.map(node => (
               <div key={node.id} className="flex items-center justify-between p-3 rounded-lg border border-border">
                 <div className="flex items-center gap-2">
                   <Rocket className="h-4 w-4 text-muted-foreground" />
@@ -148,9 +148,36 @@ export default function ConnectedAccountsTab({ userId }: { userId: string }) {
                   {node.status === "live" ? (
                     <Badge variant="secondary" className="bg-accent/10 text-accent text-[10px]">Live</Badge>
                   ) : (
-                    <Badge variant="outline" className="text-[10px] flex items-center gap-1">
-                      <AlertTriangle className="h-3 w-3" /> Pending GHL
-                    </Badge>
+                    <>
+                      <Badge variant="outline" className="text-[10px] flex items-center gap-1">
+                        <AlertTriangle className="h-3 w-3" /> Pending GHL
+                      </Badge>
+                      {isConnected && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs"
+                          disabled={redeploying === node.id}
+                          onClick={async () => {
+                            setRedeploying(node.id);
+                            try {
+                              const { data, error } = await supabase.functions.invoke("deploy-bp02-to-ghl", {
+                                body: { node_id: node.id },
+                              });
+                              if (error) throw error;
+                              toast({ title: `${node.node_name} deployed to GHL ✓` });
+                              await fetchData();
+                            } catch (err: any) {
+                              toast({ title: "Re-deploy failed", description: err.message, variant: "destructive" });
+                            }
+                            setRedeploying(null);
+                          }}
+                        >
+                          {redeploying === node.id ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <RefreshCw className="h-3 w-3 mr-1" />}
+                          Re-deploy
+                        </Button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
