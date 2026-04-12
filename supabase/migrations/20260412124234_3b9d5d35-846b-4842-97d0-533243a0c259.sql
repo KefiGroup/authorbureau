@@ -1,0 +1,1 @@
+ALTER TABLE public.generated_assets ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'draft';
