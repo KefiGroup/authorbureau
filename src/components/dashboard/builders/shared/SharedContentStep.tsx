@@ -99,7 +99,7 @@ interface Props {
 export default function SharedContentStep({
   contentKey, title, description, abbyTip, aiPrompt,
   stepData, setStepData, onMarkEdited, stepId, bookId, bookTitle, configKey,
-  builderId, builderLabel, seedFromKey,
+  builderId, builderLabel, seedFromKey, hideSections, hideGenerateWhenSeeded, generateLabel,
 }: Props) {
   const { toast } = useToast();
   const [generating, setGenerating] = useState(false);
