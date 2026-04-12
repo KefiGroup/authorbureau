@@ -88,6 +88,12 @@ interface Props {
   stepInstructions?: { label: string; description: string }[];
   /** If contentKey is empty, seed it from this other stepData key on mount */
   seedFromKey?: string;
+  /** Section title keywords to hide from the content cards (case-insensitive match) */
+  hideSections?: string[];
+  /** If true, skip showing the Generate button when seeded content exists */
+  hideGenerateWhenSeeded?: boolean;
+  /** Override the generate button label */
+  generateLabel?: string;
 }
 
 export default function SharedContentStep({

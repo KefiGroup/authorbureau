@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Sparkles, ArrowLeft, ArrowRight, Check, Gift, FileText, ThumbsUp, Settings, Star } from "lucide-react";
-import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
-import { publishNodeToSite } from "@/lib/publish-node";
+import { Sparkles, ArrowLeft, ArrowRight, Check, Gift, FileText, ThumbsUp, Settings, Star, Copy, ExternalLink, Link2, QrCode } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 
@@ -22,9 +22,9 @@ const GENERATING_MESSAGES = [
 ];
 
 const ACTIVATING_MESSAGES = [
-  "Creating your opt-in page...",
-  "Setting up your thank you page...",
-  "Connecting your lead magnet delivery...",
+  "Creating your opt-in funnel...",
+  "Setting up contact tags and custom fields...",
+  "Connecting your lead capture workflow...",
   "Your funnel is almost ready...",
 ];
 
@@ -42,6 +42,8 @@ export default function BP02Builder({ authorId }: Props) {
   const [content, setContent] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
+  const [liveUrl, setLiveUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
 
@@ -84,7 +86,7 @@ export default function BP02Builder({ authorId }: Props) {
 
       const { data: node } = await supabase
         .from("author_nodes")
-        .select("content_json, status")
+        .select("content_json, status, microsite_url")
         .eq("author_id", authorId)
         .eq("node_id", "BP-02")
         .maybeSingle();
@@ -94,6 +96,7 @@ export default function BP02Builder({ authorId }: Props) {
         setStep(node.status === "live" ? 3 : 2);
         if (node.status === "live") {
           setContent((prev: any) => ({ ...prev, activated: true }));
+          setLiveUrl(node.microsite_url || null);
         }
       }
     })();
@@ -132,11 +135,26 @@ export default function BP02Builder({ authorId }: Props) {
     setStep(3);
     setError(null);
     try {
-      await publishNodeToSite(authorId!, "BP-02", authorSlug);
+      const { data, error: fnErr } = await supabase.functions.invoke("deploy-bp02-to-ghl", {
+        body: { author_id: authorId },
+      });
+      if (fnErr || !data?.success) {
+        throw new Error(data?.error || fnErr?.message || "Publish failed");
+      }
+      setLiveUrl(data.live_url || data.microsite_url || null);
       setContent((prev: any) => ({ ...prev, activated: true }));
     } catch (e: any) {
       setError(e.message);
       setStep(2);
+    }
+  };
+
+  const handleCopyUrl = () => {
+    if (liveUrl) {
+      navigator.clipboard.writeText(liveUrl);
+      setCopied(true);
+      toast.success("Link copied to clipboard!");
+      setTimeout(() => setCopied(false), 2000);
     }
   };
 
@@ -158,7 +176,6 @@ export default function BP02Builder({ authorId }: Props) {
           </Button>
           <div className="flex-1">
             <h1 className="text-lg font-semibold">Lead Magnets</h1>
-            
           </div>
         </div>
       </div>
@@ -233,7 +250,7 @@ export default function BP02Builder({ authorId }: Props) {
         )}
 
         {/* STEP 2: Review */}
-        {step === 2 && content && <ReviewStep content={content} authorName={authorName} onActivate={handlePublish} />}
+        {step === 2 && content && <ReviewStep content={content} authorName={authorName} onActivate={handlePublish} error={error} />}
 
         {/* STEP 3: Activation / Success */}
         {step === 3 && !content?.activated && (
@@ -248,10 +265,11 @@ export default function BP02Builder({ authorId }: Props) {
         )}
 
         {step === 3 && content?.activated && (
-          <PublishSuccessScreen
-            nodeId="BP-02"
+          <PublishSuccessStep
             authorName={authorName}
-            penNameSlug={authorSlug}
+            liveUrl={liveUrl}
+            copied={copied}
+            onCopy={handleCopyUrl}
           />
         )}
       </div>
@@ -276,7 +294,7 @@ function AbbyCard({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ReviewStep({ content, authorName, onActivate }: { content: any; authorName: string; onActivate: () => void }) {
+function ReviewStep({ content, authorName, onActivate, error }: { content: any; authorName: string; onActivate: () => void; error: string | null }) {
   const recommended = content.recommended_lead_magnet || 1;
 
   return (
@@ -301,7 +319,6 @@ function ReviewStep({ content, authorName, onActivate }: { content: any; authorN
           </TabsTrigger>
         </TabsList>
 
-        {/* TAB 1: Lead Magnets */}
         <TabsContent value="magnets" className="space-y-3 mt-4">
           {content.lead_magnets?.map((lm: any) => (
             <Card key={lm.number} className={lm.number === recommended ? "border-primary ring-1 ring-primary/30" : ""}>
@@ -331,7 +348,6 @@ function ReviewStep({ content, authorName, onActivate }: { content: any; authorN
           )}
         </TabsContent>
 
-        {/* TAB 2: Opt-In Page */}
         <TabsContent value="optin" className="mt-4">
           <Card className="overflow-hidden">
             <div className="bg-primary/5 p-6 text-center border-b border-border">
@@ -353,7 +369,6 @@ function ReviewStep({ content, authorName, onActivate }: { content: any; authorN
           </Card>
         </TabsContent>
 
-        {/* TAB 3: Thank You Page */}
         <TabsContent value="thankyou" className="mt-4">
           <Card className="overflow-hidden">
             <div className="bg-primary/5 p-6 text-center">
@@ -367,7 +382,6 @@ function ReviewStep({ content, authorName, onActivate }: { content: any; authorN
           </Card>
         </TabsContent>
 
-        {/* TAB 4: Details */}
         <TabsContent value="details" className="mt-4">
           <Card>
             <CardContent className="pt-6 space-y-3">
@@ -375,8 +389,17 @@ function ReviewStep({ content, authorName, onActivate }: { content: any; authorN
                 <span className="text-sm text-muted-foreground">Funnel name</span>
                 <span className="text-sm font-medium">{content.funnel_name}</span>
               </div>
+              {content.marketing_strategy && (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Best channel</span>
+                    <span className="text-sm font-medium">{content.marketing_strategy.primary_platform}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{content.marketing_strategy.primary_reason}</p>
+                </>
+              )}
               <p className="text-xs text-muted-foreground italic">
-                Your opt-in page and thank you page will be created automatically when you activate.
+                Your opt-in funnel, contact tags, and lead capture workflow will be created automatically when you publish.
               </p>
             </CardContent>
           </Card>
@@ -385,18 +408,115 @@ function ReviewStep({ content, authorName, onActivate }: { content: any; authorN
 
       {/* Action buttons */}
       <div className="flex flex-col sm:flex-row gap-3 pt-2">
-        <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon. Activate now and request changes from ABBY later.")}>
+        <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon. Publish now and request changes from ABBY later.")}>
           Edit
         </Button>
         <Button className="flex-1" size="lg" onClick={onActivate}>
-          Publish to My Site <ArrowRight className="h-4 w-4 ml-2" />
+          Publish & Go Live <ArrowRight className="h-4 w-4 ml-2" />
         </Button>
       </div>
+      {error && (
+        <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm text-center">
+          {error}
+        </div>
+      )}
       <p className="text-xs text-center text-muted-foreground">
-        Your opt-in page goes live automatically. Share the link with your audience to start collecting subscribers.
+        Publishing creates your GHL funnel, contact tags, and lead capture workflow automatically.
       </p>
     </div>
   );
 }
 
-// SuccessStep replaced by NodeSuccessScreen
+function PublishSuccessStep({ authorName, liveUrl, copied, onCopy }: {
+  authorName: string;
+  liveUrl: string | null;
+  copied: boolean;
+  onCopy: () => void;
+}) {
+  const navigate = useNavigate();
+  const [showQR, setShowQR] = useState(false);
+
+  return (
+    <div className="space-y-6">
+      {/* Celebration */}
+      <div className="flex flex-col items-center text-center py-6">
+        <div className="w-20 h-20 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center mb-4 animate-in zoom-in duration-500">
+          <Check className="h-10 w-10 text-emerald-600 dark:text-emerald-400" />
+        </div>
+        <h2 className="text-2xl font-bold mb-1">Your Lead Magnet is Live! 🎉</h2>
+        <p className="text-sm text-muted-foreground">Congratulations, {authorName}!</p>
+      </div>
+
+      {/* Live URL card */}
+      {liveUrl && (
+        <Card className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Link2 className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-semibold">Your live opt-in link</h3>
+          </div>
+          <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-3">
+            <span className="text-sm text-foreground font-mono truncate flex-1">{liveUrl}</span>
+            <Button size="sm" variant="ghost" onClick={onCopy}>
+              <Copy className="h-3.5 w-3.5 mr-1" />
+              {copied ? "Copied!" : "Copy Link"}
+            </Button>
+            <Button size="sm" variant="ghost" asChild>
+              <a href={liveUrl} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            </Button>
+          </div>
+
+          {/* QR Code toggle */}
+          <div className="mt-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowQR(!showQR)}
+              className="w-full"
+            >
+              <QrCode className="h-3.5 w-3.5 mr-2" />
+              {showQR ? "Hide QR Code" : "Show QR Code"}
+            </Button>
+            {showQR && (
+              <div className="flex justify-center mt-4 p-4 bg-white rounded-lg">
+                <QRCodeSVG value={liveUrl} size={200} level="M" />
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
+
+      {/* Abby card */}
+      <Card className="p-4 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30">
+        <div className="flex gap-3">
+          <div className="shrink-0 w-9 h-9 rounded-full bg-amber-200 dark:bg-amber-800 flex items-center justify-center">
+            <Sparkles className="h-4 w-4 text-amber-700 dark:text-amber-300" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-1">Abby says</p>
+            <p className="text-sm text-amber-700 dark:text-amber-300">
+              Your lead magnet funnel is live! Share your link on social media, in your email signature, and on your website. 
+              Now let me activate your marketing campaign so I can automatically promote it to every new reader who finds you.
+            </p>
+          </div>
+        </div>
+      </Card>
+
+      {/* CTAs */}
+      <Button
+        className="w-full"
+        size="lg"
+        onClick={() => navigate("/dashboard?section=marketing-hub&highlight=lead-magnets")}
+      >
+        Activate My Marketing Campaign <ArrowRight className="h-4 w-4 ml-2" />
+      </Button>
+
+      <div className="text-center">
+        <Button variant="link" className="text-sm text-muted-foreground" onClick={() => navigate("/brand-products")}>
+          Go back to Brand Products
+        </Button>
+      </div>
+    </div>
+  );
+}
