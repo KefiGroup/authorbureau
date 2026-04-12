@@ -2093,6 +2093,7 @@ export type Database = {
           book_id: string
           content: string
           created_at: string
+          description: string | null
           id: string
           updated_at: string
         }
@@ -2102,6 +2103,7 @@ export type Database = {
           book_id: string
           content?: string
           created_at?: string
+          description?: string | null
           id?: string
           updated_at?: string
         }
@@ -2111,6 +2113,7 @@ export type Database = {
           book_id?: string
           content?: string
           created_at?: string
+          description?: string | null
           id?: string
           updated_at?: string
         }

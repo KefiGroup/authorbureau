@@ -217,6 +217,30 @@ serve(async (req) => {
       }
     } else {
       console.warn("GHL skipped — no agency key or sub-account");
+
+      // Graceful fallback: save content without GHL deployment
+      const micrositeUrl = `https://authorsbureau.com/${penSlug}/free-gift`;
+
+      const { error: updateErr } = await supabase
+        .from("author_nodes")
+        .update({
+          status: "published_pending_ghl",
+          activated_at: new Date().toISOString(),
+          microsite_url: micrositeUrl,
+          content_json: contentJson,
+        })
+        .eq("author_id", author_id)
+        .eq("node_id", "BP-02");
+
+      if (updateErr) console.error("Failed to update node:", updateErr);
+
+      return jsonRes({
+        success: true,
+        ghl_funnel_id: null,
+        live_url: micrositeUrl,
+        microsite_url: micrositeUrl,
+        message: "Lead magnet saved successfully. Connect GoHighLevel in Settings to activate your live opt-in page.",
+      });
     }
 
     // ── Build live URL ──
