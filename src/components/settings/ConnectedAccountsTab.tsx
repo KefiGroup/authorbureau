@@ -21,6 +21,7 @@ export default function ConnectedAccountsTab({ userId }: { userId: string }) {
   const [nodes, setNodes] = useState<DeployedNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [provisioning, setProvisioning] = useState(false);
+  const [redeploying, setRedeploying] = useState<string | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
