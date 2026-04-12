@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from "react";
+import { useState, useEffect, createContext, useContext, ReactNode, useCallback, useRef } from "react";
 import { isSuperAdmin } from "@/lib/superadmin";
 import { supabase } from "@/lib/shared-backend";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
@@ -77,6 +77,7 @@ interface SubscriptionState {
   productId: string | null;
   subscriptionEnd: string | null;
   loading: boolean;
+  checked: boolean;
 }
 
 interface AuthContextType {
@@ -91,12 +92,28 @@ interface AuthContextType {
   signOut: () => Promise<void>;
 }
 
+const initialSubscriptionState: SubscriptionState = {
+  subscribed: false,
+  productId: null,
+  subscriptionEnd: null,
+  loading: true,
+  checked: false,
+};
+
+const signedOutSubscriptionState: SubscriptionState = {
+  subscribed: false,
+  productId: null,
+  subscriptionEnd: null,
+  loading: false,
+  checked: true,
+};
+
 const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
   loading: true,
   isAdmin: false,
-  subscription: { subscribed: false, productId: null, subscriptionEnd: null, loading: true },
+  subscription: initialSubscriptionState,
   isPremium: false,
   tier: "free",
   checkSubscription: async () => {},
@@ -106,52 +123,130 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [subscription, setSubscription] = useState<SubscriptionState>({
-    subscribed: false,
-    productId: null,
-    subscriptionEnd: null,
-    loading: true,
-  });
+  const [subscription, setSubscription] = useState<SubscriptionState>(initialSubscriptionState);
+
+  const retryTimeoutRef = useRef<number | null>(null);
+  const subscriptionCheckInFlightRef = useRef(false);
+  const checkSubscriptionRef = useRef<() => Promise<void>>(async () => {});
+
+  const clearSubscriptionRetry = useCallback(() => {
+    if (retryTimeoutRef.current !== null) {
+      window.clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
+    }
+  }, []);
+
+  const scheduleSubscriptionRetry = useCallback((delayMs = 750) => {
+    clearSubscriptionRetry();
+    retryTimeoutRef.current = window.setTimeout(() => {
+      retryTimeoutRef.current = null;
+      void checkSubscriptionRef.current();
+    }, delayMs);
+  }, [clearSubscriptionRetry]);
+
+  const waitForSharedSessionToken = useCallback(async (timeoutMs = 5000): Promise<string | null> => {
+    if (session?.access_token) {
+      return session.access_token;
+    }
+
+    try {
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.access_token) {
+        return data.session.access_token;
+      }
+    } catch {
+      // Ignore and keep waiting below
+    }
+
+    return await new Promise((resolve) => {
+      let settled = false;
+
+      const finish = (token: string | null) => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timeoutId);
+        window.clearInterval(pollId);
+        authListener.data.subscription.unsubscribe();
+        resolve(token);
+      };
+
+      const timeoutId = window.setTimeout(() => finish(null), timeoutMs);
+
+      const pollId = window.setInterval(async () => {
+        try {
+          const { data } = await supabase.auth.getSession();
+          if (data.session?.access_token) {
+            finish(data.session.access_token);
+          }
+        } catch {
+          // Ignore polling errors and keep waiting until timeout
+        }
+      }, 250);
+
+      const authListener = supabase.auth.onAuthStateChange((event, nextSession) => {
+        if ((event === "INITIAL_SESSION" || event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && nextSession?.access_token) {
+          finish(nextSession.access_token);
+        }
+      });
+    });
+  }, [session?.access_token]);
 
   const checkSubscription = useCallback(async () => {
+    if (!user) {
+      clearSubscriptionRetry();
+      setSubscription(signedOutSubscriptionState);
+      return;
+    }
+
+    if (subscriptionCheckInFlightRef.current) {
+      return;
+    }
+
+    subscriptionCheckInFlightRef.current = true;
+    clearSubscriptionRetry();
     setSubscription((prev) => ({ ...prev, loading: true }));
-    const timeout = setTimeout(() => {
-      setSubscription((prev) => ({ ...prev, loading: false }));
-    }, 8000);
+
     try {
-      // Get the shared backend session token to pass to the local Cloud function
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-      
-      // CRITICAL: Do not call check-subscription without the shared backend token.
-      // Without it, the Cloud auth token (different email) would be used, returning
-      // subscribed:false and incorrectly showing the paywall.
+      const token = await waitForSharedSessionToken();
+
       if (!token) {
-        clearTimeout(timeout);
-        console.warn("[useAuth] Shared backend session not ready yet, retrying in 2s...");
-        setTimeout(() => checkSubscription(), 2000);
+        console.warn("[useAuth] Shared backend session not ready yet, waiting before rendering gated UI...");
+        scheduleSubscriptionRetry(750);
         return;
       }
-      
+
       const { data, error } = await cloudSupabase.functions.invoke("check-subscription", {
         body: { source_platform: "authorsbureau" },
         headers: { Authorization: `Bearer ${token}` },
       });
-      clearTimeout(timeout);
-      if (error) throw error;
+
+      if (error) {
+        throw error;
+      }
+
       setSubscription({
-        subscribed: data.subscribed ?? false,
-        productId: data.product_id ?? null,
-        subscriptionEnd: data.subscription_end ?? null,
+        subscribed: data?.subscribed ?? false,
+        productId: data?.product_id ?? null,
+        subscriptionEnd: data?.subscription_end ?? null,
         loading: false,
+        checked: true,
       });
     } catch (error) {
-      clearTimeout(timeout);
-      setSubscription((prev) => ({ ...prev, loading: false }));
+      console.error("[useAuth] Subscription check failed:", error);
+
+      if (subscription.checked) {
+        setSubscription((prev) => ({ ...prev, loading: false }));
+      } else {
+        scheduleSubscriptionRetry(1000);
+      }
+    } finally {
+      subscriptionCheckInFlightRef.current = false;
     }
-  }, []);
+  }, [clearSubscriptionRetry, scheduleSubscriptionRetry, subscription.checked, user, waitForSharedSessionToken]);
+
+  checkSubscriptionRef.current = checkSubscription;
 
   useEffect(() => {
     const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
@@ -173,12 +268,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               setIsAdmin(isAdminSession);
             })
             .finally(() => {
-              setLoading(false);
+              setAuthLoading(false);
             });
         } else {
           setIsAdmin(false);
-          setSubscription({ subscribed: false, productId: null, subscriptionEnd: null, loading: false });
-          setLoading(false);
+          setSubscription(signedOutSubscriptionState);
+          setAuthLoading(false);
         }
       }
     );
@@ -196,41 +291,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsAdmin(!!data || isAdminSession);
       }
 
-      setLoading(false);
+      setAuthLoading(false);
     }).catch(() => {
-      setLoading(false);
+      setAuthLoading(false);
     });
 
-    // Safety timeout: ensure loading resolves within 5 seconds
-    const timeout = setTimeout(() => setLoading(false), 3000);
+    // Safety timeout: ensure auth restoration resolves
+    const timeout = window.setTimeout(() => setAuthLoading(false), 3000);
 
     return () => {
       authSub.unsubscribe();
-      clearTimeout(timeout);
+      window.clearTimeout(timeout);
+      clearSubscriptionRetry();
     };
-  }, []);
+  }, [clearSubscriptionRetry]);
 
-  // Check subscription when user is set
   useEffect(() => {
-    if (user) {
-      checkSubscription();
-    }
-  }, [user, checkSubscription]);
+    clearSubscriptionRetry();
+    subscriptionCheckInFlightRef.current = false;
 
-  // Auto-refresh subscription every 60s
+    if (user?.id) {
+      setSubscription(initialSubscriptionState);
+      return;
+    }
+
+    setSubscription(signedOutSubscriptionState);
+  }, [clearSubscriptionRetry, user?.id]);
+
+  // Check subscription once the authenticated user is known.
+  // Keep the app in a loading state until this resolves definitively.
+  useEffect(() => {
+    if (user && !subscription.checked) {
+      void checkSubscription();
+    }
+  }, [user, subscription.checked, checkSubscription]);
+
+  // Auto-refresh subscription every 60s without blocking the whole app once verified
   useEffect(() => {
     if (!user) return;
-    const interval = setInterval(checkSubscription, 60_000);
-    return () => clearInterval(interval);
+    const interval = window.setInterval(() => {
+      void checkSubscription();
+    }, 60_000);
+    return () => window.clearInterval(interval);
   }, [user, checkSubscription]);
 
   const superAdmin = isSuperAdmin(user?.email);
   const tier: SubscriptionTier = superAdmin ? "yield" : getTierFromProductId(subscription.productId);
   const isPremium = superAdmin || tier !== "free";
+  const loading = authLoading || (!!user && !subscription.checked);
 
   const signOut = async () => {
     sessionStorage.removeItem(ADMIN_AUTH_KEY);
     setIsAdmin(false);
+    clearSubscriptionRetry();
     await supabase.auth.signOut();
   };
 
