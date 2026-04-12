@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Loader2, Wand2, FileText, Send, MessageCircle } from "lucide-react";
+import { Sparkles, Loader2, Wand2, Send, MessageCircle } from "lucide-react";
 import ContentSectionCards from "./ContentSectionCards";
 import { executeCrossBuilderPushes } from "@/lib/cross-builder-push";
+import { supabase } from "@/integrations/supabase/client";
 import { type BuilderCategory } from "./StepInstructions";
 import AbbyRecommendationCard from "./AbbyRecommendationCard";
 import { useToast } from "@/hooks/use-toast";
@@ -227,27 +227,36 @@ ${fullText}`;
             let parsedJson: any = null;
             try { parsedJson = JSON.parse(fullText); } catch { /* not JSON, skip push */ }
             if (parsedJson && parsedJson.social_media_posts) {
-              const outputs: Record<string, { title: string; description?: string; content: Record<string, any> }> = {};
-              if (parsedJson.social_media_posts) {
-                outputs["quiz-promo-posts"] = {
-                  title: "Quiz Promotion Posts",
-                  description: "Social media posts promoting the lead magnet quiz",
-                  content: { posts: parsedJson.social_media_posts },
-                };
+              // Look up author_id from the book
+              const { data: bookData } = await supabase
+                .from("books")
+                .select("author_id")
+                .eq("id", bookId)
+                .single();
+              const authorId = bookData?.author_id;
+              if (authorId) {
+                const outputs: Record<string, { title: string; description?: string; content: Record<string, any> }> = {};
+                if (parsedJson.social_media_posts) {
+                  outputs["quiz-promo-posts"] = {
+                    title: "Quiz Promotion Posts",
+                    description: "Social media posts promoting the lead magnet quiz",
+                    content: { posts: parsedJson.social_media_posts },
+                  };
+                }
+                if (parsedJson.quiz_insights_for_social) {
+                  outputs["quiz-insight-posts"] = {
+                    title: "Quiz Insight Posts",
+                    description: "Standalone insight posts from quiz content",
+                    content: { insights: parsedJson.quiz_insights_for_social },
+                  };
+                }
+                await executeCrossBuilderPushes({
+                  sourceBuilder: "lead-magnet",
+                  authorId,
+                  bookId,
+                  outputs,
+                });
               }
-              if (parsedJson.quiz_insights_for_social) {
-                outputs["quiz-insight-posts"] = {
-                  title: "Quiz Insight Posts",
-                  description: "Standalone insight posts from quiz content",
-                  content: { insights: parsedJson.quiz_insights_for_social },
-                };
-              }
-              await executeCrossBuilderPushes({
-                sourceBuilder: "lead-magnet",
-                authorId: bookId, // author context from bookId
-                bookId,
-                outputs,
-              });
             }
           } catch (pushErr) {
             console.error("Cross-builder push failed (non-blocking):", pushErr);
