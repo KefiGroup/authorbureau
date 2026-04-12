@@ -86,12 +86,14 @@ interface Props {
   builderLabel?: string;
   /** Override the default "How It Works" step instructions */
   stepInstructions?: { label: string; description: string }[];
+  /** If contentKey is empty, seed it from this other stepData key on mount */
+  seedFromKey?: string;
 }
 
 export default function SharedContentStep({
   contentKey, title, description, abbyTip, aiPrompt,
   stepData, setStepData, onMarkEdited, stepId, bookId, bookTitle, configKey,
-  builderId, builderLabel,
+  builderId, builderLabel, seedFromKey,
 }: Props) {
   const { toast } = useToast();
   const [generating, setGenerating] = useState(false);
@@ -105,6 +107,14 @@ export default function SharedContentStep({
   const content: string = rawContent && !contentHasStop ? stripMarkdown(rawContent) : "";
   const config = configKey ? stepData[configKey] || {} : {};
   const leadMagnetType = contentKey === "leadMagnetContent" ? String(config?.type || "").toLowerCase() : "";
+
+  // Seed from a previous step's content if this key is empty
+  useEffect(() => {
+    if (!stepData[contentKey] && seedFromKey && stepData[seedFromKey]) {
+      setStepData(prev => ({ ...prev, [contentKey]: prev[seedFromKey!] }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seedFromKey, contentKey]);
 
   // If saved content has [STOP], bootstrap conversation from it
   useEffect(() => {
