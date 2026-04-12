@@ -507,6 +507,13 @@ function PublishSuccessStep({ authorName, authorId, liveUrl, copied, onCopy }: {
         </div>
       </Card>
 
+      {/* Social Distribution Pack */}
+      <SocialDistributionPack
+        authorId={authorId}
+        content={socialPack}
+        onContentLoaded={setSocialPack}
+      />
+
       {/* CTAs */}
       <Button
         className="w-full"
