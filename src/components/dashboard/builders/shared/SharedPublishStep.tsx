@@ -16,6 +16,12 @@ export interface RevenueProjection {
   calculate: (stepData: Record<string, any>) => { amount: number; description: string };
 }
 
+export interface PublishResult {
+  status?: string;
+  liveUrl?: string;
+  message?: string;
+}
+
 interface Props {
   builderLabel: string;
   checklist: ChecklistItem[];
@@ -26,7 +32,7 @@ interface Props {
   onMarkEdited: (id: string) => void;
   stepId: string;
   bookTitle: string;
-  publishFn?: (stepData: Record<string, any>, userId: string) => Promise<void>;
+  publishFn?: (stepData: Record<string, any>, userId: string) => Promise<PublishResult | void>;
   userId: string;
   exportKeys?: string[]; // keys from stepData to include in export
   onNavigate?: (section: string) => void;
