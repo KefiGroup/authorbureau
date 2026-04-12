@@ -5,11 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AUTHOR_THEMES, getThemeById } from "@/lib/author-themes";
 import { toast } from "@/hooks/use-toast";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
 interface Props {
-  /** Compact mode shows a single row; full mode shows a grid */
   compact?: boolean;
-  /** Called after theme is saved */
   onThemeChange?: (themeId: string) => void;
 }
 
@@ -33,18 +32,37 @@ export default function SiteThemePicker({ compact = false, onThemeChange }: Prop
   }, [user]);
 
   async function save(themeId: string) {
-    setSelected(themeId);
+    if (saving) return;
+    const prev = selected;
+    setSelected(themeId); // optimistic
     setSaving(true);
-    const { error } = await supabase
-      .from("author_profiles")
-      .update({ site_theme: themeId })
-      .eq("user_id", user!.id);
-    setSaving(false);
-    if (error) {
-      toast({ title: "Error saving theme", variant: "destructive" });
-    } else {
+
+    try {
+      const token = await getActiveToken();
+      if (!token) throw new Error("Not authenticated");
+
+      const res = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/save-author-profile`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ action: "save", payload: { site_theme: themeId } }),
+        }
+      );
+
+      const result = await res.json();
+      if (!res.ok || result.error) throw new Error(result.error || "Save failed");
+
       toast({ title: "Theme updated! Your site will reflect this immediately." });
       onThemeChange?.(themeId);
+    } catch (err: any) {
+      setSelected(prev); // rollback
+      toast({ title: err.message || "Error saving theme", variant: "destructive" });
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -70,11 +88,12 @@ export default function SiteThemePicker({ compact = false, onThemeChange }: Prop
               <button
                 key={theme.id}
                 onClick={() => save(theme.id)}
+                disabled={saving}
                 className={`relative shrink-0 text-left p-2 rounded-lg border transition-all w-[110px] ${
                   isActive
                     ? "border-secondary ring-2 ring-secondary/20"
                     : "border-border hover:border-secondary/40"
-                }`}
+                } ${saving ? "opacity-60 cursor-not-allowed" : ""}`}
               >
                 {isActive && (
                   <div className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-secondary flex items-center justify-center">
@@ -96,7 +115,7 @@ export default function SiteThemePicker({ compact = false, onThemeChange }: Prop
     );
   }
 
-  // Full grid mode (used in My Website page)
+  // Full grid mode
   return (
     <Card className="p-4 border-border">
       <div className="flex items-center gap-2 mb-3">
@@ -114,11 +133,12 @@ export default function SiteThemePicker({ compact = false, onThemeChange }: Prop
             <button
               key={theme.id}
               onClick={() => save(theme.id)}
+              disabled={saving}
               className={`relative text-left p-2.5 rounded-lg border transition-all ${
                 isActive
                   ? "border-secondary ring-2 ring-secondary/20"
                   : "border-border hover:border-secondary/40"
-              }`}
+              } ${saving ? "opacity-60 cursor-not-allowed" : ""}`}
             >
               {isActive && (
                 <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-secondary flex items-center justify-center">
