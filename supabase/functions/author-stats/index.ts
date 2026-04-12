@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
     // Resolve all author IDs for this person
     const { data: profile } = await admin
       .from("author_profiles")
-      .select("pen_name, stripe_onboarding_complete")
+      .select("pen_name, stripe_onboarding_complete, author_slug, id")
       .eq("user_id", userId)
       .maybeSingle();
 
@@ -121,6 +121,31 @@ Deno.serve(async (req) => {
       .eq("asset_type", "business_plan");
     const analyzedBookIds = new Set((assets || []).map((a: any) => a.book_id));
     const analyzedCount = analyzedBookIds.size;
+
+    // Count author_nodes (built products tracked outside product tables)
+    const { data: authorNodes } = await admin
+      .from("author_nodes")
+      .select("node_id, status")
+      .in("author_id", allUserIds)
+      .in("status", ["content_ready", "live", "published_pending_ghl"]);
+
+    // Collect unique built node_ids
+    const builtNodeIds = new Set<string>();
+    for (const n of authorNodes || []) {
+      builtNodeIds.add(n.node_id);
+    }
+    // Also count website as built if author_slug is set
+    if (profile?.author_slug) {
+      builtNodeIds.add("BP-04");
+    }
+
+    // Map node_ids to categories
+    const nodesBuilt = { brand: 0, buildAuthority: 0, yield: 0 };
+    for (const nodeId of builtNodeIds) {
+      if (nodeId.startsWith("BP-")) nodesBuilt.brand++;
+      else if (nodeId.startsWith("BA-")) nodesBuilt.buildAuthority++;
+      else if (nodeId.startsWith("YR-")) nodesBuilt.yield++;
+    }
 
     // Count products per table per status
     type StatusCounts = { draft: number; ready_for_review: number; published: number; total: number };
