@@ -2,44 +2,52 @@
 
 ## Problem
 
-The sidebar shows "0 built" next to Brand Products because the count only checks product tables (`workbooks`, `courses`, `email_flows`, etc.) but does not check `author_nodes` (where BP-01 through BP-05 nodes like Website, Lead Magnets, Email Marketing are tracked) or other indicators of completed work (like having an `author_slug` set for the website).
+Two issues to fix:
 
-Currently, `author_nodes` is empty for this user, meaning none of the builders are writing completion status there. The only product table with data is `workbooks` (1 draft row), which doesn't increment the count because the sidebar only totals rows from specific tables.
+**1. RLS Error on Publish ("new row violates row-level security policy for table generated_assets")**
 
-Additionally, the edge function `deploy-bp02-to-ghl` writes to `author_nodes`, but the website builder (BP-04) and other builders may not be persisting their status there either.
+The footer "Next" button on the last step calls `UniversalBuilderStudio.handlePublish`, which tries to insert into `generated_assets` using the client-side Supabase SDK. The user is authenticated via the shared backend, so `auth.uid()` on the Cloud Supabase is either null or a different ID — causing the RLS INSERT policy to reject the row.
 
-## Root Cause Chain
+Meanwhile, `SharedPublishStep` (rendered inside the step) has its own publish handler that correctly calls the `deploy-bp02-to-ghl` edge function (which uses the service role key and bypasses RLS). So there are two competing publish paths and the wrong one is being triggered.
 
-1. **`author-stats` edge function** (line 135-160): Only queries 8 product tables. Does not query `author_nodes` at all.
-2. **`AuthorDashboard.tsx`** (line 527-532): `buildUnlocked` sums from `stats.products.perTable[...]` — only product tables, no `author_nodes`.
-3. **Builders not writing to `author_nodes`**: The website builder and other BP builders may not be persisting their completion status, leaving the table empty.
+**2. Post-Publish Flow: Abby should guide the author to the next step**
+
+After publishing the lead magnet, Abby should advise the author on what to do next — connect GHL in Settings to go live, then distribute via the Marketing Hub to social media.
 
 ## Plan
 
-### 1. Update `author-stats` edge function to count `author_nodes`
+### Fix 1: Prevent the footer button from doing a redundant client-side insert for builders with custom publish logic
 
-Add a query for `author_nodes` where `status` is `content_ready`, `live`, or `published_pending_ghl`. Map each `node_id` prefix (BP-01 through BP-09) to the Brand count, BA-10 through BA-18 to Build Authority, and YR-19 through YR-28 to Yield Revenue. Return these counts as new fields: `nodesBuilt.brand`, `nodesBuilt.buildAuthority`, `nodesBuilt.yield`.
+In `UniversalBuilderStudio.tsx`, the `handlePublish` function (line 613) runs generic product-table insert logic for ALL builders. But builders like Lead Magnet that have a custom `publishFn` in `SharedPublishStep` already handle publishing via edge functions.
 
-Also count the website as "built" if the author has an `author_slug` set (since BP-04 completion is indicated by that).
+**Change:** In `UniversalBuilderStudio.handlePublish`, skip the client-side `generated_assets` insert when the builder has a `customRenderer` (meaning its publish step handles its own logic). Instead, just save the draft and mark as complete. Specifically:
 
-### 2. Update `useAuthorStats` types
+- After `handleSaveDraft(true)` at line 617, add a check: if `nodeConfig.customRenderer` is set AND we're on the last step, skip the generic insert block (lines 618-686) — the custom renderer's `SharedPublishStep` already handles the real publish.
+- Show a toast directing users to click the "Publish" button inside the step content instead.
 
-Add the `nodesBuilt` shape to `AuthorStats` so the dashboard can consume it.
+Alternatively (simpler and safer): change the footer button on the last step to NOT call `handlePublish` at all when the builder has a custom renderer. Instead, make it a no-op or just save draft.
 
-### 3. Update `AuthorDashboard.tsx` sidebar props
+### Fix 2: Add Abby next-step guidance after successful publish
 
-Change `buildUnlocked` to sum both `stats.products.perTable[...].total` (product tables) AND `stats.nodesBuilt.brand` (author_nodes + website slug). Same for `buildAuthorityUnlocked` and `yieldUnlocked`.
+In `LeadMagnetStepRenderer.tsx`, after `publishLeadMagnet` succeeds:
 
-### 4. Deduplicate counts
+- If status is `published_pending_ghl`: Show a toast with "Lead magnet saved! Next step: Connect GoHighLevel in Settings to activate your live opt-in page."
+- If status is `live`: Show a toast with "Your lead magnet is live! Next step: Visit the Marketing Hub to distribute it across social media."
 
-Ensure nodes that map to the same product table aren't double-counted (e.g., if BP-06 Workbook exists in both `workbooks` table and `author_nodes`, count it once).
+Update `SharedPublishStep.tsx` to:
+- Pass the publish result back so the UI can show contextual next-step advice
+- Show a small Abby tip card after publishing with the recommended next action and a button to navigate there (Settings or Marketing Hub)
+
+### Files to change
+
+1. **`src/components/dashboard/builders/UniversalBuilderStudio.tsx`** — Skip generic DB insert on last step when builder has a custom renderer
+2. **`src/components/dashboard/builders/shared/SharedPublishStep.tsx`** — Show post-publish Abby guidance based on publish result
+3. **`src/components/dashboard/builders/lead-magnet/LeadMagnetStepRenderer.tsx`** — Pass publish result to SharedPublishStep for next-step advice
 
 ### Technical details
 
-Files to update:
-- `supabase/functions/author-stats/index.ts` — add `author_nodes` query and `author_slug` check
-- `src/hooks/useAuthorStats.ts` — extend `AuthorStats` interface
-- `src/pages/AuthorDashboard.tsx` — update `buildUnlocked` / `buildAuthorityUnlocked` / `yieldUnlocked` calculations
-
-No database migration needed. No other functionality changes.
+- No database migration needed
+- No edge function changes needed
+- The `deploy-bp02-to-ghl` edge function already returns `status: "published_pending_ghl"` or `status: "live"` — we just need to surface this in the UI
+- The fix prevents RLS errors by eliminating the redundant client-side insert path
 
