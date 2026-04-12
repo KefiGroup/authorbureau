@@ -267,7 +267,7 @@ export default function BP02Builder({ authorId }: Props) {
         )}
 
         {/* STEP 2: Review */}
-        {step === 2 && content && <ReviewStep content={content} authorName={authorName} onActivate={handlePublish} error={error} />}
+        {step === 2 && content && <ReviewStep content={content} authorName={authorName} onActivate={handlePublish} error={error} isPublishing={step === 3} />}
 
         {/* STEP 3: Activation / Success */}
         {step === 3 && !content?.activated && (
@@ -312,7 +312,7 @@ function AbbyCard({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ReviewStep({ content, authorName, onActivate, error }: { content: any; authorName: string; onActivate: () => void; error: string | null }) {
+function ReviewStep({ content, authorName, onActivate, error, isPublishing }: { content: any; authorName: string; onActivate: () => void; error: string | null; isPublishing?: boolean }) {
   const recommended = content.recommended_lead_magnet || 1;
 
   return (
@@ -429,8 +429,12 @@ function ReviewStep({ content, authorName, onActivate, error }: { content: any; 
         <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon. Publish now and request changes from ABBY later.")}>
           Edit
         </Button>
-        <Button className="flex-1" size="lg" onClick={onActivate}>
-          Publish & Go Live <ArrowRight className="h-4 w-4 ml-2" />
+        <Button className="flex-1" size="lg" onClick={() => onActivate()} disabled={isPublishing}>
+          {isPublishing ? (
+            <><Sparkles className="h-4 w-4 mr-2 animate-spin" /> Publishing...</>
+          ) : (
+            <>Publish & Go Live <ArrowRight className="h-4 w-4 ml-2" /></>
+          )}
         </Button>
       </div>
       {error && (
