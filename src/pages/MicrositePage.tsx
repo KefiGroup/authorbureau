@@ -223,6 +223,10 @@ interface FormPageProps extends PageProps {
 
 /* ═══ BP-02 — LEAD MAGNET ═══ */
 function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, submitting, submitted }: FormPageProps) {
+  const [stage, setStage] = useState<"gate" | "quiz" | "results">("gate");
+  const [currentQ, setCurrentQ] = useState(0);
+  const [answers, setAnswers] = useState<number[]>([]);
+
   // Extract from nested content_payload structure
   const lmContent = content.leadMagnetContent || content;
   const parsedContent = typeof lmContent === "string" ? (() => { try { return JSON.parse(lmContent); } catch { return {}; } })() : lmContent;
@@ -236,12 +240,198 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
   const ctaText = optin.cta_button_text || parsedContent?.cta_text || content.cta_text || "Take the Free Quiz →";
   const quizTitle = quiz.quiz_title || parsedContent?.funnel_name || "";
   const quizDesc = quiz.quiz_description || "";
-  const questionCount = quiz.questions?.length || 8;
-  const tierCount = quiz.scoring_tiers?.length || 5;
+  const questions: any[] = quiz.questions || [];
+  const scoringTiers: any[] = quiz.scoring_tiers || [];
+  const questionCount = questions.length || 8;
   const privacyNote = optin.privacy_note || "No spam. Unsubscribe anytime.";
   const accentColor = optin.color_palette?.primary || v.accent;
-  const isQuiz = (config.type || "").toLowerCase().includes("quiz") || quiz.questions?.length > 0;
+  const isQuiz = (config.type || "").toLowerCase().includes("quiz") || questions.length > 0;
 
+  const handleGateSubmit = async (e: React.FormEvent) => {
+    await onSubmit(e);
+    if (isQuiz && questions.length > 0) {
+      setStage("quiz");
+    }
+  };
+
+  const handleAnswer = (optionIndex: number) => {
+    const newAnswers = [...answers, optionIndex];
+    setAnswers(newAnswers);
+    if (currentQ + 1 < questions.length) {
+      setCurrentQ(currentQ + 1);
+    } else {
+      setStage("results");
+    }
+  };
+
+  // Calculate score and tier
+  const totalScore = answers.reduce((sum, a) => sum + a, 0);
+  const maxScore = questions.length * 3; // 4 options (0-3)
+  const scorePercent = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
+
+  const getResultTier = () => {
+    if (scoringTiers.length === 0) return { name: "Your Result", description: "Thank you for completing the quiz!", tips: [] };
+    // Try matching by range string like "0-8", "9-16", etc.
+    for (const tier of scoringTiers) {
+      if (tier.range) {
+        const match = tier.range.match(/(\d+)\s*[-–]\s*(\d+)/);
+        if (match) {
+          const low = parseInt(match[1]);
+          const high = parseInt(match[2]);
+          if (totalScore >= low && totalScore <= high) return tier;
+        }
+      }
+    }
+    // Fallback: divide evenly
+    const tierIndex = Math.min(Math.floor((totalScore / Math.max(maxScore, 1)) * scoringTiers.length), scoringTiers.length - 1);
+    return scoringTiers[tierIndex];
+  };
+
+  const resultTier = getResultTier();
+
+  // ── STAGE: QUIZ ──
+  if (stage === "quiz" && questions.length > 0) {
+    const q = questions[currentQ];
+    const progress = ((currentQ) / questions.length) * 100;
+    return (
+      <div className="min-h-[80vh] py-10 px-4" style={{ background: `linear-gradient(135deg, ${accentColor}08 0%, ${bgColor} 100%)` }}>
+        <div className="max-w-2xl mx-auto">
+          {/* Progress */}
+          <div className="mb-8">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-semibold" style={{ color: v.headingText }}>Question {currentQ + 1} of {questions.length}</span>
+              <span className="text-sm" style={{ color: v.mutedText }}>{Math.round(progress)}%</span>
+            </div>
+            <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: `${accentColor}20` }}>
+              <div className="h-full rounded-full transition-all duration-500 ease-out" style={{ width: `${progress}%`, background: accentColor }} />
+            </div>
+          </div>
+
+          {/* Question */}
+          <div className="mb-8">
+            <h2 className="text-xl sm:text-2xl font-bold leading-snug" style={{ color: v.headingText, fontFamily: hFont }}>
+              {q.question}
+            </h2>
+          </div>
+
+          {/* Options */}
+          <div className="space-y-3">
+            {(q.options || []).map((opt: string, i: number) => (
+              <button
+                key={i}
+                onClick={() => handleAnswer(i)}
+                className="w-full text-left p-4 sm:p-5 rounded-xl border-2 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
+                style={{
+                  background: v.cardBg,
+                  borderColor: v.cardBorder,
+                  color: v.bodyText,
+                }}
+                onMouseEnter={e => { (e.target as HTMLElement).style.borderColor = accentColor; (e.target as HTMLElement).style.background = `${accentColor}08`; }}
+                onMouseLeave={e => { (e.target as HTMLElement).style.borderColor = v.cardBorder; (e.target as HTMLElement).style.background = v.cardBg; }}
+              >
+                <span className="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold mr-3 shrink-0" style={{ background: `${accentColor}15`, color: accentColor }}>
+                  {String.fromCharCode(65 + i)}
+                </span>
+                <span className="text-base">{opt}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── STAGE: RESULTS ──
+  if (stage === "results") {
+    return (
+      <div className="min-h-[80vh] py-12 px-4" style={{ background: `linear-gradient(135deg, ${accentColor}10 0%, ${bgColor} 100%)` }}>
+        <div className="max-w-2xl mx-auto">
+          {/* Result header */}
+          <div className="text-center mb-10">
+            <div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center text-4xl" style={{ background: `${accentColor}15` }}>
+              🏆
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-extrabold mb-2" style={{ color: v.headingText, fontFamily: hFont }}>
+              Your Result: {resultTier.name || "Complete"}
+            </h1>
+            <p className="text-lg" style={{ color: v.mutedText }}>
+              You scored {totalScore} out of {maxScore}
+            </p>
+          </div>
+
+          {/* Score bar */}
+          <div className="mb-8 p-6 rounded-xl" style={{ background: v.cardBg, border: `1px solid ${v.cardBorder}` }}>
+            <div className="flex justify-between text-sm mb-2" style={{ color: v.mutedText }}>
+              <span>Your Score</span>
+              <span className="font-bold" style={{ color: accentColor }}>{scorePercent}%</span>
+            </div>
+            <div className="w-full h-4 rounded-full overflow-hidden" style={{ background: `${accentColor}15` }}>
+              <div className="h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${scorePercent}%`, background: accentColor }} />
+            </div>
+          </div>
+
+          {/* Description */}
+          {resultTier.description && (
+            <div className="mb-8 p-6 rounded-xl" style={{ background: v.cardBg, border: `1px solid ${v.cardBorder}` }}>
+              <p className="text-base leading-relaxed" style={{ color: v.bodyText }}>{resultTier.description}</p>
+            </div>
+          )}
+
+          {/* Tips */}
+          {resultTier.tips && resultTier.tips.length > 0 && (
+            <div className="mb-8 p-6 rounded-xl" style={{ background: v.cardBg, border: `1px solid ${v.cardBorder}` }}>
+              <h3 className="text-lg font-bold mb-4" style={{ color: v.headingText, fontFamily: hFont }}>
+                Personalised Recommendations
+              </h3>
+              <ul className="space-y-3">
+                {resultTier.tips.map((tip: string, i: number) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <CheckCircle2 className="h-5 w-5 mt-0.5 shrink-0" style={{ color: accentColor }} />
+                    <span style={{ color: v.bodyText }}>{tip}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Book CTA */}
+          {data.book && (
+            <div className="p-6 rounded-xl text-center" style={{ background: `${accentColor}10`, border: `2px solid ${accentColor}30` }}>
+              <h3 className="text-lg font-bold mb-2" style={{ color: v.headingText, fontFamily: hFont }}>
+                Ready for the Next Step?
+              </h3>
+              <p className="text-sm mb-4" style={{ color: v.mutedText }}>
+                Go deeper with {data.book.title} and get the full framework.
+              </p>
+              {data.book.amazon_url ? (
+                <a href={data.book.amazon_url} target="_blank" rel="noopener noreferrer">
+                  <Button className="rounded-full px-8 h-12 text-base font-bold" style={{ background: accentColor, color: "#fff" }}>
+                    Get the Book <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </a>
+              ) : (
+                <Button className="rounded-full px-8 h-12 text-base font-bold" style={{ background: accentColor, color: "#fff" }} asChild>
+                  <Link to={`/${data.author.slug}/${data.book.slug}`}>
+                    Get the Book <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Author strip */}
+          <div className="mt-8 flex items-center gap-4 justify-center">
+            {data.author.photo_url && (
+              <img src={data.author.photo_url} alt={data.author.pen_name} className="w-12 h-12 rounded-full object-cover" />
+            )}
+            <p className="text-sm" style={{ color: v.mutedText }}>Created by <strong style={{ color: v.headingText }}>{data.author.pen_name}</strong></p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── STAGE: GATE (default) ──
   return (
     <div className="min-h-[80vh]">
       {/* Hero Section */}
@@ -272,55 +462,47 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
             )}
 
             {/* Social proof line */}
-            {isQuiz && tierCount > 0 && (
+            {isQuiz && scoringTiers.length > 0 && (
               <p className="text-sm font-medium mt-6" style={{ color: v.mutedText }}>
-                📊 {tierCount} result categories · Personalised tips from the book · Instant results
+                📊 {scoringTiers.length} result categories · Personalised tips from the book · Instant results
               </p>
             )}
           </div>
 
           {/* Right: Form Card */}
           <div>
-            {!submitted ? (
-              <Card className="p-8 shadow-xl border-2" style={{ background: v.cardBg, borderColor: `${accentColor}40` }}>
-                <div className="text-center mb-6">
-                  {isQuiz ? (
-                    <>
-                      <div className="w-14 h-14 rounded-full mx-auto mb-3 flex items-center justify-center text-2xl" style={{ background: `${accentColor}15` }}>
-                        🎯
-                      </div>
-                      <h3 className="text-xl font-bold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>
-                        {quizTitle || "Start Your Free Assessment"}
-                      </h3>
-                      <p className="text-sm" style={{ color: v.mutedText }}>
-                        {quizDesc || `Answer ${questionCount} quick questions and discover exactly where you are right now.`}
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <h3 className="text-xl font-bold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>
-                        Get Your Free Copy
-                      </h3>
-                      <p className="text-sm" style={{ color: v.mutedText }}>Enter your details below for instant delivery.</p>
-                    </>
-                  )}
-                </div>
-                <form onSubmit={onSubmit} className="space-y-3">
-                  <Input placeholder="Your first name" value={firstName} onChange={e => setFirstName(e.target.value)} required className="h-12 text-base" />
-                  <Input type="email" placeholder="Your best email" value={email} onChange={e => setEmail(e.target.value)} required className="h-12 text-base" />
-                  <Button type="submit" className="w-full rounded-full h-12 text-base font-bold shadow-lg hover:shadow-xl transition-all" style={{ background: accentColor, color: "#fff" }} disabled={submitting}>
-                    {submitting ? "Sending..." : ctaText}
-                  </Button>
-                </form>
-                <p className="text-[11px] mt-4 text-center" style={{ color: v.mutedText }}>{privacyNote}</p>
-              </Card>
-            ) : (
-              <Card className="p-8 text-center shadow-xl" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
-                <CheckCircle2 className="h-14 w-14 mx-auto mb-4" style={{ color: accentColor }} />
-                <h3 className="text-xl font-bold mb-2" style={{ color: v.headingText }}>You're in! 🎉</h3>
-                <p className="text-sm" style={{ color: v.mutedText }}>{content.thank_you_message || (isQuiz ? "Check your email for your personalised results and tips." : "Check your email for your free resource.")}</p>
-              </Card>
-            )}
+            <Card className="p-8 shadow-xl border-2" style={{ background: v.cardBg, borderColor: `${accentColor}40` }}>
+              <div className="text-center mb-6">
+                {isQuiz ? (
+                  <>
+                    <div className="w-14 h-14 rounded-full mx-auto mb-3 flex items-center justify-center text-2xl" style={{ background: `${accentColor}15` }}>
+                      🎯
+                    </div>
+                    <h3 className="text-xl font-bold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>
+                      {quizTitle || "Start Your Free Assessment"}
+                    </h3>
+                    <p className="text-sm" style={{ color: v.mutedText }}>
+                      {quizDesc || `Answer ${questionCount} quick questions and discover exactly where you are right now.`}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-xl font-bold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>
+                      Get Your Free Copy
+                    </h3>
+                    <p className="text-sm" style={{ color: v.mutedText }}>Enter your details below for instant delivery.</p>
+                  </>
+                )}
+              </div>
+              <form onSubmit={handleGateSubmit} className="space-y-3">
+                <Input placeholder="Your first name" value={firstName} onChange={e => setFirstName(e.target.value)} required className="h-12 text-base" />
+                <Input type="email" placeholder="Your best email" value={email} onChange={e => setEmail(e.target.value)} required className="h-12 text-base" />
+                <Button type="submit" className="w-full rounded-full h-12 text-base font-bold shadow-lg hover:shadow-xl transition-all" style={{ background: accentColor, color: "#fff" }} disabled={submitting}>
+                  {submitting ? "Sending..." : ctaText}
+                </Button>
+              </form>
+              <p className="text-[11px] mt-4 text-center" style={{ color: v.mutedText }}>{privacyNote}</p>
+            </Card>
           </div>
         </div>
       </section>
