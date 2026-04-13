@@ -764,9 +764,11 @@ interface Props {
   stepTitle: string;
   /** Section title keywords to hide (case-insensitive partial match) */
   hideSections?: string[];
+  /** When true, all cards start expanded and in edit mode */
+  autoExpand?: boolean;
 }
 
-export default function ContentSectionCards({ content, onChange, stepTitle, hideSections }: Props) {
+export default function ContentSectionCards({ content, onChange, stepTitle, hideSections, autoExpand }: Props) {
   let sections = parseContentSections(content);
   if (hideSections && hideSections.length > 0) {
     sections = sections.filter(sec => {
@@ -774,8 +776,8 @@ export default function ContentSectionCards({ content, onChange, stepTitle, hide
       return !hideSections.some(kw => titleLower.includes(kw.toLowerCase()));
     });
   }
-  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
-  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(autoExpand ? 0 : null);
+  const [editingIdx, setEditingIdx] = useState<number | null>(autoExpand ? 0 : null);
 
   const isSingleSection = sections.length === 1 && sections[0].title === "Content";
 

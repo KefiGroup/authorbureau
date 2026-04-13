@@ -456,6 +456,7 @@ ${fullText}`;
             }}
             stepTitle={title}
             hideSections={hideSections}
+            autoExpand={!!seedFromKey}
           />
         </div>
       )}

@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import SharedSetupStep, { type SetupField } from "../shared/SharedSetupStep";
 import SharedContentStep from "../shared/SharedContentStep";
 import SharedPublishStep from "../shared/SharedPublishStep";
@@ -60,6 +61,7 @@ Create: 1) HEADLINE & SUBHEADLINE (benefit-driven), 2) INTRODUCTION (why this ma
 const EDIT_PROMPT = `Refine and polish this lead magnet content for "{bookTitle}". Existing content: {config}. CRITICAL: If the lead magnet type is checklist or quiz/assessment, it MUST remain STRICTLY ASSESSMENT-ONLY. REMOVE any "Next step (pick 1):", "Choose one:", action items, exercises, tasks, open-ended prompts, or fill-in-the-blank exercises from ANYWHERE in the document. FORBIDDEN phrases: "Next step", "pick 1", "choose one", "do this", "try this", "write your", "message one person", "ask for support", "pick one section", "do one action", "I will ___ for". Each section should ONLY have "Tick what's true:" items and end with an interpretive note. The CALL-TO-ACTION must contain exactly 3 SPECIFIC product recommendations (Workbook, Home Study Course, Online Course) that tell the stuck reader exactly which product to get based on their results. No vague or open-ended suggestions. Make the introduction more compelling with storytelling.`;
 
 export default function LeadMagnetStepRenderer({ stepId, stepData, setStepData, onMarkEdited, bookId, bookTitle, plan, userId }: Props) {
+  const navigate = useNavigate();
   const publishLeadMagnet = async (): Promise<{ status?: string; liveUrl?: string; message?: string }> => {
     // Resolve author profile id
     const { data: authorProfile, error: authorError } = await supabase
@@ -152,7 +154,7 @@ export default function LeadMagnetStepRenderer({ stepId, stepData, setStepData, 
       );
     }
     case "preview":
-      return <SharedPublishStep builderLabel="Lead Magnet" userId={userId} publishFn={publishLeadMagnet} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookTitle={bookTitle} checklist={[
+      return <SharedPublishStep builderLabel="Lead Magnet" userId={userId} publishFn={publishLeadMagnet} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookTitle={bookTitle} onNavigate={(section) => navigate(`/dashboard?section=${section}&highlight=lead-magnets`)} checklist={[
         { label: "Type and audience configured", check: d => !!d.leadMagnetConfig?.type },
         { label: "Content generated", check: d => !!d.leadMagnetContent },
         { label: "Design brief ready", check: d => !!d.leadMagnetDesign },
