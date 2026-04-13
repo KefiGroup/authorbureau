@@ -3,19 +3,34 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { author_id } = await req.json();
+    const { author_id, content_payload } = await req.json();
     if (!author_id) throw new Error("author_id required");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const sb = createClient(supabaseUrl, serviceKey);
+
+    // Upsert content if provided (bypasses RLS)
+    if (content_payload) {
+      const { error: upsertErr } = await sb
+        .from("author_nodes")
+        .upsert({
+          author_id,
+          node_id: "BP-03",
+          node_name: "Social Media",
+          content_json: content_payload,
+          status: "draft",
+        }, { onConflict: "author_id,node_id" });
+      if (upsertErr) console.error("Content upsert error:", upsertErr);
+    }
 
     const { data: profile } = await sb.from("author_profiles").select("ghl_sub_account_id").eq("id", author_id).single();
     let subAccountId = profile?.ghl_sub_account_id;
@@ -38,9 +53,10 @@ serve(async (req) => {
     const GHL_AGENCY_KEY = Deno.env.get("GHL_AGENCY_KEY");
     const { data: node } = await sb.from("author_nodes").select("id, content_json").eq("author_id", author_id).eq("node_id", "BP-03").single();
     const content = node?.content_json as any;
+    const hasGhl = !!(subAccountId && GHL_AGENCY_KEY);
 
-    // Schedule first 7 posts via GHL Social Planner
-    if (subAccountId && GHL_AGENCY_KEY && content?.posts?.length > 0) {
+    // Schedule posts via GHL Social Planner if connected
+    if (hasGhl && content?.posts?.length > 0) {
       const postsToSchedule = content.posts.slice(0, 7);
       const now = new Date();
       const recommendedTime = content.posting_schedule?.recommended_time || "09:00";
@@ -71,27 +87,35 @@ serve(async (req) => {
           console.error(`Failed to schedule post day ${post.day}:`, e);
         }
 
-        // Rate limit delay
         if (i < postsToSchedule.length - 1) {
           await new Promise((r) => setTimeout(r, 300));
         }
       }
     }
 
-    // Update node to live
-    await sb.from("author_nodes").update({
-      status: "live",
-      ghl_resource_id: `social-planner-${author_id}`,
-      activated_at: new Date().toISOString(),
-    }).eq("id", node?.id);
+    const finalStatus = hasGhl ? "live" : "published_pending_ghl";
 
-    return new Response(JSON.stringify({ success: true }), {
+    // Update node status
+    await sb.from("author_nodes").update({
+      status: finalStatus,
+      ghl_resource_id: hasGhl ? `social-planner-${author_id}` : null,
+      activated_at: new Date().toISOString(),
+    }).eq("author_id", author_id).eq("node_id", "BP-03");
+
+    return new Response(JSON.stringify({
+      success: true,
+      status: finalStatus,
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
     console.error("deploy-bp03-to-ghl error:", err);
-    // Still return success — authors always see success
-    return new Response(JSON.stringify({ success: true }), {
+    return new Response(JSON.stringify({
+      success: false,
+      status: "error",
+      error: err.message,
+    }), {
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

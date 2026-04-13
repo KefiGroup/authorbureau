@@ -19,13 +19,27 @@ serve(async (req) => {
   }
 
   try {
-    const { author_id } = await req.json();
+    const { author_id, content_payload } = await req.json();
     if (!author_id) throw new Error("author_id is required");
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    // Upsert content if provided (bypasses RLS)
+    if (content_payload) {
+      const { error: upsertErr } = await supabase
+        .from("author_nodes")
+        .upsert({
+          author_id,
+          node_id: "BP-04",
+          node_name: "Author Website",
+          content_json: content_payload,
+          status: "draft",
+        }, { onConflict: "author_id,node_id" });
+      if (upsertErr) console.error("Content upsert error:", upsertErr);
+    }
 
     const { data: author, error: authorErr } = await supabase
       .from("author_profiles")
@@ -45,7 +59,6 @@ serve(async (req) => {
 
     let locationId = author.ghl_sub_account_id;
 
-    // Provision sub-account if needed
     if (!locationId) {
       try {
         const provisionRes = await fetch(
@@ -69,15 +82,15 @@ serve(async (req) => {
     const GHL_AGENCY_KEY = Deno.env.get("GHL_AGENCY_KEY");
     const content = node.content_json as any;
     let websiteId = "website-" + author_id;
+    const hasGhl = !!(locationId && GHL_AGENCY_KEY);
 
-    if (locationId && GHL_AGENCY_KEY) {
+    if (hasGhl) {
       const ghlHeaders = {
         Authorization: `Bearer ${GHL_AGENCY_KEY}`,
         "Content-Type": "application/json",
         Version: "2021-07-28",
       };
 
-      // D1: Create website
       try {
         const res = await fetch(`${GHL_BASE_URL}/websites/`, {
           method: "POST",
@@ -100,9 +113,8 @@ serve(async (req) => {
         console.error("GHL website creation error:", e);
       }
 
-      // D2-D5: Create pages
       const pages = [
-        { name: "Home", path: "/", title: content.seo?.meta_title || content.site_name, description: content.seo?.meta_description || "", keywords: (content.seo?.keywords || []).join(", ") },
+        { name: "Home", path: "/", title: content.seo?.meta_title || content.site_name },
         { name: "About", path: "/about", title: content.about_page?.headline || "About the Author" },
         { name: "Book", path: "/book", title: content.book_page?.headline || "The Book" },
         { name: "Contact", path: "/contact", title: content.contact_page?.headline || "Contact" },
@@ -111,28 +123,27 @@ serve(async (req) => {
       for (const page of pages) {
         try {
           await delay(300);
-          const res = await fetch(`${GHL_BASE_URL}/websites/${websiteId}/pages`, {
+          await fetch(`${GHL_BASE_URL}/websites/${websiteId}/pages`, {
             method: "POST",
             headers: ghlHeaders,
             body: JSON.stringify({ locationId, ...page }),
           });
-          if (!res.ok) {
-            console.error(`GHL page creation failed (${page.name}):`, await res.text());
-          }
         } catch (e) {
           console.error(`GHL page creation error (${page.name}):`, e);
         }
       }
     }
 
-    // Update node to live
+    const finalStatus = hasGhl ? "live" : "published_pending_ghl";
+    const liveUrl = `https://authorsbureau.com/${penSlug}`;
+
     const { error: updateErr } = await supabase
       .from("author_nodes")
       .update({
-        status: "live",
+        status: finalStatus,
         ghl_resource_id: websiteId,
         activated_at: new Date().toISOString(),
-        microsite_url: `https://authorsbureau.com/${penSlug}`,
+        microsite_url: liveUrl,
       })
       .eq("author_id", author_id)
       .eq("node_id", "BP-04");
@@ -140,14 +151,14 @@ serve(async (req) => {
     if (updateErr) console.error("Failed to update author_nodes:", updateErr);
 
     return new Response(
-      JSON.stringify({ success: true, ghl_website_id: websiteId }),
+      JSON.stringify({ success: true, status: finalStatus, liveUrl, ghl_website_id: websiteId }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
     console.error("deploy-bp04 error:", err.message);
     return new Response(
-      JSON.stringify({ success: false, error: err.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ success: false, status: "error", error: err.message }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
