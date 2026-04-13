@@ -1,83 +1,97 @@
 
-Goal: make Website behave like a single product flow: every “Build Website” button opens the right builder, recognizes existing book/site data, never loops back to Book Hub, and stays aligned with the current marketing publish flow.
+Goal
 
-What I found
-- I do know what the issue is: BP-04 is still split across two architectures.
-- Modern path: dashboard Website/My Website (`section=microsite-manager`, with a modern website builder already available as `builder=website`).
-- Legacy path: `/node-builder/BP-04` -> `BP04Builder`.
-- Brand Products and Marketing Hub still send users to the legacy BP-04 path.
-- The legacy BP-04 flow is the one showing “Complete Book Profile”.
-- `NodeBuilder.tsx`, `BP04Builder.tsx`, and `WebsiteBlueprintPage.tsx` still rely on local `user_id` lookups in places instead of the shared-session/email fallback pattern.
-- `MarketingHub.tsx` also resolves profile/state differently, so Website status and CTA behavior can drift from reality.
-- Minor UX bug: `WebsiteBlueprintPage` sends “Go to My Book Hub” to `"books"` instead of the real dashboard section `"my-books"`.
+Fix BP-01 to BP-05 so every Brand Products / Marketing Hub button opens the correct product flow, keeps the correct book context, and sends published nodes into GHL activation instead of bouncing back to My Books Hub.
+
+What I verified
+
+- The publish handoff itself is mostly correct:
+  - `SharedPublishStep` already links to `/marketing-hub`
+  - `PublishSuccessScreen` already links to `/dashboard?section=marketing-hub&highlight=...`
+- The real break is upstream:
+  - `MarketingHub.tsx` still uses hardcoded `/node-builder/BP-01`, `/BP-02`, `/BP-03`, `/BP-05`
+  - `BrandProductsHub.tsx` still launches BP nodes without book context
+  - `NodeBuilder.tsx` redirects BP-01..BP-04 to dashboard sections but drops `bookId` / `bookTitle`
+  - `UniversalBuilderStudio.tsx` correctly sends users to `my-books` whenever `bookId` is missing
+- Status handling is also wrong:
+  - `MarketingHub.tsx` only treats `live` as ready
+  - `BrandProductsHub.tsx` does not understand `published_pending_ghl`
+  - so a published Lead Magnet can still look “Not Started” and show a Build CTA instead of Activate / Connect
+
+Why you are seeing the loop
+
+After you publish Lead Magnet, the Marketing Hub row is still treated as pending/not-started. Its CTA sends you to a builder path with no `bookId`. That path reaches `UniversalBuilderStudio`, which has no book context, so it sends you back to My Books Hub. That is the loop.
+
+BP-01 to BP-05 audit
+
+| Node | Current issue | Fix |
+|---|---|---|
+| BP-01 Email Marketing | Marketing/Brand buttons use legacy route without book context | Route to book-aware dashboard builder |
+| BP-02 Lead Magnet | Marketing Hub button goes to legacy route, then falls back to My Books Hub | Route to book-aware dashboard builder and treat `published_pending_ghl` as activation-ready |
+| BP-03 Social Media | Path is inconsistent and not book-aware | Route to book-aware dashboard builder |
+| BP-04 Website | Route is mostly okay, but status/badge semantics are wrong | Keep canonical route, fix status semantics and centralize helper |
+| BP-05 Webinars | Still legacy and can drift from the rest of the system | Move to canonical dashboard builder if configured; otherwise preserve book context on legacy path |
 
 Implementation plan
-1. Make Website a single canonical route
-- Canonical build route: `/dashboard?section=microsite-manager&builder=website` (add `bookId` and `bookTitle` when known).
-- Canonical manage route: `/dashboard?section=microsite-manager`.
-- Redirect `/node-builder/BP-04` to the canonical build route instead of rendering `BP04Builder`.
 
-2. Update all Website entry buttons
-- Change Website CTAs in:
-  - `src/pages/BrandProductsHub.tsx`
-  - `src/components/dashboard/MarketingHub.tsx`
-  - `src/config/abbyFrameworkConfig.ts`
-- Rule:
-  - “Build/Open Website Builder” -> canonical build route
-  - “Manage/View Website” -> canonical manage route
-- Remove any Website CTA that falls back to generic Book Hub unless it is an explicit Back action.
+1. Create one shared BP routing helper
+- Add a single source of truth for BP-01 to BP-05 routes.
+- Build routes should be:
+  - BP-01 → `/dashboard?section=email-marketing&builder=email-flows&bookId=...`
+  - BP-02 → `/dashboard?section=lead-magnet&builder=lead-magnet&bookId=...`
+  - BP-03 → `/dashboard?section=social-media&builder=social-media&bookId=...`
+  - BP-04 → `/dashboard?section=microsite-manager`
+  - BP-05 → `/dashboard?section=webinars&builder=webinar&bookId=...` if the webinar builder is already configured
+- Do not change `UniversalBuilderStudio` redirect behavior; feed it the right context before entering it.
 
-3. Unify identity resolution for Website surfaces
-- Create one reusable local-profile resolver:
-  - try local `author_profiles.user_id = current user`
-  - if missing, fall back via `books.owner_email` -> local author profile
-- Use it in:
-  - `src/pages/NodeBuilder.tsx`
-  - `src/components/dashboard/microsite/WebsiteBlueprintPage.tsx`
-  - `src/components/dashboard/MarketingHub.tsx`
-- This prevents shared-session users from being treated like they have no book/profile.
+2. Make Brand Products and Marketing Hub book-aware
+- In `BrandProductsHub.tsx` and `MarketingHub.tsx`, resolve the active book context before navigating.
+- UX rule:
+  - if the user has 1 book, route directly
+  - if the user has multiple books, show a lightweight picker first
+- Replace all hardcoded `/node-builder/BP-0X` links with the shared helper.
 
-4. Remove the false “Complete Book Profile” gate
-- Once BP-04 no longer enters through the legacy wizard, the bad Website gate disappears from the main journey.
-- As a safety hardening step, update `src/hooks/useAuthorBook.ts` to use the same shared-session-aware identity logic so remaining legacy builders do not regress.
+3. Fix legacy redirect forwarding
+- Update `NodeBuilder.tsx` so old `/node-builder/BP-0X?...` routes preserve and forward `bookId`, `bookTitle`, and highlight params.
+- This keeps old buttons safe while the hubs are being cleaned up.
 
-5. Keep the publish / marketing architecture clean
-```text
-Any Website CTA
- -> canonical dashboard website builder
- -> generate / review / edit
- -> publish
- -> deploy-bp04-to-ghl
- -> author_nodes updated
- -> Marketing Hub reads the same status
-```
-- Lead Magnet should continue using the same modern pattern:
-```text
-CTA -> dashboard builder -> publish function -> author_nodes -> Marketing Hub
-```
-- No database changes are needed.
+4. Fix status semantics for post-publish states
+- Update `MarketingHub.tsx` and `BrandProductsHub.tsx` to recognize:
+  - `building`
+  - `content_ready`
+  - `published_pending_ghl`
+  - `live`
+- `published_pending_ghl` should not render as “Not Started”.
+- New UX:
+  - not started → Build
+  - in progress → Continue
+  - published_pending_ghl → Activate / Connect
+  - live without marketing activation → Activate Now
+  - live with marketing activation → Active
 
-6. UX cleanup
-- Rename ambiguous Website CTA copy where needed:
-  - “Build This Product” -> “Open Website Builder”
-  - “My Website” -> management/review destination only
-- If Website content already exists, land the user in review/manage context instead of a blank intro.
-- Fix the My Website empty-state button from `"books"` to `"my-books"`.
+5. Fix the GHL activation handoff
+- In `MarketingHub.tsx`, if BP-02/BP-04/BP-05 is `published_pending_ghl`, show an activation path instead of a build path.
+- Activation should use the existing provisioning/deploy flow and only send users to Connect Settings if provisioning fails.
+- Result: clicking the Lead Magnet campaign after publish should move toward GHL activation, not back to Book Hub.
+
+6. Fix counts and badges
+- Update brand badges / built counters so `published_pending_ghl` counts as built/saved work.
+- If the left-side totals are still based only on `live`, update the stats logic as well so the sidebar reflects reality.
 
 Files to update
-- `src/pages/NodeBuilder.tsx`
-- `src/pages/BrandProductsHub.tsx`
+
 - `src/components/dashboard/MarketingHub.tsx`
-- `src/components/dashboard/microsite/WebsiteBlueprintPage.tsx`
-- `src/config/abbyFrameworkConfig.ts`
-- `src/hooks/useAuthorBook.ts`
-- optionally a shared helper such as `src/lib/resolveLocalAuthorProfile.ts`
+- `src/pages/BrandProductsHub.tsx`
+- `src/pages/NodeBuilder.tsx`
+- `src/config/abbyFrameworkConfig.ts` or a new shared route helper file
+- optionally `supabase/functions/author-stats/index.ts` if counts still only include `live`
 
 Acceptance checks
-- From Book Hub -> Website opens the correct website builder, not Book Hub again.
-- From Brand Products -> Website opens the same website builder.
-- From Marketing Hub -> Website opens the same website builder.
-- Existing book data is recognized immediately.
-- Existing website content/status is recognized immediately.
-- No “Complete Book Profile” prompt appears for this book.
-- After publish, Website status is reflected consistently in My Website, Brand Products, and Marketing Hub.
+
+- From Marketing Hub, BP-02 no longer returns to My Books Hub.
+- From Marketing Hub, a published Lead Magnet shows Activate/Connect, not Build.
+- From Brand Products, BP-01/BP-02/BP-03 open the correct builder for the correct book.
+- BP-04 opens the website flow without the false profile loop.
+- BP-05 follows one canonical path.
+- Left-side counts and BP badges reflect saved/published brand nodes correctly.
+- End-to-end: Publish Lead Magnet → Go to Marketing Hub → open Lead Magnets → Activate to GHL works.
