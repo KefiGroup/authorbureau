@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sparkles, ArrowRight, Lock, Star, Clock, BarChart3 } from "lucide-react";
+import { getBpBuildRoute } from "@/lib/bpRoutes";
 
 type NodeStatus = "locked" | "not_started" | "building" | "content_ready" | "live" | "error";
 
@@ -71,6 +72,7 @@ export default function BrandProductsHub() {
   const [nodes, setNodes] = useState<NodeCard[]>([]);
   const [authorName, setAuthorName] = useState("");
   const [loading, setLoading] = useState(true);
+  const [firstBook, setFirstBook] = useState<{ id: string; title: string } | null>(null);
 
   useEffect(() => {
     if (authLoading || !user) return;
