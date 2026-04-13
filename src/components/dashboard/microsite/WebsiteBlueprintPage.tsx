@@ -108,10 +108,14 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
       }
     })();
 
+    const profile = profileRes.data;
+    setProfileData(profile);
+    if (profile?.website_url) setCustomDomain(profile.website_url.replace(/^https?:\/\//, ""));
+
     const books = booksResult.books as any[];
     const bookIds = books.map((b: any) => b.id);
 
-    // Fetch products for these books
+    // Fetch products for these books using resolved user ID
     let homeStudy: any[] = [];
     let courses: any[] = [];
     let coaching: any[] = [];
@@ -120,11 +124,11 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
 
     if (bookIds.length > 0) {
       const [hsRes, cRes, coachRes, abRes, podRes] = await Promise.all([
-        supabase.from("home_study_courses").select("id, title, book_id, status").eq("author_id", user!.id),
-        supabase.from("courses").select("id, title, book_id, status").eq("author_id", user!.id),
-        supabase.from("coaching_packages").select("id, title, status").eq("author_id", user!.id),
-        supabase.from("audiobooks").select("id, title, book_id, status").eq("author_id", user!.id),
-        supabase.from("podcasts").select("id, title, book_id, status").eq("author_id", user!.id),
+        supabase.from("home_study_courses").select("id, title, book_id, status").eq("author_id", resolvedUserId),
+        supabase.from("courses").select("id, title, book_id, status").eq("author_id", resolvedUserId),
+        supabase.from("coaching_packages").select("id, title, status").eq("author_id", resolvedUserId),
+        supabase.from("audiobooks").select("id, title, book_id, status").eq("author_id", resolvedUserId),
+        supabase.from("podcasts").select("id, title, book_id, status").eq("author_id", resolvedUserId),
       ]);
       homeStudy = hsRes.data || [];
       courses = cRes.data || [];
