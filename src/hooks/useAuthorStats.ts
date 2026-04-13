@@ -38,7 +38,7 @@ const DEFAULT_STATS: AuthorStats = {
 // Module-level cache to prevent re-fetches across remounts
 let cachedStats: AuthorStats | null = null;
 let cacheTimestamp = 0;
-const CACHE_TTL = 30_000; // 30 seconds
+const CACHE_TTL = 10_000; // 10 seconds
 
 export function useAuthorStats(userId: string | undefined) {
   const [stats, setStats] = useState<AuthorStats>(cachedStats || DEFAULT_STATS);
