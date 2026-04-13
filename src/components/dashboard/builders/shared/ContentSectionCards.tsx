@@ -286,7 +286,8 @@ function groupIntoParagraphs(body: string): string[][] {
       /^\d+[\.\)]\s/.test(trimmed) ||
       /^Prompt\s*[:—–]/i.test(trimmed) ||
       /^(Source\s*(Chapter)?|Why it matters)\s*[:—]/i.test(trimmed) ||
-      isInlineHeader(trimmed);
+      isInlineHeader(trimmed) ||
+      isSubSectionHeader(trimmed);
 
     if (isStructural) {
       if (current.length > 0) {
