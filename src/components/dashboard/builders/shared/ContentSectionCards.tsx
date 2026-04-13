@@ -902,7 +902,6 @@ export default function ContentSectionCards({ content, onChange, stepTitle, hide
     <div className="space-y-3">
       {sections.map((section, idx) => {
         const isExpanded = expandedIdxs.has(idx);
-        const isEditing = editingIdxs.has(idx);
         const previewText = section.body.replace(/\n/g, " ").slice(0, 100);
 
         const hasContent = section.body.trim().length > 0;
