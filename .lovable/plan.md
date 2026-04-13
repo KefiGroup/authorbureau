@@ -1,38 +1,30 @@
 
 
-# Simplify Step 3 — Change "Edit Content" to "Choose Your Headline"
+# Fix: Lead Magnet Builder Should Use Existing Content Instead of Restarting
 
-## What Changes
+## Problem
 
-Step 3 currently duplicates Step 2 as a full content editor. Since Step 2 ("Let Abby Build") already supports editing, Step 3 will become a focused headline picker: show 3 headline options as clickable cards, author picks one, done.
+There are **two separate builders** for Lead Magnets (BP-02):
+1. **Old `BP02Builder`** — accessed from BrandProductsHub via `/node-builder/BP-02`. Stores/reads content from `author_nodes` table.
+2. **New `UniversalBuilderStudio` + `LeadMagnetStepRenderer`** — accessed from AuthorDashboard. Stores content in `generated_assets` table.
 
-## How
+When you generate content via the new builder, the old builder doesn't see it because it only checks `author_nodes`. So it shows "Complete Book Profile" and wants to restart from scratch.
 
-### 1. Create `HeadlinePickerStep.tsx`
+## Solution
 
-New component at `src/components/dashboard/builders/lead-magnet/HeadlinePickerStep.tsx`:
+**Retire the old `BP02Builder` route.** Make `/node-builder/BP-02` redirect to the UniversalBuilderStudio-based lead magnet builder in the AuthorDashboard, so there's a single source of truth.
 
-- Parse `stepData.leadMagnetContent` (the generated markdown from Step 2) to extract the 3 headline variants from the "HEADLINE OPTIONS" section
-- Also handle legacy content where headlines appear as separate ALL-CAPS sections (reuse the `isHeadlineVariant` / `sharesWord` logic)
-- Display 3 clickable cards (similar style to `GenericOptionSelector`) — each showing the headline text with a label like "Identity", "Outcome", "Curiosity"
-- On selection, save the chosen headline to `stepData.leadMagnetSelectedHeadline`
-- Include Abby tip: "Pick the headline that best speaks to your reader's identity or desired outcome."
-- Show a "Save & Continue" button that calls `onMarkEdited`
-
-### 2. Update `LeadMagnetStepRenderer.tsx`
-
-- Replace the `case "edit"` block: instead of `SharedContentStep`, render `HeadlinePickerStep`
-- Pass `stepData`, `setStepData`, `onMarkEdited`, `stepId`
-
-### 3. Update step label (if configured elsewhere)
-
-- Search for where the step labels ("Edit & Polish", "Edit Content") are defined and rename to "Choose Headline"
-
-## Files Changed
+### Changes
 
 | File | Change |
 |------|--------|
-| `src/components/dashboard/builders/lead-magnet/HeadlinePickerStep.tsx` | New — 3-option headline selector |
-| `src/components/dashboard/builders/lead-magnet/LeadMagnetStepRenderer.tsx` | Replace `case "edit"` with `HeadlinePickerStep` |
-| Step config file (if any) | Rename step label to "Choose Headline" |
+| `src/pages/NodeBuilder.tsx` | For `BP-02`, instead of rendering `BP02Builder`, redirect/navigate to the dashboard's lead magnet builder section (e.g., `/dashboard?section=lead-magnet-funnel`) |
+
+This is a one-line change: when `nodeId === "BP-02"`, navigate to the dashboard section that already hosts the working UniversalBuilderStudio builder with all existing content, headline picker, and publish flow.
+
+### Why This Is Better
+- Single builder, single content store — no duplication
+- All previously generated content is immediately available
+- Publish flow goes straight to GHL as designed
+- No need to re-generate anything
 
