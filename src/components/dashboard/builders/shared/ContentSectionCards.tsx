@@ -867,7 +867,6 @@ export default function ContentSectionCards({ content, onChange, stepTitle, hide
     });
   }
   const [expandedIdxs, setExpandedIdxs] = useState<Set<number>>(() => autoExpand ? new Set(sections.map((_, i) => i)) : new Set());
-  const [editingIdxs, setEditingIdxs] = useState<Set<number>>(() => autoExpand ? new Set(sections.map((_, i) => i)) : new Set());
 
   const isSingleSection = sections.length === 1 && sections[0].title === "Content";
 
