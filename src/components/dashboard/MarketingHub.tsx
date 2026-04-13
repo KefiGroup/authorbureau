@@ -225,6 +225,18 @@ export default function MarketingHub({ onNavigate }: Props) {
           .eq("author_id", profileId);
         setNodeRows((data as NodeRow[]) || []);
       }
+
+      // Fetch first book for book-aware routing
+      if (user?.email) {
+        const { data: booksForAuthor } = await supabase
+          .from("books")
+          .select("id, title")
+          .eq("owner_email", user.email.toLowerCase())
+          .limit(1);
+        if (booksForAuthor && booksForAuthor.length > 0) {
+          setFirstBook({ id: booksForAuthor[0].id, title: booksForAuthor[0].title });
+        }
+      }
     } catch (err) {
       console.error("Failed to fetch nodes:", err);
     } finally {
