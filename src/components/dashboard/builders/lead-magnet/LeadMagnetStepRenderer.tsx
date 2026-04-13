@@ -131,7 +131,7 @@ export default function LeadMagnetStepRenderer({ stepId, stepData, setStepData, 
 
   switch (stepId) {
     case "configure":
-      return <SharedSetupStep bookId={bookId} configKey="leadMagnetConfig" fields={SETUP_FIELDS} abbyTip="Checklists and cheat sheets convert best. They promise a quick win with minimal effort from the reader." stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} plan={plan} bookTitle={bookTitle} defaults={{ type: "checklist", deliveryMethod: "pdf" }} invalidateOnFieldChange={{
+      return <SharedSetupStep bookId={bookId} configKey="leadMagnetConfig" fields={SETUP_FIELDS} abbyTip="Quizzes and assessments drive the highest engagement and lead capture. I'll automatically choose the best delivery method for your format." stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} plan={plan} bookTitle={bookTitle} defaults={{ type: "quiz" }} invalidateOnFieldChange={{
         type: ["leadMagnetContent", "leadMagnetEdited", "leadMagnetDesign"],
       }} />;
     case "generate":
