@@ -74,7 +74,7 @@ export default function LeadMagnetStepRenderer({ stepId, stepData, setStepData, 
       throw new Error("Author profile not found. Please complete your profile first.");
     }
 
-    // Upsert BP-02 author_nodes row with builder content so the edge function can read it
+    // Build content payload to send to the edge function (which handles the DB upsert via service role)
     const contentPayload = {
       leadMagnetConfig: stepData.leadMagnetConfig || {},
       leadMagnetContent: stepData.leadMagnetContent || "",
@@ -82,26 +82,6 @@ export default function LeadMagnetStepRenderer({ stepId, stepData, setStepData, 
       leadMagnetPage: stepData.leadMagnetPage || "",
       leadMagnetDesignData: stepData.leadMagnetDesignData || {},
     };
-
-    const { error: upsertError } = await supabase
-      .from("author_nodes")
-      .upsert(
-        {
-          author_id: authorProfile.id,
-          node_id: "BP-02",
-          node_name: "Lead Magnet",
-          status: "draft",
-          revenue_to_date: 0,
-          current_step: 1,
-          content_json: contentPayload,
-        },
-        { onConflict: "author_id,node_id" }
-      );
-
-    if (upsertError) {
-      console.error("Failed to upsert BP-02 node:", upsertError);
-      throw new Error("Failed to save lead magnet data. Please try again.");
-    }
 
     // Use getActiveToken for reliable cross-session auth
     const token = await getActiveToken();
@@ -114,7 +94,7 @@ export default function LeadMagnetStepRenderer({ stepId, stepData, setStepData, 
           Authorization: `Bearer ${token || ""}`,
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
-        body: JSON.stringify({ author_id: authorProfile.id }),
+        body: JSON.stringify({ author_id: authorProfile.id, content_payload: contentPayload }),
       },
       30000,
     );
