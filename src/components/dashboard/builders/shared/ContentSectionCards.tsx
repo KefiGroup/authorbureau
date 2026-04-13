@@ -892,15 +892,6 @@ export default function ContentSectionCards({ content, onChange, stepTitle, hide
   const toggleExpanded = (idx: number) => {
     setExpandedIdxs(prev => {
       const next = new Set(prev);
-      if (next.has(idx)) { next.delete(idx); setEditingIdxs(p => { const n = new Set(p); n.delete(idx); return n; }); }
-      else next.add(idx);
-      return next;
-    });
-  };
-
-  const toggleEditing = (idx: number) => {
-    setEditingIdxs(prev => {
-      const next = new Set(prev);
       if (next.has(idx)) next.delete(idx);
       else next.add(idx);
       return next;
