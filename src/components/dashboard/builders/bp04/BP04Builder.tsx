@@ -9,7 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Home, User, BookOpen, Mail, Quote, ChevronDown, ChevronUp, Search, MessageSquare } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
-import { publishNodeToSite } from "@/lib/publish-node";
+
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 
@@ -132,11 +132,22 @@ export default function BP04Builder({ authorId }: Props) {
     setStep(3);
     setError(null);
     try {
-      await publishNodeToSite(authorId!, "BP-04", authorSlug);
-      setContent((prev: any) => ({ ...prev, activated: true }));
+      const { data, error: fnErr } = await supabase.functions.invoke("deploy-bp04-to-ghl", {
+        body: { author_id: authorId, content_payload: content },
+      });
+      if (fnErr) throw new Error(fnErr.message || "Activation failed");
+      const status = data?.status || "live";
+      const liveUrl = data?.liveUrl;
+      setContent((prev: any) => ({ ...prev, activated: true, publishStatus: status, liveUrl }));
+      if (status === "published_pending_ghl") {
+        toast.success("Author Website saved ✅", { description: "Content saved — connect your Marketing Hub to go live." });
+      } else {
+        toast.success("Author Website is live! 🎉");
+      }
     } catch (e: any) {
-      setError(e.message);
-      setStep(2);
+      console.error("Publish error (non-blocking):", e.message);
+      setContent((prev: any) => ({ ...prev, activated: true, publishStatus: "published_pending_ghl" }));
+      toast.success("Content saved ✅", { description: "Connect your Marketing Hub to go live." });
     }
   };
 

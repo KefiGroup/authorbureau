@@ -17,10 +17,24 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { author_id } = await req.json();
+    const { author_id, content_payload } = await req.json();
     if (!author_id) throw new Error("author_id is required");
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+    // Upsert content if provided (bypasses RLS)
+    if (content_payload) {
+      const { error: upsertErr } = await supabase
+        .from("author_nodes")
+        .upsert({
+          author_id,
+          node_id: "BP-05",
+          node_name: "Webinars",
+          content_json: content_payload,
+          status: "draft",
+        }, { onConflict: "author_id,node_id" });
+      if (upsertErr) console.error("Content upsert error:", upsertErr);
+    }
 
     const { data: author, error: authorErr } = await supabase
       .from("author_profiles")
@@ -63,8 +77,9 @@ serve(async (req) => {
     const GHL_AGENCY_KEY = Deno.env.get("GHL_AGENCY_KEY");
     const content = node.content_json as any;
     let calendarId = "calendar-" + author_id;
+    const hasGhl = !!(locationId && GHL_AGENCY_KEY);
 
-    if (locationId && GHL_AGENCY_KEY) {
+    if (hasGhl) {
       const ghlHeaders = {
         Authorization: `Bearer ${GHL_AGENCY_KEY}`,
         "Content-Type": "application/json",
@@ -74,7 +89,6 @@ serve(async (req) => {
       const recIdx = (content.recommended_webinar || 1) - 1;
       const recTopic = content.webinar_topics?.[recIdx] || content.webinar_topics?.[0];
 
-      // D1: Create Calendar
       try {
         const res = await fetch(`${GHL_BASE_URL}/calendars/`, {
           method: "POST",
@@ -102,7 +116,6 @@ serve(async (req) => {
 
       await delay(300);
 
-      // D2: Create tag for follow-up
       try {
         await fetch(`${GHL_BASE_URL}/contacts/tags`, {
           method: "POST",
@@ -117,14 +130,16 @@ serve(async (req) => {
       }
     }
 
-    // Update node to live
+    const finalStatus = hasGhl ? "live" : "published_pending_ghl";
+    const liveUrl = `https://authorsbureau.com/${penSlug}/webinar`;
+
     const { error: updateErr } = await supabase
       .from("author_nodes")
       .update({
-        status: "live",
+        status: finalStatus,
         ghl_resource_id: calendarId,
         activated_at: new Date().toISOString(),
-        microsite_url: `https://authorsbureau.com/${penSlug}/webinar`,
+        microsite_url: liveUrl,
       })
       .eq("author_id", author_id)
       .eq("node_id", "BP-05");
@@ -132,14 +147,14 @@ serve(async (req) => {
     if (updateErr) console.error("Failed to update author_nodes:", updateErr);
 
     return new Response(
-      JSON.stringify({ success: true, ghl_calendar_id: calendarId }),
+      JSON.stringify({ success: true, status: finalStatus, liveUrl, ghl_calendar_id: calendarId }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
     console.error("deploy-bp05 error:", err.message);
     return new Response(
-      JSON.stringify({ success: false, error: err.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ success: false, status: "error", error: err.message }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

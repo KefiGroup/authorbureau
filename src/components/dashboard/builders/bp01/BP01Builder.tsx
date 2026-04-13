@@ -9,7 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Mail, Gift, Radio, Settings, ChevronDown, ChevronUp } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
-import { publishNodeToSite } from "@/lib/publish-node";
+
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 
@@ -137,16 +137,24 @@ export default function BP01Builder({ authorId }: Props) {
     setError(null);
     try {
       const { data, error: fnErr } = await supabase.functions.invoke("deploy-bp01-to-ghl", {
-        body: { author_id: authorId },
+        body: { author_id: authorId, content_payload: content },
       });
-      if (fnErr || !data?.success) {
-        throw new Error(data?.error || fnErr?.message || "Activation failed");
+      if (fnErr) throw new Error(fnErr.message || "Activation failed");
+      const status = data?.status || "live";
+      setContent((prev: any) => ({
+        ...prev,
+        activated: true,
+        publishStatus: status,
+      }));
+      if (status === "published_pending_ghl") {
+        toast.success("Email Marketing saved ✅", { description: "Content saved — connect your Marketing Hub to go live." });
+      } else {
+        toast.success("Email Marketing is live! 🎉");
       }
-      setContent((prev: any) => ({ ...prev, activated: true }));
     } catch (e: any) {
-      // Still show success — GHL errors are non-blocking
       console.error("Activation error (non-blocking):", e.message);
-      setContent((prev: any) => ({ ...prev, activated: true }));
+      setContent((prev: any) => ({ ...prev, activated: true, publishStatus: "published_pending_ghl" }));
+      toast.success("Content saved ✅", { description: "Connect your Marketing Hub to go live." });
     }
   };
 

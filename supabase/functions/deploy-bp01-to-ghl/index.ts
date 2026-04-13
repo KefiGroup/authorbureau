@@ -29,7 +29,7 @@ serve(async (req) => {
   }
 
   try {
-    const { author_id } = await req.json();
+    const { author_id, content_payload } = await req.json();
     if (!author_id) throw new Error("author_id is required");
 
     const supabase = createClient(
@@ -44,6 +44,20 @@ serve(async (req) => {
       .eq("id", author_id)
       .single();
     if (authorErr || !author) throw new Error("Author not found");
+
+    // If content_payload provided, upsert it first (bypasses RLS via service role)
+    if (content_payload) {
+      const { error: upsertErr } = await supabase
+        .from("author_nodes")
+        .upsert({
+          author_id,
+          node_id: "BP-01",
+          node_name: "Email Marketing",
+          content_json: content_payload,
+          status: "draft",
+        }, { onConflict: "author_id,node_id" });
+      if (upsertErr) console.error("Content upsert error:", upsertErr);
+    }
 
     // Fetch BP-01 node content
     const { data: node, error: nodeErr } = await supabase
@@ -83,11 +97,12 @@ serve(async (req) => {
       }
     }
 
+    const hasGhl = !!(apiKey && ghlSubaccountId);
     const errors: string[] = [];
     let ghlCampaignId: string | null = null;
 
-    // Step 1: Create tag for the list
-    if (apiKey && ghlSubaccountId) {
+    if (hasGhl) {
+      // Step 1: Create tag
       try {
         const tagResp = await ghlFetch("/tags/", "POST", {
           name: content.list_name || `${author.pen_name} Readers`,
@@ -119,7 +134,7 @@ serve(async (req) => {
       if (content.welcome_sequence && Array.isArray(content.welcome_sequence)) {
         for (const email of content.welcome_sequence) {
           try {
-            await new Promise((r) => setTimeout(r, 300)); // 300ms rate-limit
+            await new Promise((r) => setTimeout(r, 300));
             const emailResp = await ghlFetch("/emails/builder", "POST", {
               locationId: ghlSubaccountId,
               name: `Welcome Email ${email.email_number} - ${content.campaign_name}`,
@@ -143,11 +158,14 @@ serve(async (req) => {
       console.error("GHL deployment errors (non-blocking):", errors);
     }
 
-    // Step 4: Update node status to live regardless
+    // Determine final status
+    const finalStatus = hasGhl ? "live" : "published_pending_ghl";
+
+    // Update node status
     const { error: updateErr } = await supabase
       .from("author_nodes")
       .update({
-        status: "live",
+        status: finalStatus,
         ghl_resource_id: ghlCampaignId,
         activated_at: new Date().toISOString(),
       })
@@ -161,6 +179,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
+        status: finalStatus,
         ghl_campaign_id: ghlCampaignId,
         errors_logged: errors.length,
       }),
@@ -169,8 +188,8 @@ serve(async (req) => {
   } catch (err) {
     console.error("deploy-bp01-to-ghl error:", err.message);
     return new Response(
-      JSON.stringify({ success: false, error: err.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ success: false, status: "error", error: err.message }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

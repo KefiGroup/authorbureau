@@ -57,7 +57,7 @@ serve(async (req) => {
       .eq("node_id", nodeId)
       .maybeSingle();
 
-    if (!node || node.status !== "live") {
+    if (!node || (node.status !== "live" && node.status !== "published_pending_ghl")) {
       return new Response(
         JSON.stringify({ error: "Node not live" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
