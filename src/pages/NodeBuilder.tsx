@@ -1,4 +1,4 @@
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -89,6 +89,11 @@ export default function NodeBuilder() {
     "YR-25": YR25Builder, "YR-26": YR26Builder, "YR-27": YR27Builder,
     "YR-28": YR28Builder,
   };
+
+  // BP-02 uses the UniversalBuilderStudio in the dashboard — redirect there
+  if (nodeId === "BP-02") {
+    return <Navigate to="/dashboard?section=lead-magnet-funnel" replace />;
+  }
 
   const Builder = nodeId ? builders[nodeId] : null;
 
