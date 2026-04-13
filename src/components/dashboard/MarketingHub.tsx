@@ -187,55 +187,20 @@ export default function MarketingHub({ onNavigate }: Props) {
 
   const highlightRef = useRef<HTMLDivElement | null>(null);
 
-  /* ─── Fetch author nodes ─── */
+  /* ─── Fetch author nodes via service-role edge function ─── */
   const fetchNodes = useCallback(async () => {
     if (!user) return;
     try {
-      let profileId: string | null = null;
-      const { data: profile } = await supabase
-        .from("author_profiles")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (profile) {
-        profileId = profile.id;
-      } else if (user.email) {
-        // Shared-backend identity fallback: resolve via books.owner_email
-        const { data: bookByEmail } = await supabase
-          .from("books")
-          .select("author_id")
-          .eq("owner_email", user.email.toLowerCase())
-          .limit(1)
-          .maybeSingle();
-        if (bookByEmail?.author_id) {
-          const { data: profileByBook } = await supabase
-            .from("author_profiles")
-            .select("id")
-            .eq("user_id", bookByEmail.author_id)
-            .maybeSingle();
-          if (profileByBook) profileId = profileByBook.id;
-        }
-      }
-      if (profileId) setAuthorProfileId(profileId);
+      const { data, error } = await supabase.functions.invoke("get-marketing-hub-data", {
+        body: { user_id: user.id, email: user.email || null },
+      });
 
-      if (profileId) {
-        const { data } = await supabase
-          .from("author_nodes")
-          .select("node_id, status, marketing_activated_at")
-          .eq("author_id", profileId);
-        setNodeRows((data as NodeRow[]) || []);
-      }
-
-      // Fetch first book for book-aware routing
-      if (user?.email) {
-        const { data: booksForAuthor } = await supabase
-          .from("books")
-          .select("id, title")
-          .eq("owner_email", user.email.toLowerCase())
-          .limit(1);
-        if (booksForAuthor && booksForAuthor.length > 0) {
-          setFirstBook({ id: booksForAuthor[0].id, title: booksForAuthor[0].title });
-        }
+      if (error) {
+        console.error("get-marketing-hub-data error:", error);
+      } else if (data) {
+        if (data.author_profile_id) setAuthorProfileId(data.author_profile_id);
+        setNodeRows((data.nodes as NodeRow[]) || []);
+        if (data.book) setFirstBook(data.book);
       }
     } catch (err) {
       console.error("Failed to fetch nodes:", err);
