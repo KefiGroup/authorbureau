@@ -139,10 +139,10 @@ export default function LeadMagnetStepRenderer({ stepId, stepData, setStepData, 
         type: ["leadMagnetContent", "leadMagnetEdited", "leadMagnetDesign"],
       }} />;
     case "generate":
-      return <SharedContentStep contentKey="leadMagnetContent" title="Lead Magnet Content" description="Abby generates your lead magnet content from your book's most actionable advice." abbyTip="I'll pull the most actionable insights from your manuscript into a compact, high-value format." aiPrompt={GENERATE_PROMPT} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="leadMagnetConfig" stepInstructions={[
+      return <SharedContentStep contentKey="leadMagnetContent" title="Lead Magnet Content" description="Abby generates your lead magnet content from your book's most actionable advice." abbyTip="I'll pull the most actionable insights from your manuscript into a compact, high-value format." aiPrompt={GENERATE_PROMPT} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="leadMagnetConfig" autoExpand stepInstructions={[
         { label: "Click Generate", description: "Abby creates your lead magnet from your book's best ideas." },
-        { label: "Review sections", description: "Expand each card to read headline options, content, and CTA." },
-        { label: "Pick your favorite", description: "Select from multiple headline/content options Abby provides." },
+        { label: "Pick your headline", description: "Choose from 3 headline options (Identity, Outcome, Curiosity)." },
+        { label: "Review sections", description: "Expand each card to read introduction, content, and CTA." },
         { label: "Edit & refine", description: "Click Edit on any section to customize the text." },
       ]} />;
     case "edit":
