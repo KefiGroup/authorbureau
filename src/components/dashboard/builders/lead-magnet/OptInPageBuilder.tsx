@@ -3,7 +3,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Monitor, Smartphone, Paintbrush, RotateCw, Check, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Monitor, Smartphone, Paintbrush, Check, X, Sparkles, LayoutTemplate } from "lucide-react";
 
 interface OptInPageData {
   headline?: string;
@@ -29,6 +30,51 @@ interface Props {
   onChange: (updated: OptInPageData) => void;
   onSaveHtml?: (html: string) => void;
 }
+
+const DESIGN_TEMPLATES = [
+  {
+    id: "bold-gradient",
+    name: "Bold Gradient",
+    description: "High-impact gradient hero with strong CTA",
+    palette: { primary: "#6366f1", secondary: "#8b5cf6", accent: "#10b981", background: "#ffffff", text: "#1f2937" },
+    thumbnail: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+  },
+  {
+    id: "warm-authority",
+    name: "Warm Authority",
+    description: "Earthy tones that build trust & credibility",
+    palette: { primary: "#b45309", secondary: "#d97706", accent: "#059669", background: "#fffbeb", text: "#1c1917" },
+    thumbnail: "linear-gradient(135deg, #b45309, #d97706)",
+  },
+  {
+    id: "dark-premium",
+    name: "Dark Premium",
+    description: "Dark background for a premium, exclusive feel",
+    palette: { primary: "#f59e0b", secondary: "#eab308", accent: "#22d3ee", background: "#0f172a", text: "#f1f5f9" },
+    thumbnail: "linear-gradient(135deg, #0f172a, #1e293b)",
+  },
+  {
+    id: "clean-minimal",
+    name: "Clean Minimal",
+    description: "Simple, distraction-free with blue accents",
+    palette: { primary: "#2563eb", secondary: "#3b82f6", accent: "#14b8a6", background: "#ffffff", text: "#111827" },
+    thumbnail: "linear-gradient(135deg, #2563eb, #3b82f6)",
+  },
+  {
+    id: "coral-energy",
+    name: "Coral Energy",
+    description: "Vibrant coral for action-oriented audiences",
+    palette: { primary: "#e11d48", secondary: "#f43f5e", accent: "#8b5cf6", background: "#fff1f2", text: "#1f2937" },
+    thumbnail: "linear-gradient(135deg, #e11d48, #f43f5e)",
+  },
+  {
+    id: "sage-calm",
+    name: "Sage & Calm",
+    description: "Soft greens for wellness & personal growth",
+    palette: { primary: "#059669", secondary: "#10b981", accent: "#6366f1", background: "#f0fdf4", text: "#1f2937" },
+    thumbnail: "linear-gradient(135deg, #059669, #10b981)",
+  },
+];
 
 function generateOptInHtml(data: OptInPageData, authorName?: string, authorPhotoUrl?: string, bookCoverUrl?: string): string {
   const p = data.color_palette || {};
@@ -98,9 +144,17 @@ export default function OptInPageBuilder({ data, authorName, authorPhotoUrl, boo
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const html = generateOptInHtml(data, authorName, authorPhotoUrl, bookCoverUrl);
+
+  const applyTemplate = (template: typeof DESIGN_TEMPLATES[0]) => {
+    setSelectedTemplateId(template.id);
+    const updated = { ...data, color_palette: { ...template.palette } };
+    onChange(updated);
+    onSaveHtml?.(generateOptInHtml(updated, authorName, authorPhotoUrl, bookCoverUrl));
+  };
 
   const startEdit = (field: string) => {
     const val = field === "bullet_points"
@@ -140,8 +194,109 @@ export default function OptInPageBuilder({ data, authorName, authorPhotoUrl, boo
     { key: "text", label: "Text" },
   ];
 
+  const FIELD_LABELS: Record<string, string> = {
+    headline: "Headline",
+    subheadline: "Subheadline",
+    bullet_points: "Benefits List",
+    cta_button_text: "Button Text",
+    privacy_note: "Privacy Note",
+    social_proof: "Social Proof",
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      {/* Abby's design advice */}
+      <Card className="p-4 border-secondary/20 bg-secondary/5">
+        <div className="flex gap-3">
+          <div className="h-8 w-8 rounded-full bg-secondary/20 flex items-center justify-center shrink-0">
+            <Sparkles className="h-4 w-4 text-secondary" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-secondary mb-1">Abby's Design Tips</p>
+            <p className="text-sm text-muted-foreground">
+              Pick a design template below that matches your book's energy. Then customise the headline, subheadline, 
+              and benefits to speak directly to your reader's pain point. Keep the CTA action-oriented — 
+              "Discover My Stage" converts 2× better than "Download Now."
+            </p>
+          </div>
+        </div>
+      </Card>
+
+      {/* Design Templates */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <LayoutTemplate className="h-4 w-4 text-secondary" />
+          <h3 className="text-sm font-semibold">Choose a Design Template</h3>
+          <Badge variant="outline" className="text-[10px]">Click to apply</Badge>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {DESIGN_TEMPLATES.map(t => (
+            <button
+              key={t.id}
+              onClick={() => applyTemplate(t)}
+              className={`group rounded-lg border-2 p-2 text-left transition-all hover:shadow-md ${
+                selectedTemplateId === t.id
+                  ? "border-secondary ring-2 ring-secondary/30"
+                  : "border-border hover:border-secondary/50"
+              }`}
+            >
+              <div
+                className="w-full h-16 rounded-md mb-2"
+                style={{ background: t.thumbnail }}
+              />
+              <p className="text-xs font-semibold truncate">{t.name}</p>
+              <p className="text-[10px] text-muted-foreground line-clamp-2">{t.description}</p>
+              {selectedTemplateId === t.id && (
+                <Badge className="bg-secondary/20 text-secondary text-[9px] mt-1">Active</Badge>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Edit Content Section */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <Paintbrush className="h-4 w-4 text-muted-foreground" />
+          <h3 className="text-sm font-semibold">Edit Page Content</h3>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {["headline", "subheadline", "bullet_points", "cta_button_text", "privacy_note", "social_proof"].map(field => (
+            <Button
+              key={field}
+              variant={editingField === field ? "secondary" : "outline"}
+              size="sm"
+              className="text-xs"
+              onClick={() => startEdit(field)}
+            >
+              ✏️ {FIELD_LABELS[field] || field}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      {/* Inline edit panel */}
+      {editingField && (
+        <Card className="p-4 border-primary/30 bg-primary/5">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-sm font-semibold">{FIELD_LABELS[editingField] || editingField}</h4>
+            <div className="flex gap-1">
+              <Button size="sm" variant="ghost" onClick={() => setEditingField(null)}>
+                <X className="h-3.5 w-3.5" />
+              </Button>
+              <Button size="sm" onClick={saveEdit}>
+                <Check className="h-3.5 w-3.5 mr-1" /> Save
+              </Button>
+            </div>
+          </div>
+          {editingField === "bullet_points" ? (
+            <Textarea value={editValue} onChange={e => setEditValue(e.target.value)} rows={5} placeholder="One benefit per line" />
+          ) : (
+            <Input value={editValue} onChange={e => setEditValue(e.target.value)} />
+          )}
+        </Card>
+      )}
+
       {/* Toolbar */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-1">
@@ -160,17 +315,15 @@ export default function OptInPageBuilder({ data, authorName, authorPhotoUrl, boo
             <Smartphone className="h-3.5 w-3.5 mr-1" /> Mobile
           </Button>
         </div>
-        <div className="flex items-center gap-1">
-          <Button variant="outline" size="sm" onClick={() => setShowColorPicker(!showColorPicker)}>
-            <Paintbrush className="h-3.5 w-3.5 mr-1" /> Colors
-          </Button>
-        </div>
+        <Button variant="outline" size="sm" onClick={() => setShowColorPicker(!showColorPicker)}>
+          <Paintbrush className="h-3.5 w-3.5 mr-1" /> Custom Colors
+        </Button>
       </div>
 
       {/* Color picker */}
       {showColorPicker && (
         <Card className="p-4">
-          <h4 className="text-sm font-semibold mb-3">Brand Colors</h4>
+          <h4 className="text-sm font-semibold mb-3">Custom Brand Colors</h4>
           <div className="grid grid-cols-5 gap-3">
             {colorEntries.map(({ key, label }) => (
               <div key={key} className="space-y-1">
@@ -188,43 +341,6 @@ export default function OptInPageBuilder({ data, authorName, authorPhotoUrl, boo
           </div>
         </Card>
       )}
-
-      {/* Inline edit panel */}
-      {editingField && (
-        <Card className="p-4 border-primary/30 bg-primary/5">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="text-sm font-semibold capitalize">{editingField.replace(/_/g, " ")}</h4>
-            <div className="flex gap-1">
-              <Button size="sm" variant="ghost" onClick={() => setEditingField(null)}>
-                <X className="h-3.5 w-3.5" />
-              </Button>
-              <Button size="sm" onClick={saveEdit}>
-                <Check className="h-3.5 w-3.5 mr-1" /> Save
-              </Button>
-            </div>
-          </div>
-          {editingField === "bullet_points" ? (
-            <Textarea value={editValue} onChange={e => setEditValue(e.target.value)} rows={5} placeholder="One benefit per line" />
-          ) : (
-            <Input value={editValue} onChange={e => setEditValue(e.target.value)} />
-          )}
-        </Card>
-      )}
-
-      {/* Editable fields quick buttons */}
-      <div className="flex flex-wrap gap-1">
-        {["headline", "subheadline", "bullet_points", "cta_button_text", "privacy_note", "social_proof"].map(field => (
-          <Button
-            key={field}
-            variant="outline"
-            size="sm"
-            className="text-xs"
-            onClick={() => startEdit(field)}
-          >
-            ✏️ {field.replace(/_/g, " ")}
-          </Button>
-        ))}
-      </div>
 
       {/* Preview iframe */}
       <Card className="overflow-hidden">
