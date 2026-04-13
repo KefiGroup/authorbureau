@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ChevronDown, ChevronUp, Pencil, Check, BookOpen, FileText, MessageCircle, Gift, Sparkles, ListChecks, PenLine } from "lucide-react";
+import { ChevronDown, ChevronUp, Check, BookOpen, FileText, MessageCircle, Gift, Sparkles, ListChecks, PenLine } from "lucide-react";
 
 interface ContentSection {
   title: string;
