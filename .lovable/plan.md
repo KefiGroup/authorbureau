@@ -1,114 +1,79 @@
 
 
-# Seamless Marketing Nodes Plan (BP-01 to BP-05)
+# Sprint 27 — BP-02 Publish Fix + Connected Accounts + BP-03 401 Fix
 
-## Current Problems
+```
+ARCHITECTURE CHECKLIST:
+✅ SharedPublishStep.tsx touched? → NO (already correct — no changes needed)
+✅ UniversalBuilderStudio.tsx touched? → NO
+✅ New sidebar item added? → NO (Connect Settings already exists in sidebar)
+✅ New GHL edge function created? → NO
+✅ author_nodes touched? → NO (edge functions already handle upserts correctly)
+✅ Author-facing text contains banned words? → Zero
+✅ Subscription tier values used? → N/A (no tier logic in this sprint)
+```
 
-1. **BP-02 public page is broken**: After publishing without GHL, status is set to `published_pending_ghl`, but `get-microsite-page` only serves nodes with `status === "live"`. The quiz page shows "Coming Soon" instead of the live quiz.
+## Current State Assessment
 
-2. **BP-01 (Email) and BP-03 (Social Media) use `publishNodeToSite` client-side** which hits RLS errors (same issue BP-02 had before we fixed it). They need the same server-side pattern.
+After reading all relevant files, several items in the sprint brief are **already implemented**:
+- "Connect Settings" sidebar item already exists (DashboardSidebar.tsx line 220)
+- AccountSettings.tsx already has 4 tabs including "connections" (line 86-87)
+- ConnectedAccountsTab component already exists and works (GHL status, Connect Now, Re-deploy)
+- SharedPublishStep.tsx already references "Connect Settings" correctly (lines 139, 229, 233)
+- `deploy-bp02-to-ghl` already includes `revenue_to_date: 0` and `current_step: 1` in its upsert (line 65-66)
 
-3. **BP-04 (Website) and BP-05 (Webinar) also use `publishNodeToSite` client-side** — same RLS issue.
+## What Actually Needs Fixing
 
-4. **No consistent fallback pattern**: BP-02 has a graceful GHL fallback, but BP-01/03/04/05 either fail silently or hard-fail.
+### Fix 1 — BP-02 Upsert 401 (Root Cause: Missing config.toml entry)
 
-5. **Microsite pages missing for BP-01 and BP-03**: These are outbound-only nodes but BP-01 has no publish flow that works, and BP-03's deploy function swallows errors.
+`deploy-bp02-to-ghl` is NOT listed in `supabase/config.toml`, so it defaults to `verify_jwt = true`. When the frontend calls it via `fetchWithTimeout` with a potentially expired or missing token, the gateway rejects it with 401 before the function code even runs. The function uses `SUPABASE_SERVICE_ROLE_KEY` internally and does not need JWT verification.
 
-6. **Lead capture flow is disconnected**: The `microsite-action` edge function saves to `author_subscribers` and optionally pushes to GHL, but only BP-02 actually has a public form page. BP-05 (Webinar) has a registration page but uses the same generic submit handler.
+**File:** `supabase/config.toml`
+- Add `[functions.deploy-bp02-to-ghl]` with `verify_jwt = false`
 
-## The Fix — 3 Workstreams
+Additionally, improve error handling in the frontend:
 
-### Workstream 1: Fix the public page serving (critical)
+**File:** `src/components/dashboard/builders/lead-magnet/LeadMagnetStepRenderer.tsx`
+- Add full error logging with `console.error` for the response body
+- Add specific error messages based on error type (RLS, network, auth)
 
-**File: `supabase/functions/get-microsite-page/index.ts`**
-- Change line 60 from `node.status !== "live"` to accept both `"live"` and `"published_pending_ghl"` statuses
-- This immediately fixes BP-02 quiz pages for all authors
+### Fix 2 — Connected Accounts (Already Done)
 
-### Workstream 2: Move all 5 node publishes to server-side (bypass RLS)
+All items in Fix 2 are already implemented:
+- Sidebar has "Connect Settings" under REVENUE & TOOLS
+- Clicking it navigates to `/account-settings?tab=connections`
+- AccountSettings has the "connections" tab rendering `ConnectedAccountsTab`
+- ConnectedAccountsTab shows GHL status, Connect Now, deployed nodes, Re-deploy
 
-Each builder currently calls `publishNodeToSite()` which does a client-side Supabase `update` — this fails because the user's auth token doesn't match the `author_profiles.id` used in the query. The fix is the same pattern we used for BP-02: call the deploy edge function which uses the service role key.
+**No changes needed.**
 
-**BP-01 (Email Marketing) — `deploy-bp01-to-ghl/index.ts`**
-- Add `content_payload` support (same as BP-02)
-- Add `published_pending_ghl` fallback when no GHL key
-- Return `{ status, liveUrl }` so the UI can show the correct state
+### Fix 3 — BP-03 401 (Root Cause: Missing config.toml entry)
 
-**BP-01 Builder — `bp01/BP01Builder.tsx`**
-- Replace `publishNodeToSite()` call with `fetch` to `deploy-bp01-to-ghl`
-- Pass content as `content_payload`
+`generate-bp03-social-media` is NOT in `config.toml`, so it defaults to `verify_jwt = true`, causing the 401. The function uses service role key internally.
 
-**BP-03 (Social Media) — `deploy-bp03-to-ghl/index.ts`**  
-- Add `content_payload` upsert before GHL deployment
-- Add `published_pending_ghl` fallback
-- Stop swallowing errors silently
+Same issue affects `deploy-bp03-to-ghl`.
 
-**BP-03 Builder — `bp03/BP03Builder.tsx`**
-- Same pattern: replace `publishNodeToSite()` with edge function call
+**File:** `supabase/config.toml`
+- Add `[functions.generate-bp03-social-media]` with `verify_jwt = false`
+- Add `[functions.deploy-bp03-to-ghl]` with `verify_jwt = false`
+- Also add ALL other deploy/generate functions that are missing (BP-01, BP-04, BP-05, etc.) to prevent the same 401 across other builders
 
-**BP-04 (Website) — `deploy-bp04-to-ghl/index.ts`**
-- Add `content_payload` upsert
-- Add `published_pending_ghl` fallback
-- Return microsite URL
+**File:** `src/components/dashboard/builders/bp03/BP03Builder.tsx`
+- Improve error handling in `handleGenerate`: show specific messages for 401 (session expired), 500 (server error), timeout
+- Replace generic error text with actionable Abby messages
 
-**BP-04 Builder — `bp04/BP04Builder.tsx`**
-- Replace `publishNodeToSite()` with edge function call
-
-**BP-05 (Webinar) — `deploy-bp05-to-ghl/index.ts`**
-- Add `content_payload` upsert
-- Add `published_pending_ghl` fallback
-- Return microsite URL
-
-**BP-05 Builder — `bp05/BP05Builder.tsx`**
-- Replace `publishNodeToSite()` with edge function call
-
-### Workstream 3: Improve publish UX across all 5 builders
-
-All 5 builders currently have their own publish step rendering. Standardise them to use `SharedPublishStep` (which BP-02 already uses) so the user gets:
-- A clear checklist of what's ready
-- The correct button label (Publish / Retry / Update)
-- Post-publish status card with live URL, copy link, and next steps
-- Contextual guidance ("Connect your marketing account" or "Go to Marketing Hub")
-
-**BP-01 and BP-03 special handling**: These are outbound-only nodes (no public microsite page). Their success screen should suppress the URL card and show campaign metrics instead (email sequence count, scheduled posts count).
-
-### Summary of files to edit
+## Summary of Changes
 
 | File | Change |
 |------|--------|
-| `get-microsite-page/index.ts` | Accept `published_pending_ghl` status |
-| `deploy-bp01-to-ghl/index.ts` | Add content_payload, fallback pattern |
-| `deploy-bp03-to-ghl/index.ts` | Add content_payload, fallback pattern |
-| `deploy-bp04-to-ghl/index.ts` | Add content_payload, fallback pattern |
-| `deploy-bp05-to-ghl/index.ts` | Add content_payload, fallback pattern |
-| `bp01/BP01Builder.tsx` | Use edge function instead of publishNodeToSite |
-| `bp03/BP03Builder.tsx` | Use edge function instead of publishNodeToSite |
-| `bp04/BP04Builder.tsx` | Use edge function instead of publishNodeToSite |
-| `bp05/BP05Builder.tsx` | Use edge function instead of publishNodeToSite |
+| `supabase/config.toml` | Add ~20 missing edge functions with `verify_jwt = false` |
+| `src/components/dashboard/builders/lead-magnet/LeadMagnetStepRenderer.tsx` | Better error logging and specific error messages |
+| `src/components/dashboard/builders/bp03/BP03Builder.tsx` | Specific error messages for 401, 500, timeout |
 
-### End-to-end flow after fix
+## What This Fixes
 
-```text
-Author clicks "Publish" in any builder
-        ↓
-Client POSTs to deploy-BPXX-to-ghl with content_payload
-        ↓
-Edge function (service role) upserts content to author_nodes
-        ↓
-Checks for GHL_AGENCY_KEY + sub_account_id
-        ↓
-  ┌─ YES: Deploy to GHL → status = "live"
-  └─ NO:  status = "published_pending_ghl"
-        ↓
-Returns { status, liveUrl } to client
-        ↓
-UI shows success card:
-  - If live: shareable URL + "Go to Marketing Hub"
-  - If pending: "Connect your marketing account" + retry button
-        ↓
-Public visitor hits /:authorSlug/:nodeSlug
-        ↓
-get-microsite-page serves both "live" and "published_pending_ghl"
-        ↓
-Lead submits form → microsite-action → author_subscribers + GHL (if connected)
-```
+- BP-02 "Publish to Marketing Hub" will stop returning 401 and succeed
+- BP-03 "Generate My Social Media" will stop returning 401 and succeed
+- All other builders (BP-01, BP-04, BP-05) will also work without 401 errors
+- Error messages become specific and actionable instead of generic failures
 
