@@ -134,10 +134,10 @@ export default function SharedPublishStep({
           <div className="text-sm text-muted-foreground space-y-1">
             <p className="font-medium text-foreground">How publishing works</p>
             <ol className="list-decimal list-inside space-y-0.5 text-xs">
-              <li>Click <strong>Publish to Marketing Hub</strong> to save and deploy your {builderLabel.toLowerCase()}</li>
-              <li>If the Marketing Hub is connected, your opt-in page goes live instantly</li>
-              <li>If not yet connected, your content is saved — go to <strong>Connected Accounts</strong> to connect, then Re-deploy</li>
-              <li>Once live, go to the <strong>Marketing Hub</strong> to distribute across social media</li>
+              <li>Click <strong>Publish to Marketing Hub</strong> to save your {builderLabel.toLowerCase()}</li>
+              <li>Go to <strong>Connected Accounts</strong> (in Account Settings) and click <strong>Connect Now</strong> to set up your marketing account</li>
+              <li>Return here and click <strong>Retry Publish</strong> — your opt-in page goes live with a shareable link</li>
+              <li>Share your live link or go to the <strong>Marketing Hub</strong> to distribute across social media</li>
             </ol>
           </div>
         </div>
