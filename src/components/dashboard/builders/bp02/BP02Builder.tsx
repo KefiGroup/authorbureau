@@ -468,10 +468,10 @@ function PublishSuccessStep({ authorName, authorId, liveUrl, copied, onCopy }: {
     <div className="space-y-6">
       {/* Celebration */}
       <div className="flex flex-col items-center text-center py-6">
-        <div className="w-20 h-20 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center mb-4 animate-in zoom-in duration-500">
-          <Check className="h-10 w-10 text-emerald-600 dark:text-emerald-400" />
+        <div className="w-20 h-20 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center mb-4 animate-in zoom-in duration-500">
+          <Check className="h-10 w-10 text-red-600 dark:text-red-400" />
         </div>
-        <h2 className="text-2xl font-bold mb-1">Your Lead Magnet is Live! 🎉</h2>
+        <h2 className="text-2xl font-bold mb-1 text-red-600 dark:text-red-400">Your Lead Magnet is LIVE! 🎉</h2>
         <p className="text-sm text-muted-foreground">Congratulations, {authorName}!</p>
       </div>
 
