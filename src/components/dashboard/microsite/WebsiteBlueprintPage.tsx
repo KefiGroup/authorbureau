@@ -73,32 +73,40 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
   async function loadData() {
     setLoading(true);
 
-    // Fetch profile (local Cloud table) and books (via edge function for proper ownership)
-    const [profileRes, booksResult] = await Promise.all([
-      supabase.from("author_profiles").select("*").eq("user_id", user!.id).maybeSingle(),
-      (async () => {
-        try {
-          const token = await getActiveToken();
-          if (!token) return { books: [] };
-          const response = await fetchWithTimeout(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            }
-          );
-          const result = await response.json();
-          if (!response.ok) return { books: [] };
-          return { books: result.books || [] };
-        } catch (error) {
-          return { books: [] };
-        }
-      })(),
-    ]);
+    // Resolve local profile with email fallback for shared-backend users
+    let profileRes = await supabase.from("author_profiles").select("*").eq("user_id", user!.id).maybeSingle();
+    if (!profileRes.data && user!.email) {
+      const { data: bookByEmail } = await supabase
+        .from("books")
+        .select("author_id")
+        .eq("owner_email", user!.email.toLowerCase())
+        .limit(1)
+        .maybeSingle();
+      if (bookByEmail?.author_id) {
+        profileRes = await supabase.from("author_profiles").select("*").eq("user_id", bookByEmail.author_id).maybeSingle();
+      }
+    }
+    const resolvedUserId = profileRes.data?.user_id || user!.id;
 
-    const profile = profileRes.data;
-    setProfileData(profile);
-    if (profile?.website_url) setCustomDomain(profile.website_url.replace(/^https?:\/\//, ""));
+    // Fetch books via edge function for proper ownership
+    const booksResult = await (async () => {
+      try {
+        const token = await getActiveToken();
+        if (!token) return { books: [] };
+        const response = await fetchWithTimeout(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          }
+        );
+        const result = await response.json();
+        if (!response.ok) return { books: [] };
+        return { books: result.books || [] };
+      } catch (error) {
+        return { books: [] };
+      }
+    })();
 
     const books = booksResult.books as any[];
     const bookIds = books.map((b: any) => b.id);
