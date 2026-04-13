@@ -331,9 +331,9 @@ export default function MarketingHub({ onNavigate }: Props) {
         "YR-27": "deploy-yr27-to-stripe", "YR-28": "deploy-yr28-to-ghl",
       };
 
-      // Call deploy functions for each live node
+      // Call deploy functions for each deployable node
       const results = await Promise.allSettled(
-        liveNodeIds.map(async (nid) => {
+        deployableNodeIds.map(async (nid) => {
           const fnName = NODE_DEPLOY_MAP[nid];
           if (!fnName) return;
           const { data, error } = await supabase.functions.invoke(fnName, {
