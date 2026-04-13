@@ -9,7 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Mail, Gift, Radio, Settings, ChevronDown, ChevronUp } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
-import { publishNodeToSite } from "@/lib/publish-node";
+
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 
