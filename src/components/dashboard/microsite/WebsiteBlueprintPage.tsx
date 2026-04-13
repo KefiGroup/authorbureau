@@ -335,7 +335,7 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
                 <p className="text-sm text-muted-foreground">
                   Your published books and products will appear here automatically.
                 </p>
-                <Button variant="outline" size="sm" onClick={() => onNavigate?.("books")}>
+                <Button variant="outline" size="sm" onClick={() => onNavigate?.("my-books")}>
                   Go to My Book Hub
                 </Button>
               </div>

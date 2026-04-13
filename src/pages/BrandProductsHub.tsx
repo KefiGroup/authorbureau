@@ -180,6 +180,11 @@ export default function BrandProductsHub() {
 
   const handleCardClick = (nodeId: string) => {
     if (!isTierUnlocked) { navigate("/pricing"); return; }
+    // Route BP-04 directly to the canonical website manager
+    if (nodeId === "BP-04") {
+      navigate("/dashboard?section=microsite-manager");
+      return;
+    }
     navigate(`/node-builder/${nodeId}`);
   };
 
@@ -269,7 +274,7 @@ export default function BrandProductsHub() {
               <p className="text-sm text-foreground leading-relaxed mb-3">
                 Hi {authorName || "there"}! I've prepared 9 ways to turn your book into a business. Start with your <strong>Website</strong> — it's the foundation everything else builds on. Then move to <strong>Email Marketing</strong> and <strong>Lead Magnets</strong>. Ready?
               </p>
-              <Button size="sm" onClick={() => navigate("/node-builder/BP-04")}>
+              <Button size="sm" onClick={() => navigate("/dashboard?section=microsite-manager")}>
                 Start with Your Website <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
               </Button>
             </div>
