@@ -402,11 +402,23 @@ export default function MarketingHub({ onNavigate }: Props) {
   return (
     <div className="max-w-5xl mx-auto space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold font-heading">Your Marketing Hub</h1>
-        <p className="text-muted-foreground mt-1">
-          Abby manages all your marketing campaigns automatically.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold font-heading">Your Marketing Hub</h1>
+          <p className="text-muted-foreground mt-1">
+            Abby manages all your marketing campaigns automatically.
+          </p>
+        </div>
+        {onNavigate && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onNavigate("marketing-studio")}
+          >
+            <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+            Open Marketing Studio
+          </Button>
+        )}
       </div>
 
       {/* Stats bar */}

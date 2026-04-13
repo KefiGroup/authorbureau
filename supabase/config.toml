@@ -121,3 +121,5 @@ project_id = "tubpbslfrxyfhldkcyyq"
     verify_jwt = false
   [functions.provision-ghl-subaccount]
     verify_jwt = false
+  [functions.ghl-sso-link]
+    verify_jwt = false
