@@ -1,84 +1,46 @@
 
 
-## Audit Summary
+## Problems Found
 
-### Issue 1: Edit Step (Step 3) shows cards but content is not editable
+### Problem 1: Publish fails — "Failed to save lead magnet data"
+The upsert to `author_nodes` is failing. Root cause: the 28 node rows were never seeded because `provision-ghl-subaccount` was never called during onboarding. The upsert itself should still work (it creates a new row), but there may be a TypeScript/Supabase client issue with the column types or the `onConflict` parameter format.
 
-The screenshot shows three section cards on the "Edit & Polish" step. These are rendered by `ContentSectionCards`, which parses the AI-generated text into collapsible cards. Each card has a pencil icon to enter edit mode — but you need to **click/expand the card first**, then click the pencil (Edit) icon to make the text editable.
+**Fix:** Add error logging to surface the actual Supabase error. Also, make the upsert more robust by ensuring all required NOT NULL columns are included and properly typed. Additionally, add a fallback that seeds the author's nodes if they don't exist yet.
 
-However, the real problem is that the cards appear collapsed with only titles visible and no obvious edit affordance. For the "Edit & Polish" step specifically, the cards should be **expanded by default** and **in edit mode by default** so the author can immediately type changes.
+### Problem 2: "Connected Accounts" is invisible from the sidebar
+The publish step tells users to "Go to Connected Accounts" but this is buried under the avatar dropdown → Account Settings → third tab. Users on the dashboard sidebar see nothing labeled "Connected Accounts" or "Connect Now". The instructions reference words that don't exist on the visible page.
 
-### Issue 2: Lead Magnet → GHL → Marketing Hub flow is broken at multiple points
+**Fix:** 
+- Add a **"Connect Settings"** item to the sidebar under "REVENUE & TOOLS" section, linking directly to the connections tab
+- Rewrite the publish step instructions to match the actual visible label
+- Add a direct clickable button in the publish step that navigates to the right place (already exists but the surrounding text is confusing)
 
-Here is the full intended flow and where it breaks:
-
-```text
-Step 1: Configure     → Pick type, title, audience
-Step 2: Let Abby Build → AI generates content (saved to stepData.leadMagnetContent)
-Step 3: Edit & Polish  → Author edits content (saved to stepData.leadMagnetEdited)
-Step 4: Design         → Opt-in page visual builder (saved to stepData.leadMagnetPage)
-Step 5: Preview & Publish → Click "Publish to Marketing Hub"
-        ↓
-     deploy-bp02-to-ghl edge function
-        ↓
-     Checks author_profiles.ghl_sub_account_id
-        ↓
-     ALL authors have ghl_provision_status = "pending", ghl_sub_account_id = NULL
-        ↓
-     Returns status: "published_pending_ghl"
-        ↓
-     UI shows "Content saved — not live yet" with "Go to Connected Accounts" button
-        ↓
-     Connected Accounts → "Connect Now" button → calls ghl-provision-author
-        ↓
-     GHL provisioning creates sub-account (or fails with 403 → uses shared fallback)
-        ↓
-     Back to Connected Accounts → "Re-deploy" button → calls deploy-bp02-to-ghl again
-        ↓
-     This time ghl_sub_account_id exists → creates funnel/workflow/tags in GHL
-        ↓
-     Returns status: "live" with microsite URL
-        ↓
-     UI shows live URL + "Go to Marketing Hub" button
-        ↓
-     BUT: "Go to Marketing Hub" button calls onNavigate("marketing-hub")
-          which is NEVER PASSED from LeadMagnetStepRenderer → button does nothing
-```
-
-**Database confirms**: All 5 authors have `ghl_provision_status = 'pending'` and `ghl_sub_account_id = NULL`. No `author_nodes` records exist at all — meaning no one has successfully published yet.
+---
 
 ## Plan
 
-### 1. Make Edit & Polish cards editable by default
+### Step 1: Fix the publish upsert failure
+**File:** `src/components/dashboard/builders/lead-magnet/LeadMagnetStepRenderer.tsx`
+- Add `console.error` with the full upsert error details
+- Ensure the upsert payload includes all NOT NULL fields with proper defaults: `revenue_to_date: 0`, `current_step: 1`
+- Before upserting, call the provisioning function if no `author_nodes` rows exist for this author (lightweight check)
 
-In `ContentSectionCards.tsx`, add an `autoExpand` prop. When `true`, all cards render expanded and in edit mode on mount. Pass `autoExpand={true}` from `SharedContentStep.tsx` when the step is the "edit" step (detected via `seedFromKey` being set, which is only used for the edit step).
+### Step 2: Add "Connect Settings" to the sidebar
+**File:** `src/components/dashboard/DashboardSidebar.tsx`
+- Add a new nav item under REVENUE & TOOLS: `{ id: "connect-settings", label: "Connect Settings", icon: Settings }`
 
-### 2. Wire the "Go to Marketing Hub" button
+**File:** `src/components/dashboard/AuthorDashboard.tsx` (or wherever sections are routed)
+- Wire `connect-settings` section to navigate to `/account-settings?tab=connections`
 
-In `LeadMagnetStepRenderer.tsx` at the `preview` case, pass `onNavigate` to `SharedPublishStep` using `useNavigate`:
+### Step 3: Rewrite publish step instructions to match visible UI
+**File:** `src/components/dashboard/builders/shared/SharedPublishStep.tsx`
+- Replace "Go to Connected Accounts (in Account Settings)" with "Click **Connect Settings** in the left sidebar"
+- Replace the pending-GHL instructions similarly
+- Keep the direct navigation button but update its label to match
 
-```tsx
-onNavigate={(section) => navigate(`/dashboard?section=${section}&highlight=lead-magnets`)}
-```
-
-### 3. Use `navigate()` as fallback in SharedPublishStep
-
-Update the "Go to Marketing Hub" button in `SharedPublishStep.tsx` to use `navigate` directly if `onNavigate` is not provided, so it always works:
-
-```tsx
-onClick={() => onNavigate ? onNavigate("marketing-hub") : navigate("/dashboard?section=marketing-hub")}
-```
-
-### Files to change
-
-1. **`src/components/dashboard/builders/shared/ContentSectionCards.tsx`** — Add `autoExpand` prop; when true, initialize all cards as expanded and in edit mode
-2. **`src/components/dashboard/builders/shared/SharedContentStep.tsx`** — Pass `autoExpand={!!seedFromKey}` to `ContentSectionCards`
-3. **`src/components/dashboard/builders/lead-magnet/LeadMagnetStepRenderer.tsx`** — Import `useNavigate`, pass `onNavigate` to `SharedPublishStep`
-4. **`src/components/dashboard/builders/shared/SharedPublishStep.tsx`** — Fallback to `navigate()` when `onNavigate` is not provided
-
-### Technical notes
-
+### Technical details
 - No database migration needed
 - No edge function changes needed
-- The GHL provisioning flow itself is correct — the issue is purely that no author has provisioned yet (all are "pending") and the UI buttons to complete the flow were not wired
+- The `author_nodes` table has `status` defaulting to `'locked'` and `revenue_to_date` defaulting to `0`, but explicit values in the upsert are safer
+- The unique constraint on `(author_id, node_id)` supports the `onConflict` upsert correctly
 
