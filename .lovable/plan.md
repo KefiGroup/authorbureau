@@ -1,81 +1,62 @@
 
 
-# Fix: Lead Magnet Builder — Content Consistency + 3 Headers Issue
+# Fix: 3 Headers Still Showing in Lead Magnet Edit Step
 
+## Problem
+
+The screenshot shows three separate section cards at Step 3 ("Edit Content"):
+- "SUCKCESS Starter Quiz: What Stage Are You In Right Now?"
+- "The SUCKCESS Stage Finder: Where Are You Right Now?"
+- "The SUCKCESS Compass Quiz: Identify Your Current Stage"
+
+These are **quiz title variants** — the same concept as headline options. But the merge logic in `ContentSectionCards.tsx` (line 214) only merges sections matching `/headline/i`. These titles don't contain "headline", so they remain as 3 separate cards.
+
+The prompt was updated to say "HEADLINE OPTIONS" but the **already-generated content** was produced by the old prompt, so it doesn't follow the new format.
+
+## Root Cause
+
+Two issues:
+1. **Detection too narrow**: The headline merge regex `/headline/i` doesn't catch variant patterns like quiz title options that share similar structure but different naming
+2. **Old content**: The existing `stepData.leadMagnetContent` was generated before the prompt change, so it uses the old format with separate ALL-CAPS title sections
+
+## Fix
+
+### Change 1 — Broaden headline/title variant detection
+
+**File:** `src/components/dashboard/builders/shared/ContentSectionCards.tsx` (lines 213-220)
+
+Expand the merge condition to also catch consecutive sections that look like title/quiz variants. The heuristic: if 2-3 consecutive sections all have short titles (under ~80 chars) that share significant word overlap (e.g. all contain "SUCKCESS" or "Quiz"), merge them into a "HEADLINE OPTIONS" card.
+
+```typescript
+// Current (line 214):
+if (/headline/i.test(sec.title) && !/options/i.test(sec.title)) {
+
+// Updated:
+const isHeadlineVariant = (title: string) => {
+  if (/headline/i.test(title) && !/options/i.test(title)) return true;
+  // Titles under 80 chars that look like quiz/title variants
+  if (title.length < 80 && /^(the\s+)?[A-Z].*?(quiz|finder|compass|assessment|checker|test|starter)/i.test(title)) return true;
+  return false;
+};
+
+if (isHeadlineVariant(sec.title)) {
 ```
-ARCHITECTURE CHECKLIST:
-✅ SharedPublishStep.tsx touched? → NO
-✅ UniversalBuilderStudio.tsx touched? → NO
-✅ New sidebar item added? → NO
-✅ New GHL edge function created? → NO
-✅ author_nodes touched? → NO
-✅ Author-facing text contains banned words? → Zero
-✅ Subscription tier values used? → N/A
-```
 
-## Problems Identified
+Additionally, add a **word-overlap check**: only merge if 2+ consecutive candidate sections share at least one significant word (3+ chars). This prevents false merges on unrelated sections.
 
-**Problem 1 — Step 2 and Step 3 show different content.** Step 2 ("Let Abby Build") displays the raw quiz body (scoring instructions, S-U-C-K-C-E-S-S stages). Step 3 ("Edit Content") seeds from Step 2 but renders differently because `ContentSectionCards` parses the same markdown into collapsible cards, reorganizing the visual layout. This confuses the author — it looks like two different documents.
+### Change 2 — Handle already-generated content gracefully
 
-**Problem 2 — 3 headline variants show as 3 separate section headers.** The AI generation prompt asks for "HEADLINE & SUBHEADLINE (benefit-driven)" and the output includes multiple headline options (Identity, Outcome, Curiosity angles). `ContentSectionCards` parses each ALL-CAPS line as a separate card header, so the author sees 3 headline cards instead of a selection picker.
+Since the old content is already stored in `stepData`, we can't change it retroactively. The broadened detection in Change 1 will handle this. But as a safety net, also check for 3+ consecutive sections with no body content or very short bodies (under 200 chars) that could be title variants.
 
-## Root Causes
-
-1. The `GENERATE_PROMPT` in `LeadMagnetStepRenderer.tsx` (line 33) asks the AI to generate markdown with "1) HEADLINE & SUBHEADLINE, 2) INTRODUCTION, 3) MAIN CONTENT, 4) CALL-TO-ACTION, 5) AUTHOR BIO BLURB" — but the AI outputs multiple headline variants as separate ALL-CAPS sections. `ContentSectionCards` treats each as a major section.
-
-2. Step 3 ("Edit Content") uses `seedFromKey="leadMagnetContent"` and `hideSections={["call-to-action", "author bio", ...]}` so it filters some sections but still shows all headline variants as separate cards.
-
-3. There is a separate dedicated edge function `generate-bp02-lead-magnets` that produces structured JSON with proper `headline_variants` array — but Step 2 does NOT use it. It uses `SharedContentStep` → `business-consultant` with a generic markdown prompt.
-
-## Proposed Fix
-
-### Change 1 — Consolidate headline variants into a single selectable section
-
-**File:** `src/components/dashboard/builders/shared/ContentSectionCards.tsx`
-
-- Add logic to detect consecutive sections whose titles contain "headline" (case-insensitive) — e.g. "IDENTITY HEADLINE", "OUTCOME HEADLINE", "CURIOSITY HEADLINE"
-- Merge them into a single "Headline Options" card that displays all 3 as radio-button choices
-- When the author picks one, only the selected headline persists in the content
-- This keeps the existing parsing logic intact for all other builders
-
-### Change 2 — Align Step 2 and Step 3 display
-
-**File:** `src/components/dashboard/builders/lead-magnet/LeadMagnetStepRenderer.tsx`
-
-- On the Step 2 ("generate") case, add `autoExpand={true}` to show content as expanded cards (matching Step 3's layout) so both steps look visually consistent
-- Add a `stepInstructions` entry: "Pick your headline" so the author knows to select one
-
-### Change 3 — Update the generate prompt to structure headlines clearly
-
-**File:** `src/components/dashboard/builders/lead-magnet/LeadMagnetStepRenderer.tsx`
-
-- Update `GENERATE_PROMPT` (line 33) to instruct the AI to output headlines under a single section header:
-  ```
-  1) HEADLINE OPTIONS
-  Option A (Identity): "..."
-  Option B (Outcome): "..."  
-  Option C (Curiosity): "..."
-  ```
-- This ensures `ContentSectionCards` parses them as one card with 3 sub-items, not 3 separate cards
-
-### Change 4 — Add headline selection UI in ContentSectionCards
-
-**File:** `src/components/dashboard/builders/shared/ContentSectionCards.tsx`
-
-- When a section title matches "HEADLINE OPTIONS" (or similar), render the body items as clickable cards with radio selection instead of a plain text block
-- Selected headline gets a visual checkmark and is promoted to the top
-- On save, only the selected headline flows into the content
-
-## Summary of Changes
+## Files Changed
 
 | File | Change |
 |------|--------|
-| `LeadMagnetStepRenderer.tsx` | Update GENERATE_PROMPT to group headlines under one section; add autoExpand to Step 2 |
-| `ContentSectionCards.tsx` | Add headline-selection UI when section title contains "HEADLINE OPTIONS" |
+| `ContentSectionCards.tsx` | Broaden headline merge detection to catch quiz/title variants by pattern + word overlap |
 
 ## What This Fixes
 
-- Step 2 and Step 3 display content in the same card-based layout (no more "two different documents" feel)
-- 3 headline variants appear as a single selection card instead of 3 separate headers
-- Author can tap to choose their preferred headline before moving to Step 3
+- The 3 quiz title variants merge into a single "HEADLINE OPTIONS" selection card
+- Future generations also benefit from broader detection
+- No other builders are affected (word-overlap check prevents false merges)
 
