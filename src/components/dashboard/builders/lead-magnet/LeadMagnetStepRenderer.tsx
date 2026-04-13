@@ -3,6 +3,7 @@ import SharedSetupStep, { type SetupField } from "../shared/SharedSetupStep";
 import SharedContentStep from "../shared/SharedContentStep";
 import SharedPublishStep from "../shared/SharedPublishStep";
 import OptInPageBuilder from "./OptInPageBuilder";
+import HeadlinePickerStep from "./HeadlinePickerStep";
 import { Magnet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
@@ -146,11 +147,7 @@ export default function LeadMagnetStepRenderer({ stepId, stepData, setStepData, 
         { label: "Edit & refine", description: "Click Edit on any section to customize the text." },
       ]} />;
     case "edit":
-      return <SharedContentStep contentKey="leadMagnetEdited" title="Edit & Polish" description="Customize the generated content. Add personal stories, refine language, adjust structure." abbyTip="Focus on the lead magnet content — headline, introduction, and your quiz or checklist questions. The product recommendations are managed separately." aiPrompt={EDIT_PROMPT} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="leadMagnetConfig" seedFromKey="leadMagnetContent" hideSections={["call-to-action", "author bio", "product recommendation", "cta"]} hideGenerateWhenSeeded generateLabel="Save Changes" stepInstructions={[
-        { label: "Review draft", description: "Read through the generated content from Step 2." },
-        { label: "Add your voice", description: "Include personal stories and adjust the tone." },
-        { label: "Polish & finalize", description: "Fix wording and save your changes." },
-      ]} />;
+      return <HeadlinePickerStep stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} />;
     case "design": {
       const optinData = stepData.leadMagnetDesignData || stepData.leadMagnetConfig || {};
       const audience = stepData.leadMagnetConfig?.audience || "";
