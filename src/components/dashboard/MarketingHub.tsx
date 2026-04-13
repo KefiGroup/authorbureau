@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-// shared-backend import removed — identity resolved via books.owner_email fallback
 import { useAuth } from "@/hooks/useAuth";
 import { getActiveToken } from "@/lib/get-active-token";
+import { getBpBuildRoute } from "@/lib/bpRoutes";
 import {
   Loader2, Megaphone, CheckCircle2, AlertCircle, Clock, Zap,
   RefreshCw, ArrowRight, Sparkles,
@@ -41,7 +41,7 @@ const CAMPAIGNS: CampaignConfig[] = [
     successMessage: "Your email marketing is running. New contacts will automatically receive your welcome sequence.",
     checklist: ["Welcome sequence active", "Nurture sequence queued", "Automation running"],
     howToStart: [
-      { step: "Go to Brand Products and open Email Marketing", link: "/node-builder/BP-01", linkLabel: "Build Email Marketing →" },
+      { step: "Go to Brand Products and open Email Marketing", link: "BP-01", linkLabel: "Build Email Marketing →" },
       { step: "Let Abby generate your welcome, nurture, and launch sequences" },
       { step: "Review the emails and click 'Publish to My Site'" },
       { step: "Come back here and click 'Activate Now' to start sending" },
@@ -55,7 +55,7 @@ const CAMPAIGNS: CampaignConfig[] = [
     successMessage: "Your lead magnet funnel is live. Every new subscriber will automatically receive your free gift.",
     checklist: ["Opt-in funnel live", "Thank-you page active", "Lead automation running"],
     howToStart: [
-      { step: "Go to Brand Products and open Lead Magnets", link: "/node-builder/BP-02", linkLabel: "Build Lead Magnets →" },
+      { step: "Go to Brand Products and open Lead Magnets", link: "BP-02", linkLabel: "Build Lead Magnets →" },
       { step: "Abby will design 3 irresistible free resources from your book" },
       { step: "Review your opt-in page and click 'Publish to My Site'" },
       { step: "Come back here and click 'Activate Now' to start capturing subscribers" },
@@ -69,7 +69,7 @@ const CAMPAIGNS: CampaignConfig[] = [
     successMessage: "Your 90-day social media calendar is active. Posts will go out automatically every day.",
     checklist: ["Content calendar scheduled", "First 7 days posted", "Remaining 83 days queued"],
     howToStart: [
-      { step: "Go to Brand Products and open Social Media", link: "/node-builder/BP-03", linkLabel: "Build Social Media →" },
+      { step: "Go to Brand Products and open Social Media", link: "BP-03", linkLabel: "Build Social Media →" },
       { step: "Abby will create a 90-day content calendar from your book" },
       { step: "Review your posts and click 'Publish'" },
       { step: "Come back here and click 'Activate Now' to schedule your posts" },
@@ -83,7 +83,7 @@ const CAMPAIGNS: CampaignConfig[] = [
     successMessage: "Your author website is now live and your lead capture funnel is running.",
     checklist: ["Website pages created", "Lead capture form active", "Author funnel pipeline live"],
     howToStart: [
-      { step: "Go to Brand Products and open Website", link: "/dashboard?section=microsite-manager", linkLabel: "Open Website Builder →" },
+      { step: "Go to Brand Products and open Website", link: "BP-04", linkLabel: "Open Website Builder →" },
       { step: "Abby will design your author website with Home, About, Book, and Contact pages" },
       { step: "Review your site and click 'Publish to My Site'" },
       { step: "Come back here and click 'Activate Now' to enable lead capture" },
@@ -97,7 +97,7 @@ const CAMPAIGNS: CampaignConfig[] = [
     successMessage: "Your webinar system is live. Registration is open and follow-up emails will fire automatically.",
     checklist: ["Registration page live", "Reminder emails scheduled", "Follow-up sequence active"],
     howToStart: [
-      { step: "Go to Brand Products and open Webinars", link: "/node-builder/BP-05", linkLabel: "Build My Webinar →" },
+      { step: "Go to Brand Products and open Webinars", link: "BP-05", linkLabel: "Build My Webinar →" },
       { step: "Abby will create your webinar topic, registration page, and follow-up emails" },
       { step: "Review everything and click 'Publish to My Site'" },
       { step: "Come back here and click 'Activate Now' to open registration" },
