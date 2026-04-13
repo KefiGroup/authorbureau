@@ -196,12 +196,45 @@ export default function OptInPageBuilder({ data, authorName, authorPhotoUrl, boo
   ];
 
 const FIELD_HINTS: Record<string, string> = {
-  headline: "The big, bold title visitors see first. Make it speak to their #1 pain point.",
-  subheadline: "A short sentence that expands on the headline and tells them what they'll get.",
-  bullet_points: "List the key benefits your reader gets from this lead magnet — one per line. Focus on outcomes, not features.",
-  cta_button_text: "The text on the sign-up button. Action words like 'Discover', 'Get', 'Unlock' convert best.",
-  privacy_note: "A short reassurance shown below the button, e.g. 'No spam. Unsubscribe anytime.'",
-  social_proof: "A line that builds trust, e.g. 'Join 2,000+ readers' or 'As featured in Forbes'.",
+  headline: "The big, bold title visitors see first. Make it speak to your reader's #1 pain point or desire.",
+  subheadline: "A short sentence that expands on the headline and tells them exactly what they'll get.",
+  bullet_points: "List the key benefits your reader gets — one per line. Focus on outcomes & transformations, not features.",
+  cta_button_text: "The text on the sign-up button. Action words like 'Discover', 'Get', 'Unlock' convert 2× better than 'Submit'.",
+  privacy_note: "A short reassurance shown below the button to reduce sign-up friction.",
+  social_proof: "A line that builds trust and urgency — numbers, credentials, or media mentions work best.",
+};
+
+const FIELD_EXAMPLES: Record<string, string[]> = {
+  headline: [
+    "What Stage of Success Are You Really In?",
+    "The 5-Minute Quiz That Reveals Your Next Breakthrough",
+    "Stop Guessing — Discover Your Growth Stage Today",
+  ],
+  subheadline: [
+    "A 90-second self-assessment for professionals who feel stuck and want a clear next step.",
+    "Take this free quiz and get a personalised action plan based on where you are right now.",
+    "Find out exactly what's holding you back — and what to do about it.",
+  ],
+  bullet_points: [
+    "Pinpoint exactly where you are in your journey\nGet a personalised action plan in 60 seconds\nDiscover the #1 thing holding you back\nJoin thousands who've already taken the quiz",
+    "Identify your unique growth stage\nReceive tailored strategies for your situation\nUnlock clarity on your next best move\nNo fluff — just actionable insights",
+  ],
+  cta_button_text: [
+    "Discover My Stage →",
+    "Take the Free Quiz →",
+    "Get My Results Now →",
+    "Unlock My Action Plan →",
+  ],
+  privacy_note: [
+    "No spam. Unsubscribe anytime.",
+    "We respect your privacy. Unsubscribe in one click.",
+    "Your email is safe with us. Zero spam, ever.",
+  ],
+  social_proof: [
+    "Join 2,000+ professionals who've discovered their stage",
+    "Trusted by entrepreneurs, executives & coaches worldwide",
+    "As featured in Forbes, Inc. & Entrepreneur Magazine",
+  ],
 };
 
   const FIELD_LABELS: Record<string, string> = {
@@ -288,22 +321,38 @@ const FIELD_HINTS: Record<string, string> = {
       {/* Inline edit panel */}
       {editingField && (
         <Card className="p-4 border-primary/30 bg-primary/5">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-1.5">
-              <h4 className="text-sm font-semibold">{FIELD_LABELS[editingField] || editingField}</h4>
-              {FIELD_HINTS[editingField] && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent side="right" className="max-w-xs text-xs">
-                      {FIELD_HINTS[editingField]}
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
+          {/* Abby's hint + examples */}
+          {FIELD_HINTS[editingField] && (
+            <div className="rounded-lg border border-secondary/20 bg-secondary/5 p-3 mb-3">
+              <div className="flex gap-2 items-start">
+                <Sparkles className="h-3.5 w-3.5 text-secondary mt-0.5 shrink-0" />
+                <div className="space-y-2 flex-1">
+                  <p className="text-xs text-muted-foreground">{FIELD_HINTS[editingField]}</p>
+                  {FIELD_EXAMPLES[editingField] && (
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-semibold text-secondary">Abby's suggestions — click to use:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {FIELD_EXAMPLES[editingField].map((ex, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => setEditValue(ex)}
+                            className="text-[11px] px-2 py-1 rounded-md border border-secondary/30 bg-background hover:bg-secondary/10 text-left transition-colors truncate max-w-full"
+                            title={ex}
+                          >
+                            {ex.length > 60 ? ex.slice(0, 57) + "…" : ex}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
+          )}
+
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-sm font-semibold">{FIELD_LABELS[editingField] || editingField}</h4>
             <div className="flex gap-1">
               <Button size="sm" variant="ghost" onClick={() => setEditingField(null)}>
                 <X className="h-3.5 w-3.5" />
