@@ -197,7 +197,8 @@ function parseContentSections(content: string): ContentSection[] {
       // Merge multiple headline sections into one with "Option N:" format
       const mergedBody = headlineBuffer
         .map((h, i) => {
-          const label = h.title.replace(/headline/i, "").replace(/[:\-—–]/g, "").trim();
+          let label = h.title.replace(/headline/i, "").replace(/[:\-—–]/g, "").trim();
+          if (!label || label.length < 3) label = h.title.trim();
           return `Option ${i + 1} (${label || `Variant ${i + 1}`}):\n${h.body}`;
         })
         .join("\n\n");
