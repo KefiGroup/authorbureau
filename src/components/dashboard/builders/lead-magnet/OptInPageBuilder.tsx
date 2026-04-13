@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Monitor, Smartphone, Paintbrush, Check, X, Sparkles, LayoutTemplate } from "lucide-react";
+import { Monitor, Smartphone, Paintbrush, Check, X, Sparkles, LayoutTemplate, Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface OptInPageData {
   headline?: string;
@@ -194,6 +195,15 @@ export default function OptInPageBuilder({ data, authorName, authorPhotoUrl, boo
     { key: "text", label: "Text" },
   ];
 
+const FIELD_HINTS: Record<string, string> = {
+  headline: "The big, bold title visitors see first. Make it speak to their #1 pain point.",
+  subheadline: "A short sentence that expands on the headline and tells them what they'll get.",
+  bullet_points: "List the key benefits your reader gets from this lead magnet — one per line. Focus on outcomes, not features.",
+  cta_button_text: "The text on the sign-up button. Action words like 'Discover', 'Get', 'Unlock' convert best.",
+  privacy_note: "A short reassurance shown below the button, e.g. 'No spam. Unsubscribe anytime.'",
+  social_proof: "A line that builds trust, e.g. 'Join 2,000+ readers' or 'As featured in Forbes'.",
+};
+
   const FIELD_LABELS: Record<string, string> = {
     headline: "Headline",
     subheadline: "Subheadline",
@@ -279,7 +289,21 @@ export default function OptInPageBuilder({ data, authorName, authorPhotoUrl, boo
       {editingField && (
         <Card className="p-4 border-primary/30 bg-primary/5">
           <div className="flex items-center justify-between mb-2">
-            <h4 className="text-sm font-semibold">{FIELD_LABELS[editingField] || editingField}</h4>
+            <div className="flex items-center gap-1.5">
+              <h4 className="text-sm font-semibold">{FIELD_LABELS[editingField] || editingField}</h4>
+              {FIELD_HINTS[editingField] && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="max-w-xs text-xs">
+                      {FIELD_HINTS[editingField]}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
             <div className="flex gap-1">
               <Button size="sm" variant="ghost" onClick={() => setEditingField(null)}>
                 <X className="h-3.5 w-3.5" />
