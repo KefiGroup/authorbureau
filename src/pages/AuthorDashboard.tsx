@@ -36,6 +36,7 @@ import AuthorReadingClub from "@/components/dashboard/AuthorReadingClub";
 // AbbyConsultantBanner removed from dashboard per reorganization
 import ABBYJourneyOnboarding from "@/components/dashboard/ABBYJourneyOnboarding";
 import MarketingHub from "@/components/dashboard/MarketingHub";
+import MarketingStudio from "@/components/dashboard/MarketingStudio";
 import { Loader2, Rocket, FileText, Video, Share2, CreditCard, Users, Trophy, Podcast, Building2, Bookmark, Award, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
@@ -61,8 +62,8 @@ export type DashboardSection =
   | "marketing" | "crm" | "author-crm" | "messages" | "reading-club" | "how-it-works"
   | "analytics" | "microsite-manager"
   | "connect-stripe" | "payout-settings" | "review-products" | "connect-settings"
-  | "marketing-hub"
-  | "book-sales" | "special-editions" | "lead-magnet"
+   | "marketing-hub" | "marketing-studio"
+   | "book-sales" | "special-editions" | "lead-magnet"
   // Universal builder nodes
   | "builder";
 
@@ -443,6 +444,8 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         return <AuthorMessagesPage />;
       case "marketing-hub":
         return <MarketingHub onNavigate={handleNavigate} />;
+      case "marketing-studio":
+        return <MarketingStudio onNavigate={handleNavigate} />;
       case "reading-club":
         return <AuthorReadingClub onNavigate={handleNavigate} />;
       case "book-sales":

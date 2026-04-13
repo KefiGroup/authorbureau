@@ -5,7 +5,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Wifi, WifiOff, RefreshCw, Rocket, AlertTriangle } from "lucide-react";
+import { Loader2, Wifi, WifiOff, RefreshCw, Rocket, AlertTriangle, ExternalLink } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface DeployedNode {
   id: string;
@@ -18,6 +19,7 @@ interface DeployedNode {
 
 export default function ConnectedAccountsTab({ userId }: { userId: string }) {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [authorProfileId, setAuthorProfileId] = useState<string | null>(null);
   const [ghlStatus, setGhlStatus] = useState<string | null>(null);
   const [ghlSubAccountId, setGhlSubAccountId] = useState<string | null>(null);
@@ -153,6 +155,17 @@ export default function ConnectedAccountsTab({ userId }: { userId: string }) {
             <p className="text-sm text-muted-foreground">
               Powers your opt-in pages, email automations, and social media distribution from the Marketing Hub.
             </p>
+            {isConnected && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="mt-3"
+                onClick={() => navigate("/dashboard?section=marketing-studio")}
+              >
+                <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                Open Marketing Studio
+              </Button>
+            )}
             {!isConnected && (
               <Button onClick={handleConnect} disabled={provisioning} size="sm" className="mt-3">
                 {provisioning ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Wifi className="h-3.5 w-3.5 mr-1.5" />}
