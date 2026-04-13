@@ -215,7 +215,7 @@ export default function SharedPublishStep({
                   <p className="text-sm text-muted-foreground mb-3">
                     Distribute it across social media from the Marketing Hub to start driving traffic.
                   </p>
-                  <Button size="sm" variant="outline" onClick={() => onNavigate?.("marketing-hub")}>
+                  <Button size="sm" variant="outline" onClick={() => onNavigate ? onNavigate("marketing-hub") : navigate("/dashboard?section=marketing-hub")}>
                     <BarChart3 className="h-3.5 w-3.5 mr-1.5" /> Go to Marketing Hub <ArrowRight className="h-3.5 w-3.5 ml-1" />
                   </Button>
                 </>
