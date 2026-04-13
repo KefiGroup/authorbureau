@@ -149,11 +149,12 @@ const CAMPAIGNS: CampaignConfig[] = [
 
 /* ─── Status config ─── */
 
-type CampaignStatus = "active" | "ready" | "pending" | "activating" | "failed";
+type CampaignStatus = "active" | "ready" | "pending" | "built" | "activating" | "failed";
 
 const statusConfig: Record<CampaignStatus, { label: string; className: string; icon: typeof CheckCircle2 }> = {
   active:     { label: "Active ✓",           className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", icon: CheckCircle2 },
   ready:      { label: "Ready to Activate",  className: "bg-amber-500/10 text-amber-600 border-amber-500/20 animate-pulse", icon: Zap },
+  built:      { label: "Activate / Connect", className: "bg-purple-500/10 text-purple-600 border-purple-500/20", icon: Zap },
   pending:    { label: "Not Started",        className: "bg-muted text-muted-foreground border-border", icon: Clock },
   activating: { label: "Activating…",        className: "bg-amber-500/10 text-amber-600 border-amber-500/20", icon: Loader2 },
   failed:     { label: "Needs Attention",    className: "bg-red-500/10 text-red-600 border-red-500/20", icon: AlertCircle },
@@ -259,6 +260,20 @@ export default function MarketingHub({ onNavigate }: Props) {
       return row?.status === "live" && !row?.marketing_activated_at;
     });
     if (hasLive) return "ready";
+
+    // Check if any node is published_pending_ghl or content_ready — built but not yet activated
+    const hasBuilt = campaign.nodeIds.some(nid => {
+      const row = nodeRows.find(r => r.node_id === nid);
+      return row?.status === "published_pending_ghl" || row?.status === "content_ready";
+    });
+    if (hasBuilt) return "built";
+
+    // Check if any node is in progress (building)
+    const hasBuilding = campaign.nodeIds.some(nid => {
+      const row = nodeRows.find(r => r.node_id === nid);
+      return row?.status === "building";
+    });
+    if (hasBuilding) return "pending";
 
     return "pending";
   };
