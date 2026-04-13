@@ -856,13 +856,16 @@ interface Props {
 }
 
 export default function ContentSectionCards({ content, onChange, stepTitle, hideSections, autoExpand }: Props) {
-  let sections = parseContentSections(content);
-  if (hideSections && hideSections.length > 0) {
-    sections = sections.filter(sec => {
-      const titleLower = sec.title.toLowerCase();
-      return !hideSections.some(kw => titleLower.includes(kw.toLowerCase()));
-    });
-  }
+  const allSections = parseContentSections(content);
+  const isHiddenSection = (title: string) =>
+    !!hideSections?.some(kw => title.toLowerCase().includes(kw.toLowerCase()));
+
+  const visibleSections = allSections
+    .map((section, index) => ({ section, index }))
+    .filter(({ section }) => !isHiddenSection(section.title));
+
+  const sections = visibleSections.map(({ section }) => section);
+  const visibleSectionIndexes = visibleSections.map(({ index }) => index);
   const [expandedIdxs, setExpandedIdxs] = useState<Set<number>>(() => autoExpand ? new Set(sections.map((_, i) => i)) : new Set());
 
   useEffect(() => {
@@ -884,7 +887,11 @@ export default function ContentSectionCards({ content, onChange, stepTitle, hide
   }
 
   const handleSectionEdit = (idx: number, updatedSection: { title: string; body: string }) => {
-    const updatedSections = sections.map((s, i) => i === idx ? { ...s, ...updatedSection } : s);
+    const targetIndex = visibleSectionIndexes[idx];
+    const updatedSections = allSections.map((section, sectionIndex) =>
+      sectionIndex === targetIndex ? { ...section, ...updatedSection } : section
+    );
+
     const newContent = updatedSections
       .map((s, i) => [`${i + 1}) ${s.title.trim() || `Section ${i + 1}`}`, s.body].filter(Boolean).join("\n"))
       .join("\n\n");
