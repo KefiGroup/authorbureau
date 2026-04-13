@@ -1,79 +1,127 @@
 
 
-# Sprint 27 — BP-02 Publish Fix + Connected Accounts + BP-03 401 Fix
+# Sprint 27 Bug Fixes — Test Report Remediation
 
 ```
 ARCHITECTURE CHECKLIST:
-✅ SharedPublishStep.tsx touched? → NO (already correct — no changes needed)
+✅ SharedPublishStep.tsx touched? → NO
 ✅ UniversalBuilderStudio.tsx touched? → NO
-✅ New sidebar item added? → NO (Connect Settings already exists in sidebar)
+✅ New sidebar item added? → NO
 ✅ New GHL edge function created? → NO
-✅ author_nodes touched? → NO (edge functions already handle upserts correctly)
+✅ author_nodes touched? → NO
 ✅ Author-facing text contains banned words? → Zero
-✅ Subscription tier values used? → N/A (no tier logic in this sprint)
+✅ Subscription tier values used? → N/A
 ```
 
-## Current State Assessment
+## Bugs from Test Report
 
-After reading all relevant files, several items in the sprint brief are **already implemented**:
-- "Connect Settings" sidebar item already exists (DashboardSidebar.tsx line 220)
-- AccountSettings.tsx already has 4 tabs including "connections" (line 86-87)
-- ConnectedAccountsTab component already exists and works (GHL status, Connect Now, Re-deploy)
-- SharedPublishStep.tsx already references "Connect Settings" correctly (lines 139, 229, 233)
-- `deploy-bp02-to-ghl` already includes `revenue_to_date: 0` and `current_step: 1` in its upsert (line 65-66)
+### Bug 1 (Critical) — Lead Magnet Quiz Does Not Advance After Form Submission
 
-## What Actually Needs Fixing
+**File:** `src/pages/MicrositePage.tsx`
 
-### Fix 1 — BP-02 Upsert 401 (Root Cause: Missing config.toml entry)
+**Root cause:** The `handleGateSubmit` function calls `await onSubmit(e)`, which internally catches errors without re-throwing. On **success**, `submitted` is set to `true` and `setStage("quiz")` runs — this should work. However, there are two issues:
 
-`deploy-bp02-to-ghl` is NOT listed in `supabase/config.toml`, so it defaults to `verify_jwt = true`. When the frontend calls it via `fetchWithTimeout` with a potentially expired or missing token, the gateway rejects it with 401 before the function code even runs. The function uses `SUPABASE_SERVICE_ROLE_KEY` internally and does not need JWT verification.
+1. If `microsite-action` returns an error (e.g. missing `author_id`), the catch block swallows it but `setStage("quiz")` still runs, putting the user on a quiz with no lead captured.
+2. If the function call succeeds but the component re-renders with `submitted=true` before `setStage("quiz")` takes effect, there may be a race condition.
 
-**File:** `supabase/config.toml`
-- Add `[functions.deploy-bp02-to-ghl]` with `verify_jwt = false`
+**Fix:**
+- Make `handleGateSubmit` check the outcome before advancing. The parent `handleSubmit` should return a boolean (or the child should check `submitted` state).
+- Refactor: have `handleSubmit` return `true`/`false` instead of setting state. `handleGateSubmit` checks the return value before calling `setStage("quiz")`.
+- Add error handling so if the lead capture fails, the user sees a toast but stays on the gate form.
 
-Additionally, improve error handling in the frontend:
+```typescript
+// In handleSubmit — return success boolean
+const handleSubmit = async (e: React.FormEvent): Promise<boolean> => {
+  e.preventDefault();
+  if (!email || submitting) return false;
+  setSubmitting(true);
+  try {
+    const res = await supabase.functions.invoke("microsite-action", { ... });
+    if (res.error) throw res.error;
+    setSubmitted(true);
+    toast({ title: "Success!", description: res.data?.message || "Thank you!" });
+    return true;
+  } catch (err) {
+    console.error("Submit error:", err);
+    toast({ title: "Something went wrong", variant: "destructive" });
+    return false;
+  } finally {
+    setSubmitting(false);
+  }
+};
 
-**File:** `src/components/dashboard/builders/lead-magnet/LeadMagnetStepRenderer.tsx`
-- Add full error logging with `console.error` for the response body
-- Add specific error messages based on error type (RLS, network, auth)
+// In LeadMagnetPage handleGateSubmit
+const handleGateSubmit = async (e: React.FormEvent) => {
+  const success = await onSubmit(e);
+  if (success && isQuiz && questions.length > 0) {
+    setStage("quiz");
+  }
+};
+```
 
-### Fix 2 — Connected Accounts (Already Done)
+- Update the `FormPageProps` type so `onSubmit` returns `Promise<boolean>`.
 
-All items in Fix 2 are already implemented:
-- Sidebar has "Connect Settings" under REVENUE & TOOLS
-- Clicking it navigates to `/account-settings?tab=connections`
-- AccountSettings has the "connections" tab rendering `ConnectedAccountsTab`
-- ConnectedAccountsTab shows GHL status, Connect Now, deployed nodes, Re-deploy
+---
 
-**No changes needed.**
+### Bug 2 (Critical) — Connect Settings Navigation
 
-### Fix 3 — BP-03 401 (Root Cause: Missing config.toml entry)
+**Finding after code review:** The Connect Settings sidebar item correctly calls `onSectionChange("connect-settings")` → `dashboardNavigate("/account-settings?tab=connections")`. This is standard React Router navigation, NOT an SSO redirect.
 
-`generate-bp03-social-media` is NOT in `config.toml`, so it defaults to `verify_jwt = true`, causing the 401. The function uses service role key internally.
+**However**, the test report says it triggers a PublishNow SSO redirect. This could happen if the click event somehow bubbles to the sister links section below, or if there's a CSS overlap issue.
 
-Same issue affects `deploy-bp03-to-ghl`.
+**Fix:**
+- Add `e.stopPropagation()` to the Connect Settings button click handler as a safety measure.
+- Verify the rendered order: Connect Settings button is rendered BEFORE the sister platform links in the DOM, so no overlap should occur. If the tester clicked the wrong button (AI Writing Studio or AI Publishing Studio), that would explain the SSO redirect.
+- No code change needed unless the overlap is confirmed. I will add a defensive `e.stopPropagation()` to all `revenueToolsItems` buttons.
 
-**File:** `supabase/config.toml`
-- Add `[functions.generate-bp03-social-media]` with `verify_jwt = false`
-- Add `[functions.deploy-bp03-to-ghl]` with `verify_jwt = false`
-- Also add ALL other deploy/generate functions that are missing (BP-01, BP-04, BP-05, etc.) to prevent the same 401 across other builders
+---
 
-**File:** `src/components/dashboard/builders/bp03/BP03Builder.tsx`
-- Improve error handling in `handleGenerate`: show specific messages for 401 (session expired), 500 (server error), timeout
-- Replace generic error text with actionable Abby messages
+### Bug 3 (High) — `?section=connect-settings` URL Not Handled
+
+**File:** `src/pages/AuthorDashboard.tsx`
+
+**Root cause:** When the URL is `/dashboard?section=connect-settings`, the `useEffect` sync (line 108-113) sets `activeSection` to `"connect-settings"`. But the redirect logic that converts `connect-settings` to `/account-settings?tab=connections` only runs inside `setActiveSection` (the manual click handler, lines 142-144). The URL sync effect bypasses that handler.
+
+**Fix:** Add a check in the URL sync effect:
+
+```typescript
+useEffect(() => {
+  const urlSection = searchParams.get("section") as DashboardSection | null;
+  if (urlSection && urlSection !== activeSection) {
+    if (urlSection === "connect-settings") {
+      dashboardNavigate("/account-settings?tab=connections", { replace: true });
+      return;
+    }
+    setActiveSectionState(urlSection);
+  }
+}, [searchParams]);
+```
+
+---
+
+### Bug 4 (Medium) — Stale Brand Products Counter
+
+**File:** `src/hooks/useAuthorStats.ts`
+
+**Root cause:** Module-level cache (`cachedStats`) with a 30-second TTL means navigating from sidebar → Brand Products shows stale data until the cache expires.
+
+**Fix:** Force-refetch stats when navigating to Brand Products hub. In `BrandProductsHub.tsx` (or wherever the counter is displayed), call `refetch()` on mount.
+
+Alternatively, reduce the cache TTL from 30s to 10s, or invalidate the cache when navigating between sections.
+
+---
 
 ## Summary of Changes
 
 | File | Change |
 |------|--------|
-| `supabase/config.toml` | Add ~20 missing edge functions with `verify_jwt = false` |
-| `src/components/dashboard/builders/lead-magnet/LeadMagnetStepRenderer.tsx` | Better error logging and specific error messages |
-| `src/components/dashboard/builders/bp03/BP03Builder.tsx` | Specific error messages for 401, 500, timeout |
+| `src/pages/MicrositePage.tsx` | `handleSubmit` returns boolean; `handleGateSubmit` only advances on success; update `FormPageProps` |
+| `src/pages/AuthorDashboard.tsx` | URL sync effect handles `connect-settings` redirect |
+| `src/hooks/useAuthorStats.ts` | Reduce cache TTL or expose cache invalidation |
 
 ## What This Fixes
 
-- BP-02 "Publish to Marketing Hub" will stop returning 401 and succeed
-- BP-03 "Generate My Social Media" will stop returning 401 and succeed
-- All other builders (BP-01, BP-04, BP-05) will also work without 401 errors
-- Error messages become specific and actionable instead of generic failures
+- Quiz form reliably advances only after successful lead capture
+- `/dashboard?section=connect-settings` URL correctly redirects to Account Settings connections tab
+- Brand Products counter stays consistent across navigation
 
