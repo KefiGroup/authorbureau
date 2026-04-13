@@ -153,7 +153,7 @@ export default function BP02Builder({ authorId }: Props) {
 
       if (data.status === "published_pending_ghl") {
         // Saved but GHL not connected — show success toast, stay on review
-        toast.success(data.message || "Lead magnet saved. Connect GoHighLevel in Settings to activate your live opt-in page.");
+        toast.success(data.message || "Lead magnet saved. Connect your Marketing Hub in Settings to activate your live opt-in page.");
         setStep(2);
         return;
       }
@@ -447,7 +447,7 @@ function ReviewStep({ content, authorName, onActivate, error, isPublishing }: { 
         </div>
       )}
       <p className="text-xs text-center text-muted-foreground">
-        Publishing creates your GHL funnel, contact tags, and lead capture workflow automatically.
+        Publishing creates your opt-in funnel, contact tags, and lead capture workflow automatically.
       </p>
     </div>
   );

@@ -144,7 +144,7 @@ export default function ConnectedAccountsTab({ userId }: { userId: string }) {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <p className="font-semibold text-sm">GoHighLevel</p>
+              <p className="font-semibold text-sm">Marketing Automation</p>
               {isConnected && <Badge variant="secondary" className="bg-accent/10 text-accent text-[10px]">Connected</Badge>}
               {isFailed && <Badge variant="destructive" className="text-[10px]">Failed</Badge>}
               {isPending && <Badge variant="outline" className="text-[10px]">Pending</Badge>}
