@@ -404,6 +404,11 @@ export default function MarketingHub({ onNavigate }: Props) {
     }
   };
 
+  /** Resolve a BP node ID to a book-aware dashboard route */
+  const resolveBpLink = (nodeId: string): string => {
+    return getBpBuildRoute(nodeId, firstBook ? { bookId: firstBook.id, bookTitle: firstBook.title } : undefined);
+  };
+
   /* ─── Counts ─── */
   const activeCount = CAMPAIGNS.filter(c => getCampaignStatus(c) === "active").length;
 
@@ -464,7 +469,7 @@ export default function MarketingHub({ onNavigate }: Props) {
             <Button
               size="sm"
               className="mt-3"
-              onClick={() => navigate("/node-builder/BP-01")}
+              onClick={() => navigate(resolveBpLink("BP-01"))}
             >
               Build Email Marketing First <ArrowRight className="ml-1 h-3 w-3" />
             </Button>
