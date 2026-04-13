@@ -19,11 +19,6 @@ const SETUP_FIELDS: SetupField[] = [
   ]},
   { key: "title", label: "Lead Magnet Title", type: "text", placeholder: "The 5-Step Framework for..." },
   { key: "audience", label: "Target Audience", type: "textarea", placeholder: "Who will find this irresistible? Describe their main pain point..." },
-  { key: "deliveryMethod", label: "Delivery Method", type: "pills", cols: 3, options: [
-    { value: "pdf", label: "PDF Download" },
-    { value: "email", label: "Email Drip" },
-    { value: "landing", label: "Landing Page" },
-  ]},
 ];
 
 import type { StepRendererProps } from "../shared/builder-types";
