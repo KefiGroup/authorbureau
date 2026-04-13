@@ -23,7 +23,7 @@ serve(async (req) => {
 
   try {
     // ── CP-1: Parse body ──
-    const { author_id } = await req.json();
+    const { author_id, content_payload } = await req.json();
     if (!author_id) return jsonRes({ success: false, status: "error", message: "author_id is required" });
     console.log("[deploy-bp02] ✅ CP-1: Body parsed, author_id =", author_id);
 
@@ -50,6 +50,29 @@ serve(async (req) => {
       (author?.pen_name || "").toLowerCase().replace(/\s+/g, "-");
 
     let subAccountId = author?.ghl_sub_account_id;
+
+    // ── CP-2.5: Upsert BP-02 node with content from client (service role bypasses RLS) ──
+    if (content_payload) {
+      console.log("[deploy-bp02] ✅ CP-2.5: Upserting BP-02 node with client content");
+      const { error: upsertErr } = await supabase
+        .from("author_nodes")
+        .upsert(
+          {
+            author_id,
+            node_id: "BP-02",
+            node_name: "Lead Magnet",
+            status: "draft",
+            revenue_to_date: 0,
+            current_step: 1,
+            content_json: content_payload,
+          },
+          { onConflict: "author_id,node_id" }
+        );
+      if (upsertErr) {
+        console.error("[deploy-bp02] ❌ CP-2.5: Upsert failed:", upsertErr.message);
+        return jsonRes({ success: false, status: "error", message: "Failed to save lead magnet data" });
+      }
+    }
 
     // ── CP-3: Fetch BP-02 content ──
     const { data: node, error: nodeErr } = await supabase
