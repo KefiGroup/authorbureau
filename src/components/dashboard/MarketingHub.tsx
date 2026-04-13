@@ -591,6 +591,10 @@ const CampaignRow = forwardRef<HTMLDivElement, {
               <Button size="sm" onClick={onActivate} className="text-xs bg-amber-600 hover:bg-amber-700 text-white">
                 Activate Now <ArrowRight className="ml-1 h-3 w-3" />
               </Button>
+            ) : status === "built" ? (
+              <Button size="sm" onClick={() => navigate("/account-settings?tab=connections")} className="text-xs">
+                Connect & Activate <ArrowRight className="ml-1 h-3 w-3" />
+              </Button>
             ) : status === "activating" ? (
               <Button size="sm" disabled className="text-xs">
                 <Loader2 className="h-3 w-3 mr-1 animate-spin" /> Setting up…
@@ -621,7 +625,12 @@ const CampaignRow = forwardRef<HTMLDivElement, {
               <Button
                 size="sm"
                 className="mt-3 w-full sm:w-auto"
-                onClick={() => navigate(ctaStep.link!)}
+                onClick={() => {
+                  // howToStart links now store node IDs like "BP-01", resolve them
+                  const link = ctaStep.link!;
+                  const resolved = link.startsWith("BP-") ? resolveBpLink(link) : link;
+                  navigate(resolved);
+                }}
               >
                 {ctaStep.linkLabel || "Get Started"} <ArrowRight className="ml-1 h-3 w-3" />
               </Button>
