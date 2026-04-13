@@ -19,11 +19,6 @@ const SETUP_FIELDS: SetupField[] = [
   ]},
   { key: "title", label: "Lead Magnet Title", type: "text", placeholder: "The 5-Step Framework for..." },
   { key: "audience", label: "Target Audience", type: "textarea", placeholder: "Who will find this irresistible? Describe their main pain point..." },
-  { key: "deliveryMethod", label: "Delivery Method", type: "pills", cols: 3, options: [
-    { value: "pdf", label: "PDF Download" },
-    { value: "email", label: "Email Drip" },
-    { value: "landing", label: "Landing Page" },
-  ]},
 ];
 
 import type { StepRendererProps } from "../shared/builder-types";
@@ -136,7 +131,7 @@ export default function LeadMagnetStepRenderer({ stepId, stepData, setStepData, 
 
   switch (stepId) {
     case "configure":
-      return <SharedSetupStep bookId={bookId} configKey="leadMagnetConfig" fields={SETUP_FIELDS} abbyTip="Checklists and cheat sheets convert best. They promise a quick win with minimal effort from the reader." stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} plan={plan} bookTitle={bookTitle} defaults={{ type: "checklist", deliveryMethod: "pdf" }} invalidateOnFieldChange={{
+      return <SharedSetupStep bookId={bookId} configKey="leadMagnetConfig" fields={SETUP_FIELDS} abbyTip="Quizzes and assessments drive the highest engagement and lead capture. I'll automatically choose the best delivery method for your format." stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} plan={plan} bookTitle={bookTitle} defaults={{ type: "quiz" }} invalidateOnFieldChange={{
         type: ["leadMagnetContent", "leadMagnetEdited", "leadMagnetDesign"],
       }} />;
     case "generate":
