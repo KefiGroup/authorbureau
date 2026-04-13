@@ -255,10 +255,10 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
               </span>
             )}
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold leading-tight mb-5" style={{ color: v.headingText, fontFamily: hFont }}>
-              {bestHeadline || `Discover Where You Really Stand — In Just 90 Seconds`}
+              {bestHeadline || `Discover Where You Really Stand in Just 90 Seconds`}
             </h1>
             <p className="text-lg sm:text-xl mb-6 leading-relaxed" style={{ color: v.mutedText }}>
-              {subheadline || `A free self-assessment based on ${data.book?.title || "the book"} — with personalised recommendations just for you.`}
+              {subheadline || `A free self-assessment based on ${data.book?.title || "the book"} with personalised recommendations just for you.`}
             </p>
             {bullets.length > 0 && (
               <ul className="space-y-3 mb-8">
@@ -301,7 +301,7 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
                       <h3 className="text-xl font-bold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>
                         Get Your Free Copy
                       </h3>
-                      <p className="text-sm" style={{ color: v.mutedText }}>Enter your details below — instant delivery.</p>
+                      <p className="text-sm" style={{ color: v.mutedText }}>Enter your details below for instant delivery.</p>
                     </>
                   )}
                 </div>
@@ -353,8 +353,8 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               {[
                 { icon: "📝", title: "Take the Quiz", desc: `Answer ${questionCount} quick multiple-choice questions about where you are right now.` },
-                { icon: "📊", title: "Get Your Score", desc: "Discover which stage you're at — with specific insights from the book." },
-                { icon: "🎯", title: "Your Next Step", desc: "Receive personalised product recommendations tailored to your exact situation." },
+                { icon: "📊", title: "Get Your Score", desc: "Discover which stage you're at with specific insights from the book." },
+                { icon: "🎯", title: "Your Next Step", desc: "Receive personalised recommendations tailored to your exact situation." },
               ].map((step, i) => (
                 <div key={i} className="p-6 rounded-xl" style={{ background: v.cardBg, border: `1px solid ${v.cardBorder}` }}>
                   <div className="text-3xl mb-3">{step.icon}</div>
