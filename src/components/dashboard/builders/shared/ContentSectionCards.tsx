@@ -945,32 +945,14 @@ export default function ContentSectionCards({ content, onChange, stepTitle, hide
               )}
             </button>
 
-            {/* Expanded body */}
+            {/* Expanded body — always editable */}
             {isExpanded && hasContent && (
-              <div className="px-5 pb-5 border-t border-border/40">
-                <div className="flex justify-end mt-3 mb-3">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs gap-1.5 text-muted-foreground hover:text-foreground"
-                    onClick={() => toggleEditing(idx)}
-                  >
-                    {isEditing ? <Check className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
-                    {isEditing ? "Done" : "Edit"}
-                  </Button>
-                </div>
-
-                {isEditing ? (
-                  <SectionEditor
-                    body={section.body}
-                    sectionTitle={section.title}
-                    onChange={(newBody) => handleSectionEdit(idx, newBody)}
-                  />
-                ) : (
-                  <div className="rounded-lg bg-muted/20 p-4">
-                    <FormattedBody body={section.body} sectionTitle={section.title} />
-                  </div>
-                )}
+              <div className="px-5 pb-5 border-t border-border/40 mt-3">
+                <SectionEditor
+                  body={section.body}
+                  sectionTitle={section.title}
+                  onChange={(newBody) => handleSectionEdit(idx, newBody)}
+                />
               </div>
             )}
           </Card>
