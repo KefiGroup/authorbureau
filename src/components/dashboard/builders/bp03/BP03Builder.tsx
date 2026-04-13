@@ -139,14 +139,14 @@ export default function BP03Builder({ authorId }: Props) {
       const status = data?.status || "live";
       setContent((prev: any) => ({ ...prev, activated: true, publishStatus: status }));
       if (status === "published_pending_ghl") {
-        toast({ title: "Social Media saved ✅", description: "Content saved — connect your Marketing Hub to go live." });
+        toast.success("Social Media saved ✅", { description: "Content saved — connect your Marketing Hub to go live." });
       } else {
-        toast({ title: "Social Media is live! 🎉" });
+        toast.success("Social Media is live! 🎉");
       }
     } catch (e: any) {
       console.error("Publish error (non-blocking):", e.message);
       setContent((prev: any) => ({ ...prev, activated: true, publishStatus: "published_pending_ghl" }));
-      toast({ title: "Content saved ✅", description: "Connect your Marketing Hub to go live." });
+      toast.success("Content saved ✅", { description: "Connect your Marketing Hub to go live." });
     }
   };
 

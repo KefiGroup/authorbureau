@@ -147,14 +147,14 @@ export default function BP01Builder({ authorId }: Props) {
         publishStatus: status,
       }));
       if (status === "published_pending_ghl") {
-        toast({ title: "Email Marketing saved ✅", description: "Content saved — connect your Marketing Hub to go live." });
+        toast.success("Email Marketing saved ✅", { description: "Content saved — connect your Marketing Hub to go live." });
       } else {
-        toast({ title: "Email Marketing is live! 🎉" });
+        toast.success("Email Marketing is live! 🎉");
       }
     } catch (e: any) {
       console.error("Activation error (non-blocking):", e.message);
       setContent((prev: any) => ({ ...prev, activated: true, publishStatus: "published_pending_ghl" }));
-      toast({ title: "Content saved ✅", description: "Connect your Marketing Hub to go live." });
+      toast.success("Content saved ✅", { description: "Connect your Marketing Hub to go live." });
     }
   };
 

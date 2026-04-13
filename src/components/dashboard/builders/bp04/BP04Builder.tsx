@@ -140,14 +140,14 @@ export default function BP04Builder({ authorId }: Props) {
       const liveUrl = data?.liveUrl;
       setContent((prev: any) => ({ ...prev, activated: true, publishStatus: status, liveUrl }));
       if (status === "published_pending_ghl") {
-        toast({ title: "Author Website saved ✅", description: "Content saved — connect your Marketing Hub to go live." });
+        toast.success("Author Website saved ✅", { description: "Content saved — connect your Marketing Hub to go live." });
       } else {
-        toast({ title: "Author Website is live! 🎉" });
+        toast.success("Author Website is live! 🎉");
       }
     } catch (e: any) {
       console.error("Publish error (non-blocking):", e.message);
       setContent((prev: any) => ({ ...prev, activated: true, publishStatus: "published_pending_ghl" }));
-      toast({ title: "Content saved ✅", description: "Connect your Marketing Hub to go live." });
+      toast.success("Content saved ✅", { description: "Connect your Marketing Hub to go live." });
     }
   };
 
