@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -55,8 +55,8 @@ function isMajorSectionHeader(line: string): boolean {
   // Edition identity sub-fields are not section headers
   if (/^(Title|Subtitle|Tagline)\s*:/i.test(normalized)) return false;
 
-  // Numbered section: "1) EDITION IDENTITY" or "2) THEMED FOREWORD..."
-  if (/^\d+\)\s+[A-Z]/.test(trimmed)) return true;
+  // Numbered section: "1) EDITION IDENTITY" or edited titles like "2) intro"
+  if (/^\d+\)\s+\S/.test(trimmed)) return true;
 
   // ALL-CAPS header line (at least 2 words, not a sub-item)
   if (/^[A-Z][A-Z\s\-&/(),:]+$/.test(normalized) && normalized.length > 4 && normalized.length < 120) {
@@ -806,45 +806,42 @@ function WritingLines({ count = 3 }: { count?: number }) {
   );
 }
 
-/** Edit mode that preserves title choices as UI and only edits the rest */
-function SectionEditor({ body, sectionTitle, onChange }: { body: string; sectionTitle: string; onChange: (newBody: string) => void }) {
-  const choiceData = extractChoiceOptions(body);
-
-  if (choiceData) {
-    // Show title chooser as UI, only allow editing the "rest" content
-    return (
-      <div className="space-y-4">
-        {choiceData.preamble && (
-          <p className="text-xs text-muted-foreground italic">{choiceData.preamble}</p>
-        )}
-        <TitleChoiceSelector options={choiceData.options} />
-        <Textarea
-          value={choiceData.rest}
-          onChange={e => {
-            // Reconstruct full body: preamble + choices + edited rest
-            const choiceBlock = [
-              choiceData.preamble,
-              choiceData.options.map((o, i) => `${i + 1}. ${o}`).join("\n"),
-              "",
-              e.target.value,
-            ].filter(Boolean).join("\n");
-            onChange(choiceBlock);
-          }}
-          rows={Math.max(8, choiceData.rest.split("\n").length + 2)}
-          className="text-sm"
-          placeholder="Edit the remaining content..."
-        />
-      </div>
-    );
-  }
+/** Edit all card content, including the visible card title */
+function SectionEditor({
+  title,
+  body,
+  onChange,
+}: {
+  title: string;
+  body: string;
+  onChange: (updated: { title: string; body: string }) => void;
+}) {
+  const normalizedTitle = title.replace(/\s*\n+\s*/g, " ");
 
   return (
-    <Textarea
-      value={body}
-      onChange={e => onChange(e.target.value)}
-      rows={Math.max(8, body.split("\n").length + 2)}
-      className="text-sm"
-    />
+    <div className="space-y-3 pt-4">
+      <div className="space-y-1.5">
+        <p className="text-xs font-medium text-muted-foreground">Card title</p>
+        <Textarea
+          value={normalizedTitle}
+          onChange={e => onChange({ title: e.target.value.replace(/\s*\n+\s*/g, " "), body })}
+          rows={2}
+          className="min-h-[72px] resize-y text-sm font-medium"
+          placeholder="Edit card title..."
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <p className="text-xs font-medium text-muted-foreground">Content</p>
+        <Textarea
+          value={body}
+          onChange={e => onChange({ title: normalizedTitle, body: e.target.value })}
+          rows={Math.max(6, body.split("\n").length + 2)}
+          className="text-sm"
+          placeholder="Add or edit the card content..."
+        />
+      </div>
+    </div>
   );
 }
 
@@ -868,6 +865,11 @@ export default function ContentSectionCards({ content, onChange, stepTitle, hide
   }
   const [expandedIdxs, setExpandedIdxs] = useState<Set<number>>(() => autoExpand ? new Set(sections.map((_, i) => i)) : new Set());
 
+  useEffect(() => {
+    if (!autoExpand || sections.length === 0) return;
+    setExpandedIdxs(prev => (prev.size > 0 ? prev : new Set(sections.map((_, i) => i))));
+  }, [autoExpand, sections.length]);
+
   const isSingleSection = sections.length === 1 && sections[0].title === "Content";
 
   if (isSingleSection) {
@@ -881,10 +883,10 @@ export default function ContentSectionCards({ content, onChange, stepTitle, hide
     );
   }
 
-  const handleSectionEdit = (idx: number, newBody: string) => {
-    const updatedSections = sections.map((s, i) => i === idx ? { ...s, body: newBody } : s);
+  const handleSectionEdit = (idx: number, updatedSection: { title: string; body: string }) => {
+    const updatedSections = sections.map((s, i) => i === idx ? { ...s, ...updatedSection } : s);
     const newContent = updatedSections
-      .map((s, i) => `${i + 1}) ${s.title}\n${s.body}`)
+      .map((s, i) => [`${i + 1}) ${s.title.trim() || `Section ${i + 1}`}`, s.body].filter(Boolean).join("\n"))
       .join("\n\n");
     onChange(newContent);
   };
@@ -903,8 +905,8 @@ export default function ContentSectionCards({ content, onChange, stepTitle, hide
       {sections.map((section, idx) => {
         const isExpanded = expandedIdxs.has(idx);
         const previewText = section.body.replace(/\n/g, " ").slice(0, 100);
-
-        const hasContent = section.body.trim().length > 0;
+        const hasBody = section.body.trim().length > 0;
+        const hasContent = section.title.trim().length > 0 || hasBody;
 
         return (
           <Card key={idx} className="overflow-hidden border-border/60 hover:border-border transition-colors">
@@ -919,7 +921,7 @@ export default function ContentSectionCards({ content, onChange, stepTitle, hide
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-foreground">{section.title}</p>
-                {!isExpanded && hasContent && (
+                {!isExpanded && hasBody && (
                   <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
                     {previewText}…
                   </p>
@@ -938,9 +940,9 @@ export default function ContentSectionCards({ content, onChange, stepTitle, hide
             {isExpanded && hasContent && (
               <div className="px-5 pb-5 border-t border-border/40 mt-3">
                 <SectionEditor
+                  title={section.title}
                   body={section.body}
-                  sectionTitle={section.title}
-                  onChange={(newBody) => handleSectionEdit(idx, newBody)}
+                  onChange={(updatedSection) => handleSectionEdit(idx, updatedSection)}
                 />
               </div>
             )}
