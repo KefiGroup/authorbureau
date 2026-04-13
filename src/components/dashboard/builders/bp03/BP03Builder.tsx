@@ -119,7 +119,18 @@ export default function BP03Builder({ authorId }: Props) {
       const { data, error: fnErr } = await supabase.functions.invoke("generate-bp03-social-media", {
         body: { author_id: authorId },
       });
-      if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
+      if (fnErr) {
+        console.error("BP-03 generate error:", fnErr);
+        const msg = fnErr.message || "";
+        if (msg.includes("401") || msg.includes("Unauthorized")) {
+          throw new Error("Your session has expired. Please refresh the page and try again.");
+        }
+        if (msg.includes("500") || msg.includes("Internal")) {
+          throw new Error("Abby is having trouble generating content right now. Please try again in a moment.");
+        }
+        throw new Error(msg || "Generation failed. Please try again.");
+      }
+      if (!data?.success) throw new Error(data?.error || "Generation failed. Please try again.");
       setContent(data.content);
       setStep(2);
     } catch (e: any) {
