@@ -286,7 +286,8 @@ function groupIntoParagraphs(body: string): string[][] {
       /^\d+[\.\)]\s/.test(trimmed) ||
       /^Prompt\s*[:—–]/i.test(trimmed) ||
       /^(Source\s*(Chapter)?|Why it matters)\s*[:—]/i.test(trimmed) ||
-      isInlineHeader(trimmed);
+      isInlineHeader(trimmed) ||
+      isSubSectionHeader(trimmed);
 
     if (isStructural) {
       if (current.length > 0) {
@@ -314,6 +315,30 @@ function isInlineHeader(line: string): boolean {
   if (/^[A-Z][^.!?]*:\s*$/.test(trimmed) && trimmed.length < 80) return true;
   // "Label (parenthetical):" pattern
   if (/^[A-Z][^:]+\([^)]+\)\s*:\s*$/.test(trimmed) && trimmed.length < 100) return true;
+  return false;
+}
+
+/**
+ * Detect sub-section headers within content cards — these get bold + spacing
+ * but are NOT major section breaks. Examples:
+ * - "Scoring & Results (Diagnosis Only)"
+ * - "Step 1: Identify your Primary Stage"
+ * - "S3 Subtotal (0–6): ___"
+ * - "S1 — Start by Sucking (visibility, voice, meaning)"
+ */
+function isSubSectionHeader(line: string): boolean {
+  const trimmed = line.trim();
+  if (!trimmed || trimmed.length > 120) return false;
+  // "Step N: ..." pattern
+  if (/^Step\s+\d+\s*[:—–]\s*.+/i.test(trimmed)) return true;
+  // "SN — ..." or "S1 (Start by Sucking):" stage headers
+  if (/^S\d+\s*[—–(:]/.test(trimmed)) return true;
+  // "SN Subtotal" pattern
+  if (/^S\d+\s+Subtotal/i.test(trimmed)) return true;
+  // "Scoring & Results" or similar standalone section labels
+  if (/^(Scoring|Results|Instructions|Directions|How (to|it) (Score|Works?))/i.test(trimmed) && trimmed.length < 80) return true;
+  // "Section Name (parenthetical)" — short title-case line with parens, no trailing content
+  if (/^[A-Z][A-Za-z\s&]+\([^)]+\)\s*$/.test(trimmed) && trimmed.length < 80) return true;
   return false;
 }
 
@@ -672,7 +697,17 @@ function FormattedBodyInner({ body, sectionTitle, showWritingSpaces }: { body: s
             );
           }
 
-          // Prompt line
+          // Sub-section header (e.g. "Scoring & Results", "Step 1: ...", "S3 — ...")
+          if (isSubSectionHeader(lt)) {
+            return (
+              <div key={gIdx} className="mt-4 mb-1 pt-3 border-t border-border/40">
+                <p className="text-sm font-bold text-foreground">
+                  {renderInlineFormatting(lt)}
+                </p>
+              </div>
+            );
+          }
+
           const promptMatch = lt.match(/^Prompt\s*[:—–]\s*[""\u201C]?(.+?)[""\u201D]?\s*$/i);
           if (promptMatch) {
             return (
