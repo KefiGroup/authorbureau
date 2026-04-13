@@ -108,6 +108,11 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
   useEffect(() => {
     const urlSection = searchParams.get("section") as DashboardSection | null;
     if (urlSection && urlSection !== activeSection) {
+      // Intercept connect-settings — redirect to Account Settings connections tab
+      if (urlSection === "connect-settings") {
+        dashboardNavigate("/account-settings?tab=connections", { replace: true });
+        return;
+      }
       setActiveSectionState(urlSection);
     }
   }, [searchParams]);

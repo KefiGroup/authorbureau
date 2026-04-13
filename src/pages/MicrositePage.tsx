@@ -139,9 +139,9 @@ export default function MicrositePage() {
   const bgColor = theme.colors.heroBackground;
   const content = data.node.content_json || {};
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<boolean> => {
     e.preventDefault();
-    if (!email || submitting) return;
+    if (!email || submitting) return false;
     setSubmitting(true);
 
     try {
@@ -160,11 +160,14 @@ export default function MicrositePage() {
       if (res.error) throw res.error;
       setSubmitted(true);
       toast({ title: "Success!", description: res.data?.message || "Thank you!" });
+      return true;
     } catch (err) {
       console.error("Submit error:", err);
       toast({ title: "Something went wrong", variant: "destructive" });
+      return false;
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   // Render node-specific template
@@ -215,7 +218,7 @@ interface PageProps {
   bgColor: string;
 }
 interface FormPageProps extends PageProps {
-  onSubmit: (e: React.FormEvent) => void;
+  onSubmit: (e: React.FormEvent) => Promise<boolean>;
   email: string; setEmail: (v: string) => void;
   firstName: string; setFirstName: (v: string) => void;
   submitting: boolean; submitted: boolean;
@@ -248,8 +251,8 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
   const isQuiz = (config.type || "").toLowerCase().includes("quiz") || questions.length > 0;
 
   const handleGateSubmit = async (e: React.FormEvent) => {
-    await onSubmit(e);
-    if (isQuiz && questions.length > 0) {
+    const success = await onSubmit(e);
+    if (success && isQuiz && questions.length > 0) {
       setStage("quiz");
     }
   };
