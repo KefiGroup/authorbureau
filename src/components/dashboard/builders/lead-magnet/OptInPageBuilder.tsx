@@ -291,8 +291,10 @@ export default function OptInPageBuilder({ data, authorName, authorPhotoUrl, boo
           </div>
           {editingField === "bullet_points" ? (
             <Textarea value={editValue} onChange={e => setEditValue(e.target.value)} rows={5} placeholder="One benefit per line" />
-          ) : (
+          ) : editingField === "cta_button_text" ? (
             <Input value={editValue} onChange={e => setEditValue(e.target.value)} />
+          ) : (
+            <Textarea value={editValue} onChange={e => setEditValue(e.target.value)} rows={3} />
           )}
         </Card>
       )}
