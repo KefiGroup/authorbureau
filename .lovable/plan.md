@@ -1,85 +1,84 @@
 
-I checked the page code and the confusion is real. The toast in your screenshot is coming from the sticky footer button, not from the real lead-magnet publish action.
 
-What is happening now
-- Header "Save Draft" = saves draft
-- Sticky footer "Publish" = for custom builders, it does not publish; it only saves draft and shows the toast
-- In-step button ("Publish"/"Update") = this is the real deploy action
+## Audit Summary
 
-There is also a label problem:
-- `SharedPublishStep` sets `stepData.published = true` even when the result is only `published_pending_ghl`
-- so the real button changes to "Update" even when nothing is actually live yet
+### Issue 1: Edit Step (Step 3) shows cards but content is not editable
 
-I also found 3 wiring bugs in Connected Accounts:
-- it fetches nodes with `author_id = userId` instead of the author profile id
-- "Connect Now" calls `ghl-provision-author` without the required `author_id`
-- "Re-deploy" sends `node_id` to `deploy-bp02-to-ghl`, but that function expects `author_id`
+The screenshot shows three section cards on the "Edit & Polish" step. These are rendered by `ContentSectionCards`, which parses the AI-generated text into collapsible cards. Each card has a pencil icon to enter edit mode — but you need to **click/expand the card first**, then click the pencil (Edit) icon to make the text editable.
 
-The real lead-magnet publish path is also fragile because it resolves the author profile through the cloud client instead of the shared-token pattern used elsewhere.
+However, the real problem is that the cards appear collapsed with only titles visible and no obvious edit affordance. For the "Edit & Polish" step specifically, the cards should be **expanded by default** and **in edit mode by default** so the author can immediately type changes.
 
-Plan
+### Issue 2: Lead Magnet → GHL → Marketing Hub flow is broken at multiple points
 
-1. Remove the misleading footer publish behavior
-- On the last step of custom publish builders, stop showing a footer CTA that says "Publish" when it only saves a draft.
-- Keep one clear publish action for the final step.
-- Either hide the footer primary CTA on that step or rename it to a true draft-only action.
+Here is the full intended flow and where it breaks:
 
-2. Make the real publish button say exactly what it does
-- Update the in-step CTA labels so they reflect the actual state:
-  - before first publish: "Publish to Marketing Hub"
-  - pending connection: "Retry Publish"
-  - live: "Update Live Funnel"
-- Do not use the generic "Update" label for pending/non-live states.
+```text
+Step 1: Configure     → Pick type, title, audience
+Step 2: Let Abby Build → AI generates content (saved to stepData.leadMagnetContent)
+Step 3: Edit & Polish  → Author edits content (saved to stepData.leadMagnetEdited)
+Step 4: Design         → Opt-in page visual builder (saved to stepData.leadMagnetPage)
+Step 5: Preview & Publish → Click "Publish to Marketing Hub"
+        ↓
+     deploy-bp02-to-ghl edge function
+        ↓
+     Checks author_profiles.ghl_sub_account_id
+        ↓
+     ALL authors have ghl_provision_status = "pending", ghl_sub_account_id = NULL
+        ↓
+     Returns status: "published_pending_ghl"
+        ↓
+     UI shows "Content saved — not live yet" with "Go to Connected Accounts" button
+        ↓
+     Connected Accounts → "Connect Now" button → calls ghl-provision-author
+        ↓
+     GHL provisioning creates sub-account (or fails with 403 → uses shared fallback)
+        ↓
+     Back to Connected Accounts → "Re-deploy" button → calls deploy-bp02-to-ghl again
+        ↓
+     This time ghl_sub_account_id exists → creates funnel/workflow/tags in GHL
+        ↓
+     Returns status: "live" with microsite URL
+        ↓
+     UI shows live URL + "Go to Marketing Hub" button
+        ↓
+     BUT: "Go to Marketing Hub" button calls onNavigate("marketing-hub")
+          which is NEVER PASSED from LeadMagnetStepRenderer → button does nothing
+```
 
-3. Add a persistent publish status panel
-- In `SharedPublishStep`, persist result data into `stepData` (`publishStatus`, `publishLiveUrl`, `publishMessage`).
-- Render a status card from saved state, not just temporary toast/local state.
-- Show clear next steps:
-  - Pending: "Saved, not live yet. Go to Connected Accounts → Connect Now → Re-deploy Lead Magnet."
-  - Live: show the live URL plus "Go to Marketing Hub" CTA.
-- Add Copy/Open Link actions so the user can see exactly where the lead magnet went.
+**Database confirms**: All 5 authors have `ghl_provision_status = 'pending'` and `ghl_sub_account_id = NULL`. No `author_nodes` records exist at all — meaning no one has successfully published yet.
 
-4. Fix the broken Connected Accounts buttons
-- Resolve the current author profile id correctly from `author_profiles.id`.
-- Query deployed nodes using that id only.
-- Remove the unsafe fallback query that can grab the wrong profile.
-- Pass `author_id` into "Connect Now".
-- Use the correct node→deploy function mapping and pass `author_id` for "Re-deploy".
+## Plan
 
-5. Harden the actual Lead Magnet publish action
-- In `LeadMagnetStepRenderer`, resolve author profile id using the same cloud+shared fallback pattern already used elsewhere.
-- Invoke deployment with the active-token fetch pattern so shared-session users are handled reliably and error bodies are readable.
-- Show specific publish errors instead of a generic "Publish failed".
+### 1. Make Edit & Polish cards editable by default
 
-6. Make the flow explicit on the page
-- Add a short explainer above the real publish CTA:
-  1. Save the lead magnet
-  2. If connected, build the funnel immediately
-  3. If not connected, save as pending and send you to Connected Accounts
-  4. After live, go to Marketing Hub to activate/distribute
-- Update post-publish copy so it names the exact destination tab/button, not just "Settings".
+In `ContentSectionCards.tsx`, add an `autoExpand` prop. When `true`, all cards render expanded and in edit mode on mount. Pass `autoExpand={true}` from `SharedContentStep.tsx` when the step is the "edit" step (detected via `seedFromKey` being set, which is only used for the edit step).
 
-Expected flow after the fix
-- Save Draft = only saves work
-- Publish to Marketing Hub:
-  - not connected: saves as pending and shows "Connected Accounts → Connect Now → Re-deploy"
-  - connected: creates the live lead magnet funnel and shows the live URL
-- Connect Now = provisions the marketing account
-- Re-deploy = pushes the pending lead magnet without reopening the builder
-- Marketing Hub = activates the downstream distribution/social flow
+### 2. Wire the "Go to Marketing Hub" button
 
-Files to update
-- `src/components/dashboard/builders/UniversalBuilderStudio.tsx`
-- `src/components/dashboard/builders/shared/BuilderFooter.tsx`
-- `src/components/dashboard/builders/shared/SharedPublishStep.tsx`
-- `src/components/dashboard/builders/lead-magnet/LeadMagnetStepRenderer.tsx`
-- `src/components/settings/ConnectedAccountsTab.tsx`
-- optional small shared utility for author-profile-id resolution
+In `LeadMagnetStepRenderer.tsx` at the `preview` case, pass `onNavigate` to `SharedPublishStep` using `useNavigate`:
 
-Technical notes
-- No database migration needed.
-- No new tables needed.
-- Existing deploy/provision functions can be reused; the main issues are CTA clarity, wrong parameter wiring, and unreliable author-profile resolution.
-- QA should test every button on this page end-to-end in both states:
-  - no marketing account connected
-  - marketing account already connected
+```tsx
+onNavigate={(section) => navigate(`/dashboard?section=${section}&highlight=lead-magnets`)}
+```
+
+### 3. Use `navigate()` as fallback in SharedPublishStep
+
+Update the "Go to Marketing Hub" button in `SharedPublishStep.tsx` to use `navigate` directly if `onNavigate` is not provided, so it always works:
+
+```tsx
+onClick={() => onNavigate ? onNavigate("marketing-hub") : navigate("/dashboard?section=marketing-hub")}
+```
+
+### Files to change
+
+1. **`src/components/dashboard/builders/shared/ContentSectionCards.tsx`** — Add `autoExpand` prop; when true, initialize all cards as expanded and in edit mode
+2. **`src/components/dashboard/builders/shared/SharedContentStep.tsx`** — Pass `autoExpand={!!seedFromKey}` to `ContentSectionCards`
+3. **`src/components/dashboard/builders/lead-magnet/LeadMagnetStepRenderer.tsx`** — Import `useNavigate`, pass `onNavigate` to `SharedPublishStep`
+4. **`src/components/dashboard/builders/shared/SharedPublishStep.tsx`** — Fallback to `navigate()` when `onNavigate` is not provided
+
+### Technical notes
+
+- No database migration needed
+- No edge function changes needed
+- The GHL provisioning flow itself is correct — the issue is purely that no author has provisioned yet (all are "pending") and the UI buttons to complete the flow were not wired
+
