@@ -197,7 +197,8 @@ function parseContentSections(content: string): ContentSection[] {
       // Merge multiple headline sections into one with "Option N:" format
       const mergedBody = headlineBuffer
         .map((h, i) => {
-          const label = h.title.replace(/headline/i, "").replace(/[:\-—–]/g, "").trim();
+          let label = h.title.replace(/headline/i, "").replace(/[:\-—–]/g, "").trim();
+          if (!label || label.length < 3) label = h.title.trim();
           return `Option ${i + 1} (${label || `Variant ${i + 1}`}):\n${h.body}`;
         })
         .join("\n\n");
@@ -210,9 +211,29 @@ function parseContentSections(content: string): ContentSection[] {
     headlineBuffer = [];
   };
 
+  const isHeadlineVariant = (title: string): boolean => {
+    if (/headline/i.test(title) && !/options/i.test(title)) return true;
+    // Short titles that look like quiz/title variants
+    if (title.length < 100 && /quiz|finder|compass|assessment|checker|test|starter/i.test(title)) return true;
+    return false;
+  };
+
+  /** Check if two titles share at least one significant word (3+ chars) */
+  const sharesWord = (a: string, b: string): boolean => {
+    const wordsA = a.toLowerCase().match(/[a-z]{3,}/g) || [];
+    const wordsB = new Set((b.toLowerCase().match(/[a-z]{3,}/g) || []));
+    return wordsA.some(w => wordsB.has(w));
+  };
+
   for (const sec of sections) {
-    if (/headline/i.test(sec.title) && !/options/i.test(sec.title)) {
-      headlineBuffer.push(sec);
+    if (isHeadlineVariant(sec.title)) {
+      // Only buffer if it shares a word with existing buffer items (or buffer is empty)
+      if (headlineBuffer.length === 0 || headlineBuffer.some(h => sharesWord(h.title, sec.title))) {
+        headlineBuffer.push(sec);
+      } else {
+        flushHeadlines();
+        headlineBuffer.push(sec);
+      }
     } else {
       flushHeadlines();
       mergedSections.push(sec);
