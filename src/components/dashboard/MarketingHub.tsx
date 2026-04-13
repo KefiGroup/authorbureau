@@ -491,6 +491,7 @@ export default function MarketingHub({ onNavigate }: Props) {
               isHighlighted={isHighlighted}
               nodeRows={nodeRows}
               onActivate={() => handleActivate(campaign)}
+              resolveBpLink={resolveBpLink}
             />
           );
         })}
@@ -509,7 +510,8 @@ const CampaignRow = forwardRef<HTMLDivElement, {
   isHighlighted: boolean;
   nodeRows: NodeRow[];
   onActivate: () => void;
-}>(({ campaign, status, isHighlighted, nodeRows, onActivate }, ref) => {
+  resolveBpLink: (nodeId: string) => string;
+}>(({ campaign, status, isHighlighted, nodeRows, onActivate, resolveBpLink }, ref) => {
   const navigate = useNavigate();
   const config = statusConfig[status];
   const StatusIcon = config.icon;
