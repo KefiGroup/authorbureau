@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ChevronDown, ChevronUp, Pencil, Check, BookOpen, FileText, MessageCircle, Gift, Sparkles, ListChecks, PenLine } from "lucide-react";
+import { ChevronDown, ChevronUp, Check, BookOpen, FileText, MessageCircle, Gift, Sparkles, ListChecks, PenLine } from "lucide-react";
 
 interface ContentSection {
   title: string;
@@ -867,7 +867,6 @@ export default function ContentSectionCards({ content, onChange, stepTitle, hide
     });
   }
   const [expandedIdxs, setExpandedIdxs] = useState<Set<number>>(() => autoExpand ? new Set(sections.map((_, i) => i)) : new Set());
-  const [editingIdxs, setEditingIdxs] = useState<Set<number>>(() => autoExpand ? new Set(sections.map((_, i) => i)) : new Set());
 
   const isSingleSection = sections.length === 1 && sections[0].title === "Content";
 
@@ -893,15 +892,6 @@ export default function ContentSectionCards({ content, onChange, stepTitle, hide
   const toggleExpanded = (idx: number) => {
     setExpandedIdxs(prev => {
       const next = new Set(prev);
-      if (next.has(idx)) { next.delete(idx); setEditingIdxs(p => { const n = new Set(p); n.delete(idx); return n; }); }
-      else next.add(idx);
-      return next;
-    });
-  };
-
-  const toggleEditing = (idx: number) => {
-    setEditingIdxs(prev => {
-      const next = new Set(prev);
       if (next.has(idx)) next.delete(idx);
       else next.add(idx);
       return next;
@@ -912,7 +902,6 @@ export default function ContentSectionCards({ content, onChange, stepTitle, hide
     <div className="space-y-3">
       {sections.map((section, idx) => {
         const isExpanded = expandedIdxs.has(idx);
-        const isEditing = editingIdxs.has(idx);
         const previewText = section.body.replace(/\n/g, " ").slice(0, 100);
 
         const hasContent = section.body.trim().length > 0;
@@ -945,32 +934,14 @@ export default function ContentSectionCards({ content, onChange, stepTitle, hide
               )}
             </button>
 
-            {/* Expanded body */}
+            {/* Expanded body — always editable */}
             {isExpanded && hasContent && (
-              <div className="px-5 pb-5 border-t border-border/40">
-                <div className="flex justify-end mt-3 mb-3">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs gap-1.5 text-muted-foreground hover:text-foreground"
-                    onClick={() => toggleEditing(idx)}
-                  >
-                    {isEditing ? <Check className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
-                    {isEditing ? "Done" : "Edit"}
-                  </Button>
-                </div>
-
-                {isEditing ? (
-                  <SectionEditor
-                    body={section.body}
-                    sectionTitle={section.title}
-                    onChange={(newBody) => handleSectionEdit(idx, newBody)}
-                  />
-                ) : (
-                  <div className="rounded-lg bg-muted/20 p-4">
-                    <FormattedBody body={section.body} sectionTitle={section.title} />
-                  </div>
-                )}
+              <div className="px-5 pb-5 border-t border-border/40 mt-3">
+                <SectionEditor
+                  body={section.body}
+                  sectionTitle={section.title}
+                  onChange={(newBody) => handleSectionEdit(idx, newBody)}
+                />
               </div>
             )}
           </Card>
