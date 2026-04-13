@@ -776,8 +776,8 @@ export default function ContentSectionCards({ content, onChange, stepTitle, hide
       return !hideSections.some(kw => titleLower.includes(kw.toLowerCase()));
     });
   }
-  const [expandedIdx, setExpandedIdx] = useState<number | null>(autoExpand ? 0 : null);
-  const [editingIdx, setEditingIdx] = useState<number | null>(autoExpand ? 0 : null);
+  const [expandedIdxs, setExpandedIdxs] = useState<Set<number>>(() => autoExpand ? new Set(sections.map((_, i) => i)) : new Set());
+  const [editingIdxs, setEditingIdxs] = useState<Set<number>>(() => autoExpand ? new Set(sections.map((_, i) => i)) : new Set());
 
   const isSingleSection = sections.length === 1 && sections[0].title === "Content";
 
@@ -800,11 +800,29 @@ export default function ContentSectionCards({ content, onChange, stepTitle, hide
     onChange(newContent);
   };
 
+  const toggleExpanded = (idx: number) => {
+    setExpandedIdxs(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) { next.delete(idx); setEditingIdxs(p => { const n = new Set(p); n.delete(idx); return n; }); }
+      else next.add(idx);
+      return next;
+    });
+  };
+
+  const toggleEditing = (idx: number) => {
+    setEditingIdxs(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  };
+
   return (
     <div className="space-y-3">
       {sections.map((section, idx) => {
-        const isExpanded = expandedIdx === idx;
-        const isEditing = editingIdx === idx;
+        const isExpanded = expandedIdxs.has(idx);
+        const isEditing = editingIdxs.has(idx);
         const previewText = section.body.replace(/\n/g, " ").slice(0, 100);
 
         const hasContent = section.body.trim().length > 0;
