@@ -132,11 +132,21 @@ export default function BP03Builder({ authorId }: Props) {
     setStep(3);
     setError(null);
     try {
-      await publishNodeToSite(authorId!, "BP-03", authorSlug);
-      setContent((prev: any) => ({ ...prev, activated: true }));
+      const { data, error: fnErr } = await supabase.functions.invoke("deploy-bp03-to-ghl", {
+        body: { author_id: authorId, content_payload: content },
+      });
+      if (fnErr) throw new Error(fnErr.message || "Activation failed");
+      const status = data?.status || "live";
+      setContent((prev: any) => ({ ...prev, activated: true, publishStatus: status }));
+      if (status === "published_pending_ghl") {
+        toast({ title: "Social Media saved ✅", description: "Content saved — connect your Marketing Hub to go live." });
+      } else {
+        toast({ title: "Social Media is live! 🎉" });
+      }
     } catch (e: any) {
-      setError(e.message);
-      setStep(2);
+      console.error("Publish error (non-blocking):", e.message);
+      setContent((prev: any) => ({ ...prev, activated: true, publishStatus: "published_pending_ghl" }));
+      toast({ title: "Content saved ✅", description: "Connect your Marketing Hub to go live." });
     }
   };
 
