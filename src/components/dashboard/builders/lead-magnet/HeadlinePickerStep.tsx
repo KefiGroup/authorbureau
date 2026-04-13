@@ -120,8 +120,8 @@ export default function HeadlinePickerStep({ stepData, setStepData, onMarkEdited
 
       {selected >= 0 && (
         <div className="flex items-center gap-2 pt-2">
-          <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-          <span className="text-sm text-emerald-600 font-medium">
+          <CheckCircle2 className="h-4 w-4 text-primary" />
+          <span className="text-sm text-primary font-medium">
             Headline saved — continue to the next step.
           </span>
         </div>
