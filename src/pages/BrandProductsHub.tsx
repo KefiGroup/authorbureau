@@ -200,7 +200,7 @@ export default function BrandProductsHub() {
     navigate(route);
   };
 
-  const liveCount = nodes.filter(n => n.status === "live").length;
+  const liveCount = nodes.filter(n => n.status === "live" || n.status === "published_pending_ghl").length;
 
   const renderNodeCard = (def: NodeDef) => (
     <div key={def.id} className="rounded-2xl border border-border bg-[hsl(var(--card))] p-5 flex flex-col gap-3 hover:shadow-lg transition-shadow">
