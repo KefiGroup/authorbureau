@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { supabase as sharedSupabase } from "@/lib/shared-backend";
+// shared-backend import removed — identity resolved via books.owner_email fallback
 import { useAuth } from "@/hooks/useAuth";
 import { getActiveToken } from "@/lib/get-active-token";
 import {
