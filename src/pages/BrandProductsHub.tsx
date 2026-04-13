@@ -113,6 +113,18 @@ export default function BrandProductsHub() {
 
       setAuthorName(profile.pen_name || "");
 
+      // Fetch first book for book-aware routing
+      if (user!.email) {
+        const { data: booksForAuthor } = await supabase
+          .from("books")
+          .select("id, title")
+          .eq("owner_email", user!.email.toLowerCase())
+          .limit(1);
+        if (booksForAuthor && booksForAuthor.length > 0) {
+          setFirstBook({ id: booksForAuthor[0].id, title: booksForAuthor[0].title });
+        }
+      }
+
       const { data: nodeRows } = await supabase
         .from("author_nodes")
         .select("node_id, node_name, personalised_name, status, microsite_url, current_step")
