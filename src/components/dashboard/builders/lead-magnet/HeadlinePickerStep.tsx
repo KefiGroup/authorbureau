@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { CheckCircle2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -13,42 +12,108 @@ interface Props {
 
 const LABELS = ["Identity", "Outcome", "Curiosity"];
 
-function extractHeadlines(content: string): string[] {
-  if (!content) return [];
-  const headlines: string[] = [];
+function normalizeSectionLine(line: string): string {
+  return line
+    .trim()
+    .replace(/^#{1,6}\s+/, "")
+    .replace(/^\d+[\.)]\s+/, "")
+    .replace(/\*\*/g, "")
+    .trim();
+}
 
-  // Try structured "Option N:" format inside HEADLINE OPTIONS section
-  const headlineSection = content.match(/##?\s*HEADLINE\s+OPTIONS[\s\S]*?(?=\n##?\s|$)/i);
-  if (headlineSection) {
-    const optionMatches = headlineSection[0].matchAll(/Option\s+\d[^:]*:\s*\n+(.+)/gi);
-    for (const m of optionMatches) {
-      const line = m[1].trim().replace(/^\*+|\*+$/g, "").trim();
-      if (line) headlines.push(line);
-    }
-    if (headlines.length >= 2) return headlines.slice(0, 3);
+function isOptionLine(line: string): boolean {
+  return /^Option\s+\d+/i.test(normalizeSectionLine(line));
+}
+
+function isSectionBoundary(line: string): boolean {
+  const normalized = normalizeSectionLine(line);
+  if (!normalized || isOptionLine(line)) return false;
+
+  if (/^(INTRODUCTION|MAIN CONTENT|CALL[- ]TO[- ]ACTION|AUTHOR BIO(?: BLURB)?|BIO BLURB)$/i.test(normalized)) {
+    return true;
   }
 
-  // Fallback: detect consecutive ALL-CAPS or title-case sections with quiz/assessment keywords
-  const sections = content.split(/\n(?=##?\s)/);
+  if (/^(#{1,6}\s+|\d+[\.)]\s+)/.test(line.trim())) {
+    return true;
+  }
+
+  return /^[A-Z][A-Z0-9\s&/()'-]+$/.test(normalized) && normalized.length <= 60;
+}
+
+function extractOptionBlocks(lines: string[]): string[] {
+  const headlines: string[] = [];
+  let current: string[] = [];
+
+  const pushCurrent = () => {
+    const headline = current
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .replace(/^\*+|\*+$/g, "")
+      .trim();
+
+    if (headline) headlines.push(headline);
+    current = [];
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    const normalized = normalizeSectionLine(line);
+    const optionMatch = normalized.match(/^Option\s+\d+(?:\s*\([^)]*\))?\s*:?\s*(.*)$/i);
+
+    if (optionMatch) {
+      pushCurrent();
+      if (optionMatch[1]) current.push(optionMatch[1]);
+      continue;
+    }
+
+    if (current.length > 0 && isSectionBoundary(line)) {
+      pushCurrent();
+      break;
+    }
+
+    if (current.length === 0 || !trimmed) continue;
+    current.push(trimmed);
+  }
+
+  pushCurrent();
+  return headlines.slice(0, 3);
+}
+
+function extractHeadlines(content: string): string[] {
+  if (!content) return [];
+  const lines = content.replace(/\r/g, "").split("\n");
+
+  const headlineStart = lines.findIndex(line => normalizeSectionLine(line).toUpperCase() === "HEADLINE OPTIONS");
+  if (headlineStart !== -1) {
+    const sectionLines: string[] = [];
+    for (let i = headlineStart + 1; i < lines.length; i++) {
+      if (sectionLines.length > 0 && isSectionBoundary(lines[i])) break;
+      sectionLines.push(lines[i]);
+    }
+
+    const structuredHeadlines = extractOptionBlocks(sectionLines);
+    if (structuredHeadlines.length >= 2) return structuredHeadlines;
+  }
+
+  const genericOptionHeadlines = extractOptionBlocks(lines);
+  if (genericOptionHeadlines.length >= 2) return genericOptionHeadlines;
+
+  // Fallback: detect headline-like section titles in plain text / numbered content
   const variantKeywords = /quiz|finder|compass|assessment|checker|test|starter/i;
   const candidates: string[] = [];
 
-  for (const sec of sections) {
-    const titleMatch = sec.match(/^##?\s+(.+)/);
-    if (!titleMatch) continue;
-    const title = titleMatch[1].trim();
+  for (const line of lines) {
+    const title = normalizeSectionLine(line);
     if (title.length < 100 && variantKeywords.test(title)) {
       candidates.push(title);
     }
   }
 
-  if (candidates.length >= 2) return candidates.slice(0, 3);
-
-  return headlines;
+  return Array.from(new Set(candidates)).slice(0, 3);
 }
 
 export default function HeadlinePickerStep({ stepData, setStepData, onMarkEdited, stepId }: Props) {
-  const headlines = extractHeadlines(stepData.leadMagnetContent || "");
+  const headlines = extractHeadlines(stepData.leadMagnetEdited || stepData.leadMagnetContent || "");
   const [selected, setSelected] = useState<number>(
     typeof stepData.leadMagnetSelectedHeadline === "number"
       ? stepData.leadMagnetSelectedHeadline
