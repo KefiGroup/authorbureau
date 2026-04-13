@@ -1,6 +1,6 @@
 
 
-# Sprint 27 Bug Fixes — Test Report Remediation
+# Fix: Lead Magnet Builder — Content Consistency + 3 Headers Issue
 
 ```
 ARCHITECTURE CHECKLIST:
@@ -13,115 +13,69 @@ ARCHITECTURE CHECKLIST:
 ✅ Subscription tier values used? → N/A
 ```
 
-## Bugs from Test Report
+## Problems Identified
 
-### Bug 1 (Critical) — Lead Magnet Quiz Does Not Advance After Form Submission
+**Problem 1 — Step 2 and Step 3 show different content.** Step 2 ("Let Abby Build") displays the raw quiz body (scoring instructions, S-U-C-K-C-E-S-S stages). Step 3 ("Edit Content") seeds from Step 2 but renders differently because `ContentSectionCards` parses the same markdown into collapsible cards, reorganizing the visual layout. This confuses the author — it looks like two different documents.
 
-**File:** `src/pages/MicrositePage.tsx`
+**Problem 2 — 3 headline variants show as 3 separate section headers.** The AI generation prompt asks for "HEADLINE & SUBHEADLINE (benefit-driven)" and the output includes multiple headline options (Identity, Outcome, Curiosity angles). `ContentSectionCards` parses each ALL-CAPS line as a separate card header, so the author sees 3 headline cards instead of a selection picker.
 
-**Root cause:** The `handleGateSubmit` function calls `await onSubmit(e)`, which internally catches errors without re-throwing. On **success**, `submitted` is set to `true` and `setStage("quiz")` runs — this should work. However, there are two issues:
+## Root Causes
 
-1. If `microsite-action` returns an error (e.g. missing `author_id`), the catch block swallows it but `setStage("quiz")` still runs, putting the user on a quiz with no lead captured.
-2. If the function call succeeds but the component re-renders with `submitted=true` before `setStage("quiz")` takes effect, there may be a race condition.
+1. The `GENERATE_PROMPT` in `LeadMagnetStepRenderer.tsx` (line 33) asks the AI to generate markdown with "1) HEADLINE & SUBHEADLINE, 2) INTRODUCTION, 3) MAIN CONTENT, 4) CALL-TO-ACTION, 5) AUTHOR BIO BLURB" — but the AI outputs multiple headline variants as separate ALL-CAPS sections. `ContentSectionCards` treats each as a major section.
 
-**Fix:**
-- Make `handleGateSubmit` check the outcome before advancing. The parent `handleSubmit` should return a boolean (or the child should check `submitted` state).
-- Refactor: have `handleSubmit` return `true`/`false` instead of setting state. `handleGateSubmit` checks the return value before calling `setStage("quiz")`.
-- Add error handling so if the lead capture fails, the user sees a toast but stays on the gate form.
+2. Step 3 ("Edit Content") uses `seedFromKey="leadMagnetContent"` and `hideSections={["call-to-action", "author bio", ...]}` so it filters some sections but still shows all headline variants as separate cards.
 
-```typescript
-// In handleSubmit — return success boolean
-const handleSubmit = async (e: React.FormEvent): Promise<boolean> => {
-  e.preventDefault();
-  if (!email || submitting) return false;
-  setSubmitting(true);
-  try {
-    const res = await supabase.functions.invoke("microsite-action", { ... });
-    if (res.error) throw res.error;
-    setSubmitted(true);
-    toast({ title: "Success!", description: res.data?.message || "Thank you!" });
-    return true;
-  } catch (err) {
-    console.error("Submit error:", err);
-    toast({ title: "Something went wrong", variant: "destructive" });
-    return false;
-  } finally {
-    setSubmitting(false);
-  }
-};
+3. There is a separate dedicated edge function `generate-bp02-lead-magnets` that produces structured JSON with proper `headline_variants` array — but Step 2 does NOT use it. It uses `SharedContentStep` → `business-consultant` with a generic markdown prompt.
 
-// In LeadMagnetPage handleGateSubmit
-const handleGateSubmit = async (e: React.FormEvent) => {
-  const success = await onSubmit(e);
-  if (success && isQuiz && questions.length > 0) {
-    setStage("quiz");
-  }
-};
-```
+## Proposed Fix
 
-- Update the `FormPageProps` type so `onSubmit` returns `Promise<boolean>`.
+### Change 1 — Consolidate headline variants into a single selectable section
 
----
+**File:** `src/components/dashboard/builders/shared/ContentSectionCards.tsx`
 
-### Bug 2 (Critical) — Connect Settings Navigation
+- Add logic to detect consecutive sections whose titles contain "headline" (case-insensitive) — e.g. "IDENTITY HEADLINE", "OUTCOME HEADLINE", "CURIOSITY HEADLINE"
+- Merge them into a single "Headline Options" card that displays all 3 as radio-button choices
+- When the author picks one, only the selected headline persists in the content
+- This keeps the existing parsing logic intact for all other builders
 
-**Finding after code review:** The Connect Settings sidebar item correctly calls `onSectionChange("connect-settings")` → `dashboardNavigate("/account-settings?tab=connections")`. This is standard React Router navigation, NOT an SSO redirect.
+### Change 2 — Align Step 2 and Step 3 display
 
-**However**, the test report says it triggers a PublishNow SSO redirect. This could happen if the click event somehow bubbles to the sister links section below, or if there's a CSS overlap issue.
+**File:** `src/components/dashboard/builders/lead-magnet/LeadMagnetStepRenderer.tsx`
 
-**Fix:**
-- Add `e.stopPropagation()` to the Connect Settings button click handler as a safety measure.
-- Verify the rendered order: Connect Settings button is rendered BEFORE the sister platform links in the DOM, so no overlap should occur. If the tester clicked the wrong button (AI Writing Studio or AI Publishing Studio), that would explain the SSO redirect.
-- No code change needed unless the overlap is confirmed. I will add a defensive `e.stopPropagation()` to all `revenueToolsItems` buttons.
+- On the Step 2 ("generate") case, add `autoExpand={true}` to show content as expanded cards (matching Step 3's layout) so both steps look visually consistent
+- Add a `stepInstructions` entry: "Pick your headline" so the author knows to select one
 
----
+### Change 3 — Update the generate prompt to structure headlines clearly
 
-### Bug 3 (High) — `?section=connect-settings` URL Not Handled
+**File:** `src/components/dashboard/builders/lead-magnet/LeadMagnetStepRenderer.tsx`
 
-**File:** `src/pages/AuthorDashboard.tsx`
+- Update `GENERATE_PROMPT` (line 33) to instruct the AI to output headlines under a single section header:
+  ```
+  1) HEADLINE OPTIONS
+  Option A (Identity): "..."
+  Option B (Outcome): "..."  
+  Option C (Curiosity): "..."
+  ```
+- This ensures `ContentSectionCards` parses them as one card with 3 sub-items, not 3 separate cards
 
-**Root cause:** When the URL is `/dashboard?section=connect-settings`, the `useEffect` sync (line 108-113) sets `activeSection` to `"connect-settings"`. But the redirect logic that converts `connect-settings` to `/account-settings?tab=connections` only runs inside `setActiveSection` (the manual click handler, lines 142-144). The URL sync effect bypasses that handler.
+### Change 4 — Add headline selection UI in ContentSectionCards
 
-**Fix:** Add a check in the URL sync effect:
+**File:** `src/components/dashboard/builders/shared/ContentSectionCards.tsx`
 
-```typescript
-useEffect(() => {
-  const urlSection = searchParams.get("section") as DashboardSection | null;
-  if (urlSection && urlSection !== activeSection) {
-    if (urlSection === "connect-settings") {
-      dashboardNavigate("/account-settings?tab=connections", { replace: true });
-      return;
-    }
-    setActiveSectionState(urlSection);
-  }
-}, [searchParams]);
-```
-
----
-
-### Bug 4 (Medium) — Stale Brand Products Counter
-
-**File:** `src/hooks/useAuthorStats.ts`
-
-**Root cause:** Module-level cache (`cachedStats`) with a 30-second TTL means navigating from sidebar → Brand Products shows stale data until the cache expires.
-
-**Fix:** Force-refetch stats when navigating to Brand Products hub. In `BrandProductsHub.tsx` (or wherever the counter is displayed), call `refetch()` on mount.
-
-Alternatively, reduce the cache TTL from 30s to 10s, or invalidate the cache when navigating between sections.
-
----
+- When a section title matches "HEADLINE OPTIONS" (or similar), render the body items as clickable cards with radio selection instead of a plain text block
+- Selected headline gets a visual checkmark and is promoted to the top
+- On save, only the selected headline flows into the content
 
 ## Summary of Changes
 
 | File | Change |
 |------|--------|
-| `src/pages/MicrositePage.tsx` | `handleSubmit` returns boolean; `handleGateSubmit` only advances on success; update `FormPageProps` |
-| `src/pages/AuthorDashboard.tsx` | URL sync effect handles `connect-settings` redirect |
-| `src/hooks/useAuthorStats.ts` | Reduce cache TTL or expose cache invalidation |
+| `LeadMagnetStepRenderer.tsx` | Update GENERATE_PROMPT to group headlines under one section; add autoExpand to Step 2 |
+| `ContentSectionCards.tsx` | Add headline-selection UI when section title contains "HEADLINE OPTIONS" |
 
 ## What This Fixes
 
-- Quiz form reliably advances only after successful lead capture
-- `/dashboard?section=connect-settings` URL correctly redirects to Account Settings connections tab
-- Brand Products counter stays consistent across navigation
+- Step 2 and Step 3 display content in the same card-based layout (no more "two different documents" feel)
+- 3 headline variants appear as a single selection card instead of 3 separate headers
+- Author can tap to choose their preferred headline before moving to Step 3
 
