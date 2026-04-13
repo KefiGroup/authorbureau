@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { supabase as sharedSupabase } from "@/lib/shared-backend";
+// shared-backend import removed — identity resolved via books.owner_email fallback
 import { useAuth } from "@/hooks/useAuth";
 import { getActiveToken } from "@/lib/get-active-token";
 import {
@@ -83,7 +83,7 @@ const CAMPAIGNS: CampaignConfig[] = [
     successMessage: "Your author website is now live and your lead capture funnel is running.",
     checklist: ["Website pages created", "Lead capture form active", "Author funnel pipeline live"],
     howToStart: [
-      { step: "Go to Brand Products and open Website", link: "/node-builder/BP-04", linkLabel: "Build My Website →" },
+      { step: "Go to Brand Products and open Website", link: "/dashboard?section=microsite-manager", linkLabel: "Open Website Builder →" },
       { step: "Abby will design your author website with Home, About, Book, and Contact pages" },
       { step: "Review your site and click 'Publish to My Site'" },
       { step: "Come back here and click 'Activate Now' to enable lead capture" },
@@ -197,13 +197,22 @@ export default function MarketingHub({ onNavigate }: Props) {
         .maybeSingle();
       if (profile) {
         profileId = profile.id;
-      } else {
-        const { data: sp } = await sharedSupabase
-          .from("author_profiles")
-          .select("id")
-          .eq("user_id", user.id)
+      } else if (user.email) {
+        // Shared-backend identity fallback: resolve via books.owner_email
+        const { data: bookByEmail } = await supabase
+          .from("books")
+          .select("author_id")
+          .eq("owner_email", user.email.toLowerCase())
+          .limit(1)
           .maybeSingle();
-        if (sp) profileId = sp.id;
+        if (bookByEmail?.author_id) {
+          const { data: profileByBook } = await supabase
+            .from("author_profiles")
+            .select("id")
+            .eq("user_id", bookByEmail.author_id)
+            .maybeSingle();
+          if (profileByBook) profileId = profileByBook.id;
+        }
       }
       if (profileId) setAuthorProfileId(profileId);
 
