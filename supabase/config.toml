@@ -101,3 +101,23 @@ project_id = "tubpbslfrxyfhldkcyyq"
     verify_jwt = false
   [functions.handle-email-suppression]
     verify_jwt = false
+  [functions.deploy-bp02-to-ghl]
+    verify_jwt = false
+  [functions.generate-bp03-social-media]
+    verify_jwt = false
+  [functions.deploy-bp03-to-ghl]
+    verify_jwt = false
+  [functions.deploy-bp01-to-ghl]
+    verify_jwt = false
+  [functions.deploy-bp04-to-ghl]
+    verify_jwt = false
+  [functions.deploy-bp05-to-ghl]
+    verify_jwt = false
+  [functions.generate-bp01-email-sequence]
+    verify_jwt = false
+  [functions.generate-bp04-website]
+    verify_jwt = false
+  [functions.generate-bp05-webinar]
+    verify_jwt = false
+  [functions.provision-ghl-subaccount]
+    verify_jwt = false

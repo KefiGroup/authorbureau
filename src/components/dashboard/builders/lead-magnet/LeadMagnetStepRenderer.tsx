@@ -102,7 +102,17 @@ export default function LeadMagnetStepRenderer({ stepId, stepData, setStepData, 
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok || !data.success) {
-      throw new Error(data.error || data.message || "Failed to publish lead magnet");
+      console.error("BP-02 publish error — status:", res.status, "body:", JSON.stringify(data));
+      if (res.status === 401 || res.status === 403) {
+        throw new Error("Your session has expired. Please refresh the page and try again.");
+      }
+      if (res.status >= 500) {
+        throw new Error("Abby is having trouble right now. Please try again in a moment.");
+      }
+      if (data.error?.includes("row-level security") || data.error?.includes("RLS")) {
+        throw new Error("Account setup incomplete. Please contact support.");
+      }
+      throw new Error(data.error || data.message || "Unable to save. Please try again or contact support if this persists.");
     }
 
     return {
