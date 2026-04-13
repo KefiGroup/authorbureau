@@ -300,13 +300,14 @@ export default function MarketingHub({ onNavigate }: Props) {
         return;
       }
 
-      // Determine which deploy functions to call (only for nodes that are live)
-      const liveNodeIds = campaign.nodeIds.filter(nid => {
+      // Determine which deploy functions to call (for nodes that are live, published_pending_ghl, or content_ready)
+      const deployableStatuses = ["live", "published_pending_ghl", "content_ready"];
+      const deployableNodeIds = campaign.nodeIds.filter(nid => {
         const row = nodeRows.find(r => r.node_id === nid);
-        return row?.status === "live";
+        return row && deployableStatuses.includes(row.status);
       });
 
-      if (liveNodeIds.length === 0) {
+      if (deployableNodeIds.length === 0) {
         toast({ title: "No published content", description: "Please publish your content first in the node builder.", variant: "destructive" });
         setActivatingCampaign(null);
         return;
