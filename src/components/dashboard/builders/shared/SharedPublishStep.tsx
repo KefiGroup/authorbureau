@@ -135,9 +135,9 @@ export default function SharedPublishStep({
             <p className="font-medium text-foreground">How publishing works</p>
             <ol className="list-decimal list-inside space-y-0.5 text-xs">
               <li>Click <strong>Publish to Marketing Hub</strong> to save your {builderLabel.toLowerCase()}</li>
-              <li>Go to <strong>Connected Accounts</strong> (in Account Settings) and click <strong>Connect Now</strong> to set up your marketing account</li>
-              <li>Return here and click <strong>Retry Publish</strong> — your opt-in page goes live with a shareable link</li>
-              <li>Share your live link or go to the <strong>Marketing Hub</strong> to distribute across social media</li>
+              <li>Click <strong>Connect Settings</strong> in the left sidebar → then click <strong>Connect Now</strong></li>
+              <li>Come back here and click <strong>Retry Publish</strong> — your opt-in page goes live with a shareable link</li>
+              <li>Share your live link or click <strong>Marketing Hub</strong> in the sidebar to distribute</li>
             </ol>
           </div>
         </div>
@@ -226,11 +226,11 @@ export default function SharedPublishStep({
                     Your {builderLabel.toLowerCase()} is saved and ready. To go live:
                   </p>
                   <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-1 mb-3">
-                    <li>Go to <strong>Connected Accounts</strong> and click <strong>Connect Now</strong></li>
-                    <li>Once connected, click <strong>Re-deploy</strong> next to your {builderLabel.toLowerCase()}</li>
+                    <li>Click <strong>Connect Settings</strong> in the left sidebar → then click <strong>Connect Now</strong></li>
+                    <li>Once connected, come back here and click <strong>Retry Publish</strong></li>
                   </ol>
-                  <Button size="sm" variant="outline" onClick={() => navigate("/account-settings?tab=connections")}>
-                    <Settings className="h-3.5 w-3.5 mr-1.5" /> Go to Connected Accounts <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                  <Button size="sm" variant="outline" onClick={() => onNavigate ? onNavigate("connect-settings") : navigate("/account-settings?tab=connections")}>
+                    <Settings className="h-3.5 w-3.5 mr-1.5" /> Go to Connect Settings <ArrowRight className="h-3.5 w-3.5 ml-1" />
                   </Button>
                 </>
               )}

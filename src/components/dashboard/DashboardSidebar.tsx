@@ -2,7 +2,7 @@ import {
   LayoutDashboard, User, BookOpen, Sparkles,
   ChevronLeft, ChevronRight, ExternalLink, PenLine, BookMarked,
   Lock, Globe, BarChart3, Contact, DollarSign, Radio, Award, CreditCard, Package, Wallet,
-  BookHeart, ChevronDown, ChevronUp, MessageSquare, Megaphone,
+  BookHeart, ChevronDown, ChevronUp, MessageSquare, Megaphone, Settings,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -215,6 +215,12 @@ export default function DashboardSidebar({
     {
       id: "payout-settings" as DashboardSection, label: "Payout Settings",
       icon: Wallet,
+    },
+    {
+      id: "connect-settings" as DashboardSection, label: "Connect Settings",
+      icon: Settings,
+      subtitle: "Marketing Account",
+      tooltip: "Connect your marketing account to publish opt-in pages and funnels.",
     },
   ];
 

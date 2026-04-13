@@ -91,6 +91,8 @@ export default function LeadMagnetStepRenderer({ stepId, stepData, setStepData, 
           node_id: "BP-02",
           node_name: "Lead Magnet",
           status: "draft",
+          revenue_to_date: 0,
+          current_step: 1,
           content_json: contentPayload,
         },
         { onConflict: "author_id,node_id" }
