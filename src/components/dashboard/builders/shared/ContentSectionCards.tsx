@@ -776,8 +776,8 @@ export default function ContentSectionCards({ content, onChange, stepTitle, hide
       return !hideSections.some(kw => titleLower.includes(kw.toLowerCase()));
     });
   }
-  const [expandedIdx, setExpandedIdx] = useState<number | null>(autoExpand ? 0 : null);
-  const [editingIdx, setEditingIdx] = useState<number | null>(autoExpand ? 0 : null);
+  const [expandedIdxs, setExpandedIdxs] = useState<Set<number>>(() => autoExpand ? new Set(sections.map((_, i) => i)) : new Set());
+  const [editingIdxs, setEditingIdxs] = useState<Set<number>>(() => autoExpand ? new Set(sections.map((_, i) => i)) : new Set());
 
   const isSingleSection = sections.length === 1 && sections[0].title === "Content";
 
@@ -800,11 +800,29 @@ export default function ContentSectionCards({ content, onChange, stepTitle, hide
     onChange(newContent);
   };
 
+  const toggleExpanded = (idx: number) => {
+    setExpandedIdxs(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) { next.delete(idx); setEditingIdxs(p => { const n = new Set(p); n.delete(idx); return n; }); }
+      else next.add(idx);
+      return next;
+    });
+  };
+
+  const toggleEditing = (idx: number) => {
+    setEditingIdxs(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  };
+
   return (
     <div className="space-y-3">
       {sections.map((section, idx) => {
-        const isExpanded = expandedIdx === idx;
-        const isEditing = editingIdx === idx;
+        const isExpanded = expandedIdxs.has(idx);
+        const isEditing = editingIdxs.has(idx);
         const previewText = section.body.replace(/\n/g, " ").slice(0, 100);
 
         const hasContent = section.body.trim().length > 0;
@@ -814,7 +832,7 @@ export default function ContentSectionCards({ content, onChange, stepTitle, hide
             {/* Header — always visible */}
             <button
               type="button"
-              onClick={() => hasContent ? setExpandedIdx(isExpanded ? null : idx) : undefined}
+              onClick={() => hasContent ? toggleExpanded(idx) : undefined}
               className={`w-full flex items-center gap-3 px-5 py-4 text-left transition-colors ${hasContent ? "hover:bg-muted/30 cursor-pointer" : "cursor-default"}`}
             >
               <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0 text-amber-600 dark:text-amber-400">
@@ -845,7 +863,7 @@ export default function ContentSectionCards({ content, onChange, stepTitle, hide
                     variant="ghost"
                     size="sm"
                     className="text-xs gap-1.5 text-muted-foreground hover:text-foreground"
-                    onClick={() => setEditingIdx(isEditing ? null : idx)}
+                    onClick={() => toggleEditing(idx)}
                   >
                     {isEditing ? <Check className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
                     {isEditing ? "Done" : "Edit"}
