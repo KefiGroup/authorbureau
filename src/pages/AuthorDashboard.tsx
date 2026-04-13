@@ -139,6 +139,10 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       dashboardNavigate("/abby-coach");
       return;
     }
+    if (section === ("connect-settings" as DashboardSection)) {
+      dashboardNavigate("/account-settings?tab=connections");
+      return;
+    }
     setActiveSectionState(section);
     const next = new URLSearchParams(searchParams);
     if (section === "overview") {
