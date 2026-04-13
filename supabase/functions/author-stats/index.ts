@@ -73,6 +73,7 @@ Deno.serve(async (req) => {
     );
 
     // Resolve all author IDs for this person (try user_id, then email fallback)
+    const allUserIds: string[] = [userId];
     let profile: any = null;
     const { data: profileById } = await admin
       .from("author_profiles")
@@ -82,7 +83,6 @@ Deno.serve(async (req) => {
     profile = profileById;
 
     if (!profile && userEmail) {
-      // Shared-backend fallback: find profile via books.owner_email
       const { data: bookByEmail } = await admin
         .from("books")
         .select("author_id")
@@ -96,14 +96,11 @@ Deno.serve(async (req) => {
           .eq("user_id", bookByEmail.author_id)
           .maybeSingle();
         profile = profileByBook;
-        // Also add the original book author_id to our resolution set
-        if (profileByBook) {
+        if (profileByBook && !allUserIds.includes(bookByEmail.author_id)) {
           allUserIds.push(bookByEmail.author_id);
         }
       }
     }
-
-    const allUserIds: string[] = [userId];
     if (profile?.pen_name) {
       const { data: siblings } = await admin
         .from("author_profiles")
