@@ -187,55 +187,20 @@ export default function MarketingHub({ onNavigate }: Props) {
 
   const highlightRef = useRef<HTMLDivElement | null>(null);
 
-  /* ─── Fetch author nodes ─── */
+  /* ─── Fetch author nodes via service-role edge function ─── */
   const fetchNodes = useCallback(async () => {
     if (!user) return;
     try {
-      let profileId: string | null = null;
-      const { data: profile } = await supabase
-        .from("author_profiles")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (profile) {
-        profileId = profile.id;
-      } else if (user.email) {
-        // Shared-backend identity fallback: resolve via books.owner_email
-        const { data: bookByEmail } = await supabase
-          .from("books")
-          .select("author_id")
-          .eq("owner_email", user.email.toLowerCase())
-          .limit(1)
-          .maybeSingle();
-        if (bookByEmail?.author_id) {
-          const { data: profileByBook } = await supabase
-            .from("author_profiles")
-            .select("id")
-            .eq("user_id", bookByEmail.author_id)
-            .maybeSingle();
-          if (profileByBook) profileId = profileByBook.id;
-        }
-      }
-      if (profileId) setAuthorProfileId(profileId);
+      const { data, error } = await supabase.functions.invoke("get-marketing-hub-data", {
+        body: { user_id: user.id, email: user.email || null },
+      });
 
-      if (profileId) {
-        const { data } = await supabase
-          .from("author_nodes")
-          .select("node_id, status, marketing_activated_at")
-          .eq("author_id", profileId);
-        setNodeRows((data as NodeRow[]) || []);
-      }
-
-      // Fetch first book for book-aware routing
-      if (user?.email) {
-        const { data: booksForAuthor } = await supabase
-          .from("books")
-          .select("id, title")
-          .eq("owner_email", user.email.toLowerCase())
-          .limit(1);
-        if (booksForAuthor && booksForAuthor.length > 0) {
-          setFirstBook({ id: booksForAuthor[0].id, title: booksForAuthor[0].title });
-        }
+      if (error) {
+        console.error("get-marketing-hub-data error:", error);
+      } else if (data) {
+        if (data.author_profile_id) setAuthorProfileId(data.author_profile_id);
+        setNodeRows((data.nodes as NodeRow[]) || []);
+        if (data.book) setFirstBook(data.book);
       }
     } catch (err) {
       console.error("Failed to fetch nodes:", err);
@@ -335,13 +300,14 @@ export default function MarketingHub({ onNavigate }: Props) {
         return;
       }
 
-      // Determine which deploy functions to call (only for nodes that are live)
-      const liveNodeIds = campaign.nodeIds.filter(nid => {
+      // Determine which deploy functions to call (for nodes that are live, published_pending_ghl, or content_ready)
+      const deployableStatuses = ["live", "published_pending_ghl", "content_ready"];
+      const deployableNodeIds = campaign.nodeIds.filter(nid => {
         const row = nodeRows.find(r => r.node_id === nid);
-        return row?.status === "live";
+        return row && deployableStatuses.includes(row.status);
       });
 
-      if (liveNodeIds.length === 0) {
+      if (deployableNodeIds.length === 0) {
         toast({ title: "No published content", description: "Please publish your content first in the node builder.", variant: "destructive" });
         setActivatingCampaign(null);
         return;
@@ -365,9 +331,9 @@ export default function MarketingHub({ onNavigate }: Props) {
         "YR-27": "deploy-yr27-to-stripe", "YR-28": "deploy-yr28-to-ghl",
       };
 
-      // Call deploy functions for each live node
+      // Call deploy functions for each deployable node
       const results = await Promise.allSettled(
-        liveNodeIds.map(async (nid) => {
+        deployableNodeIds.map(async (nid) => {
           const fnName = NODE_DEPLOY_MAP[nid];
           if (!fnName) return;
           const { data, error } = await supabase.functions.invoke(fnName, {
@@ -587,13 +553,9 @@ const CampaignRow = forwardRef<HTMLDivElement, {
           </Badge>
 
           <div className="shrink-0">
-            {status === "ready" ? (
+            {status === "ready" || status === "built" ? (
               <Button size="sm" onClick={onActivate} className="text-xs bg-amber-600 hover:bg-amber-700 text-white">
-                Activate Now <ArrowRight className="ml-1 h-3 w-3" />
-              </Button>
-            ) : status === "built" ? (
-              <Button size="sm" onClick={() => navigate("/account-settings?tab=connections")} className="text-xs">
-                Connect & Activate <ArrowRight className="ml-1 h-3 w-3" />
+                {status === "built" ? "Deploy to Marketing" : "Activate Now"} <ArrowRight className="ml-1 h-3 w-3" />
               </Button>
             ) : status === "activating" ? (
               <Button size="sm" disabled className="text-xs">
