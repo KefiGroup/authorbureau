@@ -72,12 +72,36 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Resolve all author IDs for this person
-    const { data: profile } = await admin
+    // Resolve all author IDs for this person (try user_id, then email fallback)
+    let profile: any = null;
+    const { data: profileById } = await admin
       .from("author_profiles")
       .select("pen_name, stripe_onboarding_complete, author_slug, id")
       .eq("user_id", userId)
       .maybeSingle();
+    profile = profileById;
+
+    if (!profile && userEmail) {
+      // Shared-backend fallback: find profile via books.owner_email
+      const { data: bookByEmail } = await admin
+        .from("books")
+        .select("author_id")
+        .eq("owner_email", userEmail.toLowerCase())
+        .limit(1)
+        .maybeSingle();
+      if (bookByEmail?.author_id) {
+        const { data: profileByBook } = await admin
+          .from("author_profiles")
+          .select("pen_name, stripe_onboarding_complete, author_slug, id")
+          .eq("user_id", bookByEmail.author_id)
+          .maybeSingle();
+        profile = profileByBook;
+        // Also add the original book author_id to our resolution set
+        if (profileByBook) {
+          allUserIds.push(bookByEmail.author_id);
+        }
+      }
+    }
 
     const allUserIds: string[] = [userId];
     if (profile?.pen_name) {

@@ -76,11 +76,32 @@ export default function BrandProductsHub() {
     if (authLoading || !user) return;
 
     async function fetchData() {
-      const { data: profile } = await supabase
+      // Try by user_id first, then fall back to email
+      let profile: { id: string; pen_name: string | null; user_id: string } | null = null;
+      const { data: profileById } = await supabase
         .from("author_profiles")
         .select("id, pen_name, user_id")
         .eq("user_id", user!.id)
         .maybeSingle();
+      profile = profileById;
+
+      if (!profile && user!.email) {
+        // Shared-backend identity fallback: match by pen_name via books.owner_email
+        const { data: bookByEmail } = await supabase
+          .from("books")
+          .select("author_id")
+          .eq("owner_email", user!.email.toLowerCase())
+          .limit(1)
+          .maybeSingle();
+        if (bookByEmail?.author_id) {
+          const { data: profileByBookAuthor } = await supabase
+            .from("author_profiles")
+            .select("id, pen_name, user_id")
+            .eq("user_id", bookByEmail.author_id)
+            .maybeSingle();
+          profile = profileByBookAuthor;
+        }
+      }
 
       if (!profile) {
         setNodes(FALLBACK_NODES.map(n => ({ ...n, personalised_name: null, status: n.status as NodeStatus, microsite_url: null, current_step: 1 })));

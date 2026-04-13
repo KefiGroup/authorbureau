@@ -90,9 +90,14 @@ export default function NodeBuilder() {
     "YR-28": YR28Builder,
   };
 
-  // BP-02 uses the UniversalBuilderStudio in the dashboard — redirect there
-  if (nodeId === "BP-02") {
-    return <Navigate to="/dashboard?section=lead-magnet-funnel" replace />;
+  // Redirect legacy builders to UniversalBuilderStudio sections
+  const legacyRedirects: Record<string, string> = {
+    "BP-01": "/dashboard?section=email-marketing",
+    "BP-02": "/dashboard?section=lead-magnet",
+    "BP-03": "/dashboard?section=social-media",
+  };
+  if (nodeId && legacyRedirects[nodeId]) {
+    return <Navigate to={legacyRedirects[nodeId]} replace />;
   }
 
   const Builder = nodeId ? builders[nodeId] : null;
