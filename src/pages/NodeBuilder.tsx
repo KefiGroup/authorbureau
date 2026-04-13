@@ -90,6 +90,11 @@ export default function NodeBuilder() {
     "YR-28": YR28Builder,
   };
 
+  // BP-02 uses the UniversalBuilderStudio in the dashboard — redirect there
+  if (nodeId === "BP-02") {
+    return <Navigate to="/dashboard?section=lead-magnet-funnel" replace />;
+  }
+
   const Builder = nodeId ? builders[nodeId] : null;
 
   if (Builder) {
