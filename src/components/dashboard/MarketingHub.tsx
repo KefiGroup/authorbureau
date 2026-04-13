@@ -183,6 +183,7 @@ export default function MarketingHub({ onNavigate }: Props) {
   const [activatingCampaign, setActivatingCampaign] = useState<string | null>(null);
   const [authorProfileId, setAuthorProfileId] = useState<string | null>(null);
   const [activatedCampaigns, setActivatedCampaigns] = useState<Set<string>>(new Set());
+  const [firstBook, setFirstBook] = useState<{ id: string; title: string } | null>(null);
 
   const highlightRef = useRef<HTMLDivElement | null>(null);
 
