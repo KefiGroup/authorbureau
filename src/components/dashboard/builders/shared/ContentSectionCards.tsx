@@ -697,7 +697,17 @@ function FormattedBodyInner({ body, sectionTitle, showWritingSpaces }: { body: s
             );
           }
 
-          // Prompt line
+          // Sub-section header (e.g. "Scoring & Results", "Step 1: ...", "S3 — ...")
+          if (isSubSectionHeader(lt)) {
+            return (
+              <div key={gIdx} className="mt-4 mb-1 pt-3 border-t border-border/40">
+                <p className="text-sm font-bold text-foreground">
+                  {renderInlineFormatting(lt)}
+                </p>
+              </div>
+            );
+          }
+
           const promptMatch = lt.match(/^Prompt\s*[:—–]\s*[""\u201C]?(.+?)[""\u201D]?\s*$/i);
           if (promptMatch) {
             return (
