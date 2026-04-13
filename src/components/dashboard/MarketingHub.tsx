@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-// shared-backend import removed — identity resolved via books.owner_email fallback
 import { useAuth } from "@/hooks/useAuth";
 import { getActiveToken } from "@/lib/get-active-token";
+import { getBpBuildRoute } from "@/lib/bpRoutes";
 import {
   Loader2, Megaphone, CheckCircle2, AlertCircle, Clock, Zap,
   RefreshCw, ArrowRight, Sparkles,
@@ -41,7 +41,7 @@ const CAMPAIGNS: CampaignConfig[] = [
     successMessage: "Your email marketing is running. New contacts will automatically receive your welcome sequence.",
     checklist: ["Welcome sequence active", "Nurture sequence queued", "Automation running"],
     howToStart: [
-      { step: "Go to Brand Products and open Email Marketing", link: "/node-builder/BP-01", linkLabel: "Build Email Marketing →" },
+      { step: "Go to Brand Products and open Email Marketing", link: "BP-01", linkLabel: "Build Email Marketing →" },
       { step: "Let Abby generate your welcome, nurture, and launch sequences" },
       { step: "Review the emails and click 'Publish to My Site'" },
       { step: "Come back here and click 'Activate Now' to start sending" },
@@ -55,7 +55,7 @@ const CAMPAIGNS: CampaignConfig[] = [
     successMessage: "Your lead magnet funnel is live. Every new subscriber will automatically receive your free gift.",
     checklist: ["Opt-in funnel live", "Thank-you page active", "Lead automation running"],
     howToStart: [
-      { step: "Go to Brand Products and open Lead Magnets", link: "/node-builder/BP-02", linkLabel: "Build Lead Magnets →" },
+      { step: "Go to Brand Products and open Lead Magnets", link: "BP-02", linkLabel: "Build Lead Magnets →" },
       { step: "Abby will design 3 irresistible free resources from your book" },
       { step: "Review your opt-in page and click 'Publish to My Site'" },
       { step: "Come back here and click 'Activate Now' to start capturing subscribers" },
@@ -69,7 +69,7 @@ const CAMPAIGNS: CampaignConfig[] = [
     successMessage: "Your 90-day social media calendar is active. Posts will go out automatically every day.",
     checklist: ["Content calendar scheduled", "First 7 days posted", "Remaining 83 days queued"],
     howToStart: [
-      { step: "Go to Brand Products and open Social Media", link: "/node-builder/BP-03", linkLabel: "Build Social Media →" },
+      { step: "Go to Brand Products and open Social Media", link: "BP-03", linkLabel: "Build Social Media →" },
       { step: "Abby will create a 90-day content calendar from your book" },
       { step: "Review your posts and click 'Publish'" },
       { step: "Come back here and click 'Activate Now' to schedule your posts" },
@@ -83,7 +83,7 @@ const CAMPAIGNS: CampaignConfig[] = [
     successMessage: "Your author website is now live and your lead capture funnel is running.",
     checklist: ["Website pages created", "Lead capture form active", "Author funnel pipeline live"],
     howToStart: [
-      { step: "Go to Brand Products and open Website", link: "/dashboard?section=microsite-manager", linkLabel: "Open Website Builder →" },
+      { step: "Go to Brand Products and open Website", link: "BP-04", linkLabel: "Open Website Builder →" },
       { step: "Abby will design your author website with Home, About, Book, and Contact pages" },
       { step: "Review your site and click 'Publish to My Site'" },
       { step: "Come back here and click 'Activate Now' to enable lead capture" },
@@ -97,7 +97,7 @@ const CAMPAIGNS: CampaignConfig[] = [
     successMessage: "Your webinar system is live. Registration is open and follow-up emails will fire automatically.",
     checklist: ["Registration page live", "Reminder emails scheduled", "Follow-up sequence active"],
     howToStart: [
-      { step: "Go to Brand Products and open Webinars", link: "/node-builder/BP-05", linkLabel: "Build My Webinar →" },
+      { step: "Go to Brand Products and open Webinars", link: "BP-05", linkLabel: "Build My Webinar →" },
       { step: "Abby will create your webinar topic, registration page, and follow-up emails" },
       { step: "Review everything and click 'Publish to My Site'" },
       { step: "Come back here and click 'Activate Now' to open registration" },
@@ -149,11 +149,12 @@ const CAMPAIGNS: CampaignConfig[] = [
 
 /* ─── Status config ─── */
 
-type CampaignStatus = "active" | "ready" | "pending" | "activating" | "failed";
+type CampaignStatus = "active" | "ready" | "pending" | "built" | "activating" | "failed";
 
 const statusConfig: Record<CampaignStatus, { label: string; className: string; icon: typeof CheckCircle2 }> = {
   active:     { label: "Active ✓",           className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", icon: CheckCircle2 },
   ready:      { label: "Ready to Activate",  className: "bg-amber-500/10 text-amber-600 border-amber-500/20 animate-pulse", icon: Zap },
+  built:      { label: "Activate / Connect", className: "bg-purple-500/10 text-purple-600 border-purple-500/20", icon: Zap },
   pending:    { label: "Not Started",        className: "bg-muted text-muted-foreground border-border", icon: Clock },
   activating: { label: "Activating…",        className: "bg-amber-500/10 text-amber-600 border-amber-500/20", icon: Loader2 },
   failed:     { label: "Needs Attention",    className: "bg-red-500/10 text-red-600 border-red-500/20", icon: AlertCircle },
@@ -182,6 +183,7 @@ export default function MarketingHub({ onNavigate }: Props) {
   const [activatingCampaign, setActivatingCampaign] = useState<string | null>(null);
   const [authorProfileId, setAuthorProfileId] = useState<string | null>(null);
   const [activatedCampaigns, setActivatedCampaigns] = useState<Set<string>>(new Set());
+  const [firstBook, setFirstBook] = useState<{ id: string; title: string } | null>(null);
 
   const highlightRef = useRef<HTMLDivElement | null>(null);
 
@@ -223,6 +225,18 @@ export default function MarketingHub({ onNavigate }: Props) {
           .eq("author_id", profileId);
         setNodeRows((data as NodeRow[]) || []);
       }
+
+      // Fetch first book for book-aware routing
+      if (user?.email) {
+        const { data: booksForAuthor } = await supabase
+          .from("books")
+          .select("id, title")
+          .eq("owner_email", user.email.toLowerCase())
+          .limit(1);
+        if (booksForAuthor && booksForAuthor.length > 0) {
+          setFirstBook({ id: booksForAuthor[0].id, title: booksForAuthor[0].title });
+        }
+      }
     } catch (err) {
       console.error("Failed to fetch nodes:", err);
     } finally {
@@ -259,6 +273,20 @@ export default function MarketingHub({ onNavigate }: Props) {
       return row?.status === "live" && !row?.marketing_activated_at;
     });
     if (hasLive) return "ready";
+
+    // Check if any node is published_pending_ghl or content_ready — built but not yet activated
+    const hasBuilt = campaign.nodeIds.some(nid => {
+      const row = nodeRows.find(r => r.node_id === nid);
+      return row?.status === "published_pending_ghl" || row?.status === "content_ready";
+    });
+    if (hasBuilt) return "built";
+
+    // Check if any node is in progress (building)
+    const hasBuilding = campaign.nodeIds.some(nid => {
+      const row = nodeRows.find(r => r.node_id === nid);
+      return row?.status === "building";
+    });
+    if (hasBuilding) return "pending";
 
     return "pending";
   };
@@ -376,6 +404,11 @@ export default function MarketingHub({ onNavigate }: Props) {
     }
   };
 
+  /** Resolve a BP node ID to a book-aware dashboard route */
+  const resolveBpLink = (nodeId: string): string => {
+    return getBpBuildRoute(nodeId, firstBook ? { bookId: firstBook.id, bookTitle: firstBook.title } : undefined);
+  };
+
   /* ─── Counts ─── */
   const activeCount = CAMPAIGNS.filter(c => getCampaignStatus(c) === "active").length;
 
@@ -436,7 +469,7 @@ export default function MarketingHub({ onNavigate }: Props) {
             <Button
               size="sm"
               className="mt-3"
-              onClick={() => navigate("/node-builder/BP-01")}
+              onClick={() => navigate(resolveBpLink("BP-01"))}
             >
               Build Email Marketing First <ArrowRight className="ml-1 h-3 w-3" />
             </Button>
@@ -458,6 +491,7 @@ export default function MarketingHub({ onNavigate }: Props) {
               isHighlighted={isHighlighted}
               nodeRows={nodeRows}
               onActivate={() => handleActivate(campaign)}
+              resolveBpLink={resolveBpLink}
             />
           );
         })}
@@ -476,7 +510,8 @@ const CampaignRow = forwardRef<HTMLDivElement, {
   isHighlighted: boolean;
   nodeRows: NodeRow[];
   onActivate: () => void;
-}>(({ campaign, status, isHighlighted, nodeRows, onActivate }, ref) => {
+  resolveBpLink: (nodeId: string) => string;
+}>(({ campaign, status, isHighlighted, nodeRows, onActivate, resolveBpLink }, ref) => {
   const navigate = useNavigate();
   const config = statusConfig[status];
   const StatusIcon = config.icon;
@@ -556,6 +591,10 @@ const CampaignRow = forwardRef<HTMLDivElement, {
               <Button size="sm" onClick={onActivate} className="text-xs bg-amber-600 hover:bg-amber-700 text-white">
                 Activate Now <ArrowRight className="ml-1 h-3 w-3" />
               </Button>
+            ) : status === "built" ? (
+              <Button size="sm" onClick={() => navigate("/account-settings?tab=connections")} className="text-xs">
+                Connect & Activate <ArrowRight className="ml-1 h-3 w-3" />
+              </Button>
             ) : status === "activating" ? (
               <Button size="sm" disabled className="text-xs">
                 <Loader2 className="h-3 w-3 mr-1 animate-spin" /> Setting up…
@@ -586,7 +625,12 @@ const CampaignRow = forwardRef<HTMLDivElement, {
               <Button
                 size="sm"
                 className="mt-3 w-full sm:w-auto"
-                onClick={() => navigate(ctaStep.link!)}
+                onClick={() => {
+                  // howToStart links now store node IDs like "BP-01", resolve them
+                  const link = ctaStep.link!;
+                  const resolved = link.startsWith("BP-") ? resolveBpLink(link) : link;
+                  navigate(resolved);
+                }}
               >
                 {ctaStep.linkLabel || "Get Started"} <ArrowRight className="ml-1 h-3 w-3" />
               </Button>

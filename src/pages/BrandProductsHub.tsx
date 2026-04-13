@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sparkles, ArrowRight, Lock, Star, Clock, BarChart3 } from "lucide-react";
+import { getBpBuildRoute } from "@/lib/bpRoutes";
 
-type NodeStatus = "locked" | "not_started" | "building" | "content_ready" | "live" | "error";
+type NodeStatus = "locked" | "not_started" | "building" | "content_ready" | "published_pending_ghl" | "live" | "error";
 
 interface NodeCard {
   node_id: string;
@@ -71,6 +72,7 @@ export default function BrandProductsHub() {
   const [nodes, setNodes] = useState<NodeCard[]>([]);
   const [authorName, setAuthorName] = useState("");
   const [loading, setLoading] = useState(true);
+  const [firstBook, setFirstBook] = useState<{ id: string; title: string } | null>(null);
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -110,6 +112,18 @@ export default function BrandProductsHub() {
       }
 
       setAuthorName(profile.pen_name || "");
+
+      // Fetch first book for book-aware routing
+      if (user!.email) {
+        const { data: booksForAuthor } = await supabase
+          .from("books")
+          .select("id, title")
+          .eq("owner_email", user!.email.toLowerCase())
+          .limit(1);
+        if (booksForAuthor && booksForAuthor.length > 0) {
+          setFirstBook({ id: booksForAuthor[0].id, title: booksForAuthor[0].title });
+        }
+      }
 
       const { data: nodeRows } = await supabase
         .from("author_nodes")
@@ -171,6 +185,7 @@ export default function BrandProductsHub() {
       not_started: { label: "Ready to Build", cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" },
       building: { label: "In Progress", cls: "bg-blue-100 text-blue-700" },
       content_ready: { label: "Ready to Publish", cls: "bg-purple-100 text-purple-700" },
+      published_pending_ghl: { label: "Published ✓", cls: "bg-emerald-100 text-emerald-700" },
       live: { label: "Live ✓", cls: "bg-emerald-100 text-emerald-700" },
       error: { label: "Needs Attention", cls: "bg-red-100 text-red-700" },
     };
@@ -180,15 +195,12 @@ export default function BrandProductsHub() {
 
   const handleCardClick = (nodeId: string) => {
     if (!isTierUnlocked) { navigate("/pricing"); return; }
-    // Route BP-04 directly to the canonical website manager
-    if (nodeId === "BP-04") {
-      navigate("/dashboard?section=microsite-manager");
-      return;
-    }
-    navigate(`/node-builder/${nodeId}`);
+    // Use canonical book-aware routes for all BP nodes
+    const route = getBpBuildRoute(nodeId, firstBook ? { bookId: firstBook.id, bookTitle: firstBook.title } : undefined);
+    navigate(route);
   };
 
-  const liveCount = nodes.filter(n => n.status === "live").length;
+  const liveCount = nodes.filter(n => n.status === "live" || n.status === "published_pending_ghl").length;
 
   const renderNodeCard = (def: NodeDef) => (
     <div key={def.id} className="rounded-2xl border border-border bg-[hsl(var(--card))] p-5 flex flex-col gap-3 hover:shadow-lg transition-shadow">
