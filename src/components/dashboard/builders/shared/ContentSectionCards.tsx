@@ -186,7 +186,41 @@ function parseContentSections(content: string): ContentSection[] {
     }
   }
 
-  return sections;
+  // Merge consecutive headline sections into a single "HEADLINE OPTIONS" card
+  const mergedSections: ContentSection[] = [];
+  let headlineBuffer: ContentSection[] = [];
+
+  const flushHeadlines = () => {
+    if (headlineBuffer.length <= 1) {
+      mergedSections.push(...headlineBuffer);
+    } else {
+      // Merge multiple headline sections into one with "Option N:" format
+      const mergedBody = headlineBuffer
+        .map((h, i) => {
+          const label = h.title.replace(/headline/i, "").replace(/[:\-—–]/g, "").trim();
+          return `Option ${i + 1} (${label || `Variant ${i + 1}`}):\n${h.body}`;
+        })
+        .join("\n\n");
+      mergedSections.push({
+        title: "HEADLINE OPTIONS",
+        body: mergedBody,
+        icon: <Sparkles className="h-5 w-5" />,
+      });
+    }
+    headlineBuffer = [];
+  };
+
+  for (const sec of sections) {
+    if (/headline/i.test(sec.title) && !/options/i.test(sec.title)) {
+      headlineBuffer.push(sec);
+    } else {
+      flushHeadlines();
+      mergedSections.push(sec);
+    }
+  }
+  flushHeadlines();
+
+  return mergedSections;
 }
 
 /** Check if content appears to be workbook-type (exercises, fill-in, writing spaces) */
