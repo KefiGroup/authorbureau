@@ -74,6 +74,33 @@ export default function LeadMagnetStepRenderer({ stepId, stepData, setStepData, 
       throw new Error("Author profile not found. Please complete your profile first.");
     }
 
+    // Upsert BP-02 author_nodes row with builder content so the edge function can read it
+    const contentPayload = {
+      leadMagnetConfig: stepData.leadMagnetConfig || {},
+      leadMagnetContent: stepData.leadMagnetContent || "",
+      leadMagnetEdited: stepData.leadMagnetEdited || "",
+      leadMagnetPage: stepData.leadMagnetPage || "",
+      leadMagnetDesignData: stepData.leadMagnetDesignData || {},
+    };
+
+    const { error: upsertError } = await supabase
+      .from("author_nodes")
+      .upsert(
+        {
+          author_id: authorProfile.id,
+          node_id: "BP-02",
+          node_name: "Lead Magnet",
+          status: "draft",
+          content_json: contentPayload,
+        },
+        { onConflict: "author_id,node_id" }
+      );
+
+    if (upsertError) {
+      console.error("Failed to upsert BP-02 node:", upsertError);
+      throw new Error("Failed to save lead magnet data. Please try again.");
+    }
+
     // Use getActiveToken for reliable cross-session auth
     const token = await getActiveToken();
     const res = await fetchWithTimeout(
