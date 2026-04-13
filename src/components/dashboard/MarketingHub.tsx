@@ -553,13 +553,9 @@ const CampaignRow = forwardRef<HTMLDivElement, {
           </Badge>
 
           <div className="shrink-0">
-            {status === "ready" ? (
+            {status === "ready" || status === "built" ? (
               <Button size="sm" onClick={onActivate} className="text-xs bg-amber-600 hover:bg-amber-700 text-white">
-                Activate Now <ArrowRight className="ml-1 h-3 w-3" />
-              </Button>
-            ) : status === "built" ? (
-              <Button size="sm" onClick={() => navigate("/account-settings?tab=connections")} className="text-xs">
-                Connect & Activate <ArrowRight className="ml-1 h-3 w-3" />
+                {status === "built" ? "Deploy to Marketing" : "Activate Now"} <ArrowRight className="ml-1 h-3 w-3" />
               </Button>
             ) : status === "activating" ? (
               <Button size="sm" disabled className="text-xs">
