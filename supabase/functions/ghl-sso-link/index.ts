@@ -52,6 +52,45 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Auto-retrieve companyId from the location details
+    const locResp = await fetch(
+      `https://services.leadconnectorhq.com/locations/${locationId}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${agencyKey}`,
+          "Content-Type": "application/json",
+          Version: "2021-07-28",
+        },
+      }
+    );
+
+    if (!locResp.ok) {
+      const errText = await locResp.text();
+      console.error("GHL Location API error:", locResp.status, errText);
+      return new Response(
+        JSON.stringify({
+          error: "Failed to retrieve location details",
+          detail: `GHL API returned ${locResp.status}`,
+        }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const locData = await locResp.json();
+    const companyId = locData?.location?.companyId || locData?.companyId || "";
+
+    if (!companyId) {
+      console.error("No companyId found in location response:", JSON.stringify(locData));
+      return new Response(
+        JSON.stringify({
+          error: "Could not determine Company ID from location",
+          detail: "The GHL location response did not include a companyId.",
+        }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Generate SSO token via GHL Agency API
     const ssoResp = await fetch(
       `https://services.leadconnectorhq.com/oauth/locationToken`,
@@ -62,10 +101,7 @@ Deno.serve(async (req) => {
           "Content-Type": "application/json",
           Version: "2021-07-28",
         },
-        body: JSON.stringify({
-          companyId: Deno.env.get("GHL_COMPANY_ID") || "",
-          locationId,
-        }),
+        body: JSON.stringify({ companyId, locationId }),
       }
     );
 
@@ -83,22 +119,17 @@ Deno.serve(async (req) => {
 
     const ssoData = await ssoResp.json();
 
-    // GHL returns either { token, url } or { access_token }
-    // Build the SSO URL based on what we get back
+    // Build the SSO URL
+    const baseDomain =
+      Deno.env.get("GHL_WHITELABEL_DOMAIN") || "app.leadconnectorhq.com";
+
     let ssoUrl = ssoData.url || "";
 
     if (!ssoUrl && ssoData.token) {
-      // Construct URL manually — use white-label domain if configured
-      const baseDomain =
-        Deno.env.get("GHL_WHITELABEL_DOMAIN") ||
-        "app.leadconnectorhq.com";
       ssoUrl = `https://${baseDomain}/location/${locationId}?token=${ssoData.token}`;
     }
 
     if (!ssoUrl && ssoData.access_token) {
-      const baseDomain =
-        Deno.env.get("GHL_WHITELABEL_DOMAIN") ||
-        "app.leadconnectorhq.com";
       ssoUrl = `https://${baseDomain}/location/${locationId}?token=${ssoData.access_token}`;
     }
 
@@ -114,7 +145,6 @@ Deno.serve(async (req) => {
     };
 
     if (section && sectionPaths[section] !== undefined) {
-      // Insert the section path before the query string
       const [base, query] = ssoUrl.split("?");
       ssoUrl = `${base}${sectionPaths[section]}${query ? `?${query}` : ""}`;
     }
@@ -123,7 +153,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         sso_url: ssoUrl,
-        expires_in: 3600, // SSO tokens typically last 1 hour
+        expires_in: 3600,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
