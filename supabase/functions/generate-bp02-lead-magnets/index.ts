@@ -44,7 +44,7 @@ serve(async (req) => {
       const { data: book } = await supabase
         .from("books")
         .select("title, subtitle, description")
-        .eq("author_id", author.user_id)
+        .eq("author_id", author_id)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -275,7 +275,7 @@ IMPORTANT RULES:
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        // temperature omitted — openai/gpt-5 only supports default (1)
+        temperature: 0.7,
         max_completion_tokens: 8000,
       }),
     });

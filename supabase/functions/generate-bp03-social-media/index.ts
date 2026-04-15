@@ -17,7 +17,7 @@ serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const sb = createClient(supabaseUrl, serviceKey);
 
-    const { data: profile } = await sb.from("author_profiles").select("pen_name, genres, user_id").eq("id", author_id).single();
+    const { data: profile } = await sb.from("author_profiles").select("pen_name, genres").eq("id", author_id).single();
     const { data: ctx } = await sb.from("author_context").select("*").eq("author_id", author_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
 
     // Fallback to books table if no author_context
@@ -29,7 +29,7 @@ serve(async (req) => {
     let audiencePersona = JSON.stringify(ctx?.target_audience_persona || {});
 
     if (!bookTitle) {
-      const { data: book } = await sb.from("books").select("title, subtitle, description").eq("author_id", profile?.user_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      const { data: book } = await sb.from("books").select("title, subtitle, description").eq("author_id", author_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
       if (book) {
         bookTitle = book.title || "";
         bookSubtitle = book.subtitle || "";
@@ -155,7 +155,7 @@ Make ALL content specific to this author's book themes, frameworks, and insights
           },
           { role: "user", content: userPrompt },
         ],
-        // temperature omitted — openai/gpt-5 only supports default (1)
+        temperature: 0.8,
         max_completion_tokens: 32000,
       }),
     });
