@@ -578,25 +578,19 @@ function ReviewStep({
   setContent,
   authorName,
   authorId,
-  onActivate,
+  onNext,
   onSaveDraft,
   error,
-  isPublishing,
   isSavingDraft,
-  publishChannels,
-  setPublishChannels,
 }: {
   content: any;
   setContent: (c: any) => void;
   authorName: string;
   authorId: string;
-  onActivate: () => void;
+  onNext: () => void;
   onSaveDraft: () => void;
   error: string | null;
-  isPublishing?: boolean;
   isSavingDraft?: boolean;
-  publishChannels: PublishChannels;
-  setPublishChannels: React.Dispatch<React.SetStateAction<PublishChannels>>;
 }) {
   const recommended = content.recommended_lead_magnet || 1;
   const [selectedMagnetIdx, setSelectedMagnetIdx] = useState<number>(
