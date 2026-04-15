@@ -104,7 +104,7 @@ export default function AuthorSite() {
       if (!isOwner) booksByNameQuery = booksByNameQuery.not("published_at", "is", null);
     }
 
-    const [booksRes, booksByNameRes, homeStudyRes, coursesRes, coachingRes, audiobooksRes, podcastsRes] = await Promise.all([
+    const [booksRes, booksByNameRes, homeStudyRes, coursesRes, coachingRes, audiobooksRes, podcastsRes, nodesRes] = await Promise.all([
       booksQuery,
       booksByNameQuery ? booksByNameQuery : Promise.resolve({ data: [] as unknown[] }),
       supabase.from("home_study_courses").select("id, title, price, currency, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
@@ -112,6 +112,7 @@ export default function AuthorSite() {
       supabase.from("coaching_packages").select("id, title, price, currency, description, duration_minutes, sessions_count").eq("author_id", profile.user_id).eq("status", "active"),
       supabase.from("audiobooks").select("id, title, price, currency, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
       supabase.from("podcasts").select("id, title, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
+      supabase.from("author_nodes").select("node_id, node_name, personalised_name, content_json, microsite_url, payment_link, third_party_url").eq("author_id", profile.id).eq("status", "live"),
     ]);
 
     const booksPrimary = (booksRes.data || []) as Record<string, unknown>[];
@@ -138,6 +139,7 @@ export default function AuthorSite() {
 
     setCoachingServices(coaching);
     setBooksWithProducts(enriched);
+    setLiveNodes((nodesRes.data || []) as unknown as LiveNode[]);
 
     // Related Authors
     const authorGenres = profile.genres || [];
