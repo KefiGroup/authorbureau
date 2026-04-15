@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { categoryStyles } from "../shared/BuilderTheme";
 import { QRCodeSVG } from "qrcode.react";
 import SocialDistributionPack from "./SocialDistributionPack";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish", "Live"];
 
@@ -273,35 +274,37 @@ export default function BP02Builder({ authorId }: Props) {
     setStep(4);
     setError(null);
     try {
-      const { data: existingNode } = await supabase
-        .from("author_nodes")
-        .select("id")
-        .eq("author_id", authorId!)
-        .eq("node_id", "BP-02")
-        .maybeSingle();
-
       const slug = authorSlug || authorName.toLowerCase().replace(/\s+/g, "-");
-      const micrositeUrl = `${window.location.origin}/${slug}/free-gift`;
-      const publishedPayload = {
-        status: "live" as const,
-        content_json: { ...content, publishChannels, _currentStep: 4 },
-        current_step: 4,
-        activated_at: new Date().toISOString(),
-        microsite_url: micrositeUrl,
-      };
+      const fallbackMicrositeUrl = `${window.location.origin}/${slug}/free-gift`;
+      const token = await getActiveToken();
+      if (!token) throw new Error("Not authenticated");
 
-      if (existingNode) {
-        const { error: updateErr } = await supabase.from("author_nodes").update(publishedPayload).eq("id", existingNode.id);
-        if (updateErr) throw new Error(`Failed to publish: ${updateErr.message}`);
-      } else {
-        const { error: insertErr } = await supabase.from("author_nodes").insert({
-          author_id: authorId!,
-          node_id: "BP-02",
-          node_name: "Lead Magnets",
-          ...publishedPayload,
-        });
-        if (insertErr) throw new Error(`Failed to publish: ${insertErr.message}`);
+      const publishResponse = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/deploy-bp02-to-ghl`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            author_id: authorId,
+            content_payload: { ...content, publishChannels, _currentStep: 4 },
+          }),
+        },
+        30000,
+      );
+
+      const publishResult = await publishResponse.json().catch(() => ({}));
+      if (!publishResponse.ok || !publishResult?.success) {
+        throw new Error(publishResult?.message || "Failed to publish your lead magnet.");
       }
+
+      const micrositeUrl = typeof publishResult?.microsite_url === "string"
+        ? publishResult.microsite_url
+        : typeof publishResult?.live_url === "string"
+          ? publishResult.live_url
+          : fallbackMicrositeUrl;
 
       // Push nurture emails to BP-04 (Email Marketing) — only if channel selected
       if (publishChannels.emailNurture && (content.nurture_sequence || content.nurture_emails)) {
@@ -376,7 +379,7 @@ export default function BP02Builder({ authorId }: Props) {
       }
 
       setLiveUrl(micrositeUrl);
-      setContent((prev: any) => ({ ...prev, activated: true }));
+      setContent((prev: any) => ({ ...prev, activated: true, publishChannels, _currentStep: 4 }));
       toast.success("Your lead magnet is live! 🎉");
     } catch (e: any) {
       toast.error(e.message || "Something went wrong during publishing.");
