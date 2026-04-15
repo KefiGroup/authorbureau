@@ -1,64 +1,67 @@
 
 
-# Sprint 28 Bug Fix Plan — 5 Bugs
+# Sprint 29 — Marketing Hub Flow Alignment
 
-## BUG-01: BP-02/BP-03 book detection fails
+## Summary
+Rewrite the Marketing Hub's status logic and card rendering so it reflects the correct Build → Review → Activate flow. Touches primarily `MarketingHub.tsx`. No new tables, routes, or edge functions.
 
-**Root cause**: `useAuthorBook` hook queries books correctly by `auth.users.id`, but there may be race conditions or the `or` filter with `owner_email` can interfere. Additionally, the builders have a separate `hasContext` check that falls back to querying books with `authorId` (which is `author_profiles.id`, not `auth.users.id`).
+## Current State
+- `author_nodes.status` is a text field (default `'locked'`). Only value currently in DB: `'live'`.
+- Marketing Hub uses `marketing_activated_at` timestamp to determine "active" state, and `status === "live"` for "ready".
+- Cards show "Build [Node]" CTAs and step-by-step "how to get started" instructions — duplicating Brand Products.
 
-**Fix**:
-- In `useAuthorBook.ts`: Simplify the query to just `.eq("author_id", authUserId)` (remove the `or` with `owner_email` which complicates things and is filtered by RLS anyway). Also check for `title` only (not description) as the gate.
-- In both `BP02Builder.tsx` and `BP03Builder.tsx`: The Step 0 intro gate at line ~223 checks `!hasBook` from the hook. Also fix the builder's own fallback book query (lines 73-86 in both) — ensure it uses `profile?.user_id` (auth user id) consistently, not `authorId` (profile id) as fallback. If either `hasContext` or `hasBook` is true, allow generation.
+## Status Mapping
 
-**Files**: `src/hooks/useAuthorBook.ts`, `src/components/dashboard/builders/bp02/BP02Builder.tsx`, `src/components/dashboard/builders/bp03/BP03Builder.tsx`
+| `author_nodes` state | Hub status badge | CTA button |
+|---|---|---|
+| No row / `locked` | **Not Built** (gray) | "Build this first in Brand Products →" links to `/brand-products` |
+| `draft` | **Draft** (amber) | "Review & Approve Content →" links to `/node-builder/{nodeId}` |
+| `live` (published) | **Ready to Activate** (gold) | "Activate Campaign" (green/gold) |
+| `live` + `marketing_activated_at` set | **Active** (green) | "Pause Campaign" button |
 
----
+## Changes
 
-## BUG-02 + BUG-03: Connect Settings redirects to PublishNow / 404
+### 1. Rewrite `getCampaignStatus` (MarketingHub.tsx)
+Replace current logic with 4-state derivation per node:
+- `not_built`: no row or status is `locked`
+- `draft`: status is `draft`
+- `ready`: status is `live` and no `marketing_activated_at`
+- `active`: status is `live` and `marketing_activated_at` is set
 
-**Root cause**: `connect-settings` sidebar item triggers `onSectionChange("connect-settings")` which in `AuthorDashboard.tsx` redirects to `/account-settings?tab=connections`. There is no standalone `/connect-settings` route — the redirect goes to account settings.
+For grouped campaigns (BP-06+, BA-*, YR-*), derive from worst-state of child nodes (keep existing behavior).
 
-**Fix**:
-- Create `src/pages/ConnectSettings.tsx` with: Stripe connection status/button, message that email marketing is handled natively by ABBY, no GHL references.
-- Register `/connect-settings` route in the router.
-- Update `AuthorDashboard.tsx` to redirect `connect-settings` section to `/connect-settings` instead of `/account-settings?tab=connections`.
-- Update `DashboardSidebar.tsx` subtitle from "Marketing Account" to something like "Integrations".
+### 2. Rewrite `CampaignRow` rendering
+**For BP-01 through BP-05** (the 5 individual nodes):
+- **Not Built**: Show node name, "Not Built" badge, description, and single line: "Build this first in Brand Products" with link to `/brand-products`. No step-by-step instructions.
+- **Draft**: Show "Draft" amber badge, content preview (first 100 chars of `content_json`), "Review & Approve Content" button linking to `/node-builder/{nodeId}`.
+- **Ready**: Show "Ready to Activate" gold badge, content preview, "Activate Campaign" green button.
+- **Active**: Show green "Active" badge, "Pause Campaign" button, stats row: "Activated {date} · {X} leads captured".
 
-**Files**: New `src/pages/ConnectSettings.tsx`, router file, `src/pages/AuthorDashboard.tsx`, `src/components/dashboard/DashboardSidebar.tsx`
+### 3. Add pause functionality
+"Pause Campaign" sets `marketing_activated_at = null` on `author_nodes` for that node, reverting to "ready" state.
 
----
+### 4. Add leads count query
+Query `leads` table (if exists) or default to 0 for the activation stats row.
 
-## BUG-04: Dashboard shows onboarding to returning users
+### 5. Remove all "Build" language
+- Remove `howToStart` step-by-step sections for BP-01–BP-05
+- Remove all "Build [Node Name] →" button text
+- Change Abby guidance section: replace "Build Email Marketing First" with "Go to Brand Products to get started" when no nodes are built
+- Remove `deployFunctions` references to GHL (`deploy-bp04-to-ghl`, `deploy-bp05-to-ghl`, etc.)
 
-**Root cause**: In `ABBYFrameworkDashboard.tsx`, the `hasPlan` state defaults to `false` and is only set to `true` after an async call to `abby-execute` with `action: "status"` succeeds. If the call fails, times out, or returns no plan, the onboarding screen shows. The component renders the onboarding (MeetAbbySection) at line 248 when `!hasPlan`.
+### 6. Content preview snippet
+For draft/ready/active nodes, extract first 100 chars from `content_json` (parse the JSON, find a suitable text field like `description` or first content block) and display as a muted preview line.
 
-**Fix**:
-- Don't render the onboarding MeetAbbySection until the dashboard has fully loaded (use `hasBootstrapped` state which is already tracked). While loading, show a loading spinner.
-- After loading, if `hasPlan` is true, show the progress dashboard (already works). If `hasPlan` is false but user has books AND author_context exists, still show a "plan in progress" state rather than the full onboarding.
-- Add a direct check: query `generated_assets` or `author_nodes` to see if the user has completed any business plan work, as a fallback for when the edge function call fails.
+## Files Changed
+| File | Change |
+|---|---|
+| `src/components/dashboard/MarketingHub.tsx` | Rewrite status logic, card rendering, remove Build language, add pause, add content preview |
 
-**Files**: `src/components/dashboard/ABBYFrameworkDashboard.tsx`, `src/components/dashboard/framework-dashboard/MeetAbbySection.tsx`
-
----
-
-## BUG-05: "Ask ABBY" disappears from sidebar
-
-**Root cause**: In `DashboardSidebar.tsx` line 108, "Ask ABBY" is conditionally included: `...(hasAnalysis ? [{ id: "abby-coach" ... }] : [])`. When `hasAnalysis` is false or undefined, the item is excluded.
-
-**Fix**: Remove the `hasAnalysis` conditional — always include "Ask ABBY" in `homeItems`. The coaching chat should be available regardless of analysis state.
-
-**File**: `src/components/dashboard/DashboardSidebar.tsx` (line 108)
-
----
-
-## Technical Details
-
-| Bug | Files Changed | Complexity |
-|-----|--------------|------------|
-| BUG-01 | useAuthorBook.ts, BP02Builder.tsx, BP03Builder.tsx | Medium |
-| BUG-02/03 | New ConnectSettings.tsx, router, AuthorDashboard.tsx, DashboardSidebar.tsx | Medium |
-| BUG-04 | ABBYFrameworkDashboard.tsx | Low-Medium |
-| BUG-05 | DashboardSidebar.tsx | Low |
-
-No database migrations required. No new edge functions. No new dependencies.
+## What Does NOT Change
+- Brand Products page
+- Node builders (BP-01 through BP-09)
+- Sidebar navigation
+- Dashboard
+- Database schema (no migrations)
+- No new routes or edge functions
 
