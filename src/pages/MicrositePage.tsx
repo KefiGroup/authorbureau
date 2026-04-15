@@ -137,6 +137,9 @@ export default function MicrositePage() {
 
   if (!data) return null;
 
+  // Use the resolved node_id from the API response (handles both hardcoded and dynamic slugs)
+  const resolvedNodeId = data.node.node_id || nodeId;
+
   const theme = getThemeById(data.author.theme || "classic-elegant");
   const v = theme.vars;
   const hFont = theme.headingFont;
@@ -152,8 +155,8 @@ export default function MicrositePage() {
       const res = await supabase.functions.invoke("microsite-action", {
         body: {
           author_id: data.author.id,
-          node_id: nodeId,
-          action_type: getActionType(nodeId!),
+          node_id: resolvedNodeId,
+          action_type: getActionType(resolvedNodeId!),
           email,
           first_name: firstName,
           last_name: lastName,
@@ -190,16 +193,16 @@ export default function MicrositePage() {
       </nav>
 
       {/* Node-specific content */}
-      {nodeId === "BP-02" && <LeadMagnetPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} submitting={submitting} submitted={submitted} />}
-      {nodeId === "BP-04" && <AuthorWebsitePage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} submitting={submitting} submitted={submitted} />}
-      {nodeId === "BP-05" && <WebinarPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} submitting={submitting} submitted={submitted} />}
-      {nodeId === "BP-06" && <SalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} type="workbook" />}
-      {nodeId === "BP-07" && <SalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} type="home-study" />}
-      {nodeId === "BP-08" && <SalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} type="special-edition" />}
-      {nodeId === "BP-09" && <BookSalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} />}
+      {resolvedNodeId === "BP-02" && <LeadMagnetPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} submitting={submitting} submitted={submitted} />}
+      {resolvedNodeId === "BP-04" && <AuthorWebsitePage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} submitting={submitting} submitted={submitted} />}
+      {resolvedNodeId === "BP-05" && <WebinarPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} submitting={submitting} submitted={submitted} />}
+      {resolvedNodeId === "BP-06" && <SalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} type="workbook" />}
+      {resolvedNodeId === "BP-07" && <SalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} type="home-study" />}
+      {resolvedNodeId === "BP-08" && <SalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} type="special-edition" />}
+      {resolvedNodeId === "BP-09" && <BookSalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} />}
       {/* Generic fallback for other nodes */}
-      {!["BP-02", "BP-04", "BP-05", "BP-06", "BP-07", "BP-08", "BP-09"].includes(nodeId!) && (
-        <GenericPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} nodeId={nodeId!} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />
+      {!["BP-02", "BP-04", "BP-05", "BP-06", "BP-07", "BP-08", "BP-09"].includes(resolvedNodeId!) && (
+        <GenericPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} nodeId={resolvedNodeId!} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />
       )}
 
       {/* Powered by footer */}
