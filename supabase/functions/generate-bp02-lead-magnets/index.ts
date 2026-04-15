@@ -275,8 +275,8 @@ IMPORTANT RULES:
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        // temperature omitted — openai/gpt-5 only supports default (1)
         max_completion_tokens: 8000,
+        response_format: { type: "json_object" },
       }),
     });
 
@@ -302,9 +302,53 @@ IMPORTANT RULES:
     } catch {
       const match = cleaned.match(/\{[\s\S]*\}/);
       if (match) {
-        parsedContent = JSON.parse(match[0].replace(/,\s*([}\]])/g, "$1"));
+        try {
+          parsedContent = JSON.parse(match[0].replace(/,\s*([}\]])/g, "$1"));
+        } catch {
+          // Retry: ask AI to fix the JSON
+          console.log("First parse failed, retrying with JSON-fix prompt...");
+          const retryResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${LOVABLE_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "openai/gpt-5",
+              messages: [
+                { role: "system", content: "You are a JSON repair tool. Return ONLY valid JSON, no prose." },
+                { role: "user", content: `Fix this into valid JSON:\n${rawContent.slice(0, 12000)}` },
+              ],
+              max_completion_tokens: 8000,
+              response_format: { type: "json_object" },
+            }),
+          });
+          const retryData = await retryResp.json();
+          const retryRaw = retryData.choices?.[0]?.message?.content || "";
+          parsedContent = JSON.parse(retryRaw.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim());
+        }
       } else {
-        throw new Error("Could not parse AI response as JSON");
+        // Retry: ask AI to fix the JSON
+        console.log("No JSON object found, retrying with JSON-fix prompt...");
+        const retryResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "openai/gpt-5",
+            messages: [
+              { role: "system", content: "You are a JSON repair tool. Return ONLY valid JSON, no prose." },
+              { role: "user", content: `Fix this into valid JSON:\n${rawContent.slice(0, 12000)}` },
+            ],
+            max_completion_tokens: 8000,
+            response_format: { type: "json_object" },
+          }),
+        });
+        const retryData = await retryResp.json();
+        const retryRaw = retryData.choices?.[0]?.message?.content || "";
+        parsedContent = JSON.parse(retryRaw.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim());
       }
     }
 
