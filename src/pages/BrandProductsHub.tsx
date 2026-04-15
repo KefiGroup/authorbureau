@@ -70,6 +70,7 @@ export default function BrandProductsHub() {
   const navigate = useNavigate();
   const [nodes, setNodes] = useState<NodeCard[]>([]);
   const [authorName, setAuthorName] = useState("");
+  const [authorSlug, setAuthorSlug] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -78,7 +79,7 @@ export default function BrandProductsHub() {
     async function fetchData() {
       const { data: profile } = await supabase
         .from("author_profiles")
-        .select("id, pen_name, user_id")
+        .select("id, pen_name, user_id, author_slug")
         .eq("user_id", user!.id)
         .maybeSingle();
 
@@ -89,6 +90,7 @@ export default function BrandProductsHub() {
       }
 
       setAuthorName(profile.pen_name || "");
+      setAuthorSlug(profile.author_slug || null);
 
       const { data: nodeRows } = await supabase
         .from("author_nodes")
@@ -157,8 +159,14 @@ export default function BrandProductsHub() {
     return <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${cfg.cls}`}>{cfg.label}</span>;
   };
 
+
+
   const handleCardClick = (nodeId: string) => {
     if (!isTierUnlocked) { navigate("/pricing"); return; }
+    if (nodeId === "BP-04" && (getNodeStatus("BP-04") === "live" || authorSlug)) {
+      navigate("/dashboard?section=microsite-manager");
+      return;
+    }
     navigate(`/node-builder/${nodeId}`);
   };
 

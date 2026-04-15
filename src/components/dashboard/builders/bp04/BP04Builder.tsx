@@ -95,6 +95,10 @@ export default function BP04Builder({ authorId }: Props) {
         if (node.status === "live") {
           setContent((prev: any) => ({ ...prev, activated: true }));
         }
+      } else if (!node && profile?.author_slug) {
+        // Website already exists via profile slug but no BP-04 node — redirect to manager
+        navigate("/dashboard?section=microsite-manager", { replace: true });
+        return;
       }
     })();
   }, [authorId]);
