@@ -70,6 +70,7 @@ export default function BrandProductsHub() {
   const navigate = useNavigate();
   const [nodes, setNodes] = useState<NodeCard[]>([]);
   const [authorName, setAuthorName] = useState("");
+  const [authorSlug, setAuthorSlug] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
