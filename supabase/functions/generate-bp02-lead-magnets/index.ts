@@ -56,6 +56,28 @@ serve(async (req) => {
     }
     if (!bookTitle) throw new Error("No book found. Please add a book first.");
 
+    // Pull enrichment from generated_assets (business plan + source material)
+    const { data: businessPlanAsset } = await supabase
+      .from("generated_assets")
+      .select("content")
+      .eq("author_id", author.user_id)
+      .eq("asset_type", "business_plan")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const { data: sourceMaterialAsset } = await supabase
+      .from("generated_assets")
+      .select("content")
+      .eq("author_id", author.user_id)
+      .eq("asset_type", "source_material")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const businessPlanExcerpt = businessPlanAsset?.content ? businessPlanAsset.content.substring(0, 3000) : "";
+    const sourceMaterialExcerpt = sourceMaterialAsset?.content ? sourceMaterialAsset.content.substring(0, 2000) : "";
+
     const keyFrameworks = context?.key_frameworks ? JSON.stringify(context.key_frameworks) : "N/A";
     const audiencePersona = context?.target_audience_persona ? JSON.stringify(context.target_audience_persona) : "readers interested in personal growth";
     const uniqueInsights = context?.unique_insights ? JSON.stringify(context.unique_insights) : "N/A";
@@ -82,7 +104,8 @@ Book details:
 - Key frameworks: ${keyFrameworks}
 - Unique insights: ${uniqueInsights}
 - Commercial angles: ${commercialAngles}
-
+${businessPlanExcerpt ? `\nABBY Business Strategy (from consultation):\n${businessPlanExcerpt}\n` : ""}
+${sourceMaterialExcerpt ? `\nBook Source Material (key excerpts):\n${sourceMaterialExcerpt}\n` : ""}
 Generate the following as a JSON object with these exact keys:
 
 {
@@ -275,7 +298,7 @@ IMPORTANT RULES:
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        max_completion_tokens: 8000,
+        max_completion_tokens: 16000,
         response_format: { type: "json_object" },
       }),
     });
@@ -319,7 +342,7 @@ IMPORTANT RULES:
                 { role: "system", content: "You are a JSON repair tool. Return ONLY valid JSON, no prose." },
                 { role: "user", content: `Fix this into valid JSON:\n${rawContent.slice(0, 12000)}` },
               ],
-              max_completion_tokens: 8000,
+              max_completion_tokens: 16000,
               response_format: { type: "json_object" },
             }),
           });
@@ -342,7 +365,7 @@ IMPORTANT RULES:
               { role: "system", content: "You are a JSON repair tool. Return ONLY valid JSON, no prose." },
               { role: "user", content: `Fix this into valid JSON:\n${rawContent.slice(0, 12000)}` },
             ],
-            max_completion_tokens: 8000,
+            max_completion_tokens: 16000,
             response_format: { type: "json_object" },
           }),
         });
@@ -350,6 +373,12 @@ IMPORTANT RULES:
         const retryRaw = retryData.choices?.[0]?.message?.content || "";
         parsedContent = JSON.parse(retryRaw.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim());
       }
+    }
+
+    // Reject error objects from AI
+    if ((parsedContent as any).error && !parsedContent.lead_magnets) {
+      console.error("AI returned error object instead of content:", parsedContent);
+      throw new Error("AI failed to generate lead magnet content — please try again");
     }
 
     // Validate content has expected structure before saving
