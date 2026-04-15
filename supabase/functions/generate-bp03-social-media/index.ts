@@ -67,11 +67,11 @@ IMPORTANT INSTRUCTIONS:
    - Week 4 (Days 22–30): Make the Offer — Direct promotion, book/workbook/course/webinar, urgency
 
 3. REVENUE-LINKED CTAs — Every post must end with a CTA:
-   - Tips/Insights posts: "Get the full framework in ${ctx.book_title} — link in bio"
-   - Story posts: "This is from my book. Want the rest? Link in bio."
-   - Engagement posts: "Comment YES if you want my free [lead magnet]"
-   - Week 3 social proof: "This could be your story. Start here → [book link]"
-   - Week 4 promotional: "Get ${ctx.book_title} now — link in bio"
+    - Tips/Insights posts: "Get the full framework in ${bookTitle} — link in bio"
+    - Story posts: "This is from my book. Want the rest? Link in bio."
+    - Engagement posts: "Comment YES if you want my free [lead magnet]"
+    - Week 3 social proof: "This could be your story. Start here → [book link]"
+    - Week 4 promotional: "Get ${bookTitle} now — link in bio"
    - Every 7th post: Direct lead magnet opt-in CTA
 
 4. EMAIL SEQUENCE — Generate exactly 30 emails matching the same 4-week story arc. Each email has:
