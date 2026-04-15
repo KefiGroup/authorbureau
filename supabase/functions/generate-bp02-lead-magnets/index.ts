@@ -104,7 +104,8 @@ Book details:
 - Key frameworks: ${keyFrameworks}
 - Unique insights: ${uniqueInsights}
 - Commercial angles: ${commercialAngles}
-
+${businessPlanExcerpt ? `\nABBY Business Strategy (from consultation):\n${businessPlanExcerpt}\n` : ""}
+${sourceMaterialExcerpt ? `\nBook Source Material (key excerpts):\n${sourceMaterialExcerpt}\n` : ""}
 Generate the following as a JSON object with these exact keys:
 
 {
@@ -297,7 +298,7 @@ IMPORTANT RULES:
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        max_completion_tokens: 8000,
+        max_completion_tokens: 16000,
         response_format: { type: "json_object" },
       }),
     });
@@ -364,7 +365,7 @@ IMPORTANT RULES:
               { role: "system", content: "You are a JSON repair tool. Return ONLY valid JSON, no prose." },
               { role: "user", content: `Fix this into valid JSON:\n${rawContent.slice(0, 12000)}` },
             ],
-            max_completion_tokens: 8000,
+            max_completion_tokens: 16000,
             response_format: { type: "json_object" },
           }),
         });
