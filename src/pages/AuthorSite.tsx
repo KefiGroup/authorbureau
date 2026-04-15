@@ -13,9 +13,12 @@ import type { AuthorData, BookWithProducts, ProductLink, RelatedAuthor, Coaching
 import AuthorHeroSection from "./author-site/AuthorHeroSection";
 import AuthorAboutSection from "./author-site/AuthorAboutSection";
 import AuthorBooksSection from "./author-site/AuthorBooksSection";
+import AuthorLeadMagnetsSection from "./author-site/AuthorLeadMagnetsSection";
+import AuthorLearnSection from "./author-site/AuthorLearnSection";
 import AuthorServicesSection from "./author-site/AuthorServicesSection";
 import AuthorSubscribeSection from "./author-site/AuthorSubscribeSection";
 import AuthorRelatedSection from "./author-site/AuthorRelatedSection";
+import type { LiveNode } from "./author-site/AuthorLeadMagnetsSection";
 
 export default function AuthorSite() {
   const { authorSlug } = useParams<{ authorSlug: string }>();
@@ -23,6 +26,7 @@ export default function AuthorSite() {
   const [booksWithProducts, setBooksWithProducts] = useState<BookWithProducts[]>([]);
   const [coachingServices, setCoachingServices] = useState<CoachingService[]>([]);
   const [relatedAuthors, setRelatedAuthors] = useState<RelatedAuthor[]>([]);
+  const [liveNodes, setLiveNodes] = useState<LiveNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
