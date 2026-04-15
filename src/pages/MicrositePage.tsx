@@ -359,30 +359,34 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
           {/* Question */}
           <div className="mb-8">
             <h2 className="text-xl sm:text-2xl font-bold leading-snug" style={{ color: v.headingText, fontFamily: hFont }}>
-              {q.question}
+              {q.question || q.text}
             </h2>
           </div>
 
           {/* Options */}
           <div className="space-y-3">
-            {(q.options || []).map((opt: string, i: number) => (
-              <button
-                key={i}
-                onClick={() => handleAnswer(i)}
-                className="w-full text-left p-4 sm:p-5 rounded-xl border-2 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
-                style={{
-                  background: v.cardBg,
-                  borderColor: v.cardBorder,
-                  color: v.bodyText,
-                }}
-                onMouseEnter={e => { (e.target as HTMLElement).style.borderColor = accentColor; (e.target as HTMLElement).style.background = `${accentColor}08`; }}
-                onMouseLeave={e => { (e.target as HTMLElement).style.borderColor = v.cardBorder; (e.target as HTMLElement).style.background = v.cardBg; }}
-              >
-                <span className="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold mr-3 shrink-0" style={{ background: `${accentColor}15`, color: accentColor }}>
-                  {String.fromCharCode(65 + i)}
-                </span>
-                <span className="text-base">{opt}</span>
-              </button>
+            {(q.options || []).map((opt: any, i: number) => {
+              const optLabel = typeof opt === "string" ? opt : opt.label || opt.text || `Option ${i + 1}`;
+              return (
+                <button
+                  key={i}
+                  onClick={() => handleAnswer(i)}
+                  className="w-full text-left p-4 sm:p-5 rounded-xl border-2 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
+                  style={{
+                    background: v.cardBg,
+                    borderColor: v.cardBorder,
+                    color: v.bodyText,
+                  }}
+                  onMouseEnter={e => { (e.target as HTMLElement).style.borderColor = accentColor; (e.target as HTMLElement).style.background = `${accentColor}08`; }}
+                  onMouseLeave={e => { (e.target as HTMLElement).style.borderColor = v.cardBorder; (e.target as HTMLElement).style.background = v.cardBg; }}
+                >
+                  <span className="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold mr-3 shrink-0" style={{ background: `${accentColor}15`, color: accentColor }}>
+                    {String.fromCharCode(65 + i)}
+                  </span>
+                  <span className="text-base">{optLabel}</span>
+                </button>
+              );
+            })}
             ))}
           </div>
         </div>
