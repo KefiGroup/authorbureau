@@ -129,17 +129,22 @@ export default function BP02Builder({ authorId }: Props) {
 
       if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
         setContent(node.content_json);
-        setStep(node.status === "live" ? 3 : 2);
         if (node.status === "live") {
+          setStep(4);
           setContent((prev: any) => ({ ...prev, activated: true }));
           setLiveUrl(node.microsite_url || null);
+          // Restore publishChannels if persisted
+          const saved = (node.content_json as any)?.publishChannels;
+          if (saved) setPublishChannels(saved);
+        } else {
+          setStep(2);
         }
       }
     })();
   }, [authorId]);
 
   useEffect(() => {
-    if (step === 1 || (step === 3 && !content?.activated)) {
+    if (step === 1 || (step === 4 && !content?.activated)) {
       const msgs = step === 1 ? GENERATING_MESSAGES : ACTIVATING_MESSAGES;
       setMsgIndex(0);
       intervalRef.current = setInterval(() => {
@@ -164,25 +169,31 @@ export default function BP02Builder({ authorId }: Props) {
 
       // Auto-save as draft immediately after generation
       if (authorId && data.content) {
-        const { data: existingNode } = await supabase
-          .from("author_nodes")
-          .select("id")
-          .eq("author_id", authorId)
-          .eq("node_id", "BP-02")
-          .maybeSingle();
+        try {
+          const { data: existingNode } = await supabase
+            .from("author_nodes")
+            .select("id")
+            .eq("author_id", authorId)
+            .eq("node_id", "BP-02")
+            .maybeSingle();
 
-        const payload = { content_json: data.content, status: "content_ready" as const };
-        if (existingNode) {
-          await supabase.from("author_nodes").update(payload).eq("id", existingNode.id);
-        } else {
-          await supabase.from("author_nodes").insert({
-            author_id: authorId,
-            node_id: "BP-02",
-            node_name: "Lead Magnets",
-            ...payload,
-          });
+          const payload = { content_json: data.content, status: "content_ready" as const };
+          if (existingNode) {
+            const { error: upErr } = await supabase.from("author_nodes").update(payload).eq("id", existingNode.id);
+            if (upErr) console.error("[BP02] Auto-save update failed:", upErr);
+          } else {
+            const { error: insErr } = await supabase.from("author_nodes").insert({
+              author_id: authorId,
+              node_id: "BP-02",
+              node_name: "Lead Magnets",
+              ...payload,
+            });
+            if (insErr) console.error("[BP02] Auto-save insert failed:", insErr);
+          }
+          console.log("[BP02] Auto-saved draft after generation");
+        } catch (saveErr) {
+          console.error("[BP02] Auto-save exception:", saveErr);
         }
-        console.log("[BP02] Auto-saved draft after generation");
       }
     } catch (e: any) {
       setError(e.message);
