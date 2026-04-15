@@ -4,14 +4,17 @@ import { Progress } from "@/components/ui/progress";
 import { Sparkles, ArrowLeft, Check, Copy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { categoryStyles, getBuilderCategory, type BuilderCategory } from "../shared/BuilderTheme";
 
 const STEPS = ["Introduction", "Generating", "Review", "Activate"];
 
-export function StepHeader({ nodeId, nodeName, step, backTo = "/build-authority" }: { nodeId: string; nodeName: string; step: number; backTo?: string }) {
+export function StepHeader({ nodeId, nodeName, step, backTo = "/build-authority", category }: { nodeId: string; nodeName: string; step: number; backTo?: string; category?: BuilderCategory }) {
   const navigate = useNavigate();
+  const cat = category || getBuilderCategory(nodeId);
+  const s = categoryStyles[cat];
   return (
     <>
-      <div className="border-b border-border bg-card px-4 py-3">
+      <div className={`border-b border-border bg-gradient-to-r ${s.headerGradient} px-4 py-3`}>
         <div className="max-w-3xl mx-auto flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate(backTo)}><ArrowLeft className="h-4 w-4" /></Button>
           <div className="flex-1"><h1 className="text-lg font-semibold">{nodeName}</h1><p className="text-xs text-muted-foreground">{nodeId}</p></div>
@@ -21,7 +24,7 @@ export function StepHeader({ nodeId, nodeName, step, backTo = "/build-authority"
         <div className="flex items-center gap-1">
           {STEPS.map((label, i) => (
             <div key={label} className="flex items-center gap-1 flex-1">
-              <div className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold shrink-0 ${i < step ? "bg-primary text-primary-foreground" : i === step ? "bg-primary text-primary-foreground ring-2 ring-primary/30" : "bg-muted text-muted-foreground"}`}>
+              <div className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold shrink-0 ${i < step ? s.stepDone : i === step ? s.stepActiveRing : "bg-muted text-muted-foreground"}`}>
                 {i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}
               </div>
               <span className="text-xs text-muted-foreground hidden sm:inline truncate">{label}</span>
@@ -34,13 +37,15 @@ export function StepHeader({ nodeId, nodeName, step, backTo = "/build-authority"
   );
 }
 
-export function AbbyCard({ children }: { children: React.ReactNode }) {
+export function AbbyCard({ children, category = "build" }: { children: React.ReactNode; category?: BuilderCategory }) {
+  const s = categoryStyles[category];
   return (
-    <Card className="border-primary/20 bg-primary/5">
-      <CardContent className="pt-6">
+    <Card className={`${s.border} ${s.bg} ${s.glowShadow} overflow-hidden relative`}>
+      <div className={`absolute left-0 top-0 bottom-0 w-1 ${s.leftStrip}`} />
+      <CardContent className="pt-6 pl-7">
         <div className="flex gap-3">
-          <div className="shrink-0 w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-            <Sparkles className="h-5 w-5 text-primary" />
+          <div className={`shrink-0 w-10 h-10 rounded-full ${s.iconBg} flex items-center justify-center`}>
+            <Sparkles className={`h-5 w-5 ${s.iconText}`} />
           </div>
           <div className="flex-1 min-w-0">{children}</div>
         </div>
@@ -49,12 +54,13 @@ export function AbbyCard({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function LoadingStep({ messages, msgIndex }: { messages: string[]; msgIndex: number }) {
+export function LoadingStep({ messages, msgIndex, category = "build" }: { messages: string[]; msgIndex: number; category?: BuilderCategory }) {
+  const s = categoryStyles[category];
   return (
-    <AbbyCard>
+    <AbbyCard category={category}>
       <div className="space-y-4">
         <p className="text-muted-foreground font-medium animate-pulse">{messages[msgIndex % messages.length]}</p>
-        <Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" />
+        <Progress value={undefined} className={`h-2 w-full [&>div]:animate-pulse ${s.progressBar}`} />
         <p className="text-xs text-muted-foreground">This usually takes 20–40 seconds</p>
       </div>
     </AbbyCard>
