@@ -1,65 +1,75 @@
 
 
-# Fix BP-02 Review: Show Quiz Content, Enable Editing, Add Save Draft, Improve Publish
+# BP-02 Review UX Overhaul: Readability, Color, Editing, and Data Flow
 
-## Problems
+## Problems Identified
 
-1. **Quiz tab empty**: Code reads `quiz.quiz_questions` / `content.quiz` but data is at `content.quiz_structure.questions`. Scoring tiers are at `content.quiz_structure.scoring_tiers`, not `content.scoring_tiers`.
-2. **Headline variants missing**: Code reads `content.optin_page.headline_variants` but data is at `content.headline_variants` (root level).
-3. **Generating timer says "15-30 seconds"**: Should say "about 1 minute" given 16k token budget.
-4. **No editing**: All content is read-only. User wants inline editing of draft content.
-5. **No Save Draft**: No way to save edits without publishing. Need a Save Draft button.
-6. **Publish step lacks guidance**: No mention of where it's published or how to distribute via Social Media node (BP-03).
+1. **Text boxes too small** — Textarea fields are cramped (`min-h-[40px]`, `min-h-[60px]`), cutting off content. Everything is wrapped in Input/Textarea making it look like a form, not a preview.
+2. **No color** — The entire review step is monochrome white/gray cards. No visual hierarchy or category colors.
+3. **Quiz Description empty** — The `quiz_structure.description` field may not be generated, or the placeholder "Quiz description" shows in an empty textarea.
+4. **Headline Variants purpose unclear** — Three variants are shown but there's no way to select one as the active headline. They should be selectable radio options that set the opt-in page headline.
+5. **Nurture emails and social posts misplaced** — These belong to Email Marketing (BP-04) and Social Media (BP-03) respectively, not in the Lead Magnet builder. They should be pushed to those nodes on publish instead.
+6. **No clear data flow after publish** — Lead capture data goes to `author_subscribers` and `author_nodes` but there's no visible link to CRM or downstream nodes.
 
-## Changes — `src/components/dashboard/builders/bp02/BP02Builder.tsx`
+## Solution
 
-### 1. Fix quiz data path (line 311)
-```
-// Current (broken):
-const quizData = quiz?.quiz_questions || content.quiz_questions || content.quiz;
+### 1. Display-first with edit toggle (not form-first)
+Replace all Input/Textarea fields with styled readable text. Add a small pencil icon per section that toggles inline editing. Content is readable by default, editable on demand.
 
-// Fixed:
-const quizData = content.quiz_structure?.questions || quiz?.quiz_questions || content.quiz_questions;
-```
+### 2. Add category colors
+- Quiz tab: Teal accents (Brand category)
+- Scoring tiers: Color-coded borders (tier 1 = red-ish, tier 5 = green)
+- Opt-in tab: Primary/indigo preview card
+- Magnets tab: Teal-bordered cards with the recommended one highlighted in gold
 
-Fix scoring tiers path (line 422):
-```
-// Current: content.scoring_tiers || content.result_tiers || quiz?.scoring_tiers
-// Fixed: content.quiz_structure?.scoring_tiers || content.scoring_tiers || ...
-```
+### 3. Fix Quiz Description
+If `quiz_structure.description` is empty, show a meaningful fallback derived from the quiz title. Also ensure the edge function prompt explicitly requires a `description` field.
 
-Fix quiz title/description to read from `content.quiz_structure`.
+### 4. Make Headline Variants selectable
+Convert headline variants into radio-selectable cards. When selected, the chosen headline populates `optin_page.headline`. Show a "Selected" badge on the active one.
 
-### 2. Fix headline variants path (line 472)
-```
-// Current: content.optin_page?.headline_variants
-// Fixed: content.headline_variants || content.optin_page?.headline_variants
-```
+### 5. Move nurture emails and social posts out of Details tab
+- Remove the nurture sequence and social posts from the Details tab entirely.
+- On publish, auto-push nurture emails to BP-04 (Email Marketing) `author_nodes` content_json.
+- On publish, auto-push social posts to BP-03 (Social Media) `author_nodes` content_json.
+- Replace the Details tab with a "Distribution" tab that shows where content will be pushed on activation.
 
-### 3. Update timing message (line 267)
-Change "This usually takes 15–30 seconds" → "This usually takes about 1 minute"
+### 6. Connect data flow: CRM, subscribers, and downstream nodes
+On publish (already partially done via `microsite-action` edge function):
+- Leads captured go to `author_subscribers` table (already wired).
+- Add a visible "Your Leads" section in the Publish success step showing the subscriber count and a link to the CRM/contacts section.
+- On publish, upsert nurture emails into BP-04 `author_nodes` with `status: 'content_ready'` so the Email Marketing node shows pre-populated content.
+- On publish, upsert social posts into BP-03 `author_nodes` with `status: 'content_ready'`.
+- Update the Publish success step to show clear next-step cards: "View your leads in CRM", "Set up Email Nurture (BP-04)", "Distribute on Social Media (BP-03)".
 
-### 4. Make all draft content editable
-- Convert quiz questions, opt-in headlines, bullet points, thank-you page text, nurture email subjects/body outlines, and social post captions into editable `<Textarea>` / `<Input>` fields.
-- Store edits in the local `content` state via a helper function that deep-updates the content object.
-- Quiz question text and options become editable inputs.
-- Opt-in headline, subheadline, bullets, CTA text become editable.
-- Thank-you headline, message, next_step become editable.
-- Nurture email subjects and body outlines become editable.
+## Technical Changes
 
-### 5. Add Save Draft button
-- Add a "Save Draft" button next to the existing "Activate & Go Live" button.
-- On click, upsert `author_nodes` with `status: 'content_ready'` and the current (possibly edited) `content_json`.
-- Show toast confirmation "Draft saved!"
+### File: `src/components/dashboard/builders/bp02/BP02Builder.tsx`
 
-### 6. Improve Publish success step
-- Add a card explaining where the lead magnet is published (the live URL).
-- Add guidance: "Share this across all your social media channels. Go to Social Media (BP-03) to manage your social campaigns."
-- Add a button: "Set Up Social Media Distribution →" linking to BP-03.
+**Display-first pattern**: Replace `<Input>` / `<Textarea>` with styled `<p>` / `<span>` elements by default. Add an `editingSection` state. Each section gets a pencil button that toggles editing for that section only. When editing, show the current Input/Textarea fields.
+
+**Color improvements**:
+- Magnets tab: Cards get `border-l-4 border-teal-500`. Recommended card gets `border-amber-500 bg-amber-50/5`.
+- Quiz tab: Question cards get `border-l-4 border-teal-400`. Tier cards get progressive color borders (1=red, 2=orange, 3=amber, 4=teal, 5=green).
+- Opt-in tab: Preview card gets a gradient header `bg-gradient-to-br from-indigo-500/10 to-teal-500/10`.
+- Tab triggers get active-state coloring.
+
+**Headline variant selector**: Convert to radio cards with `onClick` that sets `optin_page.headline` to the selected variant's text. Show a checkmark on the selected one.
+
+**Remove nurture/social from Details tab**: Replace with a "Distribution Plan" summary showing where content flows on publish.
+
+**Publish handler changes**: After successful publish, also upsert BP-03 and BP-04 `author_nodes` with the generated social posts and nurture emails respectively, status `content_ready`.
+
+**Publish success step**: Add a subscriber count query and CRM link. Show 3 clear next-step cards with node navigation.
+
+### File: `supabase/functions/generate-bp02-lead-magnets/index.ts`
+
+Add explicit instruction in the prompt: `quiz_structure.description` must be a 1-2 sentence description of what the quiz measures. Ensure it's never empty.
 
 ## Files Changed
 
 | File | Change |
 |---|---|
-| `src/components/dashboard/builders/bp02/BP02Builder.tsx` | Fix data paths, add editing, save draft, improve publish guidance |
+| `src/components/dashboard/builders/bp02/BP02Builder.tsx` | Display-first UI, colors, headline selector, remove nurture/social from Details, push to BP-03/BP-04 on publish, CRM link in success |
+| `supabase/functions/generate-bp02-lead-magnets/index.ts` | Enforce quiz_structure.description in prompt |
 
