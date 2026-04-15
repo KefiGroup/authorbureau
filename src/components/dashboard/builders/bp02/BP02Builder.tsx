@@ -516,12 +516,17 @@ function ReviewStep({
   const selectedMagnet = content.lead_magnets?.[selectedMagnetIdx];
   const selectedType = (selectedMagnet?.type || "").toLowerCase();
   const isQuizType = selectedType.includes("quiz") || selectedType.includes("assessment");
+  const isChecklistType = selectedType.includes("checklist");
+  const isCheatsheetType = selectedType.includes("cheat") || selectedType.includes("sheet");
 
   const quizStructure = content.quiz_structure || {};
   const quizData = quizStructure.questions || content.quiz_questions || content.quiz;
   const scoringTiers = quizStructure.scoring_tiers || content.scoring_tiers || content.result_tiers;
   const quizTitle = quizStructure.quiz_title || quizStructure.title || content.quiz_title || "";
   const quizDescription = quizStructure.quiz_description || quizStructure.description || content.quiz_description || "";
+
+  const checklistStructure = content.checklist_structure || {};
+  const cheatsheetStructure = content.cheatsheet_structure || {};
 
   const headlineVariants = content.headline_variants || content.optin_page?.headline_variants || [];
 
