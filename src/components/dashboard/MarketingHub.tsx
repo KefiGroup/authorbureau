@@ -153,20 +153,25 @@ export default function MarketingHub({ onNavigate }: Props) {
     if (!user) return;
     try {
       let profileId: string | null = null;
+      let authorSlug: string | null = null;
       const { data: profile } = await supabase
         .from("author_profiles")
-        .select("id")
+        .select("id, author_slug")
         .eq("user_id", user.id)
         .maybeSingle();
       if (profile) {
         profileId = profile.id;
+        authorSlug = profile.author_slug;
       } else {
         const { data: sp } = await sharedSupabase
           .from("author_profiles")
-          .select("id")
+          .select("id, author_slug")
           .eq("user_id", user.id)
           .maybeSingle();
-        if (sp) profileId = sp.id;
+        if (sp) {
+          profileId = sp.id;
+          authorSlug = (sp as any).author_slug || null;
+        }
       }
       if (profileId) setAuthorProfileId(profileId);
 
@@ -175,7 +180,19 @@ export default function MarketingHub({ onNavigate }: Props) {
           .from("author_nodes")
           .select("node_id, status, marketing_activated_at, content_json")
           .eq("author_id", profileId);
-        setNodeRows((data as NodeRow[]) || []);
+        const rows = (data as NodeRow[]) || [];
+
+        // Synthesize BP-01 row if author has a live public profile but no BP-01 node
+        if (authorSlug && !rows.find(r => r.node_id === "BP-01")) {
+          rows.push({
+            node_id: "BP-01",
+            status: "live",
+            marketing_activated_at: null,
+            content_json: { microsite_url: `https://authorsbureau.com/${authorSlug}` },
+          });
+        }
+
+        setNodeRows(rows);
 
         // Fetch lead counts
         const { data: leads } = await supabase
