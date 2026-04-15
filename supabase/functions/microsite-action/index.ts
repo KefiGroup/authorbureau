@@ -13,7 +13,9 @@ serve(async (req) => {
   }
 
   try {
+    console.log("[microsite-action] ▶ Function invoked");
     const body = await req.json();
+    console.log("[microsite-action] Body received:", JSON.stringify({ author_id: body.author_id, node_id: body.node_id, action_type: body.action_type, email: body.email }));
     const { author_id, node_id, action_type, email, first_name, last_name, ...extra } = body;
 
     if (!author_id || !node_id || !action_type || !email) {
