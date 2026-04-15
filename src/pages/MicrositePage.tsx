@@ -296,6 +296,32 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
 
   const resultTier = getResultTier();
 
+  // ── STAGE: SUBMITTED (non-quiz thank-you) ──
+  if (stage === "results" && questions.length === 0) {
+    return (
+      <div className="min-h-[80vh] py-12 px-4 flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${accentColor}10 0%, ${bgColor} 100%)` }}>
+        <div className="max-w-md mx-auto text-center">
+          <div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center text-4xl" style={{ background: `${accentColor}15` }}>
+            🎉
+          </div>
+          <h1 className="text-3xl font-extrabold mb-3" style={{ color: v.headingText, fontFamily: hFont }}>
+            You're In!
+          </h1>
+          <p className="text-lg mb-6" style={{ color: v.mutedText }}>
+            Check your inbox — your free resource is on its way. Thank you, {firstName || "friend"}!
+          </p>
+          {data.book && (
+            <Button asChild size="lg" className="rounded-full" style={{ background: accentColor, color: "#fff" }}>
+              <a href={data.book.amazon_url || `/${data.author.author_slug}/${data.book.slug}`}>
+                Learn More About the Book <ArrowRight className="ml-2 h-4 w-4" />
+              </a>
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   // ── STAGE: QUIZ ──
   if (stage === "quiz" && questions.length > 0) {
     const q = questions[currentQ];
