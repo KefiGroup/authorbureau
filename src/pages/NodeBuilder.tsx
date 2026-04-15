@@ -1,10 +1,13 @@
-import { useParams, useNavigate, Link, Navigate, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { isLegacyBpNode, getBpBuildRoute } from "@/lib/bpRoutes";
+import BP01Builder from "@/components/dashboard/builders/bp01/BP01Builder";
+import BP02Builder from "@/components/dashboard/builders/bp02/BP02Builder";
+import BP03Builder from "@/components/dashboard/builders/bp03/BP03Builder";
+import BP04Builder from "@/components/dashboard/builders/bp04/BP04Builder";
 import BP05Builder from "@/components/dashboard/builders/bp05/BP05Builder";
 import BP06Builder from "@/components/dashboard/builders/bp06/BP06Builder";
 import BP07Builder from "@/components/dashboard/builders/bp07/BP07Builder";
@@ -46,7 +49,6 @@ export default function NodeBuilder() {
   const { nodeId } = useParams<{ nodeId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const [authorId, setAuthorId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -75,21 +77,10 @@ export default function NodeBuilder() {
     );
   }
 
-  // Redirect legacy BP-01..BP-05 to canonical dashboard routes,
-  // preserving bookId / bookTitle / bookCoverUrl from query params.
-  if (nodeId && isLegacyBpNode(nodeId)) {
-    const route = getBpBuildRoute(nodeId, {
-      bookId: searchParams.get("bookId") || undefined,
-      bookTitle: searchParams.get("bookTitle") || undefined,
-      bookCoverUrl: searchParams.get("bookCoverUrl") || undefined,
-    });
-    return <Navigate to={route} replace />;
-  }
-
   const builders: Record<string, React.ComponentType<{ authorId: string | null }>> = {
-    "BP-05": BP05Builder,
-    "BP-06": BP06Builder, "BP-07": BP07Builder,
-    "BP-08": BP08Builder, "BP-09": BP09Builder,
+    "BP-01": BP01Builder, "BP-02": BP02Builder, "BP-03": BP03Builder,
+    "BP-04": BP04Builder, "BP-05": BP05Builder, "BP-06": BP06Builder,
+    "BP-07": BP07Builder, "BP-08": BP08Builder, "BP-09": BP09Builder,
     "BA-10": BA10Builder, "BA-11": BA11Builder, "BA-12": BA12Builder,
     "BA-13": BA13Builder, "BA-14": BA14Builder, "BA-15": BA15Builder,
     "BA-16": BA16Builder, "BA-17": BA17Builder, "BA-18": BA18Builder,

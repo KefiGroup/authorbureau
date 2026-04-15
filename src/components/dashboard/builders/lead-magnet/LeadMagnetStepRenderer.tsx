@@ -3,7 +3,6 @@ import SharedSetupStep, { type SetupField } from "../shared/SharedSetupStep";
 import SharedContentStep from "../shared/SharedContentStep";
 import SharedPublishStep from "../shared/SharedPublishStep";
 import OptInPageBuilder from "./OptInPageBuilder";
-import HeadlinePickerStep from "./HeadlinePickerStep";
 import { Magnet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
@@ -19,6 +18,11 @@ const SETUP_FIELDS: SetupField[] = [
   ]},
   { key: "title", label: "Lead Magnet Title", type: "text", placeholder: "The 5-Step Framework for..." },
   { key: "audience", label: "Target Audience", type: "textarea", placeholder: "Who will find this irresistible? Describe their main pain point..." },
+  { key: "deliveryMethod", label: "Delivery Method", type: "pills", cols: 3, options: [
+    { value: "pdf", label: "PDF Download" },
+    { value: "email", label: "Email Drip" },
+    { value: "landing", label: "Landing Page" },
+  ]},
 ];
 
 import type { StepRendererProps } from "../shared/builder-types";
@@ -31,7 +35,7 @@ const GENERATE_PROMPT = `Generate a complete lead magnet for "{bookTitle}". Conf
 CRITICAL RULES FOR CHECKLIST FORMAT:
 If config.type is "checklist": output a checklist-style lead magnet that is STRICTLY ASSESSMENT-ONLY.
 - Each section has ONLY "Tick what's true:" items — statements the reader checks if they relate.
-- ABSOLUTELY NO "Next step", "Next step (pick 1):", "Choose one:", action items, exercises, or tasks ANYWHERE inside the checklist sections.
+- ABSOLUTELY NO "Next step", "Next step (pick 1):", "Choose one:", "Try this:", action items, exercises, or tasks ANYWHERE inside the checklist sections.
 - FORBIDDEN phrases ANYWHERE in the document: "Next step", "pick 1", "choose one", "do this", "try this", "action step", "your task", "exercise", "write your", "message one person", "ask for support", "pick one section", "do one action", "I will ___ for".
 - FORBIDDEN open-ended prompts: Do NOT ask the reader to fill in blanks, write anything, or take any self-directed action. They are stuck and need specific guidance.
 - Each section ends with ONLY an interpretive note like "The more items you checked, the more this area needs attention."
@@ -52,20 +56,9 @@ If config.type is "cheatsheet": output a cheat-sheet reference format.
 If config.type is "mini-course": output a 3-5 day email mini-course format.
 If config.type is "template": output reusable template pack format.
 If config.type is "chapter": output free chapter preview format.
+Create: 1) HEADLINE & SUBHEADLINE (benefit-driven), 2) INTRODUCTION (why this matters), 3) MAIN CONTENT in the selected format, 4) CALL-TO-ACTION (3 specific product recommendations as described above), 5) AUTHOR BIO BLURB. Format as markdown.`;
 
-IMPORTANT STRUCTURE RULES:
-- Section 1 must be titled exactly "HEADLINE OPTIONS" and contain exactly 3 options in this format:
-  Option 1 (Identity):
-  [headline text]
-  Option 2 (Outcome):
-  [headline text]
-  Option 3 (Curiosity):
-  [headline text]
-- Do NOT create separate sections for each headline. All 3 must be inside the single HEADLINE OPTIONS section.
-
-Create: 1) HEADLINE OPTIONS (3 variants as above), 2) INTRODUCTION (why this matters), 3) MAIN CONTENT in the selected format, 4) CALL-TO-ACTION (3 specific product recommendations as described above), 5) AUTHOR BIO BLURB. Format as markdown.`;
-
-const EDIT_PROMPT = `Refine and polish this lead magnet content for "{bookTitle}". Existing content: {config}. CRITICAL: If the lead magnet type is checklist or quiz/assessment, it MUST remain STRICTLY ASSESSMENT-ONLY. REMOVE any "Next step (pick 1):", "Choose one:", action items, exercises, tasks, open-ended prompts, or fill-in-the-blank exercises from ANYWHERE in the document. FORBIDDEN phrases: "Next step", "pick 1", "choose one", "do this", "try this", "write your", "message one person", "ask for support", "pick one section", "do one action", "I will ___ for". Each section should ONLY have "Tick what's true:" items and end with an interpretive note. The CALL-TO-ACTION must contain exactly 3 SPECIFIC product recommendations (Workbook, Home Study Course, Online Course) that tell the stuck reader exactly which product to get based on their results. No vague or open-ended suggestions. Make the introduction more compelling with storytelling. IMPORTANT: If there are multiple headline sections (Identity, Outcome, Curiosity), consolidate them into a single "HEADLINE OPTIONS" section with Option 1/2/3 format.`;
+const EDIT_PROMPT = `Refine and polish this lead magnet content for "{bookTitle}". Existing content: {config}. CRITICAL: If the lead magnet type is checklist or quiz/assessment, it MUST remain STRICTLY ASSESSMENT-ONLY. REMOVE any "Next step (pick 1):", "Choose one:", action items, exercises, tasks, open-ended prompts, or fill-in-the-blank exercises from ANYWHERE in the document. FORBIDDEN phrases: "Next step", "pick 1", "choose one", "do this", "try this", "write your", "message one person", "ask for support", "pick one section", "do one action", "I will ___ for". Each section should ONLY have "Tick what's true:" items and end with an interpretive note. The CALL-TO-ACTION must contain exactly 3 SPECIFIC product recommendations (Workbook, Home Study Course, Online Course) that tell the stuck reader exactly which product to get based on their results. No vague or open-ended suggestions. Make the introduction more compelling with storytelling.`;
 
 export default function LeadMagnetStepRenderer({ stepId, stepData, setStepData, onMarkEdited, bookId, bookTitle, plan, userId }: Props) {
   const navigate = useNavigate();
@@ -131,17 +124,22 @@ export default function LeadMagnetStepRenderer({ stepId, stepData, setStepData, 
 
   switch (stepId) {
     case "configure":
-      return <SharedSetupStep bookId={bookId} configKey="leadMagnetConfig" fields={SETUP_FIELDS} abbyTip="Quizzes and assessments drive the highest engagement and lead capture. I'll automatically choose the best delivery method for your format." stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} plan={plan} bookTitle={bookTitle} defaults={{ type: "quiz" }} invalidateOnFieldChange={{
+      return <SharedSetupStep bookId={bookId} configKey="leadMagnetConfig" fields={SETUP_FIELDS} abbyTip="Checklists and cheat sheets convert best. They promise a quick win with minimal effort from the reader." stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} plan={plan} bookTitle={bookTitle} defaults={{ type: "checklist", deliveryMethod: "pdf" }} invalidateOnFieldChange={{
         type: ["leadMagnetContent", "leadMagnetEdited", "leadMagnetDesign"],
       }} />;
     case "generate":
-      return <SharedContentStep contentKey="leadMagnetContent" title="Lead Magnet Content" description="Abby generates your lead magnet content from your book's most actionable advice." abbyTip="I'll pull the most actionable insights from your manuscript into a compact, high-value format." aiPrompt={GENERATE_PROMPT} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="leadMagnetConfig" autoExpand hideSections={["headline"]} stepInstructions={[
+      return <SharedContentStep contentKey="leadMagnetContent" title="Lead Magnet Content" description="Abby generates your lead magnet content from your book's most actionable advice." abbyTip="I'll pull the most actionable insights from your manuscript into a compact, high-value format." aiPrompt={GENERATE_PROMPT} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="leadMagnetConfig" stepInstructions={[
         { label: "Click Generate", description: "Abby creates your lead magnet from your book's best ideas." },
-        { label: "Review sections", description: "Expand each card to read introduction, content, and CTA." },
+        { label: "Review sections", description: "Expand each card to read headline options, content, and CTA." },
+        { label: "Pick your favorite", description: "Select from multiple headline/content options Abby provides." },
         { label: "Edit & refine", description: "Click Edit on any section to customize the text." },
       ]} />;
     case "edit":
-      return <HeadlinePickerStep stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} />;
+      return <SharedContentStep contentKey="leadMagnetEdited" title="Edit & Polish" description="Customize the generated content. Add personal stories, refine language, adjust structure." abbyTip="Focus on the lead magnet content — headline, introduction, and your quiz or checklist questions. The product recommendations are managed separately." aiPrompt={EDIT_PROMPT} stepData={stepData} setStepData={setStepData} onMarkEdited={onMarkEdited} stepId={stepId} bookId={bookId} bookTitle={bookTitle} configKey="leadMagnetConfig" seedFromKey="leadMagnetContent" hideSections={["call-to-action", "author bio", "product recommendation", "cta"]} hideGenerateWhenSeeded generateLabel="Save Changes" stepInstructions={[
+        { label: "Review draft", description: "Read through the generated content from Step 2." },
+        { label: "Add your voice", description: "Include personal stories and adjust the tone." },
+        { label: "Polish & finalize", description: "Fix wording and save your changes." },
+      ]} />;
     case "design": {
       const optinData = stepData.leadMagnetDesignData || stepData.leadMagnetConfig || {};
       const audience = stepData.leadMagnetConfig?.audience || "";

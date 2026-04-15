@@ -94,14 +94,12 @@ interface Props {
   hideGenerateWhenSeeded?: boolean;
   /** Override the generate button label */
   generateLabel?: string;
-  /** When true, all content cards start expanded */
-  autoExpand?: boolean;
 }
 
 export default function SharedContentStep({
   contentKey, title, description, abbyTip, aiPrompt,
   stepData, setStepData, onMarkEdited, stepId, bookId, bookTitle, configKey,
-  builderId, builderLabel, seedFromKey, hideSections, hideGenerateWhenSeeded, generateLabel, autoExpand,
+  builderId, builderLabel, seedFromKey, hideSections, hideGenerateWhenSeeded, generateLabel,
 }: Props) {
   const { toast } = useToast();
   const [generating, setGenerating] = useState(false);
@@ -458,7 +456,7 @@ ${fullText}`;
             }}
             stepTitle={title}
             hideSections={hideSections}
-            autoExpand={autoExpand || !!seedFromKey}
+            autoExpand={!!seedFromKey}
           />
         </div>
       )}

@@ -73,40 +73,28 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
   async function loadData() {
     setLoading(true);
 
-    // Resolve local profile with email fallback for shared-backend users
-    let profileRes = await supabase.from("author_profiles").select("*").eq("user_id", user!.id).maybeSingle();
-    if (!profileRes.data && user!.email) {
-      const { data: bookByEmail } = await supabase
-        .from("books")
-        .select("author_id")
-        .eq("owner_email", user!.email.toLowerCase())
-        .limit(1)
-        .maybeSingle();
-      if (bookByEmail?.author_id) {
-        profileRes = await supabase.from("author_profiles").select("*").eq("user_id", bookByEmail.author_id).maybeSingle();
-      }
-    }
-    const resolvedUserId = profileRes.data?.user_id || user!.id;
-
-    // Fetch books via edge function for proper ownership
-    const booksResult = await (async () => {
-      try {
-        const token = await getActiveToken();
-        if (!token) return { books: [] };
-        const response = await fetchWithTimeout(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          }
-        );
-        const result = await response.json();
-        if (!response.ok) return { books: [] };
-        return { books: result.books || [] };
-      } catch (error) {
-        return { books: [] };
-      }
-    })();
+    // Fetch profile (local Cloud table) and books (via edge function for proper ownership)
+    const [profileRes, booksResult] = await Promise.all([
+      supabase.from("author_profiles").select("*").eq("user_id", user!.id).maybeSingle(),
+      (async () => {
+        try {
+          const token = await getActiveToken();
+          if (!token) return { books: [] };
+          const response = await fetchWithTimeout(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            }
+          );
+          const result = await response.json();
+          if (!response.ok) return { books: [] };
+          return { books: result.books || [] };
+        } catch (error) {
+          return { books: [] };
+        }
+      })(),
+    ]);
 
     const profile = profileRes.data;
     setProfileData(profile);
@@ -115,7 +103,7 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
     const books = booksResult.books as any[];
     const bookIds = books.map((b: any) => b.id);
 
-    // Fetch products for these books using resolved user ID
+    // Fetch products for these books
     let homeStudy: any[] = [];
     let courses: any[] = [];
     let coaching: any[] = [];
@@ -124,11 +112,11 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
 
     if (bookIds.length > 0) {
       const [hsRes, cRes, coachRes, abRes, podRes] = await Promise.all([
-        supabase.from("home_study_courses").select("id, title, book_id, status").eq("author_id", resolvedUserId),
-        supabase.from("courses").select("id, title, book_id, status").eq("author_id", resolvedUserId),
-        supabase.from("coaching_packages").select("id, title, status").eq("author_id", resolvedUserId),
-        supabase.from("audiobooks").select("id, title, book_id, status").eq("author_id", resolvedUserId),
-        supabase.from("podcasts").select("id, title, book_id, status").eq("author_id", resolvedUserId),
+        supabase.from("home_study_courses").select("id, title, book_id, status").eq("author_id", user!.id),
+        supabase.from("courses").select("id, title, book_id, status").eq("author_id", user!.id),
+        supabase.from("coaching_packages").select("id, title, status").eq("author_id", user!.id),
+        supabase.from("audiobooks").select("id, title, book_id, status").eq("author_id", user!.id),
+        supabase.from("podcasts").select("id, title, book_id, status").eq("author_id", user!.id),
       ]);
       homeStudy = hsRes.data || [];
       courses = cRes.data || [];
@@ -347,7 +335,7 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
                 <p className="text-sm text-muted-foreground">
                   Your published books and products will appear here automatically.
                 </p>
-                <Button variant="outline" size="sm" onClick={() => onNavigate?.("my-books")}>
+                <Button variant="outline" size="sm" onClick={() => onNavigate?.("books")}>
                   Go to My Book Hub
                 </Button>
               </div>

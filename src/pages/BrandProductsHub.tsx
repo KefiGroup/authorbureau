@@ -6,9 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sparkles, ArrowRight, Lock, Star, Clock, BarChart3 } from "lucide-react";
-import { getBpBuildRoute } from "@/lib/bpRoutes";
 
-type NodeStatus = "locked" | "not_started" | "building" | "content_ready" | "published_pending_ghl" | "live" | "error";
+type NodeStatus = "locked" | "not_started" | "building" | "content_ready" | "live" | "error";
 
 interface NodeCard {
   node_id: string;
@@ -72,38 +71,16 @@ export default function BrandProductsHub() {
   const [nodes, setNodes] = useState<NodeCard[]>([]);
   const [authorName, setAuthorName] = useState("");
   const [loading, setLoading] = useState(true);
-  const [firstBook, setFirstBook] = useState<{ id: string; title: string } | null>(null);
 
   useEffect(() => {
     if (authLoading || !user) return;
 
     async function fetchData() {
-      // Try by user_id first, then fall back to email
-      let profile: { id: string; pen_name: string | null; user_id: string } | null = null;
-      const { data: profileById } = await supabase
+      const { data: profile } = await supabase
         .from("author_profiles")
         .select("id, pen_name, user_id")
         .eq("user_id", user!.id)
         .maybeSingle();
-      profile = profileById;
-
-      if (!profile && user!.email) {
-        // Shared-backend identity fallback: match by pen_name via books.owner_email
-        const { data: bookByEmail } = await supabase
-          .from("books")
-          .select("author_id")
-          .eq("owner_email", user!.email.toLowerCase())
-          .limit(1)
-          .maybeSingle();
-        if (bookByEmail?.author_id) {
-          const { data: profileByBookAuthor } = await supabase
-            .from("author_profiles")
-            .select("id, pen_name, user_id")
-            .eq("user_id", bookByEmail.author_id)
-            .maybeSingle();
-          profile = profileByBookAuthor;
-        }
-      }
 
       if (!profile) {
         setNodes(FALLBACK_NODES.map(n => ({ ...n, personalised_name: null, status: n.status as NodeStatus, microsite_url: null, current_step: 1 })));
@@ -112,18 +89,6 @@ export default function BrandProductsHub() {
       }
 
       setAuthorName(profile.pen_name || "");
-
-      // Fetch first book for book-aware routing
-      if (user!.email) {
-        const { data: booksForAuthor } = await supabase
-          .from("books")
-          .select("id, title")
-          .eq("owner_email", user!.email.toLowerCase())
-          .limit(1);
-        if (booksForAuthor && booksForAuthor.length > 0) {
-          setFirstBook({ id: booksForAuthor[0].id, title: booksForAuthor[0].title });
-        }
-      }
 
       const { data: nodeRows } = await supabase
         .from("author_nodes")
@@ -185,7 +150,6 @@ export default function BrandProductsHub() {
       not_started: { label: "Ready to Build", cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" },
       building: { label: "In Progress", cls: "bg-blue-100 text-blue-700" },
       content_ready: { label: "Ready to Publish", cls: "bg-purple-100 text-purple-700" },
-      published_pending_ghl: { label: "Published ✓", cls: "bg-emerald-100 text-emerald-700" },
       live: { label: "Live ✓", cls: "bg-emerald-100 text-emerald-700" },
       error: { label: "Needs Attention", cls: "bg-red-100 text-red-700" },
     };
@@ -195,12 +159,10 @@ export default function BrandProductsHub() {
 
   const handleCardClick = (nodeId: string) => {
     if (!isTierUnlocked) { navigate("/pricing"); return; }
-    // Use canonical book-aware routes for all BP nodes
-    const route = getBpBuildRoute(nodeId, firstBook ? { bookId: firstBook.id, bookTitle: firstBook.title } : undefined);
-    navigate(route);
+    navigate(`/node-builder/${nodeId}`);
   };
 
-  const liveCount = nodes.filter(n => n.status === "live" || n.status === "published_pending_ghl").length;
+  const liveCount = nodes.filter(n => n.status === "live").length;
 
   const renderNodeCard = (def: NodeDef) => (
     <div key={def.id} className="rounded-2xl border border-border bg-[hsl(var(--card))] p-5 flex flex-col gap-3 hover:shadow-lg transition-shadow">
@@ -286,7 +248,7 @@ export default function BrandProductsHub() {
               <p className="text-sm text-foreground leading-relaxed mb-3">
                 Hi {authorName || "there"}! I've prepared 9 ways to turn your book into a business. Start with your <strong>Website</strong> — it's the foundation everything else builds on. Then move to <strong>Email Marketing</strong> and <strong>Lead Magnets</strong>. Ready?
               </p>
-              <Button size="sm" onClick={() => navigate("/dashboard?section=microsite-manager")}>
+              <Button size="sm" onClick={() => navigate("/node-builder/BP-04")}>
                 Start with Your Website <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
               </Button>
             </div>

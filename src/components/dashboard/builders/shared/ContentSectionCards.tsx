@@ -1,8 +1,8 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ChevronDown, ChevronUp, Check, BookOpen, FileText, MessageCircle, Gift, Sparkles, ListChecks, PenLine } from "lucide-react";
+import { ChevronDown, ChevronUp, Pencil, Check, BookOpen, FileText, MessageCircle, Gift, Sparkles, ListChecks, PenLine } from "lucide-react";
 
 interface ContentSection {
   title: string;
@@ -55,8 +55,8 @@ function isMajorSectionHeader(line: string): boolean {
   // Edition identity sub-fields are not section headers
   if (/^(Title|Subtitle|Tagline)\s*:/i.test(normalized)) return false;
 
-  // Numbered section: "1) EDITION IDENTITY" or edited titles like "2) intro"
-  if (/^\d+\)\s+\S/.test(trimmed)) return true;
+  // Numbered section: "1) EDITION IDENTITY" or "2) THEMED FOREWORD..."
+  if (/^\d+\)\s+[A-Z]/.test(trimmed)) return true;
 
   // ALL-CAPS header line (at least 2 words, not a sub-item)
   if (/^[A-Z][A-Z\s\-&/(),:]+$/.test(normalized) && normalized.length > 4 && normalized.length < 120) {
@@ -186,62 +186,7 @@ function parseContentSections(content: string): ContentSection[] {
     }
   }
 
-  // Merge consecutive headline sections into a single "HEADLINE OPTIONS" card
-  const mergedSections: ContentSection[] = [];
-  let headlineBuffer: ContentSection[] = [];
-
-  const flushHeadlines = () => {
-    if (headlineBuffer.length <= 1) {
-      mergedSections.push(...headlineBuffer);
-    } else {
-      // Merge multiple headline sections into one with "Option N:" format
-      const mergedBody = headlineBuffer
-        .map((h, i) => {
-          let label = h.title.replace(/headline/i, "").replace(/[:\-—–]/g, "").trim();
-          if (!label || label.length < 3) label = h.title.trim();
-          return `Option ${i + 1} (${label || `Variant ${i + 1}`}):\n${h.body}`;
-        })
-        .join("\n\n");
-      mergedSections.push({
-        title: "HEADLINE OPTIONS",
-        body: mergedBody,
-        icon: <Sparkles className="h-5 w-5" />,
-      });
-    }
-    headlineBuffer = [];
-  };
-
-  const isHeadlineVariant = (title: string): boolean => {
-    if (/headline/i.test(title) && !/options/i.test(title)) return true;
-    // Short titles that look like quiz/title variants
-    if (title.length < 100 && /quiz|finder|compass|assessment|checker|test|starter/i.test(title)) return true;
-    return false;
-  };
-
-  /** Check if two titles share at least one significant word (3+ chars) */
-  const sharesWord = (a: string, b: string): boolean => {
-    const wordsA = a.toLowerCase().match(/[a-z]{3,}/g) || [];
-    const wordsB = new Set((b.toLowerCase().match(/[a-z]{3,}/g) || []));
-    return wordsA.some(w => wordsB.has(w));
-  };
-
-  for (const sec of sections) {
-    if (isHeadlineVariant(sec.title)) {
-      // Only buffer if it shares a word with existing buffer items (or buffer is empty)
-      if (headlineBuffer.length === 0 || headlineBuffer.some(h => sharesWord(h.title, sec.title))) {
-        headlineBuffer.push(sec);
-      } else {
-        flushHeadlines();
-        headlineBuffer.push(sec);
-      }
-    } else {
-      flushHeadlines();
-      mergedSections.push(sec);
-    }
-  }
-  flushHeadlines();
-
-  return mergedSections;
+  return sections;
 }
 
 /** Check if content appears to be workbook-type (exercises, fill-in, writing spaces) */
@@ -286,8 +231,7 @@ function groupIntoParagraphs(body: string): string[][] {
       /^\d+[\.\)]\s/.test(trimmed) ||
       /^Prompt\s*[:—–]/i.test(trimmed) ||
       /^(Source\s*(Chapter)?|Why it matters)\s*[:—]/i.test(trimmed) ||
-      isInlineHeader(trimmed) ||
-      isSubSectionHeader(trimmed);
+      isInlineHeader(trimmed);
 
     if (isStructural) {
       if (current.length > 0) {
@@ -315,30 +259,6 @@ function isInlineHeader(line: string): boolean {
   if (/^[A-Z][^.!?]*:\s*$/.test(trimmed) && trimmed.length < 80) return true;
   // "Label (parenthetical):" pattern
   if (/^[A-Z][^:]+\([^)]+\)\s*:\s*$/.test(trimmed) && trimmed.length < 100) return true;
-  return false;
-}
-
-/**
- * Detect sub-section headers within content cards — these get bold + spacing
- * but are NOT major section breaks. Examples:
- * - "Scoring & Results (Diagnosis Only)"
- * - "Step 1: Identify your Primary Stage"
- * - "S3 Subtotal (0–6): ___"
- * - "S1 — Start by Sucking (visibility, voice, meaning)"
- */
-function isSubSectionHeader(line: string): boolean {
-  const trimmed = line.trim();
-  if (!trimmed || trimmed.length > 120) return false;
-  // "Step N: ..." pattern
-  if (/^Step\s+\d+\s*[:—–]\s*.+/i.test(trimmed)) return true;
-  // "SN — ..." or "S1 (Start by Sucking):" stage headers
-  if (/^S\d+\s*[—–(:]/.test(trimmed)) return true;
-  // "SN Subtotal" pattern
-  if (/^S\d+\s+Subtotal/i.test(trimmed)) return true;
-  // "Scoring & Results" or similar standalone section labels
-  if (/^(Scoring|Results|Instructions|Directions|How (to|it) (Score|Works?))/i.test(trimmed) && trimmed.length < 80) return true;
-  // "Section Name (parenthetical)" — short title-case line with parens, no trailing content
-  if (/^[A-Z][A-Za-z\s&]+\([^)]+\)\s*$/.test(trimmed) && trimmed.length < 80) return true;
   return false;
 }
 
@@ -697,17 +617,7 @@ function FormattedBodyInner({ body, sectionTitle, showWritingSpaces }: { body: s
             );
           }
 
-          // Sub-section header (e.g. "Scoring & Results", "Step 1: ...", "S3 — ...")
-          if (isSubSectionHeader(lt)) {
-            return (
-              <div key={gIdx} className="mt-4 mb-1 pt-3 border-t border-border/40">
-                <p className="text-sm font-bold text-foreground">
-                  {renderInlineFormatting(lt)}
-                </p>
-              </div>
-            );
-          }
-
+          // Prompt line
           const promptMatch = lt.match(/^Prompt\s*[:—–]\s*[""\u201C]?(.+?)[""\u201D]?\s*$/i);
           if (promptMatch) {
             return (
@@ -806,42 +716,45 @@ function WritingLines({ count = 3 }: { count?: number }) {
   );
 }
 
-/** Edit all card content, including the visible card title */
-function SectionEditor({
-  title,
-  body,
-  onChange,
-}: {
-  title: string;
-  body: string;
-  onChange: (updated: { title: string; body: string }) => void;
-}) {
-  const normalizedTitle = title.replace(/\s*\n+\s*/g, " ");
+/** Edit mode that preserves title choices as UI and only edits the rest */
+function SectionEditor({ body, sectionTitle, onChange }: { body: string; sectionTitle: string; onChange: (newBody: string) => void }) {
+  const choiceData = extractChoiceOptions(body);
+
+  if (choiceData) {
+    // Show title chooser as UI, only allow editing the "rest" content
+    return (
+      <div className="space-y-4">
+        {choiceData.preamble && (
+          <p className="text-xs text-muted-foreground italic">{choiceData.preamble}</p>
+        )}
+        <TitleChoiceSelector options={choiceData.options} />
+        <Textarea
+          value={choiceData.rest}
+          onChange={e => {
+            // Reconstruct full body: preamble + choices + edited rest
+            const choiceBlock = [
+              choiceData.preamble,
+              choiceData.options.map((o, i) => `${i + 1}. ${o}`).join("\n"),
+              "",
+              e.target.value,
+            ].filter(Boolean).join("\n");
+            onChange(choiceBlock);
+          }}
+          rows={Math.max(8, choiceData.rest.split("\n").length + 2)}
+          className="text-sm"
+          placeholder="Edit the remaining content..."
+        />
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-3 pt-4">
-      <div className="space-y-1.5">
-        <p className="text-xs font-medium text-muted-foreground">Card title</p>
-        <Textarea
-          value={normalizedTitle}
-          onChange={e => onChange({ title: e.target.value.replace(/\s*\n+\s*/g, " "), body })}
-          rows={2}
-          className="min-h-[72px] resize-y text-sm font-medium"
-          placeholder="Edit card title..."
-        />
-      </div>
-
-      <div className="space-y-1.5">
-        <p className="text-xs font-medium text-muted-foreground">Content</p>
-        <Textarea
-          value={body}
-          onChange={e => onChange({ title: normalizedTitle, body: e.target.value })}
-          rows={Math.max(6, body.split("\n").length + 2)}
-          className="text-sm"
-          placeholder="Add or edit the card content..."
-        />
-      </div>
-    </div>
+    <Textarea
+      value={body}
+      onChange={e => onChange(e.target.value)}
+      rows={Math.max(8, body.split("\n").length + 2)}
+      className="text-sm"
+    />
   );
 }
 
@@ -856,22 +769,15 @@ interface Props {
 }
 
 export default function ContentSectionCards({ content, onChange, stepTitle, hideSections, autoExpand }: Props) {
-  const allSections = parseContentSections(content);
-  const isHiddenSection = (title: string) =>
-    !!hideSections?.some(kw => title.toLowerCase().includes(kw.toLowerCase()));
-
-  const visibleSections = allSections
-    .map((section, index) => ({ section, index }))
-    .filter(({ section }) => !isHiddenSection(section.title));
-
-  const sections = visibleSections.map(({ section }) => section);
-  const visibleSectionIndexes = visibleSections.map(({ index }) => index);
+  let sections = parseContentSections(content);
+  if (hideSections && hideSections.length > 0) {
+    sections = sections.filter(sec => {
+      const titleLower = sec.title.toLowerCase();
+      return !hideSections.some(kw => titleLower.includes(kw.toLowerCase()));
+    });
+  }
   const [expandedIdxs, setExpandedIdxs] = useState<Set<number>>(() => autoExpand ? new Set(sections.map((_, i) => i)) : new Set());
-
-  useEffect(() => {
-    if (!autoExpand || sections.length === 0) return;
-    setExpandedIdxs(prev => (prev.size > 0 ? prev : new Set(sections.map((_, i) => i))));
-  }, [autoExpand, sections.length]);
+  const [editingIdxs, setEditingIdxs] = useState<Set<number>>(() => autoExpand ? new Set(sections.map((_, i) => i)) : new Set());
 
   const isSingleSection = sections.length === 1 && sections[0].title === "Content";
 
@@ -886,20 +792,25 @@ export default function ContentSectionCards({ content, onChange, stepTitle, hide
     );
   }
 
-  const handleSectionEdit = (idx: number, updatedSection: { title: string; body: string }) => {
-    const targetIndex = visibleSectionIndexes[idx];
-    const updatedSections = allSections.map((section, sectionIndex) =>
-      sectionIndex === targetIndex ? { ...section, ...updatedSection } : section
-    );
-
+  const handleSectionEdit = (idx: number, newBody: string) => {
+    const updatedSections = sections.map((s, i) => i === idx ? { ...s, body: newBody } : s);
     const newContent = updatedSections
-      .map((s, i) => [`${i + 1}) ${s.title.trim() || `Section ${i + 1}`}`, s.body].filter(Boolean).join("\n"))
+      .map((s, i) => `${i + 1}) ${s.title}\n${s.body}`)
       .join("\n\n");
     onChange(newContent);
   };
 
   const toggleExpanded = (idx: number) => {
     setExpandedIdxs(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) { next.delete(idx); setEditingIdxs(p => { const n = new Set(p); n.delete(idx); return n; }); }
+      else next.add(idx);
+      return next;
+    });
+  };
+
+  const toggleEditing = (idx: number) => {
+    setEditingIdxs(prev => {
       const next = new Set(prev);
       if (next.has(idx)) next.delete(idx);
       else next.add(idx);
@@ -911,9 +822,10 @@ export default function ContentSectionCards({ content, onChange, stepTitle, hide
     <div className="space-y-3">
       {sections.map((section, idx) => {
         const isExpanded = expandedIdxs.has(idx);
+        const isEditing = editingIdxs.has(idx);
         const previewText = section.body.replace(/\n/g, " ").slice(0, 100);
-        const hasBody = section.body.trim().length > 0;
-        const hasContent = section.title.trim().length > 0 || hasBody;
+
+        const hasContent = section.body.trim().length > 0;
 
         return (
           <Card key={idx} className="overflow-hidden border-border/60 hover:border-border transition-colors">
@@ -928,7 +840,7 @@ export default function ContentSectionCards({ content, onChange, stepTitle, hide
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-foreground">{section.title}</p>
-                {!isExpanded && hasBody && (
+                {!isExpanded && hasContent && (
                   <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
                     {previewText}…
                   </p>
@@ -943,14 +855,32 @@ export default function ContentSectionCards({ content, onChange, stepTitle, hide
               )}
             </button>
 
-            {/* Expanded body — always editable */}
+            {/* Expanded body */}
             {isExpanded && hasContent && (
-              <div className="px-5 pb-5 border-t border-border/40 mt-3">
-                <SectionEditor
-                  title={section.title}
-                  body={section.body}
-                  onChange={(updatedSection) => handleSectionEdit(idx, updatedSection)}
-                />
+              <div className="px-5 pb-5 border-t border-border/40">
+                <div className="flex justify-end mt-3 mb-3">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs gap-1.5 text-muted-foreground hover:text-foreground"
+                    onClick={() => toggleEditing(idx)}
+                  >
+                    {isEditing ? <Check className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
+                    {isEditing ? "Done" : "Edit"}
+                  </Button>
+                </div>
+
+                {isEditing ? (
+                  <SectionEditor
+                    body={section.body}
+                    sectionTitle={section.title}
+                    onChange={(newBody) => handleSectionEdit(idx, newBody)}
+                  />
+                ) : (
+                  <div className="rounded-lg bg-muted/20 p-4">
+                    <FormattedBody body={section.body} sectionTitle={section.title} />
+                  </div>
+                )}
               </div>
             )}
           </Card>

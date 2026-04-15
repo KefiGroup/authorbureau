@@ -42,7 +42,7 @@ export function useAuthorBook(): AuthorBookResult {
         const userEmail = user.email?.toLowerCase() || null;
         console.log("[useAuthorBook] auth user ready:", authUserId);
 
-        // Query books by auth user id OR owner_email for shared-backend identity fallback
+        // Query books directly with auth.users.id
         let booksQuery = supabase
           .from("books")
           .select("title, author_name, genre")

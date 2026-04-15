@@ -346,7 +346,7 @@ const leadMagnetBuilder: BuilderNodeConfig = {
   steps: [
     { id: "configure", label: "Configure", description: "Choose type and target audience", abbyTip: "Checklists and cheat sheets convert best. They promise a quick win with minimal effort." },
     { id: "generate", label: "Let Abby Build", description: "Generate lead magnet content", abbyTip: "I'll pull your book's most actionable advice into a compact, high-value format." },
-    { id: "edit", label: "Choose Headline", description: "Pick your favourite headline option", abbyTip: "Each angle works — pick the one that feels most you." },
+    { id: "edit", label: "Edit Content", description: "Customize and polish content", abbyTip: "Include your photo and a short bio. It builds trust and leads to book sales." },
     { id: "design", label: "Design", description: "Choose template and branding", abbyTip: "Professional design increases perceived value. Use your book's color palette." },
     { id: "preview", label: "Preview & Publish", description: "Review and add to your microsite", abbyTip: "Place the opt-in form above the fold on your microsite for maximum conversions." },
   ],
