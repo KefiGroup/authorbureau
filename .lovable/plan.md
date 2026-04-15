@@ -1,61 +1,36 @@
 
 
-# Aesthetic Overhaul: Builder Pages Visual Design System
+# Simplify BP-02: Quiz + Checklist Only (2 Choose 1)
 
-## Problem
-All builder pages (BP-02, BP-09, YR-*, BA-*) share the same `AbbyCard` component — a plain `border-primary/20 bg-primary/5` card. The Introduction, Generating, and page wrapper are flat grey/beige. Meanwhile, the `SmartProductCard` in the Portfolio view uses rich gradients, colored left-strips, glow shadows, and state-specific color coding that feels polished and engaging.
+## What Changes
 
-## Design Approach
+Drop **Cheat Sheet** entirely from the generator and builder. The system produces only **Quiz** and **Checklist** lead magnets — the author picks one.
 
-Apply the existing **B-B-Y category color system** (Brand = Teal/Emerald, Build = Indigo/Blue, Yield = Amber/Gold) to the builder pages themselves, so each builder "feels" like its category.
+### 1. Edge Function (`supabase/functions/generate-bp02-lead-magnets/index.ts`)
 
-### 1. Category-Aware AbbyCard
-Replace the generic `AbbyCard` with a `ThemedAbbyCard` that accepts a `category` prop (`brand | build | yield`) and applies category-specific styling:
+- Remove all `cheatsheet_structure` from the JSON schema in the prompt (lines 212-224)
+- Change `lead_magnets` instruction from "exactly 3 items" to "exactly 2 items: one Quiz/Assessment, one Checklist"
+- Remove rule 16 about cheatsheet sections
+- Switch model from `openai/gpt-5.2` to `google/gemini-2.5-flash` for faster/cheaper generation
+- Reduce `max_completion_tokens` from 16000 to 10000
+- Remove `cheatsheet_structure` from the saved `content_json` cleanup/validation
 
-| Category | Border | Background Gradient | Icon Bg | Accent |
-|---|---|---|---|---|
-| Brand | `border-teal-400/30` | `from-teal-500/8 via-card to-card` | `bg-teal-500/20` | Teal |
-| Build | `border-indigo-400/30` | `from-indigo-500/8 via-card to-card` | `bg-indigo-500/20` | Indigo |
-| Yield | `border-amber-400/30` | `from-amber-500/8 via-card to-card` | `bg-amber-500/20` | Amber |
+### 2. Builder UI (`src/components/dashboard/builders/bp02/BP02Builder.tsx`)
 
-### 2. Stepper with Category Color
-The step circles currently use generic `bg-primary`. Update to use category accent color (e.g., teal for BP-02, amber for YR-* nodes).
+- Remove `isCheatsheetType` logic and the cheat sheet rendering block in the Content tab
+- Update intro text from "3 lead magnet concepts" to "2 lead magnet concepts"
+- Remove any cheat sheet references in the Magnets tab display
 
-### 3. Page Header with Subtle Gradient Banner
-Add a subtle gradient banner behind the page title matching the node category — similar to how `SmartProductCard` uses `bg-gradient-to-br from-{color}/[0.06]`.
+### 3. Generating Messages
 
-### 4. Introduction Step Enhancement
-- Add a decorative illustration area (icon cluster or abstract shape) using the category color
-- The "Generate" CTA button uses category accent color instead of generic primary
-- Add a subtle left-strip accent on the AbbyCard (matching SmartProductCard pattern)
+- Update from "Designing 3 irresistible free resources" to "Designing 2 irresistible free resources"
 
-### 5. Generating Step Enhancement  
-- Progress bar uses category color instead of default
-- Add a pulsing category-colored ring around the Sparkles icon
-- Background uses a very subtle radial gradient in the category color
-
-### 6. Shared Components Updated
-
-**Files to change:**
+### Files to Edit
 
 | File | Change |
 |---|---|
-| `src/components/dashboard/builders/shared/BuilderTheme.ts` | **NEW** — Export category color maps and a `getBuilderCategory(nodeId)` helper |
-| `src/components/dashboard/builders/yr-shared/YRBuilderShared.tsx` | Update `AbbyCard`, `StepHeader`, `LoadingStep` to accept `category` prop and apply themed styles |
-| `src/components/dashboard/builders/ba-shared/BABuilderShared.tsx` | Same updates as YR-shared |
-| `src/components/dashboard/builders/bp02/BP02Builder.tsx` | Use themed AbbyCard/StepHeader with `category="brand"` |
-| `src/components/dashboard/builders/bp09/BP09Builder.tsx` | Use themed components with `category="brand"` |
-| All other builder files using `AbbyCard` | Pass the correct category prop (bulk update across ~30 files) |
+| `supabase/functions/generate-bp02-lead-magnets/index.ts` | Remove cheatsheet schema, reduce to 2 magnets, faster model, lower tokens |
+| `src/components/dashboard/builders/bp02/BP02Builder.tsx` | Remove cheatsheet rendering, update copy from 3→2 |
 
-### 7. Node-to-Category Mapping
-Derive from existing `abbyFrameworkConfig.ts`:
-- `BP-*` nodes → brand (teal/emerald)
-- `BA-*` nodes → build (indigo/blue)  
-- `YR-*` nodes → yield (amber/gold)
-
-### What This Does NOT Change
-- Review tab colors (already well-designed with per-tab coloring)
-- SmartProductCard (already good)
-- Dark theme constraint (no light backgrounds — gradients stay subtle)
-- No layout changes — purely color/gradient enhancements
+No database changes needed.
 
