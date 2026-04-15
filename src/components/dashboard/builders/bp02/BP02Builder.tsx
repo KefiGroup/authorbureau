@@ -236,7 +236,7 @@ export default function BP02Builder({ authorId }: Props) {
 
   const handlePublish = async () => {
     setIsPublishing(true);
-    setStep(3);
+    setStep(4);
     setError(null);
     try {
       const { data: existingNode } = await supabase
@@ -249,7 +249,7 @@ export default function BP02Builder({ authorId }: Props) {
       if (existingNode) {
         await supabase.from("author_nodes").update({
           status: "live",
-          content_json: content,
+          content_json: { ...content, publishChannels },
           activated_at: new Date().toISOString(),
         }).eq("id", existingNode.id);
       } else {
@@ -258,7 +258,7 @@ export default function BP02Builder({ authorId }: Props) {
           node_id: "BP-02",
           node_name: "Lead Magnets",
           status: "live",
-          content_json: content,
+          content_json: { ...content, publishChannels },
           activated_at: new Date().toISOString(),
         });
       }
@@ -343,7 +343,7 @@ export default function BP02Builder({ authorId }: Props) {
     } catch (e: any) {
       toast.error(e.message || "Something went wrong during publishing.");
       setError(e.message);
-      setStep(2);
+      setStep(3);
     } finally {
       setIsPublishing(false);
     }
