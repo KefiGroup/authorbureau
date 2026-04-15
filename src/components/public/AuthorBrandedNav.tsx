@@ -15,6 +15,8 @@ interface AuthorBrandedNavProps {
   authorPhotoUrl?: string | null;
   books: BookItem[];
   hasServices: boolean;
+  hasLearnSection?: boolean;
+  hasQuizSection?: boolean;
   vars: {
     primary: string;
     primaryText: string;
@@ -38,6 +40,8 @@ export default function AuthorBrandedNav({
   authorPhotoUrl,
   books,
   hasServices,
+  hasLearnSection,
+  hasQuizSection,
   vars: v,
   headingFont,
   bodyFont,
@@ -65,6 +69,8 @@ export default function AuthorBrandedNav({
       : books.length > 1
         ? [{ label: "Books", to: "#", type: "dropdown" as const }]
         : []),
+    ...(hasQuizSection ? [{ label: "Quiz", to: `/${authorSlug}#quiz-section`, type: "link" as const }] : []),
+    ...(hasLearnSection ? [{ label: "Learn", to: `/${authorSlug}#learn-section`, type: "link" as const }] : []),
     ...(hasServices ? [{ label: "Services", to: `/${authorSlug}#services`, type: "link" as const }] : []),
     { label: "Contact", to: "#", type: "action" as const },
   ];

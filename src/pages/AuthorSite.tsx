@@ -13,9 +13,12 @@ import type { AuthorData, BookWithProducts, ProductLink, RelatedAuthor, Coaching
 import AuthorHeroSection from "./author-site/AuthorHeroSection";
 import AuthorAboutSection from "./author-site/AuthorAboutSection";
 import AuthorBooksSection from "./author-site/AuthorBooksSection";
+import AuthorLeadMagnetsSection from "./author-site/AuthorLeadMagnetsSection";
+import AuthorLearnSection from "./author-site/AuthorLearnSection";
 import AuthorServicesSection from "./author-site/AuthorServicesSection";
 import AuthorSubscribeSection from "./author-site/AuthorSubscribeSection";
 import AuthorRelatedSection from "./author-site/AuthorRelatedSection";
+import type { LiveNode } from "./author-site/AuthorLeadMagnetsSection";
 
 export default function AuthorSite() {
   const { authorSlug } = useParams<{ authorSlug: string }>();
@@ -23,6 +26,7 @@ export default function AuthorSite() {
   const [booksWithProducts, setBooksWithProducts] = useState<BookWithProducts[]>([]);
   const [coachingServices, setCoachingServices] = useState<CoachingService[]>([]);
   const [relatedAuthors, setRelatedAuthors] = useState<RelatedAuthor[]>([]);
+  const [liveNodes, setLiveNodes] = useState<LiveNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
@@ -36,6 +40,11 @@ export default function AuthorSite() {
       b.products.filter((p) => p.type !== "coaching").map((p) => ({ ...p, bookSlug: b.slug, bookTitle: b.title }))
     );
   }, [booksWithProducts]);
+
+  const leadMagnets = useMemo(() => liveNodes.filter(n => n.node_id.startsWith("BP-02")), [liveNodes]);
+  const learnNodes = useMemo(() => liveNodes.filter(n =>
+    ["BP-05", "BP-07", "BA-10", "BA-12", "YR-25"].some(p => n.node_id.startsWith(p))
+  ), [liveNodes]);
 
   // SEO
   const bioFirstSentence = (author?.bio_short || "").split(/[.!?]\s/)[0];
@@ -100,7 +109,7 @@ export default function AuthorSite() {
       if (!isOwner) booksByNameQuery = booksByNameQuery.not("published_at", "is", null);
     }
 
-    const [booksRes, booksByNameRes, homeStudyRes, coursesRes, coachingRes, audiobooksRes, podcastsRes] = await Promise.all([
+    const [booksRes, booksByNameRes, homeStudyRes, coursesRes, coachingRes, audiobooksRes, podcastsRes, nodesRes] = await Promise.all([
       booksQuery,
       booksByNameQuery ? booksByNameQuery : Promise.resolve({ data: [] as unknown[] }),
       supabase.from("home_study_courses").select("id, title, price, currency, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
@@ -108,6 +117,7 @@ export default function AuthorSite() {
       supabase.from("coaching_packages").select("id, title, price, currency, description, duration_minutes, sessions_count").eq("author_id", profile.user_id).eq("status", "active"),
       supabase.from("audiobooks").select("id, title, price, currency, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
       supabase.from("podcasts").select("id, title, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
+      supabase.from("author_nodes").select("node_id, node_name, personalised_name, content_json, microsite_url, payment_link, third_party_url").eq("author_id", profile.id).eq("status", "live"),
     ]);
 
     const booksPrimary = (booksRes.data || []) as Record<string, unknown>[];
@@ -134,6 +144,7 @@ export default function AuthorSite() {
 
     setCoachingServices(coaching);
     setBooksWithProducts(enriched);
+    setLiveNodes((nodesRes.data || []) as unknown as LiveNode[]);
 
     // Related Authors
     const authorGenres = profile.genres || [];
@@ -175,6 +186,8 @@ export default function AuthorSite() {
         authorPhotoUrl={author.photo_url}
         books={booksWithProducts.map(b => ({ slug: b.slug, title: b.title, cover_image_url: b.cover_image_url, genre: b.genre }))}
         hasServices={coachingServices.length > 0}
+        hasLearnSection={learnNodes.length > 0}
+        hasQuizSection={leadMagnets.length > 0}
         vars={v}
         headingFont={theme.headingFont}
         bodyFont={theme.bodyFont}
@@ -193,7 +206,9 @@ export default function AuthorSite() {
 
       <AuthorHeroSection author={author} displayName={displayName} booksWithProducts={booksWithProducts} allProducts={allProducts} theme={theme} v={v} />
       <AuthorAboutSection author={author} displayName={displayName} theme={theme} v={v} />
+      <AuthorLeadMagnetsSection authorSlug={authorSlug!} leadMagnets={leadMagnets} theme={theme} v={v} />
       <AuthorBooksSection authorSlug={authorSlug!} displayName={displayName} booksWithProducts={booksWithProducts} theme={theme} v={v} />
+      <AuthorLearnSection authorSlug={authorSlug!} displayName={displayName} learnNodes={learnNodes} theme={theme} v={v} />
       <AuthorServicesSection authorSlug={authorSlug!} displayName={displayName} coachingServices={coachingServices} allProducts={allProducts} theme={theme} v={v} />
       <AuthorSubscribeSection author={author} authorSlug={authorSlug!} displayName={displayName} theme={theme} v={v} />
       <AuthorRelatedSection relatedAuthors={relatedAuthors} theme={theme} v={v} />
