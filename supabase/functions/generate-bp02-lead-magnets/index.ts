@@ -56,6 +56,28 @@ serve(async (req) => {
     }
     if (!bookTitle) throw new Error("No book found. Please add a book first.");
 
+    // Pull enrichment from generated_assets (business plan + source material)
+    const { data: businessPlanAsset } = await supabase
+      .from("generated_assets")
+      .select("content")
+      .eq("author_id", author.user_id)
+      .eq("asset_type", "business_plan")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const { data: sourceMaterialAsset } = await supabase
+      .from("generated_assets")
+      .select("content")
+      .eq("author_id", author.user_id)
+      .eq("asset_type", "source_material")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const businessPlanExcerpt = businessPlanAsset?.content ? businessPlanAsset.content.substring(0, 3000) : "";
+    const sourceMaterialExcerpt = sourceMaterialAsset?.content ? sourceMaterialAsset.content.substring(0, 2000) : "";
+
     const keyFrameworks = context?.key_frameworks ? JSON.stringify(context.key_frameworks) : "N/A";
     const audiencePersona = context?.target_audience_persona ? JSON.stringify(context.target_audience_persona) : "readers interested in personal growth";
     const uniqueInsights = context?.unique_insights ? JSON.stringify(context.unique_insights) : "N/A";
