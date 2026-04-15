@@ -71,10 +71,12 @@ export default function BP02Builder({ authorId }: Props) {
         setBookTitle(ctx.book_title);
         setHasContext(true);
       } else {
+        // Fallback: query books using auth user_id (not author_profiles.id)
+        const userId = profile?.user_id || authorId;
         const { data: book } = await supabase
           .from("books")
           .select("title")
-          .eq("author_id", profile?.user_id || authorId)
+          .eq("author_id", userId)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -229,7 +231,7 @@ export default function BP02Builder({ authorId }: Props) {
         {step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Lead Magnets</h2>
-            {!isBookLoading && !hasBook ? (
+            {!isBookLoading && !hasBook && hasContext === false ? (
               <>
                 <p className="text-muted-foreground mb-4">
                   Hi {authorName}! Before I can build your lead magnets, I need to know about your book. Please complete your book profile first.

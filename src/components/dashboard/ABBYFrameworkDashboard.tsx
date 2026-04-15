@@ -245,6 +245,15 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
   };
 
   // STATE A: Author has NOT completed Abby's analysis
+  // Only show onboarding if dashboard has fully loaded and no plan exists
+  if (!hasBootstrapped) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   if (!hasPlan) {
     return (
       <div className="max-w-6xl space-y-8">

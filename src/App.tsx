@@ -50,6 +50,7 @@ import AbbyCoachPage from "./pages/AbbyCoachPage";
 import Pricing from "./pages/Pricing";
 import SubscriptionSuccess from "./pages/SubscriptionSuccess";
 import UnsubscribePage from "./pages/UnsubscribePage";
+import ConnectSettings from "./pages/ConnectSettings";
 
 
 const queryClient = new QueryClient();
@@ -137,6 +138,7 @@ const AppRoutes = () => (
       <Route path="/abby-coach" element={<ProtectedRoute><AbbyCoachPage /></ProtectedRoute>} />
       <Route path="/node-builder/:nodeId" element={<ProtectedRoute><NodeBuilder /></ProtectedRoute>} />
       <Route path="/marketing-hub" element={<ProtectedRoute><AuthorDashboard initialSection={"marketing-hub" as any} /></ProtectedRoute>} />
+      <Route path="/connect-settings" element={<ProtectedRoute><ConnectSettings /></ProtectedRoute>} />
       <Route path="/pricing" element={<Pricing />} />
       <Route path="/subscription-success" element={<SubscriptionSuccess />} />
       <Route path="/contact" element={<Contact />} />

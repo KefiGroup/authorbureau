@@ -104,14 +104,13 @@ export default function DashboardSidebar({
   // ── HOME ──
   const homeItems: NavItem[] = [
     { id: "overview", label: "Dashboard", icon: LayoutDashboard },
-    // Only show "Ask ABBY" coaching chat if the author has completed the business plan consultation
-    ...(hasAnalysis ? [{
+    {
       id: "abby-coach" as DashboardSection, label: "Ask ABBY", icon: Sparkles,
       subtitle: "Your AI Business Coach",
       tooltip: "Ask ABBY anything about your author business.",
       color: "text-secondary",
       notificationCount: unreadNudges > 0 ? unreadNudges : undefined,
-    }] : []),
+    },
   ];
 
   // ── GET STARTED ──
@@ -219,8 +218,8 @@ export default function DashboardSidebar({
     {
       id: "connect-settings" as DashboardSection, label: "Connect Settings",
       icon: Settings,
-      subtitle: "Marketing Account",
-      tooltip: "Connect your marketing account to publish opt-in pages and funnels.",
+      subtitle: "Integrations",
+      tooltip: "Manage your connected services and integrations.",
     },
   ];
 

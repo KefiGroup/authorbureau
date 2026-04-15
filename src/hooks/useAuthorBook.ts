@@ -43,17 +43,12 @@ export function useAuthorBook(): AuthorBookResult {
         console.log("[useAuthorBook] auth user ready:", authUserId);
 
         // Query books directly with auth.users.id
-        let booksQuery = supabase
+        const booksQuery = supabase
           .from("books")
           .select("title, author_name, genre")
+          .eq("author_id", authUserId)
           .order("created_at", { ascending: false })
           .limit(1);
-
-        if (userEmail) {
-          booksQuery = booksQuery.or(`author_id.eq.${authUserId},owner_email.eq.${userEmail}`);
-        } else {
-          booksQuery = booksQuery.eq("author_id", authUserId);
-        }
 
         const { data: bookData, error: bookError } = await booksQuery.maybeSingle();
 
