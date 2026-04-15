@@ -297,7 +297,7 @@ IMPORTANT RULES:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "openai/gpt-5",
+        model: "openai/gpt-5.2",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
@@ -341,7 +341,7 @@ IMPORTANT RULES:
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              model: "openai/gpt-5",
+              model: "openai/gpt-5.2",
               messages: [
                 { role: "system", content: "You are a JSON repair tool. Return ONLY valid JSON, no prose." },
                 { role: "user", content: `Fix this into valid JSON:\n${rawContent.slice(0, 12000)}` },
@@ -364,7 +364,7 @@ IMPORTANT RULES:
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "openai/gpt-5",
+            model: "openai/gpt-5.2",
             messages: [
               { role: "system", content: "You are a JSON repair tool. Return ONLY valid JSON, no prose." },
               { role: "user", content: `Fix this into valid JSON:\n${rawContent.slice(0, 12000)}` },
