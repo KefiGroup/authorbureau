@@ -83,42 +83,37 @@ export default function LeadMagnetStepRenderer({ stepId, stepData, setStepData, 
       leadMagnetDesignData: stepData.leadMagnetDesignData || {},
     };
 
-    // Use getActiveToken for reliable cross-session auth
-    const token = await getActiveToken();
-    const res = await fetchWithTimeout(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/deploy-bp02-to-ghl`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token || ""}`,
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        },
-        body: JSON.stringify({ author_id: authorProfile.id, content_payload: contentPayload }),
-      },
-      30000,
-    );
+    // Native ABBY activation — update author_nodes directly
+    const { data: existingNode } = await supabase
+      .from("author_nodes")
+      .select("id")
+      .eq("author_id", authorProfile.id)
+      .eq("node_id", "BP-02")
+      .maybeSingle();
 
-    const data = await res.json().catch(() => ({}));
-
-    if (!res.ok || !data.success) {
-      console.error("BP-02 publish error — status:", res.status, "body:", JSON.stringify(data));
-      if (res.status === 401 || res.status === 403) {
-        throw new Error("Your session has expired. Please refresh the page and try again.");
-      }
-      if (res.status >= 500) {
-        throw new Error("Abby is having trouble right now. Please try again in a moment.");
-      }
-      if (data.error?.includes("row-level security") || data.error?.includes("RLS")) {
-        throw new Error("Account setup incomplete. Please contact support.");
-      }
-      throw new Error(data.error || data.message || "Unable to save. Please try again or contact support if this persists.");
+    if (existingNode) {
+      const { error: updateErr } = await supabase.from("author_nodes").update({
+        status: "live",
+        content_json: contentPayload,
+        activated_at: new Date().toISOString(),
+      }).eq("id", existingNode.id);
+      if (updateErr) throw new Error(updateErr.message);
+    } else {
+      const { error: insertErr } = await supabase.from("author_nodes").insert({
+        author_id: authorProfile.id,
+        node_id: "BP-02",
+        node_name: "Lead Magnets",
+        status: "live",
+        content_json: contentPayload,
+        activated_at: new Date().toISOString(),
+      });
+      if (insertErr) throw new Error(insertErr.message);
     }
 
     return {
-      status: data.status || "live",
-      liveUrl: data.live_url,
-      message: data.message,
+      status: "live",
+      liveUrl: undefined,
+      message: "Your lead magnet is live! ABBY will use it to attract leads automatically.",
     };
   };
 
