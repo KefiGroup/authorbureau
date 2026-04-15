@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, ShoppingBag, LayoutList, DollarSign, FileText, TrendingUp } from "lucide-react";
+import { categoryStyles } from "../shared/BuilderTheme";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 import { publishNodeToSite } from "@/lib/publish-node";
 
