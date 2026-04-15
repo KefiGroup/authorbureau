@@ -415,6 +415,8 @@ export default function BP02Builder({ authorId }: Props) {
             error={error}
             isPublishing={isPublishing}
             isSavingDraft={isSavingDraft}
+            publishChannels={publishChannels}
+            setPublishChannels={setPublishChannels}
           />
         )}
 
@@ -428,7 +430,7 @@ export default function BP02Builder({ authorId }: Props) {
         )}
 
         {step === 3 && content?.activated && (
-          <PublishSuccessStep authorName={authorName} authorId={authorId!} liveUrl={liveUrl} copied={copied} onCopy={handleCopyUrl} />
+          <PublishSuccessStep authorName={authorName} authorId={authorId!} liveUrl={liveUrl} copied={copied} onCopy={handleCopyUrl} publishChannels={publishChannels} />
         )}
       </div>
     </div>
