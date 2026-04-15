@@ -1420,39 +1420,74 @@ function PublishSuccessStep({ authorName, authorId, liveUrl, copied, onCopy, pub
         </div>
       </Card>
 
-      {/* Next steps — only show relevant ones */}
-      <div className={`grid gap-3 ${publishChannels.emailNurture && anySocial ? 'sm:grid-cols-3' : publishChannels.emailNurture || anySocial ? 'sm:grid-cols-2' : 'sm:grid-cols-1'}`}>
-        <Card
-          className="p-4 border-teal-300 dark:border-teal-700 bg-teal-50/50 dark:bg-teal-950/30 cursor-pointer hover:ring-1 hover:ring-teal-400/40 transition-all"
-          onClick={() => navigate("/dashboard?section=crm")}
-        >
-          <Users className="h-6 w-6 text-teal-600 dark:text-teal-400 mb-2" />
-          <p className="text-sm font-semibold text-teal-800 dark:text-teal-200">View Your Leads</p>
-          <p className="text-xs text-teal-600 dark:text-teal-400 mt-1">
-            {subscriberCount !== null ? `${subscriberCount} subscriber${subscriberCount !== 1 ? "s" : ""}` : "Loading..."}
-          </p>
-        </Card>
-        {publishChannels.emailNurture && (
-          <Card
-            className="p-4 border-indigo-300 dark:border-indigo-700 bg-indigo-50/50 dark:bg-indigo-950/30 cursor-pointer hover:ring-1 hover:ring-indigo-400/40 transition-all"
-            onClick={() => navigate("/dashboard?section=brand-products&node=BP-04")}
-          >
-            <Mail className="h-6 w-6 text-indigo-600 dark:text-indigo-400 mb-2" />
-            <p className="text-sm font-semibold text-indigo-800 dark:text-indigo-200">Email Nurture</p>
-            <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">Activate your nurture sequence</p>
-          </Card>
-        )}
-        {anySocial && (
-          <Card
-            className="p-4 border-purple-300 dark:border-purple-700 bg-purple-50/50 dark:bg-purple-950/30 cursor-pointer hover:ring-1 hover:ring-purple-400/40 transition-all"
-            onClick={() => navigate("/dashboard?section=brand-products&node=BP-03")}
-          >
-            <Share2 className="h-6 w-6 text-purple-600 dark:text-purple-400 mb-2" />
-            <p className="text-sm font-semibold text-purple-800 dark:text-purple-200">Social Media</p>
-            <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">{activatedPlatforms.join(", ")}</p>
-          </Card>
-        )}
-      </div>
+      {/* Sequential Flow — Next Steps */}
+      <Card className="p-5 border-border">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Your Launch Flow</span>
+          <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-900/40 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-300">Step 1 of {1 + (publishChannels.emailNurture ? 1 : 0) + (anySocial ? 1 : 0)} complete</span>
+        </div>
+        <div className="space-y-3">
+          {/* Step 1 — Lead Magnet (done) */}
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800">
+            <div className="w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
+              <Check className="h-4 w-4 text-white" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-200">Lead Magnet</p>
+              <p className="text-xs text-emerald-600 dark:text-emerald-400">Opt-in page is live and capturing leads</p>
+            </div>
+          </div>
+
+          {/* Step 2 — Email Nurture */}
+          {publishChannels.emailNurture && (
+            <div
+              className="flex items-center gap-3 p-3 rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-950/20 cursor-pointer hover:ring-1 hover:ring-indigo-400/40 transition-all"
+              onClick={() => navigate("/node-builder/BP-01")}
+            >
+              <div className="w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center shrink-0">
+                <ArrowRight className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-indigo-800 dark:text-indigo-200">Email Nurture</p>
+                <p className="text-xs text-indigo-600 dark:text-indigo-400">Content pushed — review and activate your nurture sequence</p>
+              </div>
+              <ArrowRight className="h-4 w-4 text-indigo-400 shrink-0" />
+            </div>
+          )}
+
+          {/* Step 3 — Social Media */}
+          {anySocial && (
+            <div
+              className="flex items-center gap-3 p-3 rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-950/20 cursor-pointer hover:ring-1 hover:ring-purple-400/40 transition-all"
+              onClick={() => navigate("/node-builder/BP-03")}
+            >
+              <div className="w-7 h-7 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center shrink-0">
+                <ArrowRight className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-purple-800 dark:text-purple-200">Social Media</p>
+                <p className="text-xs text-purple-600 dark:text-purple-400">{activatedPlatforms.join(", ")} posts ready to activate</p>
+              </div>
+              <ArrowRight className="h-4 w-4 text-purple-400 shrink-0" />
+            </div>
+          )}
+        </div>
+      </Card>
+
+      {/* Primary CTA — Continue to next step */}
+      {publishChannels.emailNurture ? (
+        <Button className="w-full" size="lg" onClick={() => navigate("/node-builder/BP-01")}>
+          Continue to Email Nurture <ArrowRight className="h-4 w-4 ml-2" />
+        </Button>
+      ) : anySocial ? (
+        <Button className="w-full" size="lg" onClick={() => navigate("/node-builder/BP-03")}>
+          Continue to Social Media <ArrowRight className="h-4 w-4 ml-2" />
+        </Button>
+      ) : (
+        <Button className="w-full" size="lg" onClick={() => navigate("/dashboard?section=marketing-hub&highlight=lead-magnets")}>
+          Activate My Marketing Campaign <ArrowRight className="h-4 w-4 ml-2" />
+        </Button>
+      )}
 
       <Card className="p-4 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30">
         <div className="flex gap-3">
@@ -1462,7 +1497,7 @@ function PublishSuccessStep({ authorName, authorId, liveUrl, copied, onCopy, pub
           <div className="flex-1">
             <p className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-1">Abby says</p>
             <p className="text-sm text-amber-700 dark:text-amber-300">
-              Your lead magnet is live!{publishChannels.emailNurture ? " Your nurture emails have been pushed to Email Marketing." : ""}{anySocial ? ` Social posts for ${activatedPlatforms.join(", ")} are ready in Social Media.` : ""} Activate them to start driving traffic!
+              Your lead magnet is live!{publishChannels.emailNurture ? " Your nurture emails have been pushed to Email Marketing — head there next to review and activate them." : ""}{anySocial ? ` Social posts for ${activatedPlatforms.join(", ")} are ready in Social Media.` : ""} Follow the steps above to complete your launch flow.
             </p>
           </div>
         </div>
@@ -1471,12 +1506,6 @@ function PublishSuccessStep({ authorName, authorId, liveUrl, copied, onCopy, pub
       {anySocial && (
         <SocialDistributionPack authorId={authorId} content={socialPack} onContentLoaded={setSocialPack} />
       )}
-
-      <div className="flex flex-col sm:flex-row gap-3">
-        <Button className="flex-1" size="lg" onClick={() => navigate("/dashboard?section=marketing-hub&highlight=lead-magnets")}>
-          Activate My Marketing Campaign <ArrowRight className="h-4 w-4 ml-2" />
-        </Button>
-      </div>
 
       <div className="text-center">
         <Button variant="link" className="text-sm text-muted-foreground" onClick={() => navigate("/brand-products")}>Go back to Brand Products</Button>
