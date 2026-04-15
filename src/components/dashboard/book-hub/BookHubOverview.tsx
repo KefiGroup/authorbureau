@@ -76,17 +76,17 @@ interface Recommendation {
   sequence: number; // lower = do first
 }
 
-// Maps nodeId to the table/nodeId used in builder-draft-state
-const NODE_TO_DRAFT_KEY: Record<string, string[]> = {
-  "website": ["website", "microsite"],
-  "lead-magnets": ["lead-magnets", "lead_magnet"],
-  "email-marketing": ["email-marketing", "email_flows"],
-  "social-media": ["social-media", "social_media_content"],
-  "workbooks": ["workbooks", "workbook"],
-  "home-study": ["home-study", "home_study_courses"],
-  "courses": ["courses", "online-course"],
-  "audiobooks": ["audiobooks", "audiobook"],
-  "coaching-1on1": ["coaching-1on1", "coaching_packages"],
+// Maps recommendation nodeId to actual author_nodes.node_id
+const REC_TO_AUTHOR_NODE: Record<string, string> = {
+  "website": "BP-04",
+  "lead-magnets": "BP-02",
+  "email-marketing": "BP-01",
+  "social-media": "BP-03",
+  "workbooks": "BP-06",
+  "home-study": "BP-07",
+  "courses": "BA-10",
+  "audiobooks": "BP-09",
+  "coaching-1on1": "YR-19",
 };
 
 type ProductStatus = "not-started" | "in-progress" | "completed";
