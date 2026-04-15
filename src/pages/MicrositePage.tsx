@@ -226,7 +226,8 @@ interface FormPageProps extends PageProps {
 
 /* ═══ BP-02 — LEAD MAGNET ═══ */
 function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, submitting, submitted }: FormPageProps) {
-  const [stage, setStage] = useState<"gate" | "quiz" | "results">("gate");
+  // New flow: landing → quiz → gate (collect email to see results) → results
+  const [stage, setStage] = useState<"landing" | "quiz" | "gate" | "results">("landing");
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
 
@@ -240,23 +241,20 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
   const bestHeadline = optin.headline || headlineVariants?.[0]?.headline || parsedContent?.headline || content.headline || "";
   const subheadline = optin.subheadline || parsedContent?.subheadline || content.subheadline || "";
   const bullets = optin.bullet_points || parsedContent?.bullets || content.bullets || [];
-  const ctaText = optin.cta_button_text || parsedContent?.cta_text || content.cta_text || "Take the Free Quiz →";
+  const ctaText = optin.cta_button_text || parsedContent?.cta_text || content.cta_text || "Start the Quiz →";
   const quizTitle = quiz.quiz_title || parsedContent?.funnel_name || "";
   const quizDesc = quiz.quiz_description || "";
   const questions: any[] = quiz.questions || [];
   const scoringTiers: any[] = quiz.scoring_tiers || [];
   const questionCount = questions.length || 8;
-  const privacyNote = optin.privacy_note || "No spam. Unsubscribe anytime.";
+  const privacyNote = optin.privacy_note || "Your privacy is important to us. Your information will never be shared.";
   const accentColor = optin.color_palette?.primary || v.accent;
   const isQuiz = (config.type || "").toLowerCase().includes("quiz") || questions.length > 0;
 
+  // After collecting email on gate, submit then show results
   const handleGateSubmit = async (e: React.FormEvent) => {
     const success = await onSubmit(e);
-    if (!success) return;
-    if (isQuiz && questions.length > 0) {
-      setStage("quiz");
-    } else {
-      // Non-quiz lead magnet — show confirmation
+    if (success) {
       setStage("results");
     }
   };
@@ -267,18 +265,18 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
     if (currentQ + 1 < questions.length) {
       setCurrentQ(currentQ + 1);
     } else {
-      setStage("results");
+      // Quiz complete — go to gate to collect email before showing results
+      setStage("gate");
     }
   };
 
   // Calculate score and tier
   const totalScore = answers.reduce((sum, a) => sum + a, 0);
-  const maxScore = questions.length * 3; // 4 options (0-3)
+  const maxScore = questions.length * 3;
   const scorePercent = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
 
   const getResultTier = () => {
     if (scoringTiers.length === 0) return { name: "Your Result", description: "Thank you for completing the quiz!", tips: [] };
-    // Try matching by range string like "0-8", "9-16", etc.
     for (const tier of scoringTiers) {
       if (tier.range) {
         const match = tier.range.match(/(\d+)\s*[-–]\s*(\d+)/);
@@ -289,14 +287,13 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
         }
       }
     }
-    // Fallback: divide evenly
     const tierIndex = Math.min(Math.floor((totalScore / Math.max(maxScore, 1)) * scoringTiers.length), scoringTiers.length - 1);
     return scoringTiers[tierIndex];
   };
 
   const resultTier = getResultTier();
 
-  // ── STAGE: SUBMITTED (non-quiz thank-you) ──
+  // ── STAGE: RESULTS (after email collected) ──
   if (stage === "results" && questions.length === 0) {
     return (
       <div className="min-h-[80vh] py-12 px-4 flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${accentColor}10 0%, ${bgColor} 100%)` }}>
@@ -374,7 +371,38 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
     );
   }
 
-  // ── STAGE: RESULTS ──
+  // ── STAGE: GATE (after quiz, before results) ──
+  if (stage === "gate") {
+    return (
+      <div className="min-h-[80vh] py-12 px-4 flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${accentColor}10 0%, ${bgColor} 100%)` }}>
+        <div className="max-w-md mx-auto">
+          <Card className="p-8 shadow-xl border-2" style={{ background: v.cardBg, borderColor: `${accentColor}40` }}>
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center text-3xl" style={{ background: `${accentColor}15` }}>
+                🎉
+              </div>
+              <h2 className="text-2xl font-bold mb-2" style={{ color: v.headingText, fontFamily: hFont }}>
+                Quiz Complete!
+              </h2>
+              <p className="text-base" style={{ color: v.mutedText }}>
+                Enter your name and email to unlock your personalised results and recommendations.
+              </p>
+            </div>
+            <form onSubmit={handleGateSubmit} className="space-y-3">
+              <Input placeholder="Your first name" value={firstName} onChange={e => setFirstName(e.target.value)} required className="h-12 text-base" />
+              <Input type="email" placeholder="Your best email" value={email} onChange={e => setEmail(e.target.value)} required className="h-12 text-base" />
+              <Button type="submit" className="w-full rounded-full h-12 text-base font-bold shadow-lg hover:shadow-xl transition-all" style={{ background: accentColor, color: "#fff" }} disabled={submitting}>
+                {submitting ? "Unlocking..." : "Show Me My Results!"}
+              </Button>
+            </form>
+            <p className="text-[11px] mt-4 text-center" style={{ color: v.mutedText }}>{privacyNote}</p>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // ── STAGE: RESULTS (quiz completed + email collected) ──
   if (stage === "results") {
     return (
       <div className="min-h-[80vh] py-12 px-4" style={{ background: `linear-gradient(135deg, ${accentColor}10 0%, ${bgColor} 100%)` }}>
@@ -464,7 +492,7 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
     );
   }
 
-  // ── STAGE: GATE (default) ──
+  // ── STAGE: LANDING (default — no email gate, just start quiz) ──
   return (
     <div className="min-h-[80vh]">
       {/* Hero Section */}
@@ -494,7 +522,6 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
               </ul>
             )}
 
-            {/* Social proof line */}
             {isQuiz && scoringTiers.length > 0 && (
               <p className="text-sm font-medium mt-6" style={{ color: v.mutedText }}>
                 📊 {scoringTiers.length} result categories · Personalised tips from the book · Instant results
@@ -502,10 +529,10 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
             )}
           </div>
 
-          {/* Right: Form Card */}
+          {/* Right: Start Quiz Card (no email form) */}
           <div>
             <Card className="p-8 shadow-xl border-2" style={{ background: v.cardBg, borderColor: `${accentColor}40` }}>
-              <div className="text-center mb-6">
+              <div className="text-center">
                 {isQuiz ? (
                   <>
                     <div className="w-14 h-14 rounded-full mx-auto mb-3 flex items-center justify-center text-2xl" style={{ background: `${accentColor}15` }}>
@@ -514,27 +541,35 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
                     <h3 className="text-xl font-bold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>
                       {quizTitle || "Start Your Free Assessment"}
                     </h3>
-                    <p className="text-sm" style={{ color: v.mutedText }}>
+                    <p className="text-sm mb-6" style={{ color: v.mutedText }}>
                       {quizDesc || `Answer ${questionCount} quick questions and discover exactly where you are right now.`}
                     </p>
+                    <Button
+                      onClick={() => setStage("quiz")}
+                      className="w-full rounded-full h-12 text-base font-bold shadow-lg hover:shadow-xl transition-all"
+                      style={{ background: accentColor, color: "#fff" }}
+                    >
+                      {ctaText}
+                    </Button>
+                    <p className="text-[11px] mt-4" style={{ color: v.mutedText }}>No signup required to start · Results after completion</p>
                   </>
                 ) : (
                   <>
                     <h3 className="text-xl font-bold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>
                       Get Your Free Copy
                     </h3>
-                    <p className="text-sm" style={{ color: v.mutedText }}>Enter your details below for instant delivery.</p>
+                    <p className="text-sm mb-4" style={{ color: v.mutedText }}>Enter your details below for instant delivery.</p>
+                    <form onSubmit={handleGateSubmit} className="space-y-3">
+                      <Input placeholder="Your first name" value={firstName} onChange={e => setFirstName(e.target.value)} required className="h-12 text-base" />
+                      <Input type="email" placeholder="Your best email" value={email} onChange={e => setEmail(e.target.value)} required className="h-12 text-base" />
+                      <Button type="submit" className="w-full rounded-full h-12 text-base font-bold shadow-lg hover:shadow-xl transition-all" style={{ background: accentColor, color: "#fff" }} disabled={submitting}>
+                        {submitting ? "Sending..." : ctaText}
+                      </Button>
+                    </form>
+                    <p className="text-[11px] mt-4" style={{ color: v.mutedText }}>{privacyNote}</p>
                   </>
                 )}
               </div>
-              <form onSubmit={handleGateSubmit} className="space-y-3">
-                <Input placeholder="Your first name" value={firstName} onChange={e => setFirstName(e.target.value)} required className="h-12 text-base" />
-                <Input type="email" placeholder="Your best email" value={email} onChange={e => setEmail(e.target.value)} required className="h-12 text-base" />
-                <Button type="submit" className="w-full rounded-full h-12 text-base font-bold shadow-lg hover:shadow-xl transition-all" style={{ background: accentColor, color: "#fff" }} disabled={submitting}>
-                  {submitting ? "Sending..." : ctaText}
-                </Button>
-              </form>
-              <p className="text-[11px] mt-4 text-center" style={{ color: v.mutedText }}>{privacyNote}</p>
             </Card>
           </div>
         </div>
