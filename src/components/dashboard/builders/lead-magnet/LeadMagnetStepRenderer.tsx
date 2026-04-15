@@ -5,7 +5,6 @@ import SharedPublishStep from "../shared/SharedPublishStep";
 import OptInPageBuilder from "./OptInPageBuilder";
 import { Magnet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { supabase } from "@/integrations/supabase/client";
 
 const SETUP_FIELDS: SetupField[] = [
   { key: "type", label: "Lead Magnet Type", type: "pills", cols: 3, options: [
