@@ -1,5 +1,5 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { useAuthReady } from "@/hooks/useAuthReady";
+import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft } from "lucide-react";
@@ -47,28 +47,43 @@ function getHubLabel(nodeId: string): string {
 
 export default function NodeBuilder() {
   const { nodeId } = useParams<{ nodeId: string }>();
-  const { user, isReady } = useAuthReady();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [authorId, setAuthorId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isReady || !user) {
-      if (isReady && !user) setLoading(false);
+    if (authLoading) return;
+
+    if (!user) {
+      setAuthorId(null);
+      setLoading(false);
       return;
     }
+
+    let cancelled = false;
+    setLoading(true);
+
     supabase
       .from("author_profiles")
       .select("id")
       .eq("user_id", user.id)
       .maybeSingle()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.error("[NodeBuilder] Failed to load author profile:", error.message);
+        }
         setAuthorId(data?.id || null);
         setLoading(false);
       });
-  }, [user, isReady]);
 
-  if (!isReady || !user || loading) {
+    return () => {
+      cancelled = true;
+    };
+  }, [user, authLoading]);
+
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-background">
         <div className="max-w-4xl mx-auto px-4 py-8">
@@ -79,6 +94,8 @@ export default function NodeBuilder() {
       </div>
     );
   }
+
+  if (!user) return null;
 
   const builders: Record<string, React.ComponentType<{ authorId: string | null }>> = {
     "BP-01": BP01Builder, "BP-02": BP02Builder, "BP-03": BP03Builder,
