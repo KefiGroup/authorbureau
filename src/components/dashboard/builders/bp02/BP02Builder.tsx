@@ -142,7 +142,8 @@ export default function BP02Builder({ authorId }: Props) {
             const saved = (node.content_json as any)?.publishChannels;
             if (saved) setPublishChannels(saved);
           } else {
-            setStep(2);
+            const savedStep = (node.content_json as any)?._currentStep;
+            setStep(savedStep === 3 ? 3 : 2);
           }
         }
       } catch (err) {
@@ -222,7 +223,7 @@ export default function BP02Builder({ authorId }: Props) {
 
       if (existingNode) {
         await supabase.from("author_nodes").update({
-          content_json: content,
+          content_json: { ...content, _currentStep: step },
           status: "content_ready",
         }).eq("id", existingNode.id);
       } else {
@@ -452,7 +453,23 @@ export default function BP02Builder({ authorId }: Props) {
             setContent={setContent}
             authorName={authorName}
             authorId={authorId!}
-            onNext={() => setStep(3)}
+            onNext={async () => {
+              setStep(3);
+              // Persist step 3 so refresh restores to Publish
+              if (authorId && content) {
+                const { data: n } = await supabase
+                  .from("author_nodes")
+                  .select("id")
+                  .eq("author_id", authorId)
+                  .eq("node_id", "BP-02")
+                  .maybeSingle();
+                if (n) {
+                  await supabase.from("author_nodes").update({
+                    content_json: { ...content, _currentStep: 3 },
+                  }).eq("id", n.id);
+                }
+              }
+            }}
             onSaveDraft={handleSaveDraft}
             error={error}
             isSavingDraft={isSavingDraft}
