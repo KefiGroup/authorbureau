@@ -1,19 +1,15 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState, useEffect, useCallback, useRef, forwardRef } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { useAuth } from "@/hooks/useAuth";
-import { getActiveToken } from "@/lib/get-active-token";
 import {
-  Loader2, Megaphone, CheckCircle2, AlertCircle, Clock, Zap,
-  RefreshCw, ArrowRight, Sparkles,
+  Loader2, Megaphone, CheckCircle2, Clock, Zap,
+  ArrowRight, Sparkles, PauseCircle, FileText, Hammer,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { NODE_NAMES } from "@/lib/node-slug-map";
 
 /* ─── Campaign / Node mapping ─── */
 
@@ -22,141 +18,85 @@ interface CampaignConfig {
   label: string;
   description: string;
   phase: "A" | "B";
-  /** Node IDs that must be 'live' for this campaign to be "Ready to Activate" */
   nodeIds: string[];
-  /** Edge functions to call when activating */
-  deployFunctions: string[];
   successMessage: string;
-  checklist: string[];
-  /** Step-by-step instructions for users who haven't published yet */
-  howToStart: { step: string; link?: string; linkLabel?: string }[];
 }
 
 const CAMPAIGNS: CampaignConfig[] = [
   {
     id: "email-marketing", label: "Email Marketing", phase: "A",
-    description: "Welcome (7) + Nurture (14) + Launch (5) sequences + Automation",
+    description: "Welcome + Nurture + Launch sequences & automation",
     nodeIds: ["BP-01"],
-    deployFunctions: [],
     successMessage: "Your email marketing is running. New contacts will automatically receive your welcome sequence.",
-    checklist: ["Welcome sequence active", "Nurture sequence queued", "Automation running"],
-    howToStart: [
-      { step: "Go to Brand Products and open Email Marketing", link: "/node-builder/BP-01", linkLabel: "Build Email Marketing →" },
-      { step: "Let Abby generate your welcome, nurture, and launch sequences" },
-      { step: "Review the emails and click 'Publish to My Site'" },
-      { step: "Come back here and click 'Activate Now' to start sending" },
-    ],
   },
   {
     id: "lead-magnets", label: "Lead Magnets", phase: "A",
-    description: "Opt-in form + 3-email delivery + Lead automation",
+    description: "Opt-in form + delivery emails + lead automation",
     nodeIds: ["BP-02"],
-    deployFunctions: [],
     successMessage: "Your lead magnet is live! Every new subscriber will automatically receive your free gift.",
-    checklist: ["Opt-in page live", "Thank-you page active", "Lead capture running"],
-    howToStart: [
-      { step: "Go to Brand Products and open Lead Magnets", link: "/node-builder/BP-02", linkLabel: "Build Lead Magnets →" },
-      { step: "Abby will design 3 irresistible free resources from your book" },
-      { step: "Review your opt-in page and click 'Publish to My Site'" },
-      { step: "Come back here and click 'Activate Now' to start capturing subscribers" },
-    ],
   },
   {
     id: "social-media", label: "Social Media", phase: "A",
-    description: "90-day content calendar delivered as daily reminders",
+    description: "90-day content calendar with daily reminders",
     nodeIds: ["BP-03"],
-    deployFunctions: [],
-    successMessage: "Your social media campaigns are live! ABBY is running your content automatically across all platforms.",
-    checklist: ["Content calendar active", "Posts scheduled", "Campaigns running automatically"],
-    howToStart: [
-      { step: "Go to Brand Products and open Social Media", link: "/node-builder/BP-03", linkLabel: "Build Social Media →" },
-      { step: "Abby will create a 90-day content calendar from your book" },
-      { step: "Review your posts and click 'Publish'" },
-      { step: "Come back here and click 'Activate Now' to schedule your posts" },
-    ],
+    successMessage: "Your social media campaigns are live! ABBY is running your content automatically.",
   },
   {
     id: "website-microsite", label: "Website / Microsite", phase: "A",
-    description: "Lead capture form + Author funnel pipeline",
+    description: "Lead capture form + author funnel pipeline",
     nodeIds: ["BP-04"],
-    deployFunctions: ["deploy-bp04-to-ghl"],
     successMessage: "Your author website is now live and your lead capture funnel is running.",
-    checklist: ["Website pages created", "Lead capture form active", "Author funnel pipeline live"],
-    howToStart: [
-      { step: "Go to Brand Products and open Website", link: "/node-builder/BP-04", linkLabel: "Build My Website →" },
-      { step: "Abby will design your author website with Home, About, Book, and Contact pages" },
-      { step: "Review your site and click 'Publish to My Site'" },
-      { step: "Come back here and click 'Activate Now' to enable lead capture" },
-    ],
   },
   {
     id: "webinars", label: "Webinars", phase: "A",
-    description: "Registration form + Reminder + Follow-up campaigns + Funnel pipeline",
+    description: "Registration + reminders + follow-up campaigns",
     nodeIds: ["BP-05"],
-    deployFunctions: ["deploy-bp05-to-ghl"],
-    successMessage: "Your webinar system is live. Registration is open and follow-up emails will fire automatically.",
-    checklist: ["Registration page live", "Reminder emails scheduled", "Follow-up sequence active"],
-    howToStart: [
-      { step: "Go to Brand Products and open Webinars", link: "/node-builder/BP-05", linkLabel: "Build My Webinar →" },
-      { step: "Abby will create your webinar topic, registration page, and follow-up emails" },
-      { step: "Review everything and click 'Publish to My Site'" },
-      { step: "Come back here and click 'Activate Now' to open registration" },
-    ],
+    successMessage: "Your webinar system is live. Registration is open and follow-ups will fire automatically.",
   },
   {
     id: "digital-products", label: "Digital Products", phase: "B",
-    description: "Stripe payment links + purchase automations for all published products",
+    description: "Payment links + purchase automations for all published products",
     nodeIds: ["BP-06", "BP-07", "BP-08", "BP-09"],
-    deployFunctions: ["deploy-bp06-to-ghl", "deploy-bp07-to-ghl", "deploy-bp08-to-ghl", "deploy-bp09-to-ghl"],
-    successMessage: "Your digital products are now for sale. Payment links are live and purchase automations are running.",
-    checklist: ["Payment links created", "Product pipeline active", "Post-purchase automation running"],
-    howToStart: [
-      { step: "Build at least one digital product: Workbook, Home Study, Special Edition, or Book Sales", link: "/brand-products", linkLabel: "Go to Brand Products →" },
-      { step: "Let Abby generate the product content from your book" },
-      { step: "Review and click 'Publish to My Site' for each product" },
-      { step: "Come back here and click 'Activate Now' to create payment links" },
-    ],
+    successMessage: "Your digital products are now for sale. Payment links are live.",
   },
   {
     id: "build-authority", label: "Build Authority", phase: "B",
     description: "Campaigns for courses, memberships, podcasts, and affiliates",
     nodeIds: ["BA-10", "BA-11", "BA-12", "BA-13", "BA-14", "BA-15", "BA-16", "BA-17", "BA-18"],
-    deployFunctions: [],
-    successMessage: "Your authority-building campaigns are active and promoting your advanced products.",
-    checklist: ["Campaign funnels live", "Audience targeting active", "Follow-up sequences running"],
-    howToStart: [
-      { step: "Go to Build Authority and create at least one product (Course, Audiobook, Membership, etc.)", link: "/build-authority", linkLabel: "Go to Build Authority →" },
-      { step: "Let Abby generate the content from your book and expertise" },
-      { step: "Review and click 'Publish to My Site'" },
-      { step: "Come back here and click 'Activate Now' to start promoting" },
-    ],
+    successMessage: "Your authority-building campaigns are active.",
   },
   {
     id: "yield-revenue", label: "Yield Revenue", phase: "B",
     description: "High-ticket offer campaigns and premium pipeline",
     nodeIds: ["YR-19", "YR-20", "YR-21", "YR-22", "YR-23", "YR-24", "YR-25", "YR-26", "YR-27", "YR-28"],
-    deployFunctions: [],
-    successMessage: "Your premium offer campaigns are live and your high-ticket pipeline is running.",
-    checklist: ["Premium funnels active", "High-ticket pipeline live", "Follow-up automation running"],
-    howToStart: [
-      { step: "Go to Yield Revenue and create at least one premium offer (Coaching, Speaking, Mastermind, etc.)", link: "/yield-revenue", linkLabel: "Go to Yield Revenue →" },
-      { step: "Let Abby design your high-ticket packages and pricing" },
-      { step: "Review and click 'Publish to My Site'" },
-      { step: "Come back here and click 'Activate Now' to launch your premium pipeline" },
-    ],
+    successMessage: "Your premium offer campaigns are live.",
   },
 ];
 
-/* ─── Status config ─── */
+/* ─── Status types ─── */
 
-type CampaignStatus = "active" | "ready" | "pending" | "activating" | "failed";
+type NodeStatus = "not_built" | "draft" | "ready" | "active";
 
-const statusConfig: Record<CampaignStatus, { label: string; className: string; icon: typeof CheckCircle2 }> = {
-  active:     { label: "Active ✓",           className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", icon: CheckCircle2 },
-  ready:      { label: "Ready to Activate",  className: "bg-amber-500/10 text-amber-600 border-amber-500/20 animate-pulse", icon: Zap },
-  pending:    { label: "Not Started",        className: "bg-muted text-muted-foreground border-border", icon: Clock },
-  activating: { label: "Activating…",        className: "bg-amber-500/10 text-amber-600 border-amber-500/20", icon: Loader2 },
-  failed:     { label: "Needs Attention",    className: "bg-red-500/10 text-red-600 border-red-500/20", icon: AlertCircle },
+function deriveNodeStatus(row: NodeRow | undefined): NodeStatus {
+  if (!row || row.status === "locked") return "not_built";
+  if (row.status === "draft") return "draft";
+  if (row.status === "live" && row.marketing_activated_at) return "active";
+  if (row.status === "live") return "ready";
+  return "not_built";
+}
+
+const statusBadgeConfig: Record<NodeStatus, { label: string; className: string }> = {
+  not_built: { label: "Not Built", className: "bg-muted text-muted-foreground border-border" },
+  draft:     { label: "Draft",     className: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
+  ready:     { label: "Ready to Activate", className: "bg-yellow-500/10 text-yellow-700 border-yellow-500/20" },
+  active:    { label: "Active",    className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
+};
+
+const statusIcon: Record<NodeStatus, typeof CheckCircle2> = {
+  not_built: Clock,
+  draft: FileText,
+  ready: Zap,
+  active: CheckCircle2,
 };
 
 /* ─── Node data from DB ─── */
@@ -165,10 +105,32 @@ interface NodeRow {
   node_id: string;
   status: string;
   marketing_activated_at: string | null;
+  content_json: any;
 }
 
 interface Props {
   onNavigate?: (section: string) => void;
+}
+
+/** Extract a short text preview from content_json */
+function getContentPreview(contentJson: any): string {
+  if (!contentJson) return "";
+  try {
+    const obj = typeof contentJson === "string" ? JSON.parse(contentJson) : contentJson;
+    // Try common fields
+    for (const key of ["description", "summary", "title", "headline", "intro", "content"]) {
+      if (typeof obj[key] === "string" && obj[key].length > 0) {
+        return obj[key].slice(0, 100) + (obj[key].length > 100 ? "…" : "");
+      }
+    }
+    // Try first string value
+    for (const val of Object.values(obj)) {
+      if (typeof val === "string" && val.length > 10) {
+        return (val as string).slice(0, 100) + ((val as string).length > 100 ? "…" : "");
+      }
+    }
+  } catch { /* ignore */ }
+  return "";
 }
 
 export default function MarketingHub({ onNavigate }: Props) {
@@ -181,7 +143,7 @@ export default function MarketingHub({ onNavigate }: Props) {
   const [loading, setLoading] = useState(true);
   const [activatingCampaign, setActivatingCampaign] = useState<string | null>(null);
   const [authorProfileId, setAuthorProfileId] = useState<string | null>(null);
-  const [activatedCampaigns, setActivatedCampaigns] = useState<Set<string>>(new Set());
+  const [leadCounts, setLeadCounts] = useState<Record<string, number>>({});
 
   const highlightRef = useRef<HTMLDivElement | null>(null);
 
@@ -210,9 +172,22 @@ export default function MarketingHub({ onNavigate }: Props) {
       if (profileId) {
         const { data } = await supabase
           .from("author_nodes")
-          .select("node_id, status, marketing_activated_at")
+          .select("node_id, status, marketing_activated_at, content_json")
           .eq("author_id", profileId);
         setNodeRows((data as NodeRow[]) || []);
+
+        // Fetch lead counts
+        const { data: leads } = await supabase
+          .from("leads")
+          .select("source")
+          .eq("author_id", profileId);
+        if (leads) {
+          const counts: Record<string, number> = {};
+          leads.forEach(() => {
+            counts["all"] = (counts["all"] || 0) + 1;
+          });
+          setLeadCounts(counts);
+        }
       }
     } catch (err) {
       console.error("Failed to fetch nodes:", err);
@@ -232,31 +207,14 @@ export default function MarketingHub({ onNavigate }: Props) {
     }
   }, [highlightId, loading]);
 
-  /* ─── Derive campaign status ─── */
-  const getCampaignStatus = (campaign: CampaignConfig): CampaignStatus => {
-    if (activatingCampaign === campaign.id) return "activating";
-    if (activatedCampaigns.has(campaign.id)) return "active";
-
-    // Check if any node for this campaign has marketing_activated_at set
-    const hasActivated = campaign.nodeIds.some(nid => {
-      const row = nodeRows.find(r => r.node_id === nid);
-      return row?.marketing_activated_at;
-    });
-    if (hasActivated) return "active";
-
-    // Check if any node is live (published) but not yet marketing-activated
-    const hasLive = campaign.nodeIds.some(nid => {
-      const row = nodeRows.find(r => r.node_id === nid);
-      return row?.status === "live" && !row?.marketing_activated_at;
-    });
-    if (hasLive) return "ready";
-
-    return "pending";
-  };
-
-  /* ─── ABBY handles marketing natively — no external provisioning needed ─── */
-  const ensureMarketingReady = async (): Promise<boolean> => {
-    return true; // ABBY manages everything natively
+  /* ─── Derive campaign status (worst-state for grouped) ─── */
+  const getCampaignStatus = (campaign: CampaignConfig): NodeStatus => {
+    if (activatingCampaign === campaign.id) return "ready"; // show as ready while activating
+    const statuses = campaign.nodeIds.map(nid => deriveNodeStatus(nodeRows.find(r => r.node_id === nid)));
+    if (statuses.every(s => s === "active")) return "active";
+    if (statuses.some(s => s === "active" || s === "ready")) return "ready";
+    if (statuses.some(s => s === "draft")) return "draft";
+    return "not_built";
   };
 
   /* ─── Activate campaign ─── */
@@ -268,47 +226,28 @@ export default function MarketingHub({ onNavigate }: Props) {
 
     setActivatingCampaign(campaign.id);
     try {
-      // ABBY handles marketing natively
-      const ready = await ensureMarketingReady();
-      if (!ready) {
-        setActivatingCampaign(null);
-        return;
-      }
-
-      // Determine which deploy functions to call (only for nodes that are live)
       const liveNodeIds = campaign.nodeIds.filter(nid => {
         const row = nodeRows.find(r => r.node_id === nid);
-        return row?.status === "live";
+        return row?.status === "live" && !row?.marketing_activated_at;
       });
 
       if (liveNodeIds.length === 0) {
-        toast({ title: "No published content", description: "Please publish your content first in the node builder.", variant: "destructive" });
+        toast({ title: "No content ready", description: "Publish your content in Brand Products first.", variant: "destructive" });
         setActivatingCampaign(null);
         return;
       }
 
-      // Mark marketing_activated_at for all live nodes — ABBY handles natively
-      const activationResults = await Promise.allSettled(
-        liveNodeIds.map(async (nid) => {
-          await supabase
+      await Promise.all(
+        liveNodeIds.map(nid =>
+          supabase
             .from("author_nodes")
             .update({ marketing_activated_at: new Date().toISOString() })
             .eq("author_id", authorProfileId)
-            .eq("node_id", nid);
-        })
+            .eq("node_id", nid)
+        )
       );
 
-      const failures = activationResults.filter(r => r.status === "rejected");
-      if (failures.length > 0) {
-        const firstErr = (failures[0] as PromiseRejectedResult).reason?.message || "Activation failed";
-        toast({ title: "Some campaigns failed", description: firstErr, variant: "destructive" });
-      }
-
-      setActivatedCampaigns(prev => new Set([...prev, campaign.id]));
-      toast({
-        title: "🎉 Campaign activated!",
-        description: campaign.successMessage,
-      });
+      toast({ title: "🎉 Campaign activated!", description: campaign.successMessage });
       await fetchNodes();
     } catch (err: any) {
       toast({ title: "Activation failed", description: err.message, variant: "destructive" });
@@ -317,20 +256,48 @@ export default function MarketingHub({ onNavigate }: Props) {
     }
   };
 
+  /* ─── Pause campaign ─── */
+  const handlePause = async (campaign: CampaignConfig) => {
+    if (!authorProfileId) return;
+    try {
+      await Promise.all(
+        campaign.nodeIds.map(nid =>
+          supabase
+            .from("author_nodes")
+            .update({ marketing_activated_at: null })
+            .eq("author_id", authorProfileId)
+            .eq("node_id", nid)
+        )
+      );
+      toast({ title: "Campaign paused", description: `${campaign.label} has been paused.` });
+      await fetchNodes();
+    } catch (err: any) {
+      toast({ title: "Failed to pause", description: err.message, variant: "destructive" });
+    }
+  };
+
   /* ─── Counts ─── */
   const activeCount = CAMPAIGNS.filter(c => getCampaignStatus(c) === "active").length;
+  const totalLeads = leadCounts["all"] || 0;
 
-  /* ─── Abby recommendation logic ─── */
+  /* ─── Abby recommendation ─── */
   const getAbbyRecommendation = () => {
-    const emailStatus = getCampaignStatus(CAMPAIGNS[0]);
-    if (emailStatus !== "active") {
-      return "I recommend starting with Email Marketing — it's the foundation that connects all your other campaigns. Once your welcome sequence is active, every new contact will automatically receive it.";
+    const allNotBuilt = CAMPAIGNS.slice(0, 5).every(c => getCampaignStatus(c) === "not_built");
+    if (allNotBuilt) {
+      return "Head to Brand Products to start building your marketing assets with ABBY. Once they're published, come back here to activate your campaigns.";
     }
     const readyCampaign = CAMPAIGNS.find(c => getCampaignStatus(c) === "ready");
     if (readyCampaign) {
-      return `Your ${readyCampaign.label} is published and ready to go! Activate it now to start promoting automatically.`;
+      return `Your ${readyCampaign.label} content is ready! Activate it now to start promoting automatically.`;
     }
-    return `You have ${CAMPAIGNS.length - activeCount} campaigns left. Keep building and publishing to unlock more.`;
+    const draftCampaign = CAMPAIGNS.find(c => getCampaignStatus(c) === "draft");
+    if (draftCampaign) {
+      return `Your ${draftCampaign.label} content is in draft. Review and approve it in the node builder, then come back to activate.`;
+    }
+    if (activeCount === CAMPAIGNS.length) {
+      return "All campaigns are active! ABBY is managing everything for you. 🎉";
+    }
+    return `You have ${activeCount} active campaigns. Keep building in Brand Products to unlock more.`;
   };
 
   if (loading) {
@@ -347,7 +314,7 @@ export default function MarketingHub({ onNavigate }: Props) {
       <div>
         <h1 className="text-2xl font-bold font-heading">Your Marketing Hub</h1>
         <p className="text-muted-foreground mt-1">
-          Abby manages all your marketing campaigns automatically.
+          Activate and manage your marketing campaigns. Build content first in Brand Products.
         </p>
       </div>
 
@@ -356,7 +323,7 @@ export default function MarketingHub({ onNavigate }: Props) {
         <Megaphone className="h-5 w-5 text-primary" />
         <div className="flex-1">
           <p className="text-sm font-medium">
-            {activeCount} of {CAMPAIGNS.length} campaigns active
+            {activeCount} of {CAMPAIGNS.length} campaigns active{totalLeads > 0 ? ` · ${totalLeads} leads captured` : ""}
           </p>
           <div className="w-full bg-muted rounded-full h-1.5 mt-1.5">
             <div
@@ -373,13 +340,13 @@ export default function MarketingHub({ onNavigate }: Props) {
           <p className="text-sm text-foreground">
             <span className="font-semibold">Abby says:</span> {getAbbyRecommendation()}
           </p>
-          {getCampaignStatus(CAMPAIGNS[0]) !== "active" && (
+          {CAMPAIGNS.slice(0, 5).every(c => getCampaignStatus(c) === "not_built") && (
             <Button
               size="sm"
               className="mt-3"
-              onClick={() => navigate("/node-builder/BP-01")}
+              onClick={() => navigate("/brand-products")}
             >
-              Build Email Marketing First <ArrowRight className="ml-1 h-3 w-3" />
+              Go to Brand Products <ArrowRight className="ml-1 h-3 w-3" />
             </Button>
           )}
         </div>
@@ -398,7 +365,10 @@ export default function MarketingHub({ onNavigate }: Props) {
               status={status}
               isHighlighted={isHighlighted}
               nodeRows={nodeRows}
+              isActivating={activatingCampaign === campaign.id}
+              totalLeads={totalLeads}
               onActivate={() => handleActivate(campaign)}
+              onPause={() => handlePause(campaign)}
             />
           );
         })}
@@ -409,130 +379,108 @@ export default function MarketingHub({ onNavigate }: Props) {
 
 /* ─── Campaign Row ─── */
 
-import { forwardRef } from "react";
-
 const CampaignRow = forwardRef<HTMLDivElement, {
   campaign: CampaignConfig;
-  status: CampaignStatus;
+  status: NodeStatus;
   isHighlighted: boolean;
   nodeRows: NodeRow[];
+  isActivating: boolean;
+  totalLeads: number;
   onActivate: () => void;
-}>(({ campaign, status, isHighlighted, nodeRows, onActivate }, ref) => {
+  onPause: () => void;
+}>(({ campaign, status, isHighlighted, nodeRows, isActivating, totalLeads, onActivate, onPause }, ref) => {
   const navigate = useNavigate();
-  const config = statusConfig[status];
-  const StatusIcon = config.icon;
+  const badge = statusBadgeConfig[status];
+  const Icon = statusIcon[status];
 
-  // Show success panel for recently activated
-  if (status === "active") {
-    return (
-      <div ref={ref} className="p-4 rounded-xl bg-card border border-emerald-500/20">
-        <div className="flex items-center gap-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <p className="text-sm font-medium">{campaign.label}</p>
-              <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
-                <CheckCircle2 className="h-3 w-3 mr-1" /> Active ✓
-              </Badge>
-            </div>
-            <div className="space-y-1 mt-2">
-              {campaign.checklist.map((item, i) => (
-                <div key={i} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <CheckCircle2 className="h-3 w-3 text-emerald-500" /> {item}
-                </div>
-              ))}
-            </div>
-          </div>
-          <Button size="sm" variant="ghost" className="text-xs shrink-0" onClick={onActivate}>
-            <RefreshCw className="h-3 w-3 mr-1" /> Update
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  // Content preview for draft/ready/active
+  const firstNodeRow = nodeRows.find(r => campaign.nodeIds.includes(r.node_id));
+  const preview = status !== "not_built" ? getContentPreview(firstNodeRow?.content_json) : "";
 
-  // Highlighted "Ready to Activate" with ABBY tip
-  const showAbbyTip = isHighlighted && status === "ready";
-  const liveNodeNames = campaign.nodeIds
-    .filter(nid => nodeRows.find(r => r.node_id === nid)?.status === "live")
-    .map(nid => NODE_NAMES[nid] || nid);
+  // Activation date
+  const activatedAt = firstNodeRow?.marketing_activated_at
+    ? new Date(firstNodeRow.marketing_activated_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : null;
 
-  // Find the first howToStart step with a link for the CTA button
-  const ctaStep = campaign.howToStart.find(s => s.link);
+  const borderClass = isHighlighted
+    ? "border-amber-400 ring-2 ring-amber-400/30"
+    : status === "active"
+    ? "border-emerald-500/20"
+    : status === "ready"
+    ? "border-yellow-500/20"
+    : "border-border";
 
   return (
-    <div
-      ref={ref}
-      className={`rounded-xl border transition-all ${
-        isHighlighted ? "border-amber-400 ring-2 ring-amber-400/30 animate-pulse" :
-        status === "ready" ? "border-amber-300 dark:border-amber-700" :
-        "border-border"
-      } bg-card`}
-    >
-      {/* ABBY tip for highlighted */}
-      {showAbbyTip && (
-        <div className="px-4 pt-3 pb-0">
-          <div className="flex gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 mb-2">
-            <Sparkles className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-            <p className="text-xs text-amber-700 dark:text-amber-300">
-              Your {liveNodeNames[0] || campaign.label} is published and ready. Click Activate to start promoting it automatically.
-            </p>
-          </div>
-        </div>
-      )}
-
+    <div ref={ref} className={`rounded-xl border transition-all bg-card ${borderClass}`}>
       <div className="p-4">
         <div className="flex items-center gap-4">
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{campaign.label}</p>
+            <div className="flex items-center gap-2 mb-0.5">
+              <p className="text-sm font-medium truncate">{campaign.label}</p>
+              <Badge variant="outline" className={`shrink-0 text-[10px] ${badge.className}`}>
+                <Icon className="h-3 w-3 mr-1" /> {badge.label}
+              </Badge>
+            </div>
             <p className="text-xs text-muted-foreground truncate">{campaign.description}</p>
           </div>
 
-          <Badge variant="outline" className={`shrink-0 text-[10px] ${config.className}`}>
-            <StatusIcon className={`h-3 w-3 mr-1 ${status === "activating" ? "animate-spin" : ""}`} />
-            {config.label}
-          </Badge>
-
           <div className="shrink-0">
-            {status === "ready" ? (
-              <Button size="sm" onClick={onActivate} className="text-xs bg-amber-600 hover:bg-amber-700 text-white">
-                Activate Now <ArrowRight className="ml-1 h-3 w-3" />
-              </Button>
-            ) : status === "activating" ? (
+            {isActivating ? (
               <Button size="sm" disabled className="text-xs">
-                <Loader2 className="h-3 w-3 mr-1 animate-spin" /> Setting up…
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" /> Activating…
               </Button>
-            ) : status === "failed" ? (
-              <Button size="sm" variant="outline" className="text-xs border-red-500/20 text-red-600" onClick={onActivate}>
-                <RefreshCw className="h-3 w-3 mr-1" /> Retry
+            ) : status === "not_built" ? (
+              <Button size="sm" variant="outline" className="text-xs" onClick={() => navigate("/brand-products")}>
+                <Hammer className="h-3 w-3 mr-1" /> Build in Brand Products
+              </Button>
+            ) : status === "draft" ? (
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs border-amber-500/30 text-amber-700"
+                onClick={() => {
+                  const nodeId = campaign.nodeIds[0];
+                  navigate(`/node-builder/${nodeId}`);
+                }}
+              >
+                <FileText className="h-3 w-3 mr-1" /> Review & Approve
+              </Button>
+            ) : status === "ready" ? (
+              <Button size="sm" onClick={onActivate} className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white">
+                <Sparkles className="h-3 w-3 mr-1" /> Activate Campaign
+              </Button>
+            ) : status === "active" ? (
+              <Button size="sm" variant="outline" onClick={onPause} className="text-xs">
+                <PauseCircle className="h-3 w-3 mr-1" /> Pause Campaign
               </Button>
             ) : null}
           </div>
         </div>
 
-        {/* Step-by-step instructions for pending campaigns */}
-        {status === "pending" && (
-          <div className="mt-3 pt-3 border-t border-border">
-            <p className="text-xs font-semibold text-muted-foreground mb-2">How to get started:</p>
-            <ol className="space-y-1.5">
-              {campaign.howToStart.map((item, i) => (
-                <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-                  <span className="shrink-0 w-4 h-4 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold mt-0.5">
-                    {i + 1}
-                  </span>
-                  <span>{item.step}</span>
-                </li>
-              ))}
-            </ol>
-            {ctaStep && (
-              <Button
-                size="sm"
-                className="mt-3 w-full sm:w-auto"
-                onClick={() => navigate(ctaStep.link!)}
-              >
-                {ctaStep.linkLabel || "Get Started"} <ArrowRight className="ml-1 h-3 w-3" />
-              </Button>
-            )}
+        {/* Content preview for draft/ready/active */}
+        {preview && status !== "not_built" && (
+          <p className="text-xs text-muted-foreground/70 mt-2 italic truncate">"{preview}"</p>
+        )}
+
+        {/* Active stats row */}
+        {status === "active" && activatedAt && (
+          <div className="flex items-center gap-2 mt-2 text-xs text-emerald-600">
+            <CheckCircle2 className="h-3 w-3" />
+            <span>Activated {activatedAt} · {totalLeads} leads captured</span>
           </div>
+        )}
+
+        {/* Not built — single line guidance */}
+        {status === "not_built" && (
+          <p className="text-xs text-muted-foreground mt-2">
+            Build this first in{" "}
+            <button
+              onClick={() => navigate("/brand-products")}
+              className="underline underline-offset-2 hover:text-foreground transition-colors"
+            >
+              Brand Products
+            </button>
+          </p>
         )}
       </div>
     </div>
