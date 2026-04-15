@@ -76,17 +76,17 @@ interface Recommendation {
   sequence: number; // lower = do first
 }
 
-// Maps nodeId to the table/nodeId used in builder-draft-state
-const NODE_TO_DRAFT_KEY: Record<string, string[]> = {
-  "website": ["website", "microsite"],
-  "lead-magnets": ["lead-magnets", "lead_magnet"],
-  "email-marketing": ["email-marketing", "email_flows"],
-  "social-media": ["social-media", "social_media_content"],
-  "workbooks": ["workbooks", "workbook"],
-  "home-study": ["home-study", "home_study_courses"],
-  "courses": ["courses", "online-course"],
-  "audiobooks": ["audiobooks", "audiobook"],
-  "coaching-1on1": ["coaching-1on1", "coaching_packages"],
+// Maps recommendation nodeId to actual author_nodes.node_id
+const REC_TO_AUTHOR_NODE: Record<string, string> = {
+  "website": "BP-04",
+  "lead-magnets": "BP-02",
+  "email-marketing": "BP-01",
+  "social-media": "BP-03",
+  "workbooks": "BP-06",
+  "home-study": "BP-07",
+  "courses": "BA-10",
+  "audiobooks": "BP-09",
+  "coaching-1on1": "YR-19",
 };
 
 type ProductStatus = "not-started" | "in-progress" | "completed";
@@ -192,86 +192,46 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
         console.error("Failed to fetch business plan");
       }
 
-      // Fetch product statuses (drafts + website profile + generated assets fallback)
+      // Single source of truth: read product statuses from author_nodes
       const statuses: Record<string, ProductStatus> = {};
 
       try {
-        const draftResp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/builder-draft-state`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-          body: JSON.stringify({ action: "list-drafts" }),
-        });
+        // Get author_profiles.id for this user
+        const { data: authorProfile } = await supabase
+          .from("author_profiles")
+          .select("id, author_slug")
+          .eq("user_id", userId)
+          .maybeSingle();
 
-        if (draftResp.ok) {
-          const draftResult = await draftResp.json();
-          const drafts: any[] = draftResult.drafts || [];
-          for (const [nodeId, keys] of Object.entries(NODE_TO_DRAFT_KEY)) {
-            const matching = drafts.filter((d: any) =>
-              keys.some(k => d.nodeId === k || d.table === k || d.asset_type === k)
-            );
-            if (matching.some((d: any) => d.status === "published")) {
-              statuses[nodeId] = "completed";
-            } else if (matching.length > 0) {
-              statuses[nodeId] = "in-progress";
+        if (authorProfile?.id) {
+          const { data: nodes } = await supabase
+            .from("author_nodes")
+            .select("node_id, status")
+            .eq("author_id", authorProfile.id);
+
+          if (nodes) {
+            for (const node of nodes) {
+              // Find the recommendation nodeId for this author_nodes.node_id
+              const recNodeId = Object.entries(REC_TO_AUTHOR_NODE).find(
+                ([, authorNodeId]) => authorNodeId === node.node_id
+              )?.[0];
+              if (!recNodeId) continue;
+
+              if (node.status === "live" || node.status === "published_pending_ghl") {
+                statuses[recNodeId] = "completed";
+              } else if (node.status === "content_ready" || node.status === "draft") {
+                if (!statuses[recNodeId]) statuses[recNodeId] = "in-progress";
+              }
             }
           }
-        }
-      } catch (error) {
-        console.error("Failed to fetch draft statuses");
-      }
 
-      // Website is managed profile-first; resolve status from synced profile data
-      try {
-        const profileResp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/save-author-profile`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({ action: "fetch" }),
-        });
-
-        if (profileResp.ok) {
-          const profileResult = await profileResp.json();
-          const profileData = profileResult?.profile;
-          const hasCompletedWebsite = Boolean(profileData?.author_slug);
-          const hasWebsiteProgress = Boolean(
-            profileData?.pen_name || profileData?.bio_short || profileData?.bio_long || profileData?.tagline || profileData?.photo_url || profileData?.site_theme
-          );
-
-          if (hasCompletedWebsite) {
+          // Also mark website as completed if author has a slug (live profile page)
+          if (authorProfile.author_slug && !statuses["website"]) {
             statuses["website"] = "completed";
-          } else if (hasWebsiteProgress && !statuses["website"]) {
-            statuses["website"] = "in-progress";
           }
         }
       } catch (error) {
-        console.error("Failed to fetch profile website status");
-      }
-
-      // Also check generated assets as fallback for progress
-      const { data: genAssets } = await supabase
-        .from("generated_assets")
-        .select("asset_type")
-        .eq("book_id", book.id)
-        .eq("author_id", userId);
-
-      if (genAssets) {
-        const assetTypes = genAssets.map(a => a.asset_type);
-        const assetToNode: Record<string, string> = {
-          "lead_magnet": "lead-magnets",
-          "email_sequence": "email-marketing",
-          "social_media": "social-media",
-          "workbook": "workbooks",
-          "home_study": "home-study",
-          "course": "courses",
-          "audiobook_script": "audiobooks",
-        };
-        for (const [assetType, nodeId] of Object.entries(assetToNode)) {
-          if (assetTypes.includes(assetType) && !statuses[nodeId]) {
-            statuses[nodeId] = "in-progress";
-          }
-        }
+        console.error("Failed to fetch author_nodes statuses:", error);
       }
 
       setProductStatuses(statuses);
