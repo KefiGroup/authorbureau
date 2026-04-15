@@ -17,7 +17,7 @@ serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const sb = createClient(supabaseUrl, serviceKey);
 
-    const { data: profile } = await sb.from("author_profiles").select("pen_name, genres").eq("id", author_id).single();
+    const { data: profile } = await sb.from("author_profiles").select("pen_name, genres, user_id").eq("id", author_id).single();
     const { data: ctx } = await sb.from("author_context").select("*").eq("author_id", author_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
 
     // Fallback to books table if no author_context

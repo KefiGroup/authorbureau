@@ -44,7 +44,7 @@ serve(async (req) => {
       const { data: book } = await supabase
         .from("books")
         .select("title, subtitle, description")
-        .eq("author_id", author_id)
+        .eq("author_id", author.user_id)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
