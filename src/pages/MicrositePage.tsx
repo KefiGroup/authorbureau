@@ -218,7 +218,7 @@ interface PageProps {
   bgColor: string;
 }
 interface FormPageProps extends PageProps {
-  onSubmit: (e: React.FormEvent) => void;
+  onSubmit: (e: React.FormEvent) => Promise<boolean>;
   email: string; setEmail: (v: string) => void;
   firstName: string; setFirstName: (v: string) => void;
   submitting: boolean; submitted: boolean;
@@ -251,9 +251,13 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
   const isQuiz = (config.type || "").toLowerCase().includes("quiz") || questions.length > 0;
 
   const handleGateSubmit = async (e: React.FormEvent) => {
-    await onSubmit(e);
+    const success = await onSubmit(e);
+    if (!success) return;
     if (isQuiz && questions.length > 0) {
       setStage("quiz");
+    } else {
+      // Non-quiz lead magnet — show confirmation
+      setStage("results");
     }
   };
 
