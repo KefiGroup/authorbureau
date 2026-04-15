@@ -267,24 +267,34 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
   };
 
   const handleAnswer = (optionIndex: number) => {
-    const newAnswers = [...answers, optionIndex];
+    // Use actual points from option if available, otherwise fall back to index
+    const option = questions[currentQ]?.options?.[optionIndex];
+    const points = typeof option === "object" && option?.points != null ? option.points : optionIndex;
+    const newAnswers = [...answers, points];
     setAnswers(newAnswers);
     if (currentQ + 1 < questions.length) {
       setCurrentQ(currentQ + 1);
     } else {
-      // Quiz complete — go to gate to collect email before showing results
       setStage("gate");
     }
   };
 
   // Calculate score and tier
   const totalScore = answers.reduce((sum, a) => sum + a, 0);
-  const maxScore = questions.length * 3;
+  const maxPossiblePerQ = questions.length > 0 && typeof questions[0]?.options?.[0] === "object"
+    ? Math.max(...questions.flatMap((q: any) => (q.options || []).map((o: any) => o.points || 0)))
+    : 3;
+  const maxScore = questions.length * maxPossiblePerQ;
   const scorePercent = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
 
   const getResultTier = () => {
-    if (scoringTiers.length === 0) return { name: "Your Result", description: "Thank you for completing the quiz!", tips: [] };
+    if (scoringTiers.length === 0) return { label: "Your Result", name: "Your Result", description: "Thank you for completing the quiz!", tips: [], tips_from_book: [] };
     for (const tier of scoringTiers) {
+      // Support min/max format
+      if (tier.min != null && tier.max != null) {
+        if (totalScore >= tier.min && totalScore <= tier.max) return tier;
+      }
+      // Support range string format
       if (tier.range) {
         const match = tier.range.match(/(\d+)\s*[-–]\s*(\d+)/);
         if (match) {
@@ -299,6 +309,8 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
   };
 
   const resultTier = getResultTier();
+  const tierName = resultTier.label || resultTier.name || "Complete";
+  const tierTips: string[] = resultTier.tips_from_book || resultTier.tips || [];
 
   // ── STAGE: RESULTS (after email collected) ──
   if (stage === "results" && questions.length === 0) {
