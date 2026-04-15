@@ -16,6 +16,7 @@ import AuthorBooksSection from "./author-site/AuthorBooksSection";
 import AuthorLeadMagnetsSection from "./author-site/AuthorLeadMagnetsSection";
 import AuthorLearnSection from "./author-site/AuthorLearnSection";
 import AuthorServicesSection from "./author-site/AuthorServicesSection";
+import AuthorEventsSection from "./author-site/AuthorEventsSection";
 import AuthorSubscribeSection from "./author-site/AuthorSubscribeSection";
 import AuthorRelatedSection from "./author-site/AuthorRelatedSection";
 import type { LiveNode } from "./author-site/AuthorLeadMagnetsSection";
@@ -44,6 +45,17 @@ export default function AuthorSite() {
   const leadMagnets = useMemo(() => liveNodes.filter(n => n.node_id.startsWith("BP-02")), [liveNodes]);
   const learnNodes = useMemo(() => liveNodes.filter(n =>
     ["BP-05", "BP-07", "BA-10", "BA-12", "YR-25"].some(p => n.node_id.startsWith(p))
+  ), [liveNodes]);
+  const serviceNodes = useMemo(() => liveNodes.filter(n =>
+    ["YR-19", "BA-13", "YR-23", "YR-20", "YR-22", "YR-21"].some(p => n.node_id.startsWith(p))
+  ), [liveNodes]);
+  const eventNodes = useMemo(() => liveNodes.filter(n =>
+    ["YR-24", "YR-26", "YR-27", "YR-28"].some(p => n.node_id.startsWith(p))
+  ), [liveNodes]);
+  const podcastNodes = useMemo(() => liveNodes.filter(n => n.node_id.startsWith("BA-14")), [liveNodes]);
+  const affiliateNodes = useMemo(() => liveNodes.filter(n => n.node_id.startsWith("BA-16")), [liveNodes]);
+  const formatNodes = useMemo(() => liveNodes.filter(n =>
+    ["BP-08", "BA-11", "BP-06", "BA-17"].some(p => n.node_id.startsWith(p))
   ), [liveNodes]);
 
   // SEO
@@ -188,6 +200,8 @@ export default function AuthorSite() {
         hasServices={coachingServices.length > 0}
         hasLearnSection={learnNodes.length > 0}
         hasQuizSection={leadMagnets.length > 0}
+        hasEvents={eventNodes.length > 0}
+        hasWorkWithMe={serviceNodes.length > 0 || coachingServices.length > 0}
         vars={v}
         headingFont={theme.headingFont}
         bodyFont={theme.bodyFont}
@@ -205,12 +219,13 @@ export default function AuthorSite() {
       />
 
       <AuthorHeroSection author={author} displayName={displayName} booksWithProducts={booksWithProducts} allProducts={allProducts} theme={theme} v={v} />
-      <AuthorAboutSection author={author} displayName={displayName} theme={theme} v={v} />
+      <AuthorAboutSection author={author} displayName={displayName} podcastNodes={podcastNodes} theme={theme} v={v} />
       <AuthorLeadMagnetsSection authorSlug={authorSlug!} leadMagnets={leadMagnets} theme={theme} v={v} />
-      <AuthorBooksSection authorSlug={authorSlug!} displayName={displayName} booksWithProducts={booksWithProducts} theme={theme} v={v} />
+      <AuthorBooksSection authorSlug={authorSlug!} displayName={displayName} booksWithProducts={booksWithProducts} liveNodes={formatNodes} theme={theme} v={v} />
       <AuthorLearnSection authorSlug={authorSlug!} displayName={displayName} learnNodes={learnNodes} theme={theme} v={v} />
-      <AuthorServicesSection authorSlug={authorSlug!} displayName={displayName} coachingServices={coachingServices} allProducts={allProducts} theme={theme} v={v} />
-      <AuthorSubscribeSection author={author} authorSlug={authorSlug!} displayName={displayName} theme={theme} v={v} />
+      <AuthorServicesSection authorSlug={authorSlug!} displayName={displayName} coachingServices={coachingServices} allProducts={allProducts} serviceNodes={serviceNodes} theme={theme} v={v} />
+      <AuthorEventsSection authorSlug={authorSlug!} displayName={displayName} eventNodes={eventNodes} theme={theme} v={v} />
+      <AuthorSubscribeSection author={author} authorSlug={authorSlug!} displayName={displayName} affiliateNodes={affiliateNodes} theme={theme} v={v} />
       <AuthorRelatedSection relatedAuthors={relatedAuthors} theme={theme} v={v} />
     </AuthorPageLayout>
   );

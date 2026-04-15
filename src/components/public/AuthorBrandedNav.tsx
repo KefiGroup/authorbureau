@@ -17,6 +17,8 @@ interface AuthorBrandedNavProps {
   hasServices: boolean;
   hasLearnSection?: boolean;
   hasQuizSection?: boolean;
+  hasEvents?: boolean;
+  hasWorkWithMe?: boolean;
   vars: {
     primary: string;
     primaryText: string;
@@ -42,6 +44,8 @@ export default function AuthorBrandedNav({
   hasServices,
   hasLearnSection,
   hasQuizSection,
+  hasEvents,
+  hasWorkWithMe,
   vars: v,
   headingFont,
   bodyFont,
@@ -71,7 +75,8 @@ export default function AuthorBrandedNav({
         : []),
     ...(hasQuizSection ? [{ label: "Quiz", to: `/${authorSlug}#quiz-section`, type: "link" as const }] : []),
     ...(hasLearnSection ? [{ label: "Learn", to: `/${authorSlug}#learn-section`, type: "link" as const }] : []),
-    ...(hasServices ? [{ label: "Services", to: `/${authorSlug}#services`, type: "link" as const }] : []),
+    ...(hasWorkWithMe || hasServices ? [{ label: "Work With Me", to: `/${authorSlug}#services`, type: "link" as const }] : []),
+    ...(hasEvents ? [{ label: "Events", to: `/${authorSlug}#events-section`, type: "link" as const }] : []),
     { label: "Contact", to: "#", type: "action" as const },
   ];
 

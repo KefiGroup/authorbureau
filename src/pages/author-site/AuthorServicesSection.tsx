@@ -1,10 +1,11 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { BookOpen, GraduationCap, Users, Headphones, Mic, ArrowRight } from "lucide-react";
+import { BookOpen, GraduationCap, Users, Headphones, Mic, ArrowRight, User, Crown, Building2, Presentation } from "lucide-react";
 import { getProductCardCTAText } from "@/lib/product-copy";
 import type { ProductLink, CoachingService, ThemeVars } from "./types";
 import { PRODUCT_LABELS, PRODUCT_ROUTES, fadeUp } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
+import type { LiveNode } from "./AuthorLeadMagnetsSection";
 
 const PRODUCT_ICONS: Record<string, typeof BookOpen> = {
   home_study: BookOpen,
@@ -14,17 +15,34 @@ const PRODUCT_ICONS: Record<string, typeof BookOpen> = {
   podcast: Mic,
 };
 
+const SERVICE_NODE_META: Record<string, { icon: typeof Users; label: string; order: number }> = {
+  "YR-19": { icon: User, label: "1-on-1 Coaching", order: 1 },
+  "BA-13": { icon: Users, label: "Group Coaching", order: 2 },
+  "YR-23": { icon: Crown, label: "Mastermind", order: 3 },
+  "YR-20": { icon: Crown, label: "VIP Day", order: 4 },
+  "YR-22": { icon: Building2, label: "Corporate Training", order: 5 },
+  "YR-21": { icon: Presentation, label: "Speaking", order: 6 },
+};
+
 interface Props {
   authorSlug: string;
   displayName: string;
   coachingServices: CoachingService[];
   allProducts: (ProductLink & { bookSlug?: string; bookTitle?: string })[];
+  serviceNodes?: LiveNode[];
   theme: AuthorTheme;
   v: ThemeVars;
 }
 
-export default function AuthorServicesSection({ authorSlug, displayName, coachingServices, allProducts, theme, v }: Props) {
-  if (coachingServices.length === 0 && allProducts.length === 0) return null;
+export default function AuthorServicesSection({ authorSlug, displayName, coachingServices, allProducts, serviceNodes = [], theme, v }: Props) {
+  if (coachingServices.length === 0 && allProducts.length === 0 && serviceNodes.length === 0) return null;
+
+  // Sort service nodes by type order
+  const sortedServiceNodes = [...serviceNodes].sort((a, b) => {
+    const prefA = a.node_id.substring(0, 5);
+    const prefB = b.node_id.substring(0, 5);
+    return (SERVICE_NODE_META[prefA]?.order ?? 99) - (SERVICE_NODE_META[prefB]?.order ?? 99);
+  });
 
   const workWithHeading = coachingServices.length > 0 ? `Work with ${displayName}` : `Resources by ${displayName}`;
   const workWithSubheading = coachingServices.length > 0 && allProducts.length > 0
@@ -41,8 +59,53 @@ export default function AuthorServicesSection({ authorSlug, displayName, coachin
           <p className="text-base mb-10" style={{ color: v.mutedText }}>{workWithSubheading}</p>
         </motion.div>
 
-        {/* Coaching */}
-        {coachingServices.length > 0 && (
+        {/* Node-driven services (Work With Me) */}
+        {sortedServiceNodes.length > 0 && (
+          <div className="mb-12">
+            <h3 className="text-lg font-bold mb-6" style={{ color: v.headingText, fontFamily: theme.headingFont }}>Services & Expertise</h3>
+            <div className="space-y-4">
+              {sortedServiceNodes.map((node, idx) => {
+                const prefix = node.node_id.substring(0, 5);
+                const meta = SERVICE_NODE_META[prefix] || { icon: Users, label: "Service", order: 99 };
+                const SIcon = meta.icon;
+                const title = node.personalised_name || node.node_name;
+                const desc = node.content_json?.description as string | undefined;
+                const price = node.content_json?.price as number | undefined;
+                const linkTo = node.third_party_url || node.payment_link || `/${authorSlug}#subscribe-section`;
+
+                return (
+                  <motion.div key={node.node_id} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={idx + 1}>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-5 rounded-xl transition-all hover:shadow-md"
+                      style={{ background: v.cardBg, border: `1px solid ${v.cardBorder}`, boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
+                      <div className="w-11 h-11 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${v.accent}26` }}>
+                        <SIcon className="h-5 w-5" style={{ color: v.accent }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-bold text-base" style={{ color: v.headingText, fontFamily: theme.headingFont }}>{title}</h3>
+                          <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                            style={{ background: `${v.primary}20`, color: v.primary }}>{meta.label}</span>
+                        </div>
+                        {desc && <p className="text-sm leading-relaxed line-clamp-2" style={{ color: v.bodyText }}>{desc}</p>}
+                        <div className="flex items-center gap-3 mt-2 text-xs" style={{ color: v.mutedText }}>
+                          {price != null && price > 0 && <span className="font-bold" style={{ color: v.accent }}>${price}</span>}
+                        </div>
+                      </div>
+                      <a href={linkTo} target={node.third_party_url ? "_blank" : undefined} rel={node.third_party_url ? "noopener noreferrer" : undefined}
+                        className="shrink-0 inline-flex items-center gap-1 px-5 py-2 rounded-lg text-sm font-bold transition-all hover:brightness-110"
+                        style={{ background: v.accent, color: v.accentText }}>
+                        {node.payment_link ? "Book Now" : "Inquire"} <ArrowRight className="h-3.5 w-3.5" />
+                      </a>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Legacy coaching packages (fallback when no service nodes) */}
+        {sortedServiceNodes.length === 0 && coachingServices.length > 0 && (
           <div className="mb-12">
             <h3 className="text-lg font-bold mb-6" style={{ color: v.headingText, fontFamily: theme.headingFont }}>Services & Expertise</h3>
             <div className="space-y-4">

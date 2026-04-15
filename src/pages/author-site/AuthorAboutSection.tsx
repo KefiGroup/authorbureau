@@ -1,22 +1,24 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Mic } from "lucide-react";
 import type { AuthorData, ThemeVars } from "./types";
 import { fadeUp } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
 import { stripHtml } from "@/lib/stripHtml";
+import type { LiveNode } from "./AuthorLeadMagnetsSection";
 
 interface Props {
   author: AuthorData;
   displayName: string;
+  podcastNodes?: LiveNode[];
   theme: AuthorTheme;
   v: ThemeVars;
 }
 
-export default function AuthorAboutSection({ author, displayName, theme, v }: Props) {
+export default function AuthorAboutSection({ author, displayName, podcastNodes = [], theme, v }: Props) {
   const [bioExpanded, setBioExpanded] = useState(false);
   const bioText = stripHtml(author.bio_long || author.bio_short || "");
-  if (!bioText) return null;
+  if (!bioText && podcastNodes.length === 0) return null;
 
   const bioParagraphs = bioText.split(/\n\n+/).filter(Boolean);
   const displayBioParagraphs = bioParagraphs.length > 2 && !bioExpanded ? bioParagraphs.slice(0, 2) : bioParagraphs;
@@ -49,6 +51,46 @@ export default function AuthorAboutSection({ author, displayName, theme, v }: Pr
                 <span key={i} className="px-3 py-1.5 text-xs font-medium rounded-full"
                   style={{ background: v.secondaryBg, color: v.bodyText, border: `1px solid ${v.accent}` }}>{g}</span>
               ))}
+            </div>
+          )}
+
+          {/* Podcast embed */}
+          {podcastNodes.length > 0 && (
+            <div className="mt-10">
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
+                <Mic className="h-5 w-5" style={{ color: v.accent }} /> Podcast
+              </h3>
+              <div className="space-y-4">
+                {podcastNodes.map(node => {
+                  const title = node.personalised_name || node.node_name;
+                  const embedUrl = node.content_json?.embed_url as string | undefined;
+                  const linkUrl = node.third_party_url || node.content_json?.link as string | undefined;
+                  const desc = node.content_json?.description as string | undefined;
+
+                  return (
+                    <div key={node.node_id} className="rounded-xl p-5" style={{ background: v.secondaryBg, border: `1px solid ${v.cardBorder}` }}>
+                      <h4 className="font-bold text-base mb-2" style={{ color: v.headingText, fontFamily: theme.headingFont }}>{title}</h4>
+                      {desc && <p className="text-sm mb-3 line-clamp-2" style={{ color: v.bodyText }}>{desc}</p>}
+                      {embedUrl && (
+                        <iframe
+                          src={embedUrl}
+                          className="w-full rounded-lg"
+                          height="152"
+                          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                          loading="lazy"
+                          style={{ border: "none" }}
+                        />
+                      )}
+                      {!embedUrl && linkUrl && (
+                        <a href={linkUrl} target="_blank" rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-sm font-bold" style={{ color: v.accent }}>
+                          Listen Now →
+                        </a>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </motion.div>
