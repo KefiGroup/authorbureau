@@ -15,7 +15,7 @@ import { categoryStyles } from "../shared/BuilderTheme";
 import { QRCodeSVG } from "qrcode.react";
 import SocialDistributionPack from "./SocialDistributionPack";
 
-const STEPS = ["Introduction", "Generating", "Review", "Publish"];
+const STEPS = ["Introduction", "Generating", "Review", "Publish", "Live"];
 
 const GENERATING_MESSAGES = [
   "Reading your book to find the best lead magnet angles...",
