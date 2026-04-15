@@ -9,7 +9,8 @@ import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Sparkles, ArrowLeft, ArrowRight, Check, Gift, FileText, ThumbsUp, Settings, Star, Copy, ExternalLink, Link2, QrCode, HelpCircle, ChevronDown, Mail, Share2, Save, Pencil, Users, BarChart3 } from "lucide-react";
+import { Sparkles, ArrowLeft, ArrowRight, Check, Gift, FileText, ThumbsUp, Settings, Star, Copy, ExternalLink, Link2, QrCode, HelpCircle, ChevronDown, Mail, Share2, Save, Pencil, Users, BarChart3, Globe } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { categoryStyles } from "../shared/BuilderTheme";
 import { QRCodeSVG } from "qrcode.react";
 import SocialDistributionPack from "./SocialDistributionPack";
@@ -43,6 +44,24 @@ interface Props {
   authorId: string | null;
 }
 
+export interface PublishChannels {
+  optinPage: boolean;
+  emailNurture: boolean;
+  linkedin: boolean;
+  instagram: boolean;
+  facebook: boolean;
+  x: boolean;
+}
+
+const DEFAULT_CHANNELS: PublishChannels = {
+  optinPage: true,
+  emailNurture: true,
+  linkedin: false,
+  instagram: false,
+  facebook: false,
+  x: false,
+};
+
 export default function BP02Builder({ authorId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
@@ -57,6 +76,7 @@ export default function BP02Builder({ authorId }: Props) {
   const [copied, setCopied] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [publishChannels, setPublishChannels] = useState<PublishChannels>({ ...DEFAULT_CHANNELS });
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
 
@@ -209,8 +229,8 @@ export default function BP02Builder({ authorId }: Props) {
         });
       }
 
-      // Push nurture emails to BP-04 (Email Marketing)
-      if (content.nurture_sequence || content.nurture_emails) {
+      // Push nurture emails to BP-04 (Email Marketing) — only if channel selected
+      if (publishChannels.emailNurture && (content.nurture_sequence || content.nurture_emails)) {
         const emailContent = content.nurture_sequence || content.nurture_emails;
         const { data: bp04Node } = await supabase
           .from("author_nodes")
@@ -237,9 +257,25 @@ export default function BP02Builder({ authorId }: Props) {
         }
       }
 
-      // Push social posts to BP-03 (Social Media)
-      if (content.social_media_posts || content.social_posts) {
-        const socialContent = content.social_media_posts || content.social_posts;
+      // Push social posts to BP-03 (Social Media) — only selected platforms
+      const anySocial = publishChannels.linkedin || publishChannels.instagram || publishChannels.facebook || publishChannels.x;
+      if (anySocial && (content.social_media_posts || content.social_posts)) {
+        const allSocial = content.social_media_posts || content.social_posts;
+        const platformMap: Record<string, keyof PublishChannels> = {
+          linkedin: "linkedin",
+          instagram: "instagram",
+          facebook: "facebook",
+          x: "x",
+          twitter: "x",
+        };
+        const filteredSocial = Array.isArray(allSocial)
+          ? allSocial.filter((post: any) => {
+              const p = (post.platform || "").toLowerCase();
+              const key = platformMap[p];
+              return key ? publishChannels[key] : false;
+            })
+          : allSocial;
+
         const { data: bp03Node } = await supabase
           .from("author_nodes")
           .select("id")
@@ -248,7 +284,7 @@ export default function BP02Builder({ authorId }: Props) {
           .maybeSingle();
 
         const bp03Payload = {
-          content_json: { social_posts: socialContent, quiz_insights: content.quiz_insights_for_social, source: "BP-02" },
+          content_json: { social_posts: filteredSocial, quiz_insights: content.quiz_insights_for_social, source: "BP-02" },
           status: "content_ready",
           personalised_name: "Lead Magnet Social Posts",
         };
@@ -379,6 +415,8 @@ export default function BP02Builder({ authorId }: Props) {
             error={error}
             isPublishing={isPublishing}
             isSavingDraft={isSavingDraft}
+            publishChannels={publishChannels}
+            setPublishChannels={setPublishChannels}
           />
         )}
 
@@ -392,7 +430,7 @@ export default function BP02Builder({ authorId }: Props) {
         )}
 
         {step === 3 && content?.activated && (
-          <PublishSuccessStep authorName={authorName} authorId={authorId!} liveUrl={liveUrl} copied={copied} onCopy={handleCopyUrl} />
+          <PublishSuccessStep authorName={authorName} authorId={authorId!} liveUrl={liveUrl} copied={copied} onCopy={handleCopyUrl} publishChannels={publishChannels} />
         )}
       </div>
     </div>
@@ -500,6 +538,8 @@ function ReviewStep({
   error,
   isPublishing,
   isSavingDraft,
+  publishChannels,
+  setPublishChannels,
 }: {
   content: any;
   setContent: (c: any) => void;
@@ -510,6 +550,8 @@ function ReviewStep({
   error: string | null;
   isPublishing?: boolean;
   isSavingDraft?: boolean;
+  publishChannels: PublishChannels;
+  setPublishChannels: React.Dispatch<React.SetStateAction<PublishChannels>>;
 }) {
   const recommended = content.recommended_lead_magnet || 1;
   const [selectedMagnetIdx, setSelectedMagnetIdx] = useState<number>(
@@ -1116,6 +1158,65 @@ function ReviewStep({
         </TabsContent>
       </Tabs>
 
+      {/* ---- Channel Selection Panel ---- */}
+      <Card className="p-5 border-primary/30 bg-primary/5">
+        <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+          <Globe className="h-4 w-4 text-primary" /> Where do you want to publish?
+        </h4>
+        <div className="space-y-3">
+          {/* Opt-in Page — always on */}
+          <label className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 border border-border">
+            <Checkbox checked={publishChannels.optinPage} disabled className="mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold">Opt-in Page (your microsite)</p>
+              <p className="text-xs text-muted-foreground">Your live lead capture page — always included</p>
+            </div>
+            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40 px-2 py-0.5 rounded-full">CORE</span>
+          </label>
+
+          {/* Email Nurture */}
+          {nurureCount > 0 && (
+            <label className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 border border-border cursor-pointer hover:bg-muted/60 transition-colors">
+              <Checkbox
+                checked={publishChannels.emailNurture}
+                onCheckedChange={(v) => setPublishChannels(prev => ({ ...prev, emailNurture: !!v }))}
+                className="mt-0.5"
+              />
+              <div className="flex-1">
+                <p className="text-sm font-semibold flex items-center gap-2">
+                  <Mail className="h-3.5 w-3.5 text-indigo-500" /> Email Nurture Sequence
+                </p>
+                <p className="text-xs text-muted-foreground">{nurureCount} emails pushed to Email Marketing (BP-04)</p>
+              </div>
+            </label>
+          )}
+
+          {/* Social Platforms */}
+          {socialCount > 0 && (
+            <>
+              <div className="pt-1">
+                <p className="text-xs font-medium text-muted-foreground mb-2">Social Media Distribution</p>
+              </div>
+              {[
+                { key: "linkedin" as const, label: "LinkedIn", icon: "💼" },
+                { key: "instagram" as const, label: "Instagram", icon: "📸" },
+                { key: "facebook" as const, label: "Facebook", icon: "👥" },
+                { key: "x" as const, label: "X / Twitter", icon: "𝕏" },
+              ].map(({ key, label, icon }) => (
+                <label key={key} className="flex items-center gap-3 p-3 rounded-lg bg-muted/40 border border-border cursor-pointer hover:bg-muted/60 transition-colors">
+                  <Checkbox
+                    checked={publishChannels[key]}
+                    onCheckedChange={(v) => setPublishChannels(prev => ({ ...prev, [key]: !!v }))}
+                  />
+                  <span className="text-base">{icon}</span>
+                  <p className="text-sm font-medium">{label}</p>
+                </label>
+              ))}
+            </>
+          )}
+        </div>
+      </Card>
+
       <div className="flex flex-col sm:flex-row gap-3 pt-2">
         <Button variant="outline" className="flex-1" onClick={onSaveDraft} disabled={isSavingDraft}>
           <Save className="h-4 w-4 mr-2" />
@@ -1125,31 +1226,37 @@ function ReviewStep({
           {isPublishing ? (
             <><Sparkles className="h-4 w-4 mr-2 animate-spin" /> Publishing...</>
           ) : (
-            <>Activate & Go Live <ArrowRight className="h-4 w-4 ml-2" /></>
+            <>Publish Selected <ArrowRight className="h-4 w-4 ml-2" /></>
           )}
         </Button>
       </div>
       {error && (
         <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm text-center">{error}</div>
       )}
-      <p className="text-xs text-center text-muted-foreground">
-        Your opt-in page, contact tags, email nurture, and social posts will be set up automatically.
-      </p>
     </div>
   );
 }
 
-function PublishSuccessStep({ authorName, authorId, liveUrl, copied, onCopy }: {
+function PublishSuccessStep({ authorName, authorId, liveUrl, copied, onCopy, publishChannels }: {
   authorName: string;
   authorId: string;
   liveUrl: string | null;
   copied: boolean;
   onCopy: () => void;
+  publishChannels: PublishChannels;
 }) {
   const navigate = useNavigate();
   const [showQR, setShowQR] = useState(false);
   const [socialPack, setSocialPack] = useState<any>(null);
   const [subscriberCount, setSubscriberCount] = useState<number | null>(null);
+
+  const anySocial = publishChannels.linkedin || publishChannels.instagram || publishChannels.facebook || publishChannels.x;
+  const activatedPlatforms = [
+    publishChannels.linkedin && "LinkedIn",
+    publishChannels.instagram && "Instagram",
+    publishChannels.facebook && "Facebook",
+    publishChannels.x && "X",
+  ].filter(Boolean);
 
   useEffect(() => {
     (async () => {
@@ -1199,8 +1306,36 @@ function PublishSuccessStep({ authorName, authorId, liveUrl, copied, onCopy }: {
         </Card>
       )}
 
-      {/* Next steps with downstream node links */}
-      <div className="grid gap-3 sm:grid-cols-3">
+      {/* Activated Channels Summary */}
+      <Card className="p-4">
+        <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+          <Check className="h-4 w-4 text-emerald-500" /> Channels Activated
+        </h4>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-emerald-500">✓</span>
+            <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+            <span>Opt-in Page</span>
+          </div>
+          {publishChannels.emailNurture && (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-emerald-500">✓</span>
+              <Mail className="h-3.5 w-3.5 text-indigo-500" />
+              <span>Email Nurture → BP-04</span>
+            </div>
+          )}
+          {activatedPlatforms.map(p => (
+            <div key={p as string} className="flex items-center gap-2 text-sm">
+              <span className="text-emerald-500">✓</span>
+              <Share2 className="h-3.5 w-3.5 text-purple-500" />
+              <span>{p} → BP-03</span>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {/* Next steps — only show relevant ones */}
+      <div className={`grid gap-3 ${publishChannels.emailNurture && anySocial ? 'sm:grid-cols-3' : publishChannels.emailNurture || anySocial ? 'sm:grid-cols-2' : 'sm:grid-cols-1'}`}>
         <Card
           className="p-4 border-teal-300 dark:border-teal-700 bg-teal-50/50 dark:bg-teal-950/30 cursor-pointer hover:ring-1 hover:ring-teal-400/40 transition-all"
           onClick={() => navigate("/dashboard?section=crm")}
@@ -1211,22 +1346,26 @@ function PublishSuccessStep({ authorName, authorId, liveUrl, copied, onCopy }: {
             {subscriberCount !== null ? `${subscriberCount} subscriber${subscriberCount !== 1 ? "s" : ""}` : "Loading..."}
           </p>
         </Card>
-        <Card
-          className="p-4 border-indigo-300 dark:border-indigo-700 bg-indigo-50/50 dark:bg-indigo-950/30 cursor-pointer hover:ring-1 hover:ring-indigo-400/40 transition-all"
-          onClick={() => navigate("/dashboard?section=brand-products&node=BP-04")}
-        >
-          <Mail className="h-6 w-6 text-indigo-600 dark:text-indigo-400 mb-2" />
-          <p className="text-sm font-semibold text-indigo-800 dark:text-indigo-200">Email Nurture</p>
-          <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">Activate your nurture sequence</p>
-        </Card>
-        <Card
-          className="p-4 border-purple-300 dark:border-purple-700 bg-purple-50/50 dark:bg-purple-950/30 cursor-pointer hover:ring-1 hover:ring-purple-400/40 transition-all"
-          onClick={() => navigate("/dashboard?section=brand-products&node=BP-03")}
-        >
-          <Share2 className="h-6 w-6 text-purple-600 dark:text-purple-400 mb-2" />
-          <p className="text-sm font-semibold text-purple-800 dark:text-purple-200">Social Media</p>
-          <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">Distribute across platforms</p>
-        </Card>
+        {publishChannels.emailNurture && (
+          <Card
+            className="p-4 border-indigo-300 dark:border-indigo-700 bg-indigo-50/50 dark:bg-indigo-950/30 cursor-pointer hover:ring-1 hover:ring-indigo-400/40 transition-all"
+            onClick={() => navigate("/dashboard?section=brand-products&node=BP-04")}
+          >
+            <Mail className="h-6 w-6 text-indigo-600 dark:text-indigo-400 mb-2" />
+            <p className="text-sm font-semibold text-indigo-800 dark:text-indigo-200">Email Nurture</p>
+            <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">Activate your nurture sequence</p>
+          </Card>
+        )}
+        {anySocial && (
+          <Card
+            className="p-4 border-purple-300 dark:border-purple-700 bg-purple-50/50 dark:bg-purple-950/30 cursor-pointer hover:ring-1 hover:ring-purple-400/40 transition-all"
+            onClick={() => navigate("/dashboard?section=brand-products&node=BP-03")}
+          >
+            <Share2 className="h-6 w-6 text-purple-600 dark:text-purple-400 mb-2" />
+            <p className="text-sm font-semibold text-purple-800 dark:text-purple-200">Social Media</p>
+            <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">{activatedPlatforms.join(", ")}</p>
+          </Card>
+        )}
       </div>
 
       <Card className="p-4 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30">
@@ -1237,13 +1376,15 @@ function PublishSuccessStep({ authorName, authorId, liveUrl, copied, onCopy }: {
           <div className="flex-1">
             <p className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-1">Abby says</p>
             <p className="text-sm text-amber-700 dark:text-amber-300">
-              Your lead magnet is live! Your nurture emails and social posts have been pushed to their respective nodes — activate them to start driving traffic and converting readers into customers.
+              Your lead magnet is live!{publishChannels.emailNurture ? " Your nurture emails have been pushed to Email Marketing." : ""}{anySocial ? ` Social posts for ${activatedPlatforms.join(", ")} are ready in Social Media.` : ""} Activate them to start driving traffic!
             </p>
           </div>
         </div>
       </Card>
 
-      <SocialDistributionPack authorId={authorId} content={socialPack} onContentLoaded={setSocialPack} />
+      {anySocial && (
+        <SocialDistributionPack authorId={authorId} content={socialPack} onContentLoaded={setSocialPack} />
+      )}
 
       <div className="flex flex-col sm:flex-row gap-3">
         <Button className="flex-1" size="lg" onClick={() => navigate("/dashboard?section=marketing-hub&highlight=lead-magnets")}>
