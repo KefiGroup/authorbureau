@@ -436,7 +436,7 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
               🏆
             </div>
             <h1 className="text-3xl sm:text-4xl font-extrabold mb-2" style={{ color: v.headingText, fontFamily: hFont }}>
-              Your Result: {resultTier.name || "Complete"}
+              Your Result: {tierName}
             </h1>
             <p className="text-lg" style={{ color: v.mutedText }}>
               You scored {totalScore} out of {maxScore}
@@ -462,13 +462,13 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
           )}
 
           {/* Tips */}
-          {resultTier.tips && resultTier.tips.length > 0 && (
+          {tierTips.length > 0 && (
             <div className="mb-8 p-6 rounded-xl" style={{ background: v.cardBg, border: `1px solid ${v.cardBorder}` }}>
               <h3 className="text-lg font-bold mb-4" style={{ color: v.headingText, fontFamily: hFont }}>
                 Personalised Recommendations
               </h3>
               <ul className="space-y-3">
-                {resultTier.tips.map((tip: string, i: number) => (
+                {tierTips.map((tip: string, i: number) => (
                   <li key={i} className="flex items-start gap-3">
                     <CheckCircle2 className="h-5 w-5 mt-0.5 shrink-0" style={{ color: accentColor }} />
                     <span style={{ color: v.bodyText }}>{tip}</span>
