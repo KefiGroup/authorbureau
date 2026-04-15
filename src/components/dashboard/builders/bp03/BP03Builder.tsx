@@ -7,26 +7,28 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Sparkles, ArrowLeft, ArrowRight, Check, Calendar, Hash, Clock, Settings, ChevronDown, ChevronUp } from "lucide-react";
+import { Sparkles, ArrowLeft, ArrowRight, Check, Calendar, Hash, Clock, Settings, ChevronDown, ChevronUp, Mail, Megaphone, Copy, Download } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
+import JSZip from "jszip";
 
-
-const STEPS = ["Introduction", "Generating", "Review", "Publish"];
+const STEPS = ["Introduction", "Generating", "Review", "Activate"];
 
 const GENERATING_MESSAGES = [
   "Studying your book's key themes and insights...",
-  "Crafting 30 days of social media posts...",
-  "Writing captions for LinkedIn, Instagram, Facebook, and Twitter/X...",
-  "Creating your hashtag strategy...",
-  "Building your content calendar...",
+  "Building your 4-week story arc...",
+  "Writing platform-specific posts for LinkedIn, Instagram, Facebook, and Twitter/X...",
+  "Creating your 30-day email nurture sequence...",
+  "Crafting your outreach templates...",
+  "Adding revenue-linked CTAs to every post...",
+  "Finalising your complete marketing kit...",
 ];
 
 const ACTIVATING_MESSAGES = [
   "Setting up your content calendar...",
-  "Scheduling your first week of posts...",
-  "Connecting your social media accounts...",
-  "Your social media is almost ready...",
+  "Scheduling your campaigns...",
+  "Your marketing kit is almost ready...",
 ];
 
 interface Props {
@@ -94,7 +96,6 @@ export default function BP03Builder({ authorId }: Props) {
         setContent(node.content_json);
         setStep(node.status === "live" ? 3 : 2);
         if (node.status === "live") {
-          // Mark as already activated so success shows immediately
           setTimeout(() => setContent((prev: any) => ({ ...prev, activated: true })), 0);
         }
       }
@@ -120,7 +121,6 @@ export default function BP03Builder({ authorId }: Props) {
         body: { author_id: authorId },
       });
       if (fnErr) {
-        console.error("BP-03 generate error:", fnErr);
         const msg = fnErr.message || "";
         if (msg.includes("401") || msg.includes("Unauthorized")) {
           throw new Error("Your session has expired. Please refresh the page and try again.");
@@ -143,21 +143,37 @@ export default function BP03Builder({ authorId }: Props) {
     setStep(3);
     setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("deploy-bp03-to-ghl", {
-        body: { author_id: authorId, content_payload: content },
-      });
-      if (fnErr) throw new Error(fnErr.message || "Activation failed");
-      const status = data?.status || "live";
-      setContent((prev: any) => ({ ...prev, activated: true, publishStatus: status }));
-      if (status === "published_pending_ghl") {
-        toast.success("Social Media saved ✅", { description: "Content saved — connect your Marketing Hub to go live." });
+      // Native ABBY activation — update author_nodes directly
+      const { data: existingNode } = await supabase
+        .from("author_nodes")
+        .select("id")
+        .eq("author_id", authorId!)
+        .eq("node_id", "BP-03")
+        .maybeSingle();
+
+      if (existingNode) {
+        await supabase.from("author_nodes").update({
+          status: "live",
+          content_json: content,
+          activated_at: new Date().toISOString(),
+        }).eq("id", existingNode.id);
       } else {
-        toast.success("Social Media is live! 🎉");
+        await supabase.from("author_nodes").insert({
+          author_id: authorId!,
+          node_id: "BP-03",
+          node_name: "Social Media",
+          status: "live",
+          content_json: content,
+          activated_at: new Date().toISOString(),
+        });
       }
+
+      setContent((prev: any) => ({ ...prev, activated: true }));
+      toast.success("Your social media campaigns are live! 🎉");
     } catch (e: any) {
-      console.error("Publish error (non-blocking):", e.message);
-      setContent((prev: any) => ({ ...prev, activated: true, publishStatus: "published_pending_ghl" }));
-      toast.success("Content saved ✅", { description: "Connect your Marketing Hub to go live." });
+      console.error("Publish error:", e.message);
+      setError(e.message);
+      setStep(2);
     }
   };
 
@@ -178,7 +194,6 @@ export default function BP03Builder({ authorId }: Props) {
           </Button>
           <div className="flex-1">
             <h1 className="text-lg font-semibold">Social Media</h1>
-            
           </div>
         </div>
       </div>
@@ -215,13 +230,11 @@ export default function BP03Builder({ authorId }: Props) {
             ) : (
               <>
                 <p className="text-muted-foreground mb-4">
-                  Hi {authorName}! Social media is how readers discover you and how your community grows.
-                  I'm going to create a complete 30-day social media content calendar for '{detectedBookTitle || "your book"}' —
-                  with posts for LinkedIn, Instagram, Facebook, and Twitter/X — all personalised to your book's themes and your audience.
-                  Everything will be scheduled automatically. Ready?
+                  Hi {authorName}! I'm going to create a complete marketing kit for '{detectedBookTitle || "your book"}' —
+                  120 social media posts across 4 platforms, a 30-day email nurture sequence, and 5 outreach templates — all personalised to your book's themes and audience. Ready?
                 </p>
                 <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>
-                  <Sparkles className="h-4 w-4 mr-2" /> Generate My Social Media
+                  <Sparkles className="h-4 w-4 mr-2" /> Generate My Marketing Kit
                 </Button>
               </>
             )}
@@ -239,12 +252,12 @@ export default function BP03Builder({ authorId }: Props) {
             <div className="space-y-4">
               <p className="text-muted-foreground font-medium animate-pulse">{GENERATING_MESSAGES[msgIndex]}</p>
               <Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" />
-              <p className="text-xs text-muted-foreground">This usually takes 30–60 seconds</p>
+              <p className="text-xs text-muted-foreground">This usually takes 60–90 seconds</p>
             </div>
           </AbbyCard>
         )}
 
-        {step === 2 && content && <ReviewStep content={content} authorName={authorName} onActivate={handlePublish} />}
+        {step === 2 && content && <ReviewStep content={content} authorName={authorName} bookTitle={bookTitle || detectedBookTitle || "your book"} onActivate={handlePublish} />}
 
         {step === 3 && !content?.activated && (
           <AbbyCard>
@@ -256,11 +269,7 @@ export default function BP03Builder({ authorId }: Props) {
         )}
 
         {step === 3 && content?.activated && (
-          <PublishSuccessScreen
-              nodeId="BP-03"
-              authorName={authorName}
-              penNameSlug={authorSlug}
-            />
+          <PublishSuccessScreen nodeId="BP-03" authorName={authorName} penNameSlug={authorSlug} />
         )}
       </div>
     </div>
@@ -298,130 +307,167 @@ const PLATFORM_LABELS: Record<string, string> = {
   twitter: "Twitter/X",
 };
 
-const POST_TYPE_COLORS: Record<string, string> = {
-  Quote: "bg-amber-500/10 text-amber-700",
-  Tip: "bg-blue-500/10 text-blue-700",
-  "Behind the Scenes": "bg-rose-500/10 text-rose-700",
-  "Book Excerpt": "bg-purple-500/10 text-purple-700",
-  Question: "bg-green-500/10 text-green-700",
-  Story: "bg-indigo-500/10 text-indigo-700",
-  Announcement: "bg-orange-500/10 text-orange-700",
+const WEEK_LABELS: Record<number, string> = {
+  1: "Week 1 — Establish the Problem",
+  2: "Week 2 — Introduce the Framework",
+  3: "Week 3 — Share Transformations",
+  4: "Week 4 — Make the Offer",
 };
 
-function ReviewStep({ content, authorName, onActivate }: { content: any; authorName: string; onActivate: () => void }) {
+function getWeek(day: number): number {
+  if (day <= 7) return 1;
+  if (day <= 14) return 2;
+  if (day <= 21) return 3;
+  return 4;
+}
+
+function ReviewStep({ content, authorName, bookTitle, onActivate }: { content: any; authorName: string; bookTitle: string; onActivate: () => void }) {
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownloadZip = async () => {
+    setDownloading(true);
+    try {
+      const zip = new JSZip();
+      const folder = zip.folder(`${bookTitle.replace(/[^a-zA-Z0-9 ]/g, "").replace(/\s+/g, "_")}_Marketing_Kit`)!;
+
+      // Social media posts by platform
+      const socialFolder = folder.folder("social_media")!;
+      for (const platform of ["linkedin", "instagram", "facebook", "twitter"]) {
+        const posts = content.posts?.map((p: any) => `--- Day ${p.day}: ${p.theme} ---\n${p[platform]?.caption || ""}\nHashtags: ${(p[platform]?.hashtags || []).map((h: string) => `#${h}`).join(" ")}\n`).join("\n");
+        socialFolder.file(`${PLATFORM_LABELS[platform]?.toLowerCase().replace("/", "_") || platform}_posts.txt`, posts || "");
+      }
+
+      // Email sequence
+      if (content.email_sequence?.length) {
+        const emailFolder = folder.folder("email_sequence")!;
+        const emailContent = content.email_sequence.map((e: any, i: number) =>
+          `--- Email ${i + 1} (Day ${e.day}) ---\nSubject A: ${e.subject_a}\nSubject B: ${e.subject_b}\nPreview: ${e.preview_text}\n\n${e.body}\n\nCTA: ${e.cta}\n`
+        ).join("\n\n");
+        emailFolder.file("30_day_email_sequence.txt", emailContent);
+      }
+
+      // Outreach kit
+      if (content.outreach_kit?.length) {
+        const outreachFolder = folder.folder("outreach_kit")!;
+        for (const template of content.outreach_kit) {
+          const filename = template.type.toLowerCase().replace(/[^a-z0-9]+/g, "_") + ".txt";
+          outreachFolder.file(filename, `--- ${template.type} ---\nSubject: ${template.subject}\n\n${template.body}\n`);
+        }
+      }
+
+      // README
+      folder.file("README.txt", `${bookTitle} — Complete Marketing Kit\nGenerated by ABBY for ${authorName}\n\nContents:\n- social_media/ — 120 posts across 4 platforms (30 days × 4 platforms)\n- email_sequence/ — 30-day email nurture sequence with A/B subjects\n- outreach_kit/ — 5 outreach templates (podcast, media, review, book club, referral)\n\nAll content follows a 4-week story arc personalised to your book.\n`);
+
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${bookTitle.replace(/[^a-zA-Z0-9 ]/g, "").replace(/\s+/g, "_")}_Marketing_Kit.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Marketing Kit downloaded!");
+    } catch (e: any) {
+      toast.error("Download failed: " + e.message);
+    }
+    setDownloading(false);
+  };
+
+  const totalPosts = (content.posts?.length || 30) * 4;
+
   return (
     <div className="space-y-4">
       <AbbyCard>
-        <p className="text-muted-foreground">{content.abby_summary}</p>
+        <p className="text-muted-foreground">
+          Your complete marketing kit is ready! You have {totalPosts} social posts across 4 platforms, a 30-day email sequence, and a full outreach kit — all personalised to your book. Review everything below, then click Activate.
+        </p>
       </AbbyCard>
 
       <Tabs defaultValue="calendar" className="w-full">
-        <TabsList className="w-full grid grid-cols-4 h-auto">
+        <TabsList className="w-full grid grid-cols-3 h-auto">
           <TabsTrigger value="calendar" className="text-xs py-2">
-            <Calendar className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Calendar
+            <Calendar className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Social Calendar
           </TabsTrigger>
-          <TabsTrigger value="hashtags" className="text-xs py-2">
-            <Hash className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Hashtags
+          <TabsTrigger value="emails" className="text-xs py-2">
+            <Mail className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Email Sequence
           </TabsTrigger>
-          <TabsTrigger value="schedule" className="text-xs py-2">
-            <Clock className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Schedule
-          </TabsTrigger>
-          <TabsTrigger value="details" className="text-xs py-2">
-            <Settings className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Details
+          <TabsTrigger value="outreach" className="text-xs py-2">
+            <Megaphone className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Outreach Kit
           </TabsTrigger>
         </TabsList>
 
+        {/* Social Calendar Tab */}
         <TabsContent value="calendar" className="space-y-2 mt-4">
-          {content.posts?.map((post: any) => (
-            <PostCard key={post.day} post={post} />
-          ))}
-        </TabsContent>
-
-        <TabsContent value="hashtags" className="mt-4">
-          <Card>
-            <CardContent className="pt-6 space-y-4">
-              <div>
-                <h4 className="text-sm font-semibold mb-2">Your Branded Hashtag</h4>
-                <Badge className="text-sm px-3 py-1 bg-primary/10 text-primary">{content.hashtag_strategy?.author_hashtag}</Badge>
+          {/* Week grouping */}
+          {[1, 2, 3, 4].map(week => {
+            const weekPosts = content.posts?.filter((p: any) => getWeek(p.day) === week) || [];
+            if (weekPosts.length === 0) return null;
+            return (
+              <div key={week} className="space-y-2">
+                <h3 className="text-sm font-semibold text-muted-foreground mt-4">{WEEK_LABELS[week]}</h3>
+                {weekPosts.map((post: any) => (
+                  <PostCard key={post.day} post={post} />
+                ))}
               </div>
-              <div>
-                <h4 className="text-sm font-semibold mb-2">Primary Hashtags</h4>
-                <div className="flex flex-wrap gap-2">
-                  {content.hashtag_strategy?.primary_hashtags?.map((h: string) => (
-                    <Badge key={h} variant="secondary" className="text-sm">{h}</Badge>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <h4 className="text-sm font-semibold mb-2">Supporting Hashtags</h4>
+            );
+          })}
+          {/* Hashtag strategy */}
+          {content.hashtag_strategy && (
+            <Card className="mt-4">
+              <CardContent className="pt-4 space-y-3">
+                <h4 className="text-sm font-semibold flex items-center gap-2"><Hash className="h-3.5 w-3.5" /> Hashtag Strategy</h4>
                 <div className="flex flex-wrap gap-1.5">
-                  {content.hashtag_strategy?.secondary_hashtags?.map((h: string) => (
-                    <Badge key={h} variant="outline" className="text-xs">{h}</Badge>
+                  <Badge className="bg-primary/10 text-primary">{content.hashtag_strategy.author_hashtag}</Badge>
+                  {content.hashtag_strategy.primary_hashtags?.map((h: string) => (
+                    <Badge key={h} variant="secondary" className="text-xs">{h}</Badge>
                   ))}
                 </div>
-              </div>
-              <p className="text-xs text-muted-foreground italic">These hashtags are researched for your specific niche and book topic.</p>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
-        <TabsContent value="schedule" className="mt-4">
-          <Card>
-            <CardContent className="pt-6 space-y-3">
-              <div>
-                <span className="text-xs text-muted-foreground">Recommended Days</span>
-                <div className="flex gap-2 mt-1">
-                  {content.posting_schedule?.recommended_days?.map((d: string) => (
-                    <Badge key={d} variant="secondary">{d}</Badge>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <span className="text-xs text-muted-foreground">Recommended Time</span>
-                <p className="font-medium">{content.posting_schedule?.recommended_time}</p>
-              </div>
-              <div>
-                <span className="text-xs text-muted-foreground">Why This Schedule</span>
-                <p className="text-sm text-muted-foreground">{content.posting_schedule?.rationale}</p>
-              </div>
-              <p className="text-xs text-muted-foreground italic mt-2">Your posts will be scheduled automatically according to this calendar.</p>
-            </CardContent>
-          </Card>
+        {/* Email Sequence Tab */}
+        <TabsContent value="emails" className="mt-4 space-y-3">
+          <AbbyCard>
+            <p className="text-sm text-muted-foreground">
+              These 30 emails follow the same story arc as your social posts — so your followers and your email list hear the same message at the same time.
+            </p>
+          </AbbyCard>
+          {content.email_sequence?.map((email: any, i: number) => (
+            <EmailCard key={i} email={email} index={i} />
+          ))}
+          {(!content.email_sequence || content.email_sequence.length === 0) && (
+            <p className="text-sm text-muted-foreground text-center py-4">Email sequence will appear here after generation.</p>
+          )}
         </TabsContent>
 
-        <TabsContent value="details" className="mt-4">
-          <Card>
-            <CardContent className="pt-6 space-y-3">
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Calendar name</span>
-                <span className="text-sm font-medium">{content.calendar_name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Total posts</span>
-                <span className="text-sm font-medium">{content.posts?.length || 30} posts</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Platforms</span>
-                <span className="text-sm font-medium">LinkedIn, Instagram, Facebook, Twitter/X</span>
-              </div>
-              <p className="text-xs text-muted-foreground italic">
-                30 posts ready across 4 platforms (LinkedIn, Instagram, Facebook, Twitter/X).
-              </p>
-            </CardContent>
-          </Card>
+        {/* Outreach Kit Tab */}
+        <TabsContent value="outreach" className="mt-4 space-y-3">
+          <AbbyCard>
+            <p className="text-sm text-muted-foreground">
+              These 5 templates will help you get on podcasts, in the press, and in front of book clubs. Personalised to your book — just copy, paste, and send.
+            </p>
+          </AbbyCard>
+          {content.outreach_kit?.map((template: any, i: number) => (
+            <OutreachCard key={i} template={template} />
+          ))}
+          {(!content.outreach_kit || content.outreach_kit.length === 0) && (
+            <p className="text-sm text-muted-foreground text-center py-4">Outreach templates will appear here after generation.</p>
+          )}
         </TabsContent>
       </Tabs>
 
+      {/* Actions */}
       <div className="flex flex-col sm:flex-row gap-3 pt-2">
-        <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon. Activate now and request changes from ABBY later.")}>
-          Edit
+        <Button variant="outline" className="flex-1" onClick={handleDownloadZip} disabled={downloading}>
+          <Download className="h-4 w-4 mr-2" />{downloading ? "Downloading..." : "Download Marketing Kit"}
         </Button>
         <Button className="flex-1" size="lg" onClick={onActivate}>
-          Publish to My Site<ArrowRight className="h-4 w-4 ml-2" />
+          Activate <ArrowRight className="h-4 w-4 ml-2" />
         </Button>
       </div>
       <p className="text-xs text-center text-muted-foreground">
-        Your 30-day content calendar will be scheduled automatically. You can review and adjust any post before it goes live.
+        {totalPosts} posts ready across 4 platforms + 30 emails + 5 outreach templates.
       </p>
     </div>
   );
@@ -430,7 +476,6 @@ function ReviewStep({ content, authorName, onActivate }: { content: any; authorN
 function PostCard({ post }: { post: any }) {
   const [open, setOpen] = useState(false);
   const [platform, setPlatform] = useState("linkedin");
-  const typeColor = POST_TYPE_COLORS[post.post_type] || "bg-muted text-muted-foreground";
   const platformData = post[platform];
 
   return (
@@ -440,7 +485,8 @@ function PostCard({ post }: { post: any }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-xs bg-muted px-2 py-0.5 rounded font-medium">Day {post.day}</span>
-              <Badge className={`text-[10px] px-1.5 py-0 ${typeColor}`}>{post.post_type}</Badge>
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{post.post_type}</Badge>
+              {post.cta_type && <Badge variant="outline" className="text-[10px] px-1.5 py-0">{post.cta_type}</Badge>}
             </div>
             <p className="font-medium text-sm truncate">{post.theme}</p>
           </div>
@@ -450,13 +496,7 @@ function PostCard({ post }: { post: any }) {
           <div className="mt-3 pt-3 border-t border-border space-y-3" onClick={(e) => e.stopPropagation()}>
             <div className="flex gap-1">
               {(["linkedin", "instagram", "facebook", "twitter"] as const).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setPlatform(p)}
-                  className={`px-2 py-1 rounded text-[10px] font-medium transition-colors ${
-                    platform === p ? PLATFORM_COLORS[p] : "bg-muted text-muted-foreground"
-                  }`}
-                >
+                <button key={p} onClick={() => setPlatform(p)} className={`px-2 py-1 rounded text-[10px] font-medium transition-colors ${platform === p ? PLATFORM_COLORS[p] : "bg-muted text-muted-foreground"}`}>
                   {PLATFORM_LABELS[p]}
                 </button>
               ))}
@@ -476,4 +516,75 @@ function PostCard({ post }: { post: any }) {
   );
 }
 
-// SuccessStep replaced by NodeSuccessScreen
+function EmailCard({ email, index }: { email: any; index: number }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Card className="cursor-pointer" onClick={() => setOpen(!open)}>
+      <CardContent className="pt-4 pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs bg-muted px-2 py-0.5 rounded font-medium">Day {email.day || index + 1}</span>
+              <Badge variant="outline" className="text-[10px]">Email {index + 1}</Badge>
+            </div>
+            <p className="font-medium text-sm truncate">{email.subject_a}</p>
+            {email.subject_b && <p className="text-xs text-muted-foreground truncate">A/B: {email.subject_b}</p>}
+          </div>
+          {open ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
+        </div>
+        {open && (
+          <div className="mt-3 pt-3 border-t border-border space-y-3" onClick={(e) => e.stopPropagation()}>
+            {email.preview_text && (
+              <div>
+                <span className="text-xs font-medium text-muted-foreground">Preview:</span>
+                <p className="text-sm text-muted-foreground">{email.preview_text}</p>
+              </div>
+            )}
+            <div>
+              <span className="text-xs font-medium text-muted-foreground">Body:</span>
+              <p className="text-sm text-muted-foreground whitespace-pre-line mt-1">{email.body}</p>
+            </div>
+            {email.cta && (
+              <div>
+                <span className="text-xs font-medium text-muted-foreground">CTA:</span>
+                <p className="text-sm font-medium">{email.cta}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function OutreachCard({ template }: { template: any }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const text = `Subject: ${template.subject}\n\n${template.body}`;
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    toast.success("Template copied!");
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <Card>
+      <CardContent className="pt-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <h4 className="text-sm font-semibold">{template.type}</h4>
+          <Button variant="ghost" size="sm" onClick={handleCopy}>
+            <Copy className="h-3.5 w-3.5 mr-1" />{copied ? "Copied!" : "Copy"}
+          </Button>
+        </div>
+        <div>
+          <span className="text-xs font-medium text-muted-foreground">Subject:</span>
+          <p className="text-sm font-medium">{template.subject}</p>
+        </div>
+        <p className="text-sm text-muted-foreground whitespace-pre-line">{template.body}</p>
+      </CardContent>
+    </Card>
+  );
+}

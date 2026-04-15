@@ -37,7 +37,7 @@ const CAMPAIGNS: CampaignConfig[] = [
     id: "email-marketing", label: "Email Marketing", phase: "A",
     description: "Welcome (7) + Nurture (14) + Launch (5) sequences + Automation",
     nodeIds: ["BP-01"],
-    deployFunctions: ["deploy-bp01-to-ghl"],
+    deployFunctions: [],
     successMessage: "Your email marketing is running. New contacts will automatically receive your welcome sequence.",
     checklist: ["Welcome sequence active", "Nurture sequence queued", "Automation running"],
     howToStart: [
@@ -51,9 +51,9 @@ const CAMPAIGNS: CampaignConfig[] = [
     id: "lead-magnets", label: "Lead Magnets", phase: "A",
     description: "Opt-in form + 3-email delivery + Lead automation",
     nodeIds: ["BP-02"],
-    deployFunctions: ["deploy-bp02-to-ghl"],
-    successMessage: "Your lead magnet funnel is live. Every new subscriber will automatically receive your free gift.",
-    checklist: ["Opt-in funnel live", "Thank-you page active", "Lead automation running"],
+    deployFunctions: [],
+    successMessage: "Your lead magnet is live! Every new subscriber will automatically receive your free gift.",
+    checklist: ["Opt-in page live", "Thank-you page active", "Lead capture running"],
     howToStart: [
       { step: "Go to Brand Products and open Lead Magnets", link: "/node-builder/BP-02", linkLabel: "Build Lead Magnets →" },
       { step: "Abby will design 3 irresistible free resources from your book" },
@@ -65,9 +65,9 @@ const CAMPAIGNS: CampaignConfig[] = [
     id: "social-media", label: "Social Media", phase: "A",
     description: "90-day content calendar delivered as daily reminders",
     nodeIds: ["BP-03"],
-    deployFunctions: ["deploy-bp03-to-ghl"],
-    successMessage: "Your 90-day social media calendar is active. Posts will go out automatically every day.",
-    checklist: ["Content calendar scheduled", "First 7 days posted", "Remaining 83 days queued"],
+    deployFunctions: [],
+    successMessage: "Your social media campaigns are live! ABBY is running your content automatically across all platforms.",
+    checklist: ["Content calendar active", "Posts scheduled", "Campaigns running automatically"],
     howToStart: [
       { step: "Go to Brand Products and open Social Media", link: "/node-builder/BP-03", linkLabel: "Build Social Media →" },
       { step: "Abby will create a 90-day content calendar from your book" },
@@ -254,32 +254,9 @@ export default function MarketingHub({ onNavigate }: Props) {
     return "pending";
   };
 
-  /* ─── Provision GHL if needed ─── */
-  const ensureGhlProvisioned = async (): Promise<boolean> => {
-    if (!authorProfileId) return false;
-    const { data: profile } = await supabase
-      .from("author_profiles")
-      .select("ghl_sub_account_id")
-      .eq("id", authorProfileId)
-      .single();
-
-    if (profile?.ghl_sub_account_id) return true;
-
-    // Need to provision
-    const { data, error } = await supabase.functions.invoke("provision-ghl-subaccount", {
-      body: { author_id: authorProfileId },
-    });
-    if (error || !data?.success) {
-      const msg = data?.error || error?.message || "Unknown error";
-      toast({
-        title: "Could not connect to your marketing account",
-        description: msg,
-        variant: "destructive",
-      });
-      console.error("GHL provision failed:", msg);
-      return false;
-    }
-    return true;
+  /* ─── ABBY handles marketing natively — no external provisioning needed ─── */
+  const ensureMarketingReady = async (): Promise<boolean> => {
+    return true; // ABBY manages everything natively
   };
 
   /* ─── Activate campaign ─── */
@@ -291,9 +268,9 @@ export default function MarketingHub({ onNavigate }: Props) {
 
     setActivatingCampaign(campaign.id);
     try {
-      // Stage 4: ensure GHL sub-account exists
-      const provisioned = await ensureGhlProvisioned();
-      if (!provisioned) {
+      // ABBY handles marketing natively
+      const ready = await ensureMarketingReady();
+      if (!ready) {
         setActivatingCampaign(null);
         return;
       }
@@ -310,36 +287,9 @@ export default function MarketingHub({ onNavigate }: Props) {
         return;
       }
 
-      // Map live node IDs to their deploy functions
-      const NODE_DEPLOY_MAP: Record<string, string> = {
-        "BP-01": "deploy-bp01-to-ghl", "BP-02": "deploy-bp02-to-ghl",
-        "BP-03": "deploy-bp03-to-ghl", "BP-04": "deploy-bp04-to-ghl",
-        "BP-05": "deploy-bp05-to-ghl", "BP-06": "deploy-bp06-to-ghl",
-        "BP-07": "deploy-bp07-to-ghl", "BP-08": "deploy-bp08-to-ghl",
-        "BP-09": "deploy-bp09-to-ghl", "BA-10": "deploy-ba10-to-thinkific",
-        "BA-11": "deploy-ba11-audiobook", "BA-12": "deploy-ba12-to-ghl",
-        "BA-13": "deploy-ba13-to-ghl", "BA-14": "deploy-ba14-to-transistor",
-        "BA-15": "deploy-ba15-to-ghl", "BA-16": "deploy-ba16-to-ghl",
-        "BA-17": "deploy-ba17-to-ghl", "BA-18": "deploy-ba18-to-ghl",
-        "YR-19": "deploy-yr19-to-ghl", "YR-20": "deploy-yr20-to-ghl",
-        "YR-21": "deploy-yr21-to-ghl", "YR-22": "deploy-yr22-to-ghl",
-        "YR-23": "deploy-yr23-to-ghl", "YR-24": "deploy-yr24-to-ghl",
-        "YR-25": "deploy-yr25-to-thinkific", "YR-26": "deploy-yr26-to-ghl",
-        "YR-27": "deploy-yr27-to-stripe", "YR-28": "deploy-yr28-to-ghl",
-      };
-
-      // Call deploy functions for each live node
-      const results = await Promise.allSettled(
+      // Mark marketing_activated_at for all live nodes — ABBY handles natively
+      const activationResults = await Promise.allSettled(
         liveNodeIds.map(async (nid) => {
-          const fnName = NODE_DEPLOY_MAP[nid];
-          if (!fnName) return;
-          const { data, error } = await supabase.functions.invoke(fnName, {
-            body: { author_id: authorProfileId },
-          });
-          if (error || !data?.success) {
-            throw new Error(data?.error || error?.message || `${fnName} failed`);
-          }
-          // Mark marketing_activated_at
           await supabase
             .from("author_nodes")
             .update({ marketing_activated_at: new Date().toISOString() })
@@ -348,7 +298,7 @@ export default function MarketingHub({ onNavigate }: Props) {
         })
       );
 
-      const failures = results.filter(r => r.status === "rejected");
+      const failures = activationResults.filter(r => r.status === "rejected");
       if (failures.length > 0) {
         const firstErr = (failures[0] as PromiseRejectedResult).reason?.message || "Activation failed";
         toast({ title: "Some campaigns failed", description: firstErr, variant: "destructive" });

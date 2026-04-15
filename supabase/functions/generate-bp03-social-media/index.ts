@@ -24,48 +24,105 @@ serve(async (req) => {
 
     const authorName = profile?.pen_name || "Author";
     const genre = profile?.genre || "general";
+    const keyFrameworks = JSON.stringify(ctx.key_frameworks || []);
+    const uniqueInsights = JSON.stringify(ctx.unique_insights || []);
+    const audiencePersona = JSON.stringify(ctx.target_audience_persona || {});
 
-    const userPrompt = `Create a complete 30-day social media content calendar for ${authorName}'s book '${ctx.book_title}'.
+    const userPrompt = `Create a complete 30-day marketing kit for ${authorName}'s book '${ctx.book_title}'.
 
 Book details:
 - Title: ${ctx.book_title}
 - Subtitle: ${ctx.book_subtitle || "N/A"}
 - Core thesis: ${ctx.core_thesis}
-- Target audience: ${JSON.stringify(ctx.target_audience_persona || {})}
-- Key frameworks: ${JSON.stringify(ctx.key_frameworks || [])}
-- Unique insights: ${JSON.stringify(ctx.unique_insights || [])}
+- Target audience persona: ${audiencePersona}
+- Key frameworks: ${keyFrameworks}
+- Unique insights: ${uniqueInsights}
 - Niche: ${genre}
 
-Generate the following as a JSON object with these exact keys:
+IMPORTANT INSTRUCTIONS:
+
+1. SOCIAL MEDIA — Generate exactly 30 posts. Each post MUST have platform-specific content for all 4 platforms with these requirements:
+   - LinkedIn: Narrative with line breaks, insight-driven, professional thought leadership tone, 150–200 words
+   - Instagram: Visual-first caption, hook in line 1, conversational and aspirational, 80–120 words
+   - Facebook: Story-format post with question at end, warm community-focused tone, 100–150 words
+   - Twitter/X: Sharp thread opener, punchy and provocative, 40–60 words
+
+2. 4-WEEK STORY ARC — Posts MUST follow this narrative structure:
+   - Week 1 (Days 1–7): Establish the Problem — Surface the pain from the book's opening chapters
+   - Week 2 (Days 8–14): Introduce the Framework — Name the author's methodology, tease the solution using key_frameworks
+   - Week 3 (Days 15–21): Share Transformations — Social proof, reader results, case studies from the book
+   - Week 4 (Days 22–30): Make the Offer — Direct promotion, book/workbook/course/webinar, urgency
+
+3. REVENUE-LINKED CTAs — Every post must end with a CTA:
+   - Tips/Insights posts: "Get the full framework in ${ctx.book_title} — link in bio"
+   - Story posts: "This is from my book. Want the rest? Link in bio."
+   - Engagement posts: "Comment YES if you want my free [lead magnet]"
+   - Week 3 social proof: "This could be your story. Start here → [book link]"
+   - Week 4 promotional: "Get ${ctx.book_title} now — link in bio"
+   - Every 7th post: Direct lead magnet opt-in CTA
+
+4. EMAIL SEQUENCE — Generate exactly 30 emails matching the same 4-week story arc. Each email has:
+   - subject_a and subject_b (A/B test variants)
+   - preview_text
+   - body (200-400 words, matches the day's social theme)
+   - cta (specific action with link placeholder)
+   - day (1-30)
+
+5. OUTREACH KIT — Generate exactly 5 templates:
+   - Podcast Pitch Email (200–250 words)
+   - Media / Press Pitch Email (200–250 words)
+   - Book Review Request Email (100–150 words)
+   - Book Club Outreach Email (150–200 words)
+   - Colleague / Friend Referral Email (80–100 words)
+   Each has: type, subject, body
+
+Respond with valid JSON only (no markdown fences):
 {
-  "calendar_name": "Name for this author's social media calendar (e.g., ${authorName} 30-Day Book Launch Calendar)",
+  "calendar_name": "Name for this calendar",
   "hashtag_strategy": {
-    "primary_hashtags": ["3-5 main hashtags specific to the book topic"],
-    "secondary_hashtags": ["5-8 supporting hashtags for reach"],
-    "author_hashtag": "A unique branded hashtag for this author"
+    "primary_hashtags": ["3-5 main hashtags"],
+    "secondary_hashtags": ["5-8 supporting hashtags"],
+    "author_hashtag": "#UniqueAuthorHashtag"
   },
   "posts": [
     {
       "day": 1,
-      "post_type": "Type of post (Quote, Tip, Behind the Scenes, Book Excerpt, Question, Story, or Announcement)",
-      "theme": "The core message or theme of this post",
-      "linkedin": { "caption": "Full LinkedIn caption (150-300 words, professional tone, includes call to action)", "hashtags": ["3-5 relevant hashtags"] },
-      "instagram": { "caption": "Full Instagram caption (100-200 words, engaging tone, includes call to action)", "hashtags": ["8-12 relevant hashtags"] },
-      "facebook": { "caption": "Full Facebook caption (100-200 words, conversational tone)", "hashtags": ["3-5 relevant hashtags"] },
-      "twitter": { "caption": "Twitter/X post (max 280 characters, punchy and direct)", "hashtags": ["2-3 relevant hashtags"] }
+      "post_type": "Type (Quote, Tip, Behind the Scenes, Book Excerpt, Question, Story, Announcement)",
+      "theme": "Core message",
+      "cta_type": "insight|story|engagement|social_proof|promotional|lead_magnet",
+      "linkedin": { "caption": "...", "hashtags": ["..."] },
+      "instagram": { "caption": "...", "hashtags": ["..."] },
+      "facebook": { "caption": "...", "hashtags": ["..."] },
+      "twitter": { "caption": "...", "hashtags": ["..."] }
+    }
+  ],
+  "email_sequence": [
+    {
+      "day": 1,
+      "subject_a": "Subject line variant A",
+      "subject_b": "Subject line variant B",
+      "preview_text": "Preview text",
+      "body": "Full email body",
+      "cta": "Call to action"
+    }
+  ],
+  "outreach_kit": [
+    {
+      "type": "Podcast Pitch Email",
+      "subject": "Subject line",
+      "body": "Full template body"
     }
   ],
   "posting_schedule": {
     "recommended_days": ["Monday", "Wednesday", "Friday"],
     "recommended_time": "9:00 AM local time",
-    "rationale": "One sentence explaining why this schedule works for this author's audience"
+    "rationale": "Why this schedule works"
   },
-  "abby_summary": "A 2-3 sentence summary from ABBY explaining what she created and why this social media strategy will grow this author's audience"
+  "abby_summary": "2-3 sentence summary of what was created"
 }
 
-The posts array must have exactly 30 items (Day 1 through Day 30).
-Vary the post types — do not repeat the same type more than 3 times in a row.
-Make all captions specific to this author's book themes and insights. Never use generic placeholder text.`;
+The posts array must have exactly 30 items. The email_sequence array must have exactly 30 items. The outreach_kit array must have exactly 5 items.
+Make ALL content specific to this author's book themes, frameworks, and insights. Never use generic placeholder text.`;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -86,7 +143,7 @@ Make all captions specific to this author's book themes and insights. Never use 
           { role: "user", content: userPrompt },
         ],
         temperature: 0.8,
-        max_tokens: 16000,
+        max_tokens: 32000,
       }),
     });
 
@@ -112,7 +169,7 @@ Make all captions specific to this author's book themes and insights. Never use 
       await sb.from("author_nodes").update({
         status: "content_ready",
         content_json: parsed,
-        personalised_name: parsed.calendar_name || "Social Media Calendar",
+        personalised_name: parsed.calendar_name || "Social Media Marketing Kit",
       }).eq("id", existingNode.id);
     } else {
       await sb.from("author_nodes").insert({
@@ -121,7 +178,7 @@ Make all captions specific to this author's book themes and insights. Never use 
         node_name: "Social Media",
         status: "content_ready",
         content_json: parsed,
-        personalised_name: parsed.calendar_name || "Social Media Calendar",
+        personalised_name: parsed.calendar_name || "Social Media Marketing Kit",
       });
     }
 
