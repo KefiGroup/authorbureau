@@ -9,7 +9,8 @@ import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Sparkles, ArrowLeft, ArrowRight, Check, Gift, FileText, ThumbsUp, Settings, Star, Copy, ExternalLink, Link2, QrCode, HelpCircle, ChevronDown, Mail, Share2, Save, Pencil, Users, BarChart3 } from "lucide-react";
+import { Sparkles, ArrowLeft, ArrowRight, Check, Gift, FileText, ThumbsUp, Settings, Star, Copy, ExternalLink, Link2, QrCode, HelpCircle, ChevronDown, Mail, Share2, Save, Pencil, Users, BarChart3, Globe } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { categoryStyles } from "../shared/BuilderTheme";
 import { QRCodeSVG } from "qrcode.react";
 import SocialDistributionPack from "./SocialDistributionPack";
@@ -43,6 +44,24 @@ interface Props {
   authorId: string | null;
 }
 
+export interface PublishChannels {
+  optinPage: boolean;
+  emailNurture: boolean;
+  linkedin: boolean;
+  instagram: boolean;
+  facebook: boolean;
+  x: boolean;
+}
+
+const DEFAULT_CHANNELS: PublishChannels = {
+  optinPage: true,
+  emailNurture: true,
+  linkedin: false,
+  instagram: false,
+  facebook: false,
+  x: false,
+};
+
 export default function BP02Builder({ authorId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
@@ -57,6 +76,7 @@ export default function BP02Builder({ authorId }: Props) {
   const [copied, setCopied] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [publishChannels, setPublishChannels] = useState<PublishChannels>({ ...DEFAULT_CHANNELS });
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
 
@@ -209,8 +229,8 @@ export default function BP02Builder({ authorId }: Props) {
         });
       }
 
-      // Push nurture emails to BP-04 (Email Marketing)
-      if (content.nurture_sequence || content.nurture_emails) {
+      // Push nurture emails to BP-04 (Email Marketing) — only if channel selected
+      if (publishChannels.emailNurture && (content.nurture_sequence || content.nurture_emails)) {
         const emailContent = content.nurture_sequence || content.nurture_emails;
         const { data: bp04Node } = await supabase
           .from("author_nodes")
@@ -237,9 +257,25 @@ export default function BP02Builder({ authorId }: Props) {
         }
       }
 
-      // Push social posts to BP-03 (Social Media)
-      if (content.social_media_posts || content.social_posts) {
-        const socialContent = content.social_media_posts || content.social_posts;
+      // Push social posts to BP-03 (Social Media) — only selected platforms
+      const anySocial = publishChannels.linkedin || publishChannels.instagram || publishChannels.facebook || publishChannels.x;
+      if (anySocial && (content.social_media_posts || content.social_posts)) {
+        const allSocial = content.social_media_posts || content.social_posts;
+        const platformMap: Record<string, keyof PublishChannels> = {
+          linkedin: "linkedin",
+          instagram: "instagram",
+          facebook: "facebook",
+          x: "x",
+          twitter: "x",
+        };
+        const filteredSocial = Array.isArray(allSocial)
+          ? allSocial.filter((post: any) => {
+              const p = (post.platform || "").toLowerCase();
+              const key = platformMap[p];
+              return key ? publishChannels[key] : false;
+            })
+          : allSocial;
+
         const { data: bp03Node } = await supabase
           .from("author_nodes")
           .select("id")
@@ -248,7 +284,7 @@ export default function BP02Builder({ authorId }: Props) {
           .maybeSingle();
 
         const bp03Payload = {
-          content_json: { social_posts: socialContent, quiz_insights: content.quiz_insights_for_social, source: "BP-02" },
+          content_json: { social_posts: filteredSocial, quiz_insights: content.quiz_insights_for_social, source: "BP-02" },
           status: "content_ready",
           personalised_name: "Lead Magnet Social Posts",
         };
