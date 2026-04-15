@@ -29,7 +29,7 @@ serve(async (req) => {
     let audiencePersona = JSON.stringify(ctx?.target_audience_persona || {});
 
     if (!bookTitle) {
-      const { data: book } = await sb.from("books").select("title, subtitle, description").eq("author_id", author_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      const { data: book } = await sb.from("books").select("title, subtitle, description").eq("author_id", profile?.user_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
       if (book) {
         bookTitle = book.title || "";
         bookSubtitle = book.subtitle || "";
