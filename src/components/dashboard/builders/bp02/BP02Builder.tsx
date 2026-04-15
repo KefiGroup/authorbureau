@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Gift, FileText, ThumbsUp, Settings, Star, Copy, ExternalLink, Link2, QrCode, HelpCircle, ChevronDown, Mail, Share2, Save, Pencil, Users, BarChart3 } from "lucide-react";
+import { categoryStyles } from "../shared/BuilderTheme";
 import { QRCodeSVG } from "qrcode.react";
 import SocialDistributionPack from "./SocialDistributionPack";
 
@@ -297,7 +298,7 @@ export default function BP02Builder({ authorId }: Props) {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="border-b border-border bg-card px-4 py-3">
+      <div className={`border-b border-border bg-gradient-to-r ${categoryStyles.brand.headerGradient} px-4 py-3`}>
         <div className="max-w-3xl mx-auto flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate("/brand-products")}>
             <ArrowLeft className="h-4 w-4" />
@@ -313,8 +314,8 @@ export default function BP02Builder({ authorId }: Props) {
           {STEPS.map((label, i) => (
             <div key={label} className="flex items-center gap-1 flex-1">
               <div className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold shrink-0 ${
-                i < step ? "bg-primary text-primary-foreground"
-                : i === step ? "bg-primary text-primary-foreground ring-2 ring-primary/30"
+                i < step ? categoryStyles.brand.stepDone
+                : i === step ? categoryStyles.brand.stepActiveRing
                 : "bg-muted text-muted-foreground"
               }`}>
                 {i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}
@@ -401,12 +402,14 @@ export default function BP02Builder({ authorId }: Props) {
 /* ---- Sub-components ---- */
 
 function AbbyCard({ children }: { children: React.ReactNode }) {
+  const s = categoryStyles.brand;
   return (
-    <Card className="border-primary/20 bg-primary/5">
-      <CardContent className="pt-6">
+    <Card className={`${s.border} ${s.bg} ${s.glowShadow} overflow-hidden relative`}>
+      <div className={`absolute left-0 top-0 bottom-0 w-1 ${s.leftStrip}`} />
+      <CardContent className="pt-6 pl-7">
         <div className="flex gap-3">
-          <div className="shrink-0 w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-            <Sparkles className="h-5 w-5 text-primary" />
+          <div className={`shrink-0 w-10 h-10 rounded-full ${s.iconBg} flex items-center justify-center`}>
+            <Sparkles className={`h-5 w-5 ${s.iconText}`} />
           </div>
           <div className="flex-1 min-w-0">{children}</div>
         </div>
