@@ -1237,17 +1237,26 @@ function ReviewStep({
   );
 }
 
-function PublishSuccessStep({ authorName, authorId, liveUrl, copied, onCopy }: {
+function PublishSuccessStep({ authorName, authorId, liveUrl, copied, onCopy, publishChannels }: {
   authorName: string;
   authorId: string;
   liveUrl: string | null;
   copied: boolean;
   onCopy: () => void;
+  publishChannels: PublishChannels;
 }) {
   const navigate = useNavigate();
   const [showQR, setShowQR] = useState(false);
   const [socialPack, setSocialPack] = useState<any>(null);
   const [subscriberCount, setSubscriberCount] = useState<number | null>(null);
+
+  const anySocial = publishChannels.linkedin || publishChannels.instagram || publishChannels.facebook || publishChannels.x;
+  const activatedPlatforms = [
+    publishChannels.linkedin && "LinkedIn",
+    publishChannels.instagram && "Instagram",
+    publishChannels.facebook && "Facebook",
+    publishChannels.x && "X",
+  ].filter(Boolean);
 
   useEffect(() => {
     (async () => {
@@ -1297,8 +1306,36 @@ function PublishSuccessStep({ authorName, authorId, liveUrl, copied, onCopy }: {
         </Card>
       )}
 
-      {/* Next steps with downstream node links */}
-      <div className="grid gap-3 sm:grid-cols-3">
+      {/* Activated Channels Summary */}
+      <Card className="p-4">
+        <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+          <Check className="h-4 w-4 text-emerald-500" /> Channels Activated
+        </h4>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-emerald-500">✓</span>
+            <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+            <span>Opt-in Page</span>
+          </div>
+          {publishChannels.emailNurture && (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-emerald-500">✓</span>
+              <Mail className="h-3.5 w-3.5 text-indigo-500" />
+              <span>Email Nurture → BP-04</span>
+            </div>
+          )}
+          {activatedPlatforms.map(p => (
+            <div key={p as string} className="flex items-center gap-2 text-sm">
+              <span className="text-emerald-500">✓</span>
+              <Share2 className="h-3.5 w-3.5 text-purple-500" />
+              <span>{p} → BP-03</span>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {/* Next steps — only show relevant ones */}
+      <div className={`grid gap-3 ${publishChannels.emailNurture && anySocial ? 'sm:grid-cols-3' : publishChannels.emailNurture || anySocial ? 'sm:grid-cols-2' : 'sm:grid-cols-1'}`}>
         <Card
           className="p-4 border-teal-300 dark:border-teal-700 bg-teal-50/50 dark:bg-teal-950/30 cursor-pointer hover:ring-1 hover:ring-teal-400/40 transition-all"
           onClick={() => navigate("/dashboard?section=crm")}
@@ -1309,22 +1346,26 @@ function PublishSuccessStep({ authorName, authorId, liveUrl, copied, onCopy }: {
             {subscriberCount !== null ? `${subscriberCount} subscriber${subscriberCount !== 1 ? "s" : ""}` : "Loading..."}
           </p>
         </Card>
-        <Card
-          className="p-4 border-indigo-300 dark:border-indigo-700 bg-indigo-50/50 dark:bg-indigo-950/30 cursor-pointer hover:ring-1 hover:ring-indigo-400/40 transition-all"
-          onClick={() => navigate("/dashboard?section=brand-products&node=BP-04")}
-        >
-          <Mail className="h-6 w-6 text-indigo-600 dark:text-indigo-400 mb-2" />
-          <p className="text-sm font-semibold text-indigo-800 dark:text-indigo-200">Email Nurture</p>
-          <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">Activate your nurture sequence</p>
-        </Card>
-        <Card
-          className="p-4 border-purple-300 dark:border-purple-700 bg-purple-50/50 dark:bg-purple-950/30 cursor-pointer hover:ring-1 hover:ring-purple-400/40 transition-all"
-          onClick={() => navigate("/dashboard?section=brand-products&node=BP-03")}
-        >
-          <Share2 className="h-6 w-6 text-purple-600 dark:text-purple-400 mb-2" />
-          <p className="text-sm font-semibold text-purple-800 dark:text-purple-200">Social Media</p>
-          <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">Distribute across platforms</p>
-        </Card>
+        {publishChannels.emailNurture && (
+          <Card
+            className="p-4 border-indigo-300 dark:border-indigo-700 bg-indigo-50/50 dark:bg-indigo-950/30 cursor-pointer hover:ring-1 hover:ring-indigo-400/40 transition-all"
+            onClick={() => navigate("/dashboard?section=brand-products&node=BP-04")}
+          >
+            <Mail className="h-6 w-6 text-indigo-600 dark:text-indigo-400 mb-2" />
+            <p className="text-sm font-semibold text-indigo-800 dark:text-indigo-200">Email Nurture</p>
+            <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">Activate your nurture sequence</p>
+          </Card>
+        )}
+        {anySocial && (
+          <Card
+            className="p-4 border-purple-300 dark:border-purple-700 bg-purple-50/50 dark:bg-purple-950/30 cursor-pointer hover:ring-1 hover:ring-purple-400/40 transition-all"
+            onClick={() => navigate("/dashboard?section=brand-products&node=BP-03")}
+          >
+            <Share2 className="h-6 w-6 text-purple-600 dark:text-purple-400 mb-2" />
+            <p className="text-sm font-semibold text-purple-800 dark:text-purple-200">Social Media</p>
+            <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">{activatedPlatforms.join(", ")}</p>
+          </Card>
+        )}
       </div>
 
       <Card className="p-4 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30">
@@ -1335,13 +1376,15 @@ function PublishSuccessStep({ authorName, authorId, liveUrl, copied, onCopy }: {
           <div className="flex-1">
             <p className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-1">Abby says</p>
             <p className="text-sm text-amber-700 dark:text-amber-300">
-              Your lead magnet is live! Your nurture emails and social posts have been pushed to their respective nodes — activate them to start driving traffic and converting readers into customers.
+              Your lead magnet is live!{publishChannels.emailNurture ? " Your nurture emails have been pushed to Email Marketing." : ""}{anySocial ? ` Social posts for ${activatedPlatforms.join(", ")} are ready in Social Media.` : ""} Activate them to start driving traffic!
             </p>
           </div>
         </div>
       </Card>
 
-      <SocialDistributionPack authorId={authorId} content={socialPack} onContentLoaded={setSocialPack} />
+      {anySocial && (
+        <SocialDistributionPack authorId={authorId} content={socialPack} onContentLoaded={setSocialPack} />
+      )}
 
       <div className="flex flex-col sm:flex-row gap-3">
         <Button className="flex-1" size="lg" onClick={() => navigate("/dashboard?section=marketing-hub&highlight=lead-magnets")}>
