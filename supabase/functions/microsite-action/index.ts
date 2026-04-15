@@ -132,6 +132,71 @@ serve(async (req) => {
       console.error("Subscriber upsert failed:", subErr);
     }
 
+    // ABBY: Insert into leads table for nurture engine
+    let leadId: string | null = null;
+    try {
+      // Find book_id from the node
+      const { data: nodeData } = await supabaseAdmin
+        .from("author_nodes")
+        .select("content_json")
+        .eq("author_id", author_id)
+        .eq("node_id", node_id)
+        .single();
+
+      const bookId = extra.book_id || (nodeData?.content_json as any)?.book_id || null;
+
+      const { data: leadData } = await supabaseAdmin
+        .from("leads")
+        .upsert(
+          {
+            author_id: author_id,
+            email,
+            name: [first_name, last_name].filter(Boolean).join(" ") || null,
+            book_id: bookId,
+            source: "microsite",
+            status: "active",
+            nurture_stage: "welcome",
+            captured_at: new Date().toISOString(),
+            last_activity_at: new Date().toISOString(),
+            metadata: { node_id, action_type, ...extra },
+          },
+          { onConflict: "author_id,email", ignoreDuplicates: false }
+        )
+        .select("id")
+        .single();
+
+      leadId = leadData?.id || null;
+
+      // Log capture event
+      if (leadId) {
+        await supabaseAdmin.from("nurture_events").insert({
+          lead_id: leadId,
+          event_type: "captured",
+          metadata: { node_id, action_type, source: "microsite" },
+        });
+      }
+    } catch (leadErr) {
+      console.error("Lead insert failed:", leadErr);
+    }
+
+    // ABBY: Trigger welcome email for opt-in leads
+    if (leadId && action_type === "optin") {
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+        const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+        await fetch(`${supabaseUrl}/functions/v1/abby-nurture-respond`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${supabaseAnonKey}`,
+          },
+          body: JSON.stringify({ lead_id: leadId, event_type: "captured" }),
+        });
+      } catch (nurtureErr) {
+        console.error("Nurture trigger failed (non-fatal):", nurtureErr);
+      }
+    }
+
     // For enquiry/application types, also save to crm_contacts
     if (action_type === "enquiry" || action_type === "application") {
       try {
