@@ -90,6 +90,7 @@ export default function BrandProductsHub() {
       }
 
       setAuthorName(profile.pen_name || "");
+      setAuthorSlug(profile.author_slug || null);
 
       const { data: nodeRows } = await supabase
         .from("author_nodes")
