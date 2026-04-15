@@ -351,9 +351,7 @@ export default function BP02Builder({ authorId }: Props) {
         }
       }
 
-      const slug = authorSlug || authorName.toLowerCase().replace(/\s+/g, "-");
-      const url = `${window.location.origin}/${slug}/free-gift`;
-      setLiveUrl(url);
+      setLiveUrl(micrositeUrl);
       setContent((prev: any) => ({ ...prev, activated: true }));
       toast.success("Your lead magnet is live! 🎉");
     } catch (e: any) {
