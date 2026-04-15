@@ -275,7 +275,7 @@ IMPORTANT RULES:
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        temperature: 0.7,
+        // temperature omitted — openai/gpt-5 only supports default (1)
         max_completion_tokens: 8000,
       }),
     });
