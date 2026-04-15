@@ -80,6 +80,7 @@ type NodeStatus = "not_built" | "draft" | "ready" | "active";
 function deriveNodeStatus(row: NodeRow | undefined): NodeStatus {
   if (!row || row.status === "locked") return "not_built";
   if (row.status === "draft") return "draft";
+  if (row.status === "content_ready") return "ready";
   if (row.status === "live" && row.marketing_activated_at) return "active";
   if (row.status === "live") return "ready";
   return "not_built";

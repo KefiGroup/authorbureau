@@ -352,17 +352,38 @@ IMPORTANT RULES:
       }
     }
 
-    const { error: updateErr } = await supabase
+    // Upsert: check if row exists, then update or insert
+    const { data: existingNode } = await supabase
       .from("author_nodes")
-      .update({
-        status: "content_ready",
-        content_json: parsedContent,
-        personalised_name: (parsedContent as any).funnel_name || "Lead Magnets",
-      })
+      .select("id")
       .eq("author_id", author_id)
-      .eq("node_id", "BP-02");
+      .eq("node_id", "BP-02")
+      .maybeSingle();
 
-    if (updateErr) console.error("Failed to update author_nodes:", updateErr);
+    const nodePayload = {
+      status: "content_ready",
+      content_json: parsedContent,
+      personalised_name: (parsedContent as any).funnel_name || "Lead Magnets",
+    };
+
+    if (existingNode) {
+      const { error: updateErr } = await supabase
+        .from("author_nodes")
+        .update(nodePayload)
+        .eq("author_id", author_id)
+        .eq("node_id", "BP-02");
+      if (updateErr) console.error("Failed to update author_nodes:", updateErr);
+    } else {
+      const { error: insertErr } = await supabase
+        .from("author_nodes")
+        .insert({
+          author_id,
+          node_id: "BP-02",
+          node_name: "Lead Magnets",
+          ...nodePayload,
+        });
+      if (insertErr) console.error("Failed to insert author_nodes:", insertErr);
+    }
 
     return new Response(
       JSON.stringify({ success: true, content: parsedContent }),
