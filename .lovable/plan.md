@@ -1,26 +1,34 @@
-<final-text>The root cause is a combination of 2 bugs, not just one:
 
-1. Refresh loads protected backend data before the auth session is fully restored.
-- `src/pages/NodeBuilder.tsx` gets the user from the shared auth context, then immediately queries the project’s `author_profiles` row.
-- `src/components/dashboard/builders/bp02/BP02Builder.tsx` then immediately queries `author_profiles`, `author_context`, and `author_nodes`.
-- Those tables are protected by row-level permissions (`supabase/migrations/20260326200117_ea49e51a-5765-43af-9dec-68fd37c57fa7.sql`) that depend on the logged-in user ID.
-- On refresh, that auth state can still be “not ready”, so the backend behaves as if you are not authenticated yet. The read returns no row or an RLS error, and BP-02 falls back to `setStep(0)`.
 
-2. Several save paths do not actually confirm that the save succeeded.
-- In `BP02Builder.tsx`, auto-save only logs write errors.
-- Manual “Save Draft” does not check the returned `error` before showing “Draft saved!”.
-- The Review → Publish step write also ignores write errors.
-- So the UI can tell you it saved, even when the backend rejected the write.
+## Root Cause Analysis
 
-Why it feels like “everything is gone”:
-- Sometimes the content truly was never saved because the write failed silently.
-- Other times it was saved, but refresh still starts over because the restore query ran before auth was ready and the builder treated that as “no saved content”.
+The lead capture flow from the BP-02 quiz gate has **3 gaps**:
 
-Strongest evidence:
-- `src/pages/NodeBuilder.tsx` does not wait for the auth-ready pattern before querying protected tables.
-- `src/components/dashboard/builders/bp02/BP02Builder.tsx` sets step `0` whenever the node load misses.
-- The row-level policies on `author_nodes` require the authenticated user to match the author profile.
-- Your backend publish logs show the publish function did update the BP-02 node to `live`, which means the bigger post-refresh failure is the restore path, not the publish function itself.
+1. **No CRM capture for optins**: `microsite-action` only saves leads to `crm_contacts` for `enquiry`/`application` action types. For `optin` (which BP-02 uses), it only saves to `author_subscribers` — the author's CRM never gets the lead.
 
-So the real root cause is:
-auth-session restoration race on refresh + silent save failures during draft/step persistence.</final-text>
+2. **No platform-level CRM**: There is no second-level capture for Authors Bureau admin. The admin CRM tab (`AdminCRMTab`) reads from `crm_contacts`, but optin leads never land there. There's also no concept of a "platform lead" that's separate from individual author leads.
+
+3. **No email notification on optin**: `microsite-action` doesn't send any Resend email. The Resend email logic exists in `crm-auto-capture` but that function is never called from the optin flow. `RESEND_API_KEY` is configured and available.
+
+## Plan
+
+### 1. Update `microsite-action` edge function to capture leads at 2 levels
+
+For ALL action types (not just enquiry/application):
+
+- **Author-level CRM**: Insert into `crm_contacts` with `author_id = profile.user_id` and appropriate source/tag
+- **Platform-level CRM**: Insert into `crm_contacts` with `author_id` set to the platform admin's user ID (first admin from `user_roles`), tagged with the author's name so the platform can see all leads across all authors
+- **Add CRM tags** via `crm_contact_tags` for both levels (e.g., `lead-magnet-optin`, `quiz-funnel`)
+- **Log activity** in `crm_activity_log` for the author
+- **Send Resend email notification** to the author (replicating the logic from `crm-auto-capture`)
+
+### 2. Deploy the updated edge function
+
+Redeploy `microsite-action` so the changes take effect on the live site.
+
+### 3. Files changed
+
+- `supabase/functions/microsite-action/index.ts` — Add CRM capture for all action types at both author and platform levels, add Resend email notification
+
+No new tables or migrations needed — the existing `crm_contacts`, `crm_contact_tags`, and `crm_activity_log` tables already support multi-author entries and the admin CRM tab already reads all contacts platform-wide.
+
