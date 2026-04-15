@@ -516,12 +516,17 @@ function ReviewStep({
   const selectedMagnet = content.lead_magnets?.[selectedMagnetIdx];
   const selectedType = (selectedMagnet?.type || "").toLowerCase();
   const isQuizType = selectedType.includes("quiz") || selectedType.includes("assessment");
+  const isChecklistType = selectedType.includes("checklist");
+  const isCheatsheetType = selectedType.includes("cheat") || selectedType.includes("sheet");
 
   const quizStructure = content.quiz_structure || {};
   const quizData = quizStructure.questions || content.quiz_questions || content.quiz;
   const scoringTiers = quizStructure.scoring_tiers || content.scoring_tiers || content.result_tiers;
   const quizTitle = quizStructure.quiz_title || quizStructure.title || content.quiz_title || "";
   const quizDescription = quizStructure.quiz_description || quizStructure.description || content.quiz_description || "";
+
+  const checklistStructure = content.checklist_structure || {};
+  const cheatsheetStructure = content.cheatsheet_structure || {};
 
   const headlineVariants = content.headline_variants || content.optin_page?.headline_variants || [];
 
@@ -783,7 +788,175 @@ function ReviewStep({
             )
           ) : (
             /* Checklist / Cheat Sheet / other non-quiz content preview */
-            selectedMagnet ? (
+            isChecklistType && checklistStructure.sections ? (
+              <div className="space-y-4">
+                <Card className="border-teal-200 dark:border-teal-800 bg-gradient-to-br from-teal-50/50 to-transparent dark:from-teal-950/20">
+                  <CardContent className="pt-5 space-y-2">
+                    <EditableText
+                      value={checklistStructure.checklist_title || selectedMagnet?.title || ""}
+                      onSave={(v) => updateField(["checklist_structure", "checklist_title"], v)}
+                      className="text-lg font-bold text-foreground"
+                    />
+                    <EditableText
+                      value={checklistStructure.checklist_description || ""}
+                      onSave={(v) => updateField(["checklist_structure", "checklist_description"], v)}
+                      className="text-sm text-muted-foreground"
+                      multiline
+                    />
+                  </CardContent>
+                </Card>
+
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold text-teal-700 dark:text-teal-300 uppercase tracking-wide">
+                    Sections ({checklistStructure.sections.length})
+                  </h4>
+                  {checklistStructure.sections.map((section: any, si: number) => (
+                    <Card key={si} className="border-l-4 border-l-teal-400">
+                      <CardContent className="pt-4 space-y-3">
+                        <EditableText
+                          value={section.section_title || ""}
+                          onSave={(v) => updateField(["checklist_structure", "sections", si, "section_title"], v)}
+                          className="text-sm font-bold text-foreground"
+                        />
+                        <div className="space-y-1.5 pl-2">
+                          {(section.items || []).map((item: string, ii: number) => (
+                            <div key={ii} className="flex items-start gap-2">
+                              <div className="w-4 h-4 rounded border-2 border-teal-400/60 shrink-0 mt-0.5" />
+                              <EditableText
+                                value={item}
+                                onSave={(v) => updateField(["checklist_structure", "sections", si, "items", ii], v)}
+                                className="text-sm text-muted-foreground"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                        <div className="bg-muted/30 rounded-md px-3 py-2">
+                          <EditableText
+                            value={section.interpretation || ""}
+                            onSave={(v) => updateField(["checklist_structure", "sections", si, "interpretation"], v)}
+                            className="text-xs text-muted-foreground italic"
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+                {checklistStructure.scoring_key && (
+                  <div className="space-y-3 mt-4">
+                    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                      Scoring Key ({checklistStructure.scoring_key.total_items} items total)
+                    </h4>
+                    {(checklistStructure.scoring_key.tiers || []).map((tier: any, ti: number) => (
+                      <Card key={ti} className={TIER_COLORS[ti % TIER_COLORS.length]}>
+                        <CardContent className="pt-4 space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <EditableText
+                              value={tier.label || ""}
+                              onSave={(v) => updateField(["checklist_structure", "scoring_key", "tiers", ti, "label"], v)}
+                              className="text-sm font-bold text-foreground"
+                            />
+                            <span className="text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground shrink-0">{tier.min}–{tier.max} checked</span>
+                          </div>
+                          <EditableText
+                            value={tier.description || ""}
+                            onSave={(v) => updateField(["checklist_structure", "scoring_key", "tiers", ti, "description"], v)}
+                            className="text-sm text-muted-foreground"
+                            multiline
+                          />
+                          <div className="bg-primary/5 rounded-md p-2">
+                            <p className="text-xs font-medium text-primary mb-1">Recommended:</p>
+                            <EditableText
+                              value={tier.recommendation || ""}
+                              onSave={(v) => updateField(["checklist_structure", "scoring_key", "tiers", ti, "recommendation"], v)}
+                              className="text-xs text-muted-foreground"
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : isCheatsheetType && cheatsheetStructure.sections ? (
+              <div className="space-y-4">
+                <Card className="border-teal-200 dark:border-teal-800 bg-gradient-to-br from-teal-50/50 to-transparent dark:from-teal-950/20">
+                  <CardContent className="pt-5 space-y-2">
+                    <EditableText
+                      value={cheatsheetStructure.cheatsheet_title || selectedMagnet?.title || ""}
+                      onSave={(v) => updateField(["cheatsheet_structure", "cheatsheet_title"], v)}
+                      className="text-lg font-bold text-foreground"
+                    />
+                    <EditableText
+                      value={cheatsheetStructure.cheatsheet_description || ""}
+                      onSave={(v) => updateField(["cheatsheet_structure", "cheatsheet_description"], v)}
+                      className="text-sm text-muted-foreground"
+                      multiline
+                    />
+                  </CardContent>
+                </Card>
+
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold text-teal-700 dark:text-teal-300 uppercase tracking-wide">
+                    Sections ({cheatsheetStructure.sections.length})
+                  </h4>
+                  {cheatsheetStructure.sections.map((section: any, si: number) => (
+                    <Card key={si} className="border-l-4 border-l-teal-400">
+                      <CardContent className="pt-4 space-y-3">
+                        <EditableText
+                          value={section.section_title || ""}
+                          onSave={(v) => updateField(["cheatsheet_structure", "sections", si, "section_title"], v)}
+                          className="text-sm font-bold text-foreground"
+                        />
+                        <div className="space-y-1.5 pl-2">
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Signals:</p>
+                          {(section.signals || []).map((signal: string, sgi: number) => (
+                            <div key={sgi} className="flex items-start gap-2">
+                              <span className="text-xs text-teal-500 mt-0.5">•</span>
+                              <EditableText
+                                value={signal}
+                                onSave={(v) => updateField(["cheatsheet_structure", "sections", si, "signals", sgi], v)}
+                                className="text-sm text-muted-foreground"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                        <div className="bg-muted/30 rounded-md px-3 py-2 space-y-1">
+                          <p className="text-xs font-medium text-muted-foreground">Diagnosis:</p>
+                          <EditableText
+                            value={section.diagnosis || ""}
+                            onSave={(v) => updateField(["cheatsheet_structure", "sections", si, "diagnosis"], v)}
+                            className="text-xs text-muted-foreground italic"
+                          />
+                        </div>
+                        <div className="bg-primary/5 rounded-md px-3 py-2">
+                          <p className="text-xs font-medium text-primary">Recommended resource:</p>
+                          <EditableText
+                            value={section.next_resource || ""}
+                            onSave={(v) => updateField(["cheatsheet_structure", "sections", si, "next_resource"], v)}
+                            className="text-xs text-muted-foreground"
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+                {cheatsheetStructure.quick_match_guide && (
+                  <Card className="border-teal-200/50 dark:border-teal-800/50">
+                    <CardContent className="pt-5 space-y-2">
+                      <h4 className="text-sm font-semibold text-teal-700 dark:text-teal-300">Quick Match Guide</h4>
+                      <EditableText
+                        value={cheatsheetStructure.quick_match_guide}
+                        onSave={(v) => updateField(["cheatsheet_structure", "quick_match_guide"], v)}
+                        className="text-sm text-muted-foreground italic"
+                        multiline
+                      />
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            ) : selectedMagnet ? (
               <div className="space-y-4">
                 <Card className="border-teal-200 dark:border-teal-800 bg-gradient-to-br from-teal-50/50 to-transparent dark:from-teal-950/20">
                   <CardContent className="pt-5 space-y-3">
@@ -795,14 +968,12 @@ function ReviewStep({
                     <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedMagnet.description}</p>
                   </CardContent>
                 </Card>
-
                 <Card className="border-teal-200/50 dark:border-teal-800/50">
                   <CardContent className="pt-5 space-y-3">
                     <h4 className="text-sm font-semibold text-teal-700 dark:text-teal-300">Why This Format Works</h4>
                     <p className="text-sm text-muted-foreground italic whitespace-pre-wrap">{selectedMagnet.why_it_works}</p>
                   </CardContent>
                 </Card>
-
                 <div className="flex gap-2 p-3 bg-amber-50/50 dark:bg-amber-950/20 rounded-lg">
                   <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                   <p className="text-xs text-amber-700 dark:text-amber-300">

@@ -184,6 +184,45 @@ Generate the following as a JSON object with these exact keys:
     ]
   },
 
+  "checklist_structure": {
+    "checklist_title": "Title of the checklist lead magnet",
+    "checklist_description": "1-2 sentences describing what the checklist assesses. MUST NOT be empty.",
+    "sections": [
+      {
+        "section_title": "Section heading (one per framework stage or key area)",
+        "items": [
+          "Tick-what's-true statement 1 — something the reader checks if it applies to them",
+          "Tick-what's-true statement 2",
+          "Tick-what's-true statement 3"
+        ],
+        "interpretation": "The more items you checked, the more this area needs attention."
+      }
+    ],
+    "scoring_key": {
+      "total_items": 24,
+      "tiers": [
+        { "min": 0, "max": 5, "label": "Tier name", "description": "What this score means", "recommendation": "Which product to get" },
+        { "min": 6, "max": 12, "label": "Tier name", "description": "What this score means", "recommendation": "Which product to get" },
+        { "min": 13, "max": 18, "label": "Tier name", "description": "What this score means", "recommendation": "Which product to get" },
+        { "min": 19, "max": 24, "label": "Tier name", "description": "What this score means", "recommendation": "Which product to get" }
+      ]
+    }
+  },
+
+  "cheatsheet_structure": {
+    "cheatsheet_title": "Title of the cheat sheet lead magnet",
+    "cheatsheet_description": "1-2 sentences describing what the cheat sheet covers. MUST NOT be empty.",
+    "sections": [
+      {
+        "section_title": "Stage or pattern name",
+        "signals": ["Signal/symptom the reader can identify with 1", "Signal 2", "Signal 3"],
+        "diagnosis": "What these signals mean — a 1-2 sentence interpretation",
+        "next_resource": "Which product or chapter addresses this stage"
+      }
+    ],
+    "quick_match_guide": "A 2-3 sentence summary telling the reader: find the section that matches you most, then check the recommended resource."
+  },
+
   "optin_page": {
     "headline": "Main headline (use the best headline_variant)",
     "subheadline": "Supporting subheadline",
@@ -272,7 +311,7 @@ Generate the following as a JSON object with these exact keys:
 }
 
 IMPORTANT RULES:
-1. lead_magnets array: exactly 3 items, each different type. At least one MUST be Quiz/Assessment.
+1. lead_magnets array: exactly 3 items, each different type. At least one MUST be Quiz/Assessment, one MUST be Checklist, one MUST be Cheat Sheet.
 2. quiz_structure: exactly 8-10 questions. Each has exactly 4 options with ascending points (1-4).
 3. scoring_tiers: exactly 5 tiers covering the full point range. Each has 3 product recommendations AND 2 specific tips from the book.
 4. headline_variants: exactly 3 (identity, outcome, curiosity). Each must be compelling and specific to this book.
@@ -285,7 +324,9 @@ IMPORTANT RULES:
 11. For quizzes: contact gate appears AFTER completion, BEFORE showing results.
 12. Make everything specific to this author's book and audience. Never generic.
 13. Quiz must be self-scoring with auto-tally points.
-14. color_palette: suggest brand-appropriate colors based on the book's genre and audience.`;
+14. color_palette: suggest brand-appropriate colors based on the book's genre and audience.
+15. checklist_structure: generate 6-8 sections with 3-4 items each. All items are assessment-only "Tick what's true" statements. NO action items. Include a scoring_key with 4 tiers.
+16. cheatsheet_structure: generate one section per framework stage or key area (6-8 sections). Each section has 3 signals, a diagnosis, and a next_resource recommendation.`;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
