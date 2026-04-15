@@ -161,6 +161,29 @@ export default function BP02Builder({ authorId }: Props) {
       }
       setContent(data.content);
       setStep(2);
+
+      // Auto-save as draft immediately after generation
+      if (authorId && data.content) {
+        const { data: existingNode } = await supabase
+          .from("author_nodes")
+          .select("id")
+          .eq("author_id", authorId)
+          .eq("node_id", "BP-02")
+          .maybeSingle();
+
+        const payload = { content_json: data.content, status: "content_ready" as const };
+        if (existingNode) {
+          await supabase.from("author_nodes").update(payload).eq("id", existingNode.id);
+        } else {
+          await supabase.from("author_nodes").insert({
+            author_id: authorId,
+            node_id: "BP-02",
+            node_name: "Lead Magnets",
+            ...payload,
+          });
+        }
+        console.log("[BP02] Auto-saved draft after generation");
+      }
     } catch (e: any) {
       setError(e.message);
       setStep(0);
