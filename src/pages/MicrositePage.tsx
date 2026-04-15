@@ -33,9 +33,10 @@ export default function MicrositePage() {
   const [submitted, setSubmitted] = useState(false);
 
   const nodeId = nodeSlug ? SLUG_TO_NODE[nodeSlug] : null;
+  const isDynamicSlug = nodeSlug && !nodeId; // slug not in hardcoded map — try dynamic lookup
 
   useEffect(() => {
-    if (!authorSlug || !nodeId) {
+    if (!authorSlug || (!nodeId && !isDynamicSlug)) {
       setNotFound(true);
       setLoading(false);
       return;
@@ -44,17 +45,20 @@ export default function MicrositePage() {
     async function fetchPage() {
       try {
         const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+        // Use node param for known slugs, slug param for dynamic/personalised slugs
+        const queryParam = nodeId ? `node=${nodeId}` : `slug=${encodeURIComponent(nodeSlug!)}`;
         const res = await fetch(
-          `https://${projectId}.supabase.co/functions/v1/get-microsite-page?author=${authorSlug}&node=${nodeId}`,
+          `https://${projectId}.supabase.co/functions/v1/get-microsite-page?author=${authorSlug}&${queryParam}`,
           { headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } }
         );
 
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
           if (body.error === "Node not live") {
-            // Check if author exists but node isn't published yet
             setComingSoon(true);
           } else if (body.error === "Author not found") {
+            setNotFound(true);
+          } else if (body.error === "Node not found for slug") {
             setNotFound(true);
           } else {
             setNotFound(true);
@@ -72,7 +76,7 @@ export default function MicrositePage() {
     }
 
     fetchPage();
-  }, [authorSlug, nodeId]);
+  }, [authorSlug, nodeId, nodeSlug, isDynamicSlug]);
 
   const nodeName = nodeId ? NODE_NAMES[nodeId] || "" : "";
   const authorName = data?.author?.pen_name || authorSlug || "";
@@ -133,6 +137,9 @@ export default function MicrositePage() {
 
   if (!data) return null;
 
+  // Use the resolved node_id from the API response (handles both hardcoded and dynamic slugs)
+  const resolvedNodeId = data.node.node_id || nodeId;
+
   const theme = getThemeById(data.author.theme || "classic-elegant");
   const v = theme.vars;
   const hFont = theme.headingFont;
@@ -148,8 +155,8 @@ export default function MicrositePage() {
       const res = await supabase.functions.invoke("microsite-action", {
         body: {
           author_id: data.author.id,
-          node_id: nodeId,
-          action_type: getActionType(nodeId!),
+          node_id: resolvedNodeId,
+          action_type: getActionType(resolvedNodeId!),
           email,
           first_name: firstName,
           last_name: lastName,
@@ -186,16 +193,16 @@ export default function MicrositePage() {
       </nav>
 
       {/* Node-specific content */}
-      {nodeId === "BP-02" && <LeadMagnetPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} submitting={submitting} submitted={submitted} />}
-      {nodeId === "BP-04" && <AuthorWebsitePage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} submitting={submitting} submitted={submitted} />}
-      {nodeId === "BP-05" && <WebinarPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} submitting={submitting} submitted={submitted} />}
-      {nodeId === "BP-06" && <SalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} type="workbook" />}
-      {nodeId === "BP-07" && <SalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} type="home-study" />}
-      {nodeId === "BP-08" && <SalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} type="special-edition" />}
-      {nodeId === "BP-09" && <BookSalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} />}
+      {resolvedNodeId === "BP-02" && <LeadMagnetPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} submitting={submitting} submitted={submitted} />}
+      {resolvedNodeId === "BP-04" && <AuthorWebsitePage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} submitting={submitting} submitted={submitted} />}
+      {resolvedNodeId === "BP-05" && <WebinarPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} submitting={submitting} submitted={submitted} />}
+      {resolvedNodeId === "BP-06" && <SalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} type="workbook" />}
+      {resolvedNodeId === "BP-07" && <SalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} type="home-study" />}
+      {resolvedNodeId === "BP-08" && <SalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} type="special-edition" />}
+      {resolvedNodeId === "BP-09" && <BookSalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} />}
       {/* Generic fallback for other nodes */}
-      {!["BP-02", "BP-04", "BP-05", "BP-06", "BP-07", "BP-08", "BP-09"].includes(nodeId!) && (
-        <GenericPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} nodeId={nodeId!} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />
+      {!["BP-02", "BP-04", "BP-05", "BP-06", "BP-07", "BP-08", "BP-09"].includes(resolvedNodeId!) && (
+        <GenericPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} nodeId={resolvedNodeId!} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />
       )}
 
       {/* Powered by footer */}
@@ -260,24 +267,34 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
   };
 
   const handleAnswer = (optionIndex: number) => {
-    const newAnswers = [...answers, optionIndex];
+    // Use actual points from option if available, otherwise fall back to index
+    const option = questions[currentQ]?.options?.[optionIndex];
+    const points = typeof option === "object" && option?.points != null ? option.points : optionIndex;
+    const newAnswers = [...answers, points];
     setAnswers(newAnswers);
     if (currentQ + 1 < questions.length) {
       setCurrentQ(currentQ + 1);
     } else {
-      // Quiz complete — go to gate to collect email before showing results
       setStage("gate");
     }
   };
 
   // Calculate score and tier
   const totalScore = answers.reduce((sum, a) => sum + a, 0);
-  const maxScore = questions.length * 3;
+  const maxPossiblePerQ = questions.length > 0 && typeof questions[0]?.options?.[0] === "object"
+    ? Math.max(...questions.flatMap((q: any) => (q.options || []).map((o: any) => o.points || 0)))
+    : 3;
+  const maxScore = questions.length * maxPossiblePerQ;
   const scorePercent = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
 
   const getResultTier = () => {
-    if (scoringTiers.length === 0) return { name: "Your Result", description: "Thank you for completing the quiz!", tips: [] };
+    if (scoringTiers.length === 0) return { label: "Your Result", name: "Your Result", description: "Thank you for completing the quiz!", tips: [], tips_from_book: [] };
     for (const tier of scoringTiers) {
+      // Support min/max format
+      if (tier.min != null && tier.max != null) {
+        if (totalScore >= tier.min && totalScore <= tier.max) return tier;
+      }
+      // Support range string format
       if (tier.range) {
         const match = tier.range.match(/(\d+)\s*[-–]\s*(\d+)/);
         if (match) {
@@ -292,6 +309,8 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
   };
 
   const resultTier = getResultTier();
+  const tierName = resultTier.label || resultTier.name || "Complete";
+  const tierTips: string[] = resultTier.tips_from_book || resultTier.tips || [];
 
   // ── STAGE: RESULTS (after email collected) ──
   if (stage === "results" && questions.length === 0) {
@@ -340,31 +359,35 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
           {/* Question */}
           <div className="mb-8">
             <h2 className="text-xl sm:text-2xl font-bold leading-snug" style={{ color: v.headingText, fontFamily: hFont }}>
-              {q.question}
+              {q.question || q.text}
             </h2>
           </div>
 
           {/* Options */}
           <div className="space-y-3">
-            {(q.options || []).map((opt: string, i: number) => (
-              <button
-                key={i}
-                onClick={() => handleAnswer(i)}
-                className="w-full text-left p-4 sm:p-5 rounded-xl border-2 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
-                style={{
-                  background: v.cardBg,
-                  borderColor: v.cardBorder,
-                  color: v.bodyText,
-                }}
-                onMouseEnter={e => { (e.target as HTMLElement).style.borderColor = accentColor; (e.target as HTMLElement).style.background = `${accentColor}08`; }}
-                onMouseLeave={e => { (e.target as HTMLElement).style.borderColor = v.cardBorder; (e.target as HTMLElement).style.background = v.cardBg; }}
-              >
-                <span className="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold mr-3 shrink-0" style={{ background: `${accentColor}15`, color: accentColor }}>
-                  {String.fromCharCode(65 + i)}
-                </span>
-                <span className="text-base">{opt}</span>
-              </button>
-            ))}
+            {(q.options || []).map((opt: any, i: number) => {
+              const optLabel = typeof opt === "string" ? opt : opt.label || opt.text || `Option ${i + 1}`;
+              return (
+                <button
+                  key={i}
+                  onClick={() => handleAnswer(i)}
+                  className="w-full text-left p-4 sm:p-5 rounded-xl border-2 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
+                  style={{
+                    background: v.cardBg,
+                    borderColor: v.cardBorder,
+                    color: v.bodyText,
+                  }}
+                  onMouseEnter={e => { (e.target as HTMLElement).style.borderColor = accentColor; (e.target as HTMLElement).style.background = `${accentColor}08`; }}
+                  onMouseLeave={e => { (e.target as HTMLElement).style.borderColor = v.cardBorder; (e.target as HTMLElement).style.background = v.cardBg; }}
+                >
+                  <span className="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold mr-3 shrink-0" style={{ background: `${accentColor}15`, color: accentColor }}>
+                    {String.fromCharCode(65 + i)}
+                  </span>
+                  <span className="text-base">{optLabel}</span>
+                </button>
+              );
+            })}
+
           </div>
         </div>
       </div>
@@ -413,7 +436,7 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
               🏆
             </div>
             <h1 className="text-3xl sm:text-4xl font-extrabold mb-2" style={{ color: v.headingText, fontFamily: hFont }}>
-              Your Result: {resultTier.name || "Complete"}
+              Your Result: {tierName}
             </h1>
             <p className="text-lg" style={{ color: v.mutedText }}>
               You scored {totalScore} out of {maxScore}
@@ -439,13 +462,13 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
           )}
 
           {/* Tips */}
-          {resultTier.tips && resultTier.tips.length > 0 && (
+          {tierTips.length > 0 && (
             <div className="mb-8 p-6 rounded-xl" style={{ background: v.cardBg, border: `1px solid ${v.cardBorder}` }}>
               <h3 className="text-lg font-bold mb-4" style={{ color: v.headingText, fontFamily: hFont }}>
                 Personalised Recommendations
               </h3>
               <ul className="space-y-3">
-                {resultTier.tips.map((tip: string, i: number) => (
+                {tierTips.map((tip: string, i: number) => (
                   <li key={i} className="flex items-start gap-3">
                     <CheckCircle2 className="h-5 w-5 mt-0.5 shrink-0" style={{ color: accentColor }} />
                     <span style={{ color: v.bodyText }}>{tip}</span>

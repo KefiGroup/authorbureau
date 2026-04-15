@@ -10,6 +10,8 @@ const corsHeaders = {
 /**
  * Public edge function to fetch microsite page data.
  * GET /get-microsite-page?author=pen-name-slug&node=BP-02
+ * OR
+ * GET /get-microsite-page?author=pen-name-slug&slug=suckcess-stage-quiz-funnel
  *
  * Returns: author profile, node content, book context — enough to render any microsite page.
  */
@@ -21,11 +23,12 @@ serve(async (req) => {
   try {
     const url = new URL(req.url);
     const authorSlug = url.searchParams.get("author");
-    const nodeId = url.searchParams.get("node");
+    let nodeId = url.searchParams.get("node");
+    const micrositeSlug = url.searchParams.get("slug");
 
-    if (!authorSlug || !nodeId) {
+    if (!authorSlug || (!nodeId && !micrositeSlug)) {
       return new Response(
-        JSON.stringify({ error: "Missing required params: author, node" }),
+        JSON.stringify({ error: "Missing required params: author + (node or slug)" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -49,12 +52,33 @@ serve(async (req) => {
       );
     }
 
+    // If we have a slug instead of a node ID, resolve it
+    if (!nodeId && micrositeSlug) {
+      // Look for a node whose microsite_url contains this slug
+      const { data: matchedNode } = await supabase
+        .from("author_nodes")
+        .select("node_id, microsite_url")
+        .eq("author_id", profile.id)
+        .ilike("microsite_url", `%${micrositeSlug}%`)
+        .limit(1)
+        .maybeSingle();
+
+      if (matchedNode) {
+        nodeId = matchedNode.node_id;
+      } else {
+        return new Response(
+          JSON.stringify({ error: "Node not found for slug" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // Get node data
     const { data: node } = await supabase
       .from("author_nodes")
       .select("*")
       .eq("author_id", profile.id)
-      .eq("node_id", nodeId)
+      .eq("node_id", nodeId!)
       .maybeSingle();
 
     if (!node || (node.status !== "live" && node.status !== "published_pending_ghl")) {
