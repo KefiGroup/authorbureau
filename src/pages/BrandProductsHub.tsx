@@ -85,7 +85,7 @@ export default function BrandProductsHub() {
         .maybeSingle();
 
       if (!profile) {
-        setNodes(FALLBACK_NODES.map(n => ({ ...n, personalised_name: null, status: n.status as NodeStatus, microsite_url: null, current_step: 1 })));
+        setNodes(FALLBACK_NODES.map(n => ({ ...n, personalised_name: null, status: n.status as NodeStatus, microsite_url: null, current_step: 1, content_source: null })));
         setLoading(false);
         return;
       }
@@ -95,13 +95,13 @@ export default function BrandProductsHub() {
 
       const { data: nodeRows } = await supabase
         .from("author_nodes")
-        .select("node_id, node_name, personalised_name, status, microsite_url, current_step")
+        .select("node_id, node_name, personalised_name, status, microsite_url, current_step, content_json")
         .eq("author_id", profile.id)
         .like("node_id", "BP-%")
         .order("node_id");
 
       if (!nodeRows || nodeRows.length === 0) {
-        setNodes(FALLBACK_NODES.map(n => ({ ...n, personalised_name: null, status: n.status as NodeStatus, microsite_url: null, current_step: 1 })));
+        setNodes(FALLBACK_NODES.map(n => ({ ...n, personalised_name: null, status: n.status as NodeStatus, microsite_url: null, current_step: 1, content_source: null })));
       } else {
         setNodes(nodeRows.map(r => ({
           node_id: r.node_id,
@@ -110,6 +110,7 @@ export default function BrandProductsHub() {
           status: r.status as NodeStatus,
           microsite_url: r.microsite_url || null,
           current_step: (r as any).current_step || 1,
+          content_source: (r.content_json as any)?.source || null,
         })));
       }
       setLoading(false);
