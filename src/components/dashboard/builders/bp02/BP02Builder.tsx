@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthorBook } from "@/hooks/useAuthorBook";
@@ -7,8 +7,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Sparkles, ArrowLeft, ArrowRight, Check, Gift, FileText, ThumbsUp, Settings, Star, Copy, ExternalLink, Link2, QrCode, HelpCircle, ChevronDown, Mail, Share2 } from "lucide-react";
+import { Sparkles, ArrowLeft, ArrowRight, Check, Gift, FileText, ThumbsUp, Settings, Star, Copy, ExternalLink, Link2, QrCode, HelpCircle, ChevronDown, Mail, Share2, Save } from "lucide-react";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { QRCodeSVG } from "qrcode.react";
 import SocialDistributionPack from "./SocialDistributionPack";
@@ -47,6 +48,7 @@ export default function BP02Builder({ authorId }: Props) {
   const [liveUrl, setLiveUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
 
@@ -72,7 +74,6 @@ export default function BP02Builder({ authorId }: Props) {
         setBookTitle(ctx.book_title);
         setHasContext(true);
       } else {
-        // Fallback: query books using auth user_id (not author_profiles.id)
         const userId = profile?.user_id || authorId;
         const { data: book } = await supabase
           .from("books")
@@ -136,12 +137,44 @@ export default function BP02Builder({ authorId }: Props) {
     }
   };
 
+  const handleSaveDraft = async () => {
+    if (!authorId || !content) return;
+    setIsSavingDraft(true);
+    try {
+      const { data: existingNode } = await supabase
+        .from("author_nodes")
+        .select("id")
+        .eq("author_id", authorId)
+        .eq("node_id", "BP-02")
+        .maybeSingle();
+
+      if (existingNode) {
+        await supabase.from("author_nodes").update({
+          content_json: content,
+          status: "content_ready",
+        }).eq("id", existingNode.id);
+      } else {
+        await supabase.from("author_nodes").insert({
+          author_id: authorId,
+          node_id: "BP-02",
+          node_name: "Lead Magnets",
+          status: "content_ready",
+          content_json: content,
+        });
+      }
+      toast.success("Draft saved!");
+    } catch (e: any) {
+      toast.error("Failed to save draft: " + e.message);
+    } finally {
+      setIsSavingDraft(false);
+    }
+  };
+
   const handlePublish = async () => {
     setIsPublishing(true);
     setStep(3);
     setError(null);
     try {
-      // Native ABBY activation — update author_nodes directly
       const { data: existingNode } = await supabase
         .from("author_nodes")
         .select("id")
@@ -264,12 +297,24 @@ export default function BP02Builder({ authorId }: Props) {
             <div className="space-y-4">
               <p className="text-muted-foreground font-medium animate-pulse">{GENERATING_MESSAGES[msgIndex]}</p>
               <Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" />
-              <p className="text-xs text-muted-foreground">This usually takes 15–30 seconds</p>
+              <p className="text-xs text-muted-foreground">This usually takes about 1 minute</p>
             </div>
           </AbbyCard>
         )}
 
-        {step === 2 && content && <ReviewStep content={content} authorName={authorName} onActivate={handlePublish} error={error} isPublishing={isPublishing} />}
+        {step === 2 && content && (
+          <ReviewStep
+            content={content}
+            setContent={setContent}
+            authorName={authorName}
+            authorId={authorId!}
+            onActivate={handlePublish}
+            onSaveDraft={handleSaveDraft}
+            error={error}
+            isPublishing={isPublishing}
+            isSavingDraft={isSavingDraft}
+          />
+        )}
 
         {step === 3 && !content?.activated && (
           <AbbyCard>
@@ -305,10 +350,52 @@ function AbbyCard({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ReviewStep({ content, authorName, onActivate, error, isPublishing }: { content: any; authorName: string; onActivate: () => void; error: string | null; isPublishing?: boolean }) {
+/* ---- Deep update helper ---- */
+function deepSet(obj: any, path: (string | number)[], value: any): any {
+  if (path.length === 0) return value;
+  const [head, ...rest] = path;
+  const clone = Array.isArray(obj) ? [...obj] : { ...obj };
+  clone[head] = deepSet(clone[head] ?? (typeof rest[0] === "number" ? [] : {}), rest, value);
+  return clone;
+}
+
+function ReviewStep({
+  content,
+  setContent,
+  authorName,
+  authorId,
+  onActivate,
+  onSaveDraft,
+  error,
+  isPublishing,
+  isSavingDraft,
+}: {
+  content: any;
+  setContent: (c: any) => void;
+  authorName: string;
+  authorId: string;
+  onActivate: () => void;
+  onSaveDraft: () => void;
+  error: string | null;
+  isPublishing?: boolean;
+  isSavingDraft?: boolean;
+}) {
   const recommended = content.recommended_lead_magnet || 1;
-  const quiz = content.lead_magnets?.find((lm: any) => lm.type?.toLowerCase().includes("quiz"));
-  const quizData = quiz?.quiz_questions || content.quiz_questions || content.quiz;
+
+  // Fix data paths: quiz data lives at content.quiz_structure
+  const quizStructure = content.quiz_structure || {};
+  const quizData = quizStructure.questions || content.quiz_questions || content.quiz;
+  const scoringTiers = quizStructure.scoring_tiers || content.scoring_tiers || content.result_tiers;
+  const quizTitle = quizStructure.title || content.quiz_title || "";
+  const quizDescription = quizStructure.description || content.quiz_description || "";
+
+  // Fix headline variants path: root level or nested
+  const headlineVariants = content.headline_variants || content.optin_page?.headline_variants || [];
+
+  // Helper to update content via deep path
+  const updateField = useCallback((path: (string | number)[], value: any) => {
+    setContent((prev: any) => deepSet(prev, path, value));
+  }, [setContent]);
 
   return (
     <div className="space-y-4">
@@ -327,8 +414,8 @@ function ReviewStep({ content, authorName, onActivate, error, isPublishing }: { 
 
         {/* ---- Magnets Tab ---- */}
         <TabsContent value="magnets" className="space-y-3 mt-4">
-          {content.lead_magnets?.map((lm: any) => (
-            <Card key={lm.number} className={lm.number === recommended ? "border-primary ring-1 ring-primary/30" : ""}>
+          {content.lead_magnets?.map((lm: any, lmIdx: number) => (
+            <Card key={lm.number || lmIdx} className={lm.number === recommended ? "border-primary ring-1 ring-primary/30" : ""}>
               <CardContent className="pt-5 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -341,9 +428,22 @@ function ReviewStep({ content, authorName, onActivate, error, isPublishing }: { 
                   </div>
                   <span className="text-xs text-muted-foreground">{lm.pages_or_length}</span>
                 </div>
-                <h3 className="font-semibold">{lm.title}</h3>
-                <p className="text-sm text-muted-foreground">{lm.description}</p>
-                <p className="text-xs text-muted-foreground italic">Why it works: {lm.why_it_works}</p>
+                <Input
+                  value={lm.title || ""}
+                  onChange={(e) => updateField(["lead_magnets", lmIdx, "title"], e.target.value)}
+                  className="font-semibold text-base"
+                />
+                <Textarea
+                  value={lm.description || ""}
+                  onChange={(e) => updateField(["lead_magnets", lmIdx, "description"], e.target.value)}
+                  className="text-sm min-h-[60px]"
+                />
+                <Textarea
+                  value={lm.why_it_works || ""}
+                  onChange={(e) => updateField(["lead_magnets", lmIdx, "why_it_works"], e.target.value)}
+                  placeholder="Why it works..."
+                  className="text-xs italic min-h-[40px]"
+                />
               </CardContent>
             </Card>
           ))}
@@ -353,7 +453,6 @@ function ReviewStep({ content, authorName, onActivate, error, isPublishing }: { 
               <p className="text-xs text-muted-foreground">{content.recommended_reason}</p>
             </div>
           )}
-          {/* Contact Gate Details */}
           {content.contact_gate && (
             <Card className="mt-3">
               <CardContent className="pt-5 space-y-2">
@@ -370,7 +469,6 @@ function ReviewStep({ content, authorName, onActivate, error, isPublishing }: { 
               </CardContent>
             </Card>
           )}
-          {/* Best Channel */}
           {content.best_channel && (
             <div className="flex gap-2 mt-2">
               <Share2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
@@ -381,34 +479,58 @@ function ReviewStep({ content, authorName, onActivate, error, isPublishing }: { 
 
         {/* ---- Quiz Tab ---- */}
         <TabsContent value="quiz" className="space-y-4 mt-4">
-          {quizData ? (
+          {quizData && Array.isArray(quizData) && quizData.length > 0 ? (
             <>
               {/* Quiz Title */}
-              {(quiz?.title || content.quiz_title) && (
-                <div className="mb-2">
-                  <h3 className="text-lg font-bold">{quiz?.title || content.quiz_title}</h3>
-                  {(quiz?.description || content.quiz_description) && (
-                    <p className="text-sm text-muted-foreground mt-1">{quiz?.description || content.quiz_description}</p>
-                  )}
-                </div>
-              )}
+              <div className="mb-2 space-y-2">
+                <Input
+                  value={quizTitle}
+                  onChange={(e) => updateField(["quiz_structure", "title"], e.target.value)}
+                  className="text-lg font-bold"
+                  placeholder="Quiz title"
+                />
+                <Textarea
+                  value={quizDescription}
+                  onChange={(e) => updateField(["quiz_structure", "description"], e.target.value)}
+                  className="text-sm min-h-[40px]"
+                  placeholder="Quiz description"
+                />
+              </div>
 
               {/* Questions */}
               <div className="space-y-3">
-                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Questions ({Array.isArray(quizData) ? quizData.length : 0})</h4>
-                {Array.isArray(quizData) && quizData.map((q: any, qi: number) => (
+                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Questions ({quizData.length})</h4>
+                {quizData.map((q: any, qi: number) => (
                   <Card key={qi}>
                     <CardContent className="pt-4 space-y-2">
-                      <p className="text-sm font-semibold">Q{qi + 1}. {q.question || q.text}</p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-primary shrink-0">Q{qi + 1}.</span>
+                        <Input
+                          value={q.question || q.text || ""}
+                          onChange={(e) => updateField(["quiz_structure", "questions", qi, "question"], e.target.value)}
+                          className="text-sm font-semibold"
+                        />
+                      </div>
                       <div className="grid gap-1.5 pl-2">
                         {(q.options || q.answers || []).map((opt: any, oi: number) => (
-                          <div key={oi} className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <div key={oi} className="flex items-center gap-2 text-sm">
                             <span className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-xs font-medium shrink-0">
                               {String.fromCharCode(65 + oi)}
                             </span>
-                            <span className="flex-1">{typeof opt === "string" ? opt : opt.text || opt.label}</span>
+                            <Input
+                              value={typeof opt === "string" ? opt : opt.text || opt.label || ""}
+                              onChange={(e) => {
+                                const optKey = q.options ? "options" : "answers";
+                                if (typeof opt === "string") {
+                                  updateField(["quiz_structure", "questions", qi, optKey, oi], e.target.value);
+                                } else {
+                                  updateField(["quiz_structure", "questions", qi, optKey, oi, "text"], e.target.value);
+                                }
+                              }}
+                              className="text-sm flex-1"
+                            />
                             {(typeof opt === "object" && opt.points !== undefined) && (
-                              <span className="text-xs text-primary font-medium">{opt.points} pts</span>
+                              <span className="text-xs text-primary font-medium shrink-0">{opt.points} pts</span>
                             )}
                           </div>
                         ))}
@@ -419,21 +541,48 @@ function ReviewStep({ content, authorName, onActivate, error, isPublishing }: { 
               </div>
 
               {/* Scoring Tiers */}
-              {(content.scoring_tiers || content.result_tiers || quiz?.scoring_tiers) && (
+              {scoringTiers && Array.isArray(scoringTiers) && scoringTiers.length > 0 && (
                 <div className="space-y-3 mt-4">
-                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Scoring Tiers</h4>
-                  {(content.scoring_tiers || content.result_tiers || quiz?.scoring_tiers || []).map((tier: any, ti: number) => (
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Scoring Tiers ({scoringTiers.length})</h4>
+                  {scoringTiers.map((tier: any, ti: number) => (
                     <Card key={ti}>
-                      <CardContent className="pt-4 space-y-1">
-                        <div className="flex items-center justify-between">
-                          <h5 className="text-sm font-semibold">{tier.label || tier.name || tier.title}</h5>
-                          {tier.range && <span className="text-xs text-muted-foreground">{tier.range}</span>}
-                          {tier.score_range && <span className="text-xs text-muted-foreground">{tier.score_range}</span>}
+                      <CardContent className="pt-4 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <Input
+                            value={tier.label || tier.name || tier.title || ""}
+                            onChange={(e) => {
+                              const key = tier.label ? "label" : tier.name ? "name" : "title";
+                              updateField(["quiz_structure", "scoring_tiers", ti, key], e.target.value);
+                            }}
+                            className="text-sm font-semibold"
+                          />
+                          {(tier.range || tier.score_range) && (
+                            <span className="text-xs text-muted-foreground shrink-0">{tier.range || tier.score_range}</span>
+                          )}
                         </div>
-                        <p className="text-sm text-muted-foreground">{tier.description || tier.feedback}</p>
-                        {tier.tip && <p className="text-xs text-primary italic">💡 {tier.tip}</p>}
+                        <Textarea
+                          value={tier.description || tier.feedback || ""}
+                          onChange={(e) => {
+                            const key = tier.description !== undefined ? "description" : "feedback";
+                            updateField(["quiz_structure", "scoring_tiers", ti, key], e.target.value);
+                          }}
+                          className="text-sm min-h-[40px]"
+                        />
+                        {tier.tip && (
+                          <Input
+                            value={tier.tip}
+                            onChange={(e) => updateField(["quiz_structure", "scoring_tiers", ti, "tip"], e.target.value)}
+                            className="text-xs italic"
+                            placeholder="Tip..."
+                          />
+                        )}
                         {tier.recommended_product && (
-                          <p className="text-xs text-muted-foreground">📦 Recommended: {tier.recommended_product}</p>
+                          <Input
+                            value={tier.recommended_product}
+                            onChange={(e) => updateField(["quiz_structure", "scoring_tiers", ti, "recommended_product"], e.target.value)}
+                            className="text-xs"
+                            placeholder="Recommended product..."
+                          />
                         )}
                       </CardContent>
                     </Card>
@@ -452,36 +601,67 @@ function ReviewStep({ content, authorName, onActivate, error, isPublishing }: { 
         {/* ---- Opt-In Tab ---- */}
         <TabsContent value="optin" className="mt-4 space-y-4">
           <Card className="overflow-hidden">
-            <div className="bg-primary/5 p-6 text-center border-b border-border">
-              <h3 className="text-xl font-bold mb-2">{content.optin_page?.headline}</h3>
-              <p className="text-sm text-muted-foreground mb-4">{content.optin_page?.subheadline}</p>
-              <ul className="text-sm text-left max-w-xs mx-auto space-y-2 mb-4">
+            <div className="bg-primary/5 p-6 space-y-3 border-b border-border">
+              <Input
+                value={content.optin_page?.headline || ""}
+                onChange={(e) => updateField(["optin_page", "headline"], e.target.value)}
+                className="text-xl font-bold text-center"
+              />
+              <Input
+                value={content.optin_page?.subheadline || ""}
+                onChange={(e) => updateField(["optin_page", "subheadline"], e.target.value)}
+                className="text-sm text-center"
+              />
+              <div className="max-w-xs mx-auto space-y-2">
                 {content.optin_page?.bullet_points?.map((bp: string, i: number) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                    <span>{bp}</span>
-                  </li>
+                  <div key={i} className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-primary shrink-0 mt-2.5" />
+                    <Input
+                      value={bp}
+                      onChange={(e) => updateField(["optin_page", "bullet_points", i], e.target.value)}
+                      className="text-sm"
+                    />
+                  </div>
                 ))}
-              </ul>
-              <Button size="lg" className="w-full max-w-xs">{content.optin_page?.cta_button_text || "Get It Free"}</Button>
-              <p className="text-xs text-muted-foreground mt-2">{content.optin_page?.privacy_note}</p>
+              </div>
+              <div className="text-center">
+                <Input
+                  value={content.optin_page?.cta_button_text || "Get It Free"}
+                  onChange={(e) => updateField(["optin_page", "cta_button_text"], e.target.value)}
+                  className="text-sm font-semibold max-w-xs mx-auto text-center"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground text-center">{content.optin_page?.privacy_note}</p>
             </div>
           </Card>
 
           {/* Headline Variants */}
-          {content.optin_page?.headline_variants && content.optin_page.headline_variants.length > 0 && (
+          {headlineVariants.length > 0 && (
             <Card>
               <CardContent className="pt-5 space-y-3">
                 <h4 className="text-sm font-semibold">Headline Variants</h4>
-                {content.optin_page.headline_variants.map((v: any, i: number) => (
-                  <div key={i} className="p-3 bg-muted/50 rounded-lg space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">{v.type || v.style}</span>
+                {headlineVariants.map((v: any, i: number) => {
+                  const variantPath = content.headline_variants ? ["headline_variants", i] : ["optin_page", "headline_variants", i];
+                  return (
+                    <div key={i} className="p-3 bg-muted/50 rounded-lg space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">{v.type || v.style}</span>
+                      </div>
+                      <Input
+                        value={v.headline || v.text || ""}
+                        onChange={(e) => updateField([...variantPath, v.headline !== undefined ? "headline" : "text"], e.target.value)}
+                        className="text-sm font-semibold"
+                      />
+                      {v.reasoning && (
+                        <Textarea
+                          value={v.reasoning}
+                          onChange={(e) => updateField([...variantPath, "reasoning"], e.target.value)}
+                          className="text-xs italic min-h-[30px]"
+                        />
+                      )}
                     </div>
-                    <p className="text-sm font-semibold">{v.headline || v.text}</p>
-                    {v.reasoning && <p className="text-xs text-muted-foreground italic">{v.reasoning}</p>}
-                  </div>
-                ))}
+                  );
+                })}
               </CardContent>
             </Card>
           )}
@@ -490,34 +670,51 @@ function ReviewStep({ content, authorName, onActivate, error, isPublishing }: { 
         {/* ---- Thanks Tab ---- */}
         <TabsContent value="thankyou" className="mt-4 space-y-4">
           <Card className="overflow-hidden">
-            <div className="bg-primary/5 p-6 text-center">
-              <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-3">
+            <div className="bg-primary/5 p-6 text-center space-y-3">
+              <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center mx-auto">
                 <Check className="h-6 w-6 text-green-600" />
               </div>
-              <h3 className="text-xl font-bold mb-2">{content.thankyou_page?.headline}</h3>
-              <p className="text-sm text-muted-foreground mb-3">{content.thankyou_page?.message}</p>
-              <p className="text-sm font-medium">{content.thankyou_page?.next_step}</p>
+              <Input
+                value={content.thankyou_page?.headline || ""}
+                onChange={(e) => updateField(["thankyou_page", "headline"], e.target.value)}
+                className="text-xl font-bold text-center"
+              />
+              <Textarea
+                value={content.thankyou_page?.message || ""}
+                onChange={(e) => updateField(["thankyou_page", "message"], e.target.value)}
+                className="text-sm text-center min-h-[60px]"
+              />
+              <Input
+                value={content.thankyou_page?.next_step || ""}
+                onChange={(e) => updateField(["thankyou_page", "next_step"], e.target.value)}
+                className="text-sm font-medium text-center"
+                placeholder="Next step..."
+              />
             </div>
           </Card>
           {/* Result Intro & Book CTA */}
-          {(content.thankyou_page?.result_intro || content.thankyou_page?.book_cta) && (
-            <Card>
-              <CardContent className="pt-5 space-y-2">
-                {content.thankyou_page.result_intro && (
-                  <div>
-                    <h4 className="text-sm font-semibold mb-1">Result Introduction</h4>
-                    <p className="text-sm text-muted-foreground">{content.thankyou_page.result_intro}</p>
-                  </div>
-                )}
-                {content.thankyou_page.book_cta && (
-                  <div>
-                    <h4 className="text-sm font-semibold mb-1">Book CTA</h4>
-                    <p className="text-sm text-muted-foreground">{content.thankyou_page.book_cta}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+          <Card>
+            <CardContent className="pt-5 space-y-3">
+              <div>
+                <h4 className="text-sm font-semibold mb-1">Result Introduction</h4>
+                <Textarea
+                  value={content.thankyou_page?.result_intro || ""}
+                  onChange={(e) => updateField(["thankyou_page", "result_intro"], e.target.value)}
+                  className="text-sm min-h-[50px]"
+                  placeholder="Introduction text shown before quiz results..."
+                />
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold mb-1">Book CTA</h4>
+                <Textarea
+                  value={content.thankyou_page?.book_cta || ""}
+                  onChange={(e) => updateField(["thankyou_page", "book_cta"], e.target.value)}
+                  className="text-sm min-h-[50px]"
+                  placeholder="Call to action for your book..."
+                />
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* ---- Details Tab ---- */}
@@ -542,7 +739,7 @@ function ReviewStep({ content, authorName, onActivate, error, isPublishing }: { 
 
           {/* Nurture Sequence */}
           {(content.nurture_sequence || content.nurture_emails) && (
-            <Collapsible>
+            <Collapsible defaultOpen>
               <Card>
                 <CardContent className="pt-5">
                   <CollapsibleTrigger className="flex items-center justify-between w-full">
@@ -552,20 +749,39 @@ function ReviewStep({ content, authorName, onActivate, error, isPublishing }: { 
                     <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200" />
                   </CollapsibleTrigger>
                   <CollapsibleContent className="mt-3 space-y-3">
-                    {(content.nurture_sequence || content.nurture_emails || []).map((email: any, i: number) => (
-                      <div key={i} className="p-3 bg-muted/30 rounded-lg space-y-1 border border-border/50">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold text-primary">Email {i + 1}</span>
-                          {(email.send_delay || email.delay_days) && (
-                            <span className="text-xs text-muted-foreground">Day {email.send_delay || email.delay_days}</span>
+                    {(content.nurture_sequence || content.nurture_emails || []).map((email: any, i: number) => {
+                      const emailsKey = content.nurture_sequence ? "nurture_sequence" : "nurture_emails";
+                      return (
+                        <div key={i} className="p-3 bg-muted/30 rounded-lg space-y-2 border border-border/50">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-primary">Email {i + 1}</span>
+                            {(email.send_delay || email.delay_days) && (
+                              <span className="text-xs text-muted-foreground">Day {email.send_delay || email.delay_days}</span>
+                            )}
+                          </div>
+                          <Input
+                            value={email.subject || email.subject_line || ""}
+                            onChange={(e) => updateField([emailsKey, i, email.subject !== undefined ? "subject" : "subject_line"], e.target.value)}
+                            className="text-sm font-semibold"
+                            placeholder="Subject line..."
+                          />
+                          {email.purpose && (
+                            <Input
+                              value={email.purpose}
+                              onChange={(e) => updateField([emailsKey, i, "purpose"], e.target.value)}
+                              className="text-xs italic"
+                              placeholder="Purpose..."
+                            />
                           )}
+                          <Textarea
+                            value={email.body_outline || email.body || ""}
+                            onChange={(e) => updateField([emailsKey, i, email.body_outline !== undefined ? "body_outline" : "body"], e.target.value)}
+                            className="text-xs min-h-[60px]"
+                            placeholder="Email body outline..."
+                          />
                         </div>
-                        <p className="text-sm font-semibold">{email.subject || email.subject_line}</p>
-                        {email.purpose && <p className="text-xs text-muted-foreground italic">Purpose: {email.purpose}</p>}
-                        {email.body_outline && <p className="text-xs text-muted-foreground">{email.body_outline}</p>}
-                        {email.body && <p className="text-xs text-muted-foreground line-clamp-3">{email.body}</p>}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </CollapsibleContent>
                 </CardContent>
               </Card>
@@ -574,7 +790,7 @@ function ReviewStep({ content, authorName, onActivate, error, isPublishing }: { 
 
           {/* Social Media Posts */}
           {(content.social_media_posts || content.social_posts) && (
-            <Collapsible>
+            <Collapsible defaultOpen>
               <Card>
                 <CardContent className="pt-5">
                   <CollapsibleTrigger className="flex items-center justify-between w-full">
@@ -584,30 +800,45 @@ function ReviewStep({ content, authorName, onActivate, error, isPublishing }: { 
                     <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200" />
                   </CollapsibleTrigger>
                   <CollapsibleContent className="mt-3 space-y-3">
-                    {(content.social_media_posts || content.social_posts || []).map((post: any, i: number) => (
-                      <div key={i} className="p-3 bg-muted/30 rounded-lg space-y-1 border border-border/50">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-semibold text-primary">{post.platform}</span>
+                    {(content.social_media_posts || content.social_posts || []).map((post: any, i: number) => {
+                      const postsKey = content.social_media_posts ? "social_media_posts" : "social_posts";
+                      return (
+                        <div key={i} className="p-3 bg-muted/30 rounded-lg space-y-2 border border-border/50">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold text-primary">{post.platform}</span>
+                          </div>
+                          <Textarea
+                            value={post.caption || post.content || post.text || ""}
+                            onChange={(e) => {
+                              const key = post.caption !== undefined ? "caption" : post.content !== undefined ? "content" : "text";
+                              updateField([postsKey, i, key], e.target.value);
+                            }}
+                            className="text-sm min-h-[60px]"
+                          />
+                          {post.cta && (
+                            <Input
+                              value={post.cta}
+                              onChange={(e) => updateField([postsKey, i, "cta"], e.target.value)}
+                              className="text-xs"
+                              placeholder="CTA..."
+                            />
+                          )}
                         </div>
-                        <p className="text-sm text-foreground whitespace-pre-line">{post.caption || post.content || post.text}</p>
-                        {post.cta && <p className="text-xs text-primary font-medium">CTA: {post.cta}</p>}
-                        {post.hashtags && <p className="text-xs text-muted-foreground">{Array.isArray(post.hashtags) ? post.hashtags.join(" ") : post.hashtags}</p>}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </CollapsibleContent>
                 </CardContent>
               </Card>
             </Collapsible>
           )}
-
-          <p className="text-xs text-muted-foreground italic">
-            Your opt-in page, contact tags, and lead capture will be created automatically.
-          </p>
         </TabsContent>
       </Tabs>
 
       <div className="flex flex-col sm:flex-row gap-3 pt-2">
-        <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon. Publish now and request changes from ABBY later.")}>Edit</Button>
+        <Button variant="outline" className="flex-1" onClick={onSaveDraft} disabled={isSavingDraft}>
+          <Save className="h-4 w-4 mr-2" />
+          {isSavingDraft ? "Saving..." : "Save Draft"}
+        </Button>
         <Button className="flex-1" size="lg" onClick={() => onActivate()} disabled={isPublishing}>
           {isPublishing ? (
             <><Sparkles className="h-4 w-4 mr-2 animate-spin" /> Publishing...</>
@@ -675,6 +906,27 @@ function PublishSuccessStep({ authorName, authorId, liveUrl, copied, onCopy }: {
         </Card>
       )}
 
+      {/* Next steps guidance */}
+      <Card className="p-4 border-teal-300 dark:border-teal-700 bg-teal-50 dark:bg-teal-950/30">
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-teal-800 dark:text-teal-200">📋 What happens next?</h3>
+          <ul className="text-sm text-teal-700 dark:text-teal-300 space-y-2">
+            <li className="flex items-start gap-2">
+              <Check className="h-4 w-4 shrink-0 mt-0.5" />
+              <span>Your lead magnet opt-in page is now live at the link above</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Check className="h-4 w-4 shrink-0 mt-0.5" />
+              <span>Readers who opt in will be captured automatically and receive your quiz + results</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <ArrowRight className="h-4 w-4 shrink-0 mt-0.5" />
+              <span>Share this link on all your social channels to start building your email list</span>
+            </li>
+          </ul>
+        </div>
+      </Card>
+
       <Card className="p-4 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30">
         <div className="flex gap-3">
           <div className="shrink-0 w-9 h-9 rounded-full bg-amber-200 dark:bg-amber-800 flex items-center justify-center">
@@ -683,7 +935,7 @@ function PublishSuccessStep({ authorName, authorId, liveUrl, copied, onCopy }: {
           <div className="flex-1">
             <p className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-1">Abby says</p>
             <p className="text-sm text-amber-700 dark:text-amber-300">
-              Your lead magnet is live! ABBY will use it to attract leads automatically. Every new follower who opts in will receive it instantly. Share your link on social media, in your email signature, and on your website.
+              Your lead magnet is live! Now let's get it in front of your audience. Head to Social Media to create and schedule posts that drive traffic to your opt-in page across all platforms.
             </p>
           </div>
         </div>
@@ -691,9 +943,14 @@ function PublishSuccessStep({ authorName, authorId, liveUrl, copied, onCopy }: {
 
       <SocialDistributionPack authorId={authorId} content={socialPack} onContentLoaded={setSocialPack} />
 
-      <Button className="w-full" size="lg" onClick={() => navigate("/dashboard?section=marketing-hub&highlight=lead-magnets")}>
-        Activate My Marketing Campaign <ArrowRight className="h-4 w-4 ml-2" />
-      </Button>
+      <div className="flex flex-col sm:flex-row gap-3">
+        <Button className="flex-1" size="lg" onClick={() => navigate("/dashboard?section=marketing-hub&highlight=lead-magnets")}>
+          Activate My Marketing Campaign <ArrowRight className="h-4 w-4 ml-2" />
+        </Button>
+        <Button variant="outline" className="flex-1" size="lg" onClick={() => navigate("/dashboard?section=brand-products&node=BP-03")}>
+          <Share2 className="h-4 w-4 mr-2" /> Set Up Social Media
+        </Button>
+      </div>
 
       <div className="text-center">
         <Button variant="link" className="text-sm text-muted-foreground" onClick={() => navigate("/brand-products")}>Go back to Brand Products</Button>
