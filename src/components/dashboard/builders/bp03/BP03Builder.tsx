@@ -100,6 +100,10 @@ export default function BP03Builder({ authorId }: Props) {
         if (node.status === "live") {
           setTimeout(() => setContent((prev: any) => ({ ...prev, activated: true })), 0);
         }
+      } else if (node?.content_json && (node.content_json as any)?.source === "BP-02") {
+        // Pre-loaded from Lead Magnets but not yet at content_ready
+        setContent(node.content_json);
+        setStep(2);
       }
     })();
   }, [authorId]);
@@ -259,7 +263,24 @@ export default function BP03Builder({ authorId }: Props) {
           </AbbyCard>
         )}
 
-        {step === 2 && content && <ReviewStep content={content} authorName={authorName} bookTitle={bookTitle || detectedBookTitle || "your book"} onActivate={handlePublish} />}
+        {step === 2 && content && (
+          <>
+            {(content as any)?.source === "BP-02" && (
+              <Card className="p-4 border-teal-300 dark:border-teal-700 bg-teal-50/50 dark:bg-teal-950/30">
+                <div className="flex gap-3 items-start">
+                  <div className="shrink-0 w-8 h-8 rounded-full bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center">
+                    <Sparkles className="h-4 w-4 text-teal-600 dark:text-teal-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-teal-800 dark:text-teal-200">Pre-loaded from Lead Magnets</p>
+                    <p className="text-xs text-teal-600 dark:text-teal-400 mt-0.5">Abby has pre-loaded social posts from your Lead Magnet. Review and activate them below.</p>
+                  </div>
+                </div>
+              </Card>
+            )}
+            <ReviewStep content={content} authorName={authorName} bookTitle={bookTitle || detectedBookTitle || "your book"} onActivate={handlePublish} />
+          </>
+        )}
 
         {step === 3 && !content?.activated && (
           <AbbyCard>

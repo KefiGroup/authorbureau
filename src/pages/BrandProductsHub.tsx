@@ -16,6 +16,7 @@ interface NodeCard {
   status: NodeStatus;
   microsite_url: string | null;
   current_step: number;
+  content_source: string | null;
 }
 
 interface NodeDef {
@@ -84,7 +85,7 @@ export default function BrandProductsHub() {
         .maybeSingle();
 
       if (!profile) {
-        setNodes(FALLBACK_NODES.map(n => ({ ...n, personalised_name: null, status: n.status as NodeStatus, microsite_url: null, current_step: 1 })));
+        setNodes(FALLBACK_NODES.map(n => ({ ...n, personalised_name: null, status: n.status as NodeStatus, microsite_url: null, current_step: 1, content_source: null })));
         setLoading(false);
         return;
       }
@@ -94,13 +95,13 @@ export default function BrandProductsHub() {
 
       const { data: nodeRows } = await supabase
         .from("author_nodes")
-        .select("node_id, node_name, personalised_name, status, microsite_url, current_step")
+        .select("node_id, node_name, personalised_name, status, microsite_url, current_step, content_json")
         .eq("author_id", profile.id)
         .like("node_id", "BP-%")
         .order("node_id");
 
       if (!nodeRows || nodeRows.length === 0) {
-        setNodes(FALLBACK_NODES.map(n => ({ ...n, personalised_name: null, status: n.status as NodeStatus, microsite_url: null, current_step: 1 })));
+        setNodes(FALLBACK_NODES.map(n => ({ ...n, personalised_name: null, status: n.status as NodeStatus, microsite_url: null, current_step: 1, content_source: null })));
       } else {
         setNodes(nodeRows.map(r => ({
           node_id: r.node_id,
@@ -109,6 +110,7 @@ export default function BrandProductsHub() {
           status: r.status as NodeStatus,
           microsite_url: r.microsite_url || null,
           current_step: (r as any).current_step || 1,
+          content_source: (r.content_json as any)?.source || null,
         })));
       }
       setLoading(false);
@@ -138,6 +140,11 @@ export default function BrandProductsHub() {
   const getNodeStatus = (nodeId: string): NodeStatus => {
     const node = nodes.find(n => n.node_id === nodeId);
     return node?.status || "not_started";
+  };
+
+  const getContentSource = (nodeId: string): string | null => {
+    const node = nodes.find(n => n.node_id === nodeId);
+    return node?.content_source || null;
   };
 
   const getStatusBadge = (nodeId: string, def: NodeDef) => {
@@ -172,31 +179,41 @@ export default function BrandProductsHub() {
 
   const liveCount = nodes.filter(n => n.status === "live").length;
 
-  const renderNodeCard = (def: NodeDef) => (
-    <div key={def.id} className="rounded-2xl border border-border bg-[hsl(var(--card))] p-5 flex flex-col gap-3 hover:shadow-lg transition-shadow">
-      <div className="flex items-start justify-between">
-        <span className="text-2xl">{def.icon}</span>
-        {getStatusBadge(def.id, def)}
+  const renderNodeCard = (def: NodeDef) => {
+    const source = getContentSource(def.id);
+    return (
+      <div key={def.id} className="rounded-2xl border border-border bg-[hsl(var(--card))] p-5 flex flex-col gap-3 hover:shadow-lg transition-shadow">
+        <div className="flex items-start justify-between">
+          <span className="text-2xl">{def.icon}</span>
+          <div className="flex flex-col items-end gap-1">
+            {getStatusBadge(def.id, def)}
+            {source === "BP-02" && (
+              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300">
+                📝 From Lead Magnets
+              </span>
+            )}
+          </div>
+        </div>
+        <h3 className="font-heading text-base font-bold text-foreground">{def.name}</h3>
+        <p className="text-xs text-muted-foreground leading-relaxed flex-1">{def.description}</p>
+        <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+          <span className="font-semibold text-foreground">{def.revenue}</span>
+        </div>
+        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+          <div className="flex items-center gap-1"><Clock className="h-3 w-3" /> {def.time}</div>
+          <StarRating count={def.difficulty} />
+        </div>
+        <Button
+          size="sm"
+          variant={isTierUnlocked ? "default" : "secondary"}
+          className="w-full text-xs mt-1"
+          onClick={() => handleCardClick(def.id)}
+        >
+          {isTierUnlocked ? "Build This Product →" : "Upgrade to Unlock"}
+        </Button>
       </div>
-      <h3 className="font-heading text-base font-bold text-foreground">{def.name}</h3>
-      <p className="text-xs text-muted-foreground leading-relaxed flex-1">{def.description}</p>
-      <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-        <span className="font-semibold text-foreground">{def.revenue}</span>
-      </div>
-      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-        <div className="flex items-center gap-1"><Clock className="h-3 w-3" /> {def.time}</div>
-        <StarRating count={def.difficulty} />
-      </div>
-      <Button
-        size="sm"
-        variant={isTierUnlocked ? "default" : "secondary"}
-        className="w-full text-xs mt-1"
-        onClick={() => handleCardClick(def.id)}
-      >
-        {isTierUnlocked ? "Build This Product →" : "Upgrade to Unlock"}
-      </Button>
-    </div>
-  );
+    );
+  };
 
   const marketingNodes = BRAND_NODES.filter(n => n.section === "marketing");
   const digitalNodes = BRAND_NODES.filter(n => n.section === "digital");
