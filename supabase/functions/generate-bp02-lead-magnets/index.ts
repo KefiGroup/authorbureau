@@ -77,6 +77,10 @@ serve(async (req) => {
 
     const businessPlanExcerpt = businessPlanAsset?.content ? businessPlanAsset.content.substring(0, 3000) : "";
     const sourceMaterialExcerpt = sourceMaterialAsset?.content ? sourceMaterialAsset.content.substring(0, 2000) : "";
+    console.log("Enrichment: businessPlan=", businessPlanExcerpt.length, "chars, sourceMaterial=", sourceMaterialExcerpt.length, "chars, hasContext=", !!context);
+    if (!businessPlanExcerpt && !sourceMaterialExcerpt && !context) {
+      console.warn("WARNING: No enrichment data found — output may be generic");
+    }
 
     const keyFrameworks = context?.key_frameworks ? JSON.stringify(context.key_frameworks) : "N/A";
     const audiencePersona = context?.target_audience_persona ? JSON.stringify(context.target_audience_persona) : "readers interested in personal growth";
