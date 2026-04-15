@@ -1,21 +1,61 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Headphones, BookOpen, Package, Star } from "lucide-react";
 import type { BookWithProducts, ThemeVars } from "./types";
 import { fadeUp, getLowestPrice } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
+import type { LiveNode } from "./AuthorLeadMagnetsSection";
+
+/** Maps node_id prefixes to format badge info */
+const FORMAT_BADGES: Record<string, { label: string; icon: typeof BookOpen }> = {
+  "BP-08": { label: "Special Edition", icon: Star },
+  "BA-11": { label: "Audiobook", icon: Headphones },
+  "BP-06": { label: "Workbook", icon: BookOpen },
+  "BA-17": { label: "Bundle", icon: Package },
+};
 
 interface Props {
   authorSlug: string;
   displayName: string;
   booksWithProducts: BookWithProducts[];
+  liveNodes?: LiveNode[];
   theme: AuthorTheme;
   v: ThemeVars;
 }
 
-export default function AuthorBooksSection({ authorSlug, displayName, booksWithProducts, theme, v }: Props) {
+export default function AuthorBooksSection({ authorSlug, displayName, booksWithProducts, liveNodes = [], theme, v }: Props) {
   if (booksWithProducts.length === 0) return null;
   const totalBooks = booksWithProducts.length;
+
+  // Derive per-book format badges from live nodes
+  const bookFormatBadges = new Map<string, { label: string; icon: typeof BookOpen }[]>();
+  liveNodes.forEach(node => {
+    const prefix = node.node_id.substring(0, 5);
+    const badge = FORMAT_BADGES[prefix];
+    if (!badge) return;
+    // Try to match node to a book via content_json.book_id or content_json.book_slug
+    const bookId = node.content_json?.book_id as string | undefined;
+    const bookSlug = node.content_json?.book_slug as string | undefined;
+    booksWithProducts.forEach(book => {
+      if ((bookId && book.id === bookId) || (bookSlug && book.slug === bookSlug)) {
+        const existing = bookFormatBadges.get(book.id) || [];
+        if (!existing.find(b => b.label === badge.label)) {
+          existing.push(badge);
+          bookFormatBadges.set(book.id, existing);
+        }
+      }
+    });
+    // If no book match, apply to all books (author-level node)
+    if (!bookId && !bookSlug) {
+      booksWithProducts.forEach(book => {
+        const existing = bookFormatBadges.get(book.id) || [];
+        if (!existing.find(b => b.label === badge.label)) {
+          existing.push(badge);
+          bookFormatBadges.set(book.id, existing);
+        }
+      });
+    }
+  });
 
   return (
     <section id="books-section" className="py-14 md:py-20" style={{ background: v.secondaryBg }}>
@@ -56,14 +96,22 @@ export default function AuthorBooksSection({ authorSlug, displayName, booksWithP
                     </Link>
                     {book.subtitle && <p className="text-sm italic mb-2" style={{ color: v.bodyText }}>{book.subtitle}</p>}
                     {shortDesc && <p className="text-sm leading-relaxed line-clamp-3 mb-3" style={{ color: v.bodyText }}>{shortDesc}</p>}
-                    {book.badges && book.badges.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5">
-                        {book.badges.map((badge) => (
-                          <span key={badge} className="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full"
-                            style={{ background: v.accent, color: v.accentText }}>⭐ {badge}</span>
-                        ))}
-                      </div>
-                    )}
+                    {/* Format badges from live nodes + existing badges */}
+                    <div className="flex flex-wrap gap-1.5">
+                      {(bookFormatBadges.get(book.id) || []).map(fb => {
+                        const FIcon = fb.icon;
+                        return (
+                          <span key={fb.label} className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full"
+                            style={{ background: `${v.primary}20`, color: v.primary, border: `1px solid ${v.primary}40` }}>
+                            <FIcon className="h-2.5 w-2.5" /> {fb.label}
+                          </span>
+                        );
+                      })}
+                      {book.badges && book.badges.map((badge) => (
+                        <span key={badge} className="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full"
+                          style={{ background: v.accent, color: v.accentText }}>⭐ {badge}</span>
+                      ))}
+                    </div>
                   </div>
                   <div className="shrink-0 p-6 flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-3 md:border-l" style={{ borderColor: v.cardBorder }}>
                     {lowestPrice && <span className="text-lg font-bold" style={{ color: v.accent, fontFamily: theme.headingFont }}>{lowestPrice}</span>}
