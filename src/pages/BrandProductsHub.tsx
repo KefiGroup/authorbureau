@@ -16,6 +16,7 @@ interface NodeCard {
   status: NodeStatus;
   microsite_url: string | null;
   current_step: number;
+  content_source: string | null;
 }
 
 interface NodeDef {
