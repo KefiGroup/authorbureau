@@ -175,6 +175,11 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
   const [analyzedBookList, setAnalyzedBookList] = useState<Array<{ id: string; title: string }>>([]);
   const [showJourneyOnboarding, setShowJourneyOnboarding] = useState(false);
 
+  // Refetch stats when returning to dashboard or changing sections
+  useEffect(() => {
+    refetchStats();
+  }, [activeSection]);
+
   // Derive journey state from centralized stats
   useEffect(() => {
     setHasBooks(stats.bookCount > 0);
