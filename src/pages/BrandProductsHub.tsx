@@ -158,17 +158,7 @@ export default function BrandProductsHub() {
     return <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${cfg.cls}`}>{cfg.label}</span>;
   };
 
-  const [authorSlug, setAuthorSlug] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("author_profiles")
-      .select("author_slug")
-      .eq("user_id", user.id)
-      .maybeSingle()
-      .then(({ data }) => setAuthorSlug(data?.author_slug || null));
-  }, [user]);
 
   const handleCardClick = (nodeId: string) => {
     if (!isTierUnlocked) { navigate("/pricing"); return; }
