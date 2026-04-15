@@ -387,7 +387,7 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
                 </button>
               );
             })}
-            ))}
+
           </div>
         </div>
       </div>
