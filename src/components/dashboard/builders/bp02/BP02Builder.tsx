@@ -255,21 +255,28 @@ export default function BP02Builder({ authorId }: Props) {
         .eq("node_id", "BP-02")
         .maybeSingle();
 
+      const slug = authorSlug || authorName.toLowerCase().replace(/\s+/g, "-");
+      const micrositeUrl = `${window.location.origin}/${slug}/free-gift`;
+
       if (existingNode) {
-        await supabase.from("author_nodes").update({
+        const { error: updateErr } = await supabase.from("author_nodes").update({
           status: "live",
           content_json: { ...content, publishChannels },
           activated_at: new Date().toISOString(),
+          microsite_url: micrositeUrl,
         }).eq("id", existingNode.id);
+        if (updateErr) throw new Error(`Failed to publish: ${updateErr.message}`);
       } else {
-        await supabase.from("author_nodes").insert({
+        const { error: insertErr } = await supabase.from("author_nodes").insert({
           author_id: authorId!,
           node_id: "BP-02",
           node_name: "Lead Magnets",
           status: "live",
           content_json: { ...content, publishChannels },
           activated_at: new Date().toISOString(),
+          microsite_url: micrositeUrl,
         });
+        if (insertErr) throw new Error(`Failed to publish: ${insertErr.message}`);
       }
 
       // Push nurture emails to BP-04 (Email Marketing) — only if channel selected
@@ -344,9 +351,7 @@ export default function BP02Builder({ authorId }: Props) {
         }
       }
 
-      const slug = authorSlug || authorName.toLowerCase().replace(/\s+/g, "-");
-      const url = `${window.location.origin}/${slug}/free-gift`;
-      setLiveUrl(url);
+      setLiveUrl(micrositeUrl);
       setContent((prev: any) => ({ ...prev, activated: true }));
       toast.success("Your lead magnet is live! 🎉");
     } catch (e: any) {
