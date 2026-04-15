@@ -104,11 +104,29 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
     sectionParam || initialSection || (location.pathname === "/my-books" ? "my-books" : "overview")
   );
 
+  // Sections that redirect to standalone pages — handle on URL load too
+  const REDIRECT_SECTIONS: Record<string, string> = {
+    "brand-products-hub": "/brand-products",
+    "revenue-streams": "/brand-products",
+    "marketing-channels": "/build-authority",
+    "authority-builders": "/yield-revenue",
+    "analytics": "/revenue-dashboard",
+    "abby-coach": "/abby-coach",
+    "connect-settings": "/account-settings?tab=connections",
+  };
+
   // Keep dashboard state in sync when URL params change (e.g. internal links)
   useEffect(() => {
     const urlSection = searchParams.get("section") as DashboardSection | null;
-    if (urlSection && urlSection !== activeSection) {
-      setActiveSectionState(urlSection);
+    if (urlSection) {
+      const redirectPath = REDIRECT_SECTIONS[urlSection];
+      if (redirectPath) {
+        dashboardNavigate(redirectPath, { replace: true });
+        return;
+      }
+      if (urlSection !== activeSection) {
+        setActiveSectionState(urlSection);
+      }
     }
   }, [searchParams]);
 
@@ -174,6 +192,11 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
   const [pendingReviewCount, setPendingReviewCount] = useState(0);
   const [analyzedBookList, setAnalyzedBookList] = useState<Array<{ id: string; title: string }>>([]);
   const [showJourneyOnboarding, setShowJourneyOnboarding] = useState(false);
+
+  // Refetch stats when returning to dashboard or changing sections
+  useEffect(() => {
+    refetchStats();
+  }, [activeSection]);
 
   // Derive journey state from centralized stats
   useEffect(() => {
