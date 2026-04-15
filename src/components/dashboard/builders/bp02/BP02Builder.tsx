@@ -1197,76 +1197,13 @@ function ReviewStep({
         </TabsContent>
       </Tabs>
 
-      {/* ---- Channel Selection Panel ---- */}
-      <Card className="p-5 border-primary/30 bg-primary/5">
-        <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-          <Globe className="h-4 w-4 text-primary" /> Where do you want to publish?
-        </h4>
-        <div className="space-y-3">
-          {/* Opt-in Page — always on */}
-          <label className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 border border-border">
-            <Checkbox checked={publishChannels.optinPage} disabled className="mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-semibold">Opt-in Page (your microsite)</p>
-              <p className="text-xs text-muted-foreground">Your live lead capture page — always included</p>
-            </div>
-            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40 px-2 py-0.5 rounded-full">CORE</span>
-          </label>
-
-          {/* Email Nurture */}
-          {nurureCount > 0 && (
-            <label className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 border border-border cursor-pointer hover:bg-muted/60 transition-colors">
-              <Checkbox
-                checked={publishChannels.emailNurture}
-                onCheckedChange={(v) => setPublishChannels(prev => ({ ...prev, emailNurture: !!v }))}
-                className="mt-0.5"
-              />
-              <div className="flex-1">
-                <p className="text-sm font-semibold flex items-center gap-2">
-                  <Mail className="h-3.5 w-3.5 text-indigo-500" /> Email Nurture Sequence
-                </p>
-                <p className="text-xs text-muted-foreground">{nurureCount} emails pushed to Email Marketing (BP-04)</p>
-              </div>
-            </label>
-          )}
-
-          {/* Social Platforms */}
-          {socialCount > 0 && (
-            <>
-              <div className="pt-1">
-                <p className="text-xs font-medium text-muted-foreground mb-2">Social Media Distribution</p>
-              </div>
-              {[
-                { key: "linkedin" as const, label: "LinkedIn", icon: "💼" },
-                { key: "instagram" as const, label: "Instagram", icon: "📸" },
-                { key: "facebook" as const, label: "Facebook", icon: "👥" },
-                { key: "x" as const, label: "X / Twitter", icon: "𝕏" },
-              ].map(({ key, label, icon }) => (
-                <label key={key} className="flex items-center gap-3 p-3 rounded-lg bg-muted/40 border border-border cursor-pointer hover:bg-muted/60 transition-colors">
-                  <Checkbox
-                    checked={publishChannels[key]}
-                    onCheckedChange={(v) => setPublishChannels(prev => ({ ...prev, [key]: !!v }))}
-                  />
-                  <span className="text-base">{icon}</span>
-                  <p className="text-sm font-medium">{label}</p>
-                </label>
-              ))}
-            </>
-          )}
-        </div>
-      </Card>
-
       <div className="flex flex-col sm:flex-row gap-3 pt-2">
         <Button variant="outline" className="flex-1" onClick={onSaveDraft} disabled={isSavingDraft}>
           <Save className="h-4 w-4 mr-2" />
           {isSavingDraft ? "Saving..." : "Save Draft"}
         </Button>
-        <Button className="flex-1" size="lg" onClick={() => onActivate()} disabled={isPublishing}>
-          {isPublishing ? (
-            <><Sparkles className="h-4 w-4 mr-2 animate-spin" /> Publishing...</>
-          ) : (
-            <>Publish Selected <ArrowRight className="h-4 w-4 ml-2" /></>
-          )}
+        <Button className="flex-1" size="lg" onClick={onNext}>
+          Next: Publish <ArrowRight className="h-4 w-4 ml-2" />
         </Button>
       </div>
       {error && (
